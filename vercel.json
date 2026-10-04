@@ -1,8 +1,14 @@
 {
+  "functions": {
+    "api/index.js": {
+      "memory": 256,
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
     {
-      "source": "/downloads/:path*",
-      "destination": "/downloads/:path*"
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
@@ -11,16 +17,18 @@
   ],
   "headers": [
     {
+      "source": "/api/:path*",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    },
+    {
       "source": "/(.*)\\.apk",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/vnd.android.package-archive"
-        },
-        {
-          "key": "Content-Disposition",
-          "value": "attachment; filename=\"KostKu-Android.apk\""
-        }
+        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"KostKu-Android.apk\"" }
       ]
     }
   ]

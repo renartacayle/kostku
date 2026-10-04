@@ -263,44 +263,45 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   });
 });
 
-const DB_FILE = path.join(__dirname, 'db.json');
-
-// Initialize DB file if not exists
-if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify({ 
-    users: [], kosts: [], complaints: [], activities: [], 
-    invoices: [], expenses: [], iot_meters: [], applications: [] 
-  }, null, 2));
-}
-
-const readDB = () => {
-  const db = JSON.parse(fs.readFileSync(DB_FILE));
-  if (!db.complaints) db.complaints = [];
-  if (!db.activities) db.activities = [];
-  if (!db.invoices) db.invoices = [];
-  if (!db.expenses) db.expenses = [];
-  if (!db.iot_meters) db.iot_meters = [];
-  if (!db.applications) db.applications = [];
-  if (!db.transactions) db.transactions = [];
-  if (!db.contracts) db.contracts = [];
-  if (!db.packages) db.packages = [];
-  if (!db.inspections) db.inspections = [];
-  return db;
-};
-
-// ── In-memory cache ──────────────────────────────────
+// ── In-memory Database (Vercel-compatible) ────────────────────────────────────
 let _dbCache = null;
+
+const loadSeedData = () => {
+  try {
+    const DB_FILE = path.join(__dirname, 'db.json');
+    return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+  } catch (e) {
+    return { users: [], kosts: [], complaints: [], activities: [], invoices: [], expenses: [], iot_meters: [], applications: [] };
+  }
+};
 
 const getDB = () => {
   if (!_dbCache) {
-    _dbCache = readDB();
+    _dbCache = loadSeedData();
+    if (!_dbCache.complaints) _dbCache.complaints = [];
+    if (!_dbCache.activities) _dbCache.activities = [];
+    if (!_dbCache.invoices) _dbCache.invoices = [];
+    if (!_dbCache.expenses) _dbCache.expenses = [];
+    if (!_dbCache.iot_meters) _dbCache.iot_meters = [];
+    if (!_dbCache.applications) _dbCache.applications = [];
+    if (!_dbCache.transactions) _dbCache.transactions = [];
+    if (!_dbCache.contracts) _dbCache.contracts = [];
+    if (!_dbCache.packages) _dbCache.packages = [];
+    if (!_dbCache.inspections) _dbCache.inspections = [];
+    if (!_dbCache.staff) _dbCache.staff = [];
+    if (!_dbCache.settings) _dbCache.settings = {};
+    if (!_dbCache.google_config) _dbCache.google_config = {};
   }
   return _dbCache;
 };
 
+// writeDB: update in-memory; try file write (works locally, silently skip on Vercel read-only FS)
 const writeDB = (data) => {
-  _dbCache = data; // update cache immediately
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  _dbCache = data;
+  try {
+    const DB_FILE = path.join(__dirname, 'db.json');
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  } catch (_) { /* read-only FS on serverless — data stays in memory */ }
 };
 
 // Helper: Add Activity
@@ -1720,6 +1721,11 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`KostKu API running on http://0.0.0.0:${PORT}`);
-});
+// Start server only when run directly (local dev), not when required by Vercel serverless
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`KostKu API running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+module.exports = app;
