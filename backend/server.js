@@ -1,0 +1,1725 @@
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const nodemailer = require('nodemailer');
+
+// Setup mock transporter for Gmail (In real app, add real auth credentials)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'kostku.demo@gmail.com',
+    pass: 'dummy-password'
+  }
+});
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(cors({ origin: '*' }));
+app.use(express.json({ limit: '10mb' }));
+
+// Serve binaries for direct in-app update downloads & browser downloads
+const DIST_BINARIES_DIR = path.join(__dirname, '..', 'dist-binaries');
+
+const handleApkDownload = (req, res) => {
+  const apkPath = path.resolve(DIST_BINARIES_DIR, 'KostKu-Android.apk');
+  if (!fs.existsSync(apkPath)) {
+    return res.status(404).send('APK file not found on server.');
+  }
+
+  const stat = fs.statSync(apkPath);
+  res.writeHead(200, {
+    'Content-Type': 'application/vnd.android.package-archive',
+    'Content-Disposition': 'attachment; filename="KostKu.apk"',
+    'Content-Length': stat.size,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Connection': 'close',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  const fileStream = fs.createReadStream(apkPath);
+  fileStream.pipe(res);
+};
+
+// Explicit APK download routes with headers optimized for Android Chrome
+app.get('/downloads/KostKu-Android.apk', handleApkDownload);
+app.get('/api/download/apk', handleApkDownload);
+app.get('/apk', handleApkDownload);
+
+const handleExeDownload = (req, res) => {
+  const exePath = path.resolve(DIST_BINARIES_DIR, 'KostKu-Windows.exe');
+  if (!fs.existsSync(exePath)) {
+    return res.status(404).send('Executable file not found on server.');
+  }
+
+  const stat = fs.statSync(exePath);
+  res.writeHead(200, {
+    'Content-Type': 'application/vnd.microsoft.portable-executable',
+    'Content-Disposition': 'attachment; filename="KostKu-Setup.exe"',
+    'Content-Length': stat.size,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Connection': 'close',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  const fileStream = fs.createReadStream(exePath);
+  fileStream.pipe(res);
+};
+
+app.get(['/downloads/KostKu-Windows.exe', '/api/download/exe', '/exe'], handleExeDownload);
+
+// Friendly Mobile Download Page
+app.get(['/download', '/unduh'], (req, res) => {
+  const apkPath = path.resolve(DIST_BINARIES_DIR, 'KostKu-Android.apk');
+  const sizeMb = fs.existsSync(apkPath) ? (fs.statSync(apkPath).size / (1024 * 1024)).toFixed(1) : '20.0';
+  
+  res.send(`<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unduh KostKu APK Android</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 32px 24px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    p.subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px; }
+    .badge {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 16px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 20px -5px rgba(34, 197, 94, 0.4);
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn-download:active { transform: scale(0.98); }
+    .guide {
+      margin-top: 28px;
+      text-align: left;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 16px;
+      padding: 16px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .guide-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+    .step:last-child { margin-bottom: 0; }
+    .step-num {
+      background: #334155;
+      color: #e2e8f0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🏠</div>
+    <h1>KostKu Android</h1>
+    <div class="badge">Versi 1.0.3 • ${sizeMb} MB • Official Build</div>
+    <p class="subtitle">Aplikasi Manajemen & Pencarian Kost Pintar</p>
+
+    <a href="/downloads/KostKu-Android.apk" class="btn-download" download="KostKu.apk">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      Unduh APK Sekarang
+    </a>
+
+    <div class="guide">
+      <div class="guide-title">
+        <span>💡</span> Cara Pasang APK di Android:
+      </div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>Klik tombol <strong>Unduh APK Sekarang</strong> di atas.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>Jika muncul pesan <em>"File mungkin berbahaya"</em>, klik <strong>"Tetap download"</strong> (karena diunduh langsung dari server lokal).</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>Setelah selesai, ketuk notifikasi atau buka <strong>Folder Download</strong> lalu klik <strong>KostKu.apk</strong> & pilih <strong>Install</strong>.</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`);
+});
+
+if (fs.existsSync(DIST_BINARIES_DIR)) {
+  app.use('/downloads', express.static(DIST_BINARIES_DIR));
+}
+
+// Endpoint: App Version Check for Auto-Update (Supports both /api/app-version & /app-version)
+app.get(['/api/app-version', '/app-version'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  const host = req.get('host') || '192.168.18.6:3001';
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const baseUrl = `${protocol}://${host}`;
+
+  res.json({
+    version: '1.0.3',
+    buildNumber: 103,
+    releaseDate: '2026-09-29',
+    title: 'Pembaruan KostKu v1.0.3 Tersedia! 🚀',
+    changelog: [
+      'Tampilan UI Pencarian & Detail Kost adaptif responsif sesuai ukuran layar (HP, Tablet, Desktop)',
+      'Denah 2D interaktif arsitektur kamar & gedung berskala proporsional',
+      '10 Demo Kost lengkap dengan foto asli, spesifikasi, dan denah',
+      'Floating Action Bar pemesanan sewa instan untuk pengguna Android'
+    ],
+    downloadUrls: {
+      windows: '/downloads/KostKu-Windows.exe',
+      android: '/downloads/KostKu-Android.apk',
+      androidDirect: '/apk',
+      androidAbsolute: `${baseUrl}/downloads/KostKu-Android.apk`,
+      windowsAbsolute: `${baseUrl}/downloads/KostKu-Windows.exe`
+    },
+    isCritical: false
+  });
+});
+
+const DB_FILE = path.join(__dirname, 'db.json');
+
+// Initialize DB file if not exists
+if (!fs.existsSync(DB_FILE)) {
+  fs.writeFileSync(DB_FILE, JSON.stringify({ 
+    users: [], kosts: [], complaints: [], activities: [], 
+    invoices: [], expenses: [], iot_meters: [], applications: [] 
+  }, null, 2));
+}
+
+const readDB = () => {
+  const db = JSON.parse(fs.readFileSync(DB_FILE));
+  if (!db.complaints) db.complaints = [];
+  if (!db.activities) db.activities = [];
+  if (!db.invoices) db.invoices = [];
+  if (!db.expenses) db.expenses = [];
+  if (!db.iot_meters) db.iot_meters = [];
+  if (!db.applications) db.applications = [];
+  if (!db.transactions) db.transactions = [];
+  if (!db.contracts) db.contracts = [];
+  if (!db.packages) db.packages = [];
+  if (!db.inspections) db.inspections = [];
+  return db;
+};
+
+// ── In-memory cache ──────────────────────────────────
+let _dbCache = null;
+
+const getDB = () => {
+  if (!_dbCache) {
+    _dbCache = readDB();
+  }
+  return _dbCache;
+};
+
+const writeDB = (data) => {
+  _dbCache = data; // update cache immediately
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+};
+
+// Helper: Add Activity
+const addActivity = (db, kostUid, type, text) => {
+  db.activities.push({
+    id: 'ACT-' + Date.now(),
+    kostUid,
+    type, 
+    text,
+    time: new Date().toISOString()
+  });
+};
+
+// Endpoint: Register
+app.post('/api/register', (req, res) => {
+  const { role, name, email, password, kostName, kostUid, kamar, phone, address, lat, lng, imageFront, description } = req.body;
+  const db = getDB();
+
+  if (!password || !name) {
+    return res.status(400).json({ error: 'Password dan Nama harus diisi' });
+  }
+
+  const newUser = {
+    id: Date.now().toString(),
+    name, password, role
+  };
+
+  if (role === 'owner') {
+    if (!email) return res.status(400).json({ error: 'Email harus diisi untuk pemilik' });
+    if (db.users.find(u => u.email === email)) {
+      return res.status(400).json({ error: 'Email sudah terdaftar!' });
+    }
+    
+    // Validate GPS and Image for owner
+    if (!lat || !lng) return res.status(400).json({ error: 'Lokasi GPS Kost wajib diisi untuk verifikasi' });
+    if (!imageFront) return res.status(400).json({ error: 'Foto Depan Kost wajib diunggah untuk verifikasi' });
+
+    newUser.email = email;
+    const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+    newUser.kostUid = generatedUid;
+    db.users.push(newUser);
+    
+    db.kosts.push({
+      uid: generatedUid,
+      kostName: kostName || 'Kost Baru',
+      ownerId: newUser.id,
+      address: address || '',
+      location: { lat, lng },
+      images: [imageFront],
+      description: description || '',
+      status: 'verified', // Auto verified for demo
+      settings: {
+        rooms: [],
+        employees: [],
+        bedsheetCount: 0,
+        waterRate: 0,
+        electricityRate: 0,
+        depositAmount: 0
+      }
+    });
+    
+    addActivity(db, generatedUid, 'pengguna', `Kost ${kostName || 'Baru'} berhasil dibuat dan diverifikasi`);
+    writeDB(db);
+    
+    return res.json({ message: 'Registrasi Owner Berhasil!', uid: generatedUid });
+    
+  } else if (role === 'user') {
+    // Normal user registration (tenant doesn't need to join kost immediately)
+    if (email) newUser.email = email;
+    if (phone) newUser.phone = phone;
+    
+    db.users.push(newUser);
+    writeDB(db);
+
+    return res.json({ message: 'Berhasil mendaftar sebagai pencari kost' });
+  } else {
+    res.status(400).json({ error: 'Role tidak valid' });
+  }
+});
+
+// Endpoint: Update Tenant Bedsheets
+app.put('/api/users/:id/bedsheets', (req, res) => {
+  const { id } = req.params;
+  const { bedsheets } = req.body;
+  const db = getDB();
+  
+  const user = db.users.find(u => u.id === id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  
+  user.bedsheets = bedsheets;
+  writeDB(db);
+  res.json({ message: 'Bedsheets updated', bedsheets });
+});
+
+// Endpoint: Login
+app.post('/api/login', (req, res) => {
+  const identifier = (req.body.loginId || req.body.email || req.body.username || '').trim();
+  const password = req.body.password;
+  const db = getDB();
+
+  const user = db.users.find(u => 
+    (u.email?.toLowerCase() === identifier.toLowerCase() || u.name?.toLowerCase() === identifier.toLowerCase()) && 
+    u.password === password
+  );
+  if (!user) return res.status(401).json({ error: 'Email/Nama atau password salah' });
+
+  const safeUser = { ...user };
+  delete safeUser.password;
+
+  if (user.role === 'owner') {
+    const ownerKosts = db.kosts.filter(k => String(k.ownerId) === String(user.id) || (user.kostUid && k.uid === user.kostUid));
+    const activeKost = ownerKosts.find(k => k.uid === user.kostUid) || ownerKosts[0];
+    if (activeKost) {
+      user.kostUid = activeKost.uid;
+      safeUser.kostUid = activeKost.uid;
+    }
+    return res.json({ 
+      user: safeUser, 
+      kostName: activeKost ? activeKost.kostName : 'KostKu',
+      ownedKosts: ownerKosts.map(k => ({
+        uid: k.uid,
+        kostName: k.kostName,
+        address: k.address || '',
+        roomCount: k.settings?.rooms?.length || 0,
+        images: k.images || []
+      }))
+    });
+  } else if (user.role === 'staff') {
+    const kost = db.kosts.find(k => k.uid === user.kostUid);
+    return res.json({ 
+      user: safeUser, 
+      kostName: kost ? kost.kostName : 'KostKu',
+      staffRole: user.jobTitle || 'Penjaga Kost'
+    });
+  } else if (user.role === 'user') {
+    const kost = db.kosts.find(k => k.uid === user.kostUid);
+    return res.json({ user: safeUser, kostName: kost ? kost.kostName : 'KostKu' });
+  } else {
+    return res.json({ user: safeUser, kostName: 'KostKu Admin' });
+  }
+});
+
+// Endpoint: Get Users
+app.get('/api/users', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+
+  let filtered = db.users.filter(u => u.kostUid === kostUid && u.role === 'user');
+  
+  filtered = filtered.map(u => {
+    const safe = { ...u };
+    delete safe.password;
+    return safe;
+  });
+
+  res.json(filtered);
+});
+
+// Endpoint: Delete User
+app.delete('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  
+  const index = db.users.findIndex(u => u.id === id && u.role === 'user');
+  if (index === -1) return res.status(404).json({ error: 'Penghuni tidak ditemukan' });
+  
+  const removedUser = db.users[index];
+  db.users.splice(index, 1);
+  
+  addActivity(db, removedUser.kostUid, 'pengguna', `Penghuni Kamar ${removedUser.kamar} (${removedUser.name}) telah dihapus`);
+  
+  writeDB(db);
+  res.json({ message: 'Penghuni berhasil dihapus' });
+});
+
+// ── OWNER MULTI-PROPERTIES (MULTI-KOST) ENDPOINTS ───────────────
+
+// Endpoint: Get all kosts owned by an owner
+app.get('/api/owner/kosts', (req, res) => {
+  const { ownerId } = req.query;
+  if (!ownerId) return res.status(400).json({ error: 'ownerId diperlukan' });
+  const db = getDB();
+
+  const owner = db.users.find(u => String(u.id) === String(ownerId));
+  if (!owner) return res.status(404).json({ error: 'Akun owner tidak ditemukan' });
+
+  // Find all kosts where ownerId matches OR owner's current kostUid matches
+  const kosts = db.kosts.filter(k => 
+    String(k.ownerId) === String(ownerId) || 
+    (owner.kostUid && k.uid === owner.kostUid)
+  );
+
+  const enrichedKosts = kosts.map(k => {
+    const rooms = k.settings?.rooms || [];
+    const totalRooms = rooms.length;
+    const occupiedUsers = db.users.filter(u => u.kostUid === k.uid && u.role === 'user');
+    const occupiedCount = occupiedUsers.length;
+    const complaintsCount = (db.complaints || []).filter(c => c.kostUid === k.uid && c.status !== 'selesai').length;
+    
+    // Revenue calculations
+    const activeInvoices = (db.invoices || []).filter(i => i.kostUid === k.uid);
+    const paidRevenue = activeInvoices.filter(i => i.status === 'paid').reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+    const potentialRevenue = rooms.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+
+    return {
+      uid: k.uid,
+      kostName: k.kostName,
+      address: k.address || '',
+      type: k.type || 'Campur',
+      images: k.images || [],
+      location: k.location || null,
+      totalRooms,
+      occupiedCount,
+      availableCount: Math.max(0, totalRooms - occupiedCount),
+      occupancyRate: totalRooms > 0 ? Math.round((occupiedCount / totalRooms) * 100) : 0,
+      complaintsCount,
+      paidRevenue,
+      potentialRevenue,
+      isCurrentlyActive: owner.kostUid === k.uid
+    };
+  });
+
+  res.json(enrichedKosts);
+});
+
+// Endpoint: Create a new kost for an existing owner
+app.post('/api/owner/kosts', (req, res) => {
+  const { ownerId, kostName, address, lat, lng, imageFront, description, type, roomsCount, defaultPrice } = req.body;
+  const db = getDB();
+
+  if (!ownerId) return res.status(400).json({ error: 'ownerId wajib disertakan' });
+  if (!kostName || !kostName.trim()) return res.status(400).json({ error: 'Nama kost wajib diisi' });
+
+  const owner = db.users.find(u => String(u.id) === String(ownerId));
+  if (!owner) return res.status(404).json({ error: 'Akun owner tidak ditemukan' });
+
+  // Generate unique UID
+  const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+  // Generate initial rooms if requested
+  const initialRooms = [];
+  const count = Number(roomsCount) || 8;
+  const price = Number(defaultPrice) || 1500000;
+  for (let i = 1; i <= count; i++) {
+    const numStr = i < 10 ? `10${i}` : `1${i}`;
+    initialRooms.push({
+      number: numStr,
+      price: price,
+      size: '4.0m x 4.5m',
+      capacity: 1,
+      facilities: ['WiFi', 'Kamar Mandi Dalam', 'Kasur Springbed', 'Meja Belajar', 'Lemari']
+    });
+  }
+
+  const defaultImage = imageFront || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1000&q=80';
+
+  const newKost = {
+    uid: generatedUid,
+    kostName: kostName.trim(),
+    ownerId: owner.id,
+    address: address || '',
+    type: type || 'Campur',
+    location: {
+      lat: Number(lat) || -6.9827,
+      lng: Number(lng) || 110.4091
+    },
+    images: [defaultImage],
+    description: description || `Properti cabang baru ${kostName} dikelola oleh ${owner.name}`,
+    status: 'verified',
+    settings: {
+      rooms: initialRooms,
+      employees: [],
+      bedsheetCount: count * 2,
+      waterRate: 5000,
+      electricityRate: 2000,
+      depositAmount: 500000
+    }
+  };
+
+  db.kosts.push(newKost);
+
+  // Set as active kost for the owner
+  owner.kostUid = generatedUid;
+
+  addActivity(db, generatedUid, 'pengaturan', `Cabang baru "${kostName}" berhasil ditambahkan ke portofolio`);
+  writeDB(db);
+
+  res.json({
+    message: 'Properti Kost berhasil ditambahkan!',
+    kost: newKost,
+    activeKostUid: generatedUid
+  });
+});
+
+// Endpoint: Switch active kost
+app.put('/api/owner/switch-kost', (req, res) => {
+  const { userId, targetKostUid } = req.body;
+  if (!userId || !targetKostUid) return res.status(400).json({ error: 'userId dan targetKostUid wajib disertakan' });
+  const db = getDB();
+
+  const user = db.users.find(u => String(u.id) === String(userId));
+  if (!user) return res.status(404).json({ error: 'Pengguna tidak ditemukan' });
+
+  const targetKost = db.kosts.find(k => k.uid === targetKostUid);
+  if (!targetKost) return res.status(404).json({ error: 'Properti kost tujuan tidak ditemukan' });
+
+  user.kostUid = targetKostUid;
+  writeDB(db);
+
+  const safe = { ...user };
+  delete safe.password;
+
+  res.json({
+    message: `Berhasil beralih ke properti ${targetKost.kostName}`,
+    user: safe,
+    activeKostUid: targetKostUid,
+    activeKostName: targetKost.kostName
+  });
+});
+
+// Endpoint: Portfolio Overview across all owned kosts
+app.get('/api/owner/portfolio', (req, res) => {
+  const { ownerId } = req.query;
+  if (!ownerId) return res.status(400).json({ error: 'ownerId diperlukan' });
+  const db = getDB();
+
+  const owner = db.users.find(u => String(u.id) === String(ownerId));
+  if (!owner) return res.status(404).json({ error: 'Akun owner tidak ditemukan' });
+
+  const kosts = db.kosts.filter(k => 
+    String(k.ownerId) === String(ownerId) || 
+    (owner.kostUid && k.uid === owner.kostUid)
+  );
+
+  let totalRooms = 0;
+  let totalOccupied = 0;
+  let totalPaidRevenue = 0;
+  let totalPotentialRevenue = 0;
+  let totalComplaints = 0;
+
+  const propertySummaries = kosts.map(k => {
+    const rooms = k.settings?.rooms || [];
+    const roomsLen = rooms.length;
+    const occupied = db.users.filter(u => u.kostUid === k.uid && u.role === 'user').length;
+    const complaints = (db.complaints || []).filter(c => c.kostUid === k.uid && c.status !== 'selesai').length;
+    const paid = (db.invoices || []).filter(i => i.kostUid === k.uid && i.status === 'paid').reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+    const potential = rooms.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+
+    totalRooms += roomsLen;
+    totalOccupied += occupied;
+    totalPaidRevenue += paid;
+    totalPotentialRevenue += potential;
+    totalComplaints += complaints;
+
+    return {
+      uid: k.uid,
+      kostName: k.kostName,
+      address: k.address || '',
+      type: k.type || 'Campur',
+      images: k.images || [],
+      totalRooms: roomsLen,
+      occupiedCount: occupied,
+      availableCount: Math.max(0, roomsLen - occupied),
+      occupancyRate: roomsLen > 0 ? Math.round((occupied / roomsLen) * 100) : 0,
+      complaintsCount: complaints,
+      paidRevenue: paid,
+      potentialRevenue: potential,
+      isCurrentlyActive: owner.kostUid === k.uid
+    };
+  });
+
+  const overallOccupancyRate = totalRooms > 0 ? Math.round((totalOccupied / totalRooms) * 100) : 0;
+
+  res.json({
+    ownerName: owner.name,
+    totalProperties: kosts.length,
+    totalRooms,
+    totalOccupied,
+    totalAvailable: Math.max(0, totalRooms - totalOccupied),
+    overallOccupancyRate,
+    totalPaidRevenue,
+    totalPotentialRevenue,
+    totalComplaints,
+    properties: propertySummaries
+  });
+});
+
+// Endpoint: Update User Profile (User Setting)
+app.put('/api/user/profile', (req, res) => {
+  const { id, name, email, phone, currentPassword, newPassword, picture } = req.body;
+  const db = getDB();
+
+  const user = db.users.find(u => String(u.id) === String(id));
+  if (!user) return res.status(404).json({ error: 'Pengguna tidak ditemukan' });
+
+  // If changing password, verify current password (unless google auth without password)
+  if (newPassword && newPassword.trim()) {
+    if (user.authProvider !== 'google' && user.password && user.password !== currentPassword) {
+      return res.status(400).json({ error: 'Kata sandi saat ini tidak cocok' });
+    }
+    user.password = newPassword.trim();
+  }
+
+  if (name && name.trim()) user.name = name.trim();
+  if (email && email.includes('@')) user.email = email.trim().toLowerCase();
+  if (phone !== undefined) user.phone = phone.trim();
+  if (picture !== undefined) user.picture = picture;
+
+  writeDB(db);
+
+  const safe = { ...user };
+  delete safe.password;
+  res.json({ message: 'Profil berhasil diperbarui', user: safe });
+});
+
+// Endpoint: Get Settings
+app.get('/api/settings', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+  
+  const kost = db.kosts.find(k => k.uid === kostUid);
+  if (!kost) return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  
+  const s = kost.settings || {};
+  if (!s.rooms) s.rooms = [];
+  if (!s.employees) s.employees = [];
+  
+  res.json(s);
+});
+
+// Endpoint: Update Settings
+app.put('/api/settings', (req, res) => {
+  const { kostUid } = req.query;
+  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount } = req.body;
+  const db = getDB();
+  
+  const index = db.kosts.findIndex(k => k.uid === kostUid);
+  if (index === -1) return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  
+  db.kosts[index].settings = {
+    rooms: Array.isArray(rooms) ? rooms : [],
+    employees: Array.isArray(employees) ? employees : [],
+    bedsheetCount: Number(bedsheetCount) || 0,
+    waterRate: Number(waterRate) || 0,
+    electricityRate: Number(electricityRate) || 0,
+    depositAmount: Number(depositAmount) || 0
+  };
+  
+  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kost telah diperbarui');
+  writeDB(db);
+  
+  res.json(db.kosts[index].settings);
+});
+
+// ── OWNER STAFF MANAGEMENT ENDPOINTS ───────────────────────
+
+// Endpoint: Get list of staff for a kost or owner
+app.get('/api/owner/staff', (req, res) => {
+  const { kostUid, ownerId } = req.query;
+  const db = getDB();
+
+  let staffList = db.users.filter(u => u.role === 'staff');
+  if (kostUid) {
+    staffList = staffList.filter(u => u.kostUid === kostUid);
+  } else if (ownerId) {
+    const ownedKostUids = db.kosts.filter(k => String(k.ownerId) === String(ownerId)).map(k => k.uid);
+    staffList = staffList.filter(u => ownedKostUids.includes(u.kostUid) || String(u.ownerId) === String(ownerId));
+  }
+
+  const enrichedStaff = staffList.map(u => {
+    const assignedKost = db.kosts.find(k => k.uid === u.kostUid);
+    const safe = { ...u };
+    delete safe.password;
+    safe.kostName = assignedKost ? assignedKost.kostName : 'KostKu';
+    return safe;
+  });
+
+  res.json(enrichedStaff);
+});
+
+// Endpoint: Create a new staff account with login credentials
+app.post('/api/owner/staff', (req, res) => {
+  const { ownerId, kostUid, name, email, password, phone, jobTitle, salary } = req.body;
+  if (!name || !email || !password || !kostUid) {
+    return res.status(400).json({ error: 'Nama, email, password, dan cabang kost wajib diisi' });
+  }
+
+  const db = getDB();
+  const cleanEmail = email.trim().toLowerCase();
+  const existingUser = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+  if (existingUser) {
+    return res.status(400).json({ error: 'Email sudah terdaftar untuk akun lain' });
+  }
+
+  const assignedKost = db.kosts.find(k => k.uid === kostUid);
+  if (!assignedKost) {
+    return res.status(404).json({ error: 'Cabang kost tidak ditemukan' });
+  }
+
+  const newStaff = {
+    id: Date.now(),
+    name: name.trim(),
+    email: cleanEmail,
+    password: password.trim(),
+    phone: phone || '',
+    role: 'staff',
+    jobTitle: jobTitle || 'Penjaga Kost',
+    salary: Number(salary) || 0,
+    kostUid,
+    ownerId: ownerId || assignedKost.ownerId,
+    createdAt: new Date().toISOString()
+  };
+
+  db.users.push(newStaff);
+
+  // Sync to assigned kost settings.employees if present
+  if (assignedKost.settings) {
+    if (!assignedKost.settings.employees) assignedKost.settings.employees = [];
+    const empIndex = assignedKost.settings.employees.findIndex(e => e.email === cleanEmail);
+    if (empIndex === -1) {
+      assignedKost.settings.employees.push({
+        id: String(newStaff.id),
+        name: newStaff.name,
+        role: newStaff.jobTitle,
+        salary: newStaff.salary,
+        phone: newStaff.phone,
+        email: newStaff.email,
+        hasLogin: true
+      });
+    }
+  }
+
+  addActivity(db, kostUid, 'pengaturan', `Akun staf baru "${newStaff.name}" (${newStaff.jobTitle}) berhasil dibuat`);
+  writeDB(db);
+
+  const safe = { ...newStaff };
+  delete safe.password;
+  safe.kostName = assignedKost.kostName;
+
+  res.status(201).json({
+    message: 'Akun login staf berhasil dibuat!',
+    staff: safe
+  });
+});
+
+// Endpoint: Update staff details or reset password
+app.put('/api/owner/staff/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, phone, jobTitle, salary, kostUid, newPassword } = req.body;
+  const db = getDB();
+
+  const staff = db.users.find(u => String(u.id) === String(id) && u.role === 'staff');
+  if (!staff) return res.status(404).json({ error: 'Akun staf tidak ditemukan' });
+
+  if (name) staff.name = name.trim();
+  if (phone !== undefined) staff.phone = phone;
+  if (jobTitle) staff.jobTitle = jobTitle;
+  if (salary !== undefined) staff.salary = Number(salary);
+  if (kostUid) staff.kostUid = kostUid;
+  if (newPassword && newPassword.trim()) staff.password = newPassword.trim();
+
+  // Sync with kost settings.employees
+  const assignedKost = db.kosts.find(k => k.uid === staff.kostUid);
+  if (assignedKost?.settings?.employees) {
+    const emp = assignedKost.settings.employees.find(e => String(e.id) === String(id) || e.email === staff.email);
+    if (emp) {
+      emp.name = staff.name;
+      emp.role = staff.jobTitle;
+      emp.salary = staff.salary;
+      emp.phone = staff.phone;
+    }
+  }
+
+  writeDB(db);
+
+  const safe = { ...staff };
+  delete safe.password;
+  safe.kostName = assignedKost ? assignedKost.kostName : 'KostKu';
+
+  res.json({ message: 'Data staf berhasil diperbarui', staff: safe });
+});
+
+// Endpoint: Delete staff account
+app.delete('/api/owner/staff/:id', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+
+  const index = db.users.findIndex(u => String(u.id) === String(id) && u.role === 'staff');
+  if (index === -1) return res.status(404).json({ error: 'Akun staf tidak ditemukan' });
+
+  const staff = db.users[index];
+  db.users.splice(index, 1);
+
+  // Remove from settings.employees
+  const assignedKost = db.kosts.find(k => k.uid === staff.kostUid);
+  if (assignedKost?.settings?.employees) {
+    assignedKost.settings.employees = assignedKost.settings.employees.filter(e => String(e.id) !== String(id) && e.email !== staff.email);
+  }
+
+  writeDB(db);
+  res.json({ message: 'Akun staf berhasil dihapus' });
+});
+
+// --- IOT METERAN ENDPOINTS ---
+app.post('/api/iot/meteran', (req, res) => {
+  const { kostUid, kamar, type, value } = req.body;
+  if (!kostUid || !kamar || !type || value === undefined) {
+    return res.status(400).json({ error: 'Parameter tidak lengkap (kostUid, kamar, type, value)' });
+  }
+
+  const db = getDB();
+  const dateStr = new Date().toISOString().substring(0, 7); // YYYY-MM
+  
+  // Find existing record for this month
+  let meter = db.iot_meters.find(m => m.kostUid === kostUid && m.kamar === kamar && m.type === type && m.month === dateStr);
+  
+  if (meter) {
+    meter.value = value;
+    meter.lastUpdate = new Date().toISOString();
+  } else {
+    db.iot_meters.push({
+      id: 'METER-' + Date.now(),
+      kostUid,
+      kamar,
+      type, // 'air' or 'listrik'
+      month: dateStr,
+      value: value,
+      lastUpdate: new Date().toISOString()
+    });
+  }
+
+  writeDB(db);
+  res.json({ message: 'Data meteran berhasil disimpan', data: { kamar, type, value, month: dateStr } });
+});
+
+app.get('/api/iot/meteran', (req, res) => {
+  const { kostUid, month } = req.query;
+  const db = getDB();
+  let filtered = db.iot_meters.filter(m => m.kostUid === kostUid);
+  if (month) {
+    filtered = filtered.filter(m => m.month === month);
+  }
+  res.json(filtered);
+});
+
+// --- INVOICES (TAGIHAN) ---
+app.get('/api/invoices', (req, res) => {
+  const { kostUid, userId } = req.query;
+  const db = getDB();
+  let filtered = db.invoices;
+  if (kostUid) filtered = filtered.filter(i => i.kostUid === kostUid);
+  if (userId) filtered = filtered.filter(i => String(i.userId) === String(userId));
+  res.json(filtered.sort((a,b) => new Date(b.date) - new Date(a.date)));
+});
+
+app.put('/api/invoices/:id/verify', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  
+  const inv = db.invoices.find(i => i.id === id);
+  if (!inv) return res.status(404).json({ error: 'Tagihan tidak ditemukan' });
+  
+  inv.status = 'lunas';
+  inv.verifyDate = new Date().toISOString();
+  
+  addActivity(db, inv.kostUid, 'keuangan', `Tagihan Kamar ${inv.kamar} (${inv.userName}) sebesar Rp ${inv.total} telah dilunasi`);
+  writeDB(db);
+  res.json(inv);
+});
+
+// --- EXPENSES (PENGELUARAN) ---
+app.get('/api/expenses', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+  const filtered = db.expenses.filter(e => e.kostUid === kostUid);
+  res.json(filtered.sort((a,b) => new Date(b.date) - new Date(a.date)));
+});
+
+app.post('/api/expenses', (req, res) => {
+  const { kostUid, title, amount, category } = req.body;
+  if (!title || !amount) return res.status(400).json({ error: 'Data tidak lengkap' });
+  
+  const db = getDB();
+  const exp = {
+    id: 'EXP-' + Date.now(),
+    kostUid,
+    title,
+    amount: Number(amount),
+    category: category || 'Operasional',
+    date: new Date().toISOString()
+  };
+  db.expenses.push(exp);
+  
+  addActivity(db, kostUid, 'keuangan', `Pengeluaran baru: ${title} (Rp ${amount})`);
+  writeDB(db);
+  res.json(exp);
+});
+
+app.delete('/api/expenses/:id', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  const index = db.expenses.findIndex(e => e.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Tidak ditemukan' });
+  db.expenses.splice(index, 1);
+  writeDB(db);
+  res.json({ message: 'Deleted' });
+});
+
+
+// Endpoint: Get Complaints
+app.get('/api/complaints', (req, res) => {
+  const { kostUid, userId } = req.query;
+  const db = getDB();
+
+  let filtered = db.complaints;
+  if (kostUid) filtered = filtered.filter(c => c.kostUid === kostUid);
+  else if (userId) filtered = filtered.filter(c => c.userId === userId);
+
+  res.json(filtered.sort((a,b) => new Date(b.date) - new Date(a.date)));
+});
+
+// Endpoint: Create Complaint
+app.post('/api/complaints', (req, res) => {
+  const { kostUid, userId, userName, kamar, text } = req.body;
+  if (!text) return res.status(400).json({ error: 'Keluhan tidak boleh kosong' });
+
+  const db = getDB();
+  const newComplaint = {
+    id: 'COMP-' + Date.now(),
+    kostUid, userId, userName, kamar, text,
+    status: 'pending', 
+    date: new Date().toISOString()
+  };
+
+  db.complaints.push(newComplaint);
+  addActivity(db, kostUid, 'komplain', `Komplain baru dari Kamar ${kamar}: "${text.length > 20 ? text.substring(0,20)+'...' : text}"`);
+  writeDB(db);
+
+  res.json(newComplaint);
+});
+
+// Endpoint: Update Complaint Status
+app.put('/api/complaints/:id', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  const db = getDB();
+  const index = db.complaints.findIndex(c => c.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Komplain tidak ditemukan' });
+  
+  db.complaints[index].status = status;
+  
+  const statusText = status === 'selesai' ? 'telah selesai' : 'sedang diproses';
+  addActivity(db, db.complaints[index].kostUid, 'komplain', `Komplain Kamar ${db.complaints[index].kamar} ${statusText}`);
+  writeDB(db);
+  
+  res.json(db.complaints[index]);
+});
+
+// Endpoint: Get Activities
+app.get('/api/activities', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+
+  let filtered = db.activities || [];
+  if (kostUid) filtered = filtered.filter(a => a.kostUid === kostUid);
+
+  res.json(filtered.sort((a,b) => new Date(b.time) - new Date(a.time)));
+});
+
+
+// --- NEW ENDPOINTS FOR MARKETPLACE ---
+
+// --- GOOGLE AUTH & OAUTH CONFIG ENDPOINTS ---
+
+// Endpoint: Real Google OAuth & Personal Google Account Auth
+app.post('/api/auth/google', (req, res) => {
+  const { credential, email, name, role, picture, googleId, kostName } = req.body;
+  const db = getDB();
+
+  let effectiveEmail = (email || '').trim().toLowerCase();
+  let effectiveName = (name || '').trim();
+  let effectivePicture = picture || '';
+  let effectiveGoogleId = googleId || '';
+
+  // If a real Google JWT credential token is provided, decode payload safely
+  if (credential && typeof credential === 'string') {
+    try {
+      const parts = credential.split('.');
+      if (parts.length === 3) {
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const payloadJson = Buffer.from(base64, 'base64').toString('utf8');
+        const payload = JSON.parse(payloadJson);
+        if (payload.email) effectiveEmail = payload.email.trim().toLowerCase();
+        if (payload.name) effectiveName = payload.name;
+        if (payload.picture) effectivePicture = payload.picture;
+        if (payload.sub) effectiveGoogleId = payload.sub;
+      }
+    } catch (e) {
+      console.warn('[Google Auth] Gagal mengurai JWT credential token:', e.message);
+    }
+  }
+
+  if (!effectiveEmail || !effectiveEmail.includes('@')) {
+    return res.status(400).json({ error: 'Email Google yang valid diperlukan' });
+  }
+
+  // Find existing user by email (case-insensitive)
+  let user = db.users.find(u => u.email && u.email.toLowerCase() === effectiveEmail);
+  let resolvedKostName = 'KostKu';
+
+  if (user) {
+    // Existing user: Update Google metadata if provided
+    if (effectivePicture && !user.picture) user.picture = effectivePicture;
+    if (effectiveGoogleId && !user.googleId) user.googleId = effectiveGoogleId;
+    user.authProvider = 'google';
+
+    // Locate Kost
+    if (user.role === 'owner') {
+      const kost = db.kosts.find(k => String(k.ownerId) === String(user.id) || (user.kostUid && k.uid === user.kostUid));
+      if (kost) {
+        resolvedKostName = kost.kostName;
+        user.kostUid = kost.uid;
+      }
+    } else if (user.kostUid) {
+      const kost = db.kosts.find(k => k.uid === user.kostUid);
+      if (kost) resolvedKostName = kost.kostName;
+    }
+
+    addActivity(db, user.kostUid || 'GLOBAL', 'pengguna', `${user.name} berhasil masuk via Akun Google (${effectiveEmail})`);
+    writeDB(db);
+  } else {
+    // New user registration via Google
+    const targetRole = role === 'owner' ? 'owner' : 'user';
+    const newUserId = Date.now();
+    const finalName = effectiveName || effectiveEmail.split('@')[0];
+
+    if (targetRole === 'owner') {
+      const generatedUid = 'KOST-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const finalKostName = kostName || `Kost ${finalName}`;
+
+      const newKost = {
+        uid: generatedUid,
+        kostName: finalKostName,
+        ownerId: newUserId,
+        address: 'Jl. Utama No. 1',
+        location: { lat: -6.2088, lng: 106.8456 },
+        images: [],
+        status: 'verified',
+        description: `Kost terverifikasi milik ${finalName}`,
+        settings: {
+          rooms: [
+            { id: String(Date.now() + 1), number: '101', price: 1200000, size: '3x4', capacity: 1 },
+            { id: String(Date.now() + 2), number: '102', price: 1500000, size: '4x4', capacity: 1 }
+          ],
+          employees: [],
+          bedsheetCount: 20,
+          waterRate: 0,
+          electricityRate: 0,
+          depositAmount: 0
+        }
+      };
+
+      db.kosts.push(newKost);
+
+      user = {
+        id: newUserId,
+        name: finalName,
+        email: effectiveEmail,
+        role: 'owner',
+        kostUid: generatedUid,
+        picture: effectivePicture || '',
+        authProvider: 'google',
+        googleId: effectiveGoogleId || '',
+        password: 'google-oauth-' + Math.random().toString(36).substring(2, 8)
+      };
+
+      db.users.push(user);
+      resolvedKostName = finalKostName;
+      addActivity(db, generatedUid, 'pengguna', `Pemilik baru ${finalName} terdaftar via Akun Google (${effectiveEmail}) dan Kost otomatis dibuat`);
+    } else {
+      user = {
+        id: newUserId,
+        name: finalName,
+        email: effectiveEmail,
+        role: 'user',
+        picture: effectivePicture || '',
+        authProvider: 'google',
+        googleId: effectiveGoogleId || '',
+        password: 'google-oauth-' + Math.random().toString(36).substring(2, 8)
+      };
+
+      db.users.push(user);
+      resolvedKostName = 'KostKu';
+      addActivity(db, 'GLOBAL', 'pengguna', `Penghuni baru ${finalName} terdaftar via Akun Google (${effectiveEmail})`);
+    }
+
+    writeDB(db);
+  }
+
+  const safeUser = { ...user };
+  delete safeUser.password;
+
+  let ownedKosts = [];
+  if (user.role === 'owner') {
+    const kList = db.kosts.filter(k => String(k.ownerId) === String(user.id) || (user.kostUid && k.uid === user.kostUid));
+    ownedKosts = kList.map(k => ({
+      uid: k.uid,
+      kostName: k.kostName,
+      address: k.address || '',
+      roomCount: k.settings?.rooms?.length || 0,
+      images: k.images || []
+    }));
+  }
+
+  return res.json({
+    user: safeUser,
+    kostName: resolvedKostName,
+    ownedKosts,
+    token: `token_google_${safeUser.id}_${Date.now()}`
+  });
+});
+
+// Endpoint: Check email status for Google account preview
+app.get('/api/auth/check-email', (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: 'Email parameter diperlukan' });
+  const db = getDB();
+  const cleanEmail = email.trim().toLowerCase();
+  const user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+  if (user) {
+    let kostName = 'KostKu';
+    if (user.role === 'owner') {
+      const kost = db.kosts.find(k => String(k.ownerId) === String(user.id) || (user.kostUid && k.uid === user.kostUid));
+      if (kost) kostName = kost.kostName;
+    } else if (user.kostUid) {
+      const kost = db.kosts.find(k => k.uid === user.kostUid);
+      if (kost) kostName = kost.kostName;
+    }
+    return res.json({
+      exists: true,
+      name: user.name,
+      role: user.role,
+      jobTitle: user.jobTitle || (user.role === 'staff' ? 'Penjaga Kost' : undefined),
+      kostName,
+      picture: user.picture || ''
+    });
+  }
+  return res.json({ exists: false });
+});
+
+// Endpoint: Google Client ID Configuration
+app.get('/api/config/google-client-id', (req, res) => {
+  const db = getDB();
+  const clientId = db.googleClientId || process.env.GOOGLE_CLIENT_ID || '';
+  res.json({ clientId });
+});
+
+app.post('/api/config/google-client-id', (req, res) => {
+  const { clientId } = req.body;
+  const db = getDB();
+  db.googleClientId = (clientId || '').trim();
+  writeDB(db);
+  res.json({ ok: true, clientId: db.googleClientId });
+});
+
+// Endpoint: Public Kost List
+app.get('/api/public/kosts', (req, res) => {
+  const db = getDB();
+  const verifiedKosts = (db.kosts || []).filter(k => k.status === 'verified' || !k.status).map(k => {
+    // Only send public safe data
+    return {
+      uid: k.uid,
+      kostName: k.kostName,
+      type: k.type || 'Campur',
+      city: k.city || 'Jakarta',
+      address: k.address,
+      location: k.location || { lat: -6.2088, lng: 106.8456 },
+      rating: k.rating || 4.9,
+      reviewCount: k.reviewCount || 25,
+      images: k.images || [],
+      layoutImage: k.layoutImage || '',
+      layoutInfo: k.layoutInfo || {
+        roomDimensions: "3.5m x 4.0m",
+        roomArea: "14 m²",
+        buildingArea: "350 m² (2 Lantai)",
+        totalFloors: 2,
+        totalRooms: 10,
+        bathroomType: "Kamar Mandi Dalam",
+        windowFacing: "Jendela Hadap Luar (Sirkulasi Bagus)",
+        features: ["Kasur Springbed Nyaman", "Meja Kerja & Lemari", "Kamar Mandi Dalam"]
+      },
+      facilities: k.facilities || ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil'],
+      rules: k.rules || ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
+      description: k.description || '',
+      rooms: (k.settings?.rooms || []).map(r => ({
+        id: r.id,
+        number: r.number,
+        price: r.price,
+        size: r.size || '3x4',
+        capacity: r.capacity || 1,
+        status: r.status || 'available'
+      }))
+    };
+  });
+  res.json(verifiedKosts);
+});
+
+// Endpoint: Apply to Kost
+app.post('/api/kosts/apply', (req, res) => {
+  const { kostUid, userId, kamar, phone } = req.body;
+  const db = getDB();
+  
+  const user = db.users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+  
+  const kost = db.kosts.find(k => k.uid === kostUid);
+  if (!kost) return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  
+  // Check if already applied
+  if (db.applications.find(a => a.userId === userId && a.status === 'pending')) {
+    return res.status(400).json({ error: 'Anda sudah memiliki pengajuan yang pending' });
+  }
+  
+  db.applications.push({
+    id: 'APP-' + Date.now(),
+    kostUid,
+    userId,
+    userName: user.name,
+    kamar,
+    phone,
+    status: 'pending',
+    date: new Date().toISOString()
+  });
+  
+  addActivity(db, kostUid, 'pengguna', `Ada pengajuan sewa baru dari ${user.name} untuk Kamar ${kamar}`);
+  writeDB(db);
+  
+  res.json({ message: 'Pengajuan sewa berhasil dikirim ke pemilik kost' });
+});
+
+// Endpoint: Get Applications (Owner Dashboard)
+app.get('/api/applications', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+  const apps = db.applications.filter(a => a.kostUid === kostUid);
+  res.json(apps.sort((a,b) => new Date(b.date) - new Date(a.date)));
+});
+
+// Endpoint: Process Application
+app.put('/api/applications/:id', (req, res) => {
+  const { id } = req.params;
+  const { action } = req.body; // 'approve' or 'reject'
+  const db = getDB();
+  
+  const appIndex = db.applications.findIndex(a => a.id === id);
+  if (appIndex === -1) return res.status(404).json({ error: 'Aplikasi tidak ditemukan' });
+  
+  const application = db.applications[appIndex];
+  
+  if (action === 'approve') {
+    application.status = 'approved';
+    const user = db.users.find(u => u.id === application.userId);
+    if (user) {
+      user.kostUid = application.kostUid;
+      user.kamar = application.kamar;
+      user.phone = application.phone;
+      user.bedsheets = 0;
+      
+      const kost = db.kosts.find(k => k.uid === application.kostUid);
+      const roomSettings = (kost.settings?.rooms || []).find(r => r.number === application.kamar);
+      
+      // Generate Invoice
+      const deposit = kost.settings?.depositAmount || 0;
+      const basePrice = roomSettings?.price || 0;
+      db.invoices.push({
+        id: 'INV-' + Date.now(),
+        kostUid: application.kostUid,
+        userId: user.id,
+        userName: user.name,
+        kamar: application.kamar,
+        date: new Date().toISOString(),
+        basePrice: basePrice,
+        deposit: deposit,
+        waterCost: 0,
+        electricityCost: 0,
+        total: Number(basePrice) + Number(deposit),
+        status: 'pending'
+      });
+      
+      addActivity(db, application.kostUid, 'pengguna', `Pengajuan sewa ${user.name} (Kamar ${application.kamar}) telah disetujui`);
+    }
+  } else {
+    application.status = 'rejected';
+  }
+  
+  writeDB(db);
+  res.json(application);
+});
+
+// ── UPGRADE: PAYMENT GATEWAY (MIDTRANS / QRIS / VA) ─────────────
+app.post('/api/payments/create-transaction', (req, res) => {
+  const { invoiceId, kostUid, userId, amount, customerName, roomNumber, paymentMethod } = req.body;
+  const db = getDB();
+  db.transactions = db.transactions || [];
+
+  const orderId = `ORDER-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const expiryTime = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 mins
+  
+  const bankPrefixes = { BCA: '12888', MANDIRI: '89888', BRI: '02888', BNI: '98888' };
+  const methodUpper = (paymentMethod || 'QRIS').toUpperCase();
+  let vaNumber = null;
+  if (methodUpper.includes('BCA') || methodUpper.includes('MANDIRI') || methodUpper.includes('BRI') || methodUpper.includes('BNI')) {
+    const bankKey = methodUpper.includes('BCA') ? 'BCA' : methodUpper.includes('MANDIRI') ? 'MANDIRI' : methodUpper.includes('BRI') ? 'BRI' : 'BNI';
+    vaNumber = `${bankPrefixes[bankKey]}${String(userId || Math.floor(100000 + Math.random() * 900000)).slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
+  }
+
+  const transaction = {
+    id: Date.now(),
+    orderId,
+    invoiceId: invoiceId ? String(invoiceId) : null,
+    kostUid,
+    userId,
+    customerName: customerName || 'Penghuni Kost',
+    roomNumber: roomNumber || '-',
+    amount: Number(amount || 0),
+    paymentMethod: methodUpper,
+    vaNumber,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    expiryTime
+  };
+
+  db.transactions.push(transaction);
+  writeDB(db);
+  res.json(transaction);
+});
+
+app.post('/api/payments/simulate-success', (req, res) => {
+  const { transactionId, invoiceId } = req.body;
+  const db = getDB();
+  db.transactions = db.transactions || [];
+  db.invoices = db.invoices || [];
+
+  let trx = null;
+  if (transactionId) {
+    trx = db.transactions.find(t => String(t.id) === String(transactionId) || t.orderId === transactionId);
+  }
+  
+  let invoice = null;
+  if (invoiceId) {
+    invoice = db.invoices.find(i => String(i.id) === String(invoiceId));
+  } else if (trx && trx.invoiceId) {
+    invoice = db.invoices.find(i => String(i.id) === String(trx.invoiceId));
+  }
+
+  if (trx) {
+    trx.status = 'settlement';
+    trx.settledAt = new Date().toISOString();
+  }
+
+  const receiptNumber = `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+
+  if (invoice) {
+    invoice.status = 'lunas';
+    invoice.paidAt = new Date().toISOString();
+    invoice.paymentMethod = trx ? trx.paymentMethod : 'QRIS INSTANT';
+    invoice.receiptNumber = receiptNumber;
+
+    addActivity(db, invoice.kostUid, 'transaksi', `Pembayaran otomatis ${receiptNumber} (${invoice.kamar || ''}) sebesar Rp ${Number(invoice.total || 0).toLocaleString('id-ID')} LUNAS via ${invoice.paymentMethod}`);
+  }
+
+  writeDB(db);
+  res.json({
+    success: true,
+    message: 'Pembayaran berhasil diverifikasi otomatis!',
+    receiptNumber,
+    invoice,
+    transaction: trx
+  });
+});
+
+app.get('/api/payments/receipt/:invoiceId', (req, res) => {
+  const { invoiceId } = req.params;
+  const db = getDB();
+  const invoice = (db.invoices || []).find(i => String(i.id) === String(invoiceId));
+  if (!invoice) return res.status(404).json({ error: 'Kuitansi tidak ditemukan' });
+
+  const kost = (db.kosts || []).find(k => k.uid === invoice.kostUid) || {};
+  const user = (db.users || []).find(u => String(u.id) === String(invoice.userId)) || {};
+
+  res.json({
+    receiptNumber: invoice.receiptNumber || `RCP-KST-${invoice.id}`,
+    invoice,
+    kostName: kost.kostName || 'KostKu Residence',
+    kostAddress: kost.address || 'Indonesia',
+    tenantName: user.name || invoice.userName || 'Penghuni',
+    roomNumber: invoice.kamar,
+    paidAt: invoice.paidAt || invoice.date,
+    paymentMethod: invoice.paymentMethod || 'QRIS Digital'
+  });
+});
+
+// ── UPGRADE: E-SIGNATURE & DIGITAL CONTRACT ─────────────────────
+app.post('/api/contracts/sign', (req, res) => {
+  const { kostUid, userId, signatureDataUrl, signerName, contractTermsVersion } = req.body;
+  const db = getDB();
+  db.contracts = db.contracts || [];
+
+  const user = (db.users || []).find(u => String(u.id) === String(userId));
+  const signedAt = new Date().toISOString();
+
+  const contract = {
+    id: Date.now(),
+    kostUid,
+    userId,
+    signerName: signerName || (user ? user.name : 'Penghuni'),
+    signatureDataUrl,
+    signedAt,
+    contractTermsVersion: contractTermsVersion || 'v2.1-2026',
+    ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
+    status: 'signed'
+  };
+
+  const existingIdx = db.contracts.findIndex(c => String(c.userId) === String(userId) && c.kostUid === kostUid);
+  if (existingIdx >= 0) {
+    db.contracts[existingIdx] = contract;
+  } else {
+    db.contracts.push(contract);
+  }
+
+  if (user) {
+    user.contractSigned = true;
+    user.contractSignedAt = signedAt;
+    user.signatureDataUrl = signatureDataUrl;
+  }
+
+  addActivity(db, kostUid, 'pengguna', `Surat Perjanjian Sewa telah ditandatangani secara digital oleh ${contract.signerName}`);
+
+  writeDB(db);
+  res.json({ success: true, contract });
+});
+
+app.get('/api/contracts/:userId', (req, res) => {
+  const { userId } = req.params;
+  const db = getDB();
+  const contract = (db.contracts || []).find(c => String(c.userId) === String(userId));
+  res.json({ contract: contract || null });
+});
+
+// ── UPGRADE: TITIPAN PAKET DIGITAL (PACKAGE LOCKER) ─────────────
+app.get('/api/packages', (req, res) => {
+  const { kostUid, userId } = req.query;
+  const db = getDB();
+  db.packages = db.packages || [];
+
+  let list = db.packages;
+  if (kostUid) list = list.filter(p => p.kostUid === kostUid);
+  if (userId) list = list.filter(p => String(p.userId) === String(userId));
+
+  list = list.sort((a, b) => new Date(b.arrivedAt) - new Date(a.arrivedAt));
+  res.json(list);
+});
+
+app.post('/api/packages', (req, res) => {
+  const { kostUid, userId, tenantName, roomNumber, courier, trackingNumber, note, photoUrl, receivedByStaff } = req.body;
+  const db = getDB();
+  db.packages = db.packages || [];
+
+  const pkg = {
+    id: Date.now(),
+    kostUid,
+    userId: userId || null,
+    tenantName,
+    roomNumber,
+    courier: courier || 'J&T Express',
+    trackingNumber: trackingNumber || `RES-${Math.floor(10000000 + Math.random() * 90000000)}`,
+    note: note || '',
+    photoUrl: photoUrl || '',
+    status: 'di_resepsionis',
+    arrivedAt: new Date().toISOString(),
+    receivedByStaff: receivedByStaff || 'Penjaga Kost'
+  };
+
+  db.packages.push(pkg);
+  addActivity(db, kostUid, 'paket', `Paket kurir ${pkg.courier} untuk Kamar ${roomNumber} (${tenantName}) telah tiba di pos jaga`);
+  writeDB(db);
+  res.json(pkg);
+});
+
+app.put('/api/packages/:id/pickup', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  db.packages = db.packages || [];
+
+  const pkg = db.packages.find(p => String(p.id) === String(id));
+  if (!pkg) return res.status(404).json({ error: 'Paket tidak ditemukan' });
+
+  pkg.status = 'sudah_diambil';
+  pkg.pickedUpAt = new Date().toISOString();
+
+  addActivity(db, pkg.kostUid, 'paket', `Paket (${pkg.courier}) untuk Kamar ${pkg.roomNumber} telah diambil oleh penghuni`);
+  writeDB(db);
+  res.json(pkg);
+});
+
+// ── UPGRADE: INSPEKSI KAMAR & KALKULATOR DEPOSIT ────────────────
+app.get('/api/inspections', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+  db.inspections = db.inspections || [];
+  let list = db.inspections;
+  if (kostUid) list = list.filter(i => i.kostUid === kostUid);
+  res.json(list);
+});
+
+app.post('/api/inspections', (req, res) => {
+  const { kostUid, userId, tenantName, roomNumber, type, checklist, damageCost, depositAmount, finalRefund, notes } = req.body;
+  const db = getDB();
+  db.inspections = db.inspections || [];
+
+  const inspection = {
+    id: Date.now(),
+    kostUid,
+    userId,
+    tenantName,
+    roomNumber,
+    type: type || 'check_out',
+    checklist: checklist || {},
+    damageCost: Number(damageCost || 0),
+    depositAmount: Number(depositAmount || 0),
+    finalRefund: Number(finalRefund || 0),
+    notes: notes || '',
+    inspectedAt: new Date().toISOString()
+  };
+
+  db.inspections.push(inspection);
+  addActivity(db, kostUid, 'kamar', `Inspeksi ${type === 'check_out' ? 'Check-out' : 'Check-in'} Kamar ${roomNumber} (${tenantName}) selesai. Refund deposit: Rp ${inspection.finalRefund.toLocaleString('id-ID')}`);
+  writeDB(db);
+  res.json(inspection);
+});
+
+// ── UPGRADE: SMART LOCK PIN & TOKEN LISTRIK KWH ────────────────
+app.post('/api/smart-lock/generate-pin', (req, res) => {
+  const { kostUid, roomNumber, userId } = req.body;
+  const pin = String(Math.floor(100000 + Math.random() * 900000));
+  const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const db = getDB();
+  const user = (db.users || []).find(u => String(u.id) === String(userId));
+  if (user) {
+    user.smartLockPin = pin;
+    user.smartLockExpiry = validUntil;
+  }
+  writeDB(db);
+  res.json({ pin, validUntil, roomNumber });
+});
+
+app.post('/api/electricity/top-up', (req, res) => {
+  const { kostUid, roomNumber, amount } = req.body;
+  const segments = [];
+  for (let i = 0; i < 5; i++) {
+    segments.push(String(Math.floor(1000 + Math.random() * 9000)));
+  }
+  const token = segments.join('-');
+  const kwhAdded = Math.round((Number(amount || 50000) / 1444) * 10) / 10;
+
+  res.json({
+    success: true,
+    token,
+    kwhAdded,
+    nominal: Number(amount || 50000),
+    generatedAt: new Date().toISOString()
+  });
+});
+
+// --- MULTI-DEVICE CLOUD & SYNC ENDPOINTS ---
+app.get('/api/health', (req, res) => {
+  const db = getDB();
+  res.json({
+    status: 'online',
+    timestamp: new Date().toISOString(),
+    server: 'KostKu Multi-Device Cloud API',
+    stats: {
+      totalKosts: db.kosts.length,
+      totalUsers: db.users.length,
+      totalInvoices: (db.invoices || []).length
+    }
+  });
+});
+
+app.get('/api/backup', (req, res) => {
+  const db = getDB();
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename=kostku-backup-${Date.now()}.json`);
+  res.send(JSON.stringify(db, null, 2));
+});
+
+app.post('/api/restore', (req, res) => {
+  const newData = req.body;
+  if (!newData || typeof newData !== 'object' || !newData.users) {
+    return res.status(400).json({ error: 'Format data backup tidak valid' });
+  }
+  writeDB(newData);
+  res.json({ message: 'Database berhasil dipulihkan', count: newData.users.length });
+});
+
+// Serve built SPA static files if dist folder exists
+const distPath = path.join(__dirname, '../dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      return res.sendFile(path.join(distPath, 'index.html'));
+    }
+    next();
+  });
+}
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`KostKu API running on http://0.0.0.0:${PORT}`);
+});

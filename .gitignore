@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-binaries/
+release/
+android/app/build/
+android/.gradle/
+android/build/
+.gradle/
+*.log
+.DS_Store
+.env
+.env.local

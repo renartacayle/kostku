@@ -1,0 +1,9 @@
+{
+  "appId": "id.kostku.app",
+  "appName": "KostKu",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  }
+}
