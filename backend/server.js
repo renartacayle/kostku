@@ -558,8 +558,33 @@ app.get('/api/users', (req, res) => {
 app.get('/api/users/:id', (req, res) => {
   const { id } = req.params;
   const db = getDB();
-  const user = db.users.find(u => String(u.id) === String(id));
-  if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+  let user = db.users.find(u => String(u.id) === String(id));
+
+  // If user not in memory (stateless lambda restart), search in applications
+  if (!user) {
+    const app = (db.applications || []).find(a => String(a.userId) === String(id));
+    if (app) {
+      user = {
+        id: app.userId,
+        name: app.userName,
+        email: app.userEmail || '',
+        phone: app.phone || '',
+        role: 'user',
+        kostUid: app.status === 'approved' ? app.kostUid : undefined,
+        kamar: app.status === 'approved' ? app.kamar : undefined
+      };
+      db.users.push(user);
+    }
+  }
+
+  // Graceful fallback for new or unassigned users
+  if (!user) {
+    user = {
+      id,
+      name: 'Penghuni',
+      role: 'user'
+    };
+  }
 
   const safeUser = { ...user };
   delete safeUser.password;
@@ -574,6 +599,11 @@ app.get('/api/users/:id', (req, res) => {
   const latestApp = (db.applications || [])
     .filter(a => String(a.userId) === String(user.id) || (user.email && a.userEmail === user.email) || (user.phone && a.phone === user.phone))
     .sort((a,b) => new Date(b.date) - new Date(a.date))[0] || null;
+
+  if (latestApp && (!kostName || kostName === 'KostKu') && latestApp.kostUid) {
+    const k = db.kosts.find(k => k.uid === latestApp.kostUid);
+    if (k) kostName = k.kostName;
+  }
 
   res.json({
     user: safeUser,
