@@ -402,11 +402,11 @@ const Penghuni = ({ user }) => {
                       <button
                         onClick={() => setSmartLockTenant(t)}
                         className="btn btn-secondary btn-sm"
-                        title="Smart Lock Door PIN & Listrik"
+                        title="Beli / Kirim Token Listrik PLN"
                         style={{ gap: '4px' }}
                       >
-                        <Key size={14} color="#fbbf24" />
-                        <span className="desktop-only">Smart Lock</span>
+                        <Zap size={14} color="#fbbf24" />
+                        <span className="desktop-only">Token Listrik</span>
                       </button>
 
                       <button

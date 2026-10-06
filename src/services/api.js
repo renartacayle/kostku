@@ -315,6 +315,13 @@ export const apiGetPaymentReceipt = (invoiceId) => {
   return request(`/payments/receipt/${invoiceId}`);
 };
 
+export const apiSendReceiptEmail = (invoiceId, email) => {
+  return request('/payments/send-receipt-email', {
+    method: 'POST',
+    body: JSON.stringify({ invoiceId, email })
+  });
+};
+
 // ── Digital Contracts & E-Signature ────────────────────────
 export const apiSignContract = (data) => {
   return request('/contracts/sign', {
@@ -362,14 +369,7 @@ export const apiCreateInspection = (data) => {
   });
 };
 
-// ── Smart Lock PIN & Listrik Token ──────────────────────────
-export const apiGenerateSmartLockPin = (data) => {
-  return request('/smart-lock/generate-pin', {
-    method: 'POST',
-    body: JSON.stringify(data)
-  });
-};
-
+// ── Token Listrik PLN ──────────────────────────────────────
 export const apiTopUpElectricity = (data) => {
   return request('/electricity/top-up', {
     method: 'POST',

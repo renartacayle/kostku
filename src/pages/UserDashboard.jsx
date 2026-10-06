@@ -141,7 +141,7 @@ const UserDashboard = ({ user }) => {
             className="btn btn-secondary"
             style={{ fontSize: '0.8rem', padding: '8px 12px', gap: '6px' }}
           >
-            <Key size={14} color="#38bdf8" /> Smart Lock & Listrik
+            <Zap size={14} color="#fbbf24" /> Token Listrik PLN
           </button>
 
           <button

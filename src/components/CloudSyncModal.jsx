@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, Wifi, Database, CheckCircle, AlertCircle, RefreshCw, X, Server, Download, Upload, Shield } from 'lucide-react';
+import { Cloud, Wifi, Database, CheckCircle, AlertCircle, RefreshCw, X, Server, Download, Upload, Shield, Flame } from 'lucide-react';
 import { getCloudConfig, setCloudApiUrl, testApiConnection } from '../services/api';
 import { getSupabaseConfig, setSupabaseConfig, testSupabaseConnection } from '../services/supabase';
+import { getFirebaseConfig, setFirebaseConfig, testFirebaseConnection } from '../services/firebase';
 
 export default function CloudSyncModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('server'); // 'server' or 'supabase' or 'backup'
@@ -18,6 +19,12 @@ export default function CloudSyncModal({ isOpen, onClose }) {
   const [sbTesting, setSbTesting] = useState(false);
   const [sbResult, setSbResult] = useState(null);
 
+  // Firebase state
+  const [fbProjectId, setFbProjectId] = useState('');
+  const [fbApiKey, setFbApiKey] = useState('');
+  const [fbTesting, setFbTesting] = useState(false);
+  const [fbResult, setFbResult] = useState(null);
+
   // Backup / Restore
   const [restoreMessage, setRestoreMessage] = useState('');
 
@@ -31,8 +38,13 @@ export default function CloudSyncModal({ isOpen, onClose }) {
       setSbUrl(sbCfg.url);
       setSbKey(sbCfg.key);
 
+      const fbCfg = getFirebaseConfig();
+      setFbProjectId(fbCfg.projectId);
+      setFbApiKey(fbCfg.apiKey);
+
       setTestResult(null);
       setSbResult(null);
+      setFbResult(null);
       setRestoreMessage('');
     }
   }, [isOpen]);
@@ -63,6 +75,19 @@ export default function CloudSyncModal({ isOpen, onClose }) {
   const handleSaveSupabase = () => {
     setSupabaseConfig(sbUrl, sbKey);
     handleTestSupabase();
+  };
+
+  const handleTestFirebase = async () => {
+    setFbTesting(true);
+    setFbResult(null);
+    const res = await testFirebaseConnection(fbProjectId, fbApiKey);
+    setFbTesting(false);
+    setFbResult(res);
+  };
+
+  const handleSaveFirebase = () => {
+    setFirebaseConfig(fbProjectId, fbApiKey, true);
+    handleTestFirebase();
   };
 
   const handleBackupDownload = () => {
@@ -199,6 +224,26 @@ export default function CloudSyncModal({ isOpen, onClose }) {
             }}
           >
             <Database size={16} /> Supabase DB
+          </button>
+          <button
+            onClick={() => setActiveTab('firebase')}
+            style={{
+              flex: 1,
+              padding: '8px',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              background: activeTab === 'firebase' ? 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)' : 'transparent',
+              color: activeTab === 'firebase' ? 'white' : 'var(--text-secondary)',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <Flame size={16} color={activeTab === 'firebase' ? 'white' : '#f59e0b'} /> Firebase DB
           </button>
           <button
             onClick={() => setActiveTab('backup')}
@@ -408,7 +453,98 @@ export default function CloudSyncModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* Tab 3: Backup & Restore */}
+        {/* Tab 3: Firebase Firestore */}
+        {activeTab === 'firebase' && (
+          <div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Hubungkan ke <strong>Google Firebase Cloud Firestore</strong> untuk database online permanen dan realtime gratis (50.000 baca/hari & 20.000 tulis/hari).
+            </p>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                Firebase Project ID:
+              </label>
+              <input 
+                type="text" 
+                className="input-field"
+                placeholder="contoh: kostku-app-2026"
+                value={fbProjectId}
+                onChange={(e) => setFbProjectId(e.target.value)}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                Firebase Web API Key (Opsional / Recommended):
+              </label>
+              <input 
+                type="password" 
+                className="input-field"
+                placeholder="AIzaSyA..."
+                value={fbApiKey}
+                onChange={(e) => setFbApiKey(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '1.25rem' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleTestFirebase}
+                disabled={fbTesting}
+                style={{ flex: 1 }}
+              >
+                <RefreshCw size={16} className={fbTesting ? 'animate-spin' : ''} /> 
+                {fbTesting ? 'Menguji...' : 'Uji Koneksi Firebase'}
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleSaveFirebase}
+                style={{ flex: 1, background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)' }}
+              >
+                Simpan & Aktifkan
+              </button>
+            </div>
+
+            {fbResult && (
+              <div style={{
+                background: fbResult.ok ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                border: `1px solid ${fbResult.ok ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '0.85rem'
+              }}>
+                {fbResult.ok ? (
+                  <>
+                    <CheckCircle size={18} color="var(--accent-success)" />
+                    <span style={{ color: 'var(--accent-success)' }}>
+                      Berhasil tersambung ke Firebase Firestore! (Latensi {fbResult.latency} ms)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle size={18} color="var(--accent-danger)" />
+                    <span style={{ color: 'var(--accent-danger)' }}>{fbResult.error}</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              🔥 <strong>Cara Setup Cepat di Firebase Console:</strong>
+              <ol style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                <li>Buka <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" style={{ color: '#38bdf8' }}>console.firebase.google.com</a> dan buat project baru.</li>
+                <li>Pilih menu <strong>Firestore Database</strong> &gt; Klik <strong>Create database</strong>.</li>
+                <li>Pada tab <strong>Rules</strong>, gunakan aturan baca-tulis aktif untuk project Anda.</li>
+                <li>Copy <strong>Project ID</strong> dari Project Settings dan tempel di form ini!</li>
+              </ol>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Backup & Restore */}
         {activeTab === 'backup' && (
           <div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>

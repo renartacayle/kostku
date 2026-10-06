@@ -4,14 +4,107 @@ const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
 
-// Setup mock transporter for Gmail (In real app, add real auth credentials)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'kostku.demo@gmail.com',
-    pass: 'dummy-password'
+// Helper: Dynamic Email Transporter & Payment Receipt Email Sender
+const sendPaymentReceiptEmail = async ({ toEmail, receiptNumber, invoice, kost, user }) => {
+  if (!toEmail || !toEmail.includes('@')) {
+    return { success: false, error: 'Email tujuan tidak valid' };
   }
-});
+
+  try {
+    let activeTransporter = null;
+    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+      activeTransporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+    } else {
+      // Ethereal test account fallback (safe for dev & free testing)
+      const testAccount = await nodemailer.createTestAccount();
+      activeTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass
+        }
+      });
+    }
+
+    const tenantName = user?.name || invoice.userName || 'Penghuni Kost';
+    const roomNum = invoice.kamar || user?.kamar || '-';
+    const propName = kost?.kostName || 'KostKu Residence';
+    const totalRupiah = Number(invoice.total || 0).toLocaleString('id-ID');
+    const payMethod = invoice.paymentMethod || 'QRIS / Online';
+    const payDate = new Date(invoice.paidAt || Date.now()).toLocaleDateString('id-ID', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    const htmlContent = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 28px 24px; color: #ffffff; text-align: center;">
+          <h2 style="margin: 0; font-size: 24px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;">KostKu</h2>
+          <p style="margin: 6px 0 0 0; font-size: 13px; color: #94a3b8; font-weight: 600; letter-spacing: 1px;">BUKTI PEMBAYARAN RESMI (E-RECEIPT)</p>
+        </div>
+        <div style="padding: 28px 24px; color: #1e293b;">
+          <div style="text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px dashed #cbd5e1;">
+            <span style="background: #dcfce7; color: #15803d; padding: 6px 14px; border-radius: 9999px; font-weight: 800; font-size: 12px; display: inline-block; margin-bottom: 12px;">✓ PEMBAYARAN LUNAS</span>
+            <h3 style="margin: 0 0 6px 0; font-size: 22px; color: #0f172a;">No. Resi: ${receiptNumber}</h3>
+            <p style="margin: 0; font-size: 13px; color: #64748b;">Diterbitkan pada: ${payDate}</p>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 10px 0; color: #64748b;">Nama Penghuni</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 700; color: #0f172a;">${tenantName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 10px 0; color: #64748b;">Nomor Kamar</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 700; color: #0f172a;">Kamar ${roomNum}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 10px 0; color: #64748b;">Cabang Kost</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 700; color: #0f172a;">${propName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 10px 0; color: #64748b;">Metode Pembayaran</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 700; color: #0f172a;">${payMethod}</td>
+            </tr>
+            <tr style="border-top: 2px solid #0f172a;">
+              <td style="padding: 14px 0; font-weight: 800; font-size: 16px; color: #0f172a;">TOTAL DIBAYAR</td>
+              <td style="padding: 14px 0; text-align: right; font-weight: 900; font-size: 20px; color: #16a34a;">Rp ${totalRupiah}</td>
+            </tr>
+          </table>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.5;">
+              Terima kasih telah melakukan pembayaran tepat waktu. Dokumen ini adalah tanda terima resmi yang sah dan diterbitkan secara digital oleh sistem KostKu.
+            </p>
+          </div>
+          <div style="text-align: center; font-size: 11px; color: #94a3b8;">
+            KostKu Smart Co-Living Management • Hak Cipta Dilindungi
+          </div>
+        </div>
+      </div>
+    `;
+
+    const info = await activeTransporter.sendMail({
+      from: '"KostKu Billing" <billing@kostku.id>',
+      to: toEmail,
+      subject: `[LUNAS] Bukti Pembayaran Sewa Kost - ${receiptNumber}`,
+      html: htmlContent
+    });
+
+    const previewUrl = nodemailer.getTestMessageUrl(info) || null;
+    return { success: true, messageId: info.messageId, previewUrl };
+  } catch (err) {
+    console.warn('Nodemailer sending error:', err.message);
+    return { success: false, error: err.message };
+  }
+};
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -253,11 +346,12 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
       'Floating Action Bar pemesanan sewa instan untuk pengguna Android'
     ],
     downloadUrls: {
-      windows: '/downloads/KostKu-Windows.exe',
+      windows: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download',
+      windowsDriveView: 'https://drive.google.com/file/d/1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K/view?usp=sharing',
       android: '/downloads/KostKu-Android.apk',
       androidDirect: '/apk',
       androidAbsolute: `${baseUrl}/downloads/KostKu-Android.apk`,
-      windowsAbsolute: `${baseUrl}/downloads/KostKu-Windows.exe`
+      windowsAbsolute: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download'
     },
     isCritical: false
   });
@@ -1472,6 +1566,19 @@ app.post('/api/payments/simulate-success', (req, res) => {
     invoice.receiptNumber = receiptNumber;
 
     addActivity(db, invoice.kostUid, 'transaksi', `Pembayaran otomatis ${receiptNumber} (${invoice.kamar || ''}) sebesar Rp ${Number(invoice.total || 0).toLocaleString('id-ID')} LUNAS via ${invoice.paymentMethod}`);
+    
+    // Auto-dispatch receipt email if tenant has email
+    const tenantUser = (db.users || []).find(u => String(u.id) === String(invoice.userId)) || {};
+    const kost = (db.kosts || []).find(k => k.uid === invoice.kostUid) || {};
+    if (tenantUser.email) {
+      sendPaymentReceiptEmail({
+        toEmail: tenantUser.email,
+        receiptNumber,
+        invoice,
+        kost,
+        user: tenantUser
+      }).catch(err => console.warn('Auto receipt email fallback:', err.message));
+    }
   }
 
   writeDB(db);
@@ -1481,6 +1588,40 @@ app.post('/api/payments/simulate-success', (req, res) => {
     receiptNumber,
     invoice,
     transaction: trx
+  });
+});
+
+// Endpoint: Send Payment Receipt to Email explicitly
+app.post('/api/payments/send-receipt-email', async (req, res) => {
+  const { invoiceId, email } = req.body;
+  const db = getDB();
+  const invoice = (db.invoices || []).find(i => String(i.id) === String(invoiceId));
+  if (!invoice) return res.status(404).json({ error: 'Tagihan tidak ditemukan' });
+
+  const kost = (db.kosts || []).find(k => k.uid === invoice.kostUid) || {};
+  const user = (db.users || []).find(u => String(u.id) === String(invoice.userId)) || {};
+
+  const targetEmail = (email || user.email || '').trim().toLowerCase();
+  if (!targetEmail || !targetEmail.includes('@')) {
+    return res.status(400).json({ error: 'Email tujuan tidak valid' });
+  }
+
+  const receiptNumber = invoice.receiptNumber || `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+  invoice.receiptNumber = receiptNumber;
+  writeDB(db);
+
+  const emailRes = await sendPaymentReceiptEmail({
+    toEmail: targetEmail,
+    receiptNumber,
+    invoice,
+    kost,
+    user
+  });
+
+  res.json({
+    ...emailRes,
+    emailSentTo: targetEmail,
+    receiptNumber
   });
 });
 
@@ -1644,22 +1785,7 @@ app.post('/api/inspections', (req, res) => {
   res.json(inspection);
 });
 
-// ── UPGRADE: SMART LOCK PIN & TOKEN LISTRIK KWH ────────────────
-app.post('/api/smart-lock/generate-pin', (req, res) => {
-  const { kostUid, roomNumber, userId } = req.body;
-  const pin = String(Math.floor(100000 + Math.random() * 900000));
-  const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-
-  const db = getDB();
-  const user = (db.users || []).find(u => String(u.id) === String(userId));
-  if (user) {
-    user.smartLockPin = pin;
-    user.smartLockExpiry = validUntil;
-  }
-  writeDB(db);
-  res.json({ pin, validUntil, roomNumber });
-});
-
+// ── UPGRADE: TOKEN LISTRIK KWH MANDIRI ──────────────────────────
 app.post('/api/electricity/top-up', (req, res) => {
   const { kostUid, roomNumber, amount } = req.body;
   const segments = [];

@@ -1381,7 +1381,8 @@
       "amount": 1200000,
       "status": "lunas",
       "month": "September 2026",
-      "date": "2026-09-25T09:46:52.917Z"
+      "date": "2026-09-25T09:46:52.917Z",
+      "receiptNumber": "RCP-KST-2026841351"
     },
     {
       "id": "INV-1790329613118",
@@ -1494,5 +1495,8 @@
       "notes": "",
       "inspectedAt": "2026-10-04T09:44:44.271Z"
     }
-  ]
+  ],
+  "staff": [],
+  "settings": {},
+  "google_config": {}
 }

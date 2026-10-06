@@ -281,6 +281,29 @@ export default function InstallModal({ isOpen, onClose }) {
                 <span style={{ background: 'var(--accent-primary)', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', flexShrink: 0 }}>3</span>
                 <span>Klik tombol <strong>"Pasang"</strong> (Install). KostKu akan memiliki window mandiri di Taskbar & Desktop!</span>
               </div>
+
+              <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <a
+                  href="https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    fontSize: '0.85rem',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    borderRadius: '10px'
+                  }}
+                >
+                  <Download size={16} />
+                  <span>Unduh Installer Windows Standalone (.exe 207MB - Google Drive)</span>
+                </a>
+              </div>
             </div>
           )}
         </div>

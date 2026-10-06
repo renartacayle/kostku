@@ -502,7 +502,7 @@ export default function VideoScroll() {
               lineHeight: 1.6,
               textShadow: '0 2px 10px rgba(0,0,0,0.7)'
             }}>
-              Akses pintu smart lock, pantauan CCTV menyeluruh, dan lingkungan tenang yang mendukung produktivitas dan istirahat Anda.
+              Akses keamanan 24 jam, pantauan CCTV menyeluruh, dan lingkungan tenang yang mendukung produktivitas dan istirahat Anda.
             </p>
 
             {/* Feature Badges */}

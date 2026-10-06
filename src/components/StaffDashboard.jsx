@@ -519,9 +519,9 @@ export default function StaffDashboard({ user }) {
                           onClick={() => setSmartLockTenant(tenant)}
                           className="btn btn-secondary btn-sm"
                           style={{ flex: 1, padding: '4px 6px', fontSize: '0.72rem', gap: '4px', justifyContent: 'center' }}
-                          title="Smart Lock Door PIN"
+                          title="Token Listrik PLN"
                         >
-                          <Key size={12} color="#fbbf24" /> Smart Lock
+                          <Zap size={12} color="#fbbf24" /> Token Listrik
                         </button>
                       </div>
                     </div>

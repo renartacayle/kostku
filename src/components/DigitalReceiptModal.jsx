@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { X, Printer, CheckCircle, ShieldCheck, Download, Share2 } from 'lucide-react';
-import { apiGetPaymentReceipt } from '../services/api';
+import { X, Printer, CheckCircle, ShieldCheck, Download, Share2, Mail, Send, CheckCircle2, ExternalLink } from 'lucide-react';
+import { apiGetPaymentReceipt, apiSendReceiptEmail } from '../services/api';
 
 const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
   const [receiptData, setReceiptData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [emailInput, setEmailInput] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [emailError, setEmailError] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
     if (isOpen && invoiceId) {
       loadReceipt();
+      setEmailSuccess(false);
+      setEmailError(null);
+      setPreviewUrl(null);
     }
   }, [isOpen, invoiceId]);
 
@@ -17,10 +25,37 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
     try {
       const data = await apiGetPaymentReceipt(invoiceId);
       setReceiptData(data);
+      if (data?.invoice?.userEmail || data?.userEmail) {
+        setEmailInput(data.invoice?.userEmail || data.userEmail);
+      }
     } catch (err) {
       console.error('Failed to load receipt:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendEmail = async (e) => {
+    e?.preventDefault();
+    if (!emailInput || !emailInput.includes('@')) {
+      setEmailError('Masukkan format email yang valid');
+      return;
+    }
+    setSendingEmail(true);
+    setEmailError(null);
+    setEmailSuccess(false);
+    try {
+      const res = await apiSendReceiptEmail(invoiceId, emailInput.trim());
+      if (res.success) {
+        setEmailSuccess(true);
+        if (res.previewUrl) setPreviewUrl(res.previewUrl);
+      } else {
+        setEmailError(res.error || 'Gagal mengirim email');
+      }
+    } catch (err) {
+      setEmailError(err.message || 'Gagal mengirim email bukti pembayaran');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -115,6 +150,69 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
               <X size={16} />
             </button>
           </div>
+        </div>
+
+        {/* Send to Email Action Bar (no print) */}
+        <div style={{
+          padding: '0.75rem 1.5rem',
+          background: '#1e293b',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px'
+        }} className="no-print">
+          <form onSubmit={handleSendEmail} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, background: 'rgba(15, 23, 42, 0.6)', padding: '6px 12px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <Mail size={15} color="#38bdf8" />
+              <input
+                type="email"
+                placeholder="Kirim bukti ke email (contoh: user@gmail.com)"
+                value={emailInput}
+                onChange={e => setEmailInput(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'white',
+                  fontSize: '0.8rem',
+                  width: '100%'
+                }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={sendingEmail}
+              className="btn btn-primary"
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                gap: '6px',
+                borderRadius: '10px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Send size={13} /> {sendingEmail ? 'Mengirim...' : 'Kirim Email'}
+            </button>
+          </form>
+
+          {emailSuccess && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#4ade80', background: 'rgba(34, 197, 94, 0.15)', padding: '4px 10px', borderRadius: '8px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CheckCircle2 size={13} /> Bukti pembayaran berhasil dikirim ke {emailInput}!
+              </span>
+              {previewUrl && (
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  Lihat Inbox Web <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
+          )}
+
+          {emailError && (
+            <div style={{ fontSize: '0.75rem', color: '#f87171', background: 'rgba(239, 68, 68, 0.15)', padding: '4px 10px', borderRadius: '8px' }}>
+              ⚠️ {emailError}
+            </div>
+          )}
         </div>
 
         {/* Printable Receipt Body */}
