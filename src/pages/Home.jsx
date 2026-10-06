@@ -63,11 +63,14 @@ function KostCardImageSlider({ images, kostName }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{
+        width: '100%',
+        maxWidth: '100%',
         height: '220px',
         background: 'linear-gradient(135deg, #1a1828, #0e1628)',
         position: 'relative',
         overflow: 'hidden',
-        userSelect: 'none'
+        userSelect: 'none',
+        boxSizing: 'border-box'
       }}
     >
       {/* Sliding Track */}
@@ -79,7 +82,7 @@ function KostCardImageSlider({ images, kostName }) {
         transition: 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)'
       }}>
         {imgList.map((src, i) => (
-          <div key={i} style={{ flex: '0 0 100%', width: '100%', height: '100%', position: 'relative' }}>
+          <div key={i} style={{ flex: '0 0 100%', width: '100%', maxWidth: '100%', minWidth: 0, height: '100%', position: 'relative' }}>
             <img 
               src={src}
               alt={`${kostName} - foto ${i + 1}`}
@@ -285,7 +288,14 @@ export default function Home({ user }) {
   });
 
   return (
-    <div style={{ background: '#080612', paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+    <div style={{ 
+      background: '#080612', 
+      paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
+      overflowX: 'hidden',
+      width: '100%',
+      maxWidth: '100vw',
+      boxSizing: 'border-box'
+    }}>
       
       {/* ═══════ FLOATING TOP NAVBAR ═══════ */}
       <header style={{
@@ -368,7 +378,10 @@ export default function Home({ user }) {
           background: '#0e0c1e',
           minHeight: '100vh',
           paddingBottom: '6rem',
-          scrollMarginTop: '65px'
+          scrollMarginTop: '65px',
+          overflowX: 'hidden',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
         {/* Section header */}
@@ -520,6 +533,8 @@ export default function Home({ user }) {
           maxWidth: '1200px',
           margin: '0 auto',
           padding: '0 clamp(1rem, 3vw, 2rem)',
+          width: '100%',
+          boxSizing: 'border-box'
         }}>
           {filtered.length === 0 ? (
             <div style={{
@@ -563,6 +578,9 @@ export default function Home({ user }) {
                     textDecoration: 'none',
                     color: 'inherit',
                     animation: `fadeInUp 0.6s ease ${index * 0.08}s both`,
+                    display: 'block',
+                    minWidth: 0,
+                    maxWidth: '100%',
                   }}
                 >
                   <div
@@ -573,6 +591,9 @@ export default function Home({ user }) {
                       overflow: 'hidden',
                       transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                       cursor: 'pointer',
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-8px) scale(1.01)';
@@ -589,21 +610,31 @@ export default function Home({ user }) {
                     <KostCardImageSlider images={kost.images} kostName={kost.kostName} />
 
                     {/* Card body */}
-                    <div style={{ padding: '1rem 1.5rem 1.5rem' }}>
+                    <div style={{ padding: 'clamp(0.9rem, 3vw, 1.35rem)', width: '100%', boxSizing: 'border-box' }}>
                       <div style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         marginBottom: '6px',
+                        gap: '8px',
+                        minWidth: 0,
                       }}>
                         <h3 style={{
-                          margin: 0, fontSize: '1.1rem', fontWeight: '700', color: 'white',
+                          margin: 0, fontSize: 'clamp(0.98rem, 2.5vw, 1.1rem)', fontWeight: '700', color: 'white',
                           lineHeight: 1.3,
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          wordBreak: 'break-word',
                         }}>
                           {kost.kostName}
                         </h3>
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: '3px',
                           color: '#facc15', fontSize: '0.82rem', fontWeight: '600',
-                          flexShrink: 0, marginLeft: '12px',
+                          flexShrink: 0,
                         }}>
                           <Star size={13} fill="currentColor" /> 4.8
                         </div>
@@ -613,15 +644,22 @@ export default function Home({ user }) {
                         display: 'flex', alignItems: 'center', gap: '5px',
                         color: 'rgba(255,255,255,0.35)', fontSize: '0.82rem',
                         marginBottom: '1rem',
+                        minWidth: 0,
                       }}>
-                        <MapPin size={12} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <MapPin size={12} style={{ flexShrink: 0 }} />
+                        <span style={{ 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis', 
+                          whiteSpace: 'nowrap',
+                          minWidth: 0,
+                          flex: 1,
+                        }}>
                           {kost.address || 'Alamat tidak tersedia'}
                         </span>
                       </div>
 
                       {/* Tags */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.2rem' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.2rem', minWidth: 0 }}>
                         {[
                           { icon: <Wifi size={11} />, label: 'WiFi' },
                           { icon: <Bath size={11} />, label: 'KM Dalam' },
@@ -629,10 +667,11 @@ export default function Home({ user }) {
                         ].map((tag, i) => (
                           <span key={i} style={{
                             display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            padding: '3px 10px',
+                            padding: '3px 8px',
                             background: 'rgba(59, 130, 246, 0.06)',
                             color: 'rgba(110, 168, 254, 0.7)',
                             borderRadius: '6px', fontSize: '0.72rem', fontWeight: '500',
+                            whiteSpace: 'nowrap',
                           }}>
                             {tag.icon} {tag.label}
                           </span>
@@ -644,14 +683,18 @@ export default function Home({ user }) {
                         paddingTop: '1rem',
                         borderTop: '1px solid rgba(255,255,255,0.04)',
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        gap: '8px',
+                        minWidth: 0,
                       }}>
-                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.82rem', flexShrink: 0 }}>
                           Mulai dari
                         </span>
                         <span style={{
-                          fontSize: '1.15rem', fontWeight: '800',
+                          fontSize: 'clamp(1rem, 2.5vw, 1.15rem)', fontWeight: '800',
                           background: 'linear-gradient(135deg, #6ea8fe, #b48cfe)',
                           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                          whiteSpace: 'nowrap',
+                          textAlign: 'right',
                         }}>
                           Rp {kost.rooms?.length > 0
                             ? Math.min(...kost.rooms.map(r => r.price)).toLocaleString()
@@ -674,13 +717,15 @@ export default function Home({ user }) {
         <div style={{
           maxWidth: '1200px',
           margin: '6rem auto 0',
-          padding: '2.5rem 2rem',
+          padding: '2.5rem clamp(1rem, 3vw, 2rem)',
           borderTop: '1px solid rgba(255,255,255,0.04)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
+          boxSizing: 'border-box',
+          width: '100%'
         }}>
           <div>
             <div style={{
