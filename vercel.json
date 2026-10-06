@@ -11,6 +11,14 @@
       "destination": "/api/index.js"
     },
     {
+      "source": "/apk",
+      "destination": "/downloads/KostKu-Android.apk"
+    },
+    {
+      "source": "/downloads/:path*",
+      "destination": "/downloads/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -388,7 +388,7 @@ app.put('/api/users/:id/bedsheets', (req, res) => {
   const { bedsheets } = req.body;
   const db = getDB();
   
-  const user = db.users.find(u => u.id === id);
+  const user = db.users.find(u => String(u.id) === String(id));
   if (!user) return res.status(404).json({ error: 'User not found' });
   
   user.bedsheets = bedsheets;
@@ -465,7 +465,7 @@ app.delete('/api/users/:id', (req, res) => {
   const { id } = req.params;
   const db = getDB();
   
-  const index = db.users.findIndex(u => u.id === id && u.role === 'user');
+  const index = db.users.findIndex(u => String(u.id) === String(id) && u.role === 'user');
   if (index === -1) return res.status(404).json({ error: 'Penghuni tidak ditemukan' });
   
   const removedUser = db.users[index];
@@ -961,7 +961,7 @@ app.put('/api/invoices/:id/verify', (req, res) => {
   const { id } = req.params;
   const db = getDB();
   
-  const inv = db.invoices.find(i => i.id === id);
+  const inv = db.invoices.find(i => String(i.id) === String(id));
   if (!inv) return res.status(404).json({ error: 'Tagihan tidak ditemukan' });
   
   inv.status = 'lunas';
@@ -1003,7 +1003,7 @@ app.post('/api/expenses', (req, res) => {
 app.delete('/api/expenses/:id', (req, res) => {
   const { id } = req.params;
   const db = getDB();
-  const index = db.expenses.findIndex(e => e.id === id);
+  const index = db.expenses.findIndex(e => String(e.id) === String(id));
   if (index === -1) return res.status(404).json({ error: 'Tidak ditemukan' });
   db.expenses.splice(index, 1);
   writeDB(db);
@@ -1018,7 +1018,7 @@ app.get('/api/complaints', (req, res) => {
 
   let filtered = db.complaints;
   if (kostUid) filtered = filtered.filter(c => c.kostUid === kostUid);
-  else if (userId) filtered = filtered.filter(c => c.userId === userId);
+  else if (userId) filtered = filtered.filter(c => String(c.userId) === String(userId));
 
   res.json(filtered.sort((a,b) => new Date(b.date) - new Date(a.date)));
 });
@@ -1049,7 +1049,7 @@ app.put('/api/complaints/:id', (req, res) => {
   const { status } = req.body;
   
   const db = getDB();
-  const index = db.complaints.findIndex(c => c.id === id);
+  const index = db.complaints.findIndex(c => String(c.id) === String(id));
   if (index === -1) return res.status(404).json({ error: 'Komplain tidak ditemukan' });
   
   db.complaints[index].status = status;
@@ -1315,14 +1315,14 @@ app.post('/api/kosts/apply', (req, res) => {
   const { kostUid, userId, kamar, phone } = req.body;
   const db = getDB();
   
-  const user = db.users.find(u => u.id === userId);
+  const user = db.users.find(u => String(u.id) === String(userId));
   if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
   
   const kost = db.kosts.find(k => k.uid === kostUid);
   if (!kost) return res.status(404).json({ error: 'Kost tidak ditemukan' });
   
   // Check if already applied
-  if (db.applications.find(a => a.userId === userId && a.status === 'pending')) {
+  if (db.applications.find(a => String(a.userId) === String(userId) && a.status === 'pending')) {
     return res.status(400).json({ error: 'Anda sudah memiliki pengajuan yang pending' });
   }
   
@@ -1357,14 +1357,14 @@ app.put('/api/applications/:id', (req, res) => {
   const { action } = req.body; // 'approve' or 'reject'
   const db = getDB();
   
-  const appIndex = db.applications.findIndex(a => a.id === id);
+  const appIndex = db.applications.findIndex(a => String(a.id) === String(id));
   if (appIndex === -1) return res.status(404).json({ error: 'Aplikasi tidak ditemukan' });
   
   const application = db.applications[appIndex];
   
   if (action === 'approve') {
     application.status = 'approved';
-    const user = db.users.find(u => u.id === application.userId);
+    const user = db.users.find(u => String(u.id) === String(application.userId));
     if (user) {
       user.kostUid = application.kostUid;
       user.kamar = application.kamar;
