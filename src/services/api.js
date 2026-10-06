@@ -134,6 +134,17 @@ export const apiRegister = (userData) => {
   });
 };
 
+export const apiCheckNik = (nik) => {
+  return request(`/check-nik?nik=${encodeURIComponent(nik)}`);
+};
+
+export const apiRecoverAccount = (data) => {
+  return request('/recover-account', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
 export const apiUpdateProfile = (profileData) => {
   return request('/user/profile', {
     method: 'PUT',

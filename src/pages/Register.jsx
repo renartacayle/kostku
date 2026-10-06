@@ -1,20 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, User, Lock, ArrowRight, Building, CheckCircle, Mail, MapPin, Camera, Sparkles } from 'lucide-react';
-import { apiRegister } from '../services/api';
+import { 
+  Home, 
+  User, 
+  Lock, 
+  ArrowRight, 
+  Building, 
+  CheckCircle, 
+  Mail, 
+  MapPin, 
+  Camera, 
+  Sparkles,
+  ShieldCheck,
+  CreditCard,
+  Phone,
+  AlertCircle,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  UserCheck
+} from 'lucide-react';
+import { apiRegister, apiCheckNik } from '../services/api';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '', email: '', password: '', kostName: '', address: '', description: ''
-  });
+  const [role, setRole] = useState('user'); // 'user' (Anak Kost) or 'owner' (Pemilik Kost)
+  
+  // Identitas KTP (Anti-Bot)
+  const [name, setName] = useState('');
+  const [nik, setNik] = useState('');
+  const [ktpImage, setKtpImage] = useState(null);
+  const [nikStatus, setNikStatus] = useState(null); // { valid: bool, available: bool, message: string }
+  const [checkingNik, setCheckingNik] = useState(false);
+
+  // Kontak & Akun
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Khusus Pemilik Kost (Owner)
+  const [kostName, setKostName] = useState('');
+  const [address, setAddress] = useState('');
+  const [description, setDescription] = useState('');
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
   const [imageFront, setImageFront] = useState(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  // Debounced NIK availability check
+  useEffect(() => {
+    const cleanNik = nik.trim();
+    if (cleanNik.length !== 16) {
+      setNikStatus(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCheckingNik(true);
+      try {
+        const res = await apiCheckNik(cleanNik);
+        setNikStatus(res);
+      } catch (err) {
+        setNikStatus({ valid: true, available: true, message: 'NIK dapat digunakan' });
+      } finally {
+        setCheckingNik(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [nik]);
+
+  const handleNikChange = (e) => {
+    // Only numbers, max 16 digits
+    const val = e.target.value.replace(/\D/g, '').slice(0, 16);
+    setNik(val);
+    if (error) setError('');
+  };
+
+  const handleKtpImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setKtpImage(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageFrontChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setImageFront(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const getLocation = () => {
     if (navigator.geolocation) {
@@ -23,8 +107,7 @@ const Register = () => {
           setLat(position.coords.latitude);
           setLng(position.coords.longitude);
         },
-        (err) => {
-          // Fallback mock GPS for desktop browser testing if user denies or no GPS hardware
+        () => {
           setLat(-6.2088);
           setLng(106.8456);
           alert('Lokasi otomatis diset ke koordinat Jakarta untuk pengujian.');
@@ -36,43 +119,90 @@ const Register = () => {
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImageFront(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
-    // Auto-fill GPS if user didn't click
-    const effectiveLat = lat || -6.2088;
-    const effectiveLng = lng || 106.8456;
 
-    if (!imageFront) {
-      setError('Anda harus mengunggah foto depan kost.');
+    // Validasi NIK & Nama KTP
+    if (!name.trim()) {
+      setError('Nama lengkap sesuai KTP wajib diisi.');
       setLoading(false);
       return;
     }
 
+    if (nik.length !== 16) {
+      setError('NIK harus tepat 16 digit angka sesuai e-KTP.');
+      setLoading(false);
+      return;
+    }
+
+    if (nikStatus && !nikStatus.available) {
+      setError('NIK ini sudah terdaftar! 1 KTP hanya berlaku untuk 1 akun. Silakan gunakan menu Pemulihan Akun dengan NIK jika ini akun Anda.');
+      setLoading(false);
+      return;
+    }
+
+    if (!ktpImage) {
+      setError('Foto KTP wajib diunggah untuk verifikasi identitas resmi (anti-bot).');
+      setLoading(false);
+      return;
+    }
+
+    // Validasi Password
+    if (password.length < 6) {
+      setError('Password minimal 6 karakter.');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Konfirmasi password tidak cocok.');
+      setLoading(false);
+      return;
+    }
+
+    // Validasi khusus Owner
+    if (role === 'owner') {
+      if (!email) {
+        setError('Alamat email wajib diisi untuk akun Pemilik Kost.');
+        setLoading(false);
+        return;
+      }
+      if (!imageFront) {
+        setError('Foto depan kost wajib diunggah untuk verifikasi properti.');
+        setLoading(false);
+        return;
+      }
+    }
+
+    const effectiveLat = lat || -6.2088;
+    const effectiveLng = lng || 106.8456;
+
     try {
-      const data = await apiRegister({
-        ...formData,
-        lat: effectiveLat,
-        lng: effectiveLng,
-        imageFront,
-        role: 'owner'
-      });
-      
-      setMessage(data.message || 'Registrasi berhasil! Kost Anda langsung terverifikasi.');
-      setTimeout(() => navigate('/login'), 2500);
+      const payload = {
+        role,
+        name: name.trim(),
+        nik: nik.trim(),
+        ktpImage,
+        email: email.trim(),
+        phone: phone.trim(),
+        password,
+        ...(role === 'owner' ? {
+          kostName: kostName.trim() || 'Kost Baru',
+          address: address.trim(),
+          description: description.trim(),
+          lat: effectiveLat,
+          lng: effectiveLng,
+          imageFront
+        } : {})
+      };
+
+      const res = await apiRegister(payload);
+      setMessage(res.message || 'Registrasi berhasil! Identitas KTP Anda terverifikasi.');
+      setTimeout(() => navigate('/login'), 2200);
     } catch (err) {
-      setError(err.message || 'Gagal mendaftar');
+      setError(err.message || 'Gagal mendaftar. Silakan periksa kembali formulir Anda.');
     } finally {
       setLoading(false);
     }
@@ -85,167 +215,479 @@ const Register = () => {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'radial-gradient(circle at 50% 10%, rgba(37, 99, 235, 0.15) 0%, var(--bg-main) 70%)',
-      padding: '2rem 1rem'
+      padding: '2.5rem 1rem'
     }}>
       <div className="card glass-panel animate-fade-in" style={{
-        maxWidth: '520px',
+        maxWidth: '560px',
         width: '100%',
         padding: '2.5rem 2rem',
-        border: '1px solid var(--border-light)'
+        border: '1px solid var(--border-light)',
+        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+        borderRadius: '24px'
       }}>
         
+        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <div style={{
             display: 'inline-flex',
             background: 'var(--accent-gradient)',
             padding: '14px',
-            borderRadius: '18px',
+            borderRadius: '20px',
             marginBottom: '1rem',
             boxShadow: 'var(--shadow-glow)'
           }}>
-            <Building size={32} color="white" />
+            <ShieldCheck size={36} color="white" />
           </div>
-          <h1 style={{ margin: '0 0 6px 0', fontSize: '1.75rem', fontWeight: 800 }}>Daftarkan Kost Anda</h1>
-          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.85rem' }}>
-            Kelola operasional, tagihan, dan anak kost secara cerdas & multi-device
+          <h1 style={{ margin: '0 0 6px 0', fontSize: '1.8rem', fontWeight: 800 }}>Daftar Akun KostKu</h1>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.88rem' }}>
+            Verifikasi resmi identitas KTP (Anti-Bot: 1 KTP = 1 Akun)
           </p>
         </div>
 
-        {/* Tombol Daftar Cepat dengan Akun Google */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <button
-            type="button"
-            onClick={() => navigate('/login?google=owner')}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              background: '#ffffff',
-              color: '#3c4043',
-              borderRadius: '24px',
-              border: '1px solid #dadce0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              transition: 'all 0.2s',
-              fontFamily: 'Google Sans, Roboto, Inter, sans-serif'
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-            </svg>
-            <span>Daftar Pemilik via Akun Google</span>
-          </button>
-          
-          <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-muted)', margin: '1.25rem 0 0.5rem 0', fontSize: '0.8rem' }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-            <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>atau isi formulir manual</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+        {/* Anti-Bot Trust Badge */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '14px',
+          padding: '12px 14px',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          fontSize: '0.82rem',
+          color: 'var(--text-secondary)',
+          lineHeight: 1.5
+        }}>
+          <Sparkles size={18} color="#60a5fa" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <strong style={{ color: '#93c5fd' }}>Keamanan 1 KTP = 1 Akun:</strong> Mencegah bot dan akun palsu. NIK dan Nama KTP ini juga melindungi akun Anda agar dapat dipulihkan kapan saja jika lupa password.
           </div>
         </div>
 
+        {/* Role Selector Tabs */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '8px',
+          background: 'rgba(255, 255, 255, 0.04)',
+          padding: '4px',
+          borderRadius: '14px',
+          marginBottom: '1.75rem',
+          border: '1px solid var(--border-color)'
+        }}>
+          <button
+            type="button"
+            onClick={() => setRole('user')}
+            style={{
+              padding: '10px 14px',
+              border: 'none',
+              borderRadius: '10px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              background: role === 'user' ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'transparent',
+              color: role === 'user' ? '#ffffff' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <User size={16} /> Pencari / Anak Kost
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setRole('owner')}
+            style={{
+              padding: '10px 14px',
+              border: 'none',
+              borderRadius: '10px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              background: role === 'owner' ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'transparent',
+              color: role === 'owner' ? '#ffffff' : 'var(--text-secondary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Building size={16} /> Pemilik Kost (Owner)
+          </button>
+        </div>
+
+        {/* Error Alert */}
         {error && (
           <div style={{
             background: 'rgba(239, 68, 68, 0.15)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
             color: 'var(--accent-danger)',
-            padding: '12px',
-            borderRadius: '10px',
-            marginBottom: '1.25rem',
+            padding: '12px 14px',
+            borderRadius: '12px',
+            marginBottom: '1.5rem',
             fontSize: '0.85rem',
-            textAlign: 'center'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            {error}
+            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            <div>{error}</div>
           </div>
         )}
 
+        {/* Success Alert */}
         {message ? (
-          <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-            <CheckCircle size={52} color="var(--accent-success)" style={{ margin: '0 auto 1rem' }} />
-            <h3 style={{ color: 'var(--accent-success)', margin: '0 0 0.5rem 0' }}>{message}</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Mengalihkan ke halaman login...</p>
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+            <CheckCircle size={56} color="var(--accent-success)" style={{ margin: '0 auto 1rem' }} />
+            <h3 style={{ color: 'var(--accent-success)', margin: '0 0 0.5rem 0', fontSize: '1.3rem' }}>{message}</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Mengalihkan ke halaman login...</p>
           </div>
         ) : (
-          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
-            {/* Informasi Pemilik */}
-            <h4 style={{ margin: 0, color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem' }}>
-              1. Informasi Akun Pemilik
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {/* 1. INFORMASI IDENTITAS KTP (ANTI-BOT) */}
+            <div>
+              <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CreditCard size={16} color="#60a5fa" /> 1. Verifikasi Identitas e-KTP (Wajib)
+              </h4>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                {/* Nama Lengkap Sesuai KTP */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Nama Lengkap Sesuai KTP <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={name} 
+                    onChange={e => setName(e.target.value)} 
+                    placeholder="Contoh: Budi Santoso (persis seperti di KTP)" 
+                    className="input-field" 
+                  />
+                </div>
+
+                {/* NIK 16 Digit */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Nomor Induk Kependudukan (NIK) <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <span style={{ fontSize: '0.75rem', color: nik.length === 16 ? '#4ade80' : 'var(--text-muted)' }}>
+                      {nik.length} / 16 digit
+                    </span>
+                  </div>
+                  
+                  <div style={{ position: 'relative' }}>
+                    <input 
+                      type="text" 
+                      inputMode="numeric"
+                      required 
+                      value={nik} 
+                      onChange={handleNikChange} 
+                      placeholder="Masukkan 16 digit angka NIK KTP Anda" 
+                      className="input-field" 
+                      style={{
+                        fontFamily: 'monospace',
+                        letterSpacing: '1px',
+                        paddingRight: '36px'
+                      }}
+                    />
+                    {checkingNik && (
+                      <RefreshCw size={16} className="animate-spin" color="#60a5fa" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    )}
+                    {!checkingNik && nikStatus && nikStatus.available && (
+                      <CheckCircle size={16} color="#4ade80" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    )}
+                    {!checkingNik && nikStatus && !nikStatus.available && (
+                      <AlertCircle size={16} color="#f87171" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    )}
+                  </div>
+
+                  {/* NIK status badge */}
+                  {nikStatus && (
+                    <div style={{
+                      marginTop: '4px',
+                      fontSize: '0.75rem',
+                      color: nikStatus.available ? '#4ade80' : '#f87171',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      {nikStatus.available ? '✓ ' : '⚠ '}
+                      {nikStatus.message}
+                      {!nikStatus.available && (
+                        <Link to="/login" style={{ color: '#60a5fa', textDecoration: 'underline', marginLeft: '4px' }}>
+                          Pulihkan akun di sini
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Foto KTP Asli */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Foto e-KTP Asli (Anti-Bot) <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Unggah atau jepret foto KTP Anda. Pastikan nama dan NIK terlihat jelas.
+                  </p>
+
+                  <div style={{
+                    border: '2px dashed rgba(59, 130, 246, 0.4)',
+                    borderRadius: '14px',
+                    padding: '1rem',
+                    textAlign: 'center',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    cursor: 'pointer',
+                    position: 'relative'
+                  }}>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleKtpImageChange} 
+                      required={!ktpImage}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        opacity: 0,
+                        cursor: 'pointer',
+                        width: '100%',
+                        height: '100%'
+                      }} 
+                    />
+
+                    {ktpImage ? (
+                      <div>
+                        <img 
+                          src={ktpImage} 
+                          alt="Preview KTP" 
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '160px',
+                            objectFit: 'contain',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            marginBottom: '6px'
+                          }} 
+                        />
+                        <div style={{ fontSize: '0.75rem', color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          <CheckCircle size={14} /> Foto KTP Berhasil Dipilih (Klik untuk ganti)
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                        <Camera size={28} color="#60a5fa" />
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#93c5fd' }}>
+                          Klik untuk Ambil / Unggah Foto KTP
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          Format JPG, PNG (Maks 10MB)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. DATA AKUN LOGIN & KONTAK */}
+            <div>
+              <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Lock size={16} color="#60a5fa" /> 2. Data Akun & Password
+              </h4>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Email {role === 'owner' ? <span style={{ color: '#ef4444' }}>*</span> : '(Opsional)'}
+                  </label>
+                  <input 
+                    type="email" 
+                    required={role === 'owner'}
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)} 
+                    placeholder="nama@email.com" 
+                    className="input-field" 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Nomor WhatsApp / HP
+                  </label>
+                  <input 
+                    type="tel" 
+                    value={phone} 
+                    onChange={e => setPhone(e.target.value)} 
+                    placeholder="081234567890" 
+                    className="input-field" 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Password <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input 
+                      type={showPassword ? 'text' : 'password'} 
+                      required 
+                      value={password} 
+                      onChange={e => setPassword(e.target.value)} 
+                      placeholder="Min. 6 karakter" 
+                      className="input-field" 
+                      style={{ paddingRight: '36px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Konfirmasi Password <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    required 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)} 
+                    placeholder="Ketik ulang password" 
+                    className="input-field" 
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. KHUSUS PEMILIK KOST: DATA PROPERTI KOST */}
+            {role === 'owner' && (
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Nama Pemilik</label>
-                <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Nama lengkap" className="input-field" />
+                <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building size={16} color="#60a5fa" /> 3. Informasi Properti Kost
+                </h4>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Nama Kost <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={kostName} 
+                      onChange={e => setKostName(e.target.value)} 
+                      placeholder="Misal: Kost Griya Sukun Co-Living" 
+                      className="input-field" 
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Alamat Lengkap <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <textarea 
+                      required 
+                      value={address} 
+                      onChange={e => setAddress(e.target.value)} 
+                      placeholder="Jalan, RT/RW, Kelurahan, Kecamatan, Kota" 
+                      rows={2} 
+                      className="input-field" 
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Lokasi GPS Kost
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <button type="button" onClick={getLocation} className="btn btn-secondary btn-sm" style={{ flex: 1, gap: '6px' }}>
+                        <MapPin size={15} color="var(--accent-primary)" /> {lat ? 'Lokasi Tersimpan' : 'Ambil Lokasi GPS Saat Ini'}
+                      </button>
+                      {lat && <CheckCircle size={20} color="var(--accent-success)" />}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Foto Tampak Depan Kost (Wajib) <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageFrontChange} 
+                      required={!imageFront} 
+                      style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem' }} 
+                    />
+                    {imageFront && (
+                      <img 
+                        src={imageFront} 
+                        alt="Preview Depan" 
+                        style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '10px', marginTop: '8px', border: '1px solid var(--border-color)' }} 
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Email (Login)</label>
-                <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="email@gmail.com" className="input-field" />
-              </div>
-            </div>
+            )}
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Password</label>
-              <input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Minimal 6 karakter" className="input-field" />
-            </div>
-
-            {/* Informasi Kost */}
-            <h4 style={{ margin: '0.5rem 0 0 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem' }}>
-              2. Informasi Properti Kost
-            </h4>
-            
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Nama Kost</label>
-              <input type="text" required value={formData.kostName} onChange={e => setFormData({...formData, kostName: e.target.value})} placeholder="Misal: Kost Bintang Residence" className="input-field" />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Alamat Lengkap</label>
-              <textarea required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Jalan, RT/RW, Kelurahan, Kota" rows={2} className="input-field" />
-            </div>
-
-            {/* Verifikasi */}
-            <h4 style={{ margin: '0.5rem 0 0 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem' }}>
-              3. Verifikasi Lokasi & Foto
-            </h4>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lokasi GPS Kost</label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <button type="button" onClick={getLocation} className="btn btn-secondary btn-sm" style={{ flex: 1, gap: '6px' }}>
-                  <MapPin size={15} color="var(--accent-primary)" /> {lat ? 'Lokasi Tersimpan' : 'Ambil Lokasi GPS Saat Ini'}
-                </button>
-                {lat && <CheckCircle size={20} color="var(--accent-success)" />}
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Foto Tampak Depan Kost (Wajib)</label>
-              <input type="file" accept="image/*" onChange={handleImageChange} required={!imageFront} style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem' }} />
-              {imageFront && (
-                <img src={imageFront} alt="Preview Depan" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '10px', marginTop: '8px', border: '1px solid var(--border-color)' }} />
+            {/* Tombol Submit */}
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={loading || nik.length !== 16 || (nikStatus && !nikStatus.available) || !ktpImage} 
+              style={{ 
+                padding: '13px', 
+                fontSize: '0.96rem', 
+                marginTop: '0.5rem', 
+                borderRadius: '12px',
+                fontWeight: 700,
+                gap: '8px',
+                justifyContent: 'center'
+              }}
+            >
+              {loading ? (
+                <>
+                  <RefreshCw size={16} className="animate-spin" /> Mendaftarkan Akun Resmi...
+                </>
+              ) : (
+                <>
+                  {role === 'owner' ? 'Daftarkan Kost & Verifikasi KTP' : 'Daftar Akun Pencari Kost Resmi'} <ArrowRight size={16}/>
+                </>
               )}
-            </div>
-
-            <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '12px', fontSize: '0.95rem', marginTop: '0.5rem', borderRadius: '12px' }}>
-              {loading ? 'Mendaftarkan Kost...' : <>Daftarkan Kost Sekarang <ArrowRight size={16}/></>}
             </button>
           </form>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          Sudah punya akun?{' '}
+        {/* Footer Link */}
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          Sudah memiliki akun terdaftar?{' '}
           <Link to="/login" style={{ color: '#60a5fa', fontWeight: 700, textDecoration: 'none' }}>
             Masuk di sini
           </Link>
         </div>
+
       </div>
     </div>
   );

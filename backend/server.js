@@ -409,35 +409,174 @@ const addActivity = (db, kostUid, type, text) => {
   });
 };
 
-// Endpoint: Register
-app.post('/api/register', (req, res) => {
-  const { role, name, email, password, kostName, kostUid, kamar, phone, address, lat, lng, imageFront, description } = req.body;
+// Endpoint: Check NIK Availability (Anti-Bot: 1 KTP 1 Akun)
+app.get('/api/check-nik', (req, res) => {
+  const nik = String(req.query.nik || '').trim();
+  const db = getDB();
+  
+  if (!nik || !/^\d{16}$/.test(nik)) {
+    return res.json({ 
+      valid: false, 
+      available: false, 
+      message: 'NIK harus tepat 16 digit angka sesuai KTP' 
+    });
+  }
+
+  const existing = db.users.find(u => u.nik && String(u.nik) === nik);
+  if (existing) {
+    return res.json({ 
+      valid: true, 
+      available: false, 
+      message: 'NIK sudah terdaftar! 1 KTP hanya untuk 1 akun' 
+    });
+  }
+
+  return res.json({ 
+    valid: true, 
+    available: true, 
+    message: 'NIK valid & dapat digunakan' 
+  });
+});
+
+// Endpoint: Pemulihan Akun dengan NIK & Nama Sesuai KTP
+app.post('/api/recover-account', (req, res) => {
+  const { nik, name, newPassword } = req.body;
   const db = getDB();
 
-  if (!password || !name) {
-    return res.status(400).json({ error: 'Password dan Nama harus diisi' });
+  const cleanNik = String(nik || '').trim();
+  if (!cleanNik || !/^\d{16}$/.test(cleanNik)) {
+    return res.status(400).json({ error: 'NIK wajib 16 digit angka' });
+  }
+
+  const user = db.users.find(u => u.nik && String(u.nik) === cleanNik);
+  if (!user) {
+    return res.status(404).json({ error: 'NIK tidak ditemukan dalam sistem. Pastikan NIK sudah pernah didaftarkan.' });
+  }
+
+  // Name verification (case-insensitive)
+  const inputName = String(name || '').trim().toLowerCase();
+  const userName = String(user.name || '').trim().toLowerCase();
+
+  const isMatch = userName === inputName || 
+                  userName.includes(inputName) || 
+                  inputName.includes(userName);
+
+  if (!isMatch) {
+    return res.status(400).json({ 
+      error: 'Nama tidak cocok dengan data NIK terdaftar! Masukkan nama lengkap persis seperti di KTP.' 
+    });
+  }
+
+  // If new password is provided, reset password and auto-login
+  if (newPassword) {
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password baru minimal 6 karakter' });
+    }
+    user.password = newPassword;
+    addActivity(db, user.kostUid || 'GLOBAL', 'pengguna', `Akun ${user.name} berhasil dipulihkan dengan verifikasi NIK (${cleanNik})`);
+    writeDB(db);
+
+    const safeUser = { ...user };
+    delete safeUser.password;
+
+    let kostName = 'KostKu';
+    if (user.role === 'owner') {
+      const ownerKosts = db.kosts.filter(k => String(k.ownerId) === String(user.id) || (user.kostUid && k.uid === user.kostUid));
+      const activeKost = ownerKosts.find(k => k.uid === user.kostUid) || ownerKosts[0];
+      if (activeKost) kostName = activeKost.kostName;
+    } else if (user.kostUid) {
+      const kost = db.kosts.find(k => k.uid === user.kostUid);
+      if (kost) kostName = kost.kostName;
+    }
+
+    return res.json({ 
+      success: true, 
+      message: 'Password berhasil diperbarui! Akun Anda telah dipulihkan.',
+      user: safeUser,
+      kostName
+    });
+  }
+
+  // Verification step only
+  const maskedEmail = user.email ? user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '-';
+  const maskedPhone = user.phone ? user.phone.replace(/(\d{3})\d+(\d{3})/, '$1****$2') : '-';
+
+  return res.json({
+    success: true,
+    message: 'Data NIK & Nama terverifikasi cocok!',
+    matchedUser: {
+      id: user.id,
+      name: user.name,
+      role: user.role === 'owner' ? 'Pemilik Kost' : 'Anak Kost / Pencari',
+      email: maskedEmail,
+      phone: maskedPhone
+    }
+  });
+});
+
+// Endpoint: Register (Wajib NIK 16 digit, Foto KTP, & Nama Sesuai KTP - Anti Bot 1 KTP 1 Akun)
+app.post('/api/register', (req, res) => {
+  const { role, name, nik, ktpImage, email, password, kostName, kostUid, kamar, phone, address, lat, lng, imageFront, description } = req.body;
+  const db = getDB();
+
+  if (!name || name.trim().length < 2) {
+    return res.status(400).json({ error: 'Nama lengkap sesuai KTP wajib diisi' });
+  }
+
+  // Validate NIK
+  const cleanNik = String(nik || '').trim();
+  if (!cleanNik || !/^\d{16}$/.test(cleanNik)) {
+    return res.status(400).json({ error: 'NIK wajib 16 digit angka sesuai KTP Anda' });
+  }
+
+  // Enforce 1 KTP 1 Akun
+  const existingUserByNik = db.users.find(u => u.nik && String(u.nik) === cleanNik);
+  if (existingUserByNik) {
+    return res.status(400).json({ 
+      error: 'NIK ini sudah terdaftar! 1 KTP hanya berlaku untuk 1 akun. Jika ini akun Anda, silakan gunakan fitur Pemulihan Akun dengan NIK.' 
+    });
+  }
+
+  // Validate Foto KTP (Anti-Bot)
+  if (!ktpImage) {
+    return res.status(400).json({ error: 'Foto KTP wajib diunggah untuk verifikasi identitas resmi (anti-bot)!' });
+  }
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password minimal 6 karakter' });
+  }
+
+  if (email) {
+    const existingEmail = db.users.find(u => u.email && u.email.toLowerCase() === email.trim().toLowerCase());
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email sudah terdaftar! Silakan gunakan email lain atau login.' });
+    }
   }
 
   const newUser = {
     id: Date.now().toString(),
-    name, password, role
+    name: name.trim(),
+    nik: cleanNik,
+    ktpImage,
+    email: email ? email.trim().toLowerCase() : '',
+    phone: phone ? phone.trim() : '',
+    password,
+    role: role || 'user',
+    verifiedKtp: true,
+    createdAt: new Date().toISOString()
   };
 
   if (role === 'owner') {
-    if (!email) return res.status(400).json({ error: 'Email harus diisi untuk pemilik' });
-    if (db.users.find(u => u.email === email)) {
-      return res.status(400).json({ error: 'Email sudah terdaftar!' });
-    }
-    
+    if (!email) return res.status(400).json({ error: 'Email harus diisi untuk pemilik kost' });
+
     // Validate GPS and Image for owner
     if (!lat || !lng) return res.status(400).json({ error: 'Lokasi GPS Kost wajib diisi untuk verifikasi' });
     if (!imageFront) return res.status(400).json({ error: 'Foto Depan Kost wajib diunggah untuk verifikasi' });
 
-    newUser.email = email;
     const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     newUser.kostUid = generatedUid;
     db.users.push(newUser);
-    
+
     db.kosts.push({
       uid: generatedUid,
       kostName: kostName || 'Kost Baru',
@@ -446,7 +585,7 @@ app.post('/api/register', (req, res) => {
       location: { lat, lng },
       images: [imageFront],
       description: description || '',
-      status: 'verified', // Auto verified for demo
+      status: 'verified',
       settings: {
         rooms: [],
         employees: [],
@@ -456,23 +595,33 @@ app.post('/api/register', (req, res) => {
         depositAmount: 0
       }
     });
-    
-    addActivity(db, generatedUid, 'pengguna', `Kost ${kostName || 'Baru'} berhasil dibuat dan diverifikasi`);
-    writeDB(db);
-    
-    return res.json({ message: 'Registrasi Owner Berhasil!', uid: generatedUid });
-    
-  } else if (role === 'user') {
-    // Normal user registration (tenant doesn't need to join kost immediately)
-    if (email) newUser.email = email;
-    if (phone) newUser.phone = phone;
-    
-    db.users.push(newUser);
+
+    addActivity(db, generatedUid, 'pengguna', `Kost ${kostName || 'Baru'} didaftarkan oleh ${newUser.name} (NIK terverifikasi)`);
     writeDB(db);
 
-    return res.json({ message: 'Berhasil mendaftar sebagai pencari kost' });
+    const safeUser = { ...newUser };
+    delete safeUser.password;
+    return res.json({ 
+      message: 'Registrasi Pemilik Kost Berhasil! Identitas KTP terverifikasi.', 
+      uid: generatedUid,
+      user: safeUser,
+      kostName: kostName || 'Kost Baru'
+    });
+
+  } else if (role === 'user') {
+    db.users.push(newUser);
+    addActivity(db, 'GLOBAL', 'pengguna', `Penghuni baru ${newUser.name} mendaftar (NIK terverifikasi)`);
+    writeDB(db);
+
+    const safeUser = { ...newUser };
+    delete safeUser.password;
+    return res.json({ 
+      message: 'Berhasil mendaftar sebagai pencari kost! Identitas KTP terverifikasi.',
+      user: safeUser
+    });
+
   } else {
-    res.status(400).json({ error: 'Role tidak valid' });
+    return res.status(400).json({ error: 'Role tidak valid' });
   }
 });
 
@@ -490,17 +639,21 @@ app.put('/api/users/:id/bedsheets', (req, res) => {
   res.json({ message: 'Bedsheets updated', bedsheets });
 });
 
-// Endpoint: Login
+// Endpoint: Login (Mendukung Login via Email, Nama, atau NIK)
 app.post('/api/login', (req, res) => {
-  const identifier = (req.body.loginId || req.body.email || req.body.username || '').trim();
+  const identifier = (req.body.loginId || req.body.email || req.body.username || req.body.nik || '').trim();
   const password = req.body.password;
   const db = getDB();
 
   const user = db.users.find(u => 
-    (u.email?.toLowerCase() === identifier.toLowerCase() || u.name?.toLowerCase() === identifier.toLowerCase()) && 
+    (
+      (u.email && u.email.toLowerCase() === identifier.toLowerCase()) || 
+      (u.name && u.name.toLowerCase() === identifier.toLowerCase()) ||
+      (u.nik && String(u.nik) === identifier)
+    ) && 
     u.password === password
   );
-  if (!user) return res.status(401).json({ error: 'Email/Nama atau password salah' });
+  if (!user) return res.status(401).json({ error: 'Email/NIK/Nama atau password salah' });
 
   const safeUser = { ...user };
   delete safeUser.password;

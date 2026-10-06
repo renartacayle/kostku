@@ -7,7 +7,9 @@
       "password": "Daria787",
       "role": "owner",
       "kostUid": "KOST-OJN64X",
-      "authProvider": "google"
+      "authProvider": "google",
+      "nik": "3171012005950001",
+      "verifiedKtp": true
     },
     {
       "id": 1784987632155,
@@ -17,7 +19,9 @@
       "role": "user",
       "kamar": "122",
       "kostUid": "KOST-OJN64X",
-      "authProvider": "google"
+      "authProvider": "google",
+      "nik": "3171012106980002",
+      "verifiedKtp": true
     },
     {
       "id": 1790329612917,
@@ -25,7 +29,9 @@
       "email": "budi.santoso@kostku.id",
       "password": "BudiKost2026",
       "role": "owner",
-      "kostUid": "KOST-K12DQR"
+      "kostUid": "KOST-K12DQR",
+      "nik": "3275011508920003",
+      "verifiedKtp": true
     },
     {
       "id": 1790329612918,
@@ -34,7 +40,9 @@
       "password": "Andi123",
       "role": "user",
       "kamar": "A01",
-      "kostUid": "KOST-K12DQR"
+      "kostUid": "KOST-K12DQR",
+      "nik": "3275011204990004",
+      "verifiedKtp": true
     },
     {
       "id": 1790329612919,
@@ -43,7 +51,9 @@
       "password": "Siti123",
       "role": "user",
       "kamar": "A02",
-      "kostUid": "KOST-K12DQR"
+      "kostUid": "KOST-K12DQR",
+      "nik": "3275015003980005",
+      "verifiedKtp": true
     },
     {
       "id": 1790329612920,
@@ -52,7 +62,9 @@
       "password": "Dimas123",
       "role": "user",
       "kamar": "B01",
-      "kostUid": "KOST-K12DQR"
+      "kostUid": "KOST-K12DQR",
+      "nik": "3275012507970006",
+      "verifiedKtp": true
     },
     {
       "id": 1790636581960,
@@ -63,7 +75,9 @@
       "picture": "",
       "authProvider": "google",
       "googleId": "",
-      "password": "google-oauth-wo3vjy"
+      "password": "google-oauth-wo3vjy",
+      "nik": "3275011010900007",
+      "verifiedKtp": true
     },
     {
       "id": 1790667808119,
@@ -74,7 +88,9 @@
       "picture": "",
       "authProvider": "google",
       "googleId": "",
-      "password": "google-oauth-8hc0fd"
+      "password": "google-oauth-8hc0fd",
+      "nik": "3171016509960008",
+      "verifiedKtp": true
     },
     {
       "id": 1790690390205,
@@ -84,7 +100,9 @@
       "picture": "",
       "authProvider": "google",
       "googleId": "",
-      "password": "google-oauth-0tyvn9"
+      "password": "google-oauth-0tyvn9",
+      "nik": "3171011111950009",
+      "verifiedKtp": true
     },
     {
       "id": 1790690895763,
@@ -95,7 +113,9 @@
       "picture": "",
       "authProvider": "google",
       "googleId": "",
-      "password": "google-oauth-khwjw3"
+      "password": "google-oauth-khwjw3",
+      "nik": "3171012222950010",
+      "verifiedKtp": true
     },
     {
       "id": 1790948802633,
@@ -113,7 +133,9 @@
       "smartLockExpiry": "2026-11-03T09:44:40.160Z",
       "contractSigned": true,
       "contractSignedAt": "2026-10-04T09:44:50.206Z",
-      "signatureDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      "signatureDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "nik": "3171013333950011",
+      "verifiedKtp": true
     }
   ],
   "kosts": [

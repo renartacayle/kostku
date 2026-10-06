@@ -25,12 +25,14 @@ import {
   apiGetGoogleClientId, 
   apiSetGoogleClientId 
 } from '../services/api';
+import AccountRecoveryModal from '../components/AccountRecoveryModal';
 
 export default function Login({ onLogin }) {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   // Google Sign-In State
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -208,6 +210,17 @@ export default function Login({ onLogin }) {
     localStorage.setItem('kostUser', JSON.stringify(data.user));
     setShowGoogleModal(false);
     onLogin(data.user, data.kostName);
+    navigate('/dashboard', { replace: true });
+  };
+
+  // Handler for successful account recovery via NIK
+  const handleRecoverySuccess = (userData, customKostName) => {
+    if (customKostName) {
+      localStorage.setItem('kostName', customKostName);
+    }
+    localStorage.setItem('kostUser', JSON.stringify(userData));
+    setShowRecoveryModal(false);
+    onLogin(userData, customKostName);
     navigate('/dashboard', { replace: true });
   };
 
@@ -462,14 +475,14 @@ export default function Login({ onLogin }) {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Email Pemilik atau Nama Penghuni
+              Email, NIK KTP (16 digit), atau Nama
             </label>
             <input 
               type="text" 
               required
               value={loginId} 
               onChange={e => setLoginId(e.target.value)}
-              placeholder="nama@email.com atau nama pengguna" 
+              placeholder="nama@email.com, NIK (16 digit), atau nama" 
               className="input-field"
             />
           </div>
@@ -486,6 +499,26 @@ export default function Login({ onLogin }) {
               placeholder="Masukkan password Anda" 
               className="input-field"
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button 
+                type="button"
+                onClick={() => setShowRecoveryModal(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#60a5fa',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Key size={13} /> Lupa Password? Pulihkan Akun dengan NIK
+              </button>
+            </div>
           </div>
 
           <button 
@@ -499,9 +532,9 @@ export default function Login({ onLogin }) {
         </form>
 
         <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          Ingin mendaftar sebagai Pemilik Kost baru?{' '}
+          Belum memiliki akun terverifikasi?{' '}
           <Link to="/register" style={{ color: '#60a5fa', fontWeight: 700, textDecoration: 'none' }}>
-            Daftar di sini
+            Daftar Akun Baru (KTP Anti-Bot)
           </Link>
         </div>
       </div>
@@ -1077,6 +1110,13 @@ export default function Login({ onLogin }) {
           </div>
         </div>
       )}
+
+      {/* Modal Pemulihan Akun dengan NIK KTP */}
+      <AccountRecoveryModal 
+        isOpen={showRecoveryModal} 
+        onClose={() => setShowRecoveryModal(false)} 
+        onSuccessLogin={handleRecoverySuccess} 
+      />
     </div>
   );
 }
