@@ -141,6 +141,8 @@ export const apiUpdateProfile = (profileData) => {
   });
 };
 
+export const apiGetUserProfile = (userId) => request(`/users/${userId}`);
+
 // ── Public Marketplace Endpoints ────────────────────────────
 export const apiGetPublicKosts = () => request('/public/kosts');
 

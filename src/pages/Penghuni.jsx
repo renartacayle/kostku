@@ -17,6 +17,7 @@ import {
   Key,
   FileCheck
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { 
   apiGetUsers, 
   apiGetSettings, 
@@ -32,7 +33,11 @@ import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
 import SignaturePadModal from '../components/SignaturePadModal';
 
 const Penghuni = ({ user }) => {
-  const [activeTab, setActiveTab] = useState('penghuni'); // 'penghuni' or 'aplikasi'
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') === 'aplikasi' ? 'aplikasi' : 'penghuni';
+  });
   const [tenants, setTenants] = useState([]);
   const [applications, setApplications] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -55,6 +60,13 @@ const Penghuni = ({ user }) => {
   
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') === 'aplikasi') {
+      setActiveTab('aplikasi');
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (user?.kostUid) {

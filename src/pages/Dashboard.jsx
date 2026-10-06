@@ -21,7 +21,8 @@ import {
   apiGetSettings, 
   apiGetUsers, 
   apiGetComplaints, 
-  apiGetInvoices 
+  apiGetInvoices,
+  apiGetApplications
 } from '../services/api';
 import UserDashboard from './UserDashboard';
 import StaffDashboard from '../components/StaffDashboard';
@@ -42,6 +43,7 @@ const Dashboard = ({ user }) => {
   const [tenants, setTenants] = useState([]);
   const [activeComplaints, setActiveComplaints] = useState(0);
   const [invoices, setInvoices] = useState([]);
+  const [pendingApplications, setPendingApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [roomFilter, setRoomFilter] = useState('all'); // 'all', 'empty', 'occupied'
 
@@ -49,12 +51,13 @@ const Dashboard = ({ user }) => {
     if (!user?.kostUid) return;
     setLoading(true);
     try {
-      const [acts, sets, usrs, comps, invs] = await Promise.all([
+      const [acts, sets, usrs, comps, invs, apps] = await Promise.all([
         apiGetActivities(user.kostUid).catch(() => []),
         apiGetSettings(user.kostUid).catch(() => ({ rooms: [], employees: [] })),
         apiGetUsers(user.kostUid).catch(() => []),
         apiGetComplaints(user.kostUid).catch(() => []),
-        apiGetInvoices(user.kostUid).catch(() => [])
+        apiGetInvoices(user.kostUid).catch(() => []),
+        apiGetApplications(user.kostUid).catch(() => [])
       ]);
 
       setActivities(Array.isArray(acts) ? acts : []);
@@ -64,6 +67,9 @@ const Dashboard = ({ user }) => {
         setActiveComplaints(comps.filter(c => c.status !== 'selesai').length);
       }
       setInvoices(Array.isArray(invs) ? invs : []);
+      if (Array.isArray(apps)) {
+        setPendingApplications(apps.filter(a => a.status === 'pending'));
+      }
     } catch (err) {
       console.error('Error loading dashboard:', err);
     } finally {
@@ -160,6 +166,63 @@ const Dashboard = ({ user }) => {
           </Link>
         </div>
       </div>
+
+      {/* Notification Banner for Pending Applications */}
+      {pendingApplications.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%)',
+          border: '1px solid rgba(234, 179, 8, 0.4)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          boxShadow: '0 4px 20px rgba(234, 179, 8, 0.1)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: '#eab308',
+              color: '#000',
+              padding: '0.6rem',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold'
+            }}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Ada {pendingApplications.length} Pengajuan Sewa Baru Menunggu Persetujuan!
+              </h4>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Calon penghuni telah memilih kamar dari fitur Cari Kost. Klik untuk meninjau dan menerima penghuni secara otomatis.
+              </p>
+            </div>
+          </div>
+          <Link 
+            to="/penghuni?tab=aplikasi"
+            className="btn btn-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.6rem 1.2rem',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 600,
+              textDecoration: 'none'
+            }}
+          >
+            Tinjau & Terima Pengajuan <ArrowUpRight size={18} />
+          </Link>
+        </div>
+      )}
 
       {/* 4 Stat Cards */}
       <div className="grid-responsive-stats">

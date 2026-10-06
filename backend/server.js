@@ -554,6 +554,34 @@ app.get('/api/users', (req, res) => {
   res.json(filtered);
 });
 
+// Endpoint: Get Single User Profile & Status (Auto-sync for tenant & owner)
+app.get('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  const user = db.users.find(u => String(u.id) === String(id));
+  if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+
+  const safeUser = { ...user };
+  delete safeUser.password;
+
+  let kostName = 'KostKu';
+  if (user.kostUid) {
+    const kost = db.kosts.find(k => k.uid === user.kostUid);
+    if (kost) kostName = kost.kostName;
+  }
+
+  // Find latest application if tenant
+  const latestApp = (db.applications || [])
+    .filter(a => String(a.userId) === String(user.id) || (user.email && a.userEmail === user.email) || (user.phone && a.phone === user.phone))
+    .sort((a,b) => new Date(b.date) - new Date(a.date))[0] || null;
+
+  res.json({
+    user: safeUser,
+    kostName,
+    activeApplication: latestApp
+  });
+});
+
 // Endpoint: Delete User
 app.delete('/api/users/:id', (req, res) => {
   const { id } = req.params;
@@ -1490,19 +1518,53 @@ app.put('/api/applications/:id', (req, res) => {
   
   if (action === 'approve') {
     application.status = 'approved';
-    const user = db.users.find(u => String(u.id) === String(application.userId));
-    if (user) {
-      user.kostUid = application.kostUid;
-      user.kamar = application.kamar;
-      user.phone = application.phone;
-      user.bedsheets = 0;
-      
-      const kost = db.kosts.find(k => k.uid === application.kostUid);
-      const roomSettings = (kost.settings?.rooms || []).find(r => r.number === application.kamar);
-      
-      // Generate Invoice
-      const deposit = kost.settings?.depositAmount || 0;
-      const basePrice = roomSettings?.price || 0;
+    let user = db.users.find(u => String(u.id) === String(application.userId));
+    if (!user && (application.userEmail || application.phone)) {
+      user = db.users.find(u => 
+        (application.userEmail && u.email && u.email.toLowerCase() === application.userEmail.toLowerCase()) ||
+        (application.phone && u.phone && u.phone === application.phone)
+      );
+    }
+    if (!user) {
+      user = {
+        id: application.userId || ('USER-' + Date.now()),
+        name: application.userName || 'Penghuni',
+        email: application.userEmail || '',
+        phone: application.phone || '',
+        role: 'user'
+      };
+      db.users.push(user);
+    }
+
+    user.kostUid = application.kostUid;
+    user.kamar = application.kamar;
+    user.phone = application.phone || user.phone;
+    user.bedsheets = user.bedsheets || 0;
+    
+    const kost = db.kosts.find(k => k.uid === application.kostUid);
+    const roomSettings = (kost?.settings?.rooms || []).find(r => r.number === application.kamar);
+    
+    // Mark room occupied in kost settings
+    if (kost && kost.settings && kost.settings.rooms) {
+      const room = kost.settings.rooms.find(r => r.number === application.kamar);
+      if (room) {
+        room.status = 'occupied';
+        room.tenantId = user.id;
+        room.tenantName = user.name;
+      }
+    }
+
+    // Generate Invoice if not already created
+    const deposit = kost?.settings?.depositAmount || 0;
+    const basePrice = roomSettings?.price || 0;
+    const existingInv = (db.invoices || []).find(i => 
+      String(i.userId) === String(user.id) && 
+      i.kostUid === application.kostUid && 
+      i.kamar === application.kamar && 
+      i.status === 'pending'
+    );
+
+    if (!existingInv) {
       db.invoices.push({
         id: 'INV-' + Date.now(),
         kostUid: application.kostUid,
@@ -1517,11 +1579,12 @@ app.put('/api/applications/:id', (req, res) => {
         total: Number(basePrice) + Number(deposit),
         status: 'pending'
       });
-      
-      addActivity(db, application.kostUid, 'pengguna', `Pengajuan sewa ${user.name} (Kamar ${application.kamar}) telah disetujui`);
     }
+    
+    addActivity(db, application.kostUid, 'pengguna', `Pengajuan sewa ${user.name} (Kamar ${application.kamar}) telah disetujui`);
   } else {
     application.status = 'rejected';
+    addActivity(db, application.kostUid, 'pengguna', `Pengajuan sewa ${application.userName} (Kamar ${application.kamar}) ditolak`);
   }
   
   writeDB(db);
