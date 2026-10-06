@@ -141,35 +141,63 @@ app.get('/api/public/kosts', (req, res) => {
 
 // Endpoint: Apply to Kost
 app.post('/api/kosts/apply', (req, res) => {
-  const { kostUid, userId, kamar, phone } = req.body;
+  const { kostUid, userId, kamar, phone, userName, userEmail, duration, checkInDate, job, notes } = req.body;
   const db = readDB();
   
-  const user = db.users.find(u => u.id === userId);
-  if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
+  let user = db.users.find(u => 
+    (userId && String(u.id) === String(userId)) || 
+    (userEmail && u.email && u.email.toLowerCase() === String(userEmail).toLowerCase()) ||
+    (phone && u.phone && u.phone === phone)
+  );
+
+  if (!user) {
+    const effectiveId = userId || ('USER-' + Date.now());
+    const effectiveName = userName || (userEmail ? userEmail.split('@')[0] : 'Calon Penghuni');
+    user = {
+      id: effectiveId,
+      name: effectiveName,
+      email: userEmail || '',
+      phone: phone || '',
+      role: 'user',
+      job: job || 'Mahasiswa'
+    };
+    db.users.push(user);
+    writeDB(db);
+  }
   
   const kost = db.kosts.find(k => k.uid === kostUid);
   if (!kost) return res.status(404).json({ error: 'Kost tidak ditemukan' });
   
-  // Check if already applied
-  if (db.applications.find(a => a.userId === userId && a.status === 'pending')) {
-    return res.status(400).json({ error: 'Anda sudah memiliki pengajuan yang pending' });
+  const existingPending = db.applications.find(a => 
+    (String(a.userId) === String(user.id) || (phone && a.phone === phone)) && 
+    a.kostUid === kostUid && 
+    a.status === 'pending'
+  );
+  if (existingPending) {
+    return res.status(400).json({ error: 'Anda sudah memiliki pengajuan yang pending untuk kost ini' });
   }
   
-  db.applications.push({
+  const newApp = {
     id: 'APP-' + Date.now(),
     kostUid,
-    userId,
-    userName: user.name,
+    userId: user.id,
+    userName: userName || user.name || 'Calon Penghuni',
+    userEmail: userEmail || user.email || '',
     kamar,
-    phone,
+    phone: phone || user.phone || '',
+    duration: duration || 1,
+    checkInDate: checkInDate || new Date().toISOString(),
+    job: job || 'Mahasiswa',
+    notes: notes || '',
     status: 'pending',
     date: new Date().toISOString()
-  });
-  
-  addActivity(db, kostUid, 'pengguna', \`Ada pengajuan sewa baru dari \${user.name} untuk Kamar \${kamar}\`);
+  };
+
+  db.applications.push(newApp);
+  addActivity(db, kostUid, 'pengguna', `Ada pengajuan sewa baru dari ${newApp.userName} untuk Kamar ${kamar}`);
   writeDB(db);
   
-  res.json({ message: 'Pengajuan sewa berhasil dikirim ke pemilik kost' });
+  res.json({ message: 'Pengajuan sewa berhasil dikirim ke pemilik kost', application: newApp });
 });
 
 // Endpoint: Get Applications (Owner Dashboard)

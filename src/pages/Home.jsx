@@ -291,7 +291,7 @@ export default function Home({ user }) {
     <div style={{ 
       background: '#080612', 
       paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
-      overflowX: 'hidden',
+      overflowX: 'clip',
       width: '100%',
       maxWidth: '100vw',
       boxSizing: 'border-box'

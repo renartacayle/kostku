@@ -202,32 +202,52 @@ export default function KostDetail({ user }) {
   }, [id]);
 
   const handleApplyClick = () => {
-    if (!user) {
-      alert("Silakan masuk (login) terlebih dahulu untuk mengajukan sewa kost!");
-      navigate('/login');
-      return;
+    if (user) {
+      if (user.name && !tenantName) setTenantName(user.name);
+      if (user.phone && !phone) setPhone(user.phone);
     }
     setShowApplyModal(true);
   };
 
   const submitApplication = async (e) => {
     e?.preventDefault();
-    if (!selectedRoom || !phone.trim()) {
-      alert('Mohon pilih kamar dan masukkan nomor WhatsApp aktif Anda!');
+    if (!selectedRoom || !phone.trim() || !tenantName.trim()) {
+      alert('Mohon pilih kamar, masukkan nama lengkap, dan nomor WhatsApp aktif Anda!');
       return;
     }
 
     try {
       setApplying(true);
+      const effectiveUserId = user?.id || user?.uid || `USER-${Date.now()}`;
+      const effectiveUserName = tenantName.trim();
+      const effectiveEmail = user?.email || '';
+
       await apiApplyKost({
         kostUid: kost.uid,
-        userId: user.id,
+        userId: effectiveUserId,
+        userName: effectiveUserName,
+        userEmail: effectiveEmail,
         kamar: selectedRoom,
         phone: phone.trim(),
         duration: rentalDuration,
         checkInDate,
-        notes
+        job: tenantJob,
+        notes: notes.trim()
       });
+
+      // If user was not logged in, persist profile so they remain identified
+      if (!user) {
+        try {
+          const guestUser = {
+            id: effectiveUserId,
+            name: effectiveUserName,
+            phone: phone.trim(),
+            role: 'user'
+          };
+          localStorage.setItem('kostUser', JSON.stringify(guestUser));
+        } catch (_) {}
+      }
+
       setSuccess(true);
       setShowApplyModal(false);
     } catch (err) {
