@@ -1,9 +1,253 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, Star, ShieldCheck, Wifi, Bath, Car, ChevronRight, ArrowUpRight, Download, LogIn, Sparkles, Building } from 'lucide-react';
+import { Search, MapPin, Star, ShieldCheck, Wifi, Bath, Car, ChevronRight, ChevronLeft, ArrowUpRight, Download, LogIn, Sparkles, Building, X } from 'lucide-react';
 import VideoScroll from '../components/VideoScroll';
 import InstallModal from '../components/InstallModal';
 import { apiGetPublicKosts } from '../services/api';
+
+// Interactive & Swipeable Image Slider for Kost Cards
+function KostCardImageSlider({ images, kostName }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isSwiping = useRef(false);
+
+  const imgList = (images && images.length > 0) ? images : [
+    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80'
+  ];
+
+  const handlePrev = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : imgList.length - 1));
+  };
+
+  const handleNext = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev < imgList.length - 1 ? prev + 1 : 0));
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isSwiping.current = false;
+  };
+
+  const handleTouchMove = (e) => {
+    const diffX = touchStartX.current - e.touches[0].clientX;
+    const diffY = touchStartY.current - e.touches[0].clientY;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      isSwiping.current = true;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isSwiping.current) return;
+    const diffX = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diffX) > 35) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (diffX > 0) {
+        handleNext(e);
+      } else {
+        handlePrev(e);
+      }
+    }
+  };
+
+  return (
+    <div 
+      className="kost-slider-container"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{
+        height: '220px',
+        background: 'linear-gradient(135deg, #1a1828, #0e1628)',
+        position: 'relative',
+        overflow: 'hidden',
+        userSelect: 'none'
+      }}
+    >
+      {/* Sliding Track */}
+      <div style={{
+        display: 'flex',
+        width: '100%',
+        height: '100%',
+        transform: `translateX(-${currentIndex * 100}%)`,
+        transition: 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
+        {imgList.map((src, i) => (
+          <div key={i} style={{ flex: '0 0 100%', width: '100%', height: '100%', position: 'relative' }}>
+            <img 
+              src={src}
+              alt={`${kostName} - foto ${i + 1}`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80';
+              }}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block'
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Verified badge */}
+      <div style={{
+        position: 'absolute', top: '12px', right: '12px',
+        background: 'rgba(34, 197, 94, 0.92)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        color: 'white',
+        padding: '4px 10px', borderRadius: '100px',
+        fontSize: '0.72rem',
+        display: 'flex', alignItems: 'center', gap: '4px',
+        fontWeight: '700',
+        zIndex: 4,
+        pointerEvents: 'none',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+      }}>
+        <ShieldCheck size={12} /> Verified
+      </div>
+
+      {/* Photo count indicator */}
+      {imgList.length > 1 && (
+        <div style={{
+          position: 'absolute', top: '12px', left: '12px',
+          background: 'rgba(15, 23, 42, 0.8)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          color: '#e2e8f0',
+          padding: '3px 8px', borderRadius: '12px',
+          fontSize: '0.7rem',
+          fontWeight: '700',
+          zIndex: 4,
+          pointerEvents: 'none'
+        }}>
+          {currentIndex + 1} / {imgList.length}
+        </div>
+      )}
+
+      {/* Navigation Arrow Buttons */}
+      {imgList.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Foto sebelumnya"
+            className="slider-nav-btn"
+            style={{
+              position: 'absolute',
+              left: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'rgba(15, 23, 42, 0.82)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 5,
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
+            }}
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Foto selanjutnya"
+            className="slider-nav-btn"
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'rgba(15, 23, 42, 0.82)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 5,
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
+            }}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </>
+      )}
+
+      {/* Pagination Dots */}
+      {imgList.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '5px',
+          zIndex: 4,
+          background: 'rgba(0, 0, 0, 0.45)',
+          padding: '3px 8px',
+          borderRadius: '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          {imgList.map((_, dotIdx) => (
+            <span
+              key={dotIdx}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCurrentIndex(dotIdx);
+              }}
+              style={{
+                width: currentIndex === dotIdx ? '16px' : '5px',
+                height: '5px',
+                borderRadius: '3px',
+                background: currentIndex === dotIdx ? '#38bdf8' : 'rgba(255, 255, 255, 0.45)',
+                transition: 'all 0.25s ease',
+                cursor: 'pointer'
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Bottom gradient */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: '60px',
+        background: 'linear-gradient(to top, rgba(14,12,30,0.85), transparent)',
+        pointerEvents: 'none',
+        zIndex: 2
+      }} />
+    </div>
+  );
+}
 
 export default function Home({ user }) {
   const [kosts, setKosts] = useState([]);
@@ -131,7 +375,7 @@ export default function Home({ user }) {
         <div style={{
           maxWidth: '1200px',
           margin: '0 auto',
-          padding: '5rem 2rem 3rem',
+          padding: 'clamp(3rem, 6vw, 4.5rem) clamp(1rem, 3vw, 2rem) clamp(1.5rem, 4vw, 2.5rem)',
           textAlign: 'center',
         }}>
           {/* Decorative line */}
@@ -160,11 +404,11 @@ export default function Home({ user }) {
           </span>
 
           <h2 style={{
-            fontSize: 'clamp(2rem, 4vw, 3.2rem)',
+            fontSize: 'clamp(1.9rem, 4vw, 3.2rem)',
             fontWeight: '800',
             color: 'white',
             margin: '0 0 1rem 0',
-            lineHeight: 1.1,
+            lineHeight: 1.15,
             letterSpacing: '-0.03em',
           }}>
             Temukan Kost Impianmu
@@ -172,31 +416,34 @@ export default function Home({ user }) {
 
           <p style={{
             color: 'rgba(255,255,255,0.45)',
-            fontSize: '1.05rem',
+            fontSize: 'clamp(0.92rem, 2vw, 1.05rem)',
             maxWidth: '550px',
-            margin: '0 auto 3rem',
+            margin: '0 auto 2.5rem',
             lineHeight: 1.7,
           }}>
             Semua kost terverifikasi dengan koordinat GPS akurat, foto asli ruangan, dan informasi lengkap dari pemilik.
           </p>
 
-          {/* Premium Search Bar */}
+          {/* Premium Responsive Search Bar */}
           <div style={{
             maxWidth: '640px',
+            width: '100%',
             margin: '0 auto',
             display: 'flex',
-            gap: '0',
-            background: 'rgba(255,255,255,0.03)',
+            alignItems: 'center',
+            background: 'rgba(255,255,255,0.04)',
             borderRadius: '100px',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
             overflow: 'hidden',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+            boxSizing: 'border-box',
           }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              paddingLeft: '1.5rem',
-              color: 'rgba(255,255,255,0.25)',
+              paddingLeft: '1rem',
+              color: 'rgba(255,255,255,0.4)',
+              flexShrink: 0
             }}>
               <Search size={18} />
             </div>
@@ -207,31 +454,63 @@ export default function Home({ user }) {
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 flex: 1,
+                minWidth: 0,
                 background: 'transparent',
                 border: 'none',
                 color: 'white',
-                fontSize: '0.95rem',
-                padding: '16px 12px',
+                fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+                padding: '14px 8px 14px 10px',
                 outline: 'none',
+                boxSizing: 'border-box'
               }}
             />
-            <button style={{
-              padding: '12px 28px',
-              margin: '6px',
-              background: 'linear-gradient(135deg, #3b82f6, #7c3aed)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '100px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-            }}>
-              Cari <ChevronRight size={16} />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Hapus pencarian"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
+            <button 
+              type="button"
+              onClick={() => {
+                const gridEl = document.querySelector('.kost-responsive-grid');
+                if (gridEl) gridEl.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{
+                flexShrink: 0,
+                padding: '10px clamp(14px, 3vw, 22px)',
+                margin: '4px',
+                background: 'linear-gradient(135deg, #3b82f6, #7c3aed)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '100px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                fontSize: 'clamp(0.8rem, 2.2vw, 0.9rem)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <span>Cari</span>
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>
@@ -240,7 +519,7 @@ export default function Home({ user }) {
         <div style={{
           maxWidth: '1200px',
           margin: '0 auto',
-          padding: '0 2rem',
+          padding: '0 clamp(1rem, 3vw, 2rem)',
         }}>
           {filtered.length === 0 ? (
             <div style={{
@@ -306,60 +585,8 @@ export default function Home({ user }) {
                       e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
                     }}
                   >
-                    {/* Image */}
-                    <div style={{
-                      height: '220px',
-                      background: 'linear-gradient(135deg, #1a1828, #0e1628)',
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}>
-                      {kost.images && kost.images[0] ? (
-                        <img
-                          src={kost.images[0]}
-                          alt={kost.kostName}
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80';
-                          }}
-                          style={{
-                            width: '100%', height: '100%',
-                            objectFit: 'cover',
-                            transition: 'transform 0.5s ease',
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          height: '100%', color: 'rgba(255,255,255,0.15)',
-                          fontSize: '3rem',
-                          background: 'linear-gradient(135deg, #1a1828, #0e1628)',
-                        }}>
-                          🏠
-                        </div>
-                      )}
-
-                      {/* Verified badge */}
-                      <div style={{
-                        position: 'absolute', top: '14px', right: '14px',
-                        background: 'rgba(34, 197, 94, 0.9)',
-                        backdropFilter: 'blur(8px)',
-                        color: 'white',
-                        padding: '5px 12px', borderRadius: '100px',
-                        fontSize: '0.75rem',
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        fontWeight: '700',
-                      }}>
-                        <ShieldCheck size={12} /> Verified
-                      </div>
-
-                      {/* Bottom gradient */}
-                      <div style={{
-                        position: 'absolute', bottom: 0, left: 0, right: 0,
-                        height: '100px',
-                        background: 'linear-gradient(to top, rgba(14,12,30,1), transparent)',
-                      }} />
-                    </div>
+                    {/* Interactive & Swipeable Image Slider */}
+                    <KostCardImageSlider images={kost.images} kostName={kost.kostName} />
 
                     {/* Card body */}
                     <div style={{ padding: '1rem 1.5rem 1.5rem' }}>
