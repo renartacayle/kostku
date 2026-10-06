@@ -53,41 +53,62 @@ export default function VideoScroll() {
 
   // Direct DOM style updates for chapters (0% React re-render during scroll)
   const updateChapters = (p) => {
-    const o1 = getChapterOpacity(p, 0.0, 0.0, 0.20, 0.27);
-    const o2 = getChapterOpacity(p, 0.27, 0.33, 0.49, 0.55);
-    const o3 = getChapterOpacity(p, 0.55, 0.61, 0.76, 0.82);
-    const o4 = p >= 0.82 ? Math.min(1, (p - 0.82) / 0.08) : 0;
-    const dim = p > 0.70 ? Math.min(0.92, (p - 0.70) / 0.28) : 0;
+    // Seamless continuous cross-fade curve: sum of opacities is always 1.0, zero dead zones!
+    // Ch1: 0.00 - 0.28 (crossfades to Ch2 from 0.18 to 0.28)
+    // Ch2: 0.18 - 0.54 (crossfades to Ch3 from 0.44 to 0.54)
+    // Ch3: 0.44 - 0.80 (crossfades to Ch4 from 0.70 to 0.80)
+    // Ch4: 0.70 - 0.95 (dims smoothly towards listing)
+    let o1 = 0, o2 = 0, o3 = 0, o4 = 0;
+
+    if (p <= 0.18) {
+      o1 = 1;
+    } else if (p <= 0.28) {
+      const t = (p - 0.18) / 0.10;
+      o1 = 1 - t;
+      o2 = t;
+    } else if (p <= 0.44) {
+      o2 = 1;
+    } else if (p <= 0.54) {
+      const t = (p - 0.44) / 0.10;
+      o2 = 1 - t;
+      o3 = t;
+    } else if (p <= 0.70) {
+      o3 = 1;
+    } else if (p <= 0.80) {
+      const t = (p - 0.70) / 0.10;
+      o3 = 1 - t;
+      o4 = t;
+    } else {
+      o4 = 1;
+    }
+
+    const dim = p > 0.88 ? Math.min(0.96, (p - 0.88) / 0.12) : 0;
 
     if (ch1Ref.current) {
-      ch1Ref.current.style.opacity = o1;
-      ch1Ref.current.style.transform = `translate3d(0, ${(1 - o1) * 20}px, 0)`;
-      ch1Ref.current.style.pointerEvents = o1 > 0.4 ? 'auto' : 'none';
+      ch1Ref.current.style.opacity = o1.toFixed(3);
+      ch1Ref.current.style.pointerEvents = o1 > 0.35 ? 'auto' : 'none';
       ch1Ref.current.setAttribute('aria-hidden', o1 < 0.1);
     }
     if (ch2Ref.current) {
-      ch2Ref.current.style.opacity = o2;
-      ch2Ref.current.style.transform = `translate3d(0, ${(1 - o2) * 20}px, 0)`;
-      ch2Ref.current.style.pointerEvents = o2 > 0.4 ? 'auto' : 'none';
+      ch2Ref.current.style.opacity = o2.toFixed(3);
+      ch2Ref.current.style.pointerEvents = o2 > 0.35 ? 'auto' : 'none';
       ch2Ref.current.setAttribute('aria-hidden', o2 < 0.1);
     }
     if (ch3Ref.current) {
-      ch3Ref.current.style.opacity = o3;
-      ch3Ref.current.style.transform = `translate3d(0, ${(1 - o3) * 20}px, 0)`;
-      ch3Ref.current.style.pointerEvents = o3 > 0.4 ? 'auto' : 'none';
+      ch3Ref.current.style.opacity = o3.toFixed(3);
+      ch3Ref.current.style.pointerEvents = o3 > 0.35 ? 'auto' : 'none';
       ch3Ref.current.setAttribute('aria-hidden', o3 < 0.1);
     }
     if (ch4Ref.current) {
-      ch4Ref.current.style.opacity = o4;
-      ch4Ref.current.style.transform = `translate3d(0, ${(1 - o4) * 20}px, 0)`;
-      ch4Ref.current.style.pointerEvents = o4 > 0.4 ? 'auto' : 'none';
+      ch4Ref.current.style.opacity = o4.toFixed(3);
+      ch4Ref.current.style.pointerEvents = o4 > 0.35 ? 'auto' : 'none';
       ch4Ref.current.setAttribute('aria-hidden', o4 < 0.1);
     }
     if (dimRef.current) {
-      dimRef.current.style.opacity = dim;
+      dimRef.current.style.opacity = dim.toFixed(3);
     }
     if (scrollIndicatorRef.current) {
-      scrollIndicatorRef.current.style.opacity = p < 0.15 ? Math.max(0, 1 - p * 7) : 0;
+      scrollIndicatorRef.current.style.opacity = p < 0.12 ? Math.max(0, 1 - p * 8).toFixed(3) : 0;
     }
   };
 
@@ -290,7 +311,7 @@ export default function VideoScroll() {
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(ellipse at center, rgba(8,6,18,0.1) 0%, rgba(8,6,18,0.7) 100%), linear-gradient(to bottom, rgba(8,6,18,0.7) 0%, transparent 22%, transparent 70%, rgba(8,6,18,0.98) 100%)',
+          background: 'radial-gradient(ellipse at center, rgba(8,6,18,0.1) 0%, rgba(8,6,18,0.55) 100%), linear-gradient(to bottom, rgba(8,6,18,0.5) 0%, transparent 25%, transparent 75%, rgba(8,6,18,0.85) 100%)',
           pointerEvents: 'none',
           zIndex: 2
         }} />
@@ -338,7 +359,7 @@ export default function VideoScroll() {
         </button>
 
         {/* ══════════════════════════════════════════════════
-            SYNCHRONIZED CHAPTER OVERLAYS (DIRECT DOM)
+            SYNCHRONIZED CHAPTER OVERLAYS (PERSISTENT SHOWCASE CARD)
             ══════════════════════════════════════════════════ */}
         <div style={{
           position: 'absolute',
@@ -347,364 +368,395 @@ export default function VideoScroll() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '1.25rem',
+          padding: '1rem',
           pointerEvents: 'none'
         }}>
-          
-          {/* CHAPTER 1: Exterior / Intro */}
+          {/* Persistent Glassmorphism Showcase Card */}
           <div 
-            ref={ch1Ref}
+            className="video-showcase-card"
             style={{
-              position: 'absolute',
+              position: 'relative',
               textAlign: 'center',
               maxWidth: '680px',
-              width: '100%',
-              opacity: 1,
-              transform: 'translate3d(0, 0px, 0)',
-              pointerEvents: 'auto',
-              willChange: 'opacity, transform'
+              width: 'calc(100% - 1.5rem)',
+              minHeight: '390px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'clamp(1.5rem, 3.5vw, 2.25rem) clamp(1rem, 3vw, 2rem)',
+              borderRadius: '24px',
+              background: 'rgba(11, 15, 25, 0.78)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.65)',
+              boxSizing: 'border-box'
             }}
           >
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 16px',
-              borderRadius: '24px',
-              background: 'rgba(30, 58, 138, 0.85)',
-              border: '1px solid rgba(59, 130, 246, 0.4)',
-              color: '#93c5fd',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '1rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-            }}>
-              <Sparkles size={13} /> KOSTKU CO-LIVING & RESIDENCE
+            {/* CHAPTER 1: Exterior / Intro */}
+            <div 
+              ref={ch1Ref}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'clamp(1.25rem, 3vw, 2rem)',
+                opacity: 1,
+                pointerEvents: 'auto',
+                willChange: 'opacity'
+              }}
+            >
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 16px',
+                borderRadius: '24px',
+                background: 'rgba(30, 58, 138, 0.85)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                color: '#93c5fd',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: '1rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}>
+                <Sparkles size={13} /> KOSTKU CO-LIVING & RESIDENCE
+              </div>
+
+              <h1 style={{
+                fontSize: 'clamp(2rem, 5vw, 3.8rem)',
+                fontWeight: 900,
+                lineHeight: 1.05,
+                margin: '0 0 1rem 0',
+                letterSpacing: '-0.03em',
+                color: '#ffffff',
+                textShadow: '0 10px 40px rgba(0,0,0,0.8)'
+              }}>
+                RUMAH SINGGAH MODERN
+              </h1>
+
+              <p style={{
+                fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                color: 'rgba(241, 245, 249, 0.9)',
+                margin: '0 auto 1.75rem',
+                maxWidth: '540px',
+                lineHeight: 1.6,
+                textShadow: '0 2px 10px rgba(0,0,0,0.7)'
+              }}>
+                Temukan hunian kost idaman dengan foto asli terverifikasi, tata letak denah 2D akurat, dan lokasi strategis.
+              </p>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link
+                  to="/search"
+                  style={{
+                    padding: '12px 28px',
+                    borderRadius: '30px',
+                    background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                    color: 'white',
+                    textDecoration: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 8px 25px rgba(37, 99, 235, 0.5)'
+                  }}
+                >
+                  <Search size={16} /> Cari Kost Sekarang
+                </Link>
+
+                <button
+                  onClick={scrollToListing}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: '30px',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    color: 'white',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    fontWeight: 700,
+                    fontSize: '0.92rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>Jelajahi Demo</span>
+                  <ChevronDown size={16} />
+                </button>
+              </div>
             </div>
 
-            <h1 style={{
-              fontSize: 'clamp(2.3rem, 6vw, 4.5rem)',
-              fontWeight: 900,
-              lineHeight: 1.05,
-              margin: '0 0 1rem 0',
-              letterSpacing: '-0.03em',
-              color: '#ffffff',
-              textShadow: '0 10px 40px rgba(0,0,0,0.8)'
-            }}>
-              RUMAH SINGGAH MODERN
-            </h1>
+            {/* CHAPTER 2: Smart Access & Entrance */}
+            <div 
+              ref={ch2Ref}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'clamp(1.25rem, 3vw, 2rem)',
+                opacity: 0,
+                pointerEvents: 'none',
+                willChange: 'opacity'
+              }}
+            >
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 16px',
+                borderRadius: '24px',
+                background: 'rgba(6, 78, 59, 0.88)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                color: '#34d399',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: '1rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}>
+                <ShieldCheck size={14} /> KEAMANAN & AKSES PINTAR
+              </div>
 
-            <p style={{
-              fontSize: 'clamp(0.92rem, 2vw, 1.15rem)',
-              color: 'rgba(241, 245, 249, 0.9)',
-              margin: '0 auto 2rem',
-              maxWidth: '540px',
-              lineHeight: 1.6,
-              textShadow: '0 2px 10px rgba(0,0,0,0.7)'
-            }}>
-              Temukan hunian kost idaman dengan foto asli terverifikasi, tata letak denah 2D akurat, dan lokasi strategis.
-            </p>
+              <h2 style={{
+                fontSize: 'clamp(1.75rem, 4.5vw, 3.2rem)',
+                fontWeight: 900,
+                lineHeight: 1.1,
+                margin: '0 0 1rem 0',
+                color: 'white',
+                letterSpacing: '-0.02em',
+                textShadow: '0 8px 30px rgba(0,0,0,0.8)'
+              }}>
+                Aman & Nyaman Terlindungi 24/7
+              </h2>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link
-                to="/search"
-                style={{
-                  padding: '12px 28px',
-                  borderRadius: '30px',
-                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                  color: 'white',
-                  textDecoration: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.92rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 8px 25px rgba(37, 99, 235, 0.5)'
-                }}
-              >
-                <Search size={16} /> Cari Kost Sekarang
-              </Link>
+              <p style={{
+                fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
+                color: '#e2e8f0',
+                margin: '0 auto 1.6rem',
+                maxWidth: '520px',
+                lineHeight: 1.6,
+                textShadow: '0 2px 10px rgba(0,0,0,0.7)'
+              }}>
+                Akses keamanan 24 jam, pantauan CCTV menyeluruh, dan lingkungan tenang yang mendukung produktivitas dan istirahat Anda.
+              </p>
+
+              {/* Feature Badges */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+                maxWidth: '560px',
+                margin: '0 auto'
+              }}>
+                {[
+                  { icon: <ShieldCheck size={14} />, text: 'CCTV 24 Jam' },
+                  { icon: <Lock size={14} />, text: 'Smart Key Access' },
+                  { icon: <Wifi size={14} />, text: 'WiFi Gigabit Cepat' },
+                  { icon: <CheckCircle2 size={14} />, text: 'Parkir Motor/Mobil' }
+                ].map((item, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(15, 23, 42, 0.92)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#e2e8f0',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}>
+                    <span style={{ color: '#38bdf8' }}>{item.icon}</span>
+                    <span>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CHAPTER 3: Interior Suite & Furniture */}
+            <div 
+              ref={ch3Ref}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'clamp(1.25rem, 3vw, 2rem)',
+                opacity: 0,
+                pointerEvents: 'none',
+                willChange: 'opacity'
+              }}
+            >
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 16px',
+                borderRadius: '24px',
+                background: 'rgba(12, 74, 110, 0.88)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: '1rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}>
+                <BedDouble size={14} /> FULL FURNISHED INTERIOR
+              </div>
+
+              <h2 style={{
+                fontSize: 'clamp(1.75rem, 4.5vw, 3.2rem)',
+                fontWeight: 900,
+                lineHeight: 1.1,
+                margin: '0 0 1rem 0',
+                color: 'white',
+                letterSpacing: '-0.02em',
+                textShadow: '0 8px 30px rgba(0,0,0,0.8)'
+              }}>
+                Kamar Nyaman Siap Huni
+              </h2>
+
+              <p style={{
+                fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
+                color: '#e2e8f0',
+                margin: '0 auto 1.6rem',
+                maxWidth: '520px',
+                lineHeight: 1.6,
+                textShadow: '0 2px 10px rgba(0,0,0,0.7)'
+              }}>
+                Dilengkapi springbed empuk, meja kerja ergonomis, AC dingin, dan tata ruang yang telah diverifikasi denah arsitekturnya.
+              </p>
+
+              {/* Room Features */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+                maxWidth: '560px',
+                margin: '0 auto'
+              }}>
+                {[
+                  'Springbed 160×200',
+                  'AC Dingin Hemat Daya',
+                  'Kamar Mandi Dalam',
+                  'Meja Belajar & Lemari'
+                ].map((text, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(15, 23, 42, 0.92)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    color: '#e2e8f0',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}>
+                    <span style={{ color: '#4ade80' }}>✓</span>
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CHAPTER 4: Evening Warmth & Marketplace CTA */}
+            <div 
+              ref={ch4Ref}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'clamp(1.25rem, 3vw, 2rem)',
+                opacity: 0,
+                pointerEvents: 'none',
+                willChange: 'opacity'
+              }}
+            >
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 16px',
+                borderRadius: '24px',
+                background: 'rgba(113, 63, 18, 0.88)',
+                border: '1px solid rgba(250, 204, 21, 0.4)',
+                color: '#facc15',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: '1rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}>
+                <Star size={13} fill="#facc15" /> 10 PILIHAN DEMO KOST TERVERIFIKASI
+              </div>
+
+              <h2 style={{
+                fontSize: 'clamp(1.75rem, 4.5vw, 3.2rem)',
+                fontWeight: 900,
+                lineHeight: 1.1,
+                margin: '0 0 1rem 0',
+                color: 'white',
+                letterSpacing: '-0.02em',
+                textShadow: '0 8px 30px rgba(0,0,0,0.8)'
+              }}>
+                Pilih Kost Impianmu Sekarang
+              </h2>
+
+              <p style={{
+                fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
+                color: '#e2e8f0',
+                margin: '0 auto 1.8rem',
+                maxWidth: '520px',
+                lineHeight: 1.6,
+                textShadow: '0 2px 10px rgba(0,0,0,0.7)'
+              }}>
+                Jelajahi 10 unit kost di Jakarta, Bandung, BSD, Surabaya, dan Bali lengkap dengan foto kamar dan denah tata letak.
+              </p>
 
               <button
                 onClick={scrollToListing}
                 style={{
-                  padding: '12px 24px',
+                  padding: '14px 36px',
                   borderRadius: '30px',
-                  background: 'rgba(15, 23, 42, 0.85)',
+                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
                   color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '1rem',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '8px',
+                  boxShadow: '0 10px 30px rgba(37, 99, 235, 0.5)'
                 }}
               >
-                <span>Jelajahi Demo</span>
-                <ChevronDown size={16} />
+                <span>Lihat 10 Kost Pilihan di Bawah</span>
+                <ArrowDown size={18} />
               </button>
             </div>
-          </div>
 
-          {/* CHAPTER 2: Smart Access & Entrance */}
-          <div 
-            ref={ch2Ref}
-            style={{
-              position: 'absolute',
-              textAlign: 'center',
-              maxWidth: '680px',
-              width: '100%',
-              opacity: 0,
-              transform: 'translate3d(0, 20px, 0)',
-              pointerEvents: 'none',
-              willChange: 'opacity, transform'
-            }}
-          >
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 16px',
-              borderRadius: '24px',
-              background: 'rgba(6, 78, 59, 0.88)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#34d399',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '1rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-            }}>
-              <ShieldCheck size={14} /> KEAMANAN & AKSES PINTAR
-            </div>
-
-            <h2 style={{
-              fontSize: 'clamp(1.9rem, 5vw, 3.6rem)',
-              fontWeight: 900,
-              lineHeight: 1.1,
-              margin: '0 0 1rem 0',
-              color: 'white',
-              letterSpacing: '-0.02em',
-              textShadow: '0 8px 30px rgba(0,0,0,0.8)'
-            }}>
-              Aman & Nyaman Terlindungi 24/7
-            </h2>
-
-            <p style={{
-              fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
-              color: '#e2e8f0',
-              margin: '0 auto 1.8rem',
-              maxWidth: '520px',
-              lineHeight: 1.6,
-              textShadow: '0 2px 10px rgba(0,0,0,0.7)'
-            }}>
-              Akses keamanan 24 jam, pantauan CCTV menyeluruh, dan lingkungan tenang yang mendukung produktivitas dan istirahat Anda.
-            </p>
-
-            {/* Feature Badges */}
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              maxWidth: '560px',
-              margin: '0 auto'
-            }}>
-              {[
-                { icon: <ShieldCheck size={14} />, text: 'CCTV 24 Jam' },
-                { icon: <Lock size={14} />, text: 'Smart Key Access' },
-                { icon: <Wifi size={14} />, text: 'WiFi Gigabit Cepat' },
-                { icon: <CheckCircle2 size={14} />, text: 'Parkir Motor/Mobil' }
-              ].map((item, idx) => (
-                <div key={idx} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '12px',
-                  background: 'rgba(15, 23, 42, 0.92)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#e2e8f0',
-                  fontSize: '0.8rem',
-                  fontWeight: 600
-                }}>
-                  <span style={{ color: '#38bdf8' }}>{item.icon}</span>
-                  <span>{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* CHAPTER 3: Interior Suite & Furniture */}
-          <div 
-            ref={ch3Ref}
-            style={{
-              position: 'absolute',
-              textAlign: 'center',
-              maxWidth: '680px',
-              width: '100%',
-              opacity: 0,
-              transform: 'translate3d(0, 20px, 0)',
-              pointerEvents: 'none',
-              willChange: 'opacity, transform'
-            }}
-          >
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 16px',
-              borderRadius: '24px',
-              background: 'rgba(12, 74, 110, 0.88)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '1rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-            }}>
-              <BedDouble size={14} /> FULL FURNISHED INTERIOR
-            </div>
-
-            <h2 style={{
-              fontSize: 'clamp(1.9rem, 5vw, 3.6rem)',
-              fontWeight: 900,
-              lineHeight: 1.1,
-              margin: '0 0 1rem 0',
-              color: 'white',
-              letterSpacing: '-0.02em',
-              textShadow: '0 8px 30px rgba(0,0,0,0.8)'
-            }}>
-              Kamar Nyaman Siap Huni
-            </h2>
-
-            <p style={{
-              fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
-              color: '#e2e8f0',
-              margin: '0 auto 1.8rem',
-              maxWidth: '520px',
-              lineHeight: 1.6,
-              textShadow: '0 2px 10px rgba(0,0,0,0.7)'
-            }}>
-              Dilengkapi springbed empuk, meja kerja ergonomis, AC dingin, dan tata ruang yang telah diverifikasi denah arsitekturnya.
-            </p>
-
-            {/* Room Features */}
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              maxWidth: '560px',
-              margin: '0 auto'
-            }}>
-              {[
-                'Springbed 160x200',
-                'AC Dingin Hemat Daya',
-                'Kamar Mandi Dalam',
-                'Meja Belajar & Lemari'
-              ].map((text, idx) => (
-                <div key={idx} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '12px',
-                  background: 'rgba(15, 23, 42, 0.92)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
-                  color: '#e2e8f0',
-                  fontSize: '0.8rem',
-                  fontWeight: 600
-                }}>
-                  <span style={{ color: '#4ade80' }}>✓</span>
-                  <span>{text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* CHAPTER 4: Evening Warmth & Marketplace CTA */}
-          <div 
-            ref={ch4Ref}
-            style={{
-              position: 'absolute',
-              textAlign: 'center',
-              maxWidth: '680px',
-              width: '100%',
-              opacity: 0,
-              transform: 'translate3d(0, 20px, 0)',
-              pointerEvents: 'none',
-              willChange: 'opacity, transform'
-            }}
-          >
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 16px',
-              borderRadius: '24px',
-              background: 'rgba(113, 63, 18, 0.88)',
-              border: '1px solid rgba(250, 204, 21, 0.4)',
-              color: '#facc15',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '1rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-            }}>
-              <Star size={13} fill="#facc15" /> 10 PILIHAN DEMO KOST TERVERIFIKASI
-            </div>
-
-            <h2 style={{
-              fontSize: 'clamp(1.9rem, 5vw, 3.6rem)',
-              fontWeight: 900,
-              lineHeight: 1.1,
-              margin: '0 0 1rem 0',
-              color: 'white',
-              letterSpacing: '-0.02em',
-              textShadow: '0 8px 30px rgba(0,0,0,0.8)'
-            }}>
-              Pilih Kost Impianmu Sekarang
-            </h2>
-
-            <p style={{
-              fontSize: 'clamp(0.88rem, 2vw, 1.05rem)',
-              color: '#e2e8f0',
-              margin: '0 auto 2rem',
-              maxWidth: '520px',
-              lineHeight: 1.6,
-              textShadow: '0 2px 10px rgba(0,0,0,0.7)'
-            }}>
-              Jelajahi 10 unit kost di Jakarta, Bandung, BSD, Surabaya, dan Bali lengkap dengan foto kamar dan denah tata letak.
-            </p>
-
-            <button
-              onClick={scrollToListing}
-              style={{
-                padding: '14px 36px',
-                borderRadius: '30px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                color: 'white',
-                border: 'none',
-                fontWeight: 800,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 10px 30px rgba(37, 99, 235, 0.5)'
-              }}
-            >
-              <span>Lihat 10 Kost Pilihan di Bawah</span>
-              <ArrowDown size={18} />
-            </button>
           </div>
 
         </div>
@@ -776,15 +828,22 @@ export default function VideoScroll() {
 
       <style>{`
         .video-scroll-container {
-          height: 230vh;
+          height: 280vh;
         }
         .video-scroll-sticky {
           height: 100vh;
           height: 100dvh;
+          position: sticky;
+          top: 0;
+          z-index: 1;
         }
         @media (max-width: 768px) {
           .video-scroll-container {
-            height: 150vh;
+            height: 240vh;
+          }
+          .video-chapter-card {
+            padding: 1.5rem 1rem !important;
+            border-radius: 20px !important;
           }
         }
         @media (prefers-reduced-motion: reduce) {
