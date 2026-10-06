@@ -149,6 +149,15 @@
         "lat": -6.2383,
         "lng": 106.8532
       },
+      "gmapsUrl": "https://maps.google.com/?q=-6.2383,106.8532",
+      "roomPhoto": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80",
+      "floorPlan": {
+        "dimensions": "4.0m x 4.5m",
+        "bedType": "queen",
+        "furnitures": ["wardrobe", "desk", "bathroom", "ac", "window"],
+        "generated": true,
+        "mode": "ai"
+      },
       "rating": 4.95,
       "reviewCount": 48,
       "status": "verified",

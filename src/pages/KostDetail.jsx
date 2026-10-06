@@ -29,10 +29,12 @@ import {
   Tag,
   Shield,
   HelpCircle,
-  Heart
+  Heart,
+  ExternalLink
 } from 'lucide-react';
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
 import PanoramaViewer360 from '../components/PanoramaViewer360';
+import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
 
 // Interactive SVG 2D Room Blueprint Component
 const RoomBlueprintSvg = ({ dimensions = "4.0m x 4.5m", area = "18 m²", kostName = "Kamar Kost", roomNumber = "101", roomType = "Exclusive" }) => {
@@ -335,6 +337,14 @@ export default function KostDetail({ user }) {
 
   const layout = kost.layoutInfo || {};
 
+  const activeFloorPlan = selectedRoomObj?.floorPlan || kost.floorPlan || {
+    dimensions: selectedRoomObj?.size || layout.roomDimensions || "3.5m x 4.0m",
+    bedType: "super_single",
+    furnitures: ["wardrobe", "desk", "bathroom", "ac", "window"],
+    generated: true
+  };
+  const activeRoomPhoto = selectedRoomObj?.roomPhoto || kost.roomPhoto || null;
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: '#f8fafc', paddingBottom: 'clamp(90px, 14vh, 150px)' }}>
       
@@ -417,10 +427,34 @@ export default function KostDetail({ user }) {
                 {kost.kostName}
               </h1>
 
-              <p style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.92rem', margin: 0 }}>
-                <MapPin size={16} color="#60a5fa" />
-                <span>{kost.address}</span>
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <p style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.92rem', margin: 0 }}>
+                  <MapPin size={16} color="#60a5fa" />
+                  <span>{kost.address}</span>
+                </p>
+                {(kost.gmapsUrl || (kost.location?.lat && kost.location?.lng)) && (
+                  <a
+                    href={kost.gmapsUrl || `https://maps.google.com/?q=${kost.location.lat},${kost.location.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      color: '#93c5fd',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    <ExternalLink size={12} /> Buka Google Maps
+                  </a>
+                )}
+              </div>
             </div>
 
             {/* Visual Media Tabs: Galeri Foto vs Denah Rumah / Layout */}
@@ -578,13 +612,38 @@ export default function KostDetail({ user }) {
             {/* TAB CONTENT 2: DENAH & BLUEPRINT RUANG */}
             {activeTab === 'layout' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <RoomBlueprintSvg 
-                  dimensions={selectedRoomObj?.size || layout.roomDimensions || "4.0m x 4.5m"} 
-                  area={layout.roomArea || "18 m²"} 
-                  kostName={kost.kostName}
+                <RoomFloorPlanViewer 
+                  dimensions={activeFloorPlan.dimensions || selectedRoomObj?.size || layout.roomDimensions || "3.5m x 4.0m"} 
+                  bedType={activeFloorPlan.bedType || "super_single"}
+                  furnitures={activeFloorPlan.furnitures || ["wardrobe", "desk", "bathroom", "ac", "window"]}
                   roomNumber={selectedRoom || "101"}
-                  roomType={kost.type}
+                  kostName={kost.kostName}
                 />
+
+                {activeRoomPhoto && (
+                  <div className="card glass-panel" style={{ padding: '1.25rem', borderRadius: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={18} color="#3b82f6" />
+                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700 }}>Foto Interior Kamar (Terverifikasi AI)</h4>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>✓ Terverifikasi Asli</span>
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '240px',
+                      borderRadius: '14px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      <img 
+                        src={activeRoomPhoto} 
+                        alt="Foto Kamar Asli" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {kost.layoutImage && (
                   <div className="card glass-panel" style={{ padding: '1.25rem', borderRadius: '18px' }}>

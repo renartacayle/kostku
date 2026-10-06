@@ -516,7 +516,7 @@ app.post('/api/recover-account', (req, res) => {
 
 // Endpoint: Register (Wajib NIK 16 digit, Foto KTP, & Nama Sesuai KTP - Anti Bot 1 KTP 1 Akun)
 app.post('/api/register', (req, res) => {
-  const { role, name, nik, ktpImage, email, password, kostName, kostUid, kamar, phone, address, lat, lng, imageFront, description } = req.body;
+  const { role, name, nik, ktpImage, email, password, kostName, kostUid, kamar, phone, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description } = req.body;
   const db = getDB();
 
   if (!name || name.trim().length < 2) {
@@ -577,22 +577,57 @@ app.post('/api/register', (req, res) => {
     newUser.kostUid = generatedUid;
     db.users.push(newUser);
 
+    const defaultFloorPlan = floorPlan || {
+      dimensions: '3.0m x 4.0m',
+      bedType: 'super_single',
+      furnitures: ['wardrobe', 'desk', 'bathroom', 'ac', 'window'],
+      generated: true,
+      mode: 'ai'
+    };
+
+    const initialRooms = [];
+    for (let i = 1; i <= 6; i++) {
+      const numStr = i < 10 ? `10${i}` : `1${i}`;
+      initialRooms.push({
+        id: `RM-${generatedUid}-${numStr}`,
+        number: numStr,
+        price: 1500000,
+        size: defaultFloorPlan.dimensions || '3.0m x 4.0m',
+        capacity: 1,
+        status: 'available',
+        roomPhoto: roomPhoto || '',
+        floorPlan: defaultFloorPlan,
+        facilities: ['WiFi', 'Kamar Mandi Dalam', 'Kasur Springbed', 'Meja Belajar', 'Lemari', 'AC']
+      });
+    }
+
+    const kostImages = [imageFront];
+    if (roomPhoto && !kostImages.includes(roomPhoto)) {
+      kostImages.push(roomPhoto);
+    }
+
+    const effectiveLat = Number(lat) || -6.2088;
+    const effectiveLng = Number(lng) || 106.8456;
+
     db.kosts.push({
       uid: generatedUid,
       kostName: kostName || 'Kost Baru',
       ownerId: newUser.id,
       address: address || '',
-      location: { lat, lng },
-      images: [imageFront],
+      location: { lat: effectiveLat, lng: effectiveLng },
+      gmapsUrl: gmapsUrl || `https://maps.google.com/?q=${effectiveLat},${effectiveLng}`,
+      roomPhoto: roomPhoto || '',
+      floorPlan: defaultFloorPlan,
+      images: kostImages,
       description: description || '',
       status: 'verified',
       settings: {
-        rooms: [],
+        rooms: initialRooms,
         employees: [],
-        bedsheetCount: 0,
-        waterRate: 0,
-        electricityRate: 0,
-        depositAmount: 0
+        bedsheetCount: 12,
+        waterRate: 5000,
+        electricityRate: 2000,
+        depositAmount: 500000
       }
     });
 
@@ -834,7 +869,7 @@ app.get('/api/owner/kosts', (req, res) => {
 
 // Endpoint: Create a new kost for an existing owner
 app.post('/api/owner/kosts', (req, res) => {
-  const { ownerId, kostName, address, lat, lng, imageFront, description, type, roomsCount, defaultPrice } = req.body;
+  const { ownerId, kostName, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description, type, roomsCount, defaultPrice } = req.body;
   const db = getDB();
 
   if (!ownerId) return res.status(400).json({ error: 'ownerId wajib disertakan' });
@@ -846,6 +881,14 @@ app.post('/api/owner/kosts', (req, res) => {
   // Generate unique UID
   const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
 
+  const defaultFloorPlan = floorPlan || {
+    dimensions: '3.0m x 4.0m',
+    bedType: 'super_single',
+    furnitures: ['wardrobe', 'desk', 'bathroom', 'ac', 'window'],
+    generated: true,
+    mode: 'ai'
+  };
+
   // Generate initial rooms if requested
   const initialRooms = [];
   const count = Number(roomsCount) || 8;
@@ -853,15 +896,26 @@ app.post('/api/owner/kosts', (req, res) => {
   for (let i = 1; i <= count; i++) {
     const numStr = i < 10 ? `10${i}` : `1${i}`;
     initialRooms.push({
+      id: `RM-${generatedUid}-${numStr}`,
       number: numStr,
       price: price,
-      size: '4.0m x 4.5m',
+      size: defaultFloorPlan.dimensions || '3.0m x 4.0m',
       capacity: 1,
-      facilities: ['WiFi', 'Kamar Mandi Dalam', 'Kasur Springbed', 'Meja Belajar', 'Lemari']
+      status: 'available',
+      roomPhoto: roomPhoto || '',
+      floorPlan: defaultFloorPlan,
+      facilities: ['WiFi', 'Kamar Mandi Dalam', 'Kasur Springbed', 'Meja Belajar', 'Lemari', 'AC']
     });
   }
 
   const defaultImage = imageFront || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1000&q=80';
+  const kostImages = [defaultImage];
+  if (roomPhoto && !kostImages.includes(roomPhoto)) {
+    kostImages.push(roomPhoto);
+  }
+
+  const effectiveLat = Number(lat) || -6.9827;
+  const effectiveLng = Number(lng) || 110.4091;
 
   const newKost = {
     uid: generatedUid,
@@ -870,10 +924,13 @@ app.post('/api/owner/kosts', (req, res) => {
     address: address || '',
     type: type || 'Campur',
     location: {
-      lat: Number(lat) || -6.9827,
-      lng: Number(lng) || 110.4091
+      lat: effectiveLat,
+      lng: effectiveLng
     },
-    images: [defaultImage],
+    gmapsUrl: gmapsUrl || `https://maps.google.com/?q=${effectiveLat},${effectiveLng}`,
+    roomPhoto: roomPhoto || '',
+    floorPlan: defaultFloorPlan,
+    images: kostImages,
     description: description || `Properti cabang baru ${kostName} dikelola oleh ${owner.name}`,
     status: 'verified',
     settings: {
@@ -1585,6 +1642,9 @@ app.get('/api/public/kosts', (req, res) => {
       city: k.city || 'Jakarta',
       address: k.address,
       location: k.location || { lat: -6.2088, lng: 106.8456 },
+      gmapsUrl: k.gmapsUrl || (k.location?.lat ? `https://maps.google.com/?q=${k.location.lat},${k.location.lng}` : ''),
+      roomPhoto: k.roomPhoto || '',
+      floorPlan: k.floorPlan || null,
       rating: k.rating || 4.9,
       reviewCount: k.reviewCount || 25,
       images: k.images || [],
@@ -1608,7 +1668,9 @@ app.get('/api/public/kosts', (req, res) => {
         price: r.price,
         size: r.size || '3x4',
         capacity: r.capacity || 1,
-        status: r.status || 'available'
+        status: r.status || 'available',
+        roomPhoto: r.roomPhoto || k.roomPhoto || '',
+        floorPlan: r.floorPlan || k.floorPlan || null
       }))
     };
   });

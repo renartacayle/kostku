@@ -9,9 +9,14 @@ import {
   Sparkles, 
   Image as ImageIcon,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  Camera,
+  Compass,
+  Upload
 } from 'lucide-react';
 import { apiCreateOwnerKost } from '../services/api';
+import AiRoomPlanSection from './AiRoomPlanSection';
 
 const PRESET_IMAGES = [
   { label: 'Modern Co-Living', url: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1000&q=80' },
@@ -23,15 +28,51 @@ const PRESET_IMAGES = [
 export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded }) {
   const [kostName, setKostName] = useState('');
   const [address, setAddress] = useState('');
+  const [gmapsUrl, setGmapsUrl] = useState('');
   const [type, setType] = useState('Campur');
   const [roomsCount, setRoomsCount] = useState(8);
   const [defaultPrice, setDefaultPrice] = useState('1500000');
   const [selectedImage, setSelectedImage] = useState(PRESET_IMAGES[0].url);
+  const [customImageFront, setCustomImageFront] = useState('');
+  const [roomPhoto, setRoomPhoto] = useState('');
+  const [floorPlan, setFloorPlan] = useState({
+    dimensions: '3.0m x 4.0m',
+    bedType: 'super_single',
+    furnitures: ['wardrobe', 'desk', 'bathroom', 'ac', 'window'],
+    generated: true,
+    mode: 'ai'
+  });
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   if (!isOpen) return null;
+
+  const handleCustomFrontUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCustomImageFront(reader.result);
+        setSelectedImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGetCoordinates = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const url = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+          setGmapsUrl(url);
+        },
+        () => {
+          alert('Tidak dapat mendeteksi lokasi GPS otomatis. Silakan masukkan tautan Google Maps manual.');
+        }
+      );
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,14 +85,18 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
     setError(null);
 
     try {
+      const effectiveImageFront = customImageFront || selectedImage;
       const res = await apiCreateOwnerKost({
         ownerId: user.id,
         kostName: kostName.trim(),
         address: address.trim(),
+        gmapsUrl: gmapsUrl.trim() || (address.trim() ? `https://maps.google.com/?q=${encodeURIComponent(address.trim())}` : ''),
         type,
         roomsCount: Number(roomsCount) || 8,
         defaultPrice: Number(defaultPrice) || 1500000,
-        imageFront: selectedImage,
+        imageFront: effectiveImageFront,
+        roomPhoto: roomPhoto || '',
+        floorPlan,
         description: description.trim()
       });
 
@@ -178,11 +223,12 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
           {/* Alamat & Kota */}
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>
-              Alamat Lengkap & Kota
+              Alamat Lengkap & Kota <span style={{ color: '#f43f5e' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
+                required
                 placeholder="Contoh: Jl. Banjarsari No. 12, Tembalang, Semarang"
                 value={address}
                 onChange={e => setAddress(e.target.value)}
@@ -191,6 +237,57 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
               />
               <MapPin size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
+          </div>
+
+          {/* Lokasi Google Maps */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                Lokasi Google Maps (Tautan / Koordinat GPS)
+              </label>
+              <button
+                type="button"
+                onClick={handleGetCoordinates}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#60a5fa',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: 0
+                }}
+              >
+                <Compass size={13} /> Deteksi GPS Otomatis
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="Misal: https://maps.app.goo.gl/... atau koordinat -6.9827, 110.4091"
+                value={gmapsUrl}
+                onChange={e => setGmapsUrl(e.target.value)}
+                className="input-field"
+                style={{ flex: 1 }}
+              />
+              {gmapsUrl && (
+                <a
+                  href={gmapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary"
+                  style={{ padding: '0 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <ExternalLink size={14} /> Peta
+                </a>
+              )}
+            </div>
+            <span style={{ fontSize: '0.73rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
+              Memudahkan calon penghuni navigasi langsung ke pintu kost Anda.
+            </span>
           </div>
 
           {/* Kategori Kost & Jumlah Kamar */}
@@ -250,46 +347,110 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
             </span>
           </div>
 
-          {/* Foto Preset Cover */}
+          {/* Foto Cover Depan */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>
-              Pilih Foto Sampul Depan
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-              {PRESET_IMAGES.map((img, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedImage(img.url)}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                Foto Sampul Gedung / Tampak Depan Kost <span style={{ color: '#f43f5e' }}>*</span>
+              </label>
+              <label
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#60a5fa',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: 0
+                }}
+              >
+                <Upload size={13} /> Unggah Foto Sendiri
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCustomFrontUpload}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
+
+            {customImageFront ? (
+              <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '140px', border: '2px solid #3b82f6', marginBottom: '8px' }}>
+                <img src={customImageFront} alt="Foto Depan Kustom" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button
+                  type="button"
+                  onClick={() => { setCustomImageFront(''); setSelectedImage(PRESET_IMAGES[0].url); }}
                   style={{
-                    borderRadius: '12px',
-                    overflow: 'hidden',
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '24px',
+                    height: '24px',
                     cursor: 'pointer',
-                    border: selectedImage === img.url ? '2px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.1)',
-                    position: 'relative',
-                    aspectRatio: '4/3',
-                    background: '#1e293b'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <img src={img.url} alt={img.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {selectedImage === img.url && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '4px',
-                      right: '4px',
-                      background: '#3b82f6',
-                      borderRadius: '50%',
-                      width: '18px',
-                      height: '18px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <CheckCircle size={12} color="white" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                {PRESET_IMAGES.map((img, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedImage(img.url)}
+                    style={{
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border: selectedImage === img.url ? '2px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.1)',
+                      position: 'relative',
+                      aspectRatio: '4/3',
+                      background: '#1e293b'
+                    }}
+                  >
+                    <img src={img.url} alt={img.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {selectedImage === img.url && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        background: '#3b82f6',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <CheckCircle size={12} color="white" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* AI Floor Plan & Room Photo Section */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1rem', marginTop: '0.25rem' }}>
+            <AiRoomPlanSection
+              roomPhoto={roomPhoto}
+              onRoomPhotoChange={setRoomPhoto}
+              floorPlan={floorPlan}
+              onChangeFloorPlan={setFloorPlan}
+              roomNumber="101"
+              kostName={kostName || 'Kost Baru'}
+            />
           </div>
 
           {/* Deskripsi */}

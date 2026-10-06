@@ -18,9 +18,11 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  UserCheck
+  UserCheck,
+  ExternalLink
 } from 'lucide-react';
 import { apiRegister, apiCheckNik } from '../services/api';
+import AiRoomPlanSection from '../components/AiRoomPlanSection';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -43,10 +45,19 @@ const Register = () => {
   // Khusus Pemilik Kost (Owner)
   const [kostName, setKostName] = useState('');
   const [address, setAddress] = useState('');
+  const [gmapsUrl, setGmapsUrl] = useState('');
   const [description, setDescription] = useState('');
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
   const [imageFront, setImageFront] = useState(null);
+  const [roomPhoto, setRoomPhoto] = useState('');
+  const [floorPlan, setFloorPlan] = useState({
+    dimensions: '3.0m x 4.0m',
+    bedType: 'super_single',
+    furnitures: ['wardrobe', 'desk', 'bathroom', 'ac', 'window'],
+    generated: true,
+    mode: 'ai'
+  });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -194,7 +205,10 @@ const Register = () => {
           description: description.trim(),
           lat: effectiveLat,
           lng: effectiveLng,
-          imageFront
+          gmapsUrl: gmapsUrl.trim() || (address.trim() ? `https://maps.google.com/?q=${encodeURIComponent(address.trim())}` : `https://maps.google.com/?q=${effectiveLat},${effectiveLng}`),
+          imageFront,
+          roomPhoto: roomPhoto || '',
+          floorPlan
         } : {})
       };
 
@@ -619,14 +633,26 @@ const Register = () => {
 
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Lokasi GPS Kost
+                      Lokasi Google Maps & Titik GPS
                     </label>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <button type="button" onClick={getLocation} className="btn btn-secondary btn-sm" style={{ flex: 1, gap: '6px' }}>
-                        <MapPin size={15} color="var(--accent-primary)" /> {lat ? 'Lokasi Tersimpan' : 'Ambil Lokasi GPS Saat Ini'}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                      <input 
+                        type="text" 
+                        value={gmapsUrl} 
+                        onChange={e => setGmapsUrl(e.target.value)} 
+                        placeholder="Tautan Google Maps / Share Pin (atau klik Deteksi GPS)" 
+                        className="input-field" 
+                        style={{ flex: 1 }}
+                      />
+                      <button type="button" onClick={getLocation} className="btn btn-secondary btn-sm" style={{ gap: '6px', whiteSpace: 'nowrap' }}>
+                        <MapPin size={15} color="var(--accent-primary)" /> {lat ? 'GPS Tersimpan' : 'Deteksi GPS'}
                       </button>
-                      {lat && <CheckCircle size={20} color="var(--accent-success)" />}
                     </div>
+                    {lat && (
+                      <div style={{ fontSize: '0.75rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle size={14} /> Koordinat GPS berhasil dikunci: {lat.toFixed(5)}, {lng.toFixed(5)}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -647,6 +673,18 @@ const Register = () => {
                         style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '10px', marginTop: '8px', border: '1px solid var(--border-color)' }} 
                       />
                     )}
+                  </div>
+
+                  {/* Denah Kamar Otomatis / Manual dengan AI */}
+                  <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '0.75rem' }}>
+                    <AiRoomPlanSection
+                      roomPhoto={roomPhoto}
+                      onRoomPhotoChange={setRoomPhoto}
+                      floorPlan={floorPlan}
+                      onChangeFloorPlan={setFloorPlan}
+                      roomNumber="101"
+                      kostName={kostName || 'Kost Baru'}
+                    />
                   </div>
                 </div>
               </div>
