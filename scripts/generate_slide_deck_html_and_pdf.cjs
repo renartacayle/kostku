@@ -89,6 +89,43 @@ Data denah ini bersifat dinamis. Ketika sebuah kamar terisi di sistem back-offic
   },
   {
     num: "04",
+    tag: "🤖 AI SPATIAL & DUAL VIEWER",
+    title: "AI Room Scanner & 3D Isometric Cutaway Viewer",
+    subtitle: "Inovasi generasi denah otomatis via AI Vision & visualisasi 3D isometrik 4 sudut pandang",
+    type: "split",
+    colLeft: {
+      title: "📐 AI Vision & Kuesioner Interaktif",
+      badge: "Spatial AI Engine",
+      color: "pink",
+      items: [
+        { icon: "📸", title: "Scan Foto Kamar via AI", desc: "AI Vision memindai foto kamar asli dan mengidentifikasi batas dinding & bukaan." },
+        { icon: "🛏️", title: "Deteksi Kasur & Fasilitas", desc: "Kuesioner konfirmasi: Single (90x200) s.d King (180x200), AC, lemari, & KM dalam." },
+        { icon: "✨", title: "1-Click Generate Denah", desc: "Sekali klik langsung menghasilkan denah 2D arsitektural dan model 3D isometrik." },
+        { icon: "📍", title: "Google Maps GPS Pinning", desc: "Deteksi GPS instan dan link navigasi rute langsung ke gerbang kos." }
+      ]
+    },
+    colRight: {
+      title: "🎮 3D Isometric Cutaway Viewer",
+      badge: "Three.js / WebGL",
+      color: "purple",
+      items: [
+        { icon: "🔄", title: "Angle Switcher 4 Sudut", desc: "Putar sudut pandang: Isometrik Kanan, Kiri, Tampak Atas 45°, dan Tampak Depan." },
+        { icon: "☀️", title: "Pencahayaan Dinamis", desc: "Mode Siang Hari (Natural Skylight) vs Mode Malam Cozy (Warm 2700K Glow)." },
+        { icon: "🪵", title: "Tekstur Parket Kayu Asli", desc: "Lantai kayu fotorealistik, partisi kaca shower, dan layar laptop berpendar." },
+        { icon: "📷", title: "Komparasi Foto Asli Nyata", desc: "Foto fisik kamar disandingkan langsung dengan hasil denah terverifikasi AI." }
+      ]
+    },
+    script: `Pada evolusi produk terbaru kami, KostKu memperkenalkan AI Vision Room Scanner dan 3D Isometric Cutaway Viewer.
+    
+Pemilik kos tidak perlu memiliki keahlian arsitektur untuk membuat denah. Cukup unggah foto kamar, dan AI akan memindai ruang serta mengajukan kuesioner interaktif perabot—mulai dari ukuran kasur single hingga king size, AC, hingga kamar mandi dalam—lalu men-generate model 3D interaktif yang dapat diputar 4 sudut pandang dengan mode siang dan malam.`,
+    tips: [
+      "Gestur: Tunjukkan gestur memutar pergelangan tangan untuk menggambarkan rotasi 3D.",
+      "Pointer: Sorot tombol rotasi 4 sudut dan perbandingan foto asli kamar tidur.",
+      "Penekanan: Tekan kata 'AI Vision Scanner' dan '3D Isometrik Cutaway'."
+    ]
+  },
+  {
+    num: "05",
     tag: "⚡ OTOMATISASI OPERASIONAL",
     title: "Automated Utility & WhatsApp Billing Engine",
     subtitle: "Kalkulasi matematis konsumsi listrik kWh & kwitansi instan 1-klik ke WhatsApp",
@@ -128,7 +165,7 @@ Setelah tagihan terbuat, sistem memfasilitasi komunikasi lewat pemformatan deep-
     ]
   },
   {
-    num: "05",
+    num: "06",
     tag: "💻 ARSITEKTUR SISTEM RPL",
     title: "Hybrid Local-First & Cross-Platform Architecture",
     subtitle: "Kombinasi ketahanan offline, kecepatan proses lokal, dan sinkronisasi cloud",
@@ -168,7 +205,7 @@ Prinsip Local-First memastikan bahwa pengelola kos tetap dapat melakukan pembuku
     ]
   },
   {
-    num: "06",
+    num: "07",
     tag: "🗺️ ALUR PENGGUNA",
     title: "Dual-Sided Unified Architecture & Flow",
     subtitle: "Dua alur kerja terpisah namun terintegrasi harmonis dalam satu platform",
@@ -178,9 +215,9 @@ Prinsip Local-First memastikan bahwa pengelola kos tetap dapat melakukan pembuku
       badge: "Pencari Kos",
       color: "pink",
       steps: [
-        "1. Buka Marketplace ➔ Jelajahi kos tanpa wajib login/registrasi",
-        "2. Filter Spesifik ➔ Pilih kota, tipe gender (Putri/Putra/Campur), dan harga",
-        "3. Live 2D Blueprint ➔ Cek denah asli perabot, jendela, dan kamar mandi",
+        "1. Buka Marketplace ➔ Jelajahi kos & navigasi Google Maps langsung",
+        "2. Filter Spesifik ➔ Pilih kota, tipe gender, rentang harga, dan fasilitas",
+        "3. Live 2D/3D Blueprint ➔ Cek denah asli perabot kasur, meja, & jendela",
         "4. Direct Action ➔ Klik 'Ajukan Sewa' atau chat langsung ke WhatsApp pemilik"
       ]
     },
@@ -189,25 +226,62 @@ Prinsip Local-First memastikan bahwa pengelola kos tetap dapat melakukan pembuku
       badge: "Pengelola Kos",
       color: "purple",
       steps: [
-        "1. Autentikasi ➔ Login aman via email/password atau Google OAuth 2.0",
+        "1. Autentikasi ➔ Registrasi e-KTP anti-bot atau login Google OAuth 2.0",
         "2. Dashboard Okupansi ➔ Pantau status kamar kosong vs terisi secara real-time",
-        "3. Modul Utilitas ➔ Input meteran listrik & generate invoice otomatis",
-        "4. Dispatch & Komplain ➔ Kirim tagihan via WhatsApp & kelola perbaikan fasilitas"
+        "3. Approval Sewa ➔ 1-Klik Setujui: auto-assign kamar, invoice, & PIN Smart Lock",
+        "4. Dispatch & Komplain ➔ Kirim tagihan via WhatsApp & kelola tiket perbaikan"
       ]
     },
     script: `Sistem KostKu dirancang untuk melayani dua persona pengguna utama dengan alur kerja yang sangat terpisah namun terintegrasi dalam satu platform.
 
-Pada Public Flow di atas, alur dibuat sangat efisien tanpa hambatan registrasi yang tidak perlu. Pencari kos dapat langsung mengeksplorasi denah 2D, memfilter ketersediaan kamar, dan melakukan kontak langsung dengan pemilik kos.
+Pada Public Flow di atas, alur dibuat sangat efisien tanpa hambatan registrasi yang tidak perlu. Pencari kos dapat langsung mengeksplorasi denah 2D dan 3D, memfilter ketersediaan kamar, dan melakukan kontak langsung dengan pemilik kos.
 
-Pada Admin Flow di bawah, alur diproteksi dengan otentikasi ketat. Pengelola dapat memantau tingkat hunian melalui dashboard, mencatat pemakaian utilitas, menggenerate tagihan bulanan, hingga memantau arus kas keuangan secara terstruktur.`,
+Pada Admin Flow di bawah, alur diproteksi dengan otentikasi ketat. Pengelola dapat memantau tingkat hunian melalui dashboard, menyetujui pengajuan sewa dalam satu klik, mencatat pemakaian utilitas, menggenerate tagihan bulanan, hingga memantau tiket komplain.`,
     tips: [
       "Gestur: Bergerak dari atas ke bawah mengikuti dua jalur pengguna pada slide.",
       "Pointer: Telusuri garis panah dari titik entry hingga titik action akhir.",
-      "Penekanan: Sebutkan kata 'tanpa hambatan registrasi' untuk menegaskan keunggulan UX."
+      "Penekanan: Sebutkan kata '1-Klik Approval Sewa' dan 'Auto-Assign Kamar'."
     ]
   },
   {
-    num: "07",
+    num: "08",
+    tag: "🛡️ KEAMANAN & INTEGRITAS DATA",
+    title: "Sistem Anti-Bot 1 KTP 1 Akun & Validasi NIK Resmi",
+    subtitle: "Menjamin keamanan ekosistem sewa dari bot, akun palsu, dan penipuan listing",
+    type: "split",
+    colLeft: {
+      title: "🆔 Validasi Identitas Kependudukan",
+      badge: "Anti-Fraud Architecture",
+      color: "pink",
+      items: [
+        { icon: "🔢", title: "Validasi NIK 16 Digit", desc: "Format regex matematis & pengecekan ketersediaan instan (/api/check-nik)." },
+        { icon: "🚫", title: "Enforce 1 KTP = 1 Akun", desc: "Mencegah duplikasi pendaftaran; 1 NIK hanya berlaku untuk 1 akun pengguna." },
+        { icon: "📸", title: "Upload Fisik e-KTP Wajib", desc: "Verifikasi foto e-KTP asli demi akuntabilitas hukum pemilik & penyewa." },
+        { icon: "📍", title: "Verifikasi Lokasi Google Maps", desc: "Pendaftaran kos wajib koordinat GPS dan tautan Google Maps nyata." }
+      ]
+    },
+    colRight: {
+      title: "🔑 Pemulihan Akun & Smart Approval",
+      badge: "Account Lifecycle",
+      color: "purple",
+      items: [
+        { icon: "🔄", title: "Pemulihan Akun via NIK", desc: "Reset sandi mandiri dengan mencocokkan NIK & nama e-KTP resmi." },
+        { icon: "⚡", title: "1-Click Booking Approval", desc: "Pemilik cukup klik Setujui, sistem auto-assign kamar & buat PIN pintu." },
+        { icon: "🏢", title: "Multi-Branch Portfolio", desc: "Satu akun pemilik dapat mengelola banyak cabang kost dengan switch instan." },
+        { icon: "✍️", title: "Kontrak Digital & E-Signature", desc: "Tanda tangan digital canvas untuk perjanjian staf dan penjaga kos." }
+      ]
+    },
+    script: `Integritas ekosistem KostKu diperkuat dengan arsitektur Anti-Bot dan verifikasi identitas resmi.
+
+Kami menerapkan aturan 1 KTP hanya untuk 1 Akun. Setiap pengguna wajib menyertakan NIK 16 digit yang divalidasi secara real-time dan mengunggah foto fisik e-KTP resmi. Fitur ini meniadakan akun spam, melindungi pemilik kos dari calon penyewa fiktif, serta menyediakan mekanisme pemulihan akun mandiri menggunakan data kependudukan resmi.`,
+    tips: [
+      "Gestur: Tunjukkan sikap tegas saat membahas keamanan data kependudukan.",
+      "Pointer: Tunjukkan proses pengecekan keunikan NIK dan modal pemulihan akun.",
+      "Penekanan: Tekan kata '1 KTP 1 Akun' dan 'Perlindungan dari Akun Fiktif'."
+    ]
+  },
+  {
+    num: "09",
     tag: "🔍 TECHNICAL DEEP DIVE",
     title: "Sequence Diagram: Auto-Update & Cache Strategy",
     subtitle: "Mekanisme pembaruan biner mandiri & strategi pembersihan cache PWA",
@@ -246,7 +320,7 @@ Pada bagian kanan, kami memperlihatkan manajemen Service Worker pada versi PWA. 
     ]
   },
   {
-    num: "08",
+    num: "10",
     tag: "📊 STRATEGI & KELAYAKAN BISNIS",
     title: "Monetization Strategy & 4 Competitive Moats",
     subtitle: "Bagaimana KostKu bertahan, memenangkan pasar, dan menghasilkan pendapatan berulang",
@@ -271,7 +345,7 @@ Pada bagian kanan, kami memperlihatkan manajemen Service Worker pada versi PWA. 
         badge: "4 Parit Pertahanan (Moats)",
         color: "mint",
         title: "High Switching Cost & Retensi",
-        desc: "1. Vektor Denah SVG Skala 1:50\n2. 0% Komisi Seumur Hidup\n3. Data Finansial Terikat di Sistem\n4. Aplikasi Ringan di HP Android Murah"
+        desc: "1. Vektor Denah SVG & 3D Cutaway\n2. 0% Komisi Seumur Hidup\n3. Anti-Bot 1 KTP 1 Akun Terpercaya\n4. Aplikasi Ringan di HP Android Murah"
       }
     ],
     script: `Bagaimana KostKu bertahan dan memenangkan persaingan pasar? Jawabannya terletak pada model bisnis dan competitive moats yang kami bangun.
@@ -286,36 +360,76 @@ Nilai pertahanan utama kami terletak pada High Switching Cost. Ketika pengelola 
     ]
   },
   {
-    num: "09",
+    num: "11",
     tag: "🤝 TATA KELOLA & EKSEKUSI",
     title: "Tim Pengembang & RACI Execution Matrix",
     subtitle: "Siklus pengembangan 4 minggu (4-Week Sprint) & akuntabilitas peran terukur",
     type: "table",
     headers: ["Milestone / Task", "Frontend Lead", "Backend Lead", "UI/UX Designer", "QA & Mobile Lead"],
     rows: [
-      ["Interactive 2D Blueprint SVG Engine", "R (Responsible)", "C (Consulted)", "A (Accountable)", "I (Informed)"],
-      ["Local-First Sync Logic & Supabase", "C (Consulted)", "R (Responsible)", "I (Informed)", "A (Accountable)"],
+      ["Interactive 2D Blueprint SVG & 3D Viewer", "R (Responsible)", "C (Consulted)", "A (Accountable)", "I (Informed)"],
+      ["AI Vision Room Scanner & Questionnaire", "R (Responsible)", "A (Accountable)", "C (Consulted)", "C (Consulted)"],
+      ["Anti-Bot e-KTP Verification (1 KTP 1 Akun)", "C (Consulted)", "R / A (Lead)", "I (Informed)", "C (Consulted)"],
       ["Utility Calculator & WhatsApp Deep-Link", "R (Responsible)", "R (Responsible)", "I (Informed)", "A (Accountable)"],
       ["Testing & Multiplatform Build (APK/Electron)", "I (Informed)", "I (Informed)", "C (Consulted)", "R / A (Lead)"]
     ],
-    script: `Proyek Rekayasa Perangkat Lunak KostKu dirancang dan dieksekusi dalam siklus penghentian sprint selama 4 minggu yang terukur secara disiplin.
+    script: `Proyek Rekayasa Perangkat Lunak KostKu dirancang dan dieksekusi dalam siklus sprint 4 minggu yang terukur secara disiplin dengan RACI Matrix yang jelas.
 
-Untuk memastikan transparansi pengerjaan, kami menerapkan kerangka kerja RACI Matrix. Setiap pilar utama—seperti pengoptimalan mesin denah SVG, arsitektur sinkronisasi Local-First, pengujian lintas platform, hingga integrasi tautan WhatsApp—memiliki penanggung jawab (Responsible) dan pemegang keputusan tertinggi (Accountable) yang terdefinisi dengan jelas.
-
-Struktur tata kelola ini memungkinkan tim kami menyelesaikan seluruh target fungsionalitas aplikasi tepat waktu dengan standar kualitas codebase yang siap untuk diimplementasikan ke lingkungan produksi.`,
+Setiap pilar utama—mulai dari mesin denah 2D/3D, pemindai AI Vision, verifikasi Anti-Bot e-KTP, pengujian lintas platform, hingga integrasi tautan WhatsApp—memiliki penanggung jawab (Responsible) dan pemegang keputusan (Accountable) yang terdefinisi dengan transparan.`,
     tips: [
       "Gestur: Berdiri sejajar dengan tabel, gunakan gerakan tangan terbuka mengarah ke seluruh nama anggota tim.",
       "Pointer: Sorot baris-baris milestone penting pada matriks RACI.",
-      "Penekanan: Tutup kalimat dengan nada tegas dan percaya diri untuk mengakhiri sesi presentasi utama."
+      "Penekanan: Tutup dengan nada tegas dan percaya diri."
     ]
   },
   {
-    num: "10",
+    num: "12",
+    tag: "⚙️ STANDAR OPERASIONAL PROSEDUR",
+    title: "SOP Maintenance, Server Down & Komplain Pengguna",
+    subtitle: "Protokol enterprise untuk keandalan infrastruktur dan Service Level Agreement (SLA)",
+    type: "split",
+    colLeft: {
+      title: "🛠️ SOP Maintenance & Tanggap Darurat",
+      badge: "Infrastruktur & Reliability",
+      color: "pink",
+      items: [
+        { icon: "🌙", title: "Maintenance Jam Sepi (01.00 - 04.00)", desc: "Eksekusi hanya pada jam sepi trafik dengan banner pengumuman minimal 24 jam sebelumnya." },
+        { icon: "💾", title: "Full Backup Pra-Maintenance", desc: "Pencadangan penuh database (db.json/cloud) & storage aset sebelum utak-atik server." },
+        { icon: "🚨", title: "Monitoring & Failover < 5 Menit", desc: "Jika server mati, otomatis dialihkan ke halaman statis darurat (tanpa layar putih polos)." },
+        { icon: "⏪", title: "Rollback Cepat < 15 Menit", desc: "Langsung rollback ke versi stabil sebelumnya jika bug dari rilis terbaru." }
+      ]
+    },
+    colRight: {
+      title: "🎧 SOP Penanganan Komplain & SLA",
+      badge: "Customer Care SLA",
+      color: "purple",
+      items: [
+        { icon: "📞", title: "Satu Pintu Aduan Resmi", desc: "Tombol bantuan langsung WhatsApp Admin (wa.me) & tiket digital terpusat di aplikasi." },
+        { icon: "⚡", title: "Komplain Mendesak (SLA 15-30 Mnt)", desc: "Urusan uang (nota double, bukti gagal) & akses kamar (smart lock error). Tuntas 2-4 jam." },
+        { icon: "📋", title: "Komplain Biasa (SLA 1x24 Jam)", desc: "Bug tampilan minor, saran fitur, atau panduan pakai. Tuntas maksimal 2x24 jam." },
+        { icon: "🔄", title: "Siklus Respons 3 Langkah", desc: "1. Akui & Empati ➔ 2. Berikan Estimasi Waktu (ETA) ➔ 3. Konfirmasi Penuntasan." }
+      ]
+    },
+    script: `Untuk menjamin ketersediaan sistem dan kepuasan pengguna di tingkat enterprise, KostKu menetapkan 3 pilar Standar Operasional Prosedur (SOP) baku:
+
+Pertama, SOP Maintenance Terjadwal: Pemeliharaan server hanya dilakukan di jam sepi antara pukul 01.00 hingga 04.00 pagi, didahului banner pengumuman 24 jam dan full backup database.
+
+Kedua, SOP Tanggap Darurat Server Down: Dilengkapi monitoring otomatis, failover ke halaman statis dalam waktu kurang dari 5 menit, dan prosedur rollback cepat di bawah 15 menit jika terdeteksi regresi rilis.
+
+Ketiga, SOP Penanganan Komplain: Memiliki matriks SLA ketat, di mana komplain mendesak terkait keuangan atau akses kamar wajib direspons dalam 15 hingga 30 menit melalui siklus 3 langkah terstandarisasi.`,
+    tips: [
+      "Gestur: Tunjukkan sikap bertanggung jawab dan profesional dalam tata kelola sistem.",
+      "Pointer: Tunjukkan target SLA 15-30 menit untuk komplain mendesak.",
+      "Penekanan: Tekan kata 'Full Backup Pra-Maintenance' dan 'Zero Data Loss'."
+    ]
+  },
+  {
+    num: "13",
     tag: "💖 KESIMPULAN & PENUTUP",
     title: "KostKu: Platform Manajemen & Marketplace Kost Pintar",
     subtitle: "Siap Mendemonstrasikan Sistem Secara Langsung di Hadapan Penguji",
     type: "closing",
-    script: `Sekian pemaparan presentasi dari kami mengenai arsitektur, inovasi teknis, dan model kelayakan bisnis KostKu. Kami siap mendemonstrasikan sistem secara langsung dan membuka sesi tanya-jawab kepada Bapak dan Ibu Penguji. Terima kasih banyak!`,
+    script: `Sekian pemaparan presentasi dari kami mengenai arsitektur, inovasi teknis, model bisnis, dan standar operasional prosedur KostKu. Kami siap mendemonstrasikan sistem secara langsung dan membuka sesi tanya-jawab kepada Bapak dan Ibu Penguji. Terima kasih banyak!`,
     tips: [
       "Tersenyum ramah dan penuh percaya diri.",
       "Buka laptop / HP untuk mendemonstrasikan aplikasi secara live jika diminta.",
@@ -323,7 +437,7 @@ Struktur tata kelola ini memungkinkan tim kami menyelesaikan seluruh target fung
     ]
   },
   {
-    num: "11",
+    num: "14",
     tag: "🛡️ PERTAHANAN Q&A #1",
     title: "Kenapa Denah 2D SVG, Bukan Foto 360 / Virtual Tour?",
     subtitle: "Argumen efisiensi bandwidth, kepastian dimensi riil, dan kemudahan pemeliharaan",
@@ -336,7 +450,7 @@ Struktur tata kelola ini memungkinkan tim kami menyelesaikan seluruh target fung
     script: `Jika penguji bertanya: 'Kenapa tidak memakai 360 Virtual Tour seperti Matterport?', sampaikan 3 pilar: Bandwidth (<15KB vs 50MB), Presisi Skala (1:50 tanpa distorsi lensa cembung), dan Maintenance (cukup edit atribut JSON tanpa biaya foto ulang).`
   },
   {
-    num: "12",
+    num: "15",
     tag: "🛡️ PERTAHANAN Q&A #2",
     title: "Kenapa Arsitektur Local-First, Bukan Full Cloud?",
     subtitle: "Argumen zero-offline latency, efisiensi operasional server, dan kedaulatan data",
@@ -349,7 +463,7 @@ Struktur tata kelola ini memungkinkan tim kami menyelesaikan seluruh target fung
     script: `Jika penguji bertanya: 'Mengapa memilih SQLite lokal daripada Full Cloud Database terpusat?', sampaikan: 1. Zero-offline latency di area blank spot, 2. Penghematan biaya cloud compute hingga 80%, 3. Kedaulatan data sensitif pemilik kos terjamin.`
   },
   {
-    num: "13",
+    num: "16",
     tag: "🛡️ PERTAHANAN Q&A #3",
     title: "Kenapa 0% Komisi & Direct WhatsApp? Rawan Ditinggalkan?",
     subtitle: "Perubahan paradigma software house vs agen calo & retensi berbasis switching cost",
@@ -360,6 +474,19 @@ Struktur tata kelola ini memungkinkan tim kami menyelesaikan seluruh target fung
       { num: "3", title: "Menciptakan Retensi melalui High Switching Cost", desc: "Setelah pengelola terbiasa dengan kemudahan cetak kwitansi otomatis, laporan keuangan, dan integrasi data denah, mereka akan terus berlangganan SaaS KostKu karena efisiensi kerja yang didapat jauh melebihi harga langganannya." }
     ],
     script: `Jika penguji bertanya: 'Kenapa memberi kontak WhatsApp langsung? Bukankah platform rawan di-bypass?', sampaikan: Kami adalah SaaS perangkat lunak manajemen properti, bukan makelar komisi. 0% komisi justru menghilangkan niat pengguna untuk mem-bypass sistem dan menciptakan loyalitas retensi jangka panjang.`
+  },
+  {
+    num: "17",
+    tag: "🛡️ PERTAHANAN Q&A #4",
+    title: "Bagaimana Prosedur Server Down & Mitigasi Komplain?",
+    subtitle: "Protokol tanggap darurat, failover otomatis, dan SLA komplain terukur",
+    type: "qa",
+    points: [
+      { num: "1", title: "Failover Otomatis < 5 Menit", desc: "Sistem monitoring (Uptime/Sentry) mendeteksi down dalam <2 menit, lalu DNS/edge langsung mengalihkan rute ke halaman statis pemeliharaan darurat agar user tidak melihat layar putih atau error JSON." },
+      { num: "2", title: "Strategi Rollback < 15 Menit", desc: "Jika bug terjadi pasca-rilis, kami memprioritaskan rollback commit stabil sebelumnya dibanding memaksakan hotfix live di produksi, menjamin stabilitas secepat mungkin." },
+      { num: "3", title: "Service Level Agreement (SLA) Komplain", desc: "Komplain finansial atau akses kamar (P0) wajib direspons dalam 15-30 menit dan diselesaikan dalam 2-4 jam dengan siklus 3 langkah: Akui & Empati -> Berikan ETA -> Konfirmasi Penuntasan." }
+    ],
+    script: `Jika penguji bertanya: 'Bagaimana jika server Anda down saat penghuni ingin bayar atau masuk kamar?', sampaikan: Kami memiliki SOP Server Down dengan deteksi <2 menit, failover ke halaman statis <5 menit, dan rollback <15 menit. Untuk urusan darurat seperti kunci pintu atau nota double, tim support memiliki SLA respon 15-30 menit.`
   }
 ];
 

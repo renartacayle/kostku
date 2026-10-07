@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>KostKu - Blueprint Produk, Arsitektur UX & Analisis Bisnis</title>
+  <title>KostKu - Blueprint Produk, Arsitektur UX, Analisis Bisnis & SOP Operasional</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script>
     mermaid.initialize({ 
@@ -22,7 +22,7 @@
   <style>
     @page {
       size: A4;
-      margin: 18mm 14mm 20mm 14mm;
+      margin: 16mm 14mm 18mm 14mm;
     }
     
     * {
@@ -36,7 +36,7 @@
       color: #1e293b;
       background: #ffffff;
       line-height: 1.55;
-      font-size: 10pt;
+      font-size: 9.5pt;
     }
 
     .page-break {
@@ -49,12 +49,12 @@
 
     /* Cover / Header Section */
     .cover-header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #1e293b 100%);
+      background: linear-gradient(135deg, #070e1e 0%, #171c38 60%, #1e293b 100%);
       color: #ffffff;
-      padding: 32px 28px;
+      padding: 30px 26px;
       border-radius: 12px;
-      margin-bottom: 24px;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+      margin-bottom: 20px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35);
     }
 
     .cover-badge {
@@ -68,30 +68,30 @@
       text-transform: uppercase;
       padding: 4px 10px;
       border-radius: 9999px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .cover-title {
-      font-size: 22pt;
+      font-size: 21pt;
       font-weight: 900;
-      line-height: 1.2;
+      line-height: 1.22;
       margin-bottom: 8px;
       color: #ffffff;
     }
 
     .cover-subtitle {
-      font-size: 11pt;
+      font-size: 10.5pt;
       color: #cbd5e1;
       font-weight: 400;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .cover-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 14px;
       border-top: 1px solid rgba(255, 255, 255, 0.15);
-      padding-top: 14px;
+      padding-top: 12px;
       font-size: 8.5pt;
       color: #94a3b8;
     }
@@ -108,7 +108,7 @@
     }
 
     h1 {
-      font-size: 15pt;
+      font-size: 14.5pt;
       border-bottom: 2px solid #e2e8f0;
       padding-bottom: 6px;
       margin-top: 22px;
@@ -119,28 +119,28 @@
     }
 
     h2 {
-      font-size: 12pt;
-      margin-top: 16px;
+      font-size: 11.5pt;
+      margin-top: 15px;
       margin-bottom: 8px;
       color: #334155;
     }
 
     h3 {
-      font-size: 10.5pt;
-      margin-top: 12px;
+      font-size: 10pt;
+      margin-top: 11px;
       margin-bottom: 6px;
       color: #475569;
     }
 
     p {
-      margin-bottom: 10px;
+      margin-bottom: 9px;
       color: #334155;
       text-align: justify;
     }
 
     ul, ol {
       margin-left: 20px;
-      margin-bottom: 12px;
+      margin-bottom: 11px;
       color: #334155;
     }
 
@@ -155,9 +155,9 @@
     /* Callout Boxes */
     .callout {
       border-radius: 8px;
-      padding: 12px 16px;
-      margin: 12px 0;
-      font-size: 9.5pt;
+      padding: 11px 15px;
+      margin: 11px 0;
+      font-size: 9pt;
     }
 
     .callout-chat {
@@ -184,17 +184,23 @@
       border-left: 5px solid #f59e0b;
     }
 
+    .callout-danger {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 5px solid #ef4444;
+    }
+
     /* Tables */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 12px 0;
+      margin: 11px 0;
       font-size: 8.5pt;
     }
 
     th, td {
       border: 1px solid #cbd5e1;
-      padding: 7px 10px;
+      padding: 7px 9px;
       text-align: left;
       vertical-align: top;
     }
@@ -214,13 +220,13 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      margin: 12px 0;
+      margin: 11px 0;
     }
 
     .persona-card {
       border: 1px solid #cbd5e1;
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 11px 13px;
       background: #ffffff;
       box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
@@ -230,20 +236,20 @@
       align-items: center;
       gap: 10px;
       border-bottom: 1px solid #e2e8f0;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+      padding-bottom: 7px;
+      margin-bottom: 7px;
     }
 
     .persona-avatar {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: #e0e7ff;
       color: #4f46e5;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14pt;
+      font-size: 13pt;
       font-weight: bold;
     }
 
@@ -252,8 +258,8 @@
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 16px;
-      margin: 14px 0;
+      padding: 14px;
+      margin: 12px 0;
       text-align: center;
     }
 
@@ -263,8 +269,18 @@
       border: 2px solid #3b82f6;
       border-radius: 8px;
       padding: 10px;
-      margin: 14px 0;
+      margin: 12px 0;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 3D Isometric Preview Container */
+    .isometric-preview-box {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      border: 2px solid #8b5cf6;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      color: #f8fafc;
     }
 
     .badge {
@@ -278,11 +294,38 @@
     .badge-green { background: #d1fae5; color: #065f46; }
     .badge-purple { background: #ede9fe; color: #5b21b6; }
     .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+
+    /* SOP Section Specific Styling */
+    .sop-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .sop-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px;
+      background: #ffffff;
+      border-top: 4px solid #6366f1;
+    }
+
+    .sop-card-critical {
+      border-top-color: #ef4444;
+      background: #fffafa;
+    }
+
+    .sop-card-success {
+      border-top-color: #10b981;
+      background: #f7fdf9;
+    }
 
     .footer {
-      margin-top: 30px;
+      margin-top: 26px;
       border-top: 1px solid #e2e8f0;
-      padding-top: 12px;
+      padding-top: 10px;
       font-size: 8pt;
       color: #94a3b8;
       display: flex;
@@ -294,29 +337,29 @@
 
   <!-- COVER / HEADER -->
   <div class="cover-header">
-    <div class="cover-badge">Dokumen Arsitektur Produk & Strategi Bisnis</div>
+    <div class="cover-badge">Dokumen Arsitektur Produk, Strategi Bisnis & SOP Operasional</div>
     <div class="cover-title">KostKu: Platform Manajemen & Marketplace Kost Pintar</div>
-    <div class="cover-subtitle">Spesifikasi Menyeluruh: Value Proposition, Logika Sistem, UI/UX Architecture, dan Kelayakan Bisnis</div>
+    <div class="cover-subtitle">Spesifikasi Menyeluruh: AI Spatial Blueprint 2D/3D, Anti-Bot e-KTP Verification, Multi-Platform Suite & Standar Operasional Prosedur (SOP)</div>
     <div class="cover-meta">
-      <span><strong>Peran:</strong> Senior Product Manager & UX Architect</span>
-      <span><strong>Versi Rilis:</strong> v1.0.3 (Production Build)</span>
+      <span><strong>Peran:</strong> Senior Product Manager & Lead Architect</span>
+      <span><strong>Versi Rilis:</strong> v1.0.4 Enterprise Production</span>
       <span><strong>Platform:</strong> Web PWA, Android Capacitor APK, Windows Desktop</span>
       <span><strong>Tanggal:</strong> Oktober 2026</span>
     </div>
   </div>
 
   <!-- BAGIAN 0: BALASAN DISKUSI TIM -->
-  <div class="callout callout-chat">
+  <div class="callout callout-chat avoid-break">
     <strong style="color: #4f46e5; font-size: 10pt;">💬 Format Siap Kirim untuk Diskusi Tim Proyek:</strong>
     <p style="margin-top: 6px; font-style: italic; color: #334155;">
       "Halo, selamat pagi! Terima kasih sudah menginisiasi diskusi. Agar proyek kita terarah, memiliki diferensiasi kuat, dan pembagian tugasnya jelas sejak hari pertama, berikut kerangka kerja yang sudah dirumuskan:
     </p>
-    <ul style="margin-bottom: 6px; font-size: 9pt;">
-      <li><strong>1. Topik Proyek:</strong> KostKu — Ekosistem Digital Terpadu Dua Sisi: Marketplace Pencarian Kost berbasis Denah Interaktif 2D/3D (Pencari Kost) terintegrasi dengan Dashboard Manajemen Operasional (Pemilik Kost).</li>
-      <li><strong>2. Bahasa Pemrograman & Stack:</strong> React 18, Vite, Node.js Express REST API, SQLite / Structured Local JSON DB + Supabase Cloud Sync, Capacitor Android APK, dan Electron Desktop.</li>
-      <li><strong>3. Desain:</strong> Modern Dark Twilight Palette (<code style="background:#e2e8f0; padding:1px 4px; border-radius:3px;">#0a1628</code>) beraksen Electric Blue, tata letak adaptif (Floating Bottom Nav di HP, Left Sidebar di Desktop).</li>
-      <li><strong>4. Analisis:</strong> Memecahkan masalah foto kos manipulatif melalui transparansi dimensi denah arsitektur nyata, serta otomatisasi pencatatan tagihan listrik kWh dan kwitansi WhatsApp.</li>
-      <li><strong>5. Persiapan & Pembagian Tugas:</strong> Frontend Specialist (UI & SVG Canvas), Backend Specialist (REST API & Auth), Mobile/Capacitor & QA Specialist (Build APK & PWA Testing)."</li>
+    <ul style="margin-bottom: 6px; font-size: 8.8pt;">
+      <li><strong>1. Topik Proyek:</strong> KostKu — Ekosistem Digital Terpadu Dua Sisi: Marketplace Pencarian Kost berbasis Denah Interaktif 2D/3D dengan AI Room Scanner (Pencari Kost) terintegrasi dengan Dashboard Manajemen Operasional (Pemilik Kost).</li>
+      <li><strong>2. Bahasa Pemrograman & Stack:</strong> React 18, Vite, Node.js Express REST API, Structured Local DB + Supabase Cloud Sync, Capacitor Android APK, dan Electron Desktop.</li>
+      <li><strong>3. Keamanan & Verifikasi Resmi:</strong> Sistem Anti-Bot 1 KTP 1 Akun dengan validasi NIK 16 digit, foto e-KTP fisik, dan pemulihan akun otomatis via NIK.</li>
+      <li><strong>4. Diferensiasi Kunci:</strong> Dual Spatial Blueprint (2D SVG Arsitek + 3D Isometrik Cutaway), Google Maps GPS Pinning, dan otomatisasi kalkulasi utilitas kWh listrik serta kwitansi WhatsApp.</li>
+      <li><strong>5. Tata Kelola & SOP:</strong> Dilengkapi Standar Operasional Prosedur (SOP) Maintenance Terjadwal, Penanganan Server Down Kritis, dan Service Level Agreement (SLA) Komplain Pengguna."</li>
     </ul>
   </div>
 
@@ -325,16 +368,18 @@
   
   <h2>1.1 Masalah Utama yang Diselesaikan & Hook Pemicu Pertama</h2>
   <p>
-    Pasar sewa properti kos-kosan di Indonesia memiliki friksi asimetris yang akut antara dua pihak:
+    Pasar sewa properti kos-kosan di Indonesia memiliki friksi asimetris akut antara dua pihak:
   </p>
   <ul>
     <li>
-      <strong>Sisi Pencari Kost (Mahasiswa / Pekerja Rantau):</strong> Terjebak dalam <em>The Reality Gap</em>. Foto promosi kamar seringkali menggunakan lensa sudut lebar (*ultra-wide*) yang manipulatif, menutupi fakta bahwa ventilasi udara minim, kasur sempit, atau tidak ada colokan di dekat meja kerja. Survei fisik memakan waktu, tenaga, dan ongkos transport.
-      <br><em>Pemicu Pertama:</em> Menemukan tautan kamar dengan <strong>Interactive 2D Architectural Blueprint</strong> yang memperlihatkan skala nyata perabot (kasur 160x200cm, meja kerja, arah bukaan pintu, dan berkas sinar matahari jendela).
+      <strong>Sisi Pencari Kost (Mahasiswa & Profesional Muda):</strong>
+      <br><em>The Reality Gap:</em> Foto listing di internet seringkali menggunakan lensa ultra-wide yang menipu, menyamarkan sirkulasi udara yang pengap, atau tidak menampilkan posisi kamar mandi dan jendela. Survei fisik membuang waktu dan ongkos.
+      <br><strong>Solusi KostKu:</strong> <em>Interactive Architectural 2D Blueprint & 3D Isometric Cutaway</em>. Calon penghuni dapat melihat orientasi kasur proporsional, posisi meja belajar terhadap colokan listrik, busur bukaan pintu (<em>door swing arc</em>), dan arah cahaya matahari langsung sebelum mengeluarkan biaya sepeser pun.
     </li>
     <li>
-      <strong>Sisi Pemilik Kost (Pengelola / Juragan Kos):</strong> Terbebani <em>Operational Chaos</em>. Catatan sewa masih manual, meteran listrik pascabayar/token sering tekor karena tidak tercatat rapi, dan komplain fasilitas bocor disampaikan via chat WA berceceran.
-      <br><em>Pemicu Pertama:</em> Fitur kalkulasi instan meteran kWh listrik dan pembuatan invoice otomatis yang langsung terkirim ke WhatsApp penghuni hanya dalam 1 klik.
+      <strong>Sisi Pemilik Kost (Juragan Kost & Pengelola Properti):</strong>
+      <br><em>Operational Chaos & Fraud:</em> Penagihan manual lewat chat tercecer, meteran listrik token/pascabayar sering tekor, keluhan fasilitas bocor/rusak tidak terarsip rapi, serta maraknya akun bot/palsu tanpa identitas jelas.
+      <br><strong>Solusi KostKu:</strong> <em>All-in-One Dashboard & Strict Verification</em>. Satu platform untuk auto-invoicing WhatsApp, kalkulasi utilitas air/listrik kWh, ticketing komplain, manajemen multi-cabang kos, kontrak digital staf, dan registrasi terverifikasi e-KTP resmi (1 KTP = 1 Akun).
     </li>
   </ul>
 
@@ -342,41 +387,42 @@
   <table>
     <thead>
       <tr>
-        <th style="width: 18%;">Fase Hook</th>
-        <th style="width: 41%;">Sisi Pencari Kost</th>
-        <th style="width: 41%;">Sisi Pemilik Kost</th>
+        <th style="width: 20%;">Fase Hook</th>
+        <th style="width: 40%;">Sisi Pencari Kost</th>
+        <th style="width: 40%;">Sisi Pemilik Kost</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td><strong>1. Trigger</strong></td>
-        <td><strong>External:</strong> Tautan kos dari teman/medsos, filter radius kampus.<br><strong>Internal:</strong> Cemas kehabisan kamar dekat kampus, takut tertipu foto palsu.</td>
-        <td><strong>External:</strong> Notifikasi jatuh tempo sewa tanggal 1; pengajuan booking baru.<br><strong>Internal:</strong> Khawatir rugi operasional; jengkel menagih manual berulang kali.</td>
+        <td><strong>Eksternal:</strong> Link sewa via WA, filter radius kampus.<br><strong>Internal:</strong> Cemas kehabisan kamar dekat kampus, takut tertipu foto kos palsu.</td>
+        <td><strong>Eksternal:</strong> Notifikasi sewa baru, jatuh tempo tgl 1.<br><strong>Internal:</strong> Takut arus kas rugi, frustrasi menagih sewa manual berulang kali.</td>
       </tr>
       <tr>
         <td><strong>2. Action</strong></td>
-        <td>Mengetuk pin kost di peta, membuka <em>Live Blueprint 2D</em>, membandingkan tata letak kamar dalam 1 sentuhan.</td>
-        <td>Menginput angka meteran listrik dan mengetuk tombol <em>"Kirim Kwitansi via WhatsApp"</em>.</td>
+        <td>Membuka <em>Interactive 2D/3D Blueprint</em>, membandingkan ukuran kamar (4x4.5m vs 3x4m), lalu klik <em>Ajukan Sewa</em>.</td>
+        <td>Mengklik tombol <em>1-Click Approve Sewa</em>, input meteran listrik kWh bulanan, atau menyetujui tiket perbaikan.</td>
       </tr>
       <tr>
         <td><strong>3. Variable Reward</strong></td>
-        <td>Menemukan kamar impian dengan kepastian dimensi nyata dan fasilitas lengkap; info ketersediaan kamar yang akurat.</td>
-        <td>Melihat grafik okupansi kamar hijau 100%, konfirmasi pembayaran sewa masuk tanpa sengketa hitungan listrik.</td>
+        <td>Menemukan kamar impian dengan sirkulasi udara sehat dan kepastian ketersediaan kamar secara real-time.</td>
+        <td>Tingkat okupansi kamar terpantau 100% penuh, uang sewa masuk tepat waktu, dan laporan operasional tercatat rapi.</td>
       </tr>
       <tr>
         <td><strong>4. Investment</strong></td>
-        <td>Menyimpan kost ke daftar favorit, mengisi form profil calon penyewa untuk pengajuan sewa cepat.</td>
-        <td>Memasukkan master data kamar, scan KTP penghuni, konfigurasi tarif utilitas. Makin banyak data tersimpan, <em>switching cost</em> ke software lain mustahil dilakukan.</td>
+        <td>Profil sewa terverifikasi e-KTP, riwayat kontrak sewa, dan PIN kunci pintar (Smart Lock) tersimpan di akun.</td>
+        <td>Seluruh data kamar, meteran utilitas, portofolio cabang kost, dan kontrak staf tersimpan di database. Biaya pindah (<em>switching cost</em>) ke aplikasi lain menjadi mustahil.</td>
       </tr>
     </tbody>
   </table>
 
   <h2>1.3 Unique Selling Point (USP) vs Kompetitor Sejenis</h2>
   <ul>
-    <li><strong>Spatial Blueprint Experience:</strong> Mengganti keraguan foto 2D datar dengan denah SVG arsitektur skala 1:50 interaktif. Calon penghuni dapat memastikan posisi meja belajar dan arah cahaya jendela alami.</li>
-    <li><strong>Unified Dual-Sided Platform:</strong> Tidak membutuhkan dua aplikasi terpisah. Portal marketplace pencari kost dan back-office pemilik kost berada dalam satu platform adaptif.</li>
-    <li><strong>Local-First & Multi-Device Cloud Sync:</strong> Bekerja super cepat secara offline dengan database lokal, dan dapat disinkronkan ke Supabase Cloud saat dibutuhkan akses multi-perangkat.</li>
-    <li><strong>Zero Commission Friction:</strong> Menghubungkan calon penyewa langsung ke WhatsApp pemilik resmi tanpa potongan komisi sewa bulanan yang membebani pemilik.</li>
+    <li><strong>Spatial Blueprint & 3D Cutaway Experience:</strong> Bukan sekadar galeri foto statis. KostKu menyematkan SVG Blueprint skala arsitektur presisi dan model isometrik 3D interaktif yang dapat diputar 4 sudut pandang dengan pencahayaan siang/malam.</li>
+    <li><strong>AI Vision Room Scanner & Questionnaire:</strong> Pemilik kos cukup mengunggah foto kamar, AI Vision memindai tata ruang dan mengajukan kuesioner otomatis ukuran kasur serta fasilitas sebelum men-generate denah arsitektur.</li>
+    <li><strong>Strict Anti-Bot 1 KTP 1 Akun:</strong> Validasi ketat NIK 16 digit dan foto e-KTP asli saat registrasi, mencegah akun spam/bot, serta menyediakan pemulihan akun instan via NIK.</li>
+    <li><strong>Direct Google Maps Navigation:</strong> Dilengkapi tombol deteksi GPS otomatis dan integrasi langsung ke Google Maps rute navigasi pintu gerbang kos.</li>
+    <li><strong>Unified Dual-Sided Platform & Zero Commission:</strong> Marketplace pencari kost dan portal operasional pemilik berada dalam satu aplikasi tanpa potongan komisi sewa bulanan.</li>
   </ul>
 
   <div class="page-break"></div>
@@ -384,74 +430,109 @@
   <!-- BAGIAN 2: FITUR UTAMA & CARA KERJANYA -->
   <h1>2. Fitur Utama & Logika Sistem Pemrosesan Data</h1>
 
-  <h2>2.1 Rincian Fitur Inti (Core) & Pendukung (Supporting)</h2>
+  <h2>2.1 Rincian Fitur Inti (Core) & Pendukung (Supporting) Production v1.0.4</h2>
   <table>
     <thead>
       <tr>
-        <th style="width: 25%;">Kategori</th>
+        <th style="width: 22%;">Kategori</th>
         <th style="width: 30%;">Nama Fitur</th>
-        <th style="width: 45%;">Fungsi & Nilai Tambah</th>
+        <th style="width: 48%;">Fungsi, Mekanisme & Nilai Tambah</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td rowspan="4"><strong>Fitur Inti (Core)</strong></td>
-        <td><strong>Interactive 2D Blueprint Engine</strong></td>
-        <td>Rendering denah vektor SVG dinamis skala 1:50 (kasur springbed, meja kerja, kamar mandi, jendela cahaya) per tipe kamar.</td>
+        <td rowspan="6"><strong>Fitur Inti (Core Platform)</strong></td>
+        <td><strong>Dual 2D/3D Architectural Room Viewer</strong></td>
+        <td>Rendering denah 2D arsitektural SVG skala 1:50 (busur bukaan pintu, kasur proporsional, kamar mandi dalam) dan model isometrik 3D cutaway dengan angle switcher (Kanan, Kiri, Atas, Depan) serta pencahayaan Siang/Malam Cozy.</td>
       </tr>
       <tr>
-        <td><strong>Discovery & Filter Marketplace</strong></td>
-        <td>Pencarian multi-kriteria: Kota, Gender (Putra/Putri/Campur), Rentang Harga, dan Urutan Rating/Termurah.</td>
+        <td><strong>AI Vision Room Scanner & Questionnaire</strong></td>
+        <td>Modul pemindaian foto interior kamar tidur oleh AI Vision, kuesioner interaktif perabot (kasur Single s.d King, AC, lemari, meja kerja, kamar mandi dalam), dan tombol 1-klik <em>"Generate Denah 2D & 3D Otomatis"</em>.</td>
       </tr>
       <tr>
-        <td><strong>Room & Occupancy Manager</strong></td>
-        <td>Visualisasi kartu kamar real-time (Tersedia, Terisi, Perbaikan) dan bulk generator otomatis puluhan kamar.</td>
+        <td><strong>Anti-Bot & e-KTP Authentication (1 KTP = 1 Akun)</strong></td>
+        <td>Registrasi resmi wajib NIK 16 digit (debounced check via <code>/api/check-nik</code>) & unggah foto fisik e-KTP. Mencegah akun duplikat serta menyediakan fitur Pemulihan Akun via NIK.</td>
       </tr>
       <tr>
-        <td><strong>Utility Billing & WhatsApp Invoice</strong></td>
-        <td>Kalkulasi otomatis biaya listrik (kWh) + air (m³) + sewa pokok, digenerate menjadi kwitansi deep-link WhatsApp.</td>
+        <td><strong>Verifikasi Buka Kost & Google Maps GPS</strong></td>
+        <td>Pendaftaran kos wajib nama resmi, alamat lengkap, koordinat GPS (deteksi otomatis via browser geolocation), link Google Maps, foto tampak depan, dan foto interior kamar.</td>
       </tr>
       <tr>
-        <td rowspan="3"><strong>Fitur Pendukung (Supporting)</strong></td>
-        <td><strong>3D Blue Hour Facade</strong></td>
-        <td>Visualisasi eksterior gedung kos 3D WebGL (Three.js) dengan ornamen arsitektur tropis nusantara (roster dan kisi jati).</td>
+        <td><strong>Automated Room Booking & Approval Flow</strong></td>
+        <td>Calon penyewa memilih kamar spesifik di marketplace, mengajukan sewa, dan tersimpan di antrean <code>applications</code>. Pemilik cukup klik <em>Setujui</em> untuk auto-assign kamar, generate PIN smart lock, dan terbitkan invoice.</td>
+      </tr>
+      <tr>
+        <td><strong>Utility Billing & WhatsApp Invoice Dispatcher</strong></td>
+        <td>Kalkulasi otomatis biaya listrik (kWh) + air (m³) + sewa bulanan. Menghasilkan kwitansi resmi dengan deep link WhatsApp <code>wa.me</code> sekali sentuh.</td>
+      </tr>
+      <tr>
+        <td rowspan="4"><strong>Fitur Pendukung (Supporting)</strong></td>
+        <td><strong>Multi-Branch Portfolio Manager</strong></td>
+        <td>Pemilik dapat memiliki dan mengelola banyak cabang kost dalam satu akun dengan tombol peralihan properti instan (Switch Property).</td>
+      </tr>
+      <tr>
+        <td><strong>Staff & Guard Management (E-Signature)</strong></td>
+        <td>Pengelolaan staf/penjaga kos lengkap dengan surat kontrak kerja digital bertanda tangan canvas, gaji bulanan, dan PIN kunci pintar akses gerbang.</td>
       </tr>
       <tr>
         <td><strong>Multiplatform Auto-Updater</strong></td>
-        <td>Pengecekan versi server berkala, unduh biner APK mandiri tanpa dialihkan keluar, serta pembersihan cache PWA bersih.</td>
+        <td>Pengecekan versi server berkala (<code>/api/app-version</code>), unduh langsung biner APK Android (<code>/downloads/KostKu-Android.apk</code>), dan pembersihan cache Service Worker PWA.</td>
       </tr>
       <tr>
-        <td><strong>Linen & Laundry Tracker</strong></td>
-        <td>Pelacakan inventaris siklus penggantian dan pencucian seprai kamar kos agar kebersihan terjaga.</td>
+        <td><strong>Linen & Laundry Cycle Tracker</strong></td>
+        <td>Pelacakan inventaris siklus penggantian dan pencucian seprai kamar kos demi menjaga higienitas properti.</td>
       </tr>
     </tbody>
   </table>
 
-  <h2>2.2 Cara Kerja & Formula Pemrosesan Data</h2>
+  <h2>2.2 Cara Kerja & Formula Pemrosesan Data di Balik Layar</h2>
+  
   <div class="callout callout-tip avoid-break">
-    <strong>Formula Otomatisasi Tagihan Listrik & Utilitas:</strong>
-    <p style="margin-top: 6px; font-family: monospace; font-size: 9pt;">
-      1. Pemakaian Listrik = Max(0, Meteran_Akhir_kWh - Meteran_Awal_kWh)<br>
-      2. Biaya Listrik = Pemakaian Listrik × Tarif_per_kWh<br>
-      3. Total Invoice = Sewa_Pokok + Biaya_Listrik + Biaya_Air + Biaya_Kebersihan<br>
-      4. Dispatch Payload: wa.me/{nomor_penghuni}?text=Halo+{Nama},+Tagihan+Kamar+{Nomor}+Bulan+Ini:+Rp{Total}
+    <strong>1. Formula Otomatisasi Tagihan Listrik & Utilitas:</strong>
+    <p style="margin-top: 5px; font-family: monospace; font-size: 8.8pt;">
+      • Pemakaian Listrik (kWh) = Max(0, Meteran_Akhir_kWh - Meteran_Awal_kWh)<br>
+      • Biaya Listrik = Pemakaian Listrik × Tarif_per_kWh<br>
+      • Biaya Air = Pemakaian Air (m³) × Tarif_per_m³<br>
+      • Total Invoice = Sewa_Pokok + Biaya_Listrik + Biaya_Air + Deposit_Jaminan<br>
+      • Dispatch: wa.me/{nomor_penghuni}?text=Halo+{Nama},+Tagihan+Kamar+{Nomor}:+Rp{Total}
     </p>
   </div>
+
+  <div class="callout callout-success avoid-break">
+    <strong>2. Algoritma Validasi e-KTP & Anti-Bot (1 KTP = 1 Akun):</strong>
+    <p style="margin-top: 5px; font-family: monospace; font-size: 8.8pt;">
+      • Format Validation: Regex ^[0-9]{16}$ (tepat 16 digit angka)<br>
+      • Uniqueness Enforcement: db.users.find(u => u.nik === cleanNik) -> Reject 400 jika duplikat<br>
+      • Proof Requirement: ktpImage (Base64 / URL) wajib disertakan saat registrasi<br>
+      • Recovery Protocol: POST /api/recover-account mencocokkan NIK + Nama Resmi untuk reset password aman
+    </p>
+  </div>
+
+  <div class="callout callout-chat avoid-break">
+    <strong>3. Alur Kompilasi AI Spatial Room Generator:</strong>
+    <p style="margin-top: 5px; font-family: monospace; font-size: 8.8pt;">
+      • Input: roomPhoto (Foto Asli) + Bed Type (Single/Super Single/Queen/King) + Furniture Checklist + Dimensi<br>
+      • Output Schema: { dimensions: "4.0m x 4.5m", bedType: "queen", furnitures: [...], generated: true, mode: "ai" }<br>
+      • View Sync: Otomatis merender 2D Blueprint SVG dan 3D Isometric Mesh di KostDetail dan modal kelola kamar
+    </p>
+  </div>
+
+  <div class="page-break"></div>
 
   <!-- BAGIAN 3: DESAIN UI/UX & ANATOMI ANTARMUKA -->
   <h1>3. Desain UI/UX & Anatomi Antarmuka</h1>
 
   <h2>3.1 Struktur Navigasi Adaptif (Mobile vs Desktop)</h2>
   <ul>
-    <li><strong>Mobile View (< 960px):</strong> Menggunakan <em>Floating Bottom Navigation</em> dengan padding <code>env(safe-area-inset-bottom)</code> agar mudah dioperasikan satu jempol. Di halaman detail kost terdapat <em>Floating Bottom Booking Bar</em> permanen.</li>
-    <li><strong>Desktop View (>= 960px):</strong> Menggunakan <em>Left Fixed Glassmorphic Sidebar</em> yang memuat status koneksi cloud, navigasi modul keuangan, dan tombol unduh aplikasi.</li>
+    <li><strong>Mobile View (< 960px):</strong> Menggunakan <em>Floating Bottom Navigation Bar</em> dengan padding <code>env(safe-area-inset-bottom)</code> agar ramah navigasi satu jempol. Pada halaman detail kost terdapat <em>Floating Bottom Booking Bar</em> permanen dengan tombol aksi sewa langsung.</li>
+    <li><strong>Desktop View (>= 960px):</strong> Menggunakan <em>Left Fixed Glassmorphic Sidebar</em> yang memuat info properti aktif, indikator status sinkronisasi, menu keuangan, dan tombol unduh installer Windows/Android.</li>
   </ul>
 
   <h2>3.2 Anatomi Denah 2D Arsitektural (Embedded SVG Scale 1:50)</h2>
-  <p>Berikut adalah representasi visual skala denah kamar yang dirender langsung oleh komponen KostKu:</p>
+  <p>Berikut adalah visual denah terukur yang digenerate oleh komponen <code>RoomFloorPlanViewer.jsx</code>:</p>
 
   <div class="blueprint-frame avoid-break">
-    <svg width="100%" height="auto" viewBox="0 0 600 280" style="display:block; margin:0 auto; max-width:100%;">
+    <svg width="100%" height="auto" viewBox="0 0 600 270" style="display:block; margin:0 auto; max-width:100%;">
       <defs>
         <pattern id="bpGrid" width="20" height="20" patternUnits="userSpaceOnUse">
           <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(59, 130, 246, 0.15)" stroke-width="0.8" />
@@ -460,54 +541,80 @@
           <path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(59, 130, 246, 0.3)" stroke-width="1.2" />
         </pattern>
       </defs>
-      <rect width="600" height="280" fill="#071120" />
-      <rect width="600" height="280" fill="url(#bpGrid)" />
-      <rect width="600" height="280" fill="url(#bpGridMaj)" />
+      <rect width="600" height="270" fill="#071120" />
+      <rect width="600" height="270" fill="url(#bpGrid)" />
+      <rect width="600" height="270" fill="url(#bpGridMaj)" />
       
-      <!-- Room Outer Walls -->
-      <rect x="40" y="30" width="520" height="220" fill="rgba(30, 58, 138, 0.1)" stroke="#60a5fa" stroke-width="3" rx="4" />
+      <!-- Outer Walls -->
+      <rect x="40" y="25" width="520" height="215" fill="rgba(30, 58, 138, 0.1)" stroke="#60a5fa" stroke-width="3" rx="4" />
       
       <!-- Door Bottom Left -->
-      <line x1="100" y1="250" x2="140" y2="250" stroke="#071120" stroke-width="5" />
-      <path d="M 100 250 Q 100 210, 140 210" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3" />
-      <line x1="100" y1="250" x2="100" y2="210" stroke="#38bdf8" stroke-width="2" />
-      <text x="90" y="240" fill="#38bdf8" font-size="8" font-weight="bold">PINTU MASUK</text>
+      <line x1="100" y1="240" x2="140" y2="240" stroke="#071120" stroke-width="5" />
+      <path d="M 100 240 Q 100 200, 140 200" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3" />
+      <line x1="100" y1="240" x2="100" y2="200" stroke="#38bdf8" stroke-width="2" />
+      <text x="90" y="230" fill="#38bdf8" font-size="8" font-weight="bold">PINTU MASUK</text>
       
       <!-- Window Top Right -->
-      <line x1="380" y1="30" x2="480" y2="30" stroke="#0284c7" stroke-width="6" />
-      <text x="430" y="44" fill="#facc15" font-size="8" font-weight="bold" text-anchor="middle">JENDELA LUAR (CAHAYA MATAHARI)</text>
+      <line x1="380" y1="25" x2="480" y2="25" stroke="#0284c7" stroke-width="6" />
+      <text x="430" y="40" fill="#facc15" font-size="8" font-weight="bold" text-anchor="middle">JENDELA LUAR (SIRKULASI UDARA)</text>
 
       <!-- Springbed Center Right -->
-      <g transform="translate(370, 70)">
+      <g transform="translate(370, 60)">
         <rect width="140" height="130" fill="rgba(37, 99, 235, 0.3)" stroke="#3b82f6" stroke-width="1.5" rx="6" />
         <rect x="15" y="8" width="45" height="30" fill="rgba(255,255,255,0.7)" stroke="#60a5fa" rx="3" />
         <rect x="80" y="8" width="45" height="30" fill="rgba(255,255,255,0.7)" stroke="#60a5fa" rx="3" />
-        <text x="70" y="90" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">KASUR SPRINGBED</text>
-        <text x="70" y="105" fill="#bfdbfe" font-size="7.5" text-anchor="middle">160 x 200 cm (Queen Size)</text>
+        <text x="70" y="90" fill="#ffffff" font-size="9.5" font-weight="bold" text-anchor="middle">KASUR SPRINGBED QUEEN</text>
+        <text x="70" y="105" fill="#bfdbfe" font-size="7.5" text-anchor="middle">160 x 200 cm (Empuk & Dingin)</text>
       </g>
 
       <!-- Work Desk Top Left -->
-      <g transform="translate(60, 45)">
+      <g transform="translate(60, 40)">
         <rect width="120" height="45" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="1.5" rx="4" />
-        <circle cx="60" cy="62" r="10" fill="rgba(16, 185, 129, 0.4)" stroke="#10b981" />
-        <text x="60" y="35" fill="#34d399" font-size="8" font-weight="bold" text-anchor="middle">MEJA KERJA & LAPTOP</text>
+        <circle cx="60" cy="57" r="10" fill="rgba(16, 185, 129, 0.4)" stroke="#10b981" />
+        <text x="60" y="32" fill="#34d399" font-size="8" font-weight="bold" text-anchor="middle">MEJA KERJA & LAPTOP</text>
       </g>
 
       <!-- Bathroom Left Center -->
-      <g transform="translate(60, 115)">
+      <g transform="translate(60, 105)">
         <rect width="100" height="85" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="1.5" rx="4" />
-        <circle cx="110" cy="135" r="12" fill="#0284c7" />
-        <text x="110" y="138" fill="#ffffff" font-size="6.5" font-weight="bold" text-anchor="middle">CLOSET</text>
-        <text x="95" y="180" fill="#7dd3fc" font-size="7.5" font-weight="bold">KAMAR MANDI DALAM</text>
+        <circle cx="110" cy="125" r="12" fill="#0284c7" />
+        <text x="110" y="128" fill="#ffffff" font-size="6.5" font-weight="bold" text-anchor="middle">CLOSET</text>
+        <text x="95" y="170" fill="#7dd3fc" font-size="7.5" font-weight="bold">KM DALAM (WATER HEATER)</text>
       </g>
 
       <!-- Stamp Block -->
-      <g transform="translate(390, 210)">
-        <rect width="160" height="35" fill="rgba(15, 23, 42, 0.9)" stroke="#3b82f6" stroke-width="1" rx="4" />
-        <text x="10" y="14" fill="#93c5fd" font-size="7" font-weight="bold" font-family="monospace">DENAH SKALA 1:50 ARCH</text>
-        <text x="10" y="27" fill="#ffffff" font-size="8" font-weight="bold">DIMENSI: 4.0m x 4.5m (18 m²)</text>
+      <g transform="translate(390, 200)">
+        <rect width="160" height="32" fill="rgba(15, 23, 42, 0.9)" stroke="#3b82f6" stroke-width="1" rx="4" />
+        <text x="10" y="13" fill="#93c5fd" font-size="7" font-weight="bold" font-family="monospace">DENAH SKALA 1:50 ARCHITECTURAL</text>
+        <text x="10" y="25" fill="#ffffff" font-size="8" font-weight="bold">DIMENSI: 4.0m x 4.5m (18 m²)</text>
       </g>
     </svg>
+  </div>
+
+  <h2>3.3 Anatomi 3D Isometric Cutaway & AI Scanner Questionnaire</h2>
+  <div class="isometric-preview-box avoid-break">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin-bottom: 10px;">
+      <strong style="color: #c4b5fd; font-size: 10pt;">🌟 Fitur 3D Isometric Cutaway & Komparasi Foto Nyata:</strong>
+      <span class="badge badge-purple">Three.js & Canvas 3D</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 8.8pt;">
+      <div>
+        <p style="color: #e2e8f0; margin-bottom: 6px;"><strong>Kontrol Interaktif 3D Viewer:</strong></p>
+        <ul style="color: #cbd5e1; margin-left: 16px;">
+          <li><strong>Angle Switcher 4 Sudut:</strong> Isometric Kanan, Isometric Kiri, Tampak Atas (Top-Down 45°), dan Tampak Depan.</li>
+          <li><strong>Pencahayaan Ambien Dinamis:</strong> Mode Siang Hari (Natural Skylight) dan Mode Malam Cozy (Warm 2700K Glow).</li>
+          <li><strong>Tekstur Realistis:</strong> Lantai kayu parket alami, partisi kaca kamar mandi, dan layar laptop berpendar.</li>
+        </ul>
+      </div>
+      <div>
+        <p style="color: #e2e8f0; margin-bottom: 6px;"><strong>Kuesioner Cerdas AI Vision:</strong></p>
+        <ul style="color: #cbd5e1; margin-left: 16px;">
+          <li><strong>Ukuran Kasur:</strong> Single (90x200), Super Single (120x200), Queen (160x200), King (180x200).</li>
+          <li><strong>Perabot Terdeteksi:</strong> Lemari pakaian, meja kerja, kamar mandi dalam, AC, jendela luar, kulkas mini.</li>
+          <li><strong>Verifikasi Ganda:</strong> Foto asli kamar disandingkan langsung dengan hasil model 3D di halaman detail.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 
   <div class="page-break"></div>
@@ -517,42 +624,81 @@
 
   <h2>4.1 Onboarding sampai Momen Kepuasan Utama (Aha-Moment)</h2>
   <ol>
-    <li><strong>Titik Masuk:</strong> Calon penyewa membuka situs web KostKu via tautan WhatsApp atau membuka aplikasi Android.</li>
-    <li><strong>Eksplorasi Cepat:</strong> Menggunakan filter kota dan gender kos (misal: "Putri" di "Semarang").</li>
-    <li><strong>Pemeriksaan Tata Letak:</strong> Menekan tombol <em>"Pratinjau Denah"</em> pada kartu listing.</li>
-    <li><strong>Aha-Moment:</strong> Pengguna melihat langsung denah arsitektur SVG dengan dimensi kasur nyata, posisi jendela luar, dan meja belajar tanpa takut tertipu ilusi sudut foto.</li>
-    <li><strong>Konversi Aksi:</strong> Menekan tombol <em>"Ajukan Sewa"</em> atau <em>"Chat WA Pemilik"</em> untuk survei atau booking langsung.</li>
+    <li><strong>Titik Masuk:</strong> Calon penyewa membuka situs web KostKu via tautan WhatsApp, Web PWA, atau APK Android.</li>
+    <li><strong>Eksplorasi Cepat & Navigasi Peta:</strong> Memfilter kota dan gender, serta mengeklik <em>"Buka Google Maps"</em> untuk melihat rute jalan.</li>
+    <li><strong>Live Blueprint & 3D Exploration:</strong> Mengetuk kamar pilihan untuk mengeksplorasi denah 2D SVG terukur dan model 3D isometrik kamar tidur.</li>
+    <li><strong>[AHA-MOMENT!]</strong> Calon penyewa merasa 100% yakin dengan tata ruang kamar nyata tanpa takut tertipu ilusi lensa ultra-wide!</li>
+    <li><strong>Pengajuan Reservasi & 1-Click Approval:</strong> Memilih kamar nomor 101, mengisi durasi sewa, lalu mengajukan reservasi. Pemilik kos menyetujui, dan kamar otomatis berstatus sewa aktif.</li>
   </ol>
 
-  <h2>4.2 Visualisasi Flowchart Logika Jalur (Mermaid Diagram)</h2>
+  <h2>4.2 Visualisasi Flowchart Logika Jalur Sistem (Mermaid Diagram)</h2>
   <div class="mermaid-box avoid-break">
     <div class="mermaid">
     graph TD
-      Start([Mulai: Buka Aplikasi]) --> AuthCheck{Login Sebagai Apa?}
-      AuthCheck -- Tamu / Pencari Kost --> SearchMarketplace[Cari & Filter Kost]
-      AuthCheck -- Pemilik Kost --> OwnerDash[Dashboard Manajemen]
+      Start([Mulai: Buka Aplikasi KostKu]) --> AuthCheck{Punya Akun Terverifikasi?}
       
-      SearchMarketplace --> ViewBlueprint[Buka Denah 2D Arsitektural]
-      ViewBlueprint --> Decision{Tertarik Menyewa?}
+      AuthCheck -- Belum Punya --> RegFlow[Registrasi: Wajib NIK 16 Digit & Foto e-KTP]
+      RegFlow --> VerifyBot{1 KTP = 1 Akun?}
+      VerifyBot -- Duplikat --> RecoveryPrompt[Arahkan ke Modal Pemulihan Akun via NIK]
+      VerifyBot -- Valid --> RoleCheck{Role Akun?}
+      
+      AuthCheck -- Sudah Punya --> RoleCheck
+      
+      RoleCheck -- Pencari Kost --> SearchMarketplace[Jelajahi Listing & Buka Google Maps]
+      RoleCheck -- Pemilik Kost --> OwnerDash[Dashboard Manajemen Multi-Kost]
+      
+      SearchMarketplace --> ViewFloorPlan[Eksplorasi Denah 2D SVG & 3D Isometrik]
+      ViewFloorPlan --> Decision{Tertarik Menyewa?}
       Decision -- Tidak --> SearchMarketplace
-      Decision -- Ya --> ApplyBooking[Ajukan Sewa / Chat WhatsApp Pemilik]
-      ApplyBooking --> FinishPencari([Selesai: Booking Tercatat])
+      Decision -- Ya --> ApplyBooking[Pilih Kamar & Klik 'Ajukan Sewa']
       
-      OwnerDash --> ManageOps{Pilih Modul Operasional}
-      ManageOps -- Hitung Utilitas --> InputKwh[Input Meteran Listrik kWh]
+      ApplyBooking --> OwnerQueue[(Masuk Antrean Applications Pemilik)]
+      OwnerQueue --> OwnerDecision{Pemilik Setujui?}
+      OwnerDecision -- Tolak --> RejectNotice[Notifikasi Ditolak]
+      OwnerDecision -- Setujui --> AutoAssign[Auto-Assign Kamar + Terbitkan Invoice + PIN Smart Lock]
+      AutoAssign --> BookingSuccess([Selesai: Penghuni Resmi Aktif])
+      
+      OwnerDash --> AddKost[Tambah Properti Baru: Foto Fasad, GPS & AI Room Scan]
+      OwnerDash --> ManageOps{Modul Operasional}
+      ManageOps -- Hitung Utilitas --> InputKwh[Input Meteran Listrik kWh & Air]
       InputKwh --> AutoInvoice[Generate Kwitansi Otomatis]
       AutoInvoice --> SendWA[Kirim Tagihan via WhatsApp]
-      SendWA --> FinishOwner([Selesai: Invoice Tersimpan])
-      
-      ManageOps -- Tangani Komplain --> ResolveComplaint[Update Status: Selesai Diperbaiki]
-      ResolveComplaint --> FinishOwner
+      SendWA --> FinishOwner([Selesai: Invoice Tercatat])
     </div>
   </div>
 
   <!-- BAGIAN 5: SEQUENCE DIAGRAM INTERAKSI SISTEM -->
   <h1>5. Sequence Diagram Interaksi Sistem</h1>
-  <p>Alur paling krusial: <strong>Pengecekan Pembaruan Otomatis & Distribusi Biner (Auto-Update Check & Binary Dispatch)</strong>.</p>
+  
+  <h2>5.1 Alur Reservasi Sewa & Approval Otomatis Pemilik Kost</h2>
+  <div class="mermaid-box avoid-break">
+    <div class="mermaid">
+    sequenceDiagram
+      autonumber
+      actor Tenant as Pencari Kost
+      participant UI as Frontend KostDetail
+      participant API as Backend Server (/api)
+      participant DB as Database (db.json / Cloud)
+      actor Owner as Pemilik Kost
 
+      Tenant->>UI: Pilih Kamar 101 & Isi Formulir Sewa
+      UI->>API: POST /api/kosts/apply (kostUid, userId, kamar, durasi)
+      API->>DB: Push ke applications [status: 'pending']
+      API-->>UI: 200 OK (Aplikasi Berhasil Diajukan)
+      UI-->>Tenant: Tampilkan Toast Sukses & Notifikasi WhatsApp
+
+      Owner->>API: GET /api/owner/applications
+      API-->>Owner: Menampilkan Daftar Pengajuan Masuk
+      Owner->>API: PUT /api/owner/applications/:id/approve
+      API->>DB: Mutasi status application -> 'approved'
+      API->>DB: Mutasi room 101 -> 'occupied', assign tenantId
+      API->>DB: Buat invoice sewa awal & generate Smart Lock PIN
+      API-->>Owner: 200 OK (Kamar Berhasil Ditugaskan Otomatis)
+      API-->>Tenant: Push Notifikasi: Sewa Disetujui & PIN Pintu Aktif
+    </div>
+  </div>
+
+  <h2>5.2 Alur Pembaruan Otomatis Aplikasi (In-App Auto-Updater)</h2>
   <div class="mermaid-box avoid-break">
     <div class="mermaid">
     sequenceDiagram
@@ -560,35 +706,30 @@
       actor User as Pengguna (App/PWA)
       participant UI as KostKu Frontend (React)
       participant SW as Service Worker (Cache)
-      participant API as Backend (Node Express)
-      participant File as File Storage (APK/Binaries)
+      participant API as Backend Server
+      participant Storage as Binaries Storage (APK/EXE)
 
-      User->>UI: Ketuk "Periksa Pembaruan Sekarang"
-      UI->>UI: Set checkingUpdate = true (Spin Animasi)
+      User->>UI: Buka Aplikasi / Ketuk "Periksa Pembaruan"
       UI->>API: GET /api/app-version (No-Cache Headers)
-      API-->>UI: 200 OK { version: "1.0.3", build: 103, downloadUrls: {...} }
-      UI->>UI: isNewerVersion(remote, local)
+      API-->>UI: 200 OK { version: "1.0.4", build: 104, downloadUrls: {...} }
+      UI->>UI: Evaluasi SemVer: isNewerVersion(remote, local)
       
-      alt Ada Versi Lebih Baru
+      alt Ada Pembaruan Baru
         UI->>User: Munculkan AutoUpdateModal (Changelog & Tombol Unduh)
         opt Update di Android APK
           User->>UI: Klik "Unduh & Pasang APK"
-          UI->>API: GET /apk (atau /downloads/KostKu-Android.apk)
-          API->>File: Read stream KostKu.apk
-          File-->>API: Stream bytes
-          API-->>User: Kirim APK (MIME: vnd.android.package-archive)
+          UI->>API: GET /downloads/KostKu-Android.apk
+          API->>Storage: Stream file KostKu-Android.apk
+          Storage-->>User: File APK Terunduh & Siap Pasang
         end
         opt Update di Web PWA
           User->>UI: Klik "Muat Ulang Halaman"
-          UI->>SW: postMessage({ type: 'SKIP_WAITING' })
-          UI->>SW: unregister()
-          UI->>UI: caches.delete(allKeys)
-          UI->>User: Reload Halaman dengan cache-buster
+          UI->>SW: unregister() & caches.delete()
+          UI->>User: Reload Bersih dengan Cache-Buster (?_cb=timestamp)
         end
-      else Versi Sudah Terkini
-        UI->>User: Toast "Aplikasi sudah dalam versi terbaru (v1.0.3)"
+      else Sudah Versi Terbaru
+        UI->>User: Toast "Aplikasi sudah dalam versi terbaru (v1.0.4)"
       end
-      UI->>UI: Set checkingUpdate = false
     </div>
   </div>
 
@@ -599,46 +740,45 @@
 
   <h2>6.1 Faktor Retensi Tinggi (High Stickiness Drivers)</h2>
   <ul>
-    <li><strong>High Switching Cost:</strong> Sekali pemilik kost memasukkan data 30 kamar, daftar penghuni, nomor darurat, serta histori meteran listrik, memindahkan data ke sistem lain membutuhkan energi yang terlalu besar.</li>
-    <li><strong>Siklus Berulang Bulanan:</strong> Operasional kos memiliki ritme tetap setiap tanggal 25 s.d 5 (pencatatan meteran listrik, penagihan sewa, dan konfirmasi transfer), memastikan aplikasi dibuka minimal 3–5 kali setiap bulan.</li>
-    <li><strong>Dokumentasi Bukti Kerusakan:</strong> Modul komplain menjadi arsip resmi saat penghuni mengklaim pengembalian uang jaminan (*deposit refund*).</li>
+    <li><strong>High Switching Cost bagi Pemilik Properti:</strong> Sekali pemilik memasukkan puluhan kamar, foto KTP penghuni, data meteran listrik, portofolio cabang, dan kontak staf, biaya psikologis untuk beralih ke aplikasi lain sangat tinggi.</li>
+    <li><strong>Siklus Berulang Bulanan:</strong> Siklus sewa berulang tiap 30 hari (pencatatan meteran listrik, penagihan, konfirmasi transfer), memastikan pemilik membuka aplikasi secara aktif minimal 3–5 kali per bulan.</li>
+    <li><strong>Single Source of Truth:</strong> Arsip digital kerusakan fasilitas di modul komplain melindungi pemilik dari perselisihan saat pengembalian uang jaminan deposit (<em>deposit refund</em>).</li>
   </ul>
 
   <h2>6.2 Identifikasi Celah Friksi & Solusi Senior PM</h2>
   <table>
     <thead>
       <tr>
-        <th style="width: 25%;">Area Friksi</th>
-        <th style="width: 35%;">Dampak Pengguna</th>
-        <th style="width: 40%;">Rekomendasi Solusi Arsitektural</th>
+        <th style="width: 5%;">No</th>
+        <th style="width: 25%;">Potensi Friksi</th>
+        <th style="width: 32%;">Dampak pada Pengguna</th>
+        <th style="width: 38%;">Rekomendasi Solusi Arsitektural</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td><strong>Verifikasi Pembayaran Manual</strong></td>
-        <td>Pemilik harus mengecek mutasi rekening m-banking satu per satu dan mengubah status invoice secara manual.</td>
-        <td>Integrasikan <strong>Payment Gateway QRIS / Virtual Account</strong> (Midtrans / Xendit). Callback webhook otomatis mengubah status menjadi <em>PAID</em>.</td>
+        <td>1</td>
+        <td><strong>Pembayaran Masih Konfirmasi Manual</strong></td>
+        <td>Pemilik harus membuka m-banking manual dan menandai invoice lunas.</td>
+        <td>Integrasikan Payment Gateway Snap/QRIS (Midtrans/Xendit) dengan webhook otomatis ubah invoice ke <code>PAID</code>.</td>
       </tr>
       <tr>
-        <td><strong>Input Meteran Listrik Berulang</strong></td>
-        <td>Pemilik dengan 40+ kamar lelah mengetik form angka satu per satu setiap akhir bulan.</td>
-        <td>Sediakan <strong>Batch Quick-Fill Table</strong> dengan navigasi tombol <em>Tab/Enter</em> otomatis ke baris berikutnya, atau opsi import file Excel.</td>
+        <td>2</td>
+        <td><strong>Input Meteran Listrik 50 Kamar</strong></td>
+        <td>Pemilik harus mengetik angka kWh satu per satu tiap akhir bulan.</td>
+        <td>Fitur Batch Quick-Fill Table atau integrasi IoT Smart Meter ESP32 via protokol MQTT / REST API.</td>
       </tr>
       <tr>
-        <td><strong>Peringatan APK Mandiri</strong></td>
-        <td>Android memunculkan dialog <em>"File mungkin berbahaya"</em> saat mengunduh APK dari server.</td>
-        <td>Rilis APK bertanda tangan resmi (<em>Signed Keystore</em>) ke <strong>Google Play Store Closed Testing</strong> dan lengkapi PWA <em>One-Tap Install</em>.</td>
-      </tr>
-      <tr>
-        <td><strong>Filter Jarak Radius Kampus</strong></td>
-        <td>Pengguna belum bisa menyortir kos berdasarkan jarak radius meter ke kampus tujuan.</td>
-        <td>Terapkan algoritma <strong>Haversine Distance Formula</strong> di query frontend berdasarkan koordinat latitude/longitude GPS yang sudah ada di database.</td>
+        <td>3</td>
+        <td><strong>Peringatan APK Luar Play Store</strong></td>
+        <td>Android memunculkan peringatan <em>"File mungkin berbahaya"</em>.</td>
+        <td>Rilis signed build ke Google Play Console Internal Track serta perkuat instalasi 1-klik Web PWA.</td>
       </tr>
     </tbody>
   </table>
 
   <!-- BAGIAN 7: ANALISIS PASAR & KELAYAKAN BISNIS -->
-  <h1>7. Analisis Pasar & Kelayakan Bisnis</h1>
+  <h1>7. Analisis Pasar, Lanskap Kompetitor & Kelayakan Finansial</h1>
 
   <h2>7.1 Target Pengguna & Persona Mendalam</h2>
   <div class="persona-container avoid-break">
@@ -646,38 +786,24 @@
       <div class="persona-header">
         <div class="persona-avatar">AP</div>
         <div>
-          <strong style="font-size: 10.5pt; color: #1e1b4b;">Arya Pratama (20 Th)</strong>
-          <div style="font-size: 8pt; color: #64748b;">Mahasiswa Rantau Teknik Informatika (Semarang)</div>
+          <strong style="font-size: 9.5pt;">Arya Pratama (20 Th)</strong>
+          <div style="font-size: 8pt; color: #64748b;">Mahasiswa Rantau Teknik Informatika</div>
         </div>
       </div>
-      <p style="font-size: 8.5pt; margin-bottom: 6px;">
-        <strong>Demografis:</strong> Gen-Z, uang saku bulanan Rp 1.5jt - Rp 2.5jt, melek teknologi, aktif mobile.
-      </p>
-      <p style="font-size: 8.5pt; margin-bottom: 6px;">
-        <strong>Psikografis:</strong> Menghargai privasi dan kenyamanan belajar, takut tertipu foto kos palsu, gemar membandingkan spesifikasi.
-      </p>
-      <p style="font-size: 8.5pt; margin-bottom: 0;">
-        <strong>Pain Points Utama:</strong> Pernah menyewa kamar yang kasurnya ambles dan tidak ada colokan dekat meja belajar; malas berkeliling survei di bawah terik matahari.
-      </p>
+      <p style="font-size: 8.5pt;"><strong>Pain Points:</strong> Pernah menyewa kamar yang kasurnya ambles dan tidak ada colokan dekat meja; malas survei keliling di bawah terik matahari.</p>
+      <p style="font-size: 8.5pt;"><strong>Tuntutan:</strong> Transparansi denah 2D/3D nyata, filter harga akurat, dan lokasi Google Maps tepat di depan kos.</p>
     </div>
-
+    
     <div class="persona-card">
       <div class="persona-header">
-        <div class="persona-avatar" style="background:#fef3c7; color:#b45309;">HN</div>
+        <div class="persona-avatar" style="background: #fce7f3; color: #db2777;">HN</div>
         <div>
-          <strong style="font-size: 10.5pt; color: #1e1b4b;">Hj. Nurhayati (54 Th)</strong>
-          <div style="font-size: 8pt; color: #64748b;">Pemilik Kos Putri "Graha Barokah" (28 Kamar)</div>
+          <strong style="font-size: 9.5pt;">Hj. Nurhayati (54 Th)</strong>
+          <div style="font-size: 8pt; color: #64748b;">Pemilik Kost Graha Barokah (28 Kamar)</div>
         </div>
       </div>
-      <p style="font-size: 8.5pt; margin-bottom: 6px;">
-        <strong>Demografis:</strong> Ibu rumah tangga & investor properti kos, menggunakan smartphone Android untuk WhatsApp harian.
-      </p>
-      <p style="font-size: 8.5pt; margin-bottom: 6px;">
-        <strong>Psikografis:</strong> Ingin ketenangan pikiran (*peace of mind*), tidak suka sistem rumit berbayar mahal dengan potongan komisi tinggi.
-      </p>
-      <p style="font-size: 8.5pt; margin-bottom: 0;">
-        <strong>Pain Points Utama:</strong> Pembukuan sewa masih di buku tulis berdebu; sering nombok tagihan listrik PLN karena telat menagih pemakaian anak kos.
-      </p>
+      <p style="font-size: 8.5pt;"><strong>Pain Points:</strong> Pembukuan di buku tulis sering hilang; sering nombok listrik PLN karena telat menagih anak kos; chat komplain WA tenggelam.</p>
+      <p style="font-size: 8.5pt;"><strong>Tuntutan:</strong> Aplikasi simpel, kwitansi WA otomatis, tanpa potongan komisi sewa bulanan yang mahal.</p>
     </div>
   </div>
 
@@ -685,124 +811,74 @@
   <table>
     <thead>
       <tr>
-        <th style="width: 18%;">Fitur / Aspek</th>
-        <th style="width: 21%; background: #e0e7ff; color: #3730a3;">KostKu</th>
-        <th style="width: 21%;">Mamikos</th>
+        <th style="width: 20%;">Fitur / Aspek</th>
+        <th style="width: 20%;">KostKu</th>
+        <th style="width: 20%;">Mamikos</th>
         <th style="width: 20%;">Rukita / Cove</th>
-        <th style="width: 20%;">OLX / KostHunter</th>
+        <th style="width: 20%;">OLX / Papan Iklan</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td><strong>Visualisasi Kamar</strong></td>
-        <td><strong>Denah 2D SVG Skala 1:50</strong> + 3D Facade</td>
-        <td>Foto Standar + 360° Virtual Tour (Terbatas)</td>
-        <td>Foto Interior Estetik Kurasi</td>
+        <td><strong>Visual Ruang</strong></td>
+        <td><strong>2D SVG & 3D Isometric Cutaway + AI Scanner</strong></td>
+        <td>Foto Standar + 360 Tour Terbatas</td>
+        <td>Foto Estetik Kurasi Manual</td>
         <td>Foto Bebas Tanpa Kurasi</td>
       </tr>
       <tr>
-        <td><strong>Model Integrasi</strong></td>
-        <td><strong>Marketplace + SaaS Pemilik Terpadu</strong></td>
-        <td>Marketplace + Singgahsini Operator</td>
-        <td>Full Property Operator Co-Living</td>
-        <td>Hanya Papan Iklan Baris Terbuka</td>
+        <td><strong>Verifikasi Akun</strong></td>
+        <td><strong>Anti-Bot 1 KTP = 1 Akun + NIK Resmi</strong></td>
+        <td>Nomor HP / OTP Standar</td>
+        <td>Email Perusahaan / Google</td>
+        <td>Nomor HP Tanpa Verifikasi KTP</td>
       </tr>
       <tr>
         <td><strong>Skema Komisi</strong></td>
         <td><strong>0% Komisi Transaksi</strong></td>
         <td>5% – 12% Komisi Booking</td>
-        <td>Revenue Share Operator 20%–30%</td>
+        <td>Revenue Share 20%–30%</td>
         <td>Gratis / Biaya Iklan Sundul</td>
       </tr>
       <tr>
         <td><strong>Pencatatan Utilitas</strong></td>
         <td><strong>Kalkulator Otomatis Listrik kWh & Air</strong></td>
-        <td>Manual / Tagihan Gabungan</td>
-        <td>Termasuk di Harga Sewa (Flat)</td>
-        <td>Tidak Ada Fitur Manajemen</td>
-      </tr>
-      <tr>
-        <td><strong>Kedaulatan Data</strong></td>
-        <td><strong>Local-First + Cloud Sync</strong></td>
-        <td>100% Closed Cloud Terpusat</td>
-        <td>Internal Enterprise Cloud</td>
-        <td>Tidak Menyimpan Data Sewa</td>
+        <td>Tagihan Gabungan Manual</td>
+        <td>Biaya Flat Termasuk Sewa</td>
+        <td>Tidak Tersedia</td>
       </tr>
     </tbody>
   </table>
 
-  <div class="callout callout-success avoid-break">
-    <strong style="color: #065f46;">4 Parit Pertahanan Kompetitif (Competitive Moats KostKu):</strong>
-    <ol style="margin-top: 6px; font-size: 9pt; margin-bottom: 0;">
-      <li><strong>Architectural Spatial Transparency:</strong> Denah interaktif memangkas rasio pembatalan survei hingga 60%.</li>
-      <li><strong>Zero-Commission Loyalty:</strong> Pemilik kos menolak pindah ke platform yang memotong 5-10% dari omzet bulanan mereka.</li>
-      <li><strong>Unified Two-Sided Platform:</strong> Membina ekosistem mandiri tanpa memerlukan dua aplikasi terpisah yang membingungkan.</li>
-      <li><strong>Lightweight Multiplatform Engine:</strong> Aplikasi dapat dijalankan di web murah, Android hemat memori, dan desktop tanpa lag.</li>
-    </ol>
-  </div>
-
-  <div class="page-break"></div>
-
   <h2>7.3 Model Bisnis, Monetisasi & Kelayakan Finansial</h2>
-  <p>KostKu menerapkan strategi monetisasi berbasis volume dan utilitas nyata tanpa membebankan potongan komisi sewa:</p>
-
   <table>
     <thead>
       <tr>
-        <th style="width: 25%;">Aliran Pendapatan</th>
-        <th style="width: 35%;">Skema & Harga</th>
+        <th style="width: 30%;">Aliran Pendapatan</th>
+        <th style="width: 30%;">Skema Tarif</th>
         <th style="width: 40%;">Analisis Kelayakan & Rasionalitas Pasar</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td><strong>1. Freemium SaaS (Pemilik Kost)</strong></td>
-        <td>
-          • <strong>Free Tier:</strong> Hingga 5 kamar gratis selamanya.<br>
-          • <strong>Starter:</strong> Rp 49.000 / bulan (6–20 kamar).<br>
-          • <strong>Pro Business:</strong> Rp 99.000 / bulan (> 20 kamar + multi-gedung).
-        </td>
-        <td>
-          <strong>Sangat Rasional.</strong> Pemilik kos dengan 15 kamar beromzet Rp 15jt - Rp 30jt/bulan hanya membayar Rp 49.000 (< 0.3% omzet). Jauh lebih murah daripada komisi kompetitor yang memotong Rp 1.5jt/bulan.
-        </td>
+        <td><strong>1. Freemium SaaS Pemilik</strong></td>
+        <td>• Free: s.d 5 kamar gratis.<br>• Starter: Rp 49.000/bln (6–20 kmr).<br>• Pro: Rp 99.000/bln (> 20 kmr).</td>
+        <td><strong>Sangat Rasional.</strong> Pemilik 15 kamar beromzet Rp 20jt/bln hanya membayar Rp 49.000 (< 0.25% omzet), jauh lebih hemat dibanding komisi kompetitor yang mencapai Rp 1.5jt/bulan.</td>
       </tr>
       <tr>
         <td><strong>2. Featured Listing & Verified Badge</strong></td>
-        <td>
-          • <strong>Spotlight Kota:</strong> Rp 25.000 / minggu.<br>
-          • <strong>Badge Terverifikasi Denah:</strong> Rp 50.000 / tahun (termasuk verifikasi denah arsitektur).
-        </td>
-        <td>
-          Pemilik bersedia membayar biaya promosi kecil saat ada kamar kosong agar cepat terisi oleh mahasiswa baru di musim ajaran baru.
-        </td>
+        <td>• Spotlight Kota: Rp 25.000/mgg.<br>• Verified AI Blueprint: Rp 50.000/thn.</td>
+        <td>Pemilik sangat bersedia membayar biaya kecil ini pada musim tahun ajaran baru agar kamar cepat terisi penuh.</td>
       </tr>
       <tr>
         <td><strong>3. Fee Transaksi Payment Gateway</strong></td>
-        <td>
-          • Biaya administrasi Rp 2.500 per transaksi QRIS / Virtual Account (dibebankan ke penyewa).
-        </td>
-        <td>
-          Sesuai standar industri perbankan nasional. Memberikan kemudahan bagi mahasiswa yang tidak memiliki rekening bank lokal yang sama.
-        </td>
+        <td>• Rp 2.500 per transaksi QRIS / VA (dibebankan ke penyewa).</td>
+        <td>Sesuai standar perbankan nasional, memberikan fleksibilitas pembayaran digital bagi mahasiswa rantau.</td>
       </tr>
     </tbody>
   </table>
 
-  <h2>7.4 Go-to-Market (GTM) Strategy & Taktik Akuisisi</h2>
-  <ul>
-    <li>
-      <strong>Fase 1: Campus-Cluster Hyperlocal Attack (Bulan 1–2):</strong>
-      <br>Fokus pada 1–2 kluster kampus dengan kepadatan kos tinggi (misal: kawasan Tembalang UNDIP atau Nakula UDINUS Semarang). Melakukan pemetaan denah kamar secara langsung untuk 50 kos pertama secara gratis sebagai katalog demo unggulan.
-    </li>
-    <li>
-      <strong>Fase 2: Paguyuban Juragan Kost & Edukasi Door-to-Door (Bulan 3–4):</strong>
-      <br>Mengadakan workshop santai di balai warga atau grup WhatsApp paguyuban kos lokal dengan tajuk: <em>"Cara Praktis Menghitung Meteran Listrik Kamar & Kwitansi WhatsApp Otomatis"</em>. Menawarkan instalasi gratis aplikasi ke HP pemilik kos.
-    </li>
-    <li>
-      <strong>Fase 3: Viral Loop Mahasiswa & Program Cashback Listrik (Bulan 5–6):</strong>
-      <br>Menyediakan program referral: Anak kos yang berhasil mengajak temannya memesan kamar via KostKu mendapatkan token subsidi listrik Rp 25.000, menciptakan efek jaringan (*network effect*) organik dari mulut ke mulut.
-    </li>
-  </ul>
+  <div class="page-break"></div>
 
   <!-- BAGIAN 8: BLUEPRINT PEMBAGIAN TUGAS TIM -->
   <h1>8. Blueprint Pembagian Tugas Tim (RACI Matrix & Roadmap)</h1>
@@ -827,21 +903,21 @@
         <td>C (Consulted)</td>
       </tr>
       <tr>
-        <td>Interactive 2D Blueprint SVG Engine</td>
+        <td>Interactive 2D Blueprint SVG & 3D Isometric Engine</td>
         <td><span class="badge badge-green">R</span></td>
         <td>C</td>
         <td><span class="badge badge-blue">A</span></td>
         <td>C</td>
       </tr>
       <tr>
-        <td>REST API & Structured Database Schema</td>
+        <td>AI Vision Room Scanner & Interactive Questionnaire</td>
+        <td><span class="badge badge-green">R</span></td>
+        <td><span class="badge badge-blue">A</span></td>
         <td>C</td>
-        <td><span class="badge badge-green">R / A</span></td>
-        <td>I</td>
         <td>C</td>
       </tr>
       <tr>
-        <td>Cloud Sync Supabase & Google Auth</td>
+        <td>Anti-Bot e-KTP Verification (1 KTP 1 Akun) & NIK Check</td>
         <td>C</td>
         <td><span class="badge badge-green">R / A</span></td>
         <td>I</td>
@@ -855,11 +931,11 @@
         <td><span class="badge badge-green">R / A</span></td>
       </tr>
       <tr>
-        <td>User Acceptance Testing & Laporan SRS</td>
+        <td>SOP Execution, Disaster Recovery & UAT Testing</td>
         <td>C</td>
-        <td>C</td>
-        <td>C</td>
-        <td><span class="badge badge-green">R / A</span></td>
+        <td><span class="badge badge-blue">A</span></td>
+        <td>I</td>
+        <td><span class="badge badge-green">R</span></td>
       </tr>
     </tbody>
   </table>
@@ -869,15 +945,148 @@
 
   <h2>8.2 Roadmap Pelaksanaan 4 Minggu (Sprint Schedule)</h2>
   <ul>
-    <li><strong>Minggu 1 (Sprint 1 - Foundation & Architecture):</strong> Finalisasi skema database <code>db.json</code>, desain wireframe Figma, dan setup project Vite + React + Tailwind.</li>
-    <li><strong>Minggu 2 (Sprint 2 - Core Engine & Interactivity):</strong> Pembuatan komponen <code>RoomBlueprintSvg</code> 2D, integrasi endpoint <code>/api/kosts</code>, dan kalkulator utilitas kWh.</li>
-    <li><strong>Minggu 3 (Sprint 3 - Multiplatform & Cloud Integration):</strong> Setup sinkronisasi Supabase, konfigurasi Google OAuth, serta build APK Android dengan Capacitor.</li>
-    <li><strong>Minggu 4 (Sprint 4 - In-App Updater, Testing & GTM):</strong> Uji coba Service Worker PWA, validasi unduhan biner APK tanpa bug, dan penyusunan proposal bisnis.</li>
+    <li><strong>Minggu 1 (Sprint 1 - Foundation & Architecture):</strong> Finalisasi skema database <code>db.json</code>, desain wireframe Figma, setup project Vite + React + Tailwind, dan implementasi Anti-Bot e-KTP.</li>
+    <li><strong>Minggu 2 (Sprint 2 - Spatial Engine & Interactivity):</strong> Komponen <code>RoomFloorPlanViewer</code> 2D/3D, integrasi AI Vision Room Scanner, kuesioner perabot, dan Google Maps GPS pinning.</li>
+    <li><strong>Minggu 3 (Sprint 3 - Multiplatform & Operational Engine):</strong> Modul kalkulator utilitas kWh, antrean reservasi sewa & auto-assign approval, serta build APK Android dengan Capacitor.</li>
+    <li><strong>Minggu 4 (Sprint 4 - SOP Deployment, Testing & GTM):</strong> Validasi In-App Auto-Updater, simulasi SOP Server Down & Maintenance, uji coba komplain, dan penyusunan proposal bisnis.</li>
   </ul>
 
+  <div class="page-break"></div>
+
+  <!-- BAGIAN 9: STANDAR OPERASIONAL PROSEDUR (SOP) TEKNIS & LAYANAN -->
+  <h1>9. Standar Operasional Prosedur (SOP) Teknis & Layanan Operasional</h1>
+  <p>
+    Untuk memastikan keandalan sistem berskala enterprise, kenyamanan pengguna, dan mitigasi risiko teknis secara terstruktur, seluruh tim pengembang dan pengelola KostKu wajib mematuhi 3 pilar SOP berikut:
+  </p>
+
+  <!-- 9.1 SOP MAINTENANCE TERJADWAL -->
+  <h2>9.1 SOP Maintenance Terjadwal (Scheduled System Maintenance)</h2>
+  <div class="sop-card sop-card-success avoid-break">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <strong style="color: #065f46; font-size: 10pt;">🛠️ Protokol Pemeliharaan Sistem Rutin</strong>
+      <span class="badge badge-green">Preventive Maintenance</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Tahapan</th>
+          <th style="width: 45%;">Ketentuan & Prosedur Baku</th>
+          <th style="width: 30%;">Penanggung Jawab</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Penentuan Jadwal</strong></td>
+          <td>Eksekusi pemeliharaan server dan basis data <strong>hanya boleh dilakukan di jam sepi trafik</strong>, yaitu antara <strong>pukul 01.00 – 04.00 WIB pagi</strong>, guna meminimalkan dampak pada transaksi dan pencarian kos.</td>
+          <td>DevOps & Backend Lead</td>
+        </tr>
+        <tr>
+          <td><strong>2. Pemberitahuan Pengguna</strong></td>
+          <td>Pasang <strong>banner pengumuman resmi</strong> di aplikasi dan website minimal <strong>24 jam sebelum jadwal maintenance dimulai</strong>. Informasikan estimasi durasi dan fitur yang terdampak sementara.</td>
+          <td>Frontend Lead & Tim Support</td>
+        </tr>
+        <tr>
+          <td><strong>3. Prosedur Pra-Maintenance</strong></td>
+          <td>Lakukan <strong>full backup basis data</strong> (snapshot <code>db.json</code> dan PostgreSQL) serta backup seluruh aset penyimpanan (foto KTP, foto kamar) ke penyimpanan terisolasi <strong>sebelum mulai utak-atik kode atau konfigurasi server</strong>.</td>
+          <td>Backend & Database Admin</td>
+        </tr>
+        <tr>
+          <td><strong>4. Uji Pasca-Maintenance</strong></td>
+          <td>Lakukan pengujian fungsionalitas vital (<em>smoke test</em>): <strong>login pengguna, pencatatan transaksi utilitas, verifikasi sewa, dan upload bukti bayar/KTP</strong> sebelum membuka kembali akses publik secara penuh.</td>
+          <td>QA Specialist & Product Manager</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 9.2 SOP SERVER DOWN & ERROR KRITIS -->
+  <h2>9.2 SOP Server Down & Error Kritis (Incident Response & Disaster Recovery)</h2>
+  <div class="sop-card sop-card-critical avoid-break">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <strong style="color: #991b1b; font-size: 10pt;">🚨 Protokol Tanggap Darurat Kegagalan Sistem</strong>
+      <span class="badge badge-red">Critical Severity (P0)</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Langkah Mitigasi</th>
+          <th style="width: 45%;">Tindakan Teknis Wajib</th>
+          <th style="width: 30%;">Target Waktu (SLA)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Deteksi Cepat</strong></td>
+          <td>Pasang tool monitoring otomatis (UptimeRobot, Sentry, Vercel Health Check) yang langsung mengirimkan <strong>notifikasi real-time via Telegram / WhatsApp</strong> saat server Vercel atau backend mati.</td>
+          <td>Maksimal <strong>< 2 Menit</strong> sejak insiden terjadi</td>
+        </tr>
+        <tr>
+          <td><strong>2. Tindakan Pertama (Failover)</strong></td>
+          <td>Alihkan rute domain langsung ke <strong>halaman statis darurat</strong> bertuliskan <em>"Sistem Sedang Dalam Perbaikan Darurat"</em> agar pengguna tidak melihat layar putih polos (blank screen) atau pesan error JSON berantakan.</td>
+          <td>Maksimal <strong>< 5 Menit</strong> sejak deteksi</td>
+        </tr>
+        <tr>
+          <td><strong>3. Penanganan Masalah (Rollback)</strong></td>
+          <td>Jika bug kritis berasal dari deployment terakhir, <strong>langsung jalankan rollback instan ke versi commit stabil sebelumnya</strong> dibanding memaksakan perbaikan langsung (<em>hotfix monkey-patch</em>) di server produksi.</td>
+          <td>Maksimal <strong>< 15 Menit</strong> untuk rollback stabil</td>
+        </tr>
+        <tr>
+          <td><strong>4. Pencatatan & Evaluasi</strong></td>
+          <td>Catat akar penyebab error (<em>root cause analysis</em>), kronologi kejadian, dan langkah solusinya di log teknis (<em>Post-Mortem Document</em>) buat evaluasi tim agar insiden serupa tidak terulang kembali.</td>
+          <td>Maksimal <strong>1x24 Jam</strong> pasca-insiden pulih</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 9.3 SOP PENANGANAN KOMPLAIN PENGGUNA -->
+  <h2>9.3 SOP Penanganan Komplain Pengguna (Customer Care & Service Level Agreement)</h2>
+  <div class="sop-card avoid-break">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <strong style="color: #3730a3; font-size: 10pt;">🎧 Standar Pelayanan & Manajemen Keluhan Pengguna</strong>
+      <span class="badge badge-purple">Service Level Agreement</span>
+    </div>
+    
+    <p><strong>A. Kanal Aduan Resmi (Single Point of Contact):</strong></p>
+    <p>Menyediakan satu pintu aduan resmi yang jelas dan mudah diakses di seluruh aplikasi, yaitu tombol bantuan langsung ke WhatsApp Admin (<code>wa.me</code>) dan formulir tiket aduan digital di halaman bantuan akun.</p>
+
+    <p style="margin-top: 6px;"><strong>B. Matriks Klasifikasi Masalah & Kecepatan Respons (SLA):</strong></p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 20%;">Klasifikasi</th>
+          <th style="width: 40%;">Contoh Kasus Masalah</th>
+          <th style="width: 20%;">Target Respons Pertama</th>
+          <th style="width: 20%;">Target Resolusi Tuntas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-red">Mendesak (Urgent)</span></td>
+          <td>Urusan uang atau akses fisik kamar: nota tagihan dobel, bukti bayar gagal terverifikasi, akun terkunci tidak bisa login, smart lock PIN error.</td>
+          <td><strong>15 – 30 Menit</strong></td>
+          <td>Maksimal <strong>2 – 4 Jam</strong></td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">Biasa (Normal)</span></td>
+          <td>Bug tampilan minor (UI glitch), saran penambahan fitur baru, kendala upload foto profil non-kritis, atau pertanyaan panduan cara pakai.</td>
+          <td>Maksimal <strong>1x24 Jam</strong></td>
+          <td>Maksimal <strong>2x24 Jam</strong> / Rilis Sprint Berikutnya</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top: 6px;"><strong>C. Alur Standar Respons Tiga Langkah (3-Step Response Cycle):</strong></p>
+    <ol>
+      <li><strong>1. Akui & Empati:</strong> Balas pesan pengguna dengan mengakui kendala yang dialami secara transparan, ucapkan permohonan maaf atas ketidaknyamanan, dan verifikasi data tiket pengguna.</li>
+      <li><strong>2. Berikan Estimasi Waktu:</strong> Sampaikan perkiraan waktu pengerjaan perbaikan (ETA) secara realistis agar pengguna merasa tenang dan dihargai.</li>
+      <li><strong>3. Konfirmasi Penuntasan:</strong> Hubungi kembali pengguna setelah sistem pulih untuk memastikan bahwa masalah benar-benar tuntas dan fungsi berjalan normal di perangkat pengguna.</li>
+    </ol>
+  </div>
+
   <div class="footer">
-    <span>KostKu Ecosystem &bull; Dokumen Spesifikasi Produk & Arsitektur Bisnis</span>
-    <span>Halaman Resmi Blueprint &bull; Dicetak Otomatis</span>
+    <span>KostKu Ecosystem &bull; Dokumen Spesifikasi Produk, Arsitektur Bisnis & SOP Operasional</span>
+    <span>Halaman Resmi Blueprint &bull; Dicetak Otomatis ke PDF Resolusi Tinggi</span>
   </div>
 
 </body>
