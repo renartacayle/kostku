@@ -286,7 +286,7 @@ app.get(['/download', '/unduh'], (req, res) => {
   <div class="card">
     <div class="logo">🏠</div>
     <h1>KostKu Android</h1>
-    <div class="badge">Versi 1.0.3 • ${sizeMb} MB • Official Build</div>
+    <div class="badge">Versi 1.0.4 • ${sizeMb} MB • Official Build</div>
     <p class="subtitle">Aplikasi Manajemen & Pencarian Kost Pintar</p>
 
     <a href="/downloads/KostKu-Android.apk" class="btn-download" download="KostKu.apk">
@@ -335,15 +335,19 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   const baseUrl = `${protocol}://${host}`;
 
   res.json({
-    version: '1.0.3',
-    buildNumber: 103,
-    releaseDate: '2026-09-29',
-    title: 'Pembaruan KostKu v1.0.3 Tersedia! 🚀',
+    version: '1.0.4',
+    buildNumber: 104,
+    releaseDate: '2026-10-08',
+    title: 'Pembaruan KostKu v1.0.4 Enterprise Production! 🚀',
     changelog: [
-      'Tampilan UI Pencarian & Detail Kost adaptif responsif sesuai ukuran layar (HP, Tablet, Desktop)',
-      'Denah 2D interaktif arsitektur kamar & gedung berskala proporsional',
-      '10 Demo Kost lengkap dengan foto asli, spesifikasi, dan denah',
-      'Floating Action Bar pemesanan sewa instan untuk pengguna Android'
+      'AI Vision Room Scanner & Kuesioner Interaktif Perabot Kamar (Single, Queen, King, AC, KM Dalam)',
+      'Dual 2D Blueprint Arsitektural CAD (SVG Scale 1:50) & 3D Isometric Cutaway Viewer 4 Sudut Pandang',
+      'Sistem Keamanan Anti-Bot 1 KTP 1 Akun & Validasi NIK 16 Digit Resmi Kemendagri',
+      'Fitur Pemulihan Akun Mandiri via NIK & Nama Resmi e-KTP',
+      'Verifikasi Buka Kost via Google Maps GPS Pinning & Deteksi Koordinat Akurat',
+      'Alur Reservasi Sewa Otomatis & Approval 1-Klik Pemilik Kos (Auto-Assign Kamar & PIN Smart Lock)',
+      'Portofolio Multi-Cabang Kos & Kontrak Digital Staf bertanda tangan E-Signature Canvas',
+      'Optimasi Responsif Mobile (Touch Slider Carousel, Adaptive Search Bar, Sticky Video Scrollytelling)'
     ],
     downloadUrls: {
       windows: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download',
