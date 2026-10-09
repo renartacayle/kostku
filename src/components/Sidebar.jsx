@@ -71,7 +71,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
           }}>
             KostKu
           </h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
             Pro Edition v2.0
           </span>
         </div>
@@ -94,10 +94,10 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
                 textDecoration: 'none',
                 color: isActive ? 'white' : 'var(--text-secondary)',
                 background: isActive 
-                  ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(99, 102, 241, 0.15) 100%)' 
+                  ? 'rgba(37, 99, 235, 0.16)' 
                   : 'transparent',
                 border: isActive ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid transparent',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)',
                 fontWeight: isActive ? '600' : '500',
                 fontSize: '0.92rem'
               }}
@@ -125,14 +125,14 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
               padding: '11px 16px',
               borderRadius: '12px',
               border: '1px solid rgba(59, 130, 246, 0.35)',
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.12) 100%)',
+              background: 'rgba(37, 99, 235, 0.12)',
               color: '#93c5fd',
               cursor: 'pointer',
               fontWeight: '600',
               fontSize: '0.92rem',
               marginTop: '4px',
               textAlign: 'left',
-              transition: 'all 0.2s'
+              transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)'
             }}
           >
             <Building2 size={20} color="#60a5fa" />

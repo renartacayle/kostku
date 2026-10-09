@@ -233,12 +233,12 @@ export default function StaffDashboard({ user }) {
         </div>
 
         {/* Card: Active Tenants */}
-        <div className="card glass-panel" style={{ padding: '1.25rem', borderLeft: '4px solid #8b5cf6' }}>
+        <div className="card glass-panel" style={{ padding: '1.25rem', borderLeft: '4px solid #2563eb' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Anak Kost Aktif</span>
-            <Users size={20} color="#a78bfa" />
+            <Users size={20} color="#60a5fa" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
             {tenants.length} Orang
           </div>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>

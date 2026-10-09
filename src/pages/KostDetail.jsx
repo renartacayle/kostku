@@ -517,9 +517,10 @@ export default function KostDetail({ user }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: activeTab === 'virtual360' ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'rgba(255, 255, 255, 0.05)',
+                  background: activeTab === 'virtual360' ? '#2563eb' : 'rgba(255, 255, 255, 0.05)',
                   color: activeTab === 'virtual360' ? 'white' : '#94a3b8',
-                  transition: 'all 0.2s'
+                  boxShadow: activeTab === 'virtual360' ? '0 4px 12px rgba(37, 99, 235, 0.35)' : 'none',
+                  transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)'
                 }}
               >
                 <span>🌀 Virtual Tour 360°</span>

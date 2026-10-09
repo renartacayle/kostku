@@ -1,20 +1,25 @@
 :root {
-  /* Modern Dark Luxury Palette */
-  --bg-main: #090d16;
-  --bg-primary: #0f172a;
-  --bg-secondary: #172033;
-  --bg-card: rgba(23, 32, 51, 0.75);
-  --bg-glass: rgba(15, 23, 42, 0.85);
+  /* Taste Skill: Architectural Blue-Hour Twilight Void Palette */
+  --bg-main: #080d1a;
+  --bg-primary: #0e1726;
+  --bg-secondary: #131f37;
+  --bg-card: rgba(14, 23, 38, 0.85);
+  --bg-card-hover: rgba(19, 31, 55, 0.95);
+  --bg-glass: rgba(8, 13, 26, 0.90);
   --bg-hover: rgba(255, 255, 255, 0.05);
 
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
 
-  --accent-primary: #3b82f6;
-  --accent-secondary: #6366f1;
-  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-  --accent-glow: rgba(59, 130, 246, 0.35);
+  /* Architectural Electric Blue & Warm Teak Wood Accents */
+  --accent-primary: #2563eb;
+  --accent-primary-hover: #1d4ed8;
+  --accent-secondary: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --accent-glow: rgba(37, 99, 235, 0.35);
+  --accent-teak: #d97706;
+  --accent-teak-glow: rgba(217, 119, 6, 0.25);
 
   --accent-success: #10b981;
   --accent-success-bg: rgba(16, 185, 129, 0.12);
@@ -22,23 +27,25 @@
   --accent-warning-bg: rgba(245, 158, 11, 0.12);
   --accent-danger: #ef4444;
   --accent-danger-bg: rgba(239, 68, 68, 0.12);
-  --accent-purple: #a855f7;
 
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.15);
+  --border-light: rgba(255, 255, 255, 0.16);
+  --border-accent: rgba(37, 99, 235, 0.35);
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 25px rgba(59, 130, 246, 0.25);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 35px -10px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 25px rgba(37, 99, 235, 0.3);
 
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-full: 9999px;
 
-  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  /* Typography: Humanist Neo-Grotesque UI + Tabular Monospace */
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 * {
@@ -46,6 +53,7 @@
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-main);
 }
 
 html, body {
@@ -136,7 +144,7 @@ html, body {
   }
 }
 
-/* Buttons */
+/* Buttons & Kinetic Tactile Feedback */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -147,21 +155,32 @@ html, body {
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
   border: 1px solid transparent;
   font-family: inherit;
   user-select: none;
 }
 
+.btn:active, button:active:not(:disabled) {
+  transform: scale(0.98) translateY(1px);
+}
+
 .btn-primary {
-  background: var(--accent-gradient);
+  background: var(--accent-primary);
   color: white;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 .btn-primary:hover {
-  filter: brightness(1.1);
+  background: var(--accent-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+}
+
+/* Tabular Numbers & Precision Monospace */
+.font-mono-tabular, .tabular-num, .price-mono {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .btn-secondary {

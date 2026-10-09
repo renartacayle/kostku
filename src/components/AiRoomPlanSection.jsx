@@ -123,7 +123,9 @@ export default function AiRoomPlanSection({
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              background: '#2563eb',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -156,7 +158,8 @@ export default function AiRoomPlanSection({
                 padding: '6px 12px',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeMode === 'ai' ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' : 'transparent',
+                background: activeMode === 'ai' ? '#2563eb' : 'transparent',
+                boxShadow: activeMode === 'ai' ? '0 2px 8px rgba(37, 99, 235, 0.35)' : 'none',
                 color: activeMode === 'ai' ? '#fff' : 'var(--text-secondary)',
                 fontWeight: 700,
                 fontSize: '0.78rem',
@@ -305,18 +308,19 @@ export default function AiRoomPlanSection({
               width: '28px',
               height: '28px',
               borderRadius: '50%',
-              background: '#8b5cf6',
+              background: '#2563eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
               flexShrink: 0,
-              marginTop: '2px'
+              marginTop: '2px',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)'
             }}>
               🤖
             </div>
             <div>
-              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f3e8ff' }}>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc' }}>
                 AI Assistant: Konfirmasi Perabot Kamar Anda
               </h4>
               <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#cbd5e1' }}>
@@ -339,8 +343,8 @@ export default function AiRoomPlanSection({
                     padding: '8px 10px',
                     borderRadius: '10px',
                     cursor: 'pointer',
-                    background: bedType === b.id ? 'rgba(59, 130, 246, 0.25)' : 'rgba(0, 0, 0, 0.3)',
-                    border: bedType === b.id ? '2px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
+                    background: bedType === b.id ? 'rgba(37, 99, 235, 0.25)' : 'rgba(0, 0, 0, 0.3)',
+                    border: bedType === b.id ? '2px solid #2563eb' : '1px solid rgba(255, 255, 255, 0.08)',
                     transition: 'all 0.15s'
                   }}
                 >
@@ -374,15 +378,15 @@ export default function AiRoomPlanSection({
                       padding: '8px 10px',
                       borderRadius: '10px',
                       cursor: 'pointer',
-                      background: isChecked ? 'rgba(139, 92, 246, 0.2)' : 'rgba(0, 0, 0, 0.3)',
-                      border: isChecked ? '1px solid #8b5cf6' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: isChecked ? 'rgba(37, 99, 235, 0.2)' : 'rgba(0, 0, 0, 0.3)',
+                      border: isChecked ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px'
                     }}
                   >
                     <span style={{ fontSize: '1.1rem' }}>{f.icon}</span>
-                    <span style={{ fontSize: '0.78rem', color: isChecked ? '#f3e8ff' : '#cbd5e1', flex: 1 }}>
+                    <span style={{ fontSize: '0.78rem', color: isChecked ? '#93c5fd' : '#cbd5e1', flex: 1 }}>
                       {f.label}
                     </span>
                     <div style={{
@@ -390,7 +394,7 @@ export default function AiRoomPlanSection({
                       height: '16px',
                       borderRadius: '4px',
                       border: isChecked ? 'none' : '1px solid rgba(255,255,255,0.2)',
-                      background: isChecked ? '#8b5cf6' : 'transparent',
+                      background: isChecked ? '#2563eb' : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
@@ -417,8 +421,8 @@ export default function AiRoomPlanSection({
                     padding: '8px 10px',
                     borderRadius: '10px',
                     cursor: 'pointer',
-                    background: dimensions === d.val ? 'rgba(59, 130, 246, 0.25)' : 'rgba(0, 0, 0, 0.3)',
-                    border: dimensions === d.val ? '2px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
+                    background: dimensions === d.val ? 'rgba(37, 99, 235, 0.25)' : 'rgba(0, 0, 0, 0.3)',
+                    border: dimensions === d.val ? '2px solid #2563eb' : '1px solid rgba(255, 255, 255, 0.08)',
                     textAlign: 'center',
                     fontSize: '0.78rem',
                     fontWeight: dimensions === d.val ? 700 : 500,
@@ -441,10 +445,10 @@ export default function AiRoomPlanSection({
               borderRadius: '12px',
               fontWeight: 800,
               fontSize: '0.92rem',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+              background: '#2563eb',
               gap: '8px',
               justifyContent: 'center',
-              boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)'
+              boxShadow: '0 4px 20px rgba(37, 99, 235, 0.45)'
             }}
           >
             <Sparkles size={16} /> ✨ Generate Denah 2D & 3D Otomatis Sekarang

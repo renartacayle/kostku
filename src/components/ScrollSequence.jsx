@@ -147,7 +147,7 @@ const ScrollSequence = () => {
           alignItems: 'center',
           color: 'white',
           textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-          fontFamily: '"Inter", sans-serif'
+          fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif'
         }}>
           <h2 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '2rem', letterSpacing: '4px' }}>ROOM TYPES</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', width: '100%' }}>
@@ -192,7 +192,7 @@ const ScrollSequence = () => {
           justifyContent: 'center',
           alignItems: 'center',
           color: '#1a1a1a', // Dark text for white card
-          fontFamily: '"Inter", sans-serif',
+          fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif',
           perspective: '1000px'
         }}>
           <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-1px' }}>RUMAH SINGGAH</h3>

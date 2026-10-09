@@ -38,7 +38,7 @@ const HeroOverlay = ({ scrollProgress = 0 }) => {
     width: '100%',
     height: '100%',
     pointerEvents: 'none', // Let clicks pass through to canvas where UI is not present
-    fontFamily: '"Inter", sans-serif',
+    fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -51,10 +51,10 @@ const HeroOverlay = ({ scrollProgress = 0 }) => {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '1.5rem 2rem',
-    background: 'rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'rgba(8, 13, 26, 0.75)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
     zIndex: 10,
   };
 
@@ -72,8 +72,9 @@ const HeroOverlay = ({ scrollProgress = 0 }) => {
   const logoIconStyle = {
     width: '24px',
     height: '24px',
-    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+    background: '#2563eb',
     borderRadius: '6px',
+    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
   };
 
   const navLinksStyle = {
@@ -156,17 +157,17 @@ const HeroOverlay = ({ scrollProgress = 0 }) => {
     pointerEvents: 'auto',
     opacity: buttonOpacity,
     transform: `translateY(${(1 - buttonOpacity) * 20}px)`,
-    transition: 'opacity 0.1s linear, transform 0.1s linear, filter 0.2s',
-    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+    transition: 'opacity 0.1s linear, transform 0.1s linear, filter 0.15s',
+    background: '#2563eb',
     color: 'white',
     border: 'none',
     padding: '1rem 2.5rem',
     borderRadius: '50px',
     fontSize: '1rem',
-    fontWeight: '600',
+    fontWeight: '700',
     cursor: 'pointer',
     textDecoration: 'none',
-    boxShadow: '0 10px 25px rgba(139, 92, 246, 0.4)',
+    boxShadow: '0 8px 25px rgba(37, 99, 235, 0.45)',
     display: 'inline-flex',
     alignItems: 'center',
     gap: '0.5rem',
@@ -200,6 +201,8 @@ const HeroOverlay = ({ scrollProgress = 0 }) => {
     fontSize: '1.5rem',
     fontWeight: '800',
     marginBottom: '0.25rem',
+    fontFamily: '"JetBrains Mono", monospace',
+    fontVariantNumeric: 'tabular-nums',
   };
 
   const statLabelStyle = {
@@ -266,7 +269,7 @@ const HeroOverlay = ({ scrollProgress = 0 }) => {
     <>
       <style>
         {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
           
           @keyframes scroll-wheel-anim {
             0% { transform: translateY(0); opacity: 1; }

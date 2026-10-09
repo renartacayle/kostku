@@ -433,7 +433,7 @@ export default function Login({ onLogin }) {
               cursor: 'pointer',
               boxShadow: '0 2px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              fontFamily: 'Google Sans, Roboto, Inter, sans-serif'
+              fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif'
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(66, 133, 244, 0.25), 0 2px 6px rgba(0,0,0,0.15)';
@@ -564,7 +564,7 @@ export default function Login({ onLogin }) {
             border: '1px solid #3c4043',
             boxShadow: '0 20px 45px rgba(0, 0, 0, 0.6)',
             overflow: 'hidden',
-            fontFamily: 'Google Sans, Roboto, Inter, sans-serif'
+            fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif'
           }}>
             {/* Top Google Loading Bar */}
             {googleLoading && (
@@ -688,7 +688,7 @@ export default function Login({ onLogin }) {
                       gap: '8px',
                       fontWeight: 700,
                       fontSize: '0.85rem',
-                      background: googleRole === 'user' ? 'linear-gradient(135deg, #8b5cf6, #a855f7)' : 'transparent',
+                      background: googleRole === 'user' ? '#0284c7' : 'transparent',
                       color: googleRole === 'user' ? '#ffffff' : '#9aa0a6',
                       transition: 'all 0.2s'
                     }}
@@ -700,8 +700,8 @@ export default function Login({ onLogin }) {
 
               {/* Quick 1-Click Instant Entry Button (100% In-App) */}
               <div style={{
-                background: googleRole === 'owner' ? 'rgba(37, 99, 235, 0.12)' : 'rgba(139, 92, 246, 0.12)',
-                border: googleRole === 'owner' ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid rgba(168, 85, 247, 0.35)',
+                background: googleRole === 'owner' ? 'rgba(37, 99, 235, 0.12)' : 'rgba(2, 132, 199, 0.12)',
+                border: googleRole === 'owner' ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid rgba(2, 132, 199, 0.35)',
                 padding: '12px 14px',
                 borderRadius: '12px',
                 marginBottom: '16px'
@@ -713,7 +713,7 @@ export default function Login({ onLogin }) {
                   marginBottom: '8px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={15} color={googleRole === 'owner' ? '#60a5fa' : '#c084fc'} />
+                    <Sparkles size={15} color={googleRole === 'owner' ? '#60a5fa' : '#38bdf8'} />
                     <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f1f5f9' }}>
                       Akses Cepat 1-Klik Langsung Masuk:
                     </span>
@@ -739,7 +739,7 @@ export default function Login({ onLogin }) {
                     borderRadius: '10px',
                     border: 'none',
                     cursor: googleLoading ? 'not-allowed' : 'pointer',
-                    background: googleRole === 'owner' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                    background: googleRole === 'owner' ? '#2563eb' : '#0284c7',
                     color: 'white',
                     fontWeight: 700,
                     fontSize: '0.9rem',
@@ -747,7 +747,7 @@ export default function Login({ onLogin }) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    boxShadow: googleRole === 'owner' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : '0 4px 14px rgba(124, 58, 237, 0.4)',
+                    boxShadow: googleRole === 'owner' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : '0 4px 14px rgba(2, 132, 199, 0.4)',
                     transition: 'all 0.2s'
                   }}
                 >
@@ -806,7 +806,7 @@ export default function Login({ onLogin }) {
                           width: 36,
                           height: 36,
                           borderRadius: '50%',
-                          background: acc.role === 'owner' ? '#1a73e8' : acc.role === 'staff' ? '#059669' : '#7c3aed',
+                          background: acc.role === 'owner' ? '#2563eb' : acc.role === 'staff' ? '#059669' : '#0284c7',
                           color: 'white',
                           display: 'flex',
                           alignItems: 'center',
