@@ -1489,20 +1489,20 @@ const htmlContent = `<!DOCTYPE html>
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 8px; font-size: 8.2pt;">
       <div style="border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; text-align: center; background: #fafafa;">
         <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">Lead Software Architect</div>
-        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">Oscar Herdian Wijaya</div>
-        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16309</div>
+        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">YOHANES ARYO SURYO RAHARDJO</div>
+        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16479</div>
         <div style="font-size: 7.2pt; color: #10b981; font-weight: 600; margin-top: 2px;">✓ Verified Architecture v1.0.4</div>
       </div>
       <div style="border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; text-align: center; background: #fafafa;">
         <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">Backend & Database Engineer</div>
-        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">Maulana Hadi Saputra</div>
-        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16307</div>
+        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">M. MIRZA FADILAH</div>
+        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16354</div>
         <div style="font-size: 7.2pt; color: #10b981; font-weight: 600; margin-top: 2px;">✓ Approved Database & API</div>
       </div>
       <div style="border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; text-align: center; background: #fafafa;">
-        <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">UI/UX & Mobile QA Lead</div>
-        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">Angelo Joe Lara Anugrah W. P. T.</div>
-        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16337</div>
+        <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">Dewan Penguji / Pembimbing</div>
+        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">Sidang Rekayasa Perangkat Lunak</div>
+        <div style="font-size: 7.2pt; color: #475569;">UDINUS Semarang</div>
         <div style="font-size: 7.2pt; color: #6366f1; font-weight: 600; margin-top: 2px;">✓ Layak Diuji & Diproduksi</div>
       </div>
     </div>

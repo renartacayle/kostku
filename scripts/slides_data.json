@@ -46,16 +46,12 @@
     "authors": {
       "institution": "Program Studi S1 Teknik Informatika • Fakultas Ilmu Komputer • Universitas Dian Nuswantoro (UDINUS)",
       "course": "Mata Kuliah Rekayasa Perangkat Lunak (RPL) • Semester Genap 2025/2026",
-      "lead": "Oscar Herdian Wijaya (NIM: A11.2025.16309)",
+      "lead": "YOHANES ARYO SURYO RAHARDJO (NIM: A11.2025.16479)",
       "leadRole": "Lead Software Architect & Fullstack Developer",
       "members": [
         {
-          "name": "Maulana Hadi Saputra (NIM: A11.2025.16307)",
+          "name": "M. MIRZA FADILAH (NIM: A11.2025.16354)",
           "role": "Backend & Database Engineer"
-        },
-        {
-          "name": "Angelo Joe Lara Anugrah Wisanggeni Putra Tudjiyo (NIM: A11.2025.16337)",
-          "role": "UI/UX & Mobile QA Lead"
         }
       ]
     }

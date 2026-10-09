@@ -398,9 +398,8 @@ function generateTugasHtml() {
             <td class="meta-label">Disusun Oleh (Kelompok)</td>
             <td class="meta-sep">:</td>
             <td class="meta-val">
-              1. Oscar Herdian Wijaya (A11.2025.16309)<br>
-              2. Maulana Hadi Saputra (A11.2025.16307)<br>
-              3. Angelo Joe Lara Anugrah Wisanggeni Putra Tudjiyo (A11.2025.16337)
+              1. YOHANES ARYO SURYO RAHARDJO (A11.2025.16479)<br>
+              2. M. MIRZA FADILAH (A11.2025.16354)
             </td>
           </tr>
           <tr>
@@ -956,8 +955,9 @@ function generateTugasHtml() {
 }
 
 const htmlOut = path.join(__dirname, 'Tugas_Kelompok_RPL_Agile_KostKu.html');
-const pdfTarget1 = '/home/rena/Downloads/Tugas_kelompok_A11.2025.16309_A11.2025.16307_A11.2025.16337.pdf';
+const pdfTarget1 = '/home/rena/Downloads/Tugas_kelompok_A11.2025.16479_A11.2025.16354.pdf';
 const pdfTarget2 = '/home/rena/Downloads/Tugas_kelompok_Nim1_Nim2_Nim3.pdf';
+const pdfTarget3 = '/home/rena/Downloads/Tugas_kelompok_Nim1_Nim2.pdf';
 const brainArtifactDir = '/home/rena/.gemini/antigravity/brain/6318663c-dc01-4644-8421-dc82f19bcbdc';
 
 fs.writeFileSync(htmlOut, generateTugasHtml());
@@ -971,12 +971,14 @@ execSync(chromeCmd, { stdio: 'inherit' });
 // Copy to destinations
 fs.copyFileSync(pdfTemp, pdfTarget1);
 fs.copyFileSync(pdfTemp, pdfTarget2);
-fs.copyFileSync(pdfTemp, path.join(brainArtifactDir, 'Tugas_kelompok_A11.2025.16309_A11.2025.16307_A11.2025.16337.pdf'));
+fs.copyFileSync(pdfTemp, pdfTarget3);
+fs.copyFileSync(pdfTemp, path.join(brainArtifactDir, 'Tugas_kelompok_A11.2025.16479_A11.2025.16354.pdf'));
 fs.copyFileSync(pdfTemp, path.join(brainArtifactDir, 'Tugas_kelompok_Nim1_Nim2_Nim3.pdf'));
 
 console.log('PDF saved to:');
 console.log('1.', pdfTarget1);
 console.log('2.', pdfTarget2);
+console.log('3.', pdfTarget3);
 
 const stat = fs.statSync(pdfTarget1);
 console.log('Size:', (stat.size / 1024).toFixed(1), 'KB');
