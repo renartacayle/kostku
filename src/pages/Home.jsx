@@ -21,11 +21,19 @@ import {
   Filter, 
   SlidersHorizontal,
   PlusCircle,
-  Play
+  Play,
+  Zap,
+  LayoutGrid,
+  Map as MapIcon,
+  Ruler,
+  GraduationCap
 } from 'lucide-react';
 import SpatialBentoShowcase from '../components/SpatialBentoShowcase';
 import VideoScroll from '../components/VideoScroll';
 import InstallModal from '../components/InstallModal';
+import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
+import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
+import FloorPlanModal from '../components/FloorPlanModal';
 import { apiGetPublicKosts } from '../services/api';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -300,6 +308,12 @@ export default function Home({ user }) {
   const [selectedType, setSelectedType] = useState('Semua'); // 'Semua' | 'Putri' | 'Putra' | 'Campur'
   const [selectedBudget, setSelectedBudget] = useState('Semua'); // 'Semua' | '1000000' | '1500000' | '2000000' | '3000000'
   const [activeChip, setActiveChip] = useState('Semua'); // 'Semua' | 'Putri' | 'Putra' | 'AC' | 'KMDalam' | 'Token' | 'Pet'
+
+  // Gold Standard Real Estate Interactive States
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calcSelectedKost, setCalcSelectedKost] = useState(null);
+  const [previewFloorPlanKost, setPreviewFloorPlanKost] = useState(null);
 
   // Fallback verified kosts if backend server is sleeping or offline
   const FALLBACK_KOSTS = [
@@ -832,6 +846,49 @@ export default function Home({ user }) {
             </button>
           </div>
 
+          {/* ── QUICK CAMPUS SHORTCUTS (COMMUTE FILTER) ── */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginBottom: '1rem'
+          }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <GraduationCap size={15} color="#60A5FA" /> Radius Kampus:
+            </span>
+            {[
+              { name: 'UDINUS (350m)', query: 'Udinus' },
+              { name: 'UNDIP Tembalang (800m)', query: 'Tembalang' },
+              { name: 'UNNES (1.2km)', query: 'Semarang' },
+              { name: 'ITB Dago (500m)', query: 'Dago' },
+              { name: 'UGM Jogja (600m)', query: 'Malioboro' }
+            ].map((camp, idx) => {
+              const active = searchLocation.toLowerCase().includes(camp.query.toLowerCase());
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSearchLocation(active ? '' : camp.query)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    border: active ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.08)',
+                    background: active ? 'rgba(56, 189, 248, 0.15)' : 'rgba(15, 23, 42, 0.5)',
+                    color: active ? '#38BDF8' : '#94A3B8',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {camp.name}
+                </button>
+              );
+            })}
+          </div>
+
           {/* ── QUICK FILTER CHIPS / PILLS ROW ── */}
           <div style={{
             display: 'flex',
@@ -1008,28 +1065,110 @@ export default function Home({ user }) {
             </p>
           </div>
 
-          {/* Optional Cinematic Showcase Trigger Button */}
-          <button
-            type="button"
-            onClick={() => setShowCinematicVideo(!showCinematicVideo)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '12px',
-              background: showCinematicVideo ? 'rgba(37, 99, 235, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-              border: showCinematicVideo ? '1px solid #2563EB' : '1px solid rgba(255, 255, 255, 0.1)',
-              color: showCinematicVideo ? '#60a5fa' : '#94A3B8',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: 'pointer',
+          {/* Action Toolbar: View Switcher, Utility Calculator & Optional 3D */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* View Mode Switcher (Grid vs Spatial Map) */}
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Play size={14} fill={showCinematicVideo ? '#60a5fa' : 'currentColor'} />
-            <span>{showCinematicVideo ? 'Sembunyikan 3D Canvas' : '🎬 Tonton Cinematic 3D Showcase'}</span>
-          </button>
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              padding: '3px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '9px',
+                  background: viewMode === 'grid' ? '#2563EB' : 'transparent',
+                  color: viewMode === 'grid' ? '#FFFFFF' : '#94A3B8',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <LayoutGrid size={14} />
+                <span>Grid (4:3)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '9px',
+                  background: viewMode === 'map' ? '#2563EB' : 'transparent',
+                  color: viewMode === 'map' ? '#FFFFFF' : '#94A3B8',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <MapIcon size={14} />
+                <span>Peta Spasial</span>
+              </button>
+            </div>
+
+            {/* Utility Calculator Trigger */}
+            <button
+              type="button"
+              onClick={() => {
+                setCalcSelectedKost(null);
+                setShowCalculator(true);
+              }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '12px',
+                background: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid rgba(234, 179, 8, 0.35)',
+                color: '#FBBF24',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Zap size={14} fill="#FBBF24" />
+              <span>Simulasi Listrik & Biaya</span>
+            </button>
+
+            {/* Optional Cinematic Showcase Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setShowCinematicVideo(!showCinematicVideo)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '12px',
+                background: showCinematicVideo ? 'rgba(37, 99, 235, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                border: showCinematicVideo ? '1px solid #2563EB' : '1px solid rgba(255, 255, 255, 0.1)',
+                color: showCinematicVideo ? '#60a5fa' : '#94A3B8',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Play size={14} fill={showCinematicVideo ? '#60a5fa' : 'currentColor'} />
+              <span>{showCinematicVideo ? 'Tutup 3D' : '🎬 3D Showcase'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Optional Collapsible Cinematic Video Showcase (Zero LCP Penalty by default) */}
@@ -1064,6 +1203,16 @@ export default function Home({ user }) {
           </div>
         )}
 
+        {/* ── Interactive Spatial Map View (Gold Standard Feature) ── */}
+        {viewMode === 'map' && (
+          <div style={{ marginBottom: '2.5rem' }}>
+            <InteractiveMarketplaceMap 
+              kosts={filtered} 
+              selectedCity={searchLocation || (filtered[0]?.city || 'Semarang')} 
+            />
+          </div>
+        )}
+
         {/* Empty State */}
         {filtered.length === 0 ? (
           <div style={{
@@ -1094,7 +1243,15 @@ export default function Home({ user }) {
             {/* ── BATCH 1: FIRST 6 KOST LISTINGS (Above Bento) ── */}
             <div className="kost-responsive-grid">
               {batch1.map((kost, idx) => (
-                <KostCard key={kost.uid || idx} kost={kost} />
+                <KostCard 
+                  key={kost.uid || idx} 
+                  kost={kost} 
+                  onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
+                  onOpenCalculator={(k) => {
+                    setCalcSelectedKost(k);
+                    setShowCalculator(true);
+                  }}
+                />
               ))}
             </div>
 
@@ -1135,7 +1292,15 @@ export default function Home({ user }) {
                 </h3>
                 <div className="kost-responsive-grid">
                   {batch2.map((kost, idx) => (
-                    <KostCard key={kost.uid || (idx + 6)} kost={kost} />
+                    <KostCard 
+                      key={kost.uid || (idx + 6)} 
+                      kost={kost} 
+                      onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
+                      onOpenCalculator={(k) => {
+                        setCalcSelectedKost(k);
+                        setShowCalculator(true);
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -1147,6 +1312,24 @@ export default function Home({ user }) {
 
       {/* Floating Install PWA Modal */}
       {showInstall && <InstallModal onClose={() => setShowInstall(false)} />}
+
+      {/* Kwh Utility & Rent Calculator Modal */}
+      {showCalculator && (
+        <KwhUtilityCalculatorModal
+          isOpen={showCalculator}
+          onClose={() => setShowCalculator(false)}
+          selectedKost={calcSelectedKost}
+        />
+      )}
+
+      {/* 2D & 3D Floorplan Blueprint Modal */}
+      {previewFloorPlanKost && (
+        <FloorPlanModal
+          isOpen={Boolean(previewFloorPlanKost)}
+          onClose={() => setPreviewFloorPlanKost(null)}
+          kost={previewFloorPlanKost}
+        />
+      )}
     </div>
   );
 }
@@ -1158,11 +1341,12 @@ export default function Home({ user }) {
 // - Max 3 Essential Facilities Icons (AC, KM Dalam, WiFi)
 // - Bold Monospace Tabular Pricing
 // ═══════════════════════════════════════════════════════════════════
-function KostCard({ kost }) {
+function KostCard({ kost, onOpenFloorPlan, onOpenCalculator }) {
   if (!kost) return null;
 
   const minPrice = kost.rooms?.length > 0 ? Math.min(...kost.rooms.map(r => r.price)) : 0;
   const availableRoomsCount = (kost.rooms || []).filter(r => r.status === 'available' || !r.status).length;
+  const roomDimension = kost.rooms?.[0]?.dimension || '3.5×4.0 m²';
 
   // Extract exactly the 3 essential facilities requested by spec
   const facilities = (kost.facilities || []).map(f => f.toLowerCase());
@@ -1253,24 +1437,38 @@ function KostCard({ kost }) {
             </div>
           </div>
 
-          {/* Location Line (High Contrast WCAG AA #94A3B8) */}
+          {/* Location & Room Dimension Line (High Contrast WCAG AA #94A3B8) */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '5px',
             color: '#94A3B8',
             fontSize: '0.82rem',
             marginBottom: '1rem',
             minWidth: 0
           }}>
-            <MapPin size={13} color="#60a5fa" style={{ flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
+              <MapPin size={13} color="#60a5fa" style={{ flexShrink: 0 }} />
+              <span style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                {kost.address || kost.city || 'Semarang'}
+              </span>
+            </div>
             <span style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: '#64748B',
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '2px 6px',
+              borderRadius: '6px',
+              flexShrink: 0
             }}>
-              {kost.address || kost.city || 'Semarang'}
+              📐 {roomDimension}
             </span>
           </div>
 
@@ -1343,18 +1541,70 @@ function KostCard({ kost }) {
             )}
           </div>
 
-          {/* Pricing Row: Bold Tabular Monospace */}
+          {/* Pricing Row & Tactical Quick Action Buttons */}
           <div style={{
             paddingTop: '0.85rem',
             borderTop: '1px solid rgba(255, 255, 255, 0.06)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            flexWrap: 'wrap'
           }}>
-            <span style={{ color: '#94A3B8', fontSize: '0.78rem', fontWeight: 500 }}>
-              Mulai dari
-            </span>
+            {/* Quick Action Tools */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenFloorPlan?.(kost);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  color: '#93c5fd',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Lihat Blueprint Denah Kamar 2D"
+              >
+                <Ruler size={11} /> Denah 2D
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenCalculator?.(kost);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(234, 179, 8, 0.12)',
+                  border: '1px solid rgba(234, 179, 8, 0.25)',
+                  color: '#fbbf24',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Simulasi Estimasi Token Listrik"
+              >
+                <Zap size={11} /> Listrik
+              </button>
+            </div>
+
+            {/* Price Tag */}
             <div style={{ textAlign: 'right' }}>
               <span style={{
                 fontSize: '1.15rem',

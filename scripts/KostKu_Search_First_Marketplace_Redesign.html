@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KostKu: Search-First Marketplace Redesign - Design Specification V2.0</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+      line-height: 1.5;
+      font-size: 10pt;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 24mm 22mm 20mm 22mm;
+      margin: 0 auto;
+      position: relative;
+      background: #ffffff;
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .content-wrap {
+      flex: 1;
+    }
+
+    /* Header Tag */
+    .doc-badge {
+      font-size: 8pt;
+      font-weight: 800;
+      color: #2563eb;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
+    .doc-title {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .doc-desc {
+      font-size: 9.5pt;
+      color: #64748b;
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+
+    /* Section Headings */
+    .section-title {
+      font-size: 11.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-indicator {
+      display: inline-block;
+      width: 4px;
+      height: 15px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    .section-desc {
+      font-size: 8.8pt;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    /* Wireframe Card */
+    .wireframe-container {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #ffffff;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    }
+
+    .wireframe-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 8pt;
+    }
+
+    .wireframe-brand {
+      font-weight: 800;
+      font-size: 9pt;
+      color: #ffffff;
+    }
+
+    .wireframe-links {
+      display: flex;
+      gap: 8px;
+      color: #94a3b8;
+    }
+
+    .wireframe-search-row {
+      display: grid;
+      grid-template-columns: 2.2fr 1.8fr 1.5fr 1.3fr;
+      gap: 8px;
+      margin: 12px 0 10px;
+    }
+
+    .search-box-pill {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 7.5pt;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-search-blue {
+      background: #2563eb;
+      color: #ffffff;
+      font-weight: 700;
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+      font-size: 7.5pt;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chips-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip-item {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 100px;
+      padding: 4px 9px;
+      font-size: 7pt;
+      color: #cbd5e1;
+    }
+
+    .chip-item.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+      font-weight: 700;
+    }
+
+    /* Metric Cards Grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .metric-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 14px 12px;
+    }
+
+    .metric-card:nth-child(1) { border-left: 3.5px solid #10b981; }
+    .metric-card:nth-child(2) { border-left: 3.5px solid #2563eb; }
+    .metric-card:nth-child(3) { border-left: 3.5px solid #f59e0b; }
+
+    .metric-label {
+      font-size: 7.2pt;
+      font-weight: 800;
+      color: #64748b;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #0f172a;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 4px;
+      line-height: 1.1;
+    }
+
+    .metric-desc {
+      font-size: 7.5pt;
+      color: #64748b;
+      line-height: 1.45;
+    }
+
+    /* Comparison Box (Page 2) */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .comp-col {
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 8.2pt;
+    }
+
+    .comp-col.pain {
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+    }
+
+    .comp-col.solutif {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .comp-header {
+      font-weight: 800;
+      font-size: 8.8pt;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .comp-col.pain .comp-header { color: #be123c; }
+    .comp-col.solutif .comp-header { color: #15803d; }
+
+    .comp-list {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .comp-list li {
+      position: relative;
+      padding-left: 14px;
+      line-height: 1.45;
+      color: #334155;
+    }
+
+    .comp-list li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      font-size: 10pt;
+      line-height: 1;
+    }
+
+    .comp-col.pain .comp-list li::before { color: #e11d48; }
+    .comp-col.solutif .comp-list li::before { color: #16a34a; }
+
+    /* Specification Table */
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8pt;
+      margin-top: 8px;
+    }
+
+    .spec-table th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .spec-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      color: #334155;
+    }
+
+    .spec-table tr:hover td {
+      background: #fcfdfe;
+    }
+
+    .color-swatch-pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5pt;
+      font-weight: 700;
+    }
+
+    /* Footer */
+    .page-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 7.5pt;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       PAGE 1: ABOVE-THE-FOLD WIREFRAME & METRICS
+       ═══════════════════════════════════════════ -->
+  <div class="page">
+    <div class="content-wrap">
+      
+      <span class="doc-badge">DESIGN SPECIFICATION V2.0</span>
+      <h1 class="doc-title">KostKu: Search-First Marketplace Redesign</h1>
+      <p class="doc-desc">
+        Transformasi arsitektur UI/UX dari model cinematic showcase ke direktori pencarian hunian yang cepat, intuitif, dan bebas friksi.
+      </p>
+
+      <!-- Section 1 -->
+      <div style="margin-bottom: 26px;">
+        <div class="section-title">
+          <span class="section-indicator"></span>
+          <span>1. Wireframe Layout & Visual Flow (Above-the-Fold)</span>
+        </div>
+        <p class="section-desc">
+          Mengganti canvas video scroll yang berat dengan hero ringkas terintegrasi filter instan. Pengguna langsung disuguhkan mesin pencari multivariabel dalam 2 detik pertama membuka aplikasi.
+        </p>
+
+        <!-- Wireframe Visual Box -->
+        <div class="wireframe-container">
+          <div class="wireframe-nav">
+            <span class="wireframe-brand">KostKu</span>
+            <div class="wireframe-links">
+              <span>[🔍 Cari Kost]</span>
+              <span>[➕ Pasang Kost]</span>
+              <span>[Masuk]</span>
+            </div>
+          </div>
+
+          <div class="wireframe-search-row">
+            <div class="search-box-pill">📍 Area / Nama Kampus / Kota</div>
+            <div class="search-box-pill">👥 Tipe (Putri / Putra / Bebas)</div>
+            <div class="search-box-pill">💰 Budget Maksimal</div>
+            <div class="btn-search-blue">Cari Hunian</div>
+          </div>
+
+          <div class="chips-row">
+            <span class="chip-item active">Semua</span>
+            <span class="chip-item">👩 Kost Putri</span>
+            <span class="chip-item">👨 Kost Putra</span>
+            <span class="chip-item">❄️ Ber-AC</span>
+            <span class="chip-item">🚿 KM Dalam</span>
+            <span class="chip-item">⚡ Token Mandiri</span>
+            <span class="chip-item">🐾 Hewan Boleh</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2 -->
+      <div>
+        <div class="section-title">
+          <span class="section-indicator"></span>
+          <span>2. Metrik Kunci Evaluasi UX</span>
+        </div>
+
+        <div class="metric-grid">
+          <!-- Metric 1 -->
+          <div class="metric-card">
+            <div class="metric-label">LCP REDUCTION</div>
+            <div class="metric-value">-65%</div>
+            <div class="metric-desc">Pemuatan hero di bawah 1.2s tanpa video scroll kanvas.</div>
+          </div>
+
+          <!-- Metric 2 -->
+          <div class="metric-card">
+            <div class="metric-label">SEARCH DISCOVERY</div>
+            <div class="metric-value">100%</div>
+            <div class="metric-desc">Fitur pencarian dan filter langsung terlihat di viewport utama.</div>
+          </div>
+
+          <!-- Metric 3 -->
+          <div class="metric-card">
+            <div class="metric-label">READABILITY SCORE</div>
+            <div class="metric-value">AA/AAA</div>
+            <div class="metric-desc">Kontras rasio teks sekunder ditingkatkan ke min 4.5:1.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Page 1 Footer -->
+    <div class="page-footer">
+      <span>KostKu UI/UX Redesign Blueprint</span>
+      <span>Halaman 1 dari 2</span>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════
+       PAGE 2: CARD SPEC & DESIGN PALETTE
+       ═══════════════════════════════════════════ -->
+  <div class="page">
+    <div class="content-wrap">
+      
+      <!-- Section 3 -->
+      <div style="margin-bottom: 26px;">
+        <div class="section-title">
+          <span class="section-indicator"></span>
+          <span>3. Arsitektur Kartu Listing (Listing Card Spec)</span>
+        </div>
+        <p class="section-desc">
+          Kartu listing dirancang ulang menggunakan rasio aspek 4:3 yang proporsional di perangkat mobile. Hirarki informasi disusun agar mata pengguna memindai poin krusial secara natural: foto → status kamar → fasilitas → harga.
+        </p>
+
+        <!-- Before & After Comparison -->
+        <div class="comparison-grid">
+          <!-- Column 1: Pain Points -->
+          <div class="comp-col pain">
+            <div class="comp-header">❌ Desain Sebelumnya (Pain Points)</div>
+            <ul class="comp-list">
+              <li>Tinggi foto fixed 220px memakan lebih dari 45% viewport layar HP standar.</li>
+              <li>Font sekunder pudar (abu redup di atas hitam gelap) tidak terbaca di outdoor.</li>
+              <li>Badge fasilitas bertumpuk memenuhi area kartu, menutupi info krusial.</li>
+            </ul>
+          </div>
+
+          <!-- Column 2: Revisi Solutif -->
+          <div class="comp-col solutif">
+            <div class="comp-header">✅ Desain Baru (Revisi Solutif)</div>
+            <ul class="comp-list">
+              <li>Rasio aspek foto dinamis 4:3 memudahkan scannability 2 kartu per scroll.</li>
+              <li>Teks sekunder menggunakan warna netral bersertifikasi kontras WCAG AA.</li>
+              <li>Maksimal 3 ikon fasilitas esensial (AC, KM Dalam, WiFi) + harga tebal.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4 -->
+      <div>
+        <div class="section-title">
+          <span class="section-indicator"></span>
+          <span>4. Spesifikasi Desain & Palet Warna Sistem</span>
+        </div>
+
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th style="width: 24%;">Komponen</th>
+              <th style="width: 38%;">Spesifikasi Teknis</th>
+              <th style="width: 38%;">Tujuan Desain</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Latar Utama (Surface)</strong></td>
+              <td><code>#0F172A</code> / <code>#1E293B</code> (Dark Slate)</td>
+              <td>Mengurangi kelelahan mata tanpa membuat teks kontras menyakitkan.</td>
+            </tr>
+            <tr>
+              <td><strong>Warna Primer (Action)</strong></td>
+              <td><span style="display: inline-block; width: 10px; height: 10px; background: #2563eb; border-radius: 2px; vertical-align: middle; margin-right: 4px;"></span><code>#2563EB</code> (Electric Blue)</td>
+              <td>Fokus perhatian untuk tombol CTA Cari, Booking, dan Hubungi Pemilik.</td>
+            </tr>
+            <tr>
+              <td><strong>Label Kategori</strong></td>
+              <td>
+                Putri: <span class="color-swatch-pill" style="background: #FEF3C7; color: #92400e;">#FEF3C7</span><br>
+                Putra: <span class="color-swatch-pill" style="background: #DBEAFE; color: #1e40af; margin-top: 3px;">#DBEAFE</span>
+              </td>
+              <td>Identifikasi tipe kost instan tanpa perlu membaca detail deskripsi.</td>
+            </tr>
+            <tr>
+              <td><strong>Bento Feature Grid</strong></td>
+              <td>3 Kolom (Denah 2D, Simulasi kWh, ID Verif)</td>
+              <td>Edukasi fitur unggulan keamanan KostKu tepat setelah 6 listing pertama.</td>
+            </tr>
+            <tr>
+              <td><strong>Mobile Floating Nav</strong></td>
+              <td>Fixed Bottom Bar (Tinggi 64px, safe area)</td>
+              <td>Akses satu jempol ke Beranda, Pencarian Tersimpan, Chat, & Akun.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- Page 2 Footer -->
+    <div class="page-footer">
+      <span>KostKu UI/UX Redesign Blueprint</span>
+      <span>Halaman 2 dari 2</span>
+    </div>
+  </div>
+
+</body>
+</html>
