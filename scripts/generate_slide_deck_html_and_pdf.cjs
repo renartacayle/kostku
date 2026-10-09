@@ -2,493 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const slidesData = [
-  {
-    num: "01",
-    tag: "🌸 SIDANG UJIAN PROYEK REKAYASA PERANGKAT LUNAK (RPL)",
-    title: "KOSTKU ✦ SMART BOARDING PLATFORM",
-    subtitle: "Ekosistem Digital Terpadu Dua Sisi: Marketplace Denah Interaktif 2D & Back-Office Pengelola Kos",
-    type: "cover",
-    metrics: [
-      { icon: "🎀", title: "0% Komisi Booking", desc: "Bebas biaya sewa tanpa komisi potongan mencekik" },
-      { icon: "✨", title: "<15KB Vektor Denah", desc: "Denah SVG interaktif skala arsitektur presisi 1:50" },
-      { icon: "💻", title: "Local-First Architecture", desc: "Tetap operasional lancar tanpa koneksi internet" }
-    ],
-    script: `Selamat pagi Bapak dan Ibu Dosen/Guru Penguji. Mari kita mulai dengan sebuah fakta lapangan: Industri pencarian dan pengelolaan indekos di Indonesia saat ini terjebak dalam mismatch ekspektasi yang cukup tinggi.
-
-Pencari kos sering kali tertipu oleh foto sudut lebar yang memanipulasi skala ruangan. Di sisi lain, pemilik kos berjuang secara manual mencatat pembayaran dan utilitas listrik di buku tulis yang rentan rusak.
-
-Hari ini, kami memperkenalkan KostKu—ekosistem digital dua sisi yang memecahkan reality gap tersebut melalui pengintegrasian Architectural 2D Blueprint Engine dan sistem pengelolaan back-office berbasis local-first.`,
-    tips: [
-      "Gestur: Berdiri tegak di tengah, tatap mata dosen penguji secara bergantian.",
-      "Pointer: Gunakan laser pointer untuk menunjuk kontras panel aplikasi modern vs cara lama.",
-      "Penekanan: Berikan jeda suara tepat setelah mengucapkan 'KostKu' untuk efek impresif."
-    ]
-  },
-  {
-    num: "02",
-    tag: "💡 IDENTIFIKASI MASALAH",
-    title: "Market Friction: Reality Gap vs Operational Chaos",
-    subtitle: "Dua pilar masalah utama yang menghambat efisiensi sewa indekos di Indonesia",
-    type: "split",
-    colLeft: {
-      title: "👧 Sisi Pencari Kos (Anak Rantau)",
-      badge: "The Reality Gap",
-      color: "pink",
-      items: [
-        { icon: "📷", title: "Foto Lensa Wide-Angle Palsu", desc: "Kamar tampak luas di foto iklan, tapi aslinya sempit, gelap, dan sirkulasi pengap." },
-        { icon: "📐", title: "Skala Ruangan Tidak Akurat", desc: "Penyewa tidak tahu apakah kasur queen size (160x200) atau meja kerja muat di kamar." },
-        { icon: "🚪", title: "Buta Tata Letak & Ventilasi", desc: "Letak kamar mandi dalam dan jendela arah sinar matahari tidak jelas." },
-        { icon: "💸", title: "Waktu & Biaya Survei Terbuang", desc: "Macet dan panas keliling survei fisik hanya untuk kecewa di lokasi." }
-      ]
-    },
-    colRight: {
-      title: "👵 Sisi Pemilik Kos (Pengelola)",
-      badge: "Operational Friction",
-      color: "purple",
-      items: [
-        { icon: "📒", title: "Pembukuan Buku Tulis Usang", desc: "Pencatatan manual di buku tulis rentan robek, hilang, atau terkena tumpahan air." },
-        { icon: "⚡", title: "Sengketa Tagihan Listrik", desc: "Nombok tagihan listrik PLN karena telat mencatat angka meteran kWh anak kos." },
-        { icon: "💬", title: "Komplain Fasilitas Tercecer", desc: "Laporan kran bocor atau genteng rembes tenggelam di chat WhatsApp pribadi." },
-        { icon: "🏷️", title: "Komisi Aplikasi Kompetitor Mencekik", desc: "Potongan 5% hingga 12% per transaksi membuat pemilik enggan memakai sistem." }
-      ]
-    },
-    script: `Berdasarkan hasil analisis kebutuhan perangkat lunak yang kami lakukan, terdapat dua pilar masalah utama:
-
-Pertama, dari sudut pandang penyewa: Foto promosi umum di marketplace kerap manipulatif. Penyewa tidak dapat mengetahui apakah kasur queen size atau meja kerja mereka benar-benar muat sebelum melakukan survei fisik.
-
-Kedua, dari sudut pandang pengelola: Pengawasan pembayaran sewa dan perhitungan variabel utilitas seperti listrik meteran masih dilakukan secara manual. Hal ini memicu sengketa perhitungan angka kWh dan memerlukan waktu administrasi berjam-jam tiap bulannya.`,
-    tips: [
-      "Gestur: Gunakan telapak tangan terbuka saat membandingkan dua problem (kiri untuk penyewa, kanan untuk pengelola).",
-      "Pointer: Sorot perbandingan foto wide-angle vs realita.",
-      "Penekanan: Tegaskan frasa 'sengketa perhitungan' untuk membangun urgensi solusi teknis."
-    ]
-  },
-  {
-    num: "03",
-    tag: "🎀 THE KILLER FEATURE",
-    title: "Architectural 2D Blueprint Engine (Vektor SVG)",
-    subtitle: "Solusi transparansi visual presisi skala 1:50 tanpa beban kuota data foto 360",
-    type: "blueprint",
-    bullets: [
-      { icon: "✨", title: "Ukuran File Sangat Ringan (<15 KB)", desc: "Dapat dimuat instan (near-zero latency) bahkan pada koneksi seluler 3G." },
-      { icon: "📐", title: "Skala Presisi Arsitektur 1:50", desc: "Menggambarkan proporsi kasur springbed (160x200), meja laptop, dan lemari pakaian." },
-      { icon: "☀️", title: "Orientasi Cahaya Matahari & Jendela", desc: "Memperlihatkan arah datangnya angin alami dan pencahayaan matahari luar." },
-      { icon: "🟢", title: "Status Ketersediaan Kamar Dinamis", desc: "Hijau = Kamar Kosong, Merah = Terisi, Kuning = Dalam Masa Perbaikan." }
-    ],
-    script: `Inilah fondasi inovasi teknis utama dari KostKu: Architectural 2D Blueprint Engine. Kami tidak mengandalkan foto statis atau media 360 derajat yang membutuhkan beban data besar. Kami merancang mesin rendering denah berbasis SVG interaktif berskala presisi 1:50.
-
-Pencari kos dapat melihat objek ruangan secara aktual—termasuk proporsi kasur queen size 160x200 centimeter, tata letak meja kerja, hingga orientasi bukaan jendela terhadap arah datangnya sinar matahari.
-
-Data denah ini bersifat dinamis. Ketika sebuah kamar terisi di sistem back-office, visualisasi denah di marketplace akan langsung mengupdate status ketersediaannya secara instan.`,
-    tips: [
-      "Gestur: Bergerak mendekati layar atau gunakan pointer menyusuri garis denah SVG.",
-      "Pointer: Tunjukkan objek kasur dan bukaan jendela di dalam denah saat menjelaskan ukuran real.",
-      "Penekanan: Tekan kata 'skala presisi 1:50' dan 'ukuran aktual' dengan artikulasi jelas."
-    ]
-  },
-  {
-    num: "04",
-    tag: "🤖 AI SPATIAL & DUAL VIEWER",
-    title: "AI Room Scanner & 3D Isometric Cutaway Viewer",
-    subtitle: "Inovasi generasi denah otomatis via AI Vision & visualisasi 3D isometrik 4 sudut pandang",
-    type: "split",
-    colLeft: {
-      title: "📐 AI Vision & Kuesioner Interaktif",
-      badge: "Spatial AI Engine",
-      color: "pink",
-      items: [
-        { icon: "📸", title: "Scan Foto Kamar via AI", desc: "AI Vision memindai foto kamar asli dan mengidentifikasi batas dinding & bukaan." },
-        { icon: "🛏️", title: "Deteksi Kasur & Fasilitas", desc: "Kuesioner konfirmasi: Single (90x200) s.d King (180x200), AC, lemari, & KM dalam." },
-        { icon: "✨", title: "1-Click Generate Denah", desc: "Sekali klik langsung menghasilkan denah 2D arsitektural dan model 3D isometrik." },
-        { icon: "📍", title: "Google Maps GPS Pinning", desc: "Deteksi GPS instan dan link navigasi rute langsung ke gerbang kos." }
-      ]
-    },
-    colRight: {
-      title: "🎮 3D Isometric Cutaway Viewer",
-      badge: "Three.js / WebGL",
-      color: "purple",
-      items: [
-        { icon: "🔄", title: "Angle Switcher 4 Sudut", desc: "Putar sudut pandang: Isometrik Kanan, Kiri, Tampak Atas 45°, dan Tampak Depan." },
-        { icon: "☀️", title: "Pencahayaan Dinamis", desc: "Mode Siang Hari (Natural Skylight) vs Mode Malam Cozy (Warm 2700K Glow)." },
-        { icon: "🪵", title: "Tekstur Parket Kayu Asli", desc: "Lantai kayu fotorealistik, partisi kaca shower, dan layar laptop berpendar." },
-        { icon: "📷", title: "Komparasi Foto Asli Nyata", desc: "Foto fisik kamar disandingkan langsung dengan hasil denah terverifikasi AI." }
-      ]
-    },
-    script: `Pada evolusi produk terbaru kami, KostKu memperkenalkan AI Vision Room Scanner dan 3D Isometric Cutaway Viewer.
-    
-Pemilik kos tidak perlu memiliki keahlian arsitektur untuk membuat denah. Cukup unggah foto kamar, dan AI akan memindai ruang serta mengajukan kuesioner interaktif perabot—mulai dari ukuran kasur single hingga king size, AC, hingga kamar mandi dalam—lalu men-generate model 3D interaktif yang dapat diputar 4 sudut pandang dengan mode siang dan malam.`,
-    tips: [
-      "Gestur: Tunjukkan gestur memutar pergelangan tangan untuk menggambarkan rotasi 3D.",
-      "Pointer: Sorot tombol rotasi 4 sudut dan perbandingan foto asli kamar tidur.",
-      "Penekanan: Tekan kata 'AI Vision Scanner' dan '3D Isometrik Cutaway'."
-    ]
-  },
-  {
-    num: "05",
-    tag: "⚡ OTOMATISASI OPERASIONAL",
-    title: "Automated Utility & WhatsApp Billing Engine",
-    subtitle: "Kalkulasi matematis konsumsi listrik kWh & kwitansi instan 1-klik ke WhatsApp",
-    type: "split",
-    colLeft: {
-      title: "🧮 Formula Kalkulasi Utilitas",
-      badge: "Logika Matematika",
-      color: "indigo",
-      items: [
-        { icon: "1️⃣", title: "Selisih Pemakaian kWh Listrik", desc: "kWh_Pakai = Max(0, Meteran_Akhir - Meteran_Awal)" },
-        { icon: "2️⃣", title: "Biaya Variabel Listrik", desc: "Biaya_Listrik = kWh_Pakai × Tarif_per_kWh" },
-        { icon: "3️⃣", title: "Biaya Variabel Air", desc: "Biaya_Air = m3_Pakai × Tarif_per_m3" },
-        { icon: "4️⃣", title: "Akumulasi Total Tagihan", desc: "Total = Sewa_Pokok + Biaya_Listrik + Biaya_Air + Denda" },
-        { icon: "5️⃣", title: "Nomor Referensi Unik", desc: "INV-{TIMESTAMP}-{NOMOR_KAMAR} tercatat di database" }
-      ]
-    },
-    colRight: {
-      title: "📲 1-Click WhatsApp Dispatcher",
-      badge: "wa.me Deep Link",
-      color: "green",
-      items: [
-        { icon: "💬", title: "Pesan Terformat Otomatis", desc: "Halo Kak Arya (Kamar 102), berikut rincian sewa bulan ini:" },
-        { icon: "💵", title: "Rincian Transparan", desc: "Sewa: Rp 1.5jt | Listrik (42 kWh @2rb): Rp 84rb | Air: Rp 35rb" },
-        { icon: "💳", title: "Total Instan: Rp 1.619.000", desc: "Status tagihan: Menunggu Pembayaran via transfer/QRIS." },
-        { icon: "🚀", title: "Zero Typing Friction", desc: "Pengelola cukup klik 1 tombol tanpa perlu menyusun kalimat manual." }
-      ]
-    },
-    script: `Selain menghadirkan pengalaman visual untuk pencari kos, KostKu menyederhanakan operasional pengelola melalui modul otomatisasi tagihan utilitas.
-
-Sistem kami mengimplementasikan logika kalkulasi matematis otomatis untuk menghitung penggunaan variabel listrik. Pengelola cukup memasukkan angka meteran akhir, dan sistem secara otomatis mengkalkulasikan selisih pemakaian dikali tarif per kWh, kemudian menggabungkannya dengan biaya sewa pokok.
-
-Setelah tagihan terbuat, sistem memfasilitasi komunikasi lewat pemformatan deep-link 1-klik ke WhatsApp. Pengelola dapat mengirimkan transparansi rincian tagihan langsung ke nomor penyewa tanpa perlu mengetik ulang secara manual.`,
-    tips: [
-      "Gestur: Gerakan tangan menunjuk dari input data ke hasil akhir pesan WA.",
-      "Pointer: Sorot formula Meter_Akhir - Meter_Awal lalu tunjukkan hasil pesan WhatsApp.",
-      "Penekanan: Berikan penekanan pada frasa '1-klik ke WhatsApp' sebagai nilai kepraktisan sistem."
-    ]
-  },
-  {
-    num: "06",
-    tag: "💻 ARSITEKTUR SISTEM RPL",
-    title: "Hybrid Local-First & Cross-Platform Architecture",
-    subtitle: "Kombinasi ketahanan offline, kecepatan proses lokal, dan sinkronisasi cloud",
-    type: "cards3",
-    cards: [
-      {
-        icon: "📱",
-        badge: "Layer 1: Multi-Platform Clients",
-        color: "pink",
-        title: "React 18 + Capacitor + Electron + PWA",
-        desc: "Satu basis kode terpadu untuk tiga runtime: Android APK (Capacitor), Windows Desktop (Electron), dan Web Browser (PWA) dengan tampilan responsif."
-      },
-      {
-        icon: "⚡",
-        badge: "Layer 2: Local Processing Engine",
-        color: "purple",
-        title: "In-Memory Cache & Embedded SQLite",
-        desc: "Menjamin Zero-Offline Latency. Operasi pencatatan kamar, meteran listrik, dan pembukuan tetap berjalan mulus meskipun koneksi internet terputus."
-      },
-      {
-        icon: "☁️",
-        badge: "Layer 3: Cloud Backend & Sync",
-        color: "blue",
-        title: "Node.js Express + Supabase Cloud",
-        desc: "Sinkronisasi asinkron berbasis delta-sync saat online dan manajemen autentikasi Google OAuth 2.0 terpusat."
-      }
-    ],
-    script: `Untuk menjamin keandalan sistem pada berbagai kondisi operasional, KostKu dibangun dengan pendekatan Hybrid Local-First Architecture.
-
-Di sisi frontend, kami memanfaatkan React 18 dan Vite. Di sisi runtime aplikasi, kami membungkus kode dasar yang sama menggunakan Capacitor untuk platform Android dan Electron untuk Desktop, serta PWA untuk dukungan perambah Web.
-
-Prinsip Local-First memastikan bahwa pengelola kos tetap dapat melakukan pembukuan dan mencatat transaksi meskipun koneksi internet terputus. Data disimpan di penyimpan lokal berbasis SQLite, yang kemudian secara asinkron disinkronkan ke cloud Supabase ketika koneksi internet kembali aktif.`,
-    tips: [
-      "Gestur: Tangan merentang horisontal untuk menunjukkan cakupan cross-platform.",
-      "Pointer: Tunjukkan jalur sinkronisasi antara Embedded Local SQLite dan Cloud Supabase.",
-      "Penekanan: Tegaskan kata 'tetap dapat bekerja meskipun internet terputus'."
-    ]
-  },
-  {
-    num: "07",
-    tag: "🗺️ ALUR PENGGUNA",
-    title: "Dual-Sided Unified Architecture & Flow",
-    subtitle: "Dua alur kerja terpisah namun terintegrasi harmonis dalam satu platform",
-    type: "flow",
-    flow1: {
-      title: "🌸 Public Flow (Pencari Kos) — Zero Friction",
-      badge: "Pencari Kos",
-      color: "pink",
-      steps: [
-        "1. Buka Marketplace ➔ Jelajahi kos & navigasi Google Maps langsung",
-        "2. Filter Spesifik ➔ Pilih kota, tipe gender, rentang harga, dan fasilitas",
-        "3. Live 2D/3D Blueprint ➔ Cek denah asli perabot kasur, meja, & jendela",
-        "4. Direct Action ➔ Klik 'Ajukan Sewa' atau chat langsung ke WhatsApp pemilik"
-      ]
-    },
-    flow2: {
-      title: "👩‍💼 Admin Flow (Pemilik Kos) — High Security",
-      badge: "Pengelola Kos",
-      color: "purple",
-      steps: [
-        "1. Autentikasi ➔ Registrasi e-KTP anti-bot atau login Google OAuth 2.0",
-        "2. Dashboard Okupansi ➔ Pantau status kamar kosong vs terisi secara real-time",
-        "3. Approval Sewa ➔ 1-Klik Setujui: auto-assign kamar, invoice, & PIN Smart Lock",
-        "4. Dispatch & Komplain ➔ Kirim tagihan via WhatsApp & kelola tiket perbaikan"
-      ]
-    },
-    script: `Sistem KostKu dirancang untuk melayani dua persona pengguna utama dengan alur kerja yang sangat terpisah namun terintegrasi dalam satu platform.
-
-Pada Public Flow di atas, alur dibuat sangat efisien tanpa hambatan registrasi yang tidak perlu. Pencari kos dapat langsung mengeksplorasi denah 2D dan 3D, memfilter ketersediaan kamar, dan melakukan kontak langsung dengan pemilik kos.
-
-Pada Admin Flow di bawah, alur diproteksi dengan otentikasi ketat. Pengelola dapat memantau tingkat hunian melalui dashboard, menyetujui pengajuan sewa dalam satu klik, mencatat pemakaian utilitas, menggenerate tagihan bulanan, hingga memantau tiket komplain.`,
-    tips: [
-      "Gestur: Bergerak dari atas ke bawah mengikuti dua jalur pengguna pada slide.",
-      "Pointer: Telusuri garis panah dari titik entry hingga titik action akhir.",
-      "Penekanan: Sebutkan kata '1-Klik Approval Sewa' dan 'Auto-Assign Kamar'."
-    ]
-  },
-  {
-    num: "08",
-    tag: "🛡️ KEAMANAN & INTEGRITAS DATA",
-    title: "Sistem Anti-Bot 1 KTP 1 Akun & Validasi NIK Resmi",
-    subtitle: "Menjamin keamanan ekosistem sewa dari bot, akun palsu, dan penipuan listing",
-    type: "split",
-    colLeft: {
-      title: "🆔 Validasi Identitas Kependudukan",
-      badge: "Anti-Fraud Architecture",
-      color: "pink",
-      items: [
-        { icon: "🔢", title: "Validasi NIK 16 Digit", desc: "Format regex matematis & pengecekan ketersediaan instan (/api/check-nik)." },
-        { icon: "🚫", title: "Enforce 1 KTP = 1 Akun", desc: "Mencegah duplikasi pendaftaran; 1 NIK hanya berlaku untuk 1 akun pengguna." },
-        { icon: "📸", title: "Upload Fisik e-KTP Wajib", desc: "Verifikasi foto e-KTP asli demi akuntabilitas hukum pemilik & penyewa." },
-        { icon: "📍", title: "Verifikasi Lokasi Google Maps", desc: "Pendaftaran kos wajib koordinat GPS dan tautan Google Maps nyata." }
-      ]
-    },
-    colRight: {
-      title: "🔑 Pemulihan Akun & Smart Approval",
-      badge: "Account Lifecycle",
-      color: "purple",
-      items: [
-        { icon: "🔄", title: "Pemulihan Akun via NIK", desc: "Reset sandi mandiri dengan mencocokkan NIK & nama e-KTP resmi." },
-        { icon: "⚡", title: "1-Click Booking Approval", desc: "Pemilik cukup klik Setujui, sistem auto-assign kamar & buat PIN pintu." },
-        { icon: "🏢", title: "Multi-Branch Portfolio", desc: "Satu akun pemilik dapat mengelola banyak cabang kost dengan switch instan." },
-        { icon: "✍️", title: "Kontrak Digital & E-Signature", desc: "Tanda tangan digital canvas untuk perjanjian staf dan penjaga kos." }
-      ]
-    },
-    script: `Integritas ekosistem KostKu diperkuat dengan arsitektur Anti-Bot dan verifikasi identitas resmi.
-
-Kami menerapkan aturan 1 KTP hanya untuk 1 Akun. Setiap pengguna wajib menyertakan NIK 16 digit yang divalidasi secara real-time dan mengunggah foto fisik e-KTP resmi. Fitur ini meniadakan akun spam, melindungi pemilik kos dari calon penyewa fiktif, serta menyediakan mekanisme pemulihan akun mandiri menggunakan data kependudukan resmi.`,
-    tips: [
-      "Gestur: Tunjukkan sikap tegas saat membahas keamanan data kependudukan.",
-      "Pointer: Tunjukkan proses pengecekan keunikan NIK dan modal pemulihan akun.",
-      "Penekanan: Tekan kata '1 KTP 1 Akun' dan 'Perlindungan dari Akun Fiktif'."
-    ]
-  },
-  {
-    num: "09",
-    tag: "🔍 TECHNICAL DEEP DIVE",
-    title: "Sequence Diagram: Auto-Update & Cache Strategy",
-    subtitle: "Mekanisme pembaruan biner mandiri & strategi pembersihan cache PWA",
-    type: "split",
-    colLeft: {
-      title: "📲 Android & Desktop Auto-Update",
-      badge: "Differential Binary Lifecycle",
-      color: "pink",
-      items: [
-        { icon: "1️⃣", title: "Handshake Versi Server", desc: "GET /api/app-version dengan header Cache-Control: no-cache" },
-        { icon: "2️⃣", title: "Evaluasi SemVer 3-Tier", desc: "isNewerVersion(remote, local) membandingkan versi matematis (Cegah loop)" },
-        { icon: "3️⃣", title: "Modal Changelog", desc: "Menampilkan fitur baru & tombol 'Unduh APK Sekarang'" },
-        { icon: "4️⃣", title: "Stream APK Mandiri", desc: "Server memancarkan biner KostKu.apk resmi tanpa dialihkan ke link luar" }
-      ]
-    },
-    colRight: {
-      title: "🌐 PWA Service Worker Invalidation",
-      badge: "Network-First Navigation",
-      color: "purple",
-      items: [
-        { icon: "1️⃣", title: "Network-First Strategy", desc: "index.html selalu dicek ke server terlebih dahulu sebelum fallback cache" },
-        { icon: "2️⃣", title: "SKIP_WAITING Signal", desc: "Service Worker baru langsung aktif tanpa menunggu penutupan browser" },
-        { icon: "3️⃣", title: "Clean Cache Storage", desc: "Mengeksekusi caches.delete(allKeys) saat pengguna klik muat ulang" },
-        { icon: "4️⃣", title: "Reload Cache-Buster", desc: "Halaman direload otomatis dengan parameter unik timestamp (?_cb=now)" }
-      ]
-    },
-    script: `Masuk ke pendalaman teknis sistem (technical deep dive), slide ini menggambarkan dua mekanisme kritis dalam lifecycle aplikasi KostKu.
-
-Pada bagian kiri, diagram alur Auto-Update menunjukkan bagaimana aplikasi desktop Electron dan Android Capacitor memeriksa pembaruan versi biner secara berkala ke server update. Aplikasi secara mandiri melakukan unduhan patch secara efisien tanpa memerlukan instalasi ulang secara keseluruhan oleh pengguna.
-
-Pada bagian kanan, kami memperlihatkan manajemen Service Worker pada versi PWA. Kami mengimplementasikan strategi Network-First with Dynamic Cache Fallback, serta skenario pengosongan cache otomatis saat terjadi pembaruan versi data, guna menghindari ketersediaan data basi pada perambah pengguna.`,
-    tips: [
-      "Gestur: Postur tubuh lebih tenang dan profesional, menunjukkan kapasitas teknis yang matang.",
-      "Pointer: Tunjukkan urutan panah pemanggilan method dari atas ke bawah.",
-      "Penekanan: Gunakan istilah teknis seperti 'Network-First', 'Cache Invalidation', dan 'Differential Patch' secara presisi."
-    ]
-  },
-  {
-    num: "10",
-    tag: "📊 STRATEGI & KELAYAKAN BISNIS",
-    title: "Monetization Strategy & 4 Competitive Moats",
-    subtitle: "Bagaimana KostKu bertahan, memenangkan pasar, dan menghasilkan pendapatan berulang",
-    type: "cards3",
-    cards: [
-      {
-        icon: "🎀",
-        badge: "Aliran 1: Freemium SaaS",
-        color: "pink",
-        title: "Rp 49rb - 99rb / Bulan",
-        desc: "Free Tier hingga 5 kamar. Biaya langganan <0.3% omzet kos. Jauh lebih diminati dibanding komisi kompetitor yang memotong Rp 1.5jt/bulan!"
-      },
-      {
-        icon: "✨",
-        badge: "Aliran 2: Featured Listing",
-        color: "purple",
-        title: "Spotlight Kota & Verified Badge",
-        desc: "Rp 25.000/minggu untuk slot teratas pencarian kota. Sangat diminati pemilik kos saat musim ajaran baru mahasiswa kampus."
-      },
-      {
-        icon: "🏰",
-        badge: "4 Parit Pertahanan (Moats)",
-        color: "mint",
-        title: "High Switching Cost & Retensi",
-        desc: "1. Vektor Denah SVG & 3D Cutaway\n2. 0% Komisi Seumur Hidup\n3. Anti-Bot 1 KTP 1 Akun Terpercaya\n4. Aplikasi Ringan di HP Android Murah"
-      }
-    ],
-    script: `Bagaimana KostKu bertahan dan memenangkan persaingan pasar? Jawabannya terletak pada model bisnis dan competitive moats yang kami bangun.
-
-Platform pesaing umumnya memotong komisi transaksi sebesar 5 hingga 15 persen dari nilai sewa. Model ini memberatkan pemilik kos dan memicu transaksi gelap di luar sistem. KostKu menerapkan 0% komisi transaksi sewa, dan beralih ke model langganan perangkat lunak (SaaS) dengan tarif terjangkau sebesar 49 ribu hingga 99 ribu Rupiah per bulan untuk fitur pengelolaan back-office tingkat lanjut.
-
-Nilai pertahanan utama kami terletak pada High Switching Cost. Ketika pengelola telah memasukkan riwayat data keuangan dan rancangan denah SVG di KostKu, biaya untuk berpindah ke sistem lain menjadi sangat tinggi, sehingga memberikan recurring revenue yang stabil bagi platform.`,
-    tips: [
-      "Gestur: Tunjukkan telapak tangan mengepal secara mantap saat menyebutkan kata 'High Switching Cost'.",
-      "Pointer: Tunjukkan titik potong efisiensi biaya pada grafik perbandingan SaaS vs Komisi Persenan.",
-      "Penekanan: Tekan frasa '0% komisi transaksi' dan 'SaaS terjangkau' sebagai nilai tawar bisnis."
-    ]
-  },
-  {
-    num: "11",
-    tag: "🤝 TATA KELOLA & EKSEKUSI",
-    title: "Tim Pengembang & RACI Execution Matrix",
-    subtitle: "Siklus pengembangan 4 minggu (4-Week Sprint) & akuntabilitas peran terukur",
-    type: "table",
-    headers: ["Milestone / Task", "Frontend Lead", "Backend Lead", "UI/UX Designer", "QA & Mobile Lead"],
-    rows: [
-      ["Interactive 2D Blueprint SVG & 3D Viewer", "R (Responsible)", "C (Consulted)", "A (Accountable)", "I (Informed)"],
-      ["AI Vision Room Scanner & Questionnaire", "R (Responsible)", "A (Accountable)", "C (Consulted)", "C (Consulted)"],
-      ["Anti-Bot e-KTP Verification (1 KTP 1 Akun)", "C (Consulted)", "R / A (Lead)", "I (Informed)", "C (Consulted)"],
-      ["Utility Calculator & WhatsApp Deep-Link", "R (Responsible)", "R (Responsible)", "I (Informed)", "A (Accountable)"],
-      ["Testing & Multiplatform Build (APK/Electron)", "I (Informed)", "I (Informed)", "C (Consulted)", "R / A (Lead)"]
-    ],
-    script: `Proyek Rekayasa Perangkat Lunak KostKu dirancang dan dieksekusi dalam siklus sprint 4 minggu yang terukur secara disiplin dengan RACI Matrix yang jelas.
-
-Setiap pilar utama—mulai dari mesin denah 2D/3D, pemindai AI Vision, verifikasi Anti-Bot e-KTP, pengujian lintas platform, hingga integrasi tautan WhatsApp—memiliki penanggung jawab (Responsible) dan pemegang keputusan (Accountable) yang terdefinisi dengan transparan.`,
-    tips: [
-      "Gestur: Berdiri sejajar dengan tabel, gunakan gerakan tangan terbuka mengarah ke seluruh nama anggota tim.",
-      "Pointer: Sorot baris-baris milestone penting pada matriks RACI.",
-      "Penekanan: Tutup dengan nada tegas dan percaya diri."
-    ]
-  },
-  {
-    num: "12",
-    tag: "⚙️ STANDAR OPERASIONAL PROSEDUR",
-    title: "SOP Maintenance, Server Down & Komplain Pengguna",
-    subtitle: "Protokol enterprise untuk keandalan infrastruktur dan Service Level Agreement (SLA)",
-    type: "split",
-    colLeft: {
-      title: "🛠️ SOP Maintenance & Tanggap Darurat",
-      badge: "Infrastruktur & Reliability",
-      color: "pink",
-      items: [
-        { icon: "🌙", title: "Maintenance Jam Sepi (01.00 - 04.00)", desc: "Eksekusi hanya pada jam sepi trafik dengan banner pengumuman minimal 24 jam sebelumnya." },
-        { icon: "💾", title: "Full Backup Pra-Maintenance", desc: "Pencadangan penuh database (db.json/cloud) & storage aset sebelum utak-atik server." },
-        { icon: "🚨", title: "Monitoring & Failover < 5 Menit", desc: "Jika server mati, otomatis dialihkan ke halaman statis darurat (tanpa layar putih polos)." },
-        { icon: "⏪", title: "Rollback Cepat < 15 Menit", desc: "Langsung rollback ke versi stabil sebelumnya jika bug dari rilis terbaru." }
-      ]
-    },
-    colRight: {
-      title: "🎧 SOP Penanganan Komplain & SLA",
-      badge: "Customer Care SLA",
-      color: "purple",
-      items: [
-        { icon: "📞", title: "Satu Pintu Aduan Resmi", desc: "Tombol bantuan langsung WhatsApp Admin (wa.me) & tiket digital terpusat di aplikasi." },
-        { icon: "⚡", title: "Komplain Mendesak (SLA 15-30 Mnt)", desc: "Urusan uang (nota double, bukti gagal) & akses kamar (smart lock error). Tuntas 2-4 jam." },
-        { icon: "📋", title: "Komplain Biasa (SLA 1x24 Jam)", desc: "Bug tampilan minor, saran fitur, atau panduan pakai. Tuntas maksimal 2x24 jam." },
-        { icon: "🔄", title: "Siklus Respons 3 Langkah", desc: "1. Akui & Empati ➔ 2. Berikan Estimasi Waktu (ETA) ➔ 3. Konfirmasi Penuntasan." }
-      ]
-    },
-    script: `Untuk menjamin ketersediaan sistem dan kepuasan pengguna di tingkat enterprise, KostKu menetapkan 3 pilar Standar Operasional Prosedur (SOP) baku:
-
-Pertama, SOP Maintenance Terjadwal: Pemeliharaan server hanya dilakukan di jam sepi antara pukul 01.00 hingga 04.00 pagi, didahului banner pengumuman 24 jam dan full backup database.
-
-Kedua, SOP Tanggap Darurat Server Down: Dilengkapi monitoring otomatis, failover ke halaman statis dalam waktu kurang dari 5 menit, dan prosedur rollback cepat di bawah 15 menit jika terdeteksi regresi rilis.
-
-Ketiga, SOP Penanganan Komplain: Memiliki matriks SLA ketat, di mana komplain mendesak terkait keuangan atau akses kamar wajib direspons dalam 15 hingga 30 menit melalui siklus 3 langkah terstandarisasi.`,
-    tips: [
-      "Gestur: Tunjukkan sikap bertanggung jawab dan profesional dalam tata kelola sistem.",
-      "Pointer: Tunjukkan target SLA 15-30 menit untuk komplain mendesak.",
-      "Penekanan: Tekan kata 'Full Backup Pra-Maintenance' dan 'Zero Data Loss'."
-    ]
-  },
-  {
-    num: "13",
-    tag: "💖 KESIMPULAN & PENUTUP",
-    title: "KostKu: Platform Manajemen & Marketplace Kost Pintar",
-    subtitle: "Siap Mendemonstrasikan Sistem Secara Langsung di Hadapan Penguji",
-    type: "closing",
-    script: `Sekian pemaparan presentasi dari kami mengenai arsitektur, inovasi teknis, model bisnis, dan standar operasional prosedur KostKu. Kami siap mendemonstrasikan sistem secara langsung dan membuka sesi tanya-jawab kepada Bapak dan Ibu Penguji. Terima kasih banyak!`,
-    tips: [
-      "Tersenyum ramah dan penuh percaya diri.",
-      "Buka laptop / HP untuk mendemonstrasikan aplikasi secara live jika diminta.",
-      "Persiapkan diri membuka slide panduan Q&A jika dosen mengajukan pertanyaan kritis."
-    ]
-  },
-  {
-    num: "14",
-    tag: "🛡️ PERTAHANAN Q&A #1",
-    title: "Kenapa Denah 2D SVG, Bukan Foto 360 / Virtual Tour?",
-    subtitle: "Argumen efisiensi bandwidth, kepastian dimensi riil, dan kemudahan pemeliharaan",
-    type: "qa",
-    points: [
-      { num: "1", title: "Ukuran File & Efisiensi Bandwidth", desc: "Foto 360° / Matterport memakan 10 MB - 50 MB per ruangan. Sebaliknya, denah vektor SVG kami berukuran rata-rata di bawah 15 Kilobytes (<15KB), dapat dimuat instan (near-zero latency) bahkan pada sinyal 3G." },
-      { num: "2", title: "Kepastian Dimensi & Tata Letak Ruang", desc: "Foto 360° tetap memakai lensa cembung (fish-eye) yang kerap mendistorsi persepsi ruang. Denah 2D SVG kami menggunakan skala presisi 1:50 yang menunjukkan ukuran fisik riil kasur (160x200cm), sisa ruang gerak, dan lebar pintu." },
-      { num: "3", title: "Kemudahan Maintenance & Update Data", desc: "Mengubah tata letak pada foto 360° membutuhkan foto ulang (reshooting) yang mahal. Pada denah SVG, perubahan posisi perabot hanya butuh update atribut koordinat XML/JSON sederhana di sisi frontend." }
-    ],
-    script: `Jika penguji bertanya: 'Kenapa tidak memakai 360 Virtual Tour seperti Matterport?', sampaikan 3 pilar: Bandwidth (<15KB vs 50MB), Presisi Skala (1:50 tanpa distorsi lensa cembung), dan Maintenance (cukup edit atribut JSON tanpa biaya foto ulang).`
-  },
-  {
-    num: "15",
-    tag: "🛡️ PERTAHANAN Q&A #2",
-    title: "Kenapa Arsitektur Local-First, Bukan Full Cloud?",
-    subtitle: "Argumen zero-offline latency, efisiensi operasional server, dan kedaulatan data",
-    type: "qa",
-    points: [
-      { num: "1", title: "Ketahanan Operasional (Zero-Offline Latency)", desc: "Pemilik kos sering kali mencatat meteran listrik dan penerimaan sewa langsung di lokasi kosan yang sinyalnya lemah (blank spot). Dengan Local-First, operasi input tidak pernah gagal karena ditulis langsung ke SQLite lokal." },
-      { num: "2", title: "Pengurangan Beban Operasional Server (Cost Efficiency)", desc: "Operasional read/write harian dialihkan sepenuhnya ke perangkat klien pengguna. Server cloud Supabase hanya menerima paket data selisih (delta sync), memangkas biaya infrastruktur cloud hingga 80%." },
-      { num: "3", title: "Keamanan & Privasi Data Pengelola (Data Ownership)", desc: "Data pembukuan sensitif berada di bawah kendali lokal perangkat pemilik kos, mengurangi risiko kebocoran data terpusat pada server pihak ketiga." }
-    ],
-    script: `Jika penguji bertanya: 'Mengapa memilih SQLite lokal daripada Full Cloud Database terpusat?', sampaikan: 1. Zero-offline latency di area blank spot, 2. Penghematan biaya cloud compute hingga 80%, 3. Kedaulatan data sensitif pemilik kos terjamin.`
-  },
-  {
-    num: "16",
-    tag: "🛡️ PERTAHANAN Q&A #3",
-    title: "Kenapa 0% Komisi & Direct WhatsApp? Rawan Ditinggalkan?",
-    subtitle: "Perubahan paradigma software house vs agen calo & retensi berbasis switching cost",
-    type: "qa",
-    points: [
-      { num: "1", title: "Paradigma: Software House vs Marketplace Agent", desc: "KostKu diposisikan sebagai Property Management Software (SaaS), bukan calo perantara sewa. Pendapatan kami berasal dari biaya langganan fitur back-office (Rp 49rb - 99rb/bulan), bukan dari memotong komisi sewa." },
-      { num: "2", title: "Menghilangkan Kebiasaan Bypass Transaksi", desc: "Pada platform dengan komisi 5-10%, pemilik dan penyewa selalu berusaha mencari celah bertukar nomor telepon di luar sistem. Dengan 0% komisi dan deep-link WhatsApp, kami merangkul perilaku alami pengguna, bukan melawannya." },
-      { num: "3", title: "Menciptakan Retensi melalui High Switching Cost", desc: "Setelah pengelola terbiasa dengan kemudahan cetak kwitansi otomatis, laporan keuangan, dan integrasi data denah, mereka akan terus berlangganan SaaS KostKu karena efisiensi kerja yang didapat jauh melebihi harga langganannya." }
-    ],
-    script: `Jika penguji bertanya: 'Kenapa memberi kontak WhatsApp langsung? Bukankah platform rawan di-bypass?', sampaikan: Kami adalah SaaS perangkat lunak manajemen properti, bukan makelar komisi. 0% komisi justru menghilangkan niat pengguna untuk mem-bypass sistem dan menciptakan loyalitas retensi jangka panjang.`
-  },
-  {
-    num: "17",
-    tag: "🛡️ PERTAHANAN Q&A #4",
-    title: "Bagaimana Prosedur Server Down & Mitigasi Komplain?",
-    subtitle: "Protokol tanggap darurat, failover otomatis, dan SLA komplain terukur",
-    type: "qa",
-    points: [
-      { num: "1", title: "Failover Otomatis < 5 Menit", desc: "Sistem monitoring (Uptime/Sentry) mendeteksi down dalam <2 menit, lalu DNS/edge langsung mengalihkan rute ke halaman statis pemeliharaan darurat agar user tidak melihat layar putih atau error JSON." },
-      { num: "2", title: "Strategi Rollback < 15 Menit", desc: "Jika bug terjadi pasca-rilis, kami memprioritaskan rollback commit stabil sebelumnya dibanding memaksakan hotfix live di produksi, menjamin stabilitas secepat mungkin." },
-      { num: "3", title: "Service Level Agreement (SLA) Komplain", desc: "Komplain finansial atau akses kamar (P0) wajib direspons dalam 15-30 menit dan diselesaikan dalam 2-4 jam dengan siklus 3 langkah: Akui & Empati -> Berikan ETA -> Konfirmasi Penuntasan." }
-    ],
-    script: `Jika penguji bertanya: 'Bagaimana jika server Anda down saat penghuni ingin bayar atau masuk kamar?', sampaikan: Kami memiliki SOP Server Down dengan deteksi <2 menit, failover ke halaman statis <5 menit, dan rollback <15 menit. Untuk urusan darurat seperti kunci pintu atau nota double, tim support memiliki SLA respon 15-30 menit.`
-  }
-];
+// Load dynamic data from slides_data.json
+const jsonPath = path.join(__dirname, 'slides_data.json');
+const slidesData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
 
 function generateHtml() {
   return `<!DOCTYPE html>
@@ -496,10 +12,10 @@ function generateHtml() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KostKu ✦ Slide Deck Presentasi Sidang RPL (Aesthetic Edition)</title>
+  <title>KostKu ✦ Slide Deck Presentasi Sidang RPL (Executive Aesthetic Edition)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Outfit:wght@600;700;800;900&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-cream: #fdfaf7;
@@ -513,9 +29,10 @@ function generateHtml() {
       --mint-primary: #10b981;
       --mint-soft: #ecfdf5;
       --mint-border: #a7f3d0;
-      --indigo-dark: #1e1b4b;
-      --slate-body: #475569;
-      --white-card: rgba(255, 255, 255, 0.94);
+      --indigo-dark: #0f172a;
+      --slate-body: #334155;
+      --slate-muted: #64748b;
+      --white-card: rgba(255, 255, 255, 0.98);
     }
 
     * {
@@ -526,7 +43,7 @@ function generateHtml() {
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      background: #0f172a;
+      background: #090d16;
       color: var(--indigo-dark);
       overflow: hidden;
       height: 100vh;
@@ -544,24 +61,49 @@ function generateHtml() {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 100%);
+      background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #090d16 100%);
       padding: 16px;
     }
 
     .slide {
       display: none;
       width: 100%;
-      max-width: 1280px;
+      max-width: 1320px;
       aspect-ratio: 16 / 9;
       max-height: calc(100vh - 90px);
-      background: linear-gradient(135deg, #fff7fa 0%, #ffffff 50%, #fbf8ff 100%);
+      background: linear-gradient(135deg, #fffbfd 0%, #ffffff 45%, #fbf9ff 100%);
       border-radius: 24px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
       position: relative;
       overflow: hidden;
-      padding: 40px 48px;
+      padding: 28px 42px;
       flex-direction: column;
-      border: 3px solid #fbcfe8;
+      justify-content: space-between;
+      border: 2px solid #fed7aa;
+    }
+
+    .slide::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 360px;
+      height: 360px;
+      background: radial-gradient(circle, rgba(244, 63, 94, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .slide::after {
+      content: '';
+      position: absolute;
+      bottom: -120px;
+      left: -120px;
+      width: 360px;
+      height: 360px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
     }
 
     .slide.active {
@@ -570,64 +112,89 @@ function generateHtml() {
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: scale(0.97) translateY(10px); }
+      from { opacity: 0; transform: scale(0.97) translateY(8px); }
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
-    /* Top Cute Header */
+    /* Top Bar */
     .slide-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
     }
 
     .badge-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
+      padding: 5px 14px;
       border-radius: 9999px;
       background: #ffe4e6;
       border: 1.5px solid #f43f5e;
       color: #be123c;
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.76rem;
+      font-weight: 800;
       letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
     .slide-counter-badge {
       font-family: 'Quicksand', sans-serif;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 700;
-      color: #94a3b8;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 4px 12px;
+      color: #64748b;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 4px 14px;
       border-radius: 9999px;
       border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    /* Title Area */
+    .slide-title-area {
+      position: relative;
+      z-index: 1;
+      margin-bottom: 12px;
     }
 
     .slide-title-area h1 {
-      font-size: 2.1rem;
-      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.15rem;
+      font-weight: 900;
       color: var(--indigo-dark);
-      line-height: 1.2;
-      margin-bottom: 6px;
-      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 3px;
+      letter-spacing: -0.03em;
     }
 
     .slide-title-area p {
-      font-size: 1.05rem;
-      color: #64748b;
-      margin-bottom: 24px;
+      font-size: 0.98rem;
+      color: var(--slate-muted);
+      font-weight: 500;
+      line-height: 1.35;
     }
 
-    /* Card Layouts */
+    /* Slide Content Container */
+    .slide-content-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      min-height: 0;
+    }
+
+    /* Grid Layouts */
     .split-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 22px;
       flex: 1;
+      height: 100%;
+      min-height: 0;
     }
 
     .cards-3-grid {
@@ -635,92 +202,131 @@ function generateHtml() {
       grid-template-columns: repeat(3, 1fr);
       gap: 20px;
       flex: 1;
+      height: 100%;
+      min-height: 0;
     }
 
+    /* Elegant Card Styling */
     .cute-card {
       background: var(--white-card);
       border-radius: 18px;
-      padding: 22px 24px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-      border: 1.5px solid #f1f5f9;
+      padding: 16px 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+      border: 1.5px solid #e2e8f0;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
       position: relative;
     }
 
     .cute-card.pink {
-      background: #fff5f8;
+      background: linear-gradient(180deg, #fff9fb 0%, #ffffff 100%);
       border-color: #fbcfe8;
     }
 
     .cute-card.purple {
-      background: #fbf8ff;
+      background: linear-gradient(180deg, #fdfaff 0%, #ffffff 100%);
       border-color: #ddd6fe;
     }
 
     .cute-card.mint {
-      background: #f0fdf4;
-      border-color: #bbf7d0;
+      background: linear-gradient(180deg, #f7fefb 0%, #ffffff 100%);
+      border-color: #a7f3d0;
     }
 
     .cute-card.indigo {
-      background: #eef2ff;
+      background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
       border-color: #c7d2fe;
+    }
+
+    .cute-card.green {
+      background: linear-gradient(180deg, #f6fef9 0%, #ffffff 100%);
+      border-color: #bbf7d0;
     }
 
     .card-header-cute {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
-      border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
-      padding-bottom: 10px;
+      margin-bottom: 8px;
+      border-bottom: 1.5px dashed rgba(0, 0, 0, 0.08);
+      padding-bottom: 6px;
     }
 
     .card-header-cute h3 {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 800;
       color: var(--indigo-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .mini-badge {
       font-size: 0.72rem;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(0, 0, 0, 0.05);
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--slate-body);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
     }
 
+    /* List Rows - Micro Cards */
     .item-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      justify-content: space-between;
       flex: 1;
+      gap: 8px;
     }
 
     .list-row {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid #f1f5f9;
+      border-radius: 12px;
+      padding: 9px 14px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+      flex: 1;
     }
 
     .list-icon {
       font-size: 1.25rem;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: #f8fafc;
       flex-shrink: 0;
-      margin-top: 1px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .list-text {
+      flex: 1;
+      min-width: 0;
     }
 
     .list-text strong {
       display: block;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       color: var(--indigo-dark);
-      font-weight: 700;
+      font-weight: 800;
+      margin-bottom: 2px;
+      line-height: 1.25;
     }
 
     .list-text span {
-      font-size: 0.82rem;
-      color: var(--slate-body);
-      line-height: 1.4;
+      font-size: 0.83rem;
+      color: var(--slate-muted);
+      line-height: 1.35;
       display: block;
     }
 
@@ -732,25 +338,192 @@ function generateHtml() {
       justify-content: space-between;
     }
 
-    .cover-main h1 {
-      font-size: 3.2rem;
-      font-weight: 900;
-      color: var(--indigo-dark);
-      line-height: 1.1;
-      margin: 12px 0;
-      letter-spacing: -0.03em;
+    .cover-hero-box {
+      background: linear-gradient(135deg, #fff5f8 0%, #ffffff 50%, #f5f3ff 100%);
+      border: 2px solid #fbcfe8;
+      border-radius: 20px;
+      padding: 22px 28px;
+      box-shadow: 0 8px 25px rgba(244, 63, 94, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .cover-main h1 span {
-      background: linear-gradient(135deg, #f43f5e 0%, #a855f7 100%);
+    .cover-hero-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3.4rem;
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .cover-hero-title span {
+      background: linear-gradient(135deg, #e11d48 0%, #8b5cf6 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    .cover-main p {
+    .cover-author-badge {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #ffffff;
+      border: 1.5px solid #ddd6fe;
+      border-radius: 14px;
+      padding: 10px 18px;
+      box-shadow: 0 2px 10px rgba(139, 92, 246, 0.06);
+    }
+
+    .metric-hero-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 18px 20px;
+      border: 1.5px solid #f1f5f9;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+    }
+
+    .metric-hero-card .num-highlight {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Q&A 3-Column Card Layout (Deep Multi-Section) */
+    .qa-col-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 16px 18px;
+      border: 1.5px solid #fbcfe8;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .qa-top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .qa-num-badge {
+      font-family: 'Outfit', sans-serif;
       font-size: 1.3rem;
+      font-weight: 900;
+      color: #be123c;
+      background: #ffe4e6;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid #f43f5e;
+    }
+
+    .qa-col-card h4 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--indigo-dark);
+      margin-bottom: 8px;
+      line-height: 1.25;
+    }
+
+    .qa-sections-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 7px;
+      margin: 4px 0 8px 0;
+    }
+
+    .qa-section-item {
+      background: #f8fafc;
+      border: 1.2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .qa-section-label {
+      font-size: 0.72rem;
+      font-weight: 800;
       color: #64748b;
-      max-width: 850px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+
+    .qa-section-text {
+      font-size: 0.83rem;
+      color: var(--slate-body);
+      line-height: 1.35;
+      font-weight: 500;
+    }
+
+    .qa-takeaway-box {
+      background: #fff1f5;
+      border-left: 3.5px solid #f43f5e;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #be123c;
+      line-height: 1.3;
+    }
+
+    /* Structured Card Rows for cards3 */
+    .card3-structured-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 7px;
+      margin: 6px 0;
+    }
+
+    .card3-structured-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffffff;
+      border: 1.5px solid #f1f5f9;
+      border-radius: 10px;
+      padding: 8px 12px;
+      flex: 1;
+    }
+
+    .card3-row-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .card3-row-content {
+      font-size: 0.82rem;
+      line-height: 1.35;
+      color: var(--slate-body);
+      flex: 1;
+    }
+
+    .card3-row-content strong {
+      color: var(--indigo-dark);
+      font-weight: 800;
+      margin-right: 4px;
     }
 
     /* Table Slide */
@@ -762,32 +535,35 @@ function generateHtml() {
       overflow: hidden;
       border: 1.5px solid #e2e8f0;
       background: #ffffff;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
     }
 
     .raci-table th {
       background: #f8fafc;
       color: var(--indigo-dark);
-      padding: 14px 16px;
+      padding: 16px 18px;
       font-weight: 800;
       text-align: left;
       border-bottom: 2px solid #e2e8f0;
+      font-size: 0.94rem;
     }
 
     .raci-table td {
-      padding: 14px 16px;
+      padding: 14px 18px;
       border-bottom: 1px solid #f1f5f9;
       color: var(--slate-body);
+      font-weight: 500;
     }
 
     .raci-table tr:last-child td {
       border-bottom: none;
     }
 
-    .tag-r { background: #ffe4e6; color: #be123c; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 0.78rem; }
-    .tag-a { background: #ede9fe; color: #5b21b6; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 0.78rem; }
-    .tag-c { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
-    .tag-i { background: #f1f5f9; color: #64748b; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; }
+    .tag-r { background: #ffe4e6; color: #be123c; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .tag-a { background: #ede9fe; color: #5b21b6; padding: 5px 10px; border-radius: 6px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .tag-c { background: #e0f2fe; color: #0369a1; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; display: inline-block; }
+    .tag-i { background: #f1f5f9; color: #64748b; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.8rem; display: inline-block; }
 
     /* Bottom Control Bar */
     #bottom-bar {
@@ -894,7 +670,7 @@ function generateHtml() {
       color: #fde047;
     }
 
-    /* PDF Print Styles */
+    /* PDF Print Styles (16in x 9in) */
     @page {
       size: 16in 9in;
       margin: 0;
@@ -902,8 +678,8 @@ function generateHtml() {
 
     @media print {
       html, body {
-        font-size: 19px !important;
-        background: #0f172a !important;
+        font-size: 18.5px !important;
+        background: #090d16 !important;
         overflow: visible !important;
         height: auto !important;
         margin: 0 !important;
@@ -935,9 +711,9 @@ function generateHtml() {
         border: none !important;
         box-shadow: none !important;
         box-sizing: border-box !important;
-        padding: 0.65in 0.85in !important;
+        padding: 0.52in 0.75in !important;
         overflow: hidden !important;
-        background: linear-gradient(135deg, #fff7fa 0%, #ffffff 50%, #fbf8ff 100%) !important;
+        background: linear-gradient(135deg, #fffbfd 0%, #ffffff 45%, #fbf9ff 100%) !important;
       }
       .slide.active {
         animation: none !important;
@@ -951,228 +727,397 @@ function generateHtml() {
   <div id="deck-container">
     ${slidesData.map((s, idx) => `
       <div class="slide ${idx === 0 ? 'active' : ''}" id="slide-${idx}">
+        
+        <!-- TOP BAR -->
         <div class="slide-topbar">
           <div class="badge-pill">${s.tag}</div>
-          <div class="slide-counter-badge">${s.num} / ${slidesData.length} ✦ KostKu RPL</div>
+          <div class="slide-counter-badge">Slide ${s.num} / ${slidesData.length} ✦ KostKu RPL UDINUS</div>
         </div>
 
-        <div class="slide-title-area">
-          <h1>${s.title}</h1>
-          <p>${s.subtitle}</p>
-        </div>
+        <!-- HEADER AREA (Omit on cover to avoid duplicate headers) -->
+        ${s.type !== 'cover' ? `
+          <div class="slide-title-area">
+            <h1>${s.title}</h1>
+            <p>${s.subtitle}</p>
+          </div>
+        ` : ''}
 
-        ${s.type === 'cover' ? `
-          <div class="cards-3-grid" style="margin-top: 10px;">
-            ${s.metrics.map(m => `
+        <!-- MAIN BODY CONTAINER -->
+        <div class="slide-content-body">
+          
+          ${s.type === 'cover' ? `
+            <div class="cover-wrapper">
+              <div class="cover-hero-box">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.8rem; font-weight: 800; color: #be123c; text-transform: uppercase; letter-spacing: 0.05em; background: #ffe4e6; padding: 4px 12px; border-radius: 9999px;">
+                    ✦ ${s.authors ? s.authors.institution : 'Universitas Dian Nuswantoro (UDINUS) Semarang'}
+                  </span>
+                  <span style="font-size: 0.8rem; font-weight: 700; color: #64748b;">
+                    ${s.authors ? s.authors.course : 'Tugas Kelompok Rekayasa Perangkat Lunak'}
+                  </span>
+                </div>
+
+                <div class="cover-hero-title">
+                  KOSTKU <span>✦ ARCHITECTURAL ECOSYSTEM</span>
+                </div>
+                
+                <p style="font-size: 1.05rem; color: #475569; max-width: 900px; line-height: 1.45;">
+                  ${s.subtitle}
+                </p>
+
+                <div class="cover-author-badge">
+                  <div style="font-size: 2rem;">🎓</div>
+                  <div>
+                    <div style="font-size: 1.02rem; font-weight: 900; color: #0f172a;">
+                      ${s.authors ? s.authors.lead : 'Oscar Herdian Wijaya (NIM: A11.2025.16309)'}
+                      <span style="font-size: 0.78rem; font-weight: 700; color: #be123c; background: #ffe4e6; padding: 2px 8px; border-radius: 6px; margin-left: 6px;">
+                        ${s.authors && s.authors.leadRole ? s.authors.leadRole : 'Lead Architect'}
+                      </span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #64748b; margin-top: 3px;">
+                      Rekan Tim: ${s.authors && Array.isArray(s.authors.members) ? s.authors.members.map(m => typeof m === 'object' ? `${m.name}` : m).join(' • ') : 'Maulana Hadi Saputra (A11.2025.16307) • Angelo Joe Lara (A11.2025.16337)'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3 HERO METRIC CARDS WITH RICH BULLETS -->
+              <div class="cards-3-grid" style="margin-top: 14px; flex: 1;">
+                ${s.metrics.map(m => `
+                  <div class="metric-hero-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px dashed #f1f5f9; padding-bottom: 8px;">
+                      <span class="num-highlight">${m.title.split(' ')[0]}</span>
+                      <span style="font-size: 2.2rem;">${m.icon}</span>
+                    </div>
+                    <div style="margin: 8px 0 10px 0;">
+                      <h4 style="font-size: 1.1rem; font-weight: 800; color: #0f172a; margin-bottom: 3px;">${m.title}</h4>
+                      <p style="font-size: 0.85rem; color: #64748b; line-height: 1.35;">${m.desc}</p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px;">
+                      ${m.bullets ? m.bullets.map(b => `
+                        <div style="font-size: 0.8rem; color: #334155; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                          <span style="color: #f43f5e; font-weight: 900; font-size: 0.85rem;">✓</span> ${b}
+                        </div>
+                      `).join('') : ''}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${s.type === 'split' ? `
+            <div class="split-grid">
+              <div class="cute-card ${s.colLeft.color || 'pink'}">
+                <div class="card-header-cute">
+                  <h3>${s.colLeft.title}</h3>
+                  <span class="mini-badge">${s.colLeft.badge}</span>
+                </div>
+                <div class="item-list">
+                  ${s.colLeft.items.map(it => `
+                    <div class="list-row">
+                      <span class="list-icon">${it.icon}</span>
+                      <div class="list-text">
+                        <strong>${it.title}</strong>
+                        <span>${it.desc}</span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="cute-card ${s.colRight.color || 'purple'}">
+                <div class="card-header-cute">
+                  <h3>${s.colRight.title}</h3>
+                  <span class="mini-badge">${s.colRight.badge}</span>
+                </div>
+                <div class="item-list">
+                  ${s.colRight.items.map(it => `
+                    <div class="list-row">
+                      <span class="list-icon">${it.icon}</span>
+                      <div class="list-text">
+                        <strong>${it.title}</strong>
+                        <span>${it.desc}</span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${s.type === 'blueprint' ? `
+            <div class="split-grid">
               <div class="cute-card pink">
-                <div style="font-size: 2rem; margin-bottom: 8px;">${m.icon}</div>
-                <h3 style="font-size: 1.2rem; font-weight: 800; color: #1e1b4b; margin-bottom: 6px;">${m.title}</h3>
-                <p style="font-size: 0.88rem; color: #64748b;">${m.desc}</p>
-              </div>
-            `).join('')}
-          </div>
-          <div style="margin-top: 24px; font-size: 0.9rem; color: #94a3b8; font-weight: 600;">
-            ✦ Karya Siswi Rekayasa Perangkat Lunak (RPL) ✦ v1.0.4 Production Release
-          </div>
-        ` : ''}
-
-        ${s.type === 'split' ? `
-          <div class="split-grid">
-            <div class="cute-card ${s.colLeft.color}">
-              <div class="card-header-cute">
-                <h3>${s.colLeft.title}</h3>
-                <span class="mini-badge">${s.colLeft.badge}</span>
-              </div>
-              <div class="item-list">
-                ${s.colLeft.items.map(it => `
-                  <div class="list-row">
-                    <span class="list-icon">${it.icon}</span>
-                    <div class="list-text">
-                      <strong>${it.title}</strong>
-                      <span>${it.desc}</span>
+                <div class="card-header-cute">
+                  <h3>Fitur Unggulan Arsitektur & Dimensi Riil</h3>
+                  <span class="mini-badge">Skala 1:50 Presisi CAD</span>
+                </div>
+                <div class="item-list">
+                  ${s.bullets.map(b => `
+                    <div class="list-row">
+                      <span class="list-icon">${b.icon}</span>
+                      <div class="list-text">
+                        <strong>${b.title}</strong>
+                        <span>${b.desc}</span>
+                      </div>
                     </div>
-                  </div>
-                `).join('')}
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="cute-card" style="background: #06111f; border-color: #38bdf8; color: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid rgba(56, 189, 248, 0.4); padding-bottom: 8px; margin-bottom: 8px;">
+                  <span style="font-family: monospace; font-size: 0.8rem; color: #38bdf8; font-weight: bold; letter-spacing: 0.05em;">✦ ARCHITECTURAL CAD VECTOR ENGINE (1:50)</span>
+                  <span style="font-size: 0.75rem; color: #facc15; font-family: monospace;">LUAS: 18.0 m² (4.0m x 4.5m)</span>
+                </div>
+                <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                  <svg width="100%" height="auto" viewBox="0 0 500 220" style="display:block; margin: 0 auto;">
+                    <defs>
+                      <pattern id="cadGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(56, 189, 248, 0.08)" stroke-width="0.7"/>
+                      </pattern>
+                    </defs>
+                    <rect width="500" height="220" fill="#06111f" />
+                    <rect width="500" height="220" fill="url(#cadGrid)" />
+                    
+                    <!-- Wall Outlines -->
+                    <rect x="25" y="15" width="450" height="190" fill="rgba(56, 189, 248, 0.04)" stroke="#38bdf8" stroke-width="2.5" rx="4" />
+                    
+                    <!-- Dimension Annotations -->
+                    <line x1="25" y1="8" x2="475" y2="8" stroke="#facc15" stroke-width="1.2" stroke-dasharray="2,2"/>
+                    <text x="250" y="6" fill="#facc15" font-size="8.5" font-family="monospace" text-anchor="middle">LEBAR: 4.50 METER</text>
+                    
+                    <line x1="12" y1="15" x2="12" y2="205" stroke="#facc15" stroke-width="1.2" stroke-dasharray="2,2"/>
+                    <text x="10" y="115" fill="#facc15" font-size="8.5" font-family="monospace" text-anchor="middle" transform="rotate(-90 10 115)">PANJANG: 4.00 METER</text>
+
+                    <!-- Pintu Swing -->
+                    <line x1="60" y1="205" x2="110" y2="205" stroke="#06111f" stroke-width="5" />
+                    <path d="M 60 205 Q 60 160, 110 160" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,3" />
+                    <line x1="60" y1="205" x2="60" y2="160" stroke="#38bdf8" stroke-width="2.5" />
+                    <text x="75" y="195" fill="#38bdf8" font-size="8.5" font-family="monospace" font-weight="bold">BUKAAN PINTU (90cm)</text>
+
+                    <!-- Jendela Kaca -->
+                    <line x1="310" y1="15" x2="430" y2="15" stroke="#facc15" stroke-width="4.5" />
+                    <text x="370" y="28" fill="#facc15" font-size="8" font-family="monospace" font-weight="bold" text-anchor="middle">JENDELA VENTILASI ALAMI (120cm)</text>
+
+                    <!-- Kamar Mandi Dalam -->
+                    <rect x="25" y="15" width="120" height="85" fill="rgba(14, 165, 233, 0.15)" stroke="#38bdf8" stroke-width="1.5" />
+                    <circle cx="85" cy="58" r="13" fill="none" stroke="#38bdf8" stroke-width="1.5" />
+                    <text x="85" y="38" fill="#7dd3fc" font-size="8" font-family="monospace" font-weight="bold" text-anchor="middle">KM DALAM (1.5x1.5m)</text>
+
+                    <!-- Kasur Queen -->
+                    <g transform="translate(290, 50)">
+                      <rect width="160" height="125" fill="rgba(99, 102, 241, 0.25)" stroke="#818cf8" stroke-width="2" rx="6" />
+                      <rect x="15" y="8" width="55" height="28" fill="white" rx="3" />
+                      <rect x="90" y="8" width="55" height="28" fill="white" rx="3" />
+                      <text x="80" y="80" fill="white" font-size="11" font-weight="bold" text-anchor="middle">KASUR QUEEN SIZE</text>
+                      <text x="80" y="98" fill="#c7d2fe" font-size="9" font-family="monospace" text-anchor="middle">160 cm x 200 cm</text>
+                    </g>
+
+                    <!-- Meja Belajar -->
+                    <g transform="translate(170, 25)">
+                      <rect width="100" height="48" fill="rgba(16, 185, 129, 0.2)" stroke="#34d399" stroke-width="1.8" rx="4" />
+                      <circle cx="50" cy="60" r="8" fill="#10b981" />
+                      <text x="50" y="22" fill="#34d399" font-size="8" font-family="monospace" font-weight="bold" text-anchor="middle">MEJA LAPTOP</text>
+                    </g>
+                  </svg>
+                </div>
+                <!-- Technical Specification Bar -->
+                <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(56, 189, 248, 0.3); font-size: 0.72rem; color: #94a3b8; font-family: monospace;">
+                  <span>📏 Dimensi: 4.0m x 4.5m</span>
+                  <span>🛏️ Kasur: 160x200cm</span>
+                  <span>🚿 KM Dalam: 1.5x1.5m</span>
+                  <span style="color: #38bdf8; font-weight: bold;">⚡ SVG &lt;15 KB</span>
+                </div>
               </div>
             </div>
+          ` : ''}
 
-            <div class="cute-card ${s.colRight.color}">
-              <div class="card-header-cute">
-                <h3>${s.colRight.title}</h3>
-                <span class="mini-badge">${s.colRight.badge}</span>
-              </div>
-              <div class="item-list">
-                ${s.colRight.items.map(it => `
-                  <div class="list-row">
-                    <span class="list-icon">${it.icon}</span>
-                    <div class="list-text">
-                      <strong>${it.title}</strong>
-                      <span>${it.desc}</span>
+          ${s.type === 'cards3' ? `
+            <div class="cards-3-grid">
+              ${s.cards.map(c => `
+                <div class="cute-card ${c.color || 'pink'}">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 1.8rem;">${c.icon}</span>
+                      <span class="mini-badge">${c.badge}</span>
                     </div>
+                    <h3 style="font-size: 1.1rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; line-height: 1.25;">${c.title}</h3>
                   </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        ` : ''}
-
-        ${s.type === 'blueprint' ? `
-          <div class="split-grid">
-            <div class="cute-card pink">
-              <div class="card-header-cute">
-                <h3>Fitur Unggulan Arsitektur</h3>
-                <span class="mini-badge">Skala 1:50 Presisi</span>
-              </div>
-              <div class="item-list">
-                ${s.bullets.map(b => `
-                  <div class="list-row">
-                    <span class="list-icon">${b.icon}</span>
-                    <div class="list-text">
-                      <strong>${b.title}</strong>
-                      <span>${b.desc}</span>
+                  
+                  ${c.rows ? `
+                    <div class="card3-structured-container">
+                      ${c.rows.map(r => `
+                        <div class="card3-structured-row">
+                          <span class="card3-row-icon">${r.icon}</span>
+                          <div class="card3-row-content">
+                            <strong>${r.bold}</strong> ${r.text}
+                          </div>
+                        </div>
+                      `).join('')}
                     </div>
+                  ` : `
+                    <p style="font-size: 0.86rem; color: #334155; white-space: pre-line; line-height: 1.52; flex: 1;">${c.desc}</p>
+                  `}
+
+                  <div style="margin-top: 6px; border-top: 1.5px dashed rgba(0,0,0,0.08); padding-top: 6px; font-size: 0.76rem; font-weight: 800; color: #f43f5e; text-transform: uppercase;">
+                    ✦ ${c.takeaway || (c.badge.includes('Scrum') ? 'PILIHAN REKOMENDASI KOSTKU' : 'KOMPARASI TEORI AGILE')}
                   </div>
-                `).join('')}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${s.type === 'flow' ? `
+            <div class="split-grid">
+              <div class="cute-card ${s.flow1.color || 'pink'}">
+                <div class="card-header-cute">
+                  <h3>${s.flow1.title}</h3>
+                  <span class="mini-badge">${s.flow1.badge}</span>
+                </div>
+                <div class="item-list">
+                  ${s.flow1.steps.map(step => `
+                    <div class="list-row" style="background: #ffffff; border-color: #fbcfe8;">
+                      <div class="list-text" style="font-size: 0.92rem; font-weight: 700; color: #0f172a;">
+                        ${step}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="cute-card ${s.flow2.color || 'purple'}">
+                <div class="card-header-cute">
+                  <h3>${s.flow2.title}</h3>
+                  <span class="mini-badge">${s.flow2.badge}</span>
+                </div>
+                <div class="item-list">
+                  ${s.flow2.steps.map(step => `
+                    <div class="list-row" style="background: #ffffff; border-color: #ddd6fe;">
+                      <div class="list-text" style="font-size: 0.92rem; font-weight: 700; color: #0f172a;">
+                        ${step}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
               </div>
             </div>
+          ` : ''}
 
-            <div class="cute-card" style="background: #071120; border-color: #38bdf8; color: white;">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding-bottom: 8px; margin-bottom: 12px;">
-                <span style="font-family: monospace; font-size: 0.75rem; color: #38bdf8; font-weight: bold;">SVG BLUEPRINT SCALE 1:50 ARCH</span>
-                <span style="font-size: 0.75rem; color: #facc15;">Dimensi: 4.0m x 4.5m (18 m²)</span>
-              </div>
-              <svg width="100%" height="auto" viewBox="0 0 500 240" style="display:block; margin: 0 auto;">
-                <rect width="500" height="240" fill="#071120" />
-                <rect x="20" y="20" width="460" height="200" fill="rgba(56, 189, 248, 0.08)" stroke="#38bdf8" stroke-width="2" rx="4" />
-                <!-- Door -->
-                <line x1="60" y1="220" x2="100" y2="220" stroke="#071120" stroke-width="4" />
-                <path d="M 60 220 Q 60 180, 100 180" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3" />
-                <line x1="60" y1="220" x2="60" y2="180" stroke="#38bdf8" stroke-width="2" />
-                <text x="50" y="210" fill="#38bdf8" font-size="9" font-weight="bold">PINTU</text>
-                <!-- Window -->
-                <line x1="320" y1="20" x2="420" y2="20" stroke="#facc15" stroke-width="4" />
-                <text x="370" y="36" fill="#facc15" font-size="9" font-weight="bold" text-anchor="middle">JENDELA LUAR</text>
-                <!-- Bed -->
-                <g transform="translate(300, 60)">
-                  <rect width="150" height="130" fill="rgba(59, 130, 246, 0.25)" stroke="#60a5fa" stroke-width="2" rx="6" />
-                  <rect x="15" y="10" width="50" height="30" fill="white" rx="3" />
-                  <rect x="85" y="10" width="50" height="30" fill="white" rx="3" />
-                  <text x="75" y="85" fill="white" font-size="11" font-weight="bold" text-anchor="middle">KASUR QUEEN</text>
-                  <text x="75" y="102" fill="#bfdbfe" font-size="8.5" text-anchor="middle">160 x 200 cm</text>
-                </g>
-                <!-- Desk -->
-                <g transform="translate(40, 40)">
-                  <rect width="110" height="45" fill="rgba(16, 185, 129, 0.25)" stroke="#34d399" stroke-width="2" rx="4" />
-                  <circle cx="55" cy="55" r="10" fill="#10b981" />
-                  <text x="55" y="30" fill="#34d399" font-size="9" font-weight="bold" text-anchor="middle">MEJA BELAJAR</text>
-                </g>
-              </svg>
-            </div>
-          </div>
-        ` : ''}
-
-        ${s.type === 'cards3' ? `
-          <div class="cards-3-grid">
-            ${s.cards.map(c => `
-              <div class="cute-card ${c.color}">
-                <div style="font-size: 2.2rem; margin-bottom: 8px;">${c.icon}</div>
-                <span class="mini-badge" style="align-self: flex-start; margin-bottom: 8px;">${c.badge}</span>
-                <h3 style="font-size: 1.15rem; font-weight: 800; color: #1e1b4b; margin-bottom: 8px;">${c.title}</h3>
-                <p style="font-size: 0.88rem; color: #475569; white-space: pre-line; line-height: 1.5;">${c.desc}</p>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-
-        ${s.type === 'flow' ? `
-          <div class="split-grid">
-            <div class="cute-card ${s.flow1.color}">
-              <div class="card-header-cute">
-                <h3>${s.flow1.title}</h3>
-                <span class="mini-badge">${s.flow1.badge}</span>
-              </div>
-              <div class="item-list">
-                ${s.flow1.steps.map(step => `
-                  <div style="background: white; border-radius: 10px; padding: 12px 14px; border: 1px solid #fbcfe8; font-size: 0.9rem; font-weight: 600; color: #1e1b4b;">
-                    ${step}
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-
-            <div class="cute-card ${s.flow2.color}">
-              <div class="card-header-cute">
-                <h3>${s.flow2.title}</h3>
-                <span class="mini-badge">${s.flow2.badge}</span>
-              </div>
-              <div class="item-list">
-                ${s.flow2.steps.map(step => `
-                  <div style="background: white; border-radius: 10px; padding: 12px 14px; border: 1px solid #ddd6fe; font-size: 0.9rem; font-weight: 600; color: #1e1b4b;">
-                    ${step}
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        ` : ''}
-
-        ${s.type === 'table' ? `
-          <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-            <table class="raci-table">
-              <thead>
-                <tr>
-                  ${s.headers.map(h => `<th>${h}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>
-                ${s.rows.map(r => `
+          ${s.type === 'table' ? `
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <table class="raci-table">
+                <thead>
                   <tr>
-                    <td style="font-weight: 700; color: #1e1b4b;">${r[0]}</td>
-                    <td><span class="tag-r">${r[1]}</span></td>
-                    <td><span class="tag-c">${r[2]}</span></td>
-                    <td><span class="tag-a">${r[3]}</span></td>
-                    <td><span class="${r[4].includes('Lead') ? 'tag-r' : 'tag-i'}">${r[4]}</span></td>
+                    ${s.headers.map(h => `<th>${h}</th>`).join('')}
                   </tr>
-                `).join('')}
-              </tbody>
-            </table>
-            <div style="margin-top: 14px; font-size: 0.8rem; color: #64748b;">
-              <strong>RACI Framework:</strong> 
-              <span class="tag-r">R = Responsible</span> (Pelaksana Utama), 
-              <span class="tag-a">A = Accountable</span> (Pemegang Keputusan & Kelulusan), 
-              <span class="tag-c">C = Consulted</span> (Konsultan Teknis), 
-              <span class="tag-i">I = Informed</span> (Penerima Informasi).
-            </div>
-          </div>
-        ` : ''}
-
-        ${s.type === 'closing' ? `
-          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-            <div style="font-size: 4rem; margin-bottom: 12px;">🌸✨🎀</div>
-            <h2 style="font-size: 2.4rem; font-weight: 900; color: #be123c; margin-bottom: 8px;">TERIMA KASIH BANYAK!</h2>
-            <p style="font-size: 1.2rem; color: #475569; max-width: 700px; margin-bottom: 24px;">
-              Kami siap mendemonstrasikan sistem secara langsung dan menyambut sesi tanya-jawab dari Bapak dan Ibu Dewan Penguji.
-            </p>
-            <div style="display: flex; gap: 14px;">
-              <span class="badge-pill" style="font-size: 0.9rem; padding: 8px 18px;">📱 Android APK Ready</span>
-              <span class="badge-pill" style="font-size: 0.9rem; padding: 8px 18px; background: #ede9fe; border-color: #8b5cf6; color: #5b21b6;">💻 Desktop Electron Ready</span>
-              <span class="badge-pill" style="font-size: 0.9rem; padding: 8px 18px; background: #ecfdf5; border-color: #10b981; color: #065f46;">🌐 Web PWA Live</span>
-            </div>
-          </div>
-        ` : ''}
-
-        ${s.type === 'qa' ? `
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 16px;">
-            ${s.points.map(p => `
-              <div class="cute-card" style="padding: 16px 20px; background: #ffffff; border-color: #fbcfe8;">
-                <h4 style="font-size: 1.05rem; font-weight: 800; color: #be123c; margin-bottom: 4px;">
-                  ✦ ${p.title}
-                </h4>
-                <p style="font-size: 0.9rem; color: #475569; line-height: 1.5;">${p.desc}</p>
+                </thead>
+                <tbody>
+                  ${s.rows.map(r => `
+                    <tr>
+                      <td style="font-weight: 800; color: #0f172a;">${r[0]}</td>
+                      <td><span class="tag-r">${r[1]}</span></td>
+                      <td><span class="tag-c">${r[2]}</span></td>
+                      <td><span class="tag-a">${r[3]}</span></td>
+                      <td><span class="${r[4].includes('Lead') ? 'tag-r' : 'tag-i'}">${r[4]}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 18px; font-size: 0.82rem; color: #475569; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <strong>Pedoman RACI Matrix:</strong> 
+                  <span class="tag-r">R = Responsible</span> (Pelaksana), 
+                  <span class="tag-a">A = Accountable</span> (Penanggung Jawab), 
+                  <span class="tag-c">C = Consulted</span> (Konsultan), 
+                  <span class="tag-i">I = Informed</span> (Penerima Laporan).
+                </div>
+                <div style="font-weight: 700; color: #64748b;">
+                  Siklus Sprint 4 Minggu ✦ Zero Blocker
+                </div>
               </div>
-            `).join('')}
-          </div>
-        ` : ''}
+            </div>
+          ` : ''}
+
+          ${s.type === 'closing' ? `
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, #fff5f8 0%, #ffffff 50%, #f5f3ff 100%); border-radius: 20px; border: 2px solid #fbcfe8; padding: 24px 32px;">
+              <div style="text-align: center;">
+                <div style="font-size: 3.0rem; margin-bottom: 2px;">🌸✨🎀</div>
+                <h2 style="font-family: 'Outfit', sans-serif; font-size: 2.7rem; font-weight: 900; color: #be123c; margin-bottom: 3px; letter-spacing: -0.03em;">
+                  TERIMA KASIH BANYAK!
+                </h2>
+                <p style="font-size: 1.12rem; font-weight: 700; color: #1e1b4b; margin-bottom: 3px;">
+                  Sidang Ujian Akhir Proyek Rekayasa Perangkat Lunak (RPL) 2026
+                </p>
+                <p style="font-size: 0.95rem; color: #64748b; max-width: 820px; margin: 0 auto; line-height: 1.45;">
+                  Kami siap mendemonstrasikan sistem secara langsung (live demo) untuk aplikasi Android APK, Desktop Electron, dan Web PWA, serta menyambut sesi tanya-jawab dari Bapak dan Ibu Dewan Penguji.
+                </p>
+              </div>
+
+              <!-- 4 ARCHITECTURE HIGHLIGHT STATS -->
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 8px 0;">
+                ${s.stats ? s.stats.map(st => `
+                  <div style="background: #ffffff; border: 1.5px solid #f1f5f9; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                    <div style="font-size: 1.5rem; margin-bottom: 2px;">${st.icon}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 700;">${st.label}</div>
+                    <div style="font-size: 0.88rem; font-weight: 900; color: #0f172a; margin-top: 2px;">${st.val}</div>
+                  </div>
+                `).join('') : ''}
+              </div>
+
+              <!-- LIVE DEMO BADGES -->
+              <div style="display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;">
+                <span class="badge-pill" style="font-size: 0.85rem; padding: 8px 18px; background: #fff1f5; border-color: #f43f5e; color: #be123c;">
+                  📱 Android APK v1.0.4 Ready
+                </span>
+                <span class="badge-pill" style="font-size: 0.85rem; padding: 8px 18px; background: #ede9fe; border-color: #8b5cf6; color: #5b21b6;">
+                  💻 Windows Desktop Electron Ready
+                </span>
+                <span class="badge-pill" style="font-size: 0.85rem; padding: 8px 18px; background: #ecfdf5; border-color: #10b981; color: #065f46;">
+                  🌐 Web PWA & Vercel Live
+                </span>
+              </div>
+            </div>
+          ` : ''}
+
+          ${s.type === 'qa' ? `
+            <!-- 3-COLUMN FULL-HEIGHT BALANCED LAYOUT -->
+            <div class="cards-3-grid">
+              ${s.points.map(p => `
+                <div class="qa-col-card">
+                  <div>
+                    <div class="qa-top-header">
+                      <div class="qa-num-badge">${p.num}</div>
+                      <span class="mini-badge" style="background: #ffe4e6; color: #be123c; font-weight: 800;">
+                        ${p.tag || 'ARGUMEN TEKNIS'}
+                      </span>
+                    </div>
+                    <h4>✦ ${p.title}</h4>
+                  </div>
+                  
+                  ${p.sections ? `
+                    <div class="qa-sections-container">
+                      ${p.sections.map(sec => `
+                        <div class="qa-section-item">
+                          <div class="qa-section-label">${sec.label}</div>
+                          <div class="qa-section-text">${sec.text}</div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : `
+                    <p style="font-size: 0.88rem; color: #334155; line-height: 1.45; flex: 1;">${p.desc}</p>
+                  `}
+
+                  <div class="qa-takeaway-box">
+                    💡 <strong>Inti Jawaban:</strong> ${p.takeaway || p.desc.substring(0, 65) + '...'}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+        </div>
       </div>
     `).join('')}
   </div>
@@ -1284,7 +1229,7 @@ console.log('Slide Deck HTML created at:', htmlOut);
 
 // Render each slide to PDF using Google Chrome
 const chromeCmd = `google-chrome --headless --disable-gpu --no-sandbox --no-pdf-header-footer --print-to-pdf="${pdfOut}" "${htmlOut}"`;
-console.log('Rendering 16:9 PDF slide deck...');
+console.log('Rendering 16:9 PDF slide deck via Chrome headless...');
 execSync(chromeCmd, { stdio: 'inherit' });
 
 console.log('Slide Deck PDF saved at:', pdfOut);

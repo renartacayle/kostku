@@ -9,17 +9,32 @@
       {
         "icon": "🎀",
         "title": "0% Komisi Booking",
-        "desc": "Bebas biaya sewa tanpa komisi potongan mencekik"
+        "desc": "Bebas biaya sewa tanpa komisi potongan perantara seumur hidup",
+        "bullets": [
+          "Margin pendapatan pemilik kos 100% utuh",
+          "Hilangkan insentif transaksi gelap/bypass",
+          "Model SaaS terjangkau mulai Rp 49rb/bulan"
+        ]
       },
       {
-        "icon": "✨",
-        "title": "<15KB Vektor Denah",
-        "desc": "Denah SVG interaktif skala arsitektur presisi 1:50"
+        "icon": "📐",
+        "title": "<15 KB Vektor Denah",
+        "desc": "Denah SVG interaktif skala arsitektur presisi 1:50 near-zero latency",
+        "bullets": [
+          "Dimuat instan <100ms bahkan pada sinyal 3G",
+          "Tampilkan dimensi kasur & sisa ruang riil",
+          "Bebas distorsi lensa cembung virtual tour"
+        ]
       },
       {
         "icon": "💻",
-        "title": "Local-First Architecture",
-        "desc": "Tetap operasional lancar tanpa koneksi internet"
+        "title": "100% Local-First",
+        "desc": "Tetap operasional lancar tanpa koneksi internet (Zero-Offline Latency)",
+        "bullets": [
+          "Pencatatan kamar & kWh mulus di blank spot",
+          "Embedded SQLite & Cache lokal gawai klien",
+          "Pangkas biaya komputasi cloud hingga 80%"
+        ]
       }
     ],
     "script": "Selamat pagi Bapak dan Ibu Dosen/Guru Penguji. Mari kita mulai dengan sebuah fakta lapangan: Industri pencarian dan pengelolaan indekos di Indonesia saat ini terjebak dalam mismatch ekspektasi yang cukup tinggi.\n\nPencari kos sering kali tertipu oleh foto sudut lebar yang memanipulasi skala ruangan. Di sisi lain, pemilik kos berjuang secara manual mencatat pembayaran dan utilitas listrik di buku tulis yang rentan rusak.\n\nHari ini, kami memperkenalkan KostKu—ekosistem digital dua sisi yang memecahkan reality gap tersebut melalui pengintegrasian Architectural 2D Blueprint Engine dan sistem pengelolaan back-office berbasis local-first.",
@@ -27,7 +42,23 @@
       "Gestur: Berdiri tegak di tengah, tatap mata dosen penguji secara bergantian.",
       "Pointer: Gunakan laser pointer untuk menunjuk kontras panel aplikasi modern vs cara lama.",
       "Penekanan: Berikan jeda suara tepat setelah mengucapkan 'KostKu' untuk efek impresif."
-    ]
+    ],
+    "authors": {
+      "institution": "Program Studi S1 Teknik Informatika • Fakultas Ilmu Komputer • Universitas Dian Nuswantoro (UDINUS)",
+      "course": "Mata Kuliah Rekayasa Perangkat Lunak (RPL) • Semester Genap 2025/2026",
+      "lead": "Oscar Herdian Wijaya (NIM: A11.2025.16309)",
+      "leadRole": "Lead Software Architect & Fullstack Developer",
+      "members": [
+        {
+          "name": "Maulana Hadi Saputra (NIM: A11.2025.16307)",
+          "role": "Backend & Database Engineer"
+        },
+        {
+          "name": "Angelo Joe Lara Anugrah Wisanggeni Putra Tudjiyo (NIM: A11.2025.16337)",
+          "role": "UI/UX & Mobile QA Lead"
+        }
+      ]
+    }
   },
   {
     "num": "02",
@@ -53,7 +84,7 @@
         {
           "icon": "🚪",
           "title": "Buta Tata Letak & Ventilasi",
-          "desc": "Letak kamar mandi dalam dan jendela arah sinar matahari tidak jelas."
+          "desc": "Letak kamar mandi dalam dan jendela arah sinar matahari luar tidak jelas."
         },
         {
           "icon": "💸",
@@ -84,7 +115,7 @@
         },
         {
           "icon": "🏷️",
-          "title": "Komisi Aplikasi Kompetitor Mencekik",
+          "title": "Komisi Kompetitor Mencekik",
           "desc": "Potongan 5% hingga 12% per transaksi membuat pemilik enggan memakai sistem."
         }
       ]
@@ -106,22 +137,22 @@
       {
         "icon": "✨",
         "title": "Ukuran File Sangat Ringan (<15 KB)",
-        "desc": "Dapat dimuat instan (near-zero latency) bahkan pada koneksi seluler 3G."
+        "desc": "Dapat dimuat instan (near-zero latency) bahkan pada koneksi seluler 3G hemat daya."
       },
       {
         "icon": "📐",
         "title": "Skala Presisi Arsitektur 1:50",
-        "desc": "Menggambarkan proporsi kasur springbed (160x200), meja laptop, dan lemari pakaian."
+        "desc": "Menggambarkan proporsi riil kasur springbed (160x200), meja laptop, dan lemari pakaian."
       },
       {
         "icon": "☀️",
         "title": "Orientasi Cahaya Matahari & Jendela",
-        "desc": "Memperlihatkan arah datangnya angin alami dan pencahayaan matahari luar."
+        "desc": "Memperlihatkan arah bukaan ventilasi alami dan pencahayaan matahari luar ruangan."
       },
       {
         "icon": "🟢",
         "title": "Status Ketersediaan Kamar Dinamis",
-        "desc": "Hijau = Kamar Kosong, Merah = Terisi, Kuning = Dalam Masa Perbaikan."
+        "desc": "Hijau = Kamar Kosong, Merah = Terisi, Kuning = Dalam Masa Perbaikan (Maintenance)."
       }
     ],
     "script": "Inilah fondasi inovasi teknis utama dari KostKu: Architectural 2D Blueprint Engine. Kami tidak mengandalkan foto statis atau media 360 derajat yang membutuhkan beban data besar. Kami merancang mesin rendering denah berbasis SVG interaktif berskala presisi 1:50.\n\nPencari kos dapat melihat objek ruangan secara aktual—termasuk proporsi kasur queen size 160x200 centimeter, tata letak meja kerja, hingga orientasi bukaan jendela terhadap arah datangnya sinar matahari.\n\nData denah ini bersifat dinamis. Ketika sebuah kamar terisi di sistem back-office, visualisasi denah di marketplace akan langsung mengupdate status ketersediaannya secara instan.",
@@ -145,7 +176,7 @@
         {
           "icon": "📸",
           "title": "Scan Foto Kamar via AI",
-          "desc": "AI Vision memindai foto kamar asli dan mengidentifikasi batas dinding & bukaan."
+          "desc": "AI Vision memindai foto kamar asli dan mengidentifikasi batas dinding & bukaan pintu."
         },
         {
           "icon": "🛏️",
@@ -191,7 +222,7 @@
         }
       ]
     },
-    "script": "Pada evolusi produk terbaru kami, KostKu memperkenalkan AI Vision Room Scanner dan 3D Isometric Cutaway Viewer.\n    \nPemilik kos tidak perlu memiliki keahlian arsitektur untuk membuat denah. Cukup unggah foto kamar, dan AI akan memindai ruang serta mengajukan kuesioner interaktif perabot—mulai dari ukuran kasur single hingga king size, AC, hingga kamar mandi dalam—lalu men-generate model 3D interaktif yang dapat diputar 4 sudut pandang dengan mode siang dan malam.",
+    "script": "Pada evolusi produk terbaru kami, KostKu memperkenalkan AI Vision Room Scanner dan 3D Isometric Cutaway Viewer.\n\nPemilik kos tidak perlu memiliki keahlian arsitektur untuk membuat denah. Cukup unggah foto kamar, dan AI akan memindai ruang serta mengajukan kuesioner interaktif perabot—mulai dari ukuran kasur single hingga king size, AC, hingga kamar mandi dalam—lalu men-generate model 3D interaktif yang dapat diputar 4 sudut pandang dengan mode siang dan malam.",
     "tips": [
       "Gestur: Tunjukkan gestur memutar pergelangan tangan untuk menggambarkan rotasi 3D.",
       "Pointer: Sorot tombol rotasi 4 sudut dan perbandingan foto asli kamar tidur.",
@@ -232,7 +263,7 @@
         {
           "icon": "5️⃣",
           "title": "Nomor Referensi Unik",
-          "desc": "INV-{TIMESTAMP}-{NOMOR_KAMAR} tercatat di database"
+          "desc": "INV-{TIMESTAMP}-{NOMOR_KAMAR} tercatat otomatis di database"
         }
       ]
     },
@@ -281,22 +312,88 @@
         "icon": "📱",
         "badge": "Layer 1: Multi-Platform Clients",
         "color": "pink",
-        "title": "React 18 + Capacitor + Electron + PWA",
-        "desc": "Satu basis kode terpadu untuk tiga runtime: Android APK (Capacitor), Windows Desktop (Electron), dan Web Browser (PWA) dengan tampilan responsif."
+        "title": "React 18 + Capacitor + Electron",
+        "rows": [
+          {
+            "icon": "⚡",
+            "bold": "Single Codebase:",
+            "text": "1 basis kode web terpadu untuk 3 runtime berbeda"
+          },
+          {
+            "icon": "🤖",
+            "bold": "Android APK:",
+            "text": "Dibungkus via Capacitor, akses hardware kamera & GPS"
+          },
+          {
+            "icon": "💻",
+            "bold": "Windows Desktop:",
+            "text": "Runtime Electron untuk pengelola kos minim gangguan"
+          },
+          {
+            "icon": "🌐",
+            "bold": "Web PWA:",
+            "text": "Tampilan responsif di perambah modern via Vercel"
+          }
+        ],
+        "takeaway": "Ekosistem Multi-Device 100% Terpadu"
       },
       {
         "icon": "⚡",
         "badge": "Layer 2: Local Processing Engine",
         "color": "purple",
         "title": "In-Memory Cache & Embedded SQLite",
-        "desc": "Menjamin Zero-Offline Latency. Operasi pencatatan kamar, meteran listrik, dan pembukuan tetap berjalan mulus meskipun koneksi internet terputus."
+        "rows": [
+          {
+            "icon": "🚫",
+            "bold": "Zero-Offline Latency:",
+            "text": "Input data kamar & listrik tak pernah macet di blank spot"
+          },
+          {
+            "icon": "💾",
+            "bold": "Local-First Storage:",
+            "text": "Pencatatan langsung ke memori lokal & IndexedDB/SQLite"
+          },
+          {
+            "icon": "🚀",
+            "bold": "Instant UI Response:",
+            "text": "Respon antarmuka <16ms tanpa menunggu handshake cloud"
+          },
+          {
+            "icon": "🔒",
+            "bold": "Data Sovereignty:",
+            "text": "Data pembukuan sensitif tersimpan aman di HP pengguna"
+          }
+        ],
+        "takeaway": "Operasional Lancar 100% Tanpa Internet"
       },
       {
         "icon": "☁️",
         "badge": "Layer 3: Cloud Backend & Sync",
         "color": "blue",
         "title": "Node.js Express + Supabase Cloud",
-        "desc": "Sinkronisasi asinkron berbasis delta-sync saat online dan manajemen autentikasi Google OAuth 2.0 terpusat."
+        "rows": [
+          {
+            "icon": "🔄",
+            "bold": "Delta-Sync Engine:",
+            "text": "Hanya mengirim selisih perubahan saat perangkat online"
+          },
+          {
+            "icon": "🔑",
+            "bold": "Google OAuth 2.0:",
+            "text": "Autentikasi terpusat & enkripsi token JWT standar"
+          },
+          {
+            "icon": "🛡️",
+            "bold": "Anti-Collision Logic:",
+            "text": "Penyelesaian konflik timestamp pada transaksi offline"
+          },
+          {
+            "icon": "💰",
+            "bold": "Cost Efficiency:",
+            "text": "Pangkas biaya compute cloud database hingga 80%"
+          }
+        ],
+        "takeaway": "Sinkronisasi Cloud Efisien & Skalabel"
       }
     ],
     "script": "Untuk menjamin keandalan sistem pada berbagai kondisi operasional, KostKu dibangun dengan pendekatan Hybrid Local-First Architecture.\n\nDi sisi frontend, kami memanfaatkan React 18 dan Vite. Di sisi runtime aplikasi, kami membungkus kode dasar yang sama menggunakan Capacitor untuk platform Android dan Electron untuk Desktop, serta PWA untuk dukungan perambah Web.\n\nPrinsip Local-First memastikan bahwa pengelola kos tetap dapat melakukan pembukuan dan mencatat transaksi meskipun koneksi internet terputus. Data disimpan di penyimpan lokal berbasis SQLite, yang kemudian secara asinkron disinkronkan ke cloud Supabase ketika koneksi internet kembali aktif.",
@@ -370,7 +467,7 @@
         {
           "icon": "📍",
           "title": "Verifikasi Lokasi Google Maps",
-          "desc": "Pendaftaran kos wajib koordinat GPS dan tautan Google Maps nyata."
+          "desc": "Pendaftaran kos wajib menyertakan koordinat GPS dan tautan Google Maps nyata."
         }
       ]
     },
@@ -382,12 +479,12 @@
         {
           "icon": "🔄",
           "title": "Pemulihan Akun via NIK",
-          "desc": "Reset sandi mandiri dengan mencocokkan NIK & nama e-KTP resmi."
+          "desc": "Reset sandi mandiri dengan mencocokkan NIK & nama e-KTP resmi kependudukan."
         },
         {
           "icon": "⚡",
           "title": "1-Click Booking Approval",
-          "desc": "Pemilik cukup klik Setujui, sistem auto-assign kamar & buat PIN pintu."
+          "desc": "Pemilik cukup klik Setujui, sistem auto-assign kamar & generate PIN pintu."
         },
         {
           "icon": "🏢",
@@ -487,21 +584,87 @@
         "badge": "Aliran 1: Freemium SaaS",
         "color": "pink",
         "title": "Rp 49rb - 99rb / Bulan",
-        "desc": "Free Tier hingga 5 kamar. Biaya langganan <0.3% omzet kos. Jauh lebih diminati dibanding komisi kompetitor yang memotong Rp 1.5jt/bulan!"
+        "rows": [
+          {
+            "icon": "🎁",
+            "bold": "Free Tier:",
+            "text": "Gratis hingga 5 kamar untuk pengelola kos rintisan"
+          },
+          {
+            "icon": "💼",
+            "bold": "Pro Tier:",
+            "text": "Rp 49.000/bln (fitur WhatsApp billing & meteran kWh)"
+          },
+          {
+            "icon": "🏢",
+            "bold": "Enterprise:",
+            "text": "Rp 99.000/bln (multi-cabang, smart lock, staf unlimited)"
+          },
+          {
+            "icon": "📊",
+            "bold": "Rasio Beban:",
+            "text": "Hanya <0.3% omzet sewa, jauh lebih murah dari calo"
+          }
+        ],
+        "takeaway": "Model SaaS Ramah Pemilik Kos"
       },
       {
         "icon": "✨",
         "badge": "Aliran 2: Featured Listing",
         "color": "purple",
         "title": "Spotlight Kota & Verified Badge",
-        "desc": "Rp 25.000/minggu untuk slot teratas pencarian kota. Sangat diminati pemilik kos saat musim ajaran baru mahasiswa kampus."
+        "rows": [
+          {
+            "icon": "📍",
+            "bold": "Priority Slot:",
+            "text": "Rp 25.000/minggu untuk slot teratas pencarian kota"
+          },
+          {
+            "icon": "🎓",
+            "bold": "Musim Kuliah:",
+            "text": "Sangat diminati saat pendaftaran mahasiswa baru"
+          },
+          {
+            "icon": "🛡️",
+            "bold": "Verified Badge:",
+            "text": "Lencana centang hijau setelah inspeksi denah 1:50"
+          },
+          {
+            "icon": "📈",
+            "bold": "CTR Naik 3x:",
+            "text": "Tingkat konversi penyewa 300% lebih cepat terisi"
+          }
+        ],
+        "takeaway": "Pendapatan Iklan Non-Intrusif"
       },
       {
         "icon": "🏰",
         "badge": "4 Parit Pertahanan (Moats)",
         "color": "mint",
         "title": "High Switching Cost & Retensi",
-        "desc": "1. Vektor Denah SVG & 3D Cutaway\n2. 0% Komisi Seumur Hidup\n3. Anti-Bot 1 KTP 1 Akun Terpercaya\n4. Aplikasi Ringan di HP Android Murah"
+        "rows": [
+          {
+            "icon": "📐",
+            "bold": "Moat 1: Vektor SVG:",
+            "text": "Data denah arsitektur presisi sulit dipindahkan manual"
+          },
+          {
+            "icon": "💸",
+            "bold": "Moat 2: 0% Komisi:",
+            "text": "Pemilik kos loyal seumur hidup tanpa potongan transaksi"
+          },
+          {
+            "icon": "🆔",
+            "bold": "Moat 3: Anti-Bot NIK:",
+            "text": "Ekosistem terpercaya bebas akun fiktif dan penipuan"
+          },
+          {
+            "icon": "📱",
+            "bold": "Moat 4: Ringan di HP:",
+            "text": "Bisa jalan mulus di Android murah tanpa lag"
+          }
+        ],
+        "takeaway": "Kunci Retensi Pengguna Jangka Panjang"
       }
     ],
     "script": "Bagaimana KostKu bertahan dan memenangkan persaingan pasar? Jawabannya terletak pada model bisnis dan competitive moats yang kami bangun.\n\nPlatform pesaing umumnya memotong komisi transaksi sebesar 5 hingga 15 persen dari nilai sewa. Model ini memberatkan pemilik kos dan memicu transaksi gelap di luar sistem. KostKu menerapkan 0% komisi transaksi sewa, dan beralih ke model langganan perangkat lunak (SaaS) dengan tarif terjangkau sebesar 49 ribu hingga 99 ribu Rupiah per bulan untuk fitur pengelolaan back-office tingkat lanjut.\n\nNilai pertahanan utama kami terletak pada High Switching Cost. Ketika pengelola telah memasukkan riwayat data keuangan dan rancangan denah SVG di KostKu, biaya untuk berpindah ke sistem lain menjadi sangat tinggi, sehingga memberikan recurring revenue yang stabil bagi platform.",
@@ -570,6 +733,175 @@
   },
   {
     "num": "12",
+    "tag": "🔄 METODOLOGI SOFTWARE PROSES",
+    "title": "Implementasi Scrum Framework pada Siklus KostKu",
+    "subtitle": "Iterasi cepat 2 minggu (Sprint), transparansi empiris, dan integrasi praktik teknis XP",
+    "type": "split",
+    "colLeft": {
+      "title": "⚡ Struktur Sprint & Upacara Scrum",
+      "badge": "Empirical Lifecycle",
+      "color": "pink",
+      "items": [
+        {
+          "icon": "📅",
+          "title": "Siklus Sprint 2 Minggu",
+          "desc": "Sprint 1 Denah SVG ➔ Sprint 2 Utilitas/WA ➔ Sprint 3 Anti-Bot NIK ➔ Sprint 4 AI Scanner."
+        },
+        {
+          "icon": "🗣️",
+          "title": "Daily Scrum 15 Menit",
+          "desc": "Sinkronisasi harian modul frontend-backend dan eliminasi hambatan teknis seketika."
+        },
+        {
+          "icon": "🎯",
+          "title": "Sprint Review & Retrospektif",
+          "desc": "Demonstrasi live increment perangkat lunak dan evaluasi peningkatan efisiensi tim."
+        },
+        {
+          "icon": "✅",
+          "title": "Definition of Done (DoD) Ketat",
+          "desc": "Unit testing lulus 100%, zero lint error, responsif multi-device, dan blueprint terbarui."
+        }
+      ]
+    },
+    "colRight": {
+      "title": "🎯 Alasan Pemilihan & Keuntungan",
+      "badge": "Strategic Justification",
+      "color": "purple",
+      "items": [
+        {
+          "icon": "🚀",
+          "title": "Rapid Feedback Loop Pasar",
+          "desc": "Memvalidasi antarmuka langsung ke dua persona: mahasiswa perantau dan bapak/ibu kos."
+        },
+        {
+          "icon": "🤖",
+          "title": "Eksplorasi Inovasi Fleksibel",
+          "desc": "Mampu mengadopsi AI Vision Room Scanner & Three.js tanpa terhambat spesifikasi kaku."
+        },
+        {
+          "icon": "🛡️",
+          "title": "Mitigasi Scope Creep via MoSCoW",
+          "desc": "Product Owner mengunci fitur Must-Have (60%) agar rilis produk selalu tepat waktu."
+        },
+        {
+          "icon": "🛠️",
+          "title": "Adopsi Praktik Rekayasa XP",
+          "desc": "Diperkuat Pair Programming pada modul kritis dan CI/CD otomatis via GitHub Actions."
+        }
+      ]
+    },
+    "script": "Untuk merekayasa perangkat lunak KostKu secara adaptif dan terukur, kami memilih metodologi Agile dengan Framework Scrum yang diperkaya praktik rekayasa Extreme Programming.\n\nDengan siklus Sprint 2 minggu, kami mampu merilis fungsionalitas produk bertahap—mulai dari MVP marketplace denah 2D, kalkulator utilitas, hingga AI Room Scanner. Daily Scrum menjaga sinkronisasi tim lintas-fungsi, sementara Definition of Done menjamin setiap kode yang dihasilkan bebas bug sebelum digabungkan.",
+    "tips": [
+      "Gestur: Gerakan tangan berputar membentuk lingkaran untuk menggambarkan siklus Sprint 2 minggu.",
+      "Pointer: Sorot urutan Sprint 1 hingga 4 lalu tunjukkan klausul Definition of Done.",
+      "Penekanan: Tekan kata 'Rapid Feedback Loop' dan 'Sinergi Scrum dengan Praktik XP'."
+    ]
+  },
+  {
+    "num": "13",
+    "tag": "📚 LANDASAN TEORI AGILE",
+    "title": "Komparasi Teori Model Agile: XP vs Scrum vs DSDM",
+    "subtitle": "Kajian komparatif filosofi, fokus rekayasa, dan tata kelola proyek perangkat lunak",
+    "type": "cards3",
+    "cards": [
+      {
+        "icon": "💻",
+        "badge": "Extreme Programming (XP)",
+        "color": "pink",
+        "title": "Disiplin Rekayasa Teknis",
+        "rows": [
+          {
+            "icon": "👤",
+            "bold": "Pencetus:",
+            "text": "Kent Beck (1999) & Ward Cunningham"
+          },
+          {
+            "icon": "💎",
+            "bold": "5 Nilai Inti:",
+            "text": "Komunikasi, Kesederhanaan, Feedback, Keberanian, Respect"
+          },
+          {
+            "icon": "🛠️",
+            "bold": "12 Praktik:",
+            "text": "TDD, Pair Programming, CI, Refactoring, Simple Design, Small Releases"
+          },
+          {
+            "icon": "🎯",
+            "bold": "Fokus Utama:",
+            "text": "Kualitas basis kode level tinggi & pencegahan cacat software sejak dini"
+          }
+        ],
+        "takeaway": "Fondasi Kualitas Kode & Bebas Bug"
+      },
+      {
+        "icon": "🔄",
+        "badge": "Scrum Framework",
+        "color": "purple",
+        "title": "Manajemen Adaptif & Empiris",
+        "rows": [
+          {
+            "icon": "👤",
+            "bold": "Pencetus:",
+            "text": "Ken Schwaber & Jeff Sutherland (1995)"
+          },
+          {
+            "icon": "🏛️",
+            "bold": "3 Pilar Empiris:",
+            "text": "Transparansi, Inspeksi berkala, dan Adaptasi berkelanjutan"
+          },
+          {
+            "icon": "👥",
+            "bold": "3 Peran & Event:",
+            "text": "Product Owner, Scrum Master, Developer (Sprint 2 Minggu)"
+          },
+          {
+            "icon": "🎯",
+            "bold": "Fokus Utama:",
+            "text": "Penyampaian value bisnis bertahap via Definition of Done (DoD) ketat"
+          }
+        ],
+        "takeaway": "Pilihan Utama Metodologi KostKu"
+      },
+      {
+        "icon": "🏛️",
+        "badge": "DSDM (Dynamic Systems)",
+        "color": "mint",
+        "title": "Tata Kelola Bisnis Enterprise",
+        "rows": [
+          {
+            "icon": "👤",
+            "bold": "Pencetus:",
+            "text": "DSDM Consortium UK (1994, Arie van Bennekum)"
+          },
+          {
+            "icon": "🔺",
+            "bold": "Segitiga Terbalik:",
+            "text": "Waktu, Biaya, Kualitas TETAP; Fitur VARIABEL (Scope Flex)"
+          },
+          {
+            "icon": "⚖️",
+            "bold": "MoSCoW Rules:",
+            "text": "Must Have (60%), Should Have, Could Have, Won't Have"
+          },
+          {
+            "icon": "🎯",
+            "bold": "Fokus Utama:",
+            "text": "Ketepatan tenggat waktu & kesesuaian strategis korporasi"
+          }
+        ],
+        "takeaway": "Disiplin Tenggat Waktu & Anggaran Bisnis"
+      }
+    ],
+    "script": "Sebagai landasan ilmiah teoritis, kami membedah tiga model Agile utama dalam rekayasa perangkat lunak: Extreme Programming, Scrum, dan DSDM.\n\nXP berfokus ekstrem pada keunggulan teknis penulisan kode melalui TDD dan Pair Programming. Scrum berfokus pada manajemen empiris dan fleksibilitas tim melalui wadah Sprint dan akuntabilitas peran. Sedangkan DSDM berfokus pada tata kelola bisnis korporat dengan mengunci waktu dan biaya serta memvariasikan fitur menggunakan metode MoSCoW.\n\nKostKu mensintesis keunggulan Scrum sebagai payung manajerial dan mengadopsi disiplin XP untuk kualitas kodenya.",
+    "tips": [
+      "Gestur: Tunjukkan perbandingan 3 kolom secara seimbang dari kiri ke kanan.",
+      "Pointer: Sorot perbedaan fokus: XP (Engineering) vs Scrum (Management) vs DSDM (Business Governance).",
+      "Penekanan: Tekan kesimpulan 'Sintesis terbaik: Scrum sebagai manajemen, XP sebagai disiplin kode'."
+    ]
+  },
+  {
+    "num": "14",
     "tag": "⚙️ STANDAR OPERASIONAL PROSEDUR",
     "title": "SOP Maintenance, Server Down & Komplain Pengguna",
     "subtitle": "Protokol enterprise untuk keandalan infrastruktur dan Service Level Agreement (SLA)",
@@ -636,114 +968,316 @@
     ]
   },
   {
-    "num": "13",
+    "num": "15",
     "tag": "💖 KESIMPULAN & PENUTUP",
     "title": "KostKu: Platform Manajemen & Marketplace Kost Pintar",
     "subtitle": "Siap Mendemonstrasikan Sistem Secara Langsung di Hadapan Penguji",
     "type": "closing",
-    "script": "Sekian pemaparan presentasi dari kami mengenai arsitektur, inovasi teknis, model bisnis, dan standar operasional prosedur KostKu. Kami siap mendemonstrasikan sistem secara langsung dan membuka sesi tanya-jawab kepada Bapak dan Ibu Penguji. Terima kasih banyak!",
+    "script": "Sekian pemaparan presentasi dari kami mengenai arsitektur, inovasi teknis, model bisnis, metodologi Agile Scrum, dan standar operasional prosedur KostKu. Kami siap mendemonstrasikan sistem secara langsung dan membuka sesi tanya-jawab kepada Bapak dan Ibu Penguji. Terima kasih banyak!",
     "tips": [
       "Tersenyum ramah dan penuh percaya diri.",
       "Buka laptop / HP untuk mendemonstrasikan aplikasi secara live jika diminta.",
       "Persiapkan diri membuka slide panduan Q&A jika dosen mengajukan pertanyaan kritis."
+    ],
+    "stats": [
+      {
+        "icon": "📐",
+        "label": "Interactive 2D & 3D",
+        "val": "<15 KB Scalable Vector"
+      },
+      {
+        "icon": "🛡️",
+        "label": "Keamanan Ekosistem",
+        "val": "Anti-Bot 1 KTP 1 Akun"
+      },
+      {
+        "icon": "⚡",
+        "label": "Ketahanan Sistem",
+        "val": "100% Local-First Offline"
+      },
+      {
+        "icon": "🔄",
+        "label": "Metodologi RPL",
+        "val": "Agile Scrum + Praktik XP"
+      }
     ]
   },
   {
-    "num": "14",
+    "num": "16",
     "tag": "🛡️ PERTAHANAN Q&A #1",
     "title": "Kenapa Denah 2D SVG, Bukan Foto 360 / Virtual Tour?",
     "subtitle": "Argumen efisiensi bandwidth, kepastian dimensi riil, dan kemudahan pemeliharaan",
     "type": "qa",
     "points": [
       {
-        "num": "1",
-        "title": "Ukuran File & Efisiensi Bandwidth",
-        "desc": "Foto 360° / Matterport memakan 10 MB - 50 MB per ruangan. Sebaliknya, denah vektor SVG kami berukuran rata-rata di bawah 15 Kilobytes (<15KB), dapat dimuat instan (near-zero latency) bahkan pada sinyal 3G."
+        "num": "01",
+        "tag": "BANDWIDTH & LATENSI",
+        "title": "Ukuran File Ekstrem (<15 KB)",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Mengatasi hambatan konektivitas anak kos dan pengelola di wilayah bersinyal minim."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Foto 360° / Matterport: 15-50 MB per ruang. Vektor SVG KostKu: <15 KB (<0.1% beban data)."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Dimuat instan <100ms di jaringan seluler 3G tanpa menyedot kuota internet pengguna."
+          }
+        ],
+        "takeaway": "Hemat kuota hingga 99.9% ✦ Near-Zero Latency"
       },
       {
-        "num": "2",
-        "title": "Kepastian Dimensi & Tata Letak Ruang",
-        "desc": "Foto 360° tetap memakai lensa cembung (fish-eye) yang kerap mendistorsi persepsi ruang. Denah 2D SVG kami menggunakan skala presisi 1:50 yang menunjukkan ukuran fisik riil kasur (160x200cm), sisa ruang gerak, dan lebar pintu."
+        "num": "02",
+        "tag": "PRESI KONSISTENSI FISIK",
+        "title": "Skala Arsitektur 1:50 Presisi",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Menghapus manipulasi visual lensa wide-angle yang sering mengecewakan pencari kos."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Kamera 360° memakai lensa cembung yang mendistorsi ruang. SVG KostKu mengunci skala CAD 1:50."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Penyewa pasti tahu apakah kasur queen (160x200), meja laptop, dan lemari muat secara presisi."
+          }
+        ],
+        "takeaway": "Bebas distorsi lensa ✦ Dimensi riil terverifikasi"
       },
       {
-        "num": "3",
-        "title": "Kemudahan Maintenance & Update Data",
-        "desc": "Mengubah tata letak pada foto 360° membutuhkan foto ulang (reshooting) yang mahal. Pada denah SVG, perubahan posisi perabot hanya butuh update atribut koordinat XML/JSON sederhana di sisi frontend."
+        "num": "03",
+        "tag": "EFISIENSI PEMELIHARAAN",
+        "title": "Update Dinamis Tanpa Reshoot",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Meminimalkan biaya pemeliharaan konten saat perabot kamar diperbarui pemilik."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Virtual tour 360° butuh foto ulang mahal. Pada SVG, cukup ubah atribut koordinat JSON."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Pemilik kos dapat mengubah tata letak kamar dalam 10 detik tanpa fotografer profesional."
+          }
+        ],
+        "takeaway": "Zero reshooting cost ✦ Update instan via JSON"
       }
     ],
     "script": "Jika penguji bertanya: 'Kenapa tidak memakai 360 Virtual Tour seperti Matterport?', sampaikan 3 pilar: Bandwidth (<15KB vs 50MB), Presisi Skala (1:50 tanpa distorsi lensa cembung), dan Maintenance (cukup edit atribut JSON tanpa biaya foto ulang)."
   },
   {
-    "num": "15",
+    "num": "17",
     "tag": "🛡️ PERTAHANAN Q&A #2",
     "title": "Kenapa Arsitektur Local-First, Bukan Full Cloud?",
     "subtitle": "Argumen zero-offline latency, efisiensi operasional server, dan kedaulatan data",
     "type": "qa",
     "points": [
       {
-        "num": "1",
-        "title": "Ketahanan Operasional (Zero-Offline Latency)",
-        "desc": "Pemilik kos sering kali mencatat meteran listrik dan penerimaan sewa langsung di lokasi kosan yang sinyalnya lemah (blank spot). Dengan Local-First, operasi input tidak pernah gagal karena ditulis langsung ke SQLite lokal."
+        "num": "01",
+        "tag": "RELIABILITAS LAPANGAN",
+        "title": "Zero-Offline Latency",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Lorong kos dan lantai dasar sering kali menjadi area blank-spot sinyal beton tebal."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Data ditulis seketika ke SQLite/Cache lokal perangkat (<5ms) tanpa blocking cloud."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Pencatatan meteran kWh listrik dan sewa kamar tetap 100% lancar walau internet mati total."
+          }
+        ],
+        "takeaway": "Aplikasi tak pernah macet saat kehilangan sinyal"
       },
       {
-        "num": "2",
-        "title": "Pengurangan Beban Operasional Server (Cost Efficiency)",
-        "desc": "Operasional read/write harian dialihkan sepenuhnya ke perangkat klien pengguna. Server cloud Supabase hanya menerima paket data selisih (delta sync), memangkas biaya infrastruktur cloud hingga 80%."
+        "num": "02",
+        "tag": "EFISIENSI BIAYA SERVER",
+        "title": "Pangkas Cloud Compute 80%",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Menekan biaya infrastruktur operasional backend agar platform dapat gratis/murah."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Komputasi read/write ditanggung gawai klien. Cloud Supabase hanya terima delta-sync selisih."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Biaya sewa server hemat hingga 80%, memungkinkan penerapan skema biaya sewa 0% komisi."
+          }
+        ],
+        "takeaway": "Beban server rendah & biaya operasional hemat 80%"
       },
       {
-        "num": "3",
-        "title": "Keamanan & Privasi Data Pengelola (Data Ownership)",
-        "desc": "Data pembukuan sensitif berada di bawah kendali lokal perangkat pemilik kos, mengurangi risiko kebocoran data terpusat pada server pihak ketiga."
+        "num": "03",
+        "tag": "KEDAULATAN DATA PRIBADI",
+        "title": "Privasi Finansial Pengelola Kos",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Menjamin kerahasiaan data omzet dan kontak penyewa kos sesuai prinsip desentralisasi."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Basis data sensitif tersimpan terenkripsi di penyimpanan lokal pemilik kos masing-masing."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Meniadakan risiko kebocoran data massal yang kerap terjadi pada arsitektur cloud terpusat."
+          }
+        ],
+        "takeaway": "Kedaulatan data di tangan pemilik kos seutuhnya"
       }
     ],
     "script": "Jika penguji bertanya: 'Mengapa memilih SQLite lokal daripada Full Cloud Database terpusat?', sampaikan: 1. Zero-offline latency di area blank spot, 2. Penghematan biaya cloud compute hingga 80%, 3. Kedaulatan data sensitif pemilik kos terjamin."
   },
   {
-    "num": "16",
+    "num": "18",
     "tag": "🛡️ PERTAHANAN Q&A #3",
     "title": "Kenapa 0% Komisi & Direct WhatsApp? Rawan Ditinggalkan?",
     "subtitle": "Perubahan paradigma software house vs agen calo & retensi berbasis switching cost",
     "type": "qa",
     "points": [
       {
-        "num": "1",
-        "title": "Paradigma: Software House vs Marketplace Agent",
-        "desc": "KostKu diposisikan sebagai Property Management Software (SaaS), bukan calo perantara sewa. Pendapatan kami berasal dari biaya langganan fitur back-office (Rp 49rb - 99rb/bulan), bukan dari memotong komisi sewa."
+        "num": "01",
+        "tag": "PARADIGMA BISNIS",
+        "title": "SaaS Software vs Calo Komisi",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Mendefinisikan ulang posisi KostKu sebagai Software Manajemen Properti, bukan calo."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Pendapatan stabil dari langganan modul back-office (Rp 49rb-99rb/bln) via model SaaS."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Margin keuntungan pemilik kos utuh 100%, menghasilkan Monthly Recurring Revenue (MRR) stabil."
+          }
+        ],
+        "takeaway": "Margin pemilik utuh 100% ✦ Platform raih MRR stabil"
       },
       {
-        "num": "2",
-        "title": "Menghilangkan Kebiasaan Bypass Transaksi",
-        "desc": "Pada platform dengan komisi 5-10%, pemilik dan penyewa selalu berusaha mencari celah bertukar nomor telepon di luar sistem. Dengan 0% komisi dan deep-link WhatsApp, kami merangkul perilaku alami pengguna, bukan melawannya."
+        "num": "02",
+        "tag": "ELIMINASI BYPASS",
+        "title": "Hapus Transaksi Gelap",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Komisi 5-15% selalu memicu pengguna bertukar kontak diam-diam di luar sistem."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Dengan 0% komisi & deep-link WhatsApp, kami merangkul kebiasaan alami pengguna."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Pengguna merasa nyaman bertransaksi terbuka tanpa rasa curiga dipotong biaya terselubung."
+          }
+        ],
+        "takeaway": "Zero user bypass ✦ Transparansi transaksi 100%"
       },
       {
-        "num": "3",
-        "title": "Menciptakan Retensi melalui High Switching Cost",
-        "desc": "Setelah pengelola terbiasa dengan kemudahan cetak kwitansi otomatis, laporan keuangan, dan integrasi data denah, mereka akan terus berlangganan SaaS KostKu karena efisiensi kerja yang didapat jauh melebihi harga langganannya."
+        "num": "03",
+        "tag": "PARIT RETENSI TINGGI",
+        "title": "High Switching Cost yang Kuat",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Menciptakan daya ikat pengguna melalui nilai guna operasional harian yang esensial."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Data kamar, denah vektor, histori kwitansi, dan rumus kWh tersimpan rapi di sistem."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Biaya waktu dan kerumitan untuk pindah ke aplikasi lain sangat tinggi, menjamin retensi loyal."
+          }
+        ],
+        "takeaway": "Switching cost tinggi menjamin retensi jangka panjang"
       }
     ],
     "script": "Jika penguji bertanya: 'Kenapa memberi kontak WhatsApp langsung? Bukankah platform rawan di-bypass?', sampaikan: Kami adalah SaaS perangkat lunak manajemen properti, bukan makelar komisi. 0% komisi justru menghilangkan niat pengguna untuk mem-bypass sistem dan menciptakan loyalitas retensi jangka panjang."
   },
   {
-    "num": "17",
+    "num": "19",
     "tag": "🛡️ PERTAHANAN Q&A #4",
     "title": "Bagaimana Prosedur Server Down & Mitigasi Komplain?",
     "subtitle": "Protokol tanggap darurat, failover otomatis, dan SLA komplain terukur",
     "type": "qa",
     "points": [
       {
-        "num": "1",
-        "title": "Failover Otomatis < 5 Menit",
-        "desc": "Sistem monitoring (Uptime/Sentry) mendeteksi down dalam <2 menit, lalu DNS/edge langsung mengalihkan rute ke halaman statis pemeliharaan darurat agar user tidak melihat layar putih atau error JSON."
+        "num": "01",
+        "tag": "DETEKSI & FAILOVER",
+        "title": "Deteksi <2 Mnt & Failover <5 Mnt",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Mencegah pengguna menemui layar putih polos (white screen) saat terjadi insiden jaringan."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Monitoring otomatis Uptime/Sentry mendeteksi kegagalan <2 menit dan alihkan edge DNS."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Pengguna langsung disuguhkan halaman pemeliharaan darurat resmi dengan informasi jelas."
+          }
+        ],
+        "takeaway": "User selalu mendapat kepastian status sistem"
       },
       {
-        "num": "2",
-        "title": "Strategi Rollback < 15 Menit",
-        "desc": "Jika bug terjadi pasca-rilis, kami memprioritaskan rollback commit stabil sebelumnya dibanding memaksakan hotfix live di produksi, menjamin stabilitas secepat mungkin."
+        "num": "02",
+        "tag": "STRATEGI ROLLBACK",
+        "title": "Rollback Stabil <15 Menit",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Mengutamakan pemulihan stabilitas operasional dibanding coba-coba hotfix di produksi."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Protokol mewajibkan rollback langsung ke commit rilis stabil sebelumnya dalam <15 menit."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Sistem kembali online normal seketika, investigasi bug dilakukan di staging offline."
+          }
+        ],
+        "takeaway": "Stabilitas pulih cepat tanpa eksperimen live"
       },
       {
-        "num": "3",
-        "title": "Service Level Agreement (SLA) Komplain",
-        "desc": "Komplain finansial atau akses kamar (P0) wajib direspons dalam 15-30 menit dan diselesaikan dalam 2-4 jam dengan siklus 3 langkah: Akui & Empati -> Berikan ETA -> Konfirmasi Penuntasan."
+        "num": "03",
+        "tag": "SLA KOMPLAIN TERUKUR",
+        "title": "Respon 15-30 Mnt & Tuntas <4 Jam",
+        "sections": [
+          {
+            "label": "📌 Argumen Landasan",
+            "text": "Menjamin kepastian penyelesaian kendala vital pengguna terkait uang atau akses fisik."
+          },
+          {
+            "label": "📊 Fakta Teknis",
+            "text": "Klasifikasi tegas Masalah Mendesak (P0: pembayaran/pintu) wajib respons SLA 15-30 menit."
+          },
+          {
+            "label": "🎯 Dampak Nyata",
+            "text": "Siklus 3 langkah terstandarisasi: 1) Akui, 2) Berikan estimasi ETA, 3) Konfirmasi tuntas."
+          }
+        ],
+        "takeaway": "Kepastian hukum operasional & kepuasan pengguna"
       }
     ],
     "script": "Jika penguji bertanya: 'Bagaimana jika server Anda down saat penghuni ingin bayar atau masuk kamar?', sampaikan: Kami memiliki SOP Server Down dengan deteksi <2 menit, failover ke halaman statis <5 menit, dan rollback <15 menit. Untuk urusan darurat seperti kunci pintu atau nota double, tim support memiliki SLA respon 15-30 menit."

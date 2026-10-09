@@ -1260,26 +1260,250 @@ const htmlContent = `<!DOCTYPE html>
     </ol>
   </div>
 
+  <div class="page-break"></div>
+
+  <!-- ========================================== -->
+  <!-- HALAMAN 10: METODOLOGI AGILE & MODEL PROSES -->
+  <!-- ========================================== -->
+  <h1>10. Metodologi Agile & Model Software Proses (XP, Scrum, DSDM)</h1>
+  <p>
+    Dalam rekayasa sistem KostKu, penentuan model proses perangkat lunak merupakan keputusan strategis krusial untuk menjamin sinkronisasi antara pengembangan arsitektur teknis yang kompleks (AI Spatial 2D/3D & Multi-Platform) dengan kebutuhan pasar mahasiswa dan pemilik kos yang sangat dinamis. Berikut adalah kajian teoritis komparatif dan justifikasi implementasi Scrum, didukung disiplin Extreme Programming (XP) dan Dynamic Systems Development Model (DSDM).
+  </p>
+
+  <h2>10.1 Manifesto for Agile Software Development</h2>
+  <div class="callout callout-chat avoid-break">
+    <strong style="color: #4f46e5; font-size: 9.2pt;">📜 4 Nilai Utama Agile Manifesto (Snowbird, Utah, 2001):</strong>
+    <ol style="margin-top: 4px; margin-bottom: 0;">
+      <li><strong>Individu dan interaksi</strong> lebih diutamakan daripada proses dan sarana perangkat kerja.</li>
+      <li><strong>Perangkat lunak yang berfungsi (working software)</strong> lebih diutamakan daripada dokumentasi yang komprehensif.</li>
+      <li><strong>Kolaborasi dengan pengguna</strong> lebih diutamakan daripada negosiasi kontrak kaku.</li>
+      <li><strong>Tanggap terhadap perubahan</strong> lebih diutamakan daripada sekadar mengikuti rencana awal yang statis.</li>
+    </ol>
+  </div>
+
+  <h2>10.2 Kajian Teori Tiga Model Agile Software Process</h2>
+  
+  <div class="avoid-break" style="margin-bottom: 10px;">
+    <h3 style="color: #1e1b4b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px;">A. Extreme Programming (XP) — Rekayasa Teknis Ekstrem</h3>
+    <p>
+      Dirumuskan oleh Kent Beck (1999) pada proyek Chrysler C3. XP berfokus pada keunggulan teknis (*code-centric craftsmanship*) dan membawa praktik rekayasa perangkat lunak terbaik ke tingkat ekstrem.
+    </p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0;">
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px;">
+        <strong style="color: #3b82f6; font-size: 8.2pt;">5 Nilai Inti XP:</strong>
+        <p style="font-size: 7.9pt; margin: 2px 0 0 0;">Communication, Simplicity (YAGNI), Feedback berkelanjutan, Courage (berani refactoring), dan Respect terhadap basis kode bersama.</p>
+      </div>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px;">
+        <strong style="color: #3b82f6; font-size: 8.2pt;">12 Praktik Rekayasa Inti XP:</strong>
+        <p style="font-size: 7.9pt; margin: 2px 0 0 0;">Test-Driven Development (TDD), Pair Programming, Continuous Integration (CI), Refactoring berkala, Small Releases, Simple Design, System Metaphor, Collective Ownership, Coding Standards, 40-Hour Week, On-Site Customer, dan Planning Game.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="avoid-break" style="margin-bottom: 10px;">
+    <h3 style="color: #1e1b4b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px;">B. Scrum Framework — Manajemen Proyek Adaptif & Empiris</h3>
+    <p>
+      Diformalkan oleh Ken Schwaber dan Jeff Sutherland (1995/2020) berlandaskan <strong>Teori Kontrol Proses Empiris (Empiricism)</strong>: keputusan diambil berdasar observasi dan bukti nyata melalui 3 Pilar (<em>Transparency, Inspection, Adaptation</em>).
+    </p>
+    <table style="font-size: 8pt; margin: 6px 0;">
+      <thead>
+        <tr>
+          <th style="width: 30%;">3 Roles (Akuntabilitas)</th>
+          <th style="width: 35%;">5 Events (Time-Boxed Ceremonies)</th>
+          <th style="width: 35%;">3 Artifak & Komitmen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            &bull; <strong>Product Owner:</strong> Maksimasi <em>value</em> bisnis & kelola Backlog.<br>
+            &bull; <strong>Scrum Master:</strong> Fasilitator & penyingkir hambatan.<br>
+            &bull; <strong>Developers:</strong> Tim lintas fungsi eksekutor Sprint.
+          </td>
+          <td>
+            &bull; <strong>The Sprint:</strong> Wadah iterasi 1–4 minggu.<br>
+            &bull; <strong>Sprint Planning:</strong> Penetapan Sprint Goal.<br>
+            &bull; <strong>Daily Scrum:</strong> Sinkronisasi harian 15 menit.<br>
+            &bull; <strong>Sprint Review:</strong> Demo fungsional ke stakeholder.<br>
+            &bull; <strong>Sprint Retrospective:</strong> Evaluasi proses & tim.
+          </td>
+          <td>
+            &bull; <strong>Product Backlog</strong> &rarr; <em>Product Goal</em>.<br>
+            &bull; <strong>Sprint Backlog</strong> &rarr; <em>Sprint Goal</em>.<br>
+            &bull; <strong>Increment</strong> &rarr; <strong>Definition of Done (DoD)</strong> (Kriteria kelulusan mutu perangkat lunak).
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="avoid-break" style="margin-bottom: 10px;">
+    <h3 style="color: #1e1b4b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px;">C. Dynamic Systems Development Model (DSDM) — Tata Kelola Korporasi & Segitiga Terbalik</h3>
+    <p>
+      Dirancang oleh Konsorsium DSDM Inggris (1994, Arie van Bennekum). DSDM membalik paradigma Waterfall konvensional: <strong>Waktu, Biaya, dan Kualitas bersifat TETAP (Fixed)</strong>, sedangkan <strong>Cakupan Fitur bersifat VARIABEL (Controllable Scope)</strong> menggunakan teknik prioritisasi MoSCoW.
+    </p>
+    <table style="font-size: 8pt; margin: 6px 0;">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Kategori MoSCoW</th>
+          <th style="width: 15%;">Alokasi Beban</th>
+          <th style="width: 60%;">Definisi & Relevansi Proyek</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-red">Must Have (M)</span></td>
+          <td><strong>~60%</strong> Effort</td>
+          <td>Fitur fundamental non-negotiable. Tanpa fitur ini sistem tidak sah rilis (Denah SVG, Auth KTP NIK, WhatsApp Dispatch).</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">Should Have (S)</span></td>
+          <td><strong>~20%</strong> Effort</td>
+          <td>Fitur bernilai tinggi yang wajib ada jika memungkinkan; terdapat alternatif operasional sementara jika tertunda.</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-yellow">Could Have (C)</span></td>
+          <td><strong>~20%</strong> Effort</td>
+          <td>Fitur pelengkap bernilai tambah (*nice to have*), dipangkas pertama kali saat tenggat waktu terancam (Denah 3D Isometric cutaway).</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-purple">Won't Have (W)</span></td>
+          <td><strong>0%</strong> (Deferred)</td>
+          <td>Fitur yang disepakati ditunda ke rilis masa depan (*out of scope* rilis v1.0.4, misal smart door-lock IoT hardware integration).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ========================================== -->
+  <!-- HALAMAN 11: MATRIKS KOMPARASI & SINTESIS   -->
+  <!-- ========================================== -->
+  <h2>10.3 Matriks Komparasi Ilmiah: XP vs Scrum vs DSDM</h2>
+  <table style="font-size: 7.9pt; margin: 6px 0;">
+    <thead>
+      <tr>
+        <th style="width: 22%;">Parameter Evaluasi</th>
+        <th style="width: 26%;">Extreme Programming (XP)</th>
+        <th style="width: 26%;">Scrum Framework</th>
+        <th style="width: 26%;">Dynamic Systems Dev. Model (DSDM)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Fokus Utama</strong></td>
+        <td>Disiplin penulisan kode & keunggulan teknis (*Technical Engineering*)</td>
+        <td>Tata kelola tim & fleksibilitas proyek iteratif (*Project Management*)</td>
+        <td>Kesesuaian tujuan bisnis & kepatuhan tenggat (*Business Governance*)</td>
+      </tr>
+      <tr>
+        <td><strong>Pencetus & Referensi</strong></td>
+        <td>Kent Beck, Ward Cunningham (1999)</td>
+        <td>Ken Schwaber, Jeff Sutherland (1995)</td>
+        <td>DSDM Consortium UK, Arie van Bennekum (1994)</td>
+      </tr>
+      <tr>
+        <td><strong>Siklus Iterasi</strong></td>
+        <td>1 – 2 Minggu</td>
+        <td>2 – 4 Minggu (Sprint Timebox)</td>
+        <td>Timebox terstruktur bertingkat (Hari, Minggu, Bulan)</td>
+      </tr>
+      <tr>
+        <td><strong>Peran Kunci</strong></td>
+        <td>Programmer, Tester, Tracker, Coach, Customer</td>
+        <td>Product Owner, Scrum Master, Developers</td>
+        <td>Business Sponsor, Business Visionary, Technical Coordinator</td>
+      </tr>
+      <tr>
+        <td><strong>Praktik Unggulan</strong></td>
+        <td>TDD, Pair Programming, Continuous Integration, Refactoring</td>
+        <td>Daily Scrum, Sprint Planning, Review, Retrospective</td>
+        <td>MoSCoW Prioritisation, Inverted Triangle, Facilitated Workshops</td>
+      </tr>
+      <tr>
+        <td><strong>Keterlibatan Klien</strong></td>
+        <td><em>On-site customer</em> mendampingi penuh setiap hari</td>
+        <td>Product Owner mewakili stakeholder secara berkala</td>
+        <td>Business Visionary & Ambassador aktif di setiap gerbang fase</td>
+      </tr>
+      <tr>
+        <td><strong>Kekuatan Terbesar</strong></td>
+        <td>Cacat bug mendekati nol; arsitektur kode sangat bersih & modular</td>
+        <td>Sangat adaptif terhadap perubahan pasar; komitmen tim tinggi</td>
+        <td>Jaminan 100% rilis tepat waktu dan kepatuhan alokasi anggaran</td>
+      </tr>
+      <tr>
+        <td><strong>Keterbatasan Utama</strong></td>
+        <td>Ketergantungan tinggi pada disiplin programmer; minim arsip formal</td>
+        <td>Rentan *scope creep* jika Product Owner kurang tegas membatasi ide</td>
+        <td>Overhead birokrasi peran dan dokumentasi tata kelola lebih berat</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>10.4 Sintesis Penerapan & Justifikasi pada Siklus Proyek KostKu</h2>
+  <p>
+    Proyek KostKu memilih <strong>Scrum Framework</strong> sebagai payung orkestrasi manajemen utama karena model bisnis *two-sided platform* (mahasiswa pencari kos dan bapak/ibu pemilik kos) memerlukan adaptasi cepat terhadap masukan pengguna lapangan. Untuk menutupi potensi celah Scrum, tim KostKu memperkuatnya dengan mengadopsi <strong>disiplin rekayasa teknis XP (TDD & CI/CD)</strong> serta <strong>penguncian prioritas MoSCoW ala DSDM</strong>:
+  </p>
+
+  <div class="avoid-break" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0;">
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #6366f1; border-radius: 6px; padding: 8px;">
+      <strong style="color: #4338ca; font-size: 8.5pt;">🔄 Roadmap 4 Sprint KostKu:</strong>
+      <ul style="font-size: 7.9pt; margin: 4px 0 0 16px;">
+        <li><strong>Sprint 1 (W1-W2):</strong> MVP Denah Vektor 2D SVG Skala 1:50, Google Maps GPS, & Marketplace Pencarian.</li>
+        <li><strong>Sprint 2 (W3-W4):</strong> Kalkulator Utilitas kWh Listrik & Auto-Dispatch Nota Tagihan WhatsApp.</li>
+        <li><strong>Sprint 3 (W5-W6):</strong> Verifikasi Anti-Bot e-KTP 16 Digit NIK & Single Session Security.</li>
+        <li><strong>Sprint 4 (W7-W8):</strong> AI Room Scanner, 3D Isometric Three.js, Multi-Platform Builds (APK/PWA), & SOP Production.</li>
+      </ul>
+    </div>
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #10b981; border-radius: 6px; padding: 8px;">
+      <strong style="color: #065f46; font-size: 8.5pt;">✅ Definition of Done (DoD) KostKu:</strong>
+      <ul style="font-size: 7.9pt; margin: 4px 0 0 16px;">
+        <li>0 lint error dan lulus audit keamanan dependensi (<code>npm run lint</code>).</li>
+        <li>Unit test kalkulasi tarif utilitas & validasi regex NIK lulus 100%.</li>
+        <li>Multi-platform build stabil: Android APK (<code>KostKu.apk</code>), Electron Desktop, dan Web PWA.</li>
+        <li>Latency respon endpoint API rata-rata di bawah 200 ms.</li>
+        <li>Denah 2D SVG berukuran ringan (&lt; 15 KB) dengan akurasi skala CAD.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>10.5 Referensi Ilmiah Standar IEEE / APA</h2>
+  <ol style="font-size: 7.8pt; color: #475569; line-height: 1.35; margin-left: 18px; margin-bottom: 12px;">
+    <li>Beck, K. (1999). <em>Extreme Programming Explained: Embrace Change</em>. Addison-Wesley Professional, Boston, MA.</li>
+    <li>Schwaber, K., & Sutherland, J. (2020). <em>The Scrum Guide: The Definitive Guide to Scrum: The Rules of the Game</em>. Scrum.org.</li>
+    <li>Agile Business Consortium. (2014). <em>The DSDM Agile Project Framework Handbook</em>. Agile Business Consortium Ltd, UK.</li>
+    <li>Sommerville, I. (2016). <em>Software Engineering</em> (10th ed.). Pearson Education, Boston, MA.</li>
+    <li>Pressman, R. S., & Maxim, B. R. (2020). <em>Software Engineering: A Practitioner's Approach</em> (9th ed.). McGraw-Hill Education, NY.</li>
+    <li>Fowler, M. (2018). <em>Refactoring: Improving the Design of Existing Code</em> (2nd ed.). Addison-Wesley Professional.</li>
+    <li>Martin, R. C. (2002). <em>Agile Software Development, Principles, Patterns, and Practices</em>. Prentice Hall, NJ.</li>
+    <li>IEEE Computer Society. (2014). <em>Guide to the Software Engineering Body of Knowledge (SWEBOK Guide v3.0)</em>. IEEE.</li>
+  </ol>
+
   <!-- LEMBAR PENGESAHAN ARSITEKTUR & TIM -->
   <div class="signoff-card avoid-break">
     <div style="font-weight: 800; font-size: 9.5pt; color: #1e293b; margin-bottom: 6px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">
-      📜 Lembar Pengesahan Arsitektur Sistem & Verifikasi Produksi
+      📜 Lembar Pengesahan Arsitektur Sistem & Tim Pengembang UDINUS
     </div>
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 8px; font-size: 8.2pt;">
       <div style="border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; text-align: center; background: #fafafa;">
         <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">Lead Software Architect</div>
-        <div style="margin-top: 24px; font-weight: bold; color: #0f172a;">KostKu Engineering Team</div>
-        <div style="font-size: 7.2pt; color: #10b981; font-weight: 600;">✓ Verified Architecture v1.0.4</div>
+        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">Oscar Herdian Wijaya</div>
+        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16309</div>
+        <div style="font-size: 7.2pt; color: #10b981; font-weight: 600; margin-top: 2px;">✓ Verified Architecture v1.0.4</div>
       </div>
       <div style="border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; text-align: center; background: #fafafa;">
-        <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">Senior Product Manager</div>
-        <div style="margin-top: 24px; font-weight: bold; color: #0f172a;">Business & Strategy Lead</div>
-        <div style="font-size: 7.2pt; color: #10b981; font-weight: 600;">✓ Approved Business Model</div>
+        <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">Backend & Database Engineer</div>
+        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">Maulana Hadi Saputra</div>
+        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16307</div>
+        <div style="font-size: 7.2pt; color: #10b981; font-weight: 600; margin-top: 2px;">✓ Approved Database & API</div>
       </div>
       <div style="border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; text-align: center; background: #fafafa;">
-        <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">Dewan Penguji / Pembimbing</div>
-        <div style="margin-top: 24px; font-weight: bold; color: #0f172a;">Sidang Rekayasa Perangkat Lunak</div>
-        <div style="font-size: 7.2pt; color: #6366f1; font-weight: 600;">✓ Layak Diuji & Diproduksi</div>
+        <div style="color: #64748b; font-size: 7.2pt; text-transform: uppercase;">UI/UX & Mobile QA Lead</div>
+        <div style="margin-top: 14px; font-weight: bold; color: #0f172a;">Angelo Joe Lara Anugrah W. P. T.</div>
+        <div style="font-size: 7.2pt; color: #475569;">NIM: A11.2025.16337</div>
+        <div style="font-size: 7.2pt; color: #6366f1; font-weight: 600; margin-top: 2px;">✓ Layak Diuji & Diproduksi</div>
       </div>
     </div>
   </div>

@@ -16,7 +16,8 @@ def build_pptx():
     
     blank_layout = prs.slide_layouts[6]
     
-    images = sorted(glob.glob('/tmp/slide_pptx_page-*.png'))
+    import re
+    images = sorted(glob.glob('/tmp/slide_pptx_page-*.png'), key=lambda p: int(re.search(r'-(\d+)\.png$', p).group(1)) if re.search(r'-(\d+)\.png$', p) else 0)
     print(f"Found {len(images)} slide images and {len(slides_data)} slide data records.")
     
     for i, slide_info in enumerate(slides_data):
