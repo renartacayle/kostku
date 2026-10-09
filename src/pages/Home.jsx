@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Star, ShieldCheck, Wifi, Bath, Car, ChevronRight, ChevronLeft, ArrowUpRight, Download, LogIn, Sparkles, Building, X } from 'lucide-react';
 import VideoScroll from '../components/VideoScroll';
+import SpatialBentoShowcase from '../components/SpatialBentoShowcase';
 import InstallModal from '../components/InstallModal';
 import { apiGetPublicKosts } from '../services/api';
 
@@ -315,7 +316,8 @@ export default function Home({ user }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+            background: '#2563eb',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             width: '34px',
             height: '34px',
             borderRadius: '10px',
@@ -323,7 +325,8 @@ export default function Home({ user }) {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontWeight: 800
+            fontWeight: 800,
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
           }}>
             K
           </div>
@@ -367,15 +370,18 @@ export default function Home({ user }) {
       {/* ═══════ SECTION 1: CINEMATIC 60FPS VIDEO SCROLL ANIMATION ═══════ */}
       <VideoScroll />
 
+      {/* ═══════ SECTION 2: BESPOKE ARCHITECTURAL BENTO SHOWCASE (TASTE SKILL) ═══════ */}
+      <SpatialBentoShowcase />
+
       {/* ═══════════════════════════════════════
-          SECTION 2: MARKETPLACE LISTING
+          SECTION 3: MARKETPLACE LISTING
           ═══════════════════════════════════════ */}
       <div
         id="listing"
         style={{
           position: 'relative',
           zIndex: 5,
-          background: '#0e0c1e',
+          background: '#080d1a',
           minHeight: '100vh',
           paddingBottom: '6rem',
           scrollMarginTop: '65px',
@@ -393,27 +399,27 @@ export default function Home({ user }) {
         }}>
           {/* Decorative line */}
           <div style={{
-            width: '60px',
+            width: '48px',
             height: '3px',
-            background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
-            margin: '0 auto 2rem',
+            background: '#2563eb',
+            margin: '0 auto 1.5rem',
             borderRadius: '2px',
           }} />
 
           <span style={{
             display: 'inline-block',
-            padding: '8px 20px',
-            background: 'rgba(59, 130, 246, 0.08)',
-            border: '1px solid rgba(59, 130, 246, 0.15)',
+            padding: '6px 18px',
+            background: 'rgba(37, 99, 235, 0.08)',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
             borderRadius: '100px',
-            color: '#6ea8fe',
-            fontSize: '0.8rem',
+            color: '#60a5fa',
+            fontSize: '0.78rem',
             fontWeight: '700',
-            letterSpacing: '0.12em',
+            letterSpacing: '0.08em',
             textTransform: 'uppercase',
-            marginBottom: '1.5rem',
+            marginBottom: '1.25rem',
           }}>
-            ✨ Verified Kost Listings
+            🏛️ Terverifikasi Koordinat GPS & CAD
           </span>
 
           <h2 style={{
@@ -507,7 +513,7 @@ export default function Home({ user }) {
                 flexShrink: 0,
                 padding: '10px clamp(14px, 3vw, 22px)',
                 margin: '4px',
-                background: 'linear-gradient(135deg, #3b82f6, #7c3aed)',
+                background: '#2563eb',
                 color: 'white',
                 border: 'none',
                 borderRadius: '100px',
@@ -517,10 +523,12 @@ export default function Home({ user }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
                 whiteSpace: 'nowrap'
               }}
+              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.97) translateY(1px)'; }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1) translateY(0)'; }}
             >
               <span>Cari</span>
               <ChevronRight size={15} />
@@ -558,12 +566,13 @@ export default function Home({ user }) {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 32px',
-                background: 'linear-gradient(135deg, #3b82f6, #7c3aed)',
+                background: '#2563eb',
                 color: 'white',
                 borderRadius: '100px',
                 textDecoration: 'none',
                 fontWeight: '700',
-                boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 4px 15px rgba(37, 99, 235, 0.35)',
+                transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)'
               }}>
                 Daftarkan Kost Anda <ArrowUpRight size={16} />
               </Link>
@@ -691,17 +700,19 @@ export default function Home({ user }) {
                         </span>
                         <span style={{
                           fontSize: 'clamp(1rem, 2.5vw, 1.15rem)', fontWeight: '800',
-                          background: 'linear-gradient(135deg, #6ea8fe, #b48cfe)',
-                          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                          color: '#38bdf8',
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontVariantNumeric: 'tabular-nums',
                           whiteSpace: 'nowrap',
                           textAlign: 'right',
                         }}>
                           Rp {kost.rooms?.length > 0
-                            ? Math.min(...kost.rooms.map(r => r.price)).toLocaleString()
+                            ? Math.min(...kost.rooms.map(r => r.price)).toLocaleString('id-ID')
                             : '0'}
                           <span style={{
                             fontSize: '0.72rem', fontWeight: '500',
-                            WebkitTextFillColor: 'rgba(255,255,255,0.3)',
+                            color: 'rgba(255,255,255,0.4)',
+                            fontFamily: "'Plus Jakarta Sans', sans-serif"
                           }}> /bln</span>
                         </span>
                       </div>
@@ -733,7 +744,8 @@ export default function Home({ user }) {
             }}>
               <div style={{
                 width: '28px', height: '28px', borderRadius: '8px',
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                background: '#2563eb',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.8rem', fontWeight: 'bold', color: 'white',
               }}>K</div>
@@ -758,14 +770,14 @@ export default function Home({ user }) {
 
       {/* Global keyframes */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(40px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
-        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        * { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
 
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; }
