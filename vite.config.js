@@ -17,5 +17,19 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  preview: {
+    host: true,
+    port: 5180,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      },
+      '/downloads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      }
+    }
   }
 })
