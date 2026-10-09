@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { apiGetPublicKosts } from '../services/api';
 import KostCompareModal from '../components/KostCompareModal';
+import CustomDropdown from '../components/CustomDropdown';
 
 export default function SearchKost({ user }) {
   const [kosts, setKosts] = useState([]);
@@ -468,27 +469,18 @@ export default function SearchKost({ user }) {
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Urutkan:</span>
-            <select
+          <div style={{ minWidth: '220px' }}>
+            <CustomDropdown
+              label="Urutkan Hasil"
               value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              style={{
-                background: 'rgba(30, 41, 59, 0.8)',
-                color: '#cbd5e1',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '7px 12px',
-                borderRadius: '10px',
-                fontSize: '0.8rem',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="recommended">⭐ Paling Direkomendasikan</option>
-              <option value="lowest">💰 Harga Termurah</option>
-              <option value="highest">💎 Harga Tertinggi</option>
-              <option value="rating">🏆 Rating Tertinggi</option>
-            </select>
+              onChange={val => setSortBy(val)}
+              options={[
+                { value: 'recommended', label: 'Rekomendasi', icon: '⭐', subtitle: 'Pilihan kurasi terbaik' },
+                { value: 'lowest', label: 'Harga Termurah', icon: '💰', subtitle: 'Mulai dari yang paling hemat' },
+                { value: 'highest', label: 'Harga Tertinggi', icon: '💎', subtitle: 'Kamar VIP & eksklusif' },
+                { value: 'rating', label: 'Rating Tertinggi', icon: '🏆', subtitle: 'Ulasan penghuni terbaik' }
+              ]}
+            />
           </div>
         </div>
 

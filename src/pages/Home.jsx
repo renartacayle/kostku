@@ -34,6 +34,7 @@ import InstallModal from '../components/InstallModal';
 import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
 import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
 import FloorPlanModal from '../components/FloorPlanModal';
+import CustomDropdown from '../components/CustomDropdown';
 import { apiGetPublicKosts } from '../services/api';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -738,82 +739,34 @@ export default function Home({ user }) {
               )}
             </div>
 
-            {/* Field 2: Tipe (Putri / Putra / Bebas) */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '10px 14px',
-              background: 'rgba(15, 23, 42, 0.75)',
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <Users size={20} color="#60a5fa" style={{ flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Tipe Hunian
-                </label>
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    padding: '2px 0 0 0',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="Semua" style={{ background: '#1E293B', color: 'white' }}>Semua Tipe</option>
-                  <option value="Putri" style={{ background: '#1E293B', color: 'white' }}>Kost Putri</option>
-                  <option value="Putra" style={{ background: '#1E293B', color: 'white' }}>Kost Putra</option>
-                  <option value="Campur" style={{ background: '#1E293B', color: 'white' }}>Bebas / Campur</option>
-                </select>
-              </div>
-            </div>
+            {/* Field 2: Tipe (Putri / Putra / Bebas) - Custom Premium Dropdown */}
+            <CustomDropdown
+              label="Tipe Hunian"
+              icon={<Users size={20} color="#60a5fa" />}
+              value={selectedType}
+              onChange={(val) => setSelectedType(val)}
+              options={[
+                { value: 'Semua', label: 'Semua Tipe', icon: '🌐', subtitle: 'Putri, Putra, & Campur' },
+                { value: 'Putri', label: 'Kost Putri', icon: '👩', badge: 'Khusus Putri', badgeBg: 'rgba(245, 158, 11, 0.2)', badgeColor: '#FBBF24' },
+                { value: 'Putra', label: 'Kost Putra', icon: '👨', badge: 'Khusus Putra', badgeBg: 'rgba(37, 99, 235, 0.2)', badgeColor: '#60A5FA' },
+                { value: 'Campur', label: 'Bebas / Campur', icon: '👫', badge: 'Co-Living', badgeBg: 'rgba(99, 102, 241, 0.2)', badgeColor: '#A5B4FC' }
+              ]}
+            />
 
-            {/* Field 3: Budget Maksimal */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '10px 14px',
-              background: 'rgba(15, 23, 42, 0.75)',
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <DollarSign size={20} color="#60a5fa" style={{ flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Budget Maksimal
-                </label>
-                <select
-                  value={selectedBudget}
-                  onChange={(e) => setSelectedBudget(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    padding: '2px 0 0 0',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="Semua" style={{ background: '#1E293B', color: 'white' }}>Semua Budget</option>
-                  <option value="1000000" style={{ background: '#1E293B', color: 'white' }}>&lt; Rp 1.000.000 /bln</option>
-                  <option value="1500000" style={{ background: '#1E293B', color: 'white' }}>&lt; Rp 1.500.000 /bln</option>
-                  <option value="2000000" style={{ background: '#1E293B', color: 'white' }}>&lt; Rp 2.000.000 /bln</option>
-                  <option value="3000000" style={{ background: '#1E293B', color: 'white' }}>&lt; Rp 3.000.000 /bln</option>
-                </select>
-              </div>
-            </div>
+            {/* Field 3: Budget Maksimal - Custom Premium Dropdown */}
+            <CustomDropdown
+              label="Budget Maksimal"
+              icon={<DollarSign size={20} color="#60a5fa" />}
+              value={selectedBudget}
+              onChange={(val) => setSelectedBudget(val)}
+              options={[
+                { value: 'Semua', label: 'Semua Budget', icon: '🏷️', subtitle: 'Tanpa batas budget' },
+                { value: '1000000', label: '< Rp 1.000.000 /bln', icon: '💰', subtitle: 'Kamar hemat mahasiswa' },
+                { value: '1500000', label: '< Rp 1.500.000 /bln', icon: '💰', subtitle: 'Paling diminati' },
+                { value: '2000000', label: '< Rp 2.000.000 /bln', icon: '💰', subtitle: 'Fasilitas kamar lengkap' },
+                { value: '3000000', label: '< Rp 3.000.000 /bln', icon: '💎', subtitle: 'Co-Living eksklusif VIP' }
+              ]}
+            />
 
             {/* Field 4: Primary Action Button (Cari Hunian) */}
             <button
