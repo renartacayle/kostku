@@ -29,6 +29,13 @@ import {
 import { apiGetPublicKosts } from '../services/api';
 import KostCompareModal from '../components/KostCompareModal';
 import CustomDropdown from '../components/CustomDropdown';
+import { 
+  calculateDistanceKm, 
+  formatDistance, 
+  getGmapsDirectionsUrl, 
+  POPULAR_LANDMARKS, 
+  getCurrentPositionAsync 
+} from '../utils/geoUtils';
 
 export const FACILITY_OPTIONS = [
   { id: 'AC', label: '❄️ AC' },
@@ -126,6 +133,51 @@ export default function SearchKost({ user }) {
   const [sortBy, setSortBy] = useState('recommended');
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
   const [previewLayoutKost, setPreviewLayoutKost] = useState(null);
+
+  // Geolocation & Distance State
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng, label, isGps: boolean }
+  const [isLocating, setIsLocating] = useState(false);
+  const [locatingError, setLocatingError] = useState(null);
+  const [maxDistanceRadius, setMaxDistanceRadius] = useState('all'); // 'all' | '2' | '5' | '10' | '25'
+
+  const handleGetGpsLocation = async () => {
+    setIsLocating(true);
+    setLocatingError(null);
+    try {
+      const pos = await getCurrentPositionAsync();
+      setUserLocation({
+        lat: pos.lat,
+        lng: pos.lng,
+        label: 'Lokasi GPS Anda Saat Ini',
+        isGps: true
+      });
+      setSortBy('nearest');
+    } catch (err) {
+      console.warn('Geolocation error:', err);
+      setLocatingError(err.message || 'Gagal mendeteksi lokasi GPS Anda. Coba pilih patokan kampus di bawah.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const handleSelectLandmark = (landmark) => {
+    setUserLocation({
+      lat: landmark.lat,
+      lng: landmark.lng,
+      label: landmark.name,
+      isGps: false
+    });
+    setSortBy('nearest');
+    setLocatingError(null);
+  };
+
+  const handleClearLocation = () => {
+    setUserLocation(null);
+    setMaxDistanceRadius('all');
+    if (sortBy === 'nearest') {
+      setSortBy('recommended');
+    }
+  };
 
   const handleToggleFacility = (facId) => {
     setSelectedFacilities(prev => {
@@ -284,8 +336,19 @@ export default function SearchKost({ user }) {
     const matchesFacilities = selectedFacilities.length === 0 || 
       selectedFacilities.every(facId => checkFacilityMatch(k, facId));
 
+    // Max distance radius filter (if userLocation is set)
+    if (userLocation && maxDistanceRadius !== 'all') {
+      const dist = calculateDistanceKm(userLocation.lat, userLocation.lng, k.location?.lat, k.location?.lng);
+      if (dist == null || dist > Number(maxDistanceRadius)) return false;
+    }
+
     return matchesSearch && matchesCity && matchesType && matchesPrice && matchesFacilities;
   }).sort((a, b) => {
+    if (sortBy === 'nearest' && userLocation) {
+      const distA = calculateDistanceKm(userLocation.lat, userLocation.lng, a.location?.lat, a.location?.lng) ?? 999999;
+      const distB = calculateDistanceKm(userLocation.lat, userLocation.lng, b.location?.lat, b.location?.lng) ?? 999999;
+      return distA - distB;
+    }
     if (sortBy === 'lowest') return getMinPrice(a) - getMinPrice(b);
     if (sortBy === 'highest') return getMinPrice(b) - getMinPrice(a);
     if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
@@ -430,6 +493,225 @@ export default function SearchKost({ user }) {
               </button>
             )}
           </div>
+
+          {/* GMaps & GPS Location Action Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px',
+            marginTop: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {/* GPS Button */}
+              <button
+                type="button"
+                onClick={handleGetGpsLocation}
+                disabled={isLocating}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '9px 18px',
+                  borderRadius: '16px',
+                  border: userLocation?.isGps 
+                    ? '1px solid #10b981' 
+                    : '1px solid rgba(59, 130, 246, 0.4)',
+                  background: userLocation?.isGps
+                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3))'
+                    : isLocating
+                      ? 'rgba(59, 130, 246, 0.2)'
+                      : 'linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(59, 130, 246, 0.15))',
+                  color: userLocation?.isGps ? '#34d399' : '#93c5fd',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  cursor: isLocating ? 'wait' : 'pointer',
+                  boxShadow: userLocation?.isGps 
+                    ? '0 0 15px rgba(16, 185, 129, 0.3)' 
+                    : '0 4px 14px rgba(37, 99, 235, 0.2)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {isLocating ? (
+                  <>
+                    <div className="animate-spin" style={{ width: '14px', height: '14px', border: '2px solid rgba(147, 197, 253, 0.3)', borderTopColor: '#93c5fd', borderRadius: '50%' }} />
+                    <span>Mencari Titik GPS Anda...</span>
+                  </>
+                ) : userLocation?.isGps ? (
+                  <>
+                    <span>📍 GPS Aktif (Lokasi Anda)</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📍 Gunakan Lokasi GPS Saya (Terdekat)</span>
+                  </>
+                )}
+              </button>
+
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                atau patokan kampus:
+              </span>
+            </div>
+
+            {/* Quick Campus / Landmark Shortcuts */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
+              maxWidth: '100%',
+              paddingBottom: '2px',
+              scrollbarWidth: 'none'
+            }}>
+              {POPULAR_LANDMARKS.slice(0, 6).map(lm => {
+                const isActive = userLocation?.label === lm.name;
+                return (
+                  <button
+                    key={lm.id}
+                    type="button"
+                    onClick={() => handleSelectLandmark(lm)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '14px',
+                      border: isActive ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: isActive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+                      color: isActive ? '#34d399' : '#cbd5e1',
+                      fontSize: '0.74rem',
+                      fontWeight: isActive ? 800 : 500,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title={lm.full}
+                  >
+                    {lm.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Location Details Banner */}
+          {userLocation && (
+            <div style={{
+              marginTop: '12px',
+              padding: '10px 16px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.1rem' }}>📍</span>
+                <div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#34d399' }}>
+                    Pusat Lokasi: {userLocation.label}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    Koordinat: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)} • Mengurutkan kost dari yang paling dekat
+                  </div>
+                </div>
+              </div>
+
+              {/* Radius Filter and Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Maks. Jarak:</span>
+                {[
+                  { id: 'all', label: 'Semua' },
+                  { id: '2', label: '< 2 km' },
+                  { id: '5', label: '< 5 km' },
+                  { id: '10', label: '< 10 km' }
+                ].map(rad => (
+                  <button
+                    key={rad.id}
+                    type="button"
+                    onClick={() => setMaxDistanceRadius(rad.id)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '10px',
+                      border: maxDistanceRadius === rad.id ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: maxDistanceRadius === rad.id ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                      color: maxDistanceRadius === rad.id ? '#34d399' : '#cbd5e1',
+                      fontSize: '0.74rem',
+                      fontWeight: maxDistanceRadius === rad.id ? 800 : 500,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {rad.label}
+                  </button>
+                ))}
+
+                <a
+                  href={`https://www.google.com/maps/search/kost/@${userLocation.lat},${userLocation.lng},14z`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    border: '1px solid rgba(59, 130, 246, 0.35)',
+                    color: '#93c5fd',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                  title="Buka titik ini di Google Maps"
+                >
+                  <span>🗺️ GMaps Peta</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleClearLocation}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#fca5a5',
+                    borderRadius: '10px',
+                    padding: '5px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕ Hapus Patokan
+                </button>
+              </div>
+            </div>
+          )}
+
+          {locatingError && (
+            <div style={{
+              marginTop: '10px',
+              padding: '8px 14px',
+              borderRadius: '12px',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#fca5a5',
+              fontSize: '0.78rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px'
+            }}>
+              <span>⚠️ {locatingError}</span>
+              <button
+                type="button"
+                onClick={() => setLocatingError(null)}
+                style={{ background: 'transparent', border: 'none', color: '#fca5a5', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {/* City Carousel with Visual Badges */}
           <div style={{
@@ -706,6 +988,7 @@ export default function SearchKost({ user }) {
               onChange={val => setSortBy(val)}
               options={[
                 { value: 'recommended', label: 'Rekomendasi', icon: '⭐', subtitle: 'Pilihan kurasi terbaik' },
+                { value: 'nearest', label: 'Jarak Terdekat', icon: '📍', subtitle: userLocation ? `Terdekat dari ${userLocation.label}` : 'Urutkan dari yang paling dekat' },
                 { value: 'lowest', label: 'Harga Termurah', icon: '💰', subtitle: 'Mulai dari yang paling hemat' },
                 { value: 'highest', label: 'Harga Tertinggi', icon: '💎', subtitle: 'Kamar VIP & eksklusif' },
                 { value: 'rating', label: 'Rating Tertinggi', icon: '🏆', subtitle: 'Ulasan penghuni terbaik' }
@@ -768,6 +1051,7 @@ export default function SearchKost({ user }) {
               const isWishlisted = wishlist.includes(kost.uid);
               const isCompared = compareList.some(c => c.uid === kost.uid);
               const layout = kost.layoutInfo || {};
+              const distanceKm = userLocation ? calculateDistanceKm(userLocation.lat, userLocation.lng, kost.location?.lat, kost.location?.lng) : null;
 
               return (
                 <div 
@@ -874,8 +1158,10 @@ export default function SearchKost({ user }) {
                       top: '10px',
                       left: '10px',
                       display: 'flex',
+                      flexWrap: 'wrap',
                       gap: '6px',
-                      zIndex: 3
+                      zIndex: 3,
+                      maxWidth: 'calc(100% - 60px)'
                     }}>
                       <span style={{
                         background: kost.type === 'Putri' ? '#ec4899' : kost.type === 'Putra' ? '#2563eb' : '#059669',
@@ -888,6 +1174,26 @@ export default function SearchKost({ user }) {
                       }}>
                         {kost.type === 'Putri' ? '🌸 Putri' : kost.type === 'Putra' ? '👔 Putra' : '🏡 Campur'}
                       </span>
+
+                      {/* Distance Badge */}
+                      {distanceKm != null && (
+                        <span style={{
+                          background: 'linear-gradient(135deg, #059669, #10b981)',
+                          backdropFilter: 'blur(8px)',
+                          color: 'white',
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                        }}>
+                          <MapPin size={11} />
+                          <span>{formatDistance(distanceKm)}</span>
+                        </span>
+                      )}
 
                       <span style={{
                         background: 'rgba(16, 185, 129, 0.9)',
@@ -1027,6 +1333,11 @@ export default function SearchKost({ user }) {
                         <MapPin size={13} color="#60a5fa" style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           <strong style={{ color: '#e2e8f0' }}>{kost.city}</strong> • {kost.address}
+                          {distanceKm != null && (
+                            <span style={{ color: '#34d399', fontWeight: 800, marginLeft: '6px' }}>
+                              ({formatDistance(distanceKm)})
+                            </span>
+                          )}
                         </span>
                       </p>
 
@@ -1104,7 +1415,7 @@ export default function SearchKost({ user }) {
                       </div>
 
                       {/* Action buttons row */}
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         {/* Compare checkbox button */}
                         <button
                           type="button"
@@ -1128,11 +1439,37 @@ export default function SearchKost({ user }) {
                           <span>{isCompared ? 'Dipilih' : 'Bandingkan'}</span>
                         </button>
 
+                        {/* Google Maps Directions Link */}
+                        <a
+                          href={getGmapsDirectionsUrl(kost.location?.lat, kost.location?.lng, userLocation?.lat, userLocation?.lng)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: '9px 12px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            background: 'rgba(37, 99, 235, 0.12)',
+                            color: '#93c5fd',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title="Buka rute navigasi di Google Maps"
+                        >
+                          <span>🗺️ GMaps</span>
+                        </a>
+
                         {/* Main Detail Button */}
                         <Link 
                           to={`/kost/${kost.uid}`}
                           style={{
                             flex: 1,
+                            minWidth: '130px',
                             textDecoration: 'none',
                             padding: '10px 14px',
                             borderRadius: '12px',

@@ -26,7 +26,8 @@ import {
   LayoutGrid,
   Map as MapIcon,
   Ruler,
-  GraduationCap
+  GraduationCap,
+  Navigation
 } from 'lucide-react';
 import SpatialBentoShowcase from '../components/SpatialBentoShowcase';
 import VideoScroll from '../components/VideoScroll';
@@ -36,11 +37,18 @@ import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
 import FloorPlanModal from '../components/FloorPlanModal';
 import CustomDropdown from '../components/CustomDropdown';
 import { apiGetPublicKosts } from '../services/api';
+import { 
+  calculateDistanceKm, 
+  formatDistance, 
+  getGmapsDirectionsUrl, 
+  getCurrentPositionAsync,
+  POPULAR_LANDMARKS
+} from '../utils/geoUtils';
 
 // ═══════════════════════════════════════════════════════════════════
 // 1. REVISED KOST CARD IMAGE SLIDER (DYNAMIC 4:3 ASPECT RATIO)
 // ═══════════════════════════════════════════════════════════════════
-function KostCardImageSlider({ images, kostName, type, availableRoomsCount }) {
+function KostCardImageSlider({ images, kostName, type, availableRoomsCount, distanceKm }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -203,6 +211,24 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount }) {
           }} />
           {availableRoomsCount > 0 ? `Tersedia ${availableRoomsCount} Kamar` : 'Penuh'}
         </span>
+
+        {distanceKm != null && (
+          <span style={{
+            background: 'linear-gradient(135deg, #059669, #10b981)',
+            color: '#ffffff',
+            padding: '3px 9px',
+            borderRadius: '100px',
+            fontSize: '0.7rem',
+            fontWeight: 800,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+          }}>
+            <MapPin size={10} />
+            <span>{formatDistance(distanceKm)}</span>
+          </span>
+        )}
       </div>
 
       {/* Navigation Arrows for desktop hover */}
@@ -312,6 +338,48 @@ export default function Home({ user }) {
   // Quick Filter Chips multi-select state (default: ['Semua'])
   const [selectedChips, setSelectedChips] = useState(['Semua']);
 
+  // Geolocation & Distance State
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng, label, isGps: boolean }
+  const [isLocating, setIsLocating] = useState(false);
+  const [locatingError, setLocatingError] = useState(null);
+  const [maxDistanceRadius, setMaxDistanceRadius] = useState('all'); // 'all' | '2' | '5' | '10'
+
+  const handleGetGpsLocation = async () => {
+    setIsLocating(true);
+    setLocatingError(null);
+    try {
+      const pos = await getCurrentPositionAsync();
+      setUserLocation({
+        lat: pos.lat,
+        lng: pos.lng,
+        label: 'Lokasi GPS Anda',
+        isGps: true
+      });
+      setSearchLocation('Lokasi Saya (GPS)');
+    } catch (err) {
+      console.warn('Geolocation error:', err);
+      setLocatingError(err.message || 'Gagal mendeteksi lokasi GPS Anda.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const handleSelectLandmark = (landmark) => {
+    setUserLocation({
+      lat: landmark.lat,
+      lng: landmark.lng,
+      label: landmark.name,
+      isGps: false
+    });
+    setSearchLocation(landmark.name);
+  };
+
+  const handleClearLocation = () => {
+    setUserLocation(null);
+    setSearchLocation('');
+    setMaxDistanceRadius('all');
+  };
+
   // Gold Standard Real Estate Interactive States
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
   const [showCalculator, setShowCalculator] = useState(false);
@@ -326,6 +394,7 @@ export default function Home({ user }) {
       type: 'Campur',
       city: 'Jakarta',
       address: 'Jl. Taman Sukun Raya No. 42, Banyumanik / Tebet',
+      location: { lat: -6.2383, lng: 106.8532 },
       rating: 4.9,
       facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Air Panas (Water Heater)', 'Kamar Luas'],
       rules: ['Boleh Pasutri (Surat Nikah / KTP)', 'Akses 24 Jam'],
@@ -341,6 +410,7 @@ export default function Home({ user }) {
       type: 'Putri',
       city: 'Bandung',
       address: 'Jl. Dago Asri No. 18, Coblong, Bandung',
+      location: { lat: -6.8795, lng: 107.6186 },
       rating: 4.8,
       facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Token Mandiri', 'Kamar Luas'],
       rules: ['Khusus Mahasiswi / Putri', 'Bebas Jam Malam'],
@@ -356,6 +426,7 @@ export default function Home({ user }) {
       type: 'Putra',
       city: 'Semarang',
       address: 'Jl. Cempaka Raya No. 8, Tembalang, Semarang',
+      location: { lat: -7.0504, lng: 110.4385 },
       rating: 4.9,
       facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Parkir Motor/Mobil', 'Air Panas'],
       rules: ['Khusus Putra / Mahasiswa'],
@@ -371,6 +442,7 @@ export default function Home({ user }) {
       type: 'Campur',
       city: 'Tangerang',
       address: 'Kawasan BSD Green Office Park, Tangerang',
+      location: { lat: -6.3015, lng: 106.6521 },
       rating: 4.9,
       facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Token Mandiri', 'Kamar Luas (Mezzanine)'],
       rules: ['Boleh Pasutri', 'Akses Kartu 24 Jam'],
@@ -386,6 +458,7 @@ export default function Home({ user }) {
       type: 'Campur',
       city: 'Yogyakarta',
       address: 'Jl. Sosrowijayan No. 25, Malioboro, Yogyakarta',
+      location: { lat: -7.7928, lng: 110.3658 },
       rating: 4.8,
       facilities: ['WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Air Panas'],
       rules: ['Boleh Pasutri', 'Akses Kunci Sendiri'],
@@ -401,6 +474,7 @@ export default function Home({ user }) {
       type: 'Putri',
       city: 'Malang',
       address: 'Jl. MT Haryono No. 55, Dinoyo, Malang',
+      location: { lat: -7.9526, lng: 112.6138 },
       rating: 4.9,
       facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Hewan Boleh', 'Kamar Luas'],
       rules: ['Khusus Putri', 'Hewan Boleh'],
@@ -416,6 +490,7 @@ export default function Home({ user }) {
       type: 'Putra',
       city: 'Surabaya',
       address: 'Jl. Rungkut Madya No. 88, Surabaya',
+      location: { lat: -7.3312, lng: 112.7825 },
       rating: 4.7,
       facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas', 'Kamar Luas'],
       rules: ['Khusus Putra'],
@@ -431,6 +506,7 @@ export default function Home({ user }) {
       type: 'Campur',
       city: 'Bali',
       address: 'Jl. Pantai Batu Bolong No. 12, Canggu, Bali',
+      location: { lat: -8.6500, lng: 115.1333 },
       rating: 4.9,
       facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Water Heater (Air Panas)', 'Hewan Boleh', 'Kamar Luas Suite'],
       rules: ['Boleh Pasutri', 'Pet Friendly'],
@@ -502,9 +578,15 @@ export default function Home({ user }) {
   const filtered = (kosts || []).filter(k => {
     if (!k) return false;
 
-    // 1. Text Location / Campus Filter
+    // 0. Max distance radius filter (if userLocation is set)
+    if (userLocation && maxDistanceRadius !== 'all' && k.location?.lat && k.location?.lng) {
+      const dist = calculateDistanceKm(userLocation.lat, userLocation.lng, k.location.lat, k.location.lng);
+      if (dist == null || dist > Number(maxDistanceRadius)) return false;
+    }
+
+    // 1. Text Location / Campus Filter (only when userLocation GPS/landmark is NOT active)
     const locQuery = (searchLocation || '').trim().toLowerCase();
-    if (locQuery) {
+    if (locQuery && !userLocation) {
       const name = (k.kostName || '').toLowerCase();
       const addr = (k.address || '').toLowerCase();
       const city = (k.city || '').toLowerCase();
@@ -594,6 +676,19 @@ export default function Home({ user }) {
     }
 
     return true;
+  }).map(k => {
+    let distanceKm = null;
+    if (userLocation && k.location?.lat && k.location?.lng) {
+      distanceKm = calculateDistanceKm(userLocation.lat, userLocation.lng, k.location.lat, k.location.lng);
+    }
+    return { ...k, distanceKm };
+  }).sort((a, b) => {
+    if (userLocation) {
+      if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm;
+      if (a.distanceKm != null) return -1;
+      if (b.distanceKm != null) return 1;
+    }
+    return 0;
   });
 
   // Split filtered into batch 1 (first 6 items) and batch 2 (rest items) for Bento insertion
@@ -602,12 +697,16 @@ export default function Home({ user }) {
 
   const resetAllFilters = () => {
     setSearchLocation('');
+    setUserLocation(null);
+    setMaxDistanceRadius('all');
     setSelectedType('Semua');
     setSelectedBudget('Semua');
     setSelectedChips(['Semua']);
   };
 
   const isFiltering = searchLocation !== '' || 
+                      userLocation !== null ||
+                      maxDistanceRadius !== 'all' ||
                       selectedType !== 'Semua' || 
                       selectedBudget !== 'Semua' || 
                       (!selectedChips.includes('Semua') && selectedChips.length > 0);
@@ -790,18 +889,22 @@ export default function Home({ user }) {
               padding: '10px 14px',
               background: 'rgba(15, 23, 42, 0.75)',
               borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
+              border: userLocation ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
+              transition: 'all 0.2s ease'
             }}>
-              <MapPin size={20} color="#60a5fa" style={{ flexShrink: 0 }} />
+              <MapPin size={20} color={userLocation ? "#10b981" : "#60a5fa"} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Lokasi / Kampus
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: userLocation ? '#34d399' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {userLocation ? '📍 GPS / Hub Terkunci' : 'Lokasi / Kampus'}
                 </label>
                 <input
                   type="text"
                   placeholder="Area / Kampus / Kota..."
                   value={searchLocation}
-                  onChange={(e) => setSearchLocation(e.target.value)}
+                  onChange={(e) => {
+                    setSearchLocation(e.target.value);
+                    if (userLocation && !e.target.value) setUserLocation(null);
+                  }}
                   style={{
                     width: '100%',
                     background: 'transparent',
@@ -814,11 +917,39 @@ export default function Home({ user }) {
                   }}
                 />
               </div>
-              {searchLocation && (
+
+              {/* GPS Locate Button */}
+              <button
+                type="button"
+                onClick={handleGetGpsLocation}
+                disabled={isLocating}
+                style={{
+                  background: userLocation?.isGps ? 'rgba(16, 185, 129, 0.25)' : 'rgba(37, 99, 235, 0.15)',
+                  border: userLocation?.isGps ? '1px solid #10b981' : '1px solid rgba(59, 130, 246, 0.3)',
+                  color: userLocation?.isGps ? '#34d399' : '#60a5fa',
+                  borderRadius: '10px',
+                  padding: '6px 10px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: isLocating ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease'
+                }}
+                title="Gunakan Lokasi GPS Terkini Anda"
+              >
+                <Navigation size={12} className={isLocating ? 'animate-spin' : ''} />
+                <span>{isLocating ? 'GPS...' : (userLocation?.isGps ? 'GPS Aktif' : 'GPS Saya')}</span>
+              </button>
+
+              {(searchLocation || userLocation) && (
                 <button
                   type="button"
-                  onClick={() => setSearchLocation('')}
+                  onClick={handleClearLocation}
                   style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                  title="Hapus lokasi"
                 >
                   <X size={15} />
                 </button>
@@ -885,6 +1016,85 @@ export default function Home({ user }) {
             </button>
           </div>
 
+          {/* Active GPS / Landmark Banner with Radius Filter */}
+          {userLocation && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              padding: '10px 16px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 78, 59, 0.2))',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              marginBottom: '1rem',
+              textAlign: 'left'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.1rem' }}>📍</span>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#34d399' }}>
+                    Lokasi Terkunci: {userLocation.label}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    Mengurutkan kost terdekat ke koordinat Anda ({userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)})
+                  </div>
+                </div>
+              </div>
+
+              {/* Radius Pills */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>Radius:</span>
+                {[
+                  { id: 'all', label: 'Semua Jarak' },
+                  { id: '2', label: '< 2 km' },
+                  { id: '5', label: '< 5 km' },
+                  { id: '10', label: '< 10 km' }
+                ].map((rad) => {
+                  const active = maxDistanceRadius === rad.id;
+                  return (
+                    <button
+                      key={rad.id}
+                      type="button"
+                      onClick={() => setMaxDistanceRadius(rad.id)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        border: active ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: active ? '#10b981' : 'rgba(15, 23, 42, 0.6)',
+                        color: active ? '#ffffff' : '#94a3b8',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {rad.label}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={handleClearLocation}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#f87171',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Matikan filter jarak"
+                >
+                  ✕ Lepas GPS
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ── QUICK CAMPUS SHORTCUTS (COMMUTE FILTER) ── */}
           <div style={{
             display: 'flex',
@@ -895,34 +1105,35 @@ export default function Home({ user }) {
             marginBottom: '1rem'
           }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <GraduationCap size={15} color="#60A5FA" /> Radius Kampus:
+              <GraduationCap size={15} color="#60A5FA" /> Hub Kampus & Kota:
             </span>
-            {[
-              { name: 'UDINUS (350m)', query: 'Udinus' },
-              { name: 'UNDIP Tembalang (800m)', query: 'Tembalang' },
-              { name: 'UNNES (1.2km)', query: 'Semarang' },
-              { name: 'ITB Dago (500m)', query: 'Dago' },
-              { name: 'UGM Jogja (600m)', query: 'Malioboro' }
-            ].map((camp, idx) => {
-              const active = searchLocation.toLowerCase().includes(camp.query.toLowerCase());
+            {POPULAR_LANDMARKS.slice(0, 6).map((landmark) => {
+              const active = userLocation?.label === landmark.name;
               return (
                 <button
-                  key={idx}
+                  key={landmark.id}
                   type="button"
-                  onClick={() => setSearchLocation(active ? '' : camp.query)}
+                  onClick={() => {
+                    if (active) {
+                      handleClearLocation();
+                    } else {
+                      handleSelectLandmark(landmark);
+                    }
+                  }}
                   style={{
                     padding: '4px 10px',
                     borderRadius: '8px',
-                    border: active ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.08)',
-                    background: active ? 'rgba(56, 189, 248, 0.15)' : 'rgba(15, 23, 42, 0.5)',
-                    color: active ? '#38BDF8' : '#94A3B8',
+                    border: active ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
+                    background: active ? 'rgba(16, 185, 129, 0.2)' : 'rgba(15, 23, 42, 0.5)',
+                    color: active ? '#34d399' : '#94A3B8',
                     fontSize: '0.75rem',
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
+                  title={landmark.full}
                 >
-                  {camp.name}
+                  {landmark.name}
                 </button>
               );
             })}
@@ -1294,6 +1505,7 @@ export default function Home({ user }) {
                 <KostCard 
                   key={kost.uid || idx} 
                   kost={kost} 
+                  userLocation={userLocation}
                   onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
                   onOpenCalculator={(k) => {
                     setCalcSelectedKost(k);
@@ -1343,6 +1555,7 @@ export default function Home({ user }) {
                     <KostCard 
                       key={kost.uid || (idx + 6)} 
                       kost={kost} 
+                      userLocation={userLocation}
                       onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
                       onOpenCalculator={(k) => {
                         setCalcSelectedKost(k);
@@ -1389,7 +1602,7 @@ export default function Home({ user }) {
 // - Max 3 Essential Facilities Icons (AC, KM Dalam, WiFi)
 // - Bold Monospace Tabular Pricing
 // ═══════════════════════════════════════════════════════════════════
-function KostCard({ kost, onOpenFloorPlan, onOpenCalculator }) {
+function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
   if (!kost) return null;
 
   const minPrice = kost.rooms?.length > 0 ? Math.min(...kost.rooms.map(r => r.price)) : 0;
@@ -1444,6 +1657,7 @@ function KostCard({ kost, onOpenFloorPlan, onOpenCalculator }) {
           kostName={kost.kostName}
           type={kost.type}
           availableRoomsCount={availableRoomsCount}
+          distanceKm={kost.distanceKm}
         />
 
         {/* Card Body with strict information hierarchy: foto → status kamar → fasilitas → harga */}
@@ -1505,6 +1719,11 @@ function KostCard({ kost, onOpenFloorPlan, onOpenCalculator }) {
                 flex: 1
               }}>
                 {kost.address || kost.city || 'Semarang'}
+                {kost.distanceKm != null && (
+                  <strong style={{ color: '#34d399', marginLeft: '6px' }}>
+                    • {formatDistance(kost.distanceKm)}
+                  </strong>
+                )}
               </span>
             </div>
             <span style={{
@@ -1650,6 +1869,39 @@ function KostCard({ kost, onOpenFloorPlan, onOpenCalculator }) {
               >
                 <Zap size={11} /> Listrik
               </button>
+
+              {kost.location?.lat && kost.location?.lng && (
+                <a
+                  href={getGmapsDirectionsUrl(
+                    kost.location.lat,
+                    kost.location.lng,
+                    userLocation?.lat,
+                    userLocation?.lng
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    color: '#34d399',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  title="Buka Navigasi Rute Google Maps"
+                >
+                  <Navigation size={11} /> 🗺️ Rute
+                </a>
+              )}
             </div>
 
             {/* Price Tag */}
