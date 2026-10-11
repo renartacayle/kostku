@@ -308,7 +308,9 @@ export default function Home({ user }) {
   const [searchLocation, setSearchLocation] = useState('');
   const [selectedType, setSelectedType] = useState('Semua'); // 'Semua' | 'Putri' | 'Putra' | 'Campur'
   const [selectedBudget, setSelectedBudget] = useState('Semua'); // 'Semua' | '1000000' | '1500000' | '2000000' | '3000000'
-  const [activeChip, setActiveChip] = useState('Semua'); // 'Semua' | 'Putri' | 'Putra' | 'AC' | 'KMDalam' | 'Token' | 'Pet'
+  
+  // Quick Filter Chips multi-select state (default: ['Semua'])
+  const [selectedChips, setSelectedChips] = useState(['Semua']);
 
   // Gold Standard Real Estate Interactive States
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
@@ -325,8 +327,9 @@ export default function Home({ user }) {
       city: 'Jakarta',
       address: 'Jl. Taman Sukun Raya No. 42, Banyumanik / Tebet',
       rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama'],
-      rooms: [{ id: 'R1', number: '101', price: 1500000, status: 'available' }],
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Air Panas (Water Heater)', 'Kamar Luas'],
+      rules: ['Boleh Pasutri (Surat Nikah / KTP)', 'Akses 24 Jam'],
+      rooms: [{ id: 'R1', number: '101', price: 1500000, dimension: '4.0m x 4.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80'
@@ -339,8 +342,9 @@ export default function Home({ user }) {
       city: 'Bandung',
       address: 'Jl. Dago Asri No. 18, Coblong, Bandung',
       rating: 4.8,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Token Mandiri'],
-      rooms: [{ id: 'R2', number: '202', price: 1350000, status: 'available' }],
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Token Mandiri', 'Kamar Luas'],
+      rules: ['Khusus Mahasiswi / Putri', 'Bebas Jam Malam'],
+      rooms: [{ id: 'R2', number: '202', price: 1350000, dimension: '3.5m x 4.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1540518614846-7ede433c4b69?w=1200&auto=format&fit=crop&q=80'
@@ -353,8 +357,9 @@ export default function Home({ user }) {
       city: 'Semarang',
       address: 'Jl. Cempaka Raya No. 8, Tembalang, Semarang',
       rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Parkir Motor/Mobil'],
-      rooms: [{ id: 'R3', number: '105', price: 950000, status: 'available' }],
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Parkir Motor/Mobil', 'Air Panas'],
+      rules: ['Khusus Putra / Mahasiswa'],
+      rooms: [{ id: 'R3', number: '105', price: 950000, dimension: '3.5m x 4.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
@@ -367,8 +372,9 @@ export default function Home({ user }) {
       city: 'Tangerang',
       address: 'Kawasan BSD Green Office Park, Tangerang',
       rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Token Mandiri'],
-      rooms: [{ id: 'R4', number: '301', price: 1850000, status: 'available' }],
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Token Mandiri', 'Kamar Luas (Mezzanine)'],
+      rules: ['Boleh Pasutri', 'Akses Kartu 24 Jam'],
+      rooms: [{ id: 'R4', number: '301', price: 1850000, dimension: '4.5m x 4.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&auto=format&fit=crop&q=80'
@@ -381,8 +387,9 @@ export default function Home({ user }) {
       city: 'Yogyakarta',
       address: 'Jl. Sosrowijayan No. 25, Malioboro, Yogyakarta',
       rating: 4.8,
-      facilities: ['WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama'],
-      rooms: [{ id: 'R5', number: '102', price: 850000, status: 'available' }],
+      facilities: ['WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Air Panas'],
+      rules: ['Boleh Pasutri', 'Akses Kunci Sendiri'],
+      rooms: [{ id: 'R5', number: '102', price: 850000, dimension: '3.0m x 3.5m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1540518614846-7ede433c4b69?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
@@ -395,8 +402,9 @@ export default function Home({ user }) {
       city: 'Malang',
       address: 'Jl. MT Haryono No. 55, Dinoyo, Malang',
       rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Hewan Boleh'],
-      rooms: [{ id: 'R6', number: '204', price: 1200000, status: 'available' }],
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Hewan Boleh', 'Kamar Luas'],
+      rules: ['Khusus Putri', 'Hewan Boleh'],
+      rooms: [{ id: 'R6', number: '204', price: 1200000, dimension: '3.5m x 4.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
@@ -409,8 +417,9 @@ export default function Home({ user }) {
       city: 'Surabaya',
       address: 'Jl. Rungkut Madya No. 88, Surabaya',
       rating: 4.7,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam'],
-      rooms: [{ id: 'R7', number: '103', price: 1400000, status: 'available' }],
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas', 'Kamar Luas'],
+      rules: ['Khusus Putra'],
+      rooms: [{ id: 'R7', number: '103', price: 1400000, dimension: '3.5m x 4.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80'
@@ -423,8 +432,9 @@ export default function Home({ user }) {
       city: 'Bali',
       address: 'Jl. Pantai Batu Bolong No. 12, Canggu, Bali',
       rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Hewan Boleh'],
-      rooms: [{ id: 'R8', number: '108', price: 2500000, status: 'available' }],
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Water Heater (Air Panas)', 'Hewan Boleh', 'Kamar Luas Suite'],
+      rules: ['Boleh Pasutri', 'Pet Friendly'],
+      rooms: [{ id: 'R8', number: '108', price: 2500000, dimension: '4.5m x 5.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80'
@@ -455,18 +465,40 @@ export default function Home({ user }) {
     fetchKosts();
   }, []);
 
-  // Quick chips definitions (Page 1 of Design Spec V2.0)
+  // Quick chips definitions with user additions: Air Panas, Kamar Luas, Boleh Pasutri
   const filterChips = [
     { id: 'Semua', label: 'Semua' },
     { id: 'Putri', label: '👩 Kost Putri' },
     { id: 'Putra', label: '👨 Kost Putra' },
+    { id: 'Pasutri', label: '👫 Boleh Pasutri' },
     { id: 'AC', label: '❄️ Ber-AC' },
     { id: 'KMDalam', label: '🚿 KM Dalam' },
+    { id: 'AirPanas', label: '♨️ Air Panas' },
+    { id: 'KamarLuas', label: '📐 Kamar Luas' },
     { id: 'Token', label: '⚡ Token Mandiri' },
     { id: 'Pet', label: '🐾 Hewan Boleh' }
   ];
 
-  // Multivariable filter algorithm
+  // Handler for Multi-Select Chips
+  const handleToggleChip = (chipId) => {
+    if (chipId === 'Semua') {
+      setSelectedChips(['Semua']);
+      return;
+    }
+
+    setSelectedChips(prev => {
+      const withoutSemua = prev.filter(id => id !== 'Semua');
+      let next;
+      if (withoutSemua.includes(chipId)) {
+        next = withoutSemua.filter(id => id !== chipId);
+      } else {
+        next = [...withoutSemua, chipId];
+      }
+      return next.length > 0 ? next : ['Semua'];
+    });
+  };
+
+  // Multivariable filter algorithm with multi-select chips support
   const filtered = (kosts || []).filter(k => {
     if (!k) return false;
 
@@ -496,18 +528,69 @@ export default function Home({ user }) {
       if (minRoomPrice > maxPrice) return false;
     }
 
-    // 4. Quick Chips Filter
-    if (activeChip !== 'Semua') {
+    // 4. Quick Chips Multi-Select Filter
+    if (!selectedChips.includes('Semua') && selectedChips.length > 0) {
       const facilities = (k.facilities || []).map(f => f.toLowerCase());
       const rules = (k.rules || []).map(r => r.toLowerCase());
+      const desc = (k.description || '').toLowerCase();
+      const name = (k.kostName || '').toLowerCase();
       const typeStr = (k.type || '').toLowerCase();
+      const roomDim = (k.rooms?.[0]?.dimension || '').toLowerCase();
 
-      if (activeChip === 'Putri' && !typeStr.includes('putri')) return false;
-      if (activeChip === 'Putra' && !typeStr.includes('putra')) return false;
-      if (activeChip === 'AC' && !facilities.some(f => f.includes('ac'))) return false;
-      if (activeChip === 'KMDalam' && !facilities.some(f => f.includes('mandi dalam') || f.includes('km dalam'))) return false;
-      if (activeChip === 'Token' && !facilities.some(f => f.includes('token') || f.includes('listrik'))) return false;
-      if (activeChip === 'Pet' && !rules.some(r => r.includes('hewan') || r.includes('pet')) && !facilities.some(f => f.includes('hewan'))) return false;
+      // Category / Gender filter: If multiple chosen (e.g. Putri + Pasutri), match ANY (OR)
+      const genderChips = selectedChips.filter(c => ['Putri', 'Putra', 'Pasutri'].includes(c));
+      if (genderChips.length > 0) {
+        const matchesGender = genderChips.some(gChip => {
+          if (gChip === 'Putri') return typeStr.includes('putri');
+          if (gChip === 'Putra') return typeStr.includes('putra');
+          if (gChip === 'Pasutri') {
+            return typeStr.includes('campur') ||
+                   typeStr.includes('bebas') ||
+                   typeStr.includes('pasutri') ||
+                   rules.some(r => r.includes('pasutri')) ||
+                   facilities.some(f => f.includes('pasutri')) ||
+                   desc.includes('pasutri') ||
+                   name.includes('co-living') ||
+                   name.includes('exclusive');
+          }
+          return false;
+        });
+        if (!matchesGender) return false;
+      }
+
+      // Feature & Facility filters: Must match ALL (AND)
+      const featureChips = selectedChips.filter(c => !['Semua', 'Putri', 'Putra', 'Pasutri'].includes(c));
+      for (const fChip of featureChips) {
+        if (fChip === 'AC') {
+          if (!facilities.some(f => f.includes('ac'))) return false;
+        } else if (fChip === 'KMDalam') {
+          if (!facilities.some(f => f.includes('mandi dalam') || f.includes('km dalam') || f.includes('km. dalam'))) return false;
+        } else if (fChip === 'AirPanas') {
+          const hasHotWater = facilities.some(f => f.includes('air panas') || f.includes('water heater') || f.includes('heater') || f.includes('bathtub')) ||
+                              desc.includes('air panas') || desc.includes('water heater');
+          if (!hasHotWater) return false;
+        } else if (fChip === 'KamarLuas') {
+          const dimMatch = roomDim.match(/([\d.]+)\s*[xX*]\s*([\d.]+)/);
+          const area = dimMatch ? parseFloat(dimMatch[1]) * parseFloat(dimMatch[2]) : 0;
+          const isLarge = area >= 12 ||
+                          facilities.some(f => f.includes('luas') || f.includes('suite') || f.includes('balkon')) ||
+                          desc.includes('luas') ||
+                          desc.includes('suite') ||
+                          name.includes('paviliun') ||
+                          name.includes('exclusive') ||
+                          name.includes('loft') ||
+                          name.includes('suite');
+          if (!isLarge) return false;
+        } else if (fChip === 'Token') {
+          if (!facilities.some(f => f.includes('token') || f.includes('listrik'))) return false;
+        } else if (fChip === 'Pet') {
+          const isPet = rules.some(r => r.includes('hewan') || r.includes('pet')) || 
+                        facilities.some(f => f.includes('hewan') || f.includes('pet')) ||
+                        desc.includes('pet friendly') ||
+                        desc.includes('hewan');
+          if (!isPet) return false;
+        }
+      }
     }
 
     return true;
@@ -521,10 +604,13 @@ export default function Home({ user }) {
     setSearchLocation('');
     setSelectedType('Semua');
     setSelectedBudget('Semua');
-    setActiveChip('Semua');
+    setSelectedChips(['Semua']);
   };
 
-  const isFiltering = searchLocation !== '' || selectedType !== 'Semua' || selectedBudget !== 'Semua' || activeChip !== 'Semua';
+  const isFiltering = searchLocation !== '' || 
+                      selectedType !== 'Semua' || 
+                      selectedBudget !== 'Semua' || 
+                      (!selectedChips.includes('Semua') && selectedChips.length > 0);
 
   return (
     <div style={{ 
@@ -842,7 +928,7 @@ export default function Home({ user }) {
             })}
           </div>
 
-          {/* ── QUICK FILTER CHIPS / PILLS ROW ── */}
+          {/* ── QUICK FILTER CHIPS / PILLS ROW (MULTI-SELECT ENABLED) ── */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -852,26 +938,32 @@ export default function Home({ user }) {
             marginBottom: '2.5rem'
           }}>
             {filterChips.map(chip => {
-              const active = activeChip === chip.id;
+              const active = selectedChips.includes(chip.id);
               return (
                 <button
                   key={chip.id}
                   type="button"
-                  onClick={() => setActiveChip(chip.id)}
+                  onClick={() => handleToggleChip(chip.id)}
                   style={{
                     padding: '8px 16px',
                     borderRadius: '100px',
-                    border: active ? '1px solid #2563EB' : '1px solid rgba(255, 255, 255, 0.1)',
+                    border: active ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.1)',
                     background: active ? '#2563EB' : 'rgba(15, 23, 42, 0.65)',
                     color: active ? '#FFFFFF' : '#94A3B8',
                     fontSize: '0.82rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)',
-                    boxShadow: active ? '0 4px 12px rgba(37, 99, 235, 0.35)' : 'none'
+                    boxShadow: active ? '0 4px 14px rgba(37, 99, 235, 0.45)' : 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  {chip.label}
+                  {active && chip.id !== 'Semua' && (
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900 }}>✓</span>
+                  )}
+                  <span>{chip.label}</span>
                 </button>
               );
             })}
@@ -888,10 +980,13 @@ export default function Home({ user }) {
                   color: '#f87171',
                   fontSize: '0.8rem',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                ✕ Reset Filter
+                ✕ Reset ({!selectedChips.includes('Semua') ? `${selectedChips.length} Filter` : 'Filter'})
               </button>
             )}
           </div>
