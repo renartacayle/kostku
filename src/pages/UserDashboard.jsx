@@ -22,7 +22,8 @@ import {
   Home,
   RefreshCw,
   Building2,
-  ArrowRight
+  ArrowRight,
+  Star
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { 
@@ -375,6 +376,24 @@ const UserDashboard = ({ user }) => {
                 <PenTool size={14} color={contract?.signedAt ? '#4ade80' : '#fbbf24'} />
                 {contract?.signedAt ? '✓ Kontrak Tertandatangani' : '✍️ TTD Kontrak'}
               </button>
+
+              {currentUser?.kostUid && (
+                <Link
+                  to={`/kost/${currentUser.kostUid}`}
+                  className="btn btn-secondary"
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '8px 12px',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    borderColor: 'rgba(250, 204, 21, 0.4)'
+                  }}
+                  title="Beri rating dan ulasan untuk kost Anda"
+                >
+                  <Star size={14} color="#facc15" fill="#facc15" />
+                  <span>Beri Rating Kost</span>
+                </Link>
+              )}
             </div>
           </div>
           {/* Approved Application Alert Banner if applicable */}

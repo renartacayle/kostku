@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
 import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
+import KostRatingReviewSection from '../components/KostRatingReviewSection';
 
 // Interactive SVG 2D Room Blueprint Component
 const RoomBlueprintSvg = ({ dimensions = "4.0m x 4.5m", area = "18 m²", kostName = "Kamar Kost", roomNumber = "101", roomType = "Exclusive" }) => {
@@ -421,19 +422,28 @@ export default function KostDetail({ user }) {
                   <ShieldCheck size={14} /> Terverifikasi
                 </span>
 
-                <span style={{
-                  background: 'rgba(250, 204, 21, 0.15)',
-                  color: '#facc15',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <Star size={13} fill="#facc15" /> {kost.rating || 4.9} ({kost.reviewCount || 40} Ulasan)
-                </span>
+                <a
+                  href="#reviews-section"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  style={{ textDecoration: 'none', cursor: 'pointer' }}
+                >
+                  <span style={{
+                    background: 'rgba(250, 204, 21, 0.15)',
+                    color: '#facc15',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <Star size={13} fill="#facc15" /> {kost.rating || 4.9} ({kost.reviewCount || 40} Ulasan)
+                  </span>
+                </a>
               </div>
 
               <h1 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 800, margin: '0 0 8px 0', lineHeight: 1.2 }}>
@@ -843,6 +853,16 @@ export default function KostDetail({ user }) {
                 </div>
               </div>
             )}
+
+            {/* 7. Rating & Ulasan Penghuni */}
+            <KostRatingReviewSection
+              kostUid={kost.uid}
+              kostName={kost.kostName}
+              currentUser={user}
+              onRatingUpdated={(newRating, newCount) => {
+                setKost(prev => prev ? ({ ...prev, rating: newRating, reviewCount: newCount }) : prev);
+              }}
+            />
           </div>
 
           {/* ══════════════════════════════════════

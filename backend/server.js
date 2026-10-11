@@ -387,6 +387,7 @@ const getDB = () => {
     if (!_dbCache.packages) _dbCache.packages = [];
     if (!_dbCache.inspections) _dbCache.inspections = [];
     if (!_dbCache.staff) _dbCache.staff = [];
+    if (!_dbCache.reviews) _dbCache.reviews = [];
     if (!_dbCache.settings) _dbCache.settings = {};
     if (!_dbCache.google_config) _dbCache.google_config = {};
   }
@@ -2155,6 +2156,141 @@ app.post('/api/electricity/top-up', (req, res) => {
     nominal: Number(amount || 50000),
     generatedAt: new Date().toISOString()
   });
+});
+
+// ── FITUR RATING & ULASAN PER KOST ────────────────────────────
+app.get('/api/kosts/:kostUid/reviews', (req, res) => {
+  const { kostUid } = req.params;
+  const db = getDB();
+  db.reviews = db.reviews || [];
+  
+  const kost = (db.kosts || []).find(k => k.uid === kostUid);
+  const reviews = db.reviews.filter(r => r.kostUid === kostUid).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const totalReviews = reviews.length;
+  let avgRating = kost?.rating || 0;
+  let cleanlinessSum = 0;
+  let facilitySum = 0;
+  let securitySum = 0;
+  let locationSum = 0;
+
+  const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+  if (totalReviews > 0) {
+    let totalScore = 0;
+    reviews.forEach(r => {
+      const star = Math.min(5, Math.max(1, Math.round(Number(r.rating || 5))));
+      distribution[star] = (distribution[star] || 0) + 1;
+      totalScore += Number(r.rating || 5);
+      cleanlinessSum += Number(r.cleanlinessRating || r.rating || 5);
+      facilitySum += Number(r.facilityRating || r.rating || 5);
+      securitySum += Number(r.securityRating || r.rating || 5);
+      locationSum += Number(r.locationRating || r.rating || 5);
+    });
+    avgRating = Number((totalScore / totalReviews).toFixed(1));
+  } else if (kost?.rating) {
+    avgRating = Number(kost.rating);
+  }
+
+  res.json({
+    kostUid,
+    kostName: kost?.kostName || '',
+    averageRating: avgRating,
+    totalReviews: totalReviews || (kost?.reviewCount || 0),
+    distribution,
+    aspects: {
+      cleanliness: totalReviews > 0 ? Number((cleanlinessSum / totalReviews).toFixed(1)) : (avgRating || 4.9),
+      facility: totalReviews > 0 ? Number((facilitySum / totalReviews).toFixed(1)) : (avgRating || 4.8),
+      security: totalReviews > 0 ? Number((securitySum / totalReviews).toFixed(1)) : (avgRating || 5.0),
+      location: totalReviews > 0 ? Number((locationSum / totalReviews).toFixed(1)) : (avgRating || 4.9)
+    },
+    reviews
+  });
+});
+
+app.post('/api/kosts/:kostUid/reviews', (req, res) => {
+  const { kostUid } = req.params;
+  const { 
+    rating, 
+    comment, 
+    userName, 
+    userId, 
+    userAvatar, 
+    cleanlinessRating, 
+    facilityRating, 
+    securityRating, 
+    locationRating,
+    roomNumber,
+    stayDuration 
+  } = req.body;
+
+  if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+    return res.status(400).json({ error: 'Rating harus berupa angka antara 1 sampai 5 bintang' });
+  }
+
+  if (!comment || !comment.trim()) {
+    return res.status(400).json({ error: 'Ulasan atau komentar tidak boleh kosong' });
+  }
+
+  const db = getDB();
+  const kost = (db.kosts || []).find(k => k.uid === kostUid);
+  if (!kost) {
+    return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  }
+
+  db.reviews = db.reviews || [];
+
+  const newReview = {
+    id: 'REV-' + Date.now(),
+    kostUid,
+    userId: userId || null,
+    userName: (userName || 'Penghuni Kost').trim(),
+    userAvatar: userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName || 'Tenant')}`,
+    rating: Number(rating),
+    cleanlinessRating: Number(cleanlinessRating || rating),
+    facilityRating: Number(facilityRating || rating),
+    securityRating: Number(securityRating || rating),
+    locationRating: Number(locationRating || rating),
+    comment: comment.trim(),
+    roomNumber: roomNumber || null,
+    stayDuration: stayDuration || 'Penghuni Baru',
+    date: new Date().toISOString(),
+    verified: Boolean(userId || roomNumber),
+    likes: 0
+  };
+
+  db.reviews.unshift(newReview);
+
+  // Recalculate average rating and review count for kost
+  const kostReviews = db.reviews.filter(r => r.kostUid === kostUid);
+  const avg = Number((kostReviews.reduce((sum, r) => sum + r.rating, 0) / kostReviews.length).toFixed(1));
+  kost.rating = avg;
+  kost.reviewCount = kostReviews.length;
+
+  addActivity(db, kostUid, 'ulasan', `${newReview.userName} memberikan rating ⭐ ${newReview.rating} untuk ${kost.kostName}`);
+  writeDB(db);
+
+  res.status(201).json({
+    ok: true,
+    message: 'Ulasan dan rating berhasil dikirim!',
+    review: newReview,
+    kost: {
+      rating: kost.rating,
+      reviewCount: kost.reviewCount
+    }
+  });
+});
+
+app.post('/api/reviews/:id/like', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  db.reviews = db.reviews || [];
+  const review = db.reviews.find(r => String(r.id) === String(id));
+  if (!review) return res.status(404).json({ error: 'Ulasan tidak ditemukan' });
+  
+  review.likes = (review.likes || 0) + 1;
+  writeDB(db);
+  res.json({ ok: true, likes: review.likes });
 });
 
 // --- MULTI-DEVICE CLOUD & SYNC ENDPOINTS ---

@@ -390,4 +390,22 @@ export const apiTopUpElectricity = (data) => {
   });
 };
 
+// ── Rating & Ulasan Kost ──────────────────────────────────
+export const apiGetKostReviews = (kostUid) => {
+  return request(`/kosts/${encodeURIComponent(kostUid)}/reviews`);
+};
+
+export const apiSubmitKostReview = (kostUid, data) => {
+  return request(`/kosts/${encodeURIComponent(kostUid)}/reviews`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiLikeReview = (reviewId) => {
+  return request(`/reviews/${encodeURIComponent(reviewId)}/like`, {
+    method: 'POST'
+  });
+};
+
 
