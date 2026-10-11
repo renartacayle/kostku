@@ -1519,31 +1519,10 @@ export default function Home({ user }) {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════
-                BENTO FEATURE GRID (3 KOLOM: DENAH 2D, SIMULASI KWH, ID VERIF)
-                Placed exactly after first 6 listings as per Design Spec V2.0!
+                BENTO FEATURE GRID (4 KARTU: STANDAR NYAMAN & AMAN KOSTKU)
+                Placed seamlessly between batch 1 and batch 2
                 ═══════════════════════════════════════════════════════════════════ */}
-            <div style={{ margin: '3.5rem 0' }}>
-              <div style={{
-                textAlign: 'center',
-                marginBottom: '1.5rem'
-              }}>
-                <span style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  color: '#60a5fa',
-                  background: 'rgba(37, 99, 235, 0.1)',
-                  border: '1px solid rgba(37, 99, 235, 0.3)',
-                  padding: '4px 12px',
-                  borderRadius: '100px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em'
-                }}>
-                  🛡️ Fitur Unggulan Keamanan & Arsitektur
-                </span>
-                <h3 style={{ margin: '8px 0 0', fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
-                  Standar Verifikasi PropTech KostKu
-                </h3>
-              </div>
+            <div style={{ margin: '4rem 0' }}>
               <SpatialBentoShowcase />
             </div>
 

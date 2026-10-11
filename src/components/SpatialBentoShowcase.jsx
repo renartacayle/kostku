@@ -1,479 +1,518 @@
 import React, { useState } from 'react';
-import { Compass, Zap, ShieldCheck, Maximize2, Check, ArrowRight, Sun, Wind, Eye } from 'lucide-react';
+import { 
+  Bed, 
+  Maximize2, 
+  Zap, 
+  ShieldCheck, 
+  Camera, 
+  Check, 
+  Sparkles, 
+  Sun, 
+  MapPin, 
+  BadgeCheck,
+  CheckCircle2,
+  Lock,
+  ChevronRight
+} from 'lucide-react';
 
 export default function SpatialBentoShowcase() {
-  // Interactive state for Bed Size in Tile 1
+  // Interactive state for Bed Size in Card 1
   const [bedSize, setBedSize] = useState('queen'); // 'queen' | 'single'
-  const [showGridCoords, setShowGridCoords] = useState(true);
 
-  // Interactive state for Tile 3 (kWh calculator)
-  const [kwhValue, setKwhValue] = useState(135);
-  const tariffPerKwh = 1524;
+  // Interactive state for kWh slider in Card 3
+  const [kwhValue, setKwhValue] = useState(120);
+  const tariffPerKwh = 1524; // Tarif resmi PLN R-1/TR 1.300 VA
   const estimatedCost = kwhValue * tariffPerKwh;
+
+  // Interactive state for Photo verification preview in Card 2
+  const [photoMode, setPhotoMode] = useState('verified'); // 'verified' | 'angle'
 
   return (
     <section 
       style={{
         position: 'relative',
         zIndex: 10,
-        background: '#090e1a',
-        padding: 'clamp(3.5rem, 7vw, 6rem) clamp(1rem, 3.5vw, 2.5rem)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.07)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
-        fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
-        color: '#f8fafc',
+        background: '#0B132B',
+        borderRadius: '28px',
+        border: '1px solid rgba(255, 255, 255, 0.09)',
+        padding: 'clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3vw, 2.5rem)',
+        fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        color: '#F8FAFC',
         boxSizing: 'border-box',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7)'
       }}
     >
-      {/* Subtle Specular Ambient Gradients (No generic purple slop) */}
+      {/* Ambient Glow Accents */}
       <div style={{
         position: 'absolute',
-        top: '-15%',
-        right: '-10%',
-        width: '550px',
-        height: '550px',
-        background: 'radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 70%)',
+        top: '-10%',
+        right: '-5%',
+        width: '450px',
+        height: '450px',
+        background: 'radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 70%)',
         pointerEvents: 'none',
         zIndex: 0
       }} />
       <div style={{
         position: 'absolute',
-        bottom: '-15%',
-        left: '-10%',
-        width: '600px',
-        height: '600px',
-        background: 'radial-gradient(circle, rgba(217, 119, 6, 0.05) 0%, transparent 70%)',
+        bottom: '-10%',
+        left: '-5%',
+        width: '450px',
+        height: '450px',
+        background: 'radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%)',
         pointerEvents: 'none',
         zIndex: 0
       }} />
 
-      <div style={{ maxWidth: '1240px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '1200px', margin: '0 auto' }}>
         
-        {/* SECTION HEADER (EDITORIAL PRESENCE) */}
-        <div style={{ marginBottom: 'clamp(2.5rem, 5vw, 4rem)', maxWidth: '780px' }}>
+        {/* SECTION HEADER (CONSUMER-FRIENDLY & PERSUASIVE) */}
+        <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 3rem auto' }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '5px 14px',
-            background: 'rgba(37, 99, 235, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.25)',
-            borderRadius: '6px',
-            color: '#60a5fa',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
+            padding: '6px 16px',
+            background: 'rgba(37, 99, 235, 0.12)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: '100px',
+            color: '#60A5FA',
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
             textTransform: 'uppercase',
-            marginBottom: '1.25rem'
+            marginBottom: '1rem'
           }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#60a5fa', display: 'inline-block' }} />
-            Architectural Precision Engine
+            <Sparkles size={14} />
+            <span>STANDAR NYAMAN & AMAN KOSTKU</span>
           </div>
 
           <h2 style={{
-            fontSize: 'clamp(1.9rem, 4.2vw, 3.4rem)',
+            fontSize: 'clamp(1.8rem, 3.8vw, 2.75rem)',
             fontWeight: 800,
             letterSpacing: '-0.03em',
-            lineHeight: 1.12,
+            lineHeight: 1.2,
             margin: '0 0 1rem 0',
-            color: '#ffffff'
+            color: '#FFFFFF'
           }}>
-            Transparansi Ruang Nyata.<br />
-            <span style={{ color: '#94a3b8', fontWeight: 500 }}>Bebas Distorsi Lensa Kamera.</span>
+            Cari Kost Tenang, <br />
+            <span style={{ color: '#38BDF8' }}>Bebas Zonk & Tanpa Biaya Siluman</span>
           </h2>
 
           <p style={{
-            color: '#94a3b8',
-            fontSize: 'clamp(0.95rem, 1.8vw, 1.08rem)',
-            lineHeight: 1.65,
+            color: '#94A3B8',
+            fontSize: 'clamp(0.95rem, 1.8vw, 1.05rem)',
+            lineHeight: 1.6,
             margin: 0
           }}>
-            KostKu mengeliminasi manipulasi foto kamar dengan menghadirkan denah vektor CAD interaktif skala 1:50, kalkulasi meteran kWh listrik mandiri, dan verifikasi anti-bot berlandaskan e-KTP fisik.
+            Setiap kamar kami verifikasi langsung ke lokasi fisik. Mulai dari denah ukuran perabot, transparansi meteran listrik, hingga keaslian identitas pemilik kost.
           </p>
         </div>
 
         {/* ═════════════════════════════════════════════
-            BESPOKE ASYMMETRIC BENTO GRID (4 CARDS)
+            MODERN BENTO GRID (4 AESTHETIC CARDS)
             ═════════════════════════════════════════════ */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
-          gap: 'clamp(1rem, 2.2vw, 1.75rem)'
+          gap: 'clamp(1rem, 2vw, 1.5rem)'
         }}>
 
-          {/* ── CARD 1: 2D CAD BLUEPRINT ENGINE (7 COLS) ── */}
+          {/* ── CARD 1: DENAH MUAT BARANG (7 COLS) ── */}
           <div 
             className="bento-tile bento-col-7"
             style={{
-              background: '#0e1726',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '20px',
-              padding: 'clamp(1.25rem, 2.8vw, 2rem)',
+              background: '#131D33',
+              border: '1px solid rgba(255, 255, 255, 0.09)',
+              borderRadius: '24px',
+              padding: 'clamp(1.25rem, 2.5vw, 1.85rem)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: '0 12px 36px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
               position: 'relative'
             }}
           >
             <div>
-              {/* Tile Top Controls */}
+              {/* Header Card 1 */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '1.25rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    Interactive Vector Blueprint • Skala 1:50
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 800, color: '#38BDF8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                    <Maximize2 size={13} />
+                    <span>Denah & Tata Ruang Nyata</span>
                   </div>
-                  <h3 style={{ margin: 0, fontSize: 'clamp(1.2rem, 2vw, 1.45rem)', fontWeight: 700, color: '#ffffff' }}>
-                    Simulasi Dimensi Kamar & Perabot
+                  <h3 style={{ margin: 0, fontSize: 'clamp(1.15rem, 2vw, 1.35rem)', fontWeight: 800, color: '#FFFFFF' }}>
+                    Ketahui Muat Apa Saja Sebelum Survei
                   </h3>
                 </div>
 
-                {/* Bed size switchers */}
-                <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.8)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                {/* Bed switcher buttons */}
+                <div style={{ display: 'flex', gap: '4px', background: 'rgba(15, 23, 42, 0.9)', padding: '3px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                   <button
+                    type="button"
                     onClick={() => setBedSize('queen')}
                     style={{
-                      padding: '5px 12px',
-                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
                       border: 'none',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
                       cursor: 'pointer',
-                      background: bedSize === 'queen' ? '#2563eb' : 'transparent',
-                      color: bedSize === 'queen' ? '#ffffff' : '#94a3b8',
+                      background: bedSize === 'queen' ? '#2563EB' : 'transparent',
+                      color: bedSize === 'queen' ? '#FFFFFF' : '#94A3B8',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Queen (160×200)
+                    Kasur Queen (160×200)
                   </button>
                   <button
+                    type="button"
                     onClick={() => setBedSize('single')}
                     style={{
-                      padding: '5px 12px',
-                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
                       border: 'none',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
                       cursor: 'pointer',
-                      background: bedSize === 'single' ? '#2563eb' : 'transparent',
-                      color: bedSize === 'single' ? '#ffffff' : '#94a3b8',
+                      background: bedSize === 'single' ? '#2563EB' : 'transparent',
+                      color: bedSize === 'single' ? '#FFFFFF' : '#94A3B8',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Single (100×200)
+                    Kasur Single (100×200)
                   </button>
                 </div>
               </div>
 
-              {/* Blueprint Canvas SVG Container */}
+              {/* Clean Aesthetic Vector Room Layout */}
               <div style={{
                 position: 'relative',
-                background: '#070b14',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                borderRadius: '14px',
+                background: '#0B1222',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                borderRadius: '16px',
                 padding: '16px',
-                minHeight: '260px',
+                minHeight: '230px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden'
               }}>
-                {/* CAD Grid Background Overlay */}
-                <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.15 }}>
-                  <defs>
-                    <pattern id="cad-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#60a5fa" strokeWidth="0.5" />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#cad-grid)" />
-                </svg>
-
-                {/* SVG Blueprint Render */}
-                <svg viewBox="0 0 460 260" style={{ width: '100%', maxHeight: '250px', position: 'relative', zIndex: 2 }}>
-                  {/* Outer Wall (Room Boundary 3.5m x 4.0m) */}
-                  <rect x="30" y="20" width="400" height="220" fill="none" stroke="#38bdf8" strokeWidth="3" rx="4" />
+                <svg viewBox="0 0 460 240" style={{ width: '100%', maxHeight: '220px', position: 'relative', zIndex: 2 }}>
+                  {/* Outer Wall Boundary (Room 3.5m x 4.0m) */}
+                  <rect x="25" y="15" width="410" height="210" fill="rgba(30, 41, 59, 0.4)" stroke="#38BDF8" strokeWidth="2.5" rx="8" />
                   
-                  {/* Dimension Markers */}
-                  <line x1="30" y1="12" x2="430" y2="12" stroke="#64748b" strokeWidth="1" strokeDasharray="3 3" />
-                  <text x="230" y="10" fill="#94a3b8" fontSize="10" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">
-                    Lebar 3.50 METER
+                  {/* Dimension guides */}
+                  <text x="230" y="32" fill="#94A3B8" fontSize="10" fontWeight="700" textAnchor="middle">
+                    Panjang 4.0 Meter × Lebar 3.5 Meter (14 m²)
                   </text>
 
-                  <line x1="18" y1="20" x2="18" y2="240" stroke="#64748b" strokeWidth="1" strokeDasharray="3 3" />
-                  <text x="14" y="135" fill="#94a3b8" fontSize="10" fontFamily="'JetBrains Mono', monospace" textAnchor="middle" transform="rotate(-90 14 135)">
-                    Panjang 4.00 METER
-                  </text>
+                  {/* En-suite Bathroom (KM Dalam) */}
+                  <g transform="translate(35, 45)">
+                    <rect width="125" height="95" rx="6" fill="rgba(14, 165, 233, 0.15)" stroke="#38BDF8" strokeWidth="1.5" />
+                    <text x="62" y="48" fill="#38BDF8" fontSize="11" fontWeight="800" textAnchor="middle">KM DALAM</text>
+                    <text x="62" y="66" fill="#94A3B8" fontSize="9" textAnchor="middle">Shower & Kloset Duduk</text>
+                  </g>
 
-                  {/* Bathroom Area (En-Suite KM Dalam) */}
-                  <rect x="30" y="20" width="130" height="100" fill="rgba(14, 165, 233, 0.08)" stroke="#38bdf8" strokeWidth="2" strokeDasharray="4 2" />
-                  <text x="95" y="70" fill="#38bdf8" fontSize="11" fontWeight="700" textAnchor="middle">KM DALAM</text>
-                  <text x="95" y="85" fill="#64748b" fontSize="9" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">1.5 × 1.3 m</text>
-                  
-                  {/* Door Swing Arc (Pintu Masuk Utama) */}
-                  <path d="M 430 190 A 40 40 0 0 0 390 230" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeDasharray="2 2" />
-                  <line x1="430" y1="190" x2="390" y2="230" stroke="#22c55e" strokeWidth="2" />
-                  <text x="405" y="180" fill="#22c55e" fontSize="9" fontWeight="600">Pintu (80cm)</text>
+                  {/* Wardrobe (Lemari Pakaian) */}
+                  <g transform="translate(35, 150)">
+                    <rect width="125" height="55" rx="5" fill="#1E293B" stroke="#64748B" strokeWidth="1.5" />
+                    <text x="62" y="32" fill="#E2E8F0" fontSize="10" fontWeight="700" textAnchor="middle">Lemari Pakaian 2 Pintu</text>
+                  </g>
 
-                  {/* Bed Rendering (Dynamic based on selected size) */}
+                  {/* Study Desk (Meja Belajar & Kerja) */}
+                  <g transform="translate(180, 150)">
+                    <rect width="110" height="55" rx="5" fill="#1E293B" stroke="#60A5FA" strokeWidth="1.5" />
+                    <text x="55" y="28" fill="#93C5FD" fontSize="10" fontWeight="700" textAnchor="middle">Meja Belajar</text>
+                    <text x="55" y="44" fill="#64748B" fontSize="8" textAnchor="middle">+ Colokan Listrik</text>
+                  </g>
+
+                  {/* Bed Rendering (Dynamic Queen / Single) */}
                   {bedSize === 'queen' ? (
-                    <g transform="translate(240, 30)">
-                      <rect width="170" height="120" rx="6" fill="#1e293b" stroke="#d97706" strokeWidth="2" />
-                      <rect x="10" y="10" width="60" height="30" rx="3" fill="#334155" />
-                      <rect x="100" y="10" width="60" height="30" rx="3" fill="#334155" />
-                      <line x1="10" y1="55" x2="160" y2="55" stroke="#d97706" strokeWidth="1" strokeDasharray="4 3" />
-                      <text x="85" y="85" fill="#fde68a" fontSize="11" fontWeight="700" textAnchor="middle">KASUR QUEEN</text>
-                      <text x="85" y="100" fill="#94a3b8" fontSize="9" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">160 × 200 cm</text>
+                    <g transform="translate(260, 45)">
+                      <rect width="165" height="95" rx="8" fill="#1E293B" stroke="#F59E0B" strokeWidth="2" />
+                      {/* Pillows */}
+                      <rect x="12" y="10" width="60" height="26" rx="4" fill="#334155" />
+                      <rect x="92" y="10" width="60" height="26" rx="4" fill="#334155" />
+                      <line x1="12" y1="46" x2="152" y2="46" stroke="#F59E0B" strokeWidth="1" strokeDasharray="3 3" />
+                      <text x="82" y="70" fill="#FDE68A" fontSize="11" fontWeight="800" textAnchor="middle">KASUR QUEEN (160×200)</text>
+                      <text x="82" y="86" fill="#94A3B8" fontSize="8" textAnchor="middle">Masih Tersisa Ruang Lega</text>
                     </g>
                   ) : (
-                    <g transform="translate(290, 30)">
-                      <rect width="120" height="120" rx="6" fill="#1e293b" stroke="#d97706" strokeWidth="2" />
-                      <rect x="25" y="10" width="70" height="30" rx="3" fill="#334155" />
-                      <line x1="10" y1="55" x2="110" y2="55" stroke="#d97706" strokeWidth="1" strokeDasharray="4 3" />
-                      <text x="60" y="85" fill="#fde68a" fontSize="11" fontWeight="700" textAnchor="middle">KASUR SINGLE</text>
-                      <text x="60" y="100" fill="#94a3b8" fontSize="9" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">100 × 200 cm</text>
+                    <g transform="translate(310, 45)">
+                      <rect width="115" height="95" rx="8" fill="#1E293B" stroke="#F59E0B" strokeWidth="2" />
+                      {/* Pillow */}
+                      <rect x="25" y="10" width="65" height="26" rx="4" fill="#334155" />
+                      <line x1="12" y1="46" x2="102" y2="46" stroke="#F59E0B" strokeWidth="1" strokeDasharray="3 3" />
+                      <text x="57" y="70" fill="#FDE68A" fontSize="10" fontWeight="800" textAnchor="middle">KASUR SINGLE (100×200)</text>
+                      <text x="57" y="86" fill="#34D399" fontSize="8" textAnchor="middle">Ruang Gerak Sangat Luas</text>
                     </g>
                   )}
 
-                  {/* Study Desk & Socket coordinates */}
-                  <g transform="translate(45, 150)">
-                    <rect width="115" height="55" rx="4" fill="#1e293b" stroke="#60a5fa" strokeWidth="1.5" />
-                    <text x="57" y="32" fill="#e2e8f0" fontSize="10" fontWeight="600" textAnchor="middle">Meja Belajar</text>
-                    <circle cx="100" cy="15" r="4" fill="#ef4444" />
-                    <text x="108" y="18" fill="#f87171" fontSize="8" fontFamily="'JetBrains Mono', monospace">220V</text>
-                  </g>
-
-                  {/* Window (Ventilasi Bovenlicht) */}
-                  <rect x="240" y="235" width="100" height="10" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
-                  <text x="290" y="254" fill="#38bdf8" fontSize="9" fontWeight="600" textAnchor="middle">Jendela Alami</text>
+                  {/* Door & Window */}
+                  <text x="365" y="215" fill="#22C55E" fontSize="9" fontWeight="700">🚪 Pintu Masuk</text>
+                  <rect x="305" y="15" width="80" height="6" fill="#38BDF8" rx="2" />
+                  <text x="345" y="10" fill="#38BDF8" fontSize="8" fontWeight="700" textAnchor="middle">Jendela Alami</text>
                 </svg>
               </div>
             </div>
 
-            {/* Bottom CAD Metric Badges */}
+            {/* Bottom Room Perks */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '1.25rem' }}>
-              <span style={{ fontSize: '0.75rem', color: '#cbd5e1', background: 'rgba(255,255,255,0.04)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                📐 Luas: <strong>14.0 m²</strong>
+              <span style={{ fontSize: '0.78rem', color: '#E2E8F0', background: 'rgba(255,255,255,0.05)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                📐 Luas: <strong>14.0 m² (Lega & Nyaman)</strong>
               </span>
-              <span style={{ fontSize: '0.75rem', color: '#cbd5e1', background: 'rgba(255,255,255,0.04)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                🪵 Furnished: <strong>Kasur, Meja, Lemari 2 Pintu</strong>
+              <span style={{ fontSize: '0.78rem', color: '#E2E8F0', background: 'rgba(255,255,255,0.05)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                🪵 <strong>Fully Furnished: Siap Huni</strong>
               </span>
-              <span style={{ fontSize: '0.75rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.08)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-                ⚡ CAD File Size: <strong>8.4 KB (Instan Load)</strong>
+              <span style={{ fontSize: '0.78rem', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)', fontWeight: 700 }}>
+                ✓ Ada Sisa Ruang Sholat & Yoga
               </span>
             </div>
           </div>
 
-          {/* ── CARD 2: SOLAR PATH & CROSS VENTILATION (5 COLS) ── */}
+          {/* ── CARD 2: FOTO ASLI ANTI-ZONK (5 COLS) ── */}
           <div 
             className="bento-tile bento-col-5"
             style={{
-              background: '#0e1726',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '20px',
-              padding: 'clamp(1.25rem, 2.8vw, 2rem)',
+              background: '#131D33',
+              border: '1px solid rgba(255, 255, 255, 0.09)',
+              borderRadius: '24px',
+              padding: 'clamp(1.25rem, 2.5vw, 1.85rem)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: '0 12px 36px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
             }}
           >
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '4px' }}>
-                Orientasi Cahaya & Sirkulasi
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 800, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                <Camera size={13} />
+                <span>Foto Terverifikasi Lapangan</span>
               </div>
-              <h3 style={{ margin: 0, fontSize: 'clamp(1.2rem, 2vw, 1.45rem)', fontWeight: 700, color: '#ffffff', marginBottom: '1rem' }}>
-                Solar Path & Cross Ventilation
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: 'clamp(1.15rem, 2vw, 1.35rem)', fontWeight: 800, color: '#FFFFFF' }}>
+                100% Foto Asli Tanpa Lensa Tipu-Tipu
               </h3>
 
-              {/* Visual Compass Orientation Widget */}
+              {/* Photo Guarantee Visual Box */}
               <div style={{
-                background: '#070b14',
-                borderRadius: '14px',
-                border: '1px solid rgba(245, 158, 11, 0.2)',
-                padding: '20px',
+                background: '#0B1222',
+                borderRadius: '16px',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                padding: '18px',
                 textAlign: 'center',
-                marginBottom: '1rem'
+                marginBottom: '1rem',
+                position: 'relative'
               }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.08)', border: '1.5px dashed #f59e0b', marginBottom: '10px' }}>
-                  <Compass size={38} color="#fbbf24" />
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '2px solid #10B981',
+                  marginBottom: '12px'
+                }}>
+                  <BadgeCheck size={36} color="#34D399" />
                 </div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff' }}>Hadap Timur (08.00 WIB)</div>
-                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>Matahari pagi sehat, sejuk saat siang hari</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#FFFFFF' }}>
+                  Lolos Verifikasi Fisik Tim KostKu
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#94A3B8', marginTop: '4px', lineHeight: 1.5 }}>
+                  Difoto langsung di lokasi tanpa lensa ultra-wide melar. Ekspektasi di aplikasi = realitas di kamar.
+                </div>
               </div>
 
-              {/* Climate Metrics */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '0.78rem', fontWeight: 600, marginBottom: '4px' }}>
-                    <Sun size={14} /> Cahaya Alami
+              {/* 3 Verification Checks */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { text: 'Kondisi asli tanpa filter pencahayaan palsu', icon: '📸' },
+                  { text: 'Koordinat GPS akurat tepat di depan pagar kost', icon: '📍' },
+                  { text: 'Update ketersediaan kamar dicek rutin tiap minggu', icon: '🔄' }
+                ].map((item, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    borderRadius: '10px',
+                    fontSize: '0.8rem',
+                    color: '#E2E8F0',
+                    border: '1px solid rgba(255, 255, 255, 0.05)'
+                  }}>
+                    <span style={{ fontSize: '0.9rem' }}>{item.icon}</span>
+                    <span>{item.text}</span>
                   </div>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', fontFamily: "'JetBrains Mono', monospace" }}>
-                    88.4%
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Hemat lampu siang</div>
-                </div>
-
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 600, marginBottom: '4px' }}>
-                    <Wind size={14} /> Angin Silang
-                  </div>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', fontFamily: "'JetBrains Mono', monospace" }}>
-                    1.4 m/s
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Ventilasi alami aktif</div>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Indeks Kenyamanan Termal:</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#10b981' }}>✓ Kategori A (Sangat Nyaman)</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '12px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Garansi Kamar Sesuai:</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#34D399' }}>✓ Bebas Zonk 100%</span>
             </div>
           </div>
 
-          {/* ── CARD 3: REALTIME KWH UTILITY METER & BILLING (6 COLS) ── */}
+          {/* ── CARD 3: SIMULASI LISTRIK & BIAYA TRANSPARAN (6 COLS) ── */}
           <div 
             className="bento-tile bento-col-6"
             style={{
-              background: '#0e1726',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '20px',
-              padding: 'clamp(1.25rem, 2.8vw, 2rem)',
+              background: '#131D33',
+              border: '1px solid rgba(255, 255, 255, 0.09)',
+              borderRadius: '24px',
+              padding: 'clamp(1.25rem, 2.5vw, 1.85rem)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: '0 12px 36px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
             }}
           >
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Anti Mark-Up Utilitas
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 800, color: '#FBBF24', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <Zap size={13} />
+                  <span>Transparansi Biaya Utilitas</span>
                 </span>
-                <span style={{ fontSize: '0.75rem', fontFamily: "'JetBrains Mono', monospace", color: '#94a3b8' }}>
-                  Tarif: Rp 1.524 / kWh
+                <span style={{ fontSize: '0.75rem', fontFamily: "'JetBrains Mono', monospace", color: '#94A3B8' }}>
+                  Tarif Resmi PLN: Rp 1.524/kWh
                 </span>
               </div>
-              <h3 style={{ margin: '0 0 1rem 0', fontSize: 'clamp(1.2rem, 2vw, 1.45rem)', fontWeight: 700, color: '#ffffff' }}>
-                Kalkulator Pemakaian Listrik Mandiri
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: 'clamp(1.15rem, 2vw, 1.35rem)', fontWeight: 800, color: '#FFFFFF' }}>
+                Simulasi Token Listrik (Bebas Biaya Siluman)
               </h3>
 
-              {/* Interactive Range Slider */}
-              <div style={{ background: '#070b14', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', padding: '16px', marginBottom: '1rem' }}>
+              {/* Interactive kWh Range Slider */}
+              <div style={{ background: '#0B1222', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.07)', padding: '16px', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Simulasi Penggunaan Bulanan:</span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8', fontFamily: "'JetBrains Mono', monospace" }}>
-                    {kwhValue} <span style={{ fontSize: '0.8rem', color: '#64748b' }}>kWh</span>
+                  <span style={{ fontSize: '0.84rem', color: '#94A3B8' }}>Geser Estimasi Pemakaianmu:</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38BDF8', fontFamily: "'JetBrains Mono', monospace" }}>
+                    {kwhValue} <span style={{ fontSize: '0.8rem', color: '#64748B' }}>kWh / bln</span>
                   </span>
                 </div>
                 
                 <input 
                   type="range"
                   min="40"
-                  max="350"
+                  max="300"
+                  step="10"
                   value={kwhValue}
                   onChange={(e) => setKwhValue(Number(e.target.value))}
                   style={{
                     width: '100%',
-                    accentColor: '#2563eb',
-                    cursor: 'pointer'
+                    accentColor: '#38BDF8',
+                    cursor: 'pointer',
+                    height: '6px',
+                    borderRadius: '4px'
                   }}
                 />
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginTop: '6px', fontFamily: "'JetBrains Mono', monospace" }}>
-                  <span>Hemat (40 kWh)</span>
-                  <span>Standar (150 kWh)</span>
-                  <span>AC Rutin (350 kWh)</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginTop: '8px' }}>
+                  <span>🟢 Hemat (Lampu & Laptop)</span>
+                  <span>🔵 Normal (+ Kulkas mini)</span>
+                  <span>🟣 AC Dingin Tiap Malam</span>
                 </div>
               </div>
 
-              {/* Price Calculation Output Box */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '14px 18px', borderRadius: '12px' }}>
+              {/* Calculation Output Box */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '14px 18px',
+                borderRadius: '14px'
+              }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#6ee7b7', textTransform: 'uppercase', fontWeight: 600 }}>Estimasi Tagihan Listrik PLN:</div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Transparan tanpa selisih meteran tersembunyi</div>
+                  <div style={{ fontSize: '0.75rem', color: '#6EE7B7', textTransform: 'uppercase', fontWeight: 800 }}>Estimasi Pengeluaran Listrik:</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Meteran mandiri tanpa markup biaya pengelola</div>
                 </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#34d399', fontFamily: "'JetBrains Mono', monospace" }}>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#34D399', fontFamily: "'JetBrains Mono', monospace" }}>
                   Rp {estimatedCost.toLocaleString('id-ID')}
                 </div>
               </div>
             </div>
 
-            <div style={{ marginTop: '16px', fontSize: '0.78rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Zap size={14} color="#10b981" /> Kwitansi tagihan terintegrasi langsung via 1-Click WhatsApp Dispatcher.
+            <div style={{ marginTop: '16px', fontSize: '0.8rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircle2 size={15} color="#10B981" />
+              <span>Semua kost bertanda <strong>Listrik Mandiri</strong> bebas biaya tagihan siluman.</span>
             </div>
           </div>
 
-          {/* ── CARD 4: ANTI-BOT 1 KTP 1 AKUN SYSTEM (6 COLS) ── */}
+          {/* ── CARD 4: BEBAS CALO & GARANSI SEWA AMAN (6 COLS) ── */}
           <div 
             className="bento-tile bento-col-6"
             style={{
-              background: '#0e1726',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '20px',
-              padding: 'clamp(1.25rem, 2.8vw, 2rem)',
+              background: '#131D33',
+              border: '1px solid rgba(255, 255, 255, 0.09)',
+              borderRadius: '24px',
+              padding: 'clamp(1.25rem, 2.5vw, 1.85rem)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: '0 12px 36px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
             }}
           >
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#3b82f6', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Enterprise Verification
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 800, color: '#818CF8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <ShieldCheck size={13} />
+                  <span>Keamanan & Legalitas</span>
                 </span>
-                <span style={{ fontSize: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                  1 KTP = 1 Akun
+                <span style={{ fontSize: '0.75rem', background: 'rgba(99, 102, 241, 0.15)', color: '#A5B4FC', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                  100% Anti-Calo
                 </span>
               </div>
-              <h3 style={{ margin: '0 0 1rem 0', fontSize: 'clamp(1.2rem, 2vw, 1.45rem)', fontWeight: 700, color: '#ffffff' }}>
-                Sistem Keamanan Anti-Bot & Fraud
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: 'clamp(1.15rem, 2vw, 1.35rem)', fontWeight: 800, color: '#FFFFFF' }}>
+                Garansi Bebas Penipuan Uang Muka (DP)
               </h3>
 
               {/* ID Badge Visualization */}
               <div style={{
-                background: '#070b14',
-                borderRadius: '14px',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
+                background: '#0B1222',
+                borderRadius: '16px',
+                border: '1px solid rgba(99, 102, 241, 0.25)',
                 padding: '16px',
                 marginBottom: '1rem',
                 display: 'flex',
                 gap: '14px',
                 alignItems: 'center'
               }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(37, 99, 235, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <ShieldCheck size={26} color="#3b82f6" />
+                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Lock size={24} color="#818CF8" />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ffffff' }}>Validasi NIK 16 Digit & e-KTP Fisik</div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px', lineHeight: 1.4 }}>
-                    Mencegah duplikasi akun calo, spamming kamar fiktif, serta menjamin keabsahan hukum kontrak sewa digital.
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#FFFFFF' }}>Pemilik & Pengelola Terverifikasi KTP</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: '2px', lineHeight: 1.4 }}>
+                    Mencegah kamar fiktif dan calo liar. Hubungi langsung pemilik sah via kontak resmi terdaftar.
                   </div>
                 </div>
               </div>
 
-              {/* 3 Trust Pillars */}
+              {/* 4 Trust Guarantee Points */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#cbd5e1' }}>
-                  <Check size={14} color="#10b981" /> Single Active Session
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
+                  <Check size={14} color="#10B981" /> Tanpa Biaya Calo
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#cbd5e1' }}>
-                  <Check size={14} color="#10b981" /> Recovery Otomatis NIK
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
+                  <Check size={14} color="#10B981" /> Kontak Pemilik Asli
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#cbd5e1' }}>
-                  <Check size={14} color="#10b981" /> GPS Pinning G-Maps
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
+                  <Check size={14} color="#10B981" /> Garansi Uang Kembali
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#cbd5e1' }}>
-                  <Check size={14} color="#10b981" /> SLA Urgent 15 Menit
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
+                  <Check size={14} color="#10B981" /> Bantuan CS 24 Jam
                 </div>
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Tingkat Kepercayaan Komunitas:</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#3b82f6' }}>99.9% Zero Fraud Rate</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '12px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Keamanan Transaksi:</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#60A5FA' }}>10.000+ Penghuni Tenang</span>
             </div>
           </div>
 
@@ -503,9 +542,9 @@ export default function SpatialBentoShowcase() {
           transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
         }
         .bento-tile:hover {
-          border-color: rgba(59, 130, 246, 0.3) !important;
-          transform: translateY(-3px);
-          box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+          border-color: rgba(56, 189, 248, 0.35) !important;
+          transform: translateY(-4px);
+          box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.7) !important;
         }
       `}</style>
     </section>
