@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
   MapPin, 
@@ -30,17 +30,116 @@ import { apiGetPublicKosts } from '../services/api';
 import KostCompareModal from '../components/KostCompareModal';
 import CustomDropdown from '../components/CustomDropdown';
 
+export const FACILITY_OPTIONS = [
+  { id: 'AC', label: '❄️ AC' },
+  { id: 'KMDalam', label: '🚿 KM Dalam' },
+  { id: 'AirPanas', label: '♨️ Air Panas' },
+  { id: 'WiFi', label: '📶 WiFi Cepat' },
+  { id: 'KamarLuas', label: '📐 Kamar Luas' },
+  { id: 'Parkir', label: '🚗 Parkir Kendaraan' },
+  { id: 'Token', label: '⚡ Listrik Mandiri' },
+  { id: 'Dapur', label: '🍳 Dapur Bersama' },
+  { id: 'CCTV', label: '🔒 CCTV & Security' },
+  { id: 'Kasur', label: '🛏️ Kasur Springbed' },
+  { id: 'Pet', label: '🐾 Hewan Boleh' },
+  { id: 'TV', label: '📺 Smart TV' },
+  { id: 'Akses24Jam', label: '🔑 Akses 24 Jam' },
+  { id: 'Laundry', label: '🧺 Free Laundry' },
+  { id: 'Kulkas', label: '🧊 Kulkas Bersama' },
+  { id: 'PoolGym', label: '🏊 Pool / Gym' }
+];
+
+export const checkFacilityMatch = (kost, facId) => {
+  if (!kost) return false;
+  const facs = (kost.facilities || []).map(f => (typeof f === 'string' ? f.toLowerCase() : ''));
+  const desc = (kost.description || '').toLowerCase();
+  const name = (kost.kostName || '').toLowerCase();
+  const rules = (kost.rules || []).map(r => (typeof r === 'string' ? r.toLowerCase() : ''));
+  const roomDim = (kost.rooms?.[0]?.dimension || kost.rooms?.[0]?.size || '').toLowerCase();
+
+  switch (facId) {
+    case 'AC':
+      return facs.some(f => f.includes('ac')) || desc.includes('ac');
+    case 'KMDalam':
+      return facs.some(f => f.includes('mandi dalam') || f.includes('km dalam') || f.includes('km. dalam') || f.includes('private bathroom') || f.includes('kamar mandi')) ||
+             desc.includes('kamar mandi dalam') || desc.includes('km dalam');
+    case 'AirPanas':
+      return facs.some(f => f.includes('air panas') || f.includes('water heater') || f.includes('heater') || f.includes('bathtub') || f.includes('panas')) ||
+             desc.includes('air panas') || desc.includes('water heater');
+    case 'WiFi':
+      return facs.some(f => f.includes('wifi') || f.includes('wi-fi') || f.includes('internet') || f.includes('mbps')) || desc.includes('wifi');
+    case 'KamarLuas': {
+      const dimMatch = roomDim.match(/([\d.]+)\s*[xX*]\s*([\d.]+)/);
+      const area = dimMatch ? parseFloat(dimMatch[1]) * parseFloat(dimMatch[2]) : 0;
+      return area >= 12 ||
+             facs.some(f => f.includes('luas') || f.includes('suite') || f.includes('balkon') || f.includes('mezzanine')) ||
+             desc.includes('luas') || desc.includes('suite') || name.includes('paviliun') || name.includes('exclusive');
+    }
+    case 'Parkir':
+      return facs.some(f => f.includes('parkir') || f.includes('carport') || f.includes('garasi') || f.includes('mobil') || f.includes('motor')) || desc.includes('parkir');
+    case 'Dapur':
+      return facs.some(f => f.includes('dapur') || f.includes('kitchen') || f.includes('pantry') || f.includes('kompor')) || desc.includes('dapur');
+    case 'CCTV':
+      return facs.some(f => f.includes('cctv') || f.includes('security') || f.includes('satpam') || f.includes('keamanan')) || desc.includes('cctv') || desc.includes('security');
+    case 'Akses24Jam':
+      return facs.some(f => f.includes('24 jam') || f.includes('access card') || f.includes('kartu pintar') || f.includes('smart door')) ||
+             rules.some(r => r.includes('24 jam') || r.includes('bebas')) || desc.includes('24 jam');
+    case 'TV':
+      return facs.some(f => f.includes('tv') || f.includes('smart tv') || f.includes('televisi')) || desc.includes('tv');
+    case 'Kasur':
+      return facs.some(f => f.includes('kasur') || f.includes('springbed') || f.includes('bed') || f.includes('furnished')) || desc.includes('springbed');
+    case 'Token':
+      return facs.some(f => f.includes('token') || f.includes('listrik mandiri') || f.includes('meteran') || f.includes('kwh')) ||
+             desc.includes('token') || desc.includes('listrik mandiri');
+    case 'Laundry':
+      return facs.some(f => f.includes('laundry') || f.includes('cuci') || f.includes('mesin cuci')) || desc.includes('laundry');
+    case 'Kulkas':
+      return facs.some(f => f.includes('kulkas') || f.includes('refrigerator') || f.includes('lemari es') || f.includes('dispenser')) || desc.includes('kulkas');
+    case 'PoolGym':
+      return facs.some(f => f.includes('pool') || f.includes('renang') || f.includes('gym') || f.includes('fitness') || f.includes('sauna') || f.includes('jacuzzi')) ||
+             desc.includes('kolam') || desc.includes('gym');
+    case 'Pet':
+      return facs.some(f => f.includes('hewan') || f.includes('pet')) ||
+             rules.some(r => r.includes('hewan') || r.includes('pet')) ||
+             desc.includes('hewan') || desc.includes('pet friendly');
+    default:
+      return true;
+  }
+};
+
 export default function SearchKost({ user }) {
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('q') || searchParams.get('search') || '';
+  const initialCity = searchParams.get('city') || 'all';
+  const initialType = searchParams.get('type') || 'all';
+  const initialFacilities = searchParams.get('facility')
+    ? [searchParams.get('facility')]
+    : (searchParams.get('facilities') ? searchParams.get('facilities').split(',') : []);
+
   const [kosts, setKosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selectedCity, setSelectedCity] = useState('all');
-  const [selectedType, setSelectedType] = useState('all'); // 'all' | 'Putri' | 'Putra' | 'Campur'
+  const [search, setSearch] = useState(initialSearch);
+  const [selectedCity, setSelectedCity] = useState(initialCity);
+  const [selectedType, setSelectedType] = useState(initialType); // 'all' | 'Putri' | 'Putra' | 'Campur' | 'Pasutri'
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
-  const [selectedFacility, setSelectedFacility] = useState('all'); // 'all' | 'AC' | 'KM Dalam' | 'WiFi' | 'Parkir'
+  const [selectedFacilities, setSelectedFacilities] = useState(initialFacilities); // Array of facility IDs for multi-select
   const [sortBy, setSortBy] = useState('recommended');
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
   const [previewLayoutKost, setPreviewLayoutKost] = useState(null);
+
+  const handleToggleFacility = (facId) => {
+    setSelectedFacilities(prev => {
+      if (prev.includes(facId)) {
+        return prev.filter(id => id !== facId);
+      } else {
+        return [...prev, facId];
+      }
+    });
+  };
+
+  const handleClearFacilities = () => {
+    setSelectedFacilities([]);
+  };
 
   // Wishlist state (persisted in localStorage)
   const [wishlist, setWishlist] = useState(() => {
@@ -149,9 +248,31 @@ export default function SearchKost({ user }) {
       (k.city || '').toLowerCase() === selectedCity.toLowerCase() ||
       (k.address || '').toLowerCase().includes(selectedCity.toLowerCase());
 
-    const matchesType = 
-      selectedType === 'all' || 
-      (k.type || '').toLowerCase() === selectedType.toLowerCase();
+    let matchesType = true;
+    if (selectedType !== 'all') {
+      const typeStr = (k.type || '').toLowerCase();
+      const rules = (k.rules || []).map(r => (typeof r === 'string' ? r.toLowerCase() : ''));
+      const desc = (k.description || '').toLowerCase();
+      const name = (k.kostName || '').toLowerCase();
+      const facs = (k.facilities || []).map(f => (typeof f === 'string' ? f.toLowerCase() : ''));
+
+      if (selectedType === 'Putri') {
+        matchesType = typeStr.includes('putri');
+      } else if (selectedType === 'Putra') {
+        matchesType = typeStr.includes('putra');
+      } else if (selectedType === 'Campur') {
+        matchesType = typeStr.includes('campur') || typeStr.includes('bebas');
+      } else if (selectedType === 'Pasutri') {
+        matchesType = typeStr.includes('campur') ||
+                      typeStr.includes('bebas') ||
+                      typeStr.includes('pasutri') ||
+                      rules.some(r => r.includes('pasutri')) ||
+                      facs.some(f => f.includes('pasutri')) ||
+                      desc.includes('pasutri') ||
+                      name.includes('co-living') ||
+                      name.includes('exclusive');
+      }
+    }
 
     const minPrice = getMinPrice(k);
     let matchesPrice = true;
@@ -159,16 +280,11 @@ export default function SearchKost({ user }) {
     else if (selectedPriceRange === '1.5m-2.5m') matchesPrice = minPrice >= 1500000 && minPrice <= 2500000;
     else if (selectedPriceRange === 'over-2.5m') matchesPrice = minPrice > 2500000;
 
-    let matchesFacility = true;
-    if (selectedFacility !== 'all') {
-      const facs = (k.facilities || []).map(f => f.toLowerCase());
-      if (selectedFacility === 'AC') matchesFacility = facs.some(f => f.includes('ac'));
-      else if (selectedFacility === 'KM Dalam') matchesFacility = facs.some(f => f.includes('kamar mandi') || f.includes('km'));
-      else if (selectedFacility === 'WiFi') matchesFacility = facs.some(f => f.includes('wifi'));
-      else if (selectedFacility === 'Parkir') matchesFacility = facs.some(f => f.includes('parkir'));
-    }
+    // Multi-select facilities filter (ALL chosen facilities must match)
+    const matchesFacilities = selectedFacilities.length === 0 || 
+      selectedFacilities.every(facId => checkFacilityMatch(k, facId));
 
-    return matchesSearch && matchesCity && matchesType && matchesPrice && matchesFacility;
+    return matchesSearch && matchesCity && matchesType && matchesPrice && matchesFacilities;
   }).sort((a, b) => {
     if (sortBy === 'lowest') return getMinPrice(a) - getMinPrice(b);
     if (sortBy === 'highest') return getMinPrice(b) - getMinPrice(a);
@@ -192,7 +308,8 @@ export default function SearchKost({ user }) {
     { id: 'all', label: 'Semua Tipe' },
     { id: 'Putri', label: '🌸 Khusus Putri' },
     { id: 'Putra', label: '👔 Khusus Putra' },
-    { id: 'Campur', label: '🏡 Campur' }
+    { id: 'Campur', label: '🏡 Campur' },
+    { id: 'Pasutri', label: '👫 Boleh Pasutri' }
   ];
 
   return (
@@ -356,7 +473,7 @@ export default function SearchKost({ user }) {
             })}
           </div>
 
-          {/* Filter Pills: Type, Price, Facilities */}
+          {/* Filter Pills: Type & Price Row */}
           <div style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -369,10 +486,11 @@ export default function SearchKost({ user }) {
           }}>
             {/* Tipe Kost */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tipe:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Tipe:</span>
               {types.map(t => (
                 <button
                   key={t.id}
+                  type="button"
                   onClick={() => setSelectedType(t.id)}
                   style={{
                     padding: '5px 12px',
@@ -382,7 +500,8 @@ export default function SearchKost({ user }) {
                     color: selectedType === t.id ? '#93c5fd' : 'var(--text-secondary)',
                     fontSize: '0.78rem',
                     fontWeight: selectedType === t.id ? 700 : 400,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   {t.label}
@@ -392,7 +511,7 @@ export default function SearchKost({ user }) {
 
             {/* Price Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Harga:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Harga:</span>
               {[
                 { id: 'all', label: 'Semua' },
                 { id: 'under-1.5m', label: '< 1.5 Jt' },
@@ -401,6 +520,7 @@ export default function SearchKost({ user }) {
               ].map(p => (
                 <button
                   key={p.id}
+                  type="button"
                   onClick={() => setSelectedPriceRange(p.id)}
                   style={{
                     padding: '5px 12px',
@@ -410,43 +530,153 @@ export default function SearchKost({ user }) {
                     color: selectedPriceRange === p.id ? '#93c5fd' : 'var(--text-secondary)',
                     fontSize: '0.78rem',
                     fontWeight: selectedPriceRange === p.id ? 700 : 400,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   {p.label}
                 </button>
               ))}
             </div>
+          </div>
 
-            {/* Facilities Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fasilitas:</span>
-              {[
-                { id: 'all', label: 'Semua' },
-                { id: 'AC', label: '❄️ AC' },
-                { id: 'KM Dalam', label: '🚿 KM Dalam' },
-                { id: 'WiFi', label: '📶 WiFi' },
-                { id: 'Parkir', label: '🚗 Parkir' }
-              ].map(f => (
+          {/* Dedicated Multi-Select Facilities Section */}
+          <div style={{
+            marginTop: '14px',
+            paddingTop: '14px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              marginBottom: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  color: '#f8fafc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <Sparkles size={14} color="#60a5fa" />
+                  Fasilitas Kost & Kamar:
+                </span>
+                <span style={{
+                  fontSize: '0.72rem',
+                  color: 'var(--text-secondary)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  Bisa pilih multiple (banyak sekaligus)
+                </span>
+                {selectedFacilities.length > 0 && (
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    color: '#93c5fd',
+                    background: 'rgba(37, 99, 235, 0.25)',
+                    padding: '2px 10px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(59, 130, 246, 0.4)'
+                  }}>
+                    ✓ {selectedFacilities.length} Fasilitas Aktif
+                  </span>
+                )}
+              </div>
+
+              {selectedFacilities.length > 0 && (
                 <button
-                  key={f.id}
-                  onClick={() => setSelectedFacility(f.id)}
+                  type="button"
+                  onClick={handleClearFacilities}
                   style={{
-                    padding: '5px 12px',
-                    borderRadius: '10px',
-                    border: selectedFacility === f.id ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.06)',
-                    background: selectedFacility === f.id ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
-                    color: selectedFacility === f.id ? '#6ee7b7' : 'var(--text-secondary)',
-                    fontSize: '0.78rem',
-                    fontWeight: selectedFacility === f.id ? 700 : 400,
-                    cursor: 'pointer'
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    color: '#fca5a5',
+                    borderRadius: '16px',
+                    padding: '4px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  {f.label}
+                  <X size={13} />
+                  Reset Fasilitas
                 </button>
-              ))}
+              )}
             </div>
 
+            {/* Facility Pills Grid */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap'
+            }}>
+              {/* Option: Semua Fasilitas */}
+              <button
+                type="button"
+                onClick={handleClearFacilities}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '18px',
+                  border: selectedFacilities.length === 0 ? '1px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
+                  background: selectedFacilities.length === 0 ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'rgba(255, 255, 255, 0.04)',
+                  color: selectedFacilities.length === 0 ? '#ffffff' : 'var(--text-secondary)',
+                  fontSize: '0.78rem',
+                  fontWeight: selectedFacilities.length === 0 ? 800 : 500,
+                  cursor: 'pointer',
+                  boxShadow: selectedFacilities.length === 0 ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Semua Fasilitas
+              </button>
+
+              {/* Dynamic Facility Options */}
+              {FACILITY_OPTIONS.map(fac => {
+                const isSelected = selectedFacilities.includes(fac.id);
+                return (
+                  <button
+                    key={fac.id}
+                    type="button"
+                    onClick={() => handleToggleFacility(fac.id)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '6px 13px',
+                      borderRadius: '18px',
+                      border: isSelected ? '1px solid #60a5fa' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: isSelected 
+                        ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' 
+                        : 'rgba(255, 255, 255, 0.035)',
+                      color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                      fontSize: '0.78rem',
+                      fontWeight: isSelected ? 800 : 500,
+                      cursor: 'pointer',
+                      boxShadow: isSelected ? '0 4px 14px rgba(37, 99, 235, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2)' : 'none',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {isSelected && <Check size={12} strokeWidth={3} color="#ffffff" />}
+                    <span>{fac.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -516,7 +746,7 @@ export default function SearchKost({ user }) {
                 setSelectedCity('all');
                 setSelectedType('all');
                 setSelectedPriceRange('all');
-                setSelectedFacility('all');
+                setSelectedFacilities([]);
                 setShowWishlistOnly(false);
               }}
               className="btn btn-primary"
