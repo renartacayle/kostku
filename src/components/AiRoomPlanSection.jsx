@@ -135,10 +135,10 @@ export default function AiRoomPlanSection({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'white' }}>
-                Denah Kamar 2D & 3D (Manual / Otomatis AI)
+                Denah Kamar 2D (Manual / Otomatis AI)
               </h3>
               <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                Hasilkan blueprint arsitektural 2D dan isometrik 3D kamar tidur
+                Hasilkan blueprint arsitektural 2D proporsional kamar tidur
               </span>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function AiRoomPlanSection({
                 AI Assistant: Konfirmasi Perabot Kamar Anda
               </h4>
               <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#cbd5e1' }}>
-                Untuk menghasilkan denah 2D dan 3D yang akurat dan proporsional, tentukan detail kamar berikut:
+                Untuk menghasilkan denah 2D yang akurat dan proporsional, tentukan detail kamar berikut:
               </p>
             </div>
           </div>
@@ -451,7 +451,7 @@ export default function AiRoomPlanSection({
               boxShadow: '0 4px 20px rgba(37, 99, 235, 0.45)'
             }}
           >
-            <Sparkles size={16} /> ✨ Generate Denah 2D & 3D Otomatis Sekarang
+            <Sparkles size={16} /> ✨ Generate Denah 2D Otomatis Sekarang
           </button>
         </div>
       )}
@@ -534,12 +534,12 @@ export default function AiRoomPlanSection({
         </div>
       )}
 
-      {/* ── 4. Live Visualizer (Denah 2D & 3D Viewer) ───────────────── */}
+      {/* ── 4. Live Visualizer (Denah 2D Viewer) ───────────────── */}
       {floorPlan?.generated && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CheckCircle size={15} color="#4ade80" /> Hasil Pratinjau Denah Kamar 2D & 3D Aktif:
+              <CheckCircle size={15} color="#4ade80" /> Hasil Pratinjau Denah Kamar 2D Aktif:
             </span>
             <button
               type="button"

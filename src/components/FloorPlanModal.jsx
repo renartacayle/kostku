@@ -65,7 +65,7 @@ export default function FloorPlanModal({ isOpen, onClose, kost }) {
                 fontSize: '0.72rem',
                 fontWeight: 700
               }}>
-                📐 BluePrint 2D & 3D
+                📐 Denah Kamar 2D
               </span>
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
                 {kost.kostName}

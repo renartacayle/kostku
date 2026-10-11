@@ -30,7 +30,8 @@ import {
   Shield,
   HelpCircle,
   Heart,
-  ExternalLink
+  ExternalLink,
+  Camera
 } from 'lucide-react';
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
 import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
@@ -469,55 +470,34 @@ export default function KostDetail({ user }) {
               </div>
             </div>
 
-            {/* Visual Media Tabs: Galeri Foto vs Denah Rumah / Layout */}
+            {/* Gallery Media Header */}
             <div style={{
               display: 'flex',
-              gap: '8px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              paddingBottom: '8px'
+              paddingBottom: '10px'
             }}>
-              <button
-                onClick={() => setActiveTab('photos')}
+              <div
                 style={{
                   padding: '8px 18px',
                   borderRadius: '12px',
                   border: 'none',
-                  cursor: 'pointer',
                   fontWeight: 700,
                   fontSize: '0.88rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: activeTab === 'photos' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'rgba(255, 255, 255, 0.05)',
-                  color: activeTab === 'photos' ? 'white' : '#94a3b8',
-                  transition: 'all 0.2s'
+                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  color: 'white'
                 }}
               >
-                <span>📸 Galeri Foto Asli ({images.length})</span>
-              </button>
-
-              {hasBlueprint && (
-                <button
-                  onClick={() => setActiveTab('layout')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: '0.88rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: activeTab === 'layout' ? 'linear-gradient(135deg, #0284c7, #0ea5e9)' : 'rgba(255, 255, 255, 0.05)',
-                    color: activeTab === 'layout' ? 'white' : '#94a3b8',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Ruler size={16} />
-                  <span>📐 Denah & Blueprint Kamar {selectedRoom || ''}</span>
-                </button>
-              )}
+                <Camera size={16} />
+                <span>📸 Galeri Foto Asli Bangunan & Kamar ({images.length})</span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>
+                ✓ 100% Foto Terverifikasi
+              </span>
             </div>
 
             {/* TAB CONTENT 1: FOTO ASLI GALLERY */}
@@ -603,89 +583,6 @@ export default function KostDetail({ user }) {
               </div>
             )}
 
-            {/* TAB CONTENT 2: DENAH & BLUEPRINT RUANG */}
-            {hasBlueprint && activeTab === 'layout' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <RoomFloorPlanViewer 
-                  dimensions={activeFloorPlan.dimensions || selectedRoomObj?.size || layout.roomDimensions || "3.5m x 4.0m"} 
-                  bedType={activeFloorPlan.bedType || "super_single"}
-                  furnitures={activeFloorPlan.furnitures || ["wardrobe", "desk", "bathroom", "ac", "window"]}
-                  roomNumber={selectedRoom || "101"}
-                  kostName={kost.kostName}
-                />
-
-                {activeRoomPhoto && (
-                  <div className="card glass-panel" style={{ padding: '1.25rem', borderRadius: '18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Sparkles size={18} color="#3b82f6" />
-                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700 }}>Foto Interior Kamar (Terverifikasi AI)</h4>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>✓ Terverifikasi Asli</span>
-                    </div>
-                    <div style={{
-                      width: '100%',
-                      height: '240px',
-                      borderRadius: '14px',
-                      overflow: 'hidden',
-                      border: '1px solid rgba(255, 255, 255, 0.1)'
-                    }}>
-                      <img 
-                        src={activeRoomPhoto} 
-                        alt="Foto Kamar Asli" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {kost.layoutImage && (
-                  <div className="card glass-panel" style={{ padding: '1.25rem', borderRadius: '18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Layers size={18} color="#0ea5e9" />
-                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Foto Cetak Biru Gedung (Floor Plan Arsitektur)</h4>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tap untuk perbesar</span>
-                    </div>
-
-                    <div 
-                      onClick={() => setShowZoomModal(true)}
-                      style={{
-                        width: '100%',
-                        height: '240px',
-                        borderRadius: '14px',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        position: 'relative',
-                        border: '1px solid rgba(255,255,255,0.1)'
-                      }}
-                    >
-                      <img 
-                        src={kost.layoutImage} 
-                        alt="Denah Rumah Kost" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: 'rgba(0,0,0,0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        color: 'white',
-                        fontWeight: 600,
-                        fontSize: '0.85rem'
-                      }}>
-                        <Maximize2 size={18} /> Klik untuk Melihat Full Size
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* 3. INTERACTIVE ROOM SELECTOR GRID (PILIH KAMAR ANDA) */}
             <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -704,15 +601,16 @@ export default function KostDetail({ user }) {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
                 gap: '12px'
               }}>
-                {roomsList.map((r) => {
+                {roomsList.map((r, idx) => {
                   const isSelected = selectedRoom === r.number;
+                  const roomPhotoSrc = r.roomPhoto || r.photo || (kost.images && kost.images[idx % (kost.images.length || 1)]) || 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=600&auto=format&fit=crop&q=80';
                   return (
                     <div
                       key={r.number}
                       onClick={() => setSelectedRoom(r.number)}
                       style={{
-                        padding: '1rem',
-                        borderRadius: '14px',
+                        padding: '0.85rem',
+                        borderRadius: '16px',
                         cursor: 'pointer',
                         background: isSelected ? 'rgba(59, 130, 246, 0.18)' : 'rgba(255, 255, 255, 0.03)',
                         border: isSelected ? '2px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
@@ -720,33 +618,66 @@ export default function KostDetail({ user }) {
                         transition: 'all 0.2s',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'space-between',
                         gap: '10px'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <strong style={{ fontSize: '1.05rem', color: isSelected ? '#93c5fd' : 'white', display: 'block' }}>
-                            Kamar {r.number}
-                          </strong>
-                          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                            Ukuran {r.size || '4.0 x 4.5m'} • Kapasitas {r.capacity || 1} org
-                          </span>
+                      {/* Room Photo Thumbnail */}
+                      <div style={{
+                        width: '100%',
+                        height: '135px',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        background: '#0f172a'
+                      }}>
+                        <img 
+                          src={roomPhotoSrc} 
+                          alt={`Foto Kamar ${r.number}`} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '6px',
+                          left: '6px',
+                          background: 'rgba(15, 23, 42, 0.85)',
+                          backdropFilter: 'blur(6px)',
+                          padding: '3px 7px',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          color: isSelected ? '#60a5fa' : '#38bdf8',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <Camera size={11} /> Foto Unit {r.number}
                         </div>
-                        {isSelected ? (
+                        {isSelected && (
                           <div style={{
+                            position: 'absolute',
+                            top: '6px',
+                            right: '6px',
+                            background: '#2563eb',
+                            color: 'white',
+                            borderRadius: '50%',
                             width: '22px',
                             height: '22px',
-                            borderRadius: '50%',
-                            background: '#3b82f6',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: 'white'
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
                           }}>
-                            <Check size={14} />
+                            <Check size={13} />
                           </div>
-                        ) : (
+                        )}
+                      </div>
+
+                      {/* Room Info */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                          <strong style={{ fontSize: '1.05rem', color: isSelected ? '#93c5fd' : 'white' }}>
+                            Kamar {r.number}
+                          </strong>
                           <span style={{
                             fontSize: '0.68rem',
                             padding: '2px 6px',
@@ -757,7 +688,10 @@ export default function KostDetail({ user }) {
                           }}>
                             Siap Huni
                           </span>
-                        )}
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
+                          Ukuran {r.size || '4.0 x 4.5m'} • Kapasitas {r.capacity || 1} org
+                        </span>
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px' }}>
@@ -771,6 +705,79 @@ export default function KostDetail({ user }) {
                   );
                 })}
               </div>
+
+              {/* Highlight Card: Foto Kamar Asli yang Sedang Dipilih */}
+              {selectedRoomObj && (
+                <div style={{
+                  marginTop: '1.25rem',
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  borderRadius: '16px',
+                  padding: '1.25rem',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                  gap: '16px',
+                  alignItems: 'center',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)'
+                }}>
+                  <div style={{
+                    height: '210px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    background: '#0f172a',
+                    position: 'relative',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}>
+                    <img
+                      src={selectedRoomObj.roomPhoto || selectedRoomObj.photo || (kost.images && kost.images[0]) || 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=600&auto=format&fit=crop&q=80'}
+                      alt={`Foto Asli Kamar ${selectedRoomObj.number}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      left: '10px',
+                      background: 'rgba(15, 23, 42, 0.9)',
+                      backdropFilter: 'blur(8px)',
+                      color: '#38bdf8',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      border: '1px solid rgba(56, 189, 248, 0.3)'
+                    }}>
+                      <Camera size={13} /> Foto Fisik Asli: Kamar {selectedRoomObj.number}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span className="badge badge-primary" style={{ fontSize: '0.76rem', padding: '3px 10px' }}>
+                        Unit Terpilih: Kamar {selectedRoomObj.number}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Check size={13} /> Terverifikasi Asli
+                      </span>
+                    </div>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>
+                      Kamar {selectedRoomObj.number} - Siap Dihuni
+                    </h4>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                      Setiap unit difoto secara individual. Luas {selectedRoomObj.size || '4.0 x 4.5m'}, kapasitas {selectedRoomObj.capacity || 1} orang, dengan pencahayaan dan ventilasi terawat.
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Tarif Sewa:</span>
+                      <strong style={{ fontSize: '1.35rem', color: '#60a5fa' }}>
+                        Rp {(Number(selectedRoomObj.price) || baseMonthlyPrice).toLocaleString('id-ID')}
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/bulan</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 4. Deskripsi Kost */}

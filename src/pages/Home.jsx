@@ -328,7 +328,6 @@ export default function Home({ user }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
-  const [showCinematicVideo, setShowCinematicVideo] = useState(false);
 
   // Search-First multivariabel states
   const [searchLocation, setSearchLocation] = useState('');
@@ -863,7 +862,7 @@ export default function Home({ user }) {
             margin: '0 auto 2.5rem',
             lineHeight: 1.6
           }}>
-            Langsung akses ratusan hunian mahasiswa dan profesional. Dilengkapi koordinat GPS fisik, simulasi biaya PLN transparan, dan denah arsitektur 2D/3D.
+            Langsung akses ratusan hunian mahasiswa dan profesional. Dilengkapi koordinat GPS fisik, simulasi biaya PLN transparan, dan foto kamar asli terverifikasi.
           </p>
 
           {/* ── MULTIVARIABEL SEARCH COCKPIT (THE WIREFRAME FORM) ── */}
@@ -1228,7 +1227,7 @@ export default function Home({ user }) {
                 100% <span style={{ color: '#34d399', fontSize: '1.25rem' }}>Asli</span>
               </div>
               <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.5 }}>
-                Disurvei langsung oleh tim KostKu, lengkap dengan titik GPS akurat & denah 2D/3D.
+                Disurvei langsung oleh tim KostKu, lengkap dengan titik GPS akurat & foto asli per kamar.
               </p>
             </div>
 
@@ -1407,63 +1406,8 @@ export default function Home({ user }) {
               <Zap size={14} fill="#FBBF24" />
               <span>Simulasi Listrik & Biaya</span>
             </button>
-
-            {/* Optional Cinematic Showcase Trigger Button */}
-            <button
-              type="button"
-              onClick={() => setShowCinematicVideo(!showCinematicVideo)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '12px',
-                background: showCinematicVideo ? 'rgba(37, 99, 235, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                border: showCinematicVideo ? '1px solid #2563EB' : '1px solid rgba(255, 255, 255, 0.1)',
-                color: showCinematicVideo ? '#60a5fa' : '#94A3B8',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Play size={14} fill={showCinematicVideo ? '#60a5fa' : 'currentColor'} />
-              <span>{showCinematicVideo ? 'Tutup 3D' : '🎬 3D Showcase'}</span>
-            </button>
           </div>
         </div>
-
-        {/* Optional Collapsible Cinematic Video Showcase (Zero LCP Penalty by default) */}
-        {showCinematicVideo && (
-          <div style={{
-            marginBottom: '3rem',
-            borderRadius: '24px',
-            overflow: 'hidden',
-            border: '1px solid rgba(37, 99, 235, 0.3)',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
-          }}>
-            <div style={{
-              background: '#1E293B',
-              padding: '12px 18px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>
-                🎥 Video Scrubbing 3D Interaktif (Mode Showcase)
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowCinematicVideo(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-              >
-                ✕ Tutup
-              </button>
-            </div>
-            <VideoScroll />
-          </div>
-        )}
 
         {/* ── View Mode: Interactive Spatial Map OR Listing Grid ── */}
         {viewMode === 'map' ? (
@@ -1832,32 +1776,6 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
           }}>
             {/* Quick Action Tools */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {Boolean(kost.layoutImage || kost.blueprintImage || kost.floorPlanImage || (typeof kost.floorPlan === 'string' && kost.floorPlan.startsWith('http'))) && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onOpenFloorPlan?.(kost);
-                  }}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    background: 'rgba(59, 130, 246, 0.15)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    color: '#93c5fd',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                  title="Lihat Blueprint Denah Kamar 2D"
-                >
-                  <Ruler size={11} /> Denah 2D
-                </button>
-              )}
 
               <button
                 type="button"

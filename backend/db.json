@@ -154,7 +154,13 @@
       "floorPlan": {
         "dimensions": "4.0m x 4.5m",
         "bedType": "queen",
-        "furnitures": ["wardrobe", "desk", "bathroom", "ac", "window"],
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "bathroom",
+          "ac",
+          "window"
+        ],
         "generated": true,
         "mode": "ai"
       },
@@ -211,7 +217,9 @@
             "price": 2400000,
             "size": "4x5",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "roomPhoto": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80",
+            "photo": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80"
           },
           {
             "id": "RM-JKT-102",
@@ -219,7 +227,9 @@
             "price": 2400000,
             "size": "4x5",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
+            "photo": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80"
           },
           {
             "id": "RM-JKT-201",
@@ -227,7 +237,9 @@
             "price": 2600000,
             "size": "4x5",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80",
+            "photo": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80"
           },
           {
             "id": "RM-JKT-202",
@@ -235,7 +247,9 @@
             "price": 2800000,
             "size": "5x5",
             "capacity": 2,
-            "status": "available"
+            "status": "available",
+            "roomPhoto": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
+            "photo": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80"
           }
         ],
         "waterRate": 0,
@@ -252,7 +266,49 @@
           }
         ]
       },
-      "ownerId": "1784987558042"
+      "ownerId": "1784987558042",
+      "rooms": [
+        {
+          "id": "RM-JKT-101",
+          "number": "101",
+          "price": 2400000,
+          "size": "4x5",
+          "capacity": 1,
+          "status": "available",
+          "roomPhoto": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80",
+          "photo": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80"
+        },
+        {
+          "id": "RM-JKT-102",
+          "number": "102",
+          "price": 2400000,
+          "size": "4x5",
+          "capacity": 1,
+          "status": "available",
+          "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
+          "photo": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80"
+        },
+        {
+          "id": "RM-JKT-201",
+          "number": "201",
+          "price": 2600000,
+          "size": "4x5",
+          "capacity": 1,
+          "status": "available",
+          "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80",
+          "photo": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80"
+        },
+        {
+          "id": "RM-JKT-202",
+          "number": "202",
+          "price": 2800000,
+          "size": "5x5",
+          "capacity": 2,
+          "status": "available",
+          "roomPhoto": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
+          "photo": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80"
+        }
+      ]
     },
     {
       "uid": "KOST-BDG-02",

@@ -29,12 +29,8 @@ export default function RoomFloorPlanViewer({
   bedType = 'super_single',
   furnitures = ['wardrobe', 'desk', 'bathroom', 'ac', 'window'],
   roomNumber = '101',
-  kostName = 'KostKu Room',
-  initialView = '2d'
+  kostName = 'KostKu Room'
 }) {
-  const [viewMode, setViewMode] = useState(initialView); // '2d' or '3d'
-  const [perspective, setPerspective] = useState('isometric_right'); // 'isometric_right', 'isometric_left', 'top_down', 'front'
-  const [lighting, setLighting] = useState('day'); // 'day' or 'night'
   const [showGrid, setShowGrid] = useState(true);
 
   // Parse dimension numbers
@@ -79,125 +75,44 @@ export default function RoomFloorPlanViewer({
         gap: '10px',
         background: 'rgba(255, 255, 255, 0.02)'
       }}>
-        {/* View Mode Toggle: 2D vs 3D */}
-        <div style={{
-          display: 'flex',
-          background: 'rgba(0, 0, 0, 0.4)',
-          borderRadius: '12px',
-          padding: '3px',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          <button
-            type="button"
-            onClick={() => setViewMode('2d')}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '9px',
-              border: 'none',
-              background: viewMode === '2d' ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'transparent',
-              color: viewMode === '2d' ? '#fff' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
+        {/* Header Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            padding: '6px 14px',
+            borderRadius: '9px',
+            background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+            color: '#fff',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
             <Grid size={15} /> 📐 Denah 2D Arsitektural
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setViewMode('3d')}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '9px',
-              border: 'none',
-              background: viewMode === '3d' ? '#2563eb' : 'transparent',
-              boxShadow: viewMode === '3d' ? '0 2px 10px rgba(37, 99, 235, 0.4)' : 'none',
-              color: viewMode === '3d' ? '#fff' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Layers size={15} /> 🏠 Denah 3D Isometrik
-          </button>
+          </span>
         </div>
 
-        {/* View-Specific Quick Controls */}
+        {/* 2D Quick Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {viewMode === '3d' ? (
-            <>
-              {/* Lighting Mode: Day / Night */}
-              <button
-                type="button"
-                onClick={() => setLighting(lighting === 'day' ? 'night' : 'day')}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: lighting === 'day' ? '#fbbf24' : '#818cf8',
-                  padding: '6px 12px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600
-                }}
-                title="Ganti Mode Pencahayaan Ruangan"
-              >
-                {lighting === 'day' ? <Sun size={14} /> : <Moon size={14} />}
-                {lighting === 'day' ? 'Siang' : 'Malam Cozy'}
-              </button>
-
-              {/* Angle Switcher */}
-              <select
-                value={perspective}
-                onChange={e => setPerspective(e.target.value)}
-                style={{
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'white',
-                  padding: '6px 10px',
-                  borderRadius: '10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="isometric_right">Sudut Isometrik Kanan</option>
-                <option value="isometric_left">Sudut Isometrik Kiri</option>
-                <option value="top_down">Tampak Atas 45°</option>
-                <option value="front">Tampak Depan</option>
-              </select>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowGrid(!showGrid)}
-              style={{
-                background: showGrid ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.4)',
-                color: showGrid ? '#60a5fa' : 'var(--text-secondary)',
-                padding: '6px 12px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.78rem',
-                fontWeight: 600
-              }}
-            >
-              <Grid size={14} /> Grid Arsitek {showGrid ? 'Aktif' : 'Off'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowGrid(!showGrid)}
+            style={{
+              background: showGrid ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              color: showGrid ? '#60a5fa' : 'var(--text-secondary)',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.78rem',
+              fontWeight: 600
+            }}
+          >
+            <Grid size={14} /> Grid Arsitek {showGrid ? 'Aktif' : 'Off'}
+          </button>
         </div>
       </div>
 
@@ -209,13 +124,8 @@ export default function RoomFloorPlanViewer({
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
-        background: viewMode === '2d' 
-          ? '#0b1329' 
-          : lighting === 'day' 
-            ? 'radial-gradient(circle at 50% 30%, #1e293b 0%, #0a0f1d 100%)' 
-            : 'radial-gradient(circle at 50% 30%, #13192e 0%, #060913 100%)'
+        background: '#0b1329'
       }}>
-        {viewMode === '2d' ? (
           /* ═══════════════════════════════════════════════════════════════════
              2D ARCHITECTURAL BLUEPRINT (SVG HIGH PRECISION)
              ═══════════════════════════════════════════════════════════════════ */
@@ -528,215 +438,6 @@ export default function RoomFloorPlanViewer({
               <text x="16" y="5" fill="#ef4444" fontSize="8" fontWeight="800" textAnchor="middle">U</text>
             </g>
           </svg>
-        ) : (
-          /* ═══════════════════════════════════════════════════════════════════
-             3D ISOMETRIC ROOM CUTAWAY (PERSPECTIVE 3D VISUALIZATION)
-             ═══════════════════════════════════════════════════════════════════ */
-          <div style={{
-            width: '100%',
-            maxWidth: '560px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-          }}>
-            {/* 3D Isometric SVG Model */}
-            <svg 
-              width="100%" 
-              height="auto" 
-              viewBox="0 0 600 420" 
-              style={{ 
-                maxWidth: '560px', 
-                aspectRatio: '600 / 420',
-                filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))'
-              }}
-            >
-              <defs>
-                {/* 3D Parquet Floor Texture */}
-                <pattern id="parquet3D" width="40" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">
-                  <rect width="40" height="20" fill={lighting === 'day' ? '#b45309' : '#78350f'} />
-                  <line x1="0" y1="10" x2="40" y2="10" stroke={lighting === 'day' ? '#92400e' : '#451a03'} strokeWidth="1" />
-                  <line x1="20" y1="0" x2="20" y2="10" stroke={lighting === 'day' ? '#92400e' : '#451a03'} strokeWidth="1" />
-                  <line x1="0" y1="10" x2="0" y2="20" stroke={lighting === 'day' ? '#92400e' : '#451a03'} strokeWidth="1" />
-                </pattern>
-
-                {/* Warm Lighting Gradient for Lamp */}
-                <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#fef08a" stopOpacity="0.8" />
-                  <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
-                </radialGradient>
-
-                {/* Window Sunlight Cast */}
-                <linearGradient id="sunbeam" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fef08a" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#fef08a" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-
-              {/* ── 3D Isometric Floor Slab ─────────────────────────── */}
-              {/* Floor Rhombus: Center (300, 280), Top(300, 160), Right(520, 260), Bottom(300, 360), Left(80, 260) */}
-              
-              {/* Floor Slab Thickness */}
-              <path d="M 80 260 L 300 360 L 300 375 L 80 275 Z" fill="#1e293b" />
-              <path d="M 300 360 L 520 260 L 520 275 L 300 375 Z" fill="#0f172a" />
-
-              {/* Parquet Floor Base */}
-              <polygon points="300,160 520,260 300,360 80,260" fill="url(#parquet3D)" stroke="#92400e" strokeWidth="1" />
-
-              {/* Sunlight Beam Streaming from Window */}
-              {hasWindow && lighting === 'day' && (
-                <polygon points="410,140 500,180 430,300 320,250" fill="url(#sunbeam)" />
-              )}
-
-              {/* ── 3D Back Left Wall (Tall Architectural Cutaway) ──── */}
-              <polygon points="80,260 300,160 300,40 80,140" fill={lighting === 'day' ? '#334155' : '#1e293b'} stroke="#475569" strokeWidth="1.5" />
-              
-              {/* ── 3D Back Right Wall ──────────────────────────────── */}
-              <polygon points="300,160 520,260 520,140 300,40" fill={lighting === 'day' ? '#1e293b' : '#0f172a'} stroke="#334155" strokeWidth="1.5" />
-
-              {/* Wall Baseboards */}
-              <path d="M 80 260 L 300 160 L 520 260" fill="none" stroke="#64748b" strokeWidth="3" />
-
-              {/* ── 3D Window on Back Right Wall ────────────────────── */}
-              {hasWindow && (
-                <g>
-                  {/* Window Cutout on Right Wall */}
-                  <polygon points="380,105 470,145 470,195 380,155" fill="#38bdf8" opacity={lighting === 'day' ? 0.85 : 0.25} stroke="#e2e8f0" strokeWidth="2" />
-                  <line x1="425" y1="125" x2="425" y2="175" stroke="#ffffff" strokeWidth="1.5" />
-                  <line x1="380" y1="130" x2="470" y2="170" stroke="#ffffff" strokeWidth="1.5" />
-                </g>
-              )}
-
-              {/* ── 3D Wall AC Unit ─────────────────────────────────── */}
-              {hasAc && (
-                <g>
-                  <polygon points="200,95 270,63 270,78 200,110" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
-                  <polygon points="270,63 285,70 285,85 270,78" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="1" />
-                  {/* Status LED */}
-                  <circle cx="210" cy="103" r="2" fill="#38bdf8" />
-                </g>
-              )}
-
-              {/* ── 3D Ensuite Bathroom (Glass Partition in Corner) ─── */}
-              {hasBathroom && (
-                <g>
-                  {/* Glass Wall Partition Left */}
-                  <polygon points="170,220 220,195 220,110 170,135" fill="rgba(56, 189, 248, 0.25)" stroke="#38bdf8" strokeWidth="1.5" />
-                  {/* Modern Toilet 3D */}
-                  <ellipse cx="140" cy="210" rx="12" ry="7" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1" />
-                  <rect x="130" y="195" width="20" height="12" rx="2" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-                  {/* Shower Head 3D */}
-                  <path d="M 180 140 L 195 147 L 195 155" fill="none" stroke="#38bdf8" strokeWidth="2" />
-                  <circle cx="195" cy="155" r="4" fill="#0284c7" />
-                </g>
-              )}
-
-              {/* ── 3D Bed Model (Positioned on the Right) ───────────── */}
-              <g>
-                {/* 3D Bed Frame / Divan */}
-                <polygon points="330,175 435,222 360,265 255,218" fill="#5c3818" stroke="#78350f" strokeWidth="1.5" />
-                
-                {/* 3D Headboard */}
-                <polygon points="325,172 430,220 430,175 325,127" fill="#78350f" stroke="#92400e" strokeWidth="1" />
-
-                {/* 3D Mattress */}
-                <polygon points="328,168 430,215 355,258 253,211" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
-                <polygon points="253,211 355,258 355,268 253,221" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="1" />
-                <polygon points="355,258 430,215 430,225 355,268" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
-
-                {/* 3D Blanket / Duvet */}
-                <polygon points="295,215 397,262 355,258 253,211" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1" />
-                <polygon points="253,211 355,258 355,268 253,221" fill="#1d4ed8" stroke="#1e40af" strokeWidth="1" />
-
-                {/* 3D Pillows */}
-                <polygon points="340,165 385,185 365,195 320,175" fill="#ffffff" stroke="#94a3b8" strokeWidth="1" />
-                {bedConfig.pillows > 1 && (
-                  <polygon points="380,183 425,203 405,213 360,193" fill="#ffffff" stroke="#94a3b8" strokeWidth="1" />
-                )}
-
-                {/* 3D Bedside Nightstand & Lamp */}
-                <polygon points="225,205 255,190 255,165 225,180" fill="#451a03" stroke="#78350f" strokeWidth="1" />
-                {/* Lamp on Nightstand */}
-                <circle cx="240" cy="170" r="14" fill="url(#lampGlow)" />
-                <cylinder cx="240" cy="170" r="4" fill="#fbbf24" />
-              </g>
-
-              {/* ── 3D Study Desk & Ergonomic Chair ─────────────────── */}
-              {hasDesk && (
-                <g>
-                  {/* Desk Tabletop */}
-                  <polygon points="120,240 180,210 200,220 140,250" fill="#78350f" stroke="#92400e" strokeWidth="1" />
-                  {/* Desk Legs */}
-                  <line x1="120" y1="240" x2="120" y2="265" stroke="#1e293b" strokeWidth="2.5" />
-                  <line x1="140" y1="250" x2="140" y2="275" stroke="#1e293b" strokeWidth="2.5" />
-                  <line x1="200" y1="220" x2="200" y2="245" stroke="#1e293b" strokeWidth="2.5" />
-                  {/* 3D Laptop with Glowing Screen */}
-                  <polygon points="150,225 170,215 170,205 150,215" fill="#38bdf8" opacity="0.9" stroke="#0284c7" strokeWidth="1" />
-                  <polygon points="148,226 168,216 175,220 155,230" fill="#0f172a" stroke="#475569" strokeWidth="1" />
-                  {/* 3D Swivel Chair */}
-                  <ellipse cx="170" cy="255" rx="10" ry="6" fill="#1e293b" stroke="#3b82f6" strokeWidth="1.5" />
-                </g>
-              )}
-
-              {/* ── 3D Wardrobe (Lemari Pakaian) ────────────────────── */}
-              {hasWardrobe && (
-                <g>
-                  {/* Wardrobe Body: Back Corner */}
-                  <polygon points="460,230 500,210 500,120 460,140" fill="#1e293b" stroke="#475569" strokeWidth="1" />
-                  <polygon points="460,140 500,120 480,110 440,130" fill="#334155" stroke="#475569" strokeWidth="1" />
-                  <polygon points="440,130 460,140 460,230 440,220" fill="#0f172a" stroke="#334155" strokeWidth="1" />
-                  {/* Handles */}
-                  <circle cx="452" cy="175" r="1.5" fill="#38bdf8" />
-                  <circle cx="456" cy="173" r="1.5" fill="#38bdf8" />
-                </g>
-              )}
-
-              {/* ── Floor Marker & Spec Badge ───────────────────────── */}
-              <g transform="translate(300, 310)">
-                <ellipse cx="0" cy="0" rx="45" ry="16" fill="rgba(15, 23, 42, 0.7)" stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 3" />
-                <text x="0" y="4" fill="#38bdf8" fontSize="10" fontWeight="800" textAnchor="middle">
-                  3D ISOMETRIK
-                </text>
-              </g>
-            </svg>
-
-            {/* Quick Interactive Angle Controls */}
-            <div style={{
-              display: 'flex',
-              gap: '6px',
-              marginTop: '10px',
-              background: 'rgba(0, 0, 0, 0.4)',
-              padding: '4px',
-              borderRadius: '12px'
-            }}>
-              {[
-                { id: 'isometric_right', label: 'Sudut Kanan' },
-                { id: 'isometric_left', label: 'Sudut Kiri' },
-                { id: 'top_down', label: 'Atas 45°' },
-                { id: 'front', label: 'Depan' }
-              ].map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setPerspective(item.id)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: perspective === item.id ? '#3b82f6' : 'transparent',
-                    color: perspective === item.id ? 'white' : 'var(--text-secondary)',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── Bottom Specs & Furniture Legend ──────────────────────────── */}

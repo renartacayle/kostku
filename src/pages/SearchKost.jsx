@@ -403,7 +403,7 @@ export default function SearchKost({ user }) {
               gap: '6px',
               border: '1px solid rgba(59, 130, 246, 0.35)'
             }}>
-              <Sparkles size={13} color="#60a5fa" /> Pilihan Kost Terverifikasi dengan Foto Asli & Denah Arsitektur
+              <Sparkles size={13} color="#60a5fa" /> Pilihan Kost Terverifikasi dengan Foto Kamar Asli
             </span>
 
             {/* Wishlist quick toggle */}
@@ -442,7 +442,7 @@ export default function SearchKost({ user }) {
             Temukan Kost Impian Anda
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', margin: 0, maxWidth: '700px' }}>
-            Jelajahi kost eksklusif dan co-living terpercaya lengkap dengan tata ruang 2D, kamar mandi dalam, AC, dan transparansi harga tanpa biaya perantara.
+            Jelajahi kost eksklusif dan co-living terpercaya lengkap dengan foto kamar asli terverifikasi, kamar mandi dalam, AC, dan transparansi harga tanpa biaya perantara.
           </p>
 
           {/* Search Input Box */}
@@ -977,7 +977,7 @@ export default function SearchKost({ user }) {
         }}>
           <div>
             <span style={{ fontSize: '0.92rem', color: 'var(--text-secondary)' }}>
-              Menampilkan <strong style={{ color: 'white' }}>{filteredKosts.length}</strong> kost pilihan dengan foto & denah arsitektur
+              Menampilkan <strong style={{ color: 'white' }}>{filteredKosts.length}</strong> kost pilihan dengan foto kamar asli terverifikasi
             </span>
           </div>
 
@@ -1239,29 +1239,6 @@ export default function SearchKost({ user }) {
                       <Heart size={16} fill={isWishlisted ? '#ef4444' : 'none'} />
                     </button>
 
-                    {/* Ada Denah Badge */}
-                    {Boolean(kost.layoutImage || kost.blueprintImage || kost.floorPlanImage || (typeof kost.floorPlan === 'string' && kost.floorPlan.startsWith('http'))) && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '10px',
-                        left: '10px',
-                        background: 'rgba(2, 132, 199, 0.9)',
-                        backdropFilter: 'blur(8px)',
-                        color: 'white',
-                        padding: '3px 8px',
-                        borderRadius: '8px',
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        zIndex: 2
-                      }}>
-                        <Ruler size={11} />
-                        <span>Denah {layout.roomDimensions || '4.0x4.5m'}</span>
-                      </div>
-                    )}
-
                     {/* Room count pill */}
                     <div style={{
                       position: 'absolute',
@@ -1376,30 +1353,6 @@ export default function SearchKost({ user }) {
                             <span style={{ fontSize: '0.72rem', fontWeight: 'normal', color: 'var(--text-muted)', marginLeft: '3px' }}>/bln</span>
                           </div>
                         </div>
-
-                        {/* Quick Blueprint Modal Trigger */}
-                        {Boolean(kost.layoutImage || kost.blueprintImage || kost.floorPlanImage || (typeof kost.floorPlan === 'string' && kost.floorPlan.startsWith('http'))) && (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewLayoutKost(kost)}
-                            style={{
-                              padding: '6px 12px',
-                              background: 'rgba(59, 130, 246, 0.12)',
-                              color: '#93c5fd',
-                              border: '1px solid rgba(59, 130, 246, 0.25)',
-                              borderRadius: '8px',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            <Ruler size={13} />
-                            <span>Denah 2D</span>
-                          </button>
-                        )}
                       </div>
 
                       {/* Action buttons row */}
@@ -1540,85 +1493,6 @@ export default function SearchKost({ user }) {
         onClose={() => setShowCompareModal(false)}
         kosts={compareList}
       />
-
-      {/* Quick Blueprint Layout Modal */}
-      {previewLayoutKost && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '1rem'
-        }}>
-          <div className="card glass-panel animate-fade-in" style={{
-            width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.3)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#60a5fa', fontWeight: 700 }}>PRATINJAU DENAH ARSITEKTUR</span>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{previewLayoutKost.kostName}</h3>
-              </div>
-              <button
-                onClick={() => setPreviewLayoutKost(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Layout Image */}
-            <div style={{ width: '100%', height: '240px', borderRadius: '14px', overflow: 'hidden', marginBottom: '1rem', background: '#0f172a' }}>
-              <img 
-                src={previewLayoutKost.layoutImage || previewLayoutKost.images?.[0]} 
-                alt="Denah Layout" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-              />
-            </div>
-
-            {/* Specifications */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1rem' }}>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '10px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Dimensi Kamar</span>
-                <div style={{ fontWeight: 800, fontSize: '1rem', color: '#60a5fa' }}>{previewLayoutKost.layoutInfo?.roomDimensions || '4.0m x 4.5m'}</div>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '10px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Luas Kamar</span>
-                <div style={{ fontWeight: 800, fontSize: '1rem', color: '#34d399' }}>{previewLayoutKost.layoutInfo?.roomArea || '18 m²'}</div>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '10px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Kamar Mandi</span>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{previewLayoutKost.layoutInfo?.bathroomType || 'Kamar Mandi Dalam'}</div>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '10px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Ventilasi</span>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{previewLayoutKost.layoutInfo?.windowFacing || 'Jendela Luar'}</div>
-              </div>
-            </div>
-
-            <Link
-              to={`/kost/${previewLayoutKost.uid}`}
-              onClick={() => setPreviewLayoutKost(null)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <span>Buka Halaman Lengkap & Denah Interaktif 2D →</span>
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -28,7 +28,8 @@ import {
   LogOut,
   SlidersHorizontal,
   KeyRound,
-  Check
+  Check,
+  Camera
 } from 'lucide-react';
 import { APP_VERSION } from '../config/version';
 import StaffManagementCard from '../components/StaffManagementCard';
@@ -94,7 +95,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   // Forms
-  const [newRoom, setNewRoom] = useState({ number: '', price: '', size: '', capacity: 1 });
+  const [newRoom, setNewRoom] = useState({ number: '', price: '', size: '3x4m', capacity: 1, roomPhoto: '' });
   const [newEmployee, setNewEmployee] = useState({ name: '', role: '', salary: '' });
   const [bulkConfig, setBulkConfig] = useState({ prefix: '', count: '', startNumber: '', price: '', size: '', capacity: 1 });
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -243,11 +244,48 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
     setSbTestResult(res);
   };
 
+  // Rooms Photo Upload & Management
+  const handleRoomPhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran file foto terlalu besar (maksimal 5MB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewRoom(prev => ({ ...prev, roomPhoto: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpdateRoomCardPhoto = (roomId, file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran file foto terlalu besar (maksimal 5MB)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const updatedRooms = settings.rooms.map(r => 
+        r.id === roomId ? { ...r, roomPhoto: reader.result, photo: reader.result } : r
+      );
+      setSettings(prev => ({ ...prev, rooms: updatedRooms }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Rooms
   const handleAddRoom = (e) => {
     e.preventDefault();
     if (!newRoom.number || !newRoom.price) return;
     
+    if (!newRoom.roomPhoto) {
+      alert('Foto unit kamar wajib diunggah untuk setiap kamar baru! Silakan pilih foto fisik kamar asli terlebih dahulu.');
+      return;
+    }
+
     if (settings.rooms.some(r => r.number === newRoom.number)) {
       alert('Kamar dengan nomor ini sudah ada!');
       return;
@@ -259,11 +297,13 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         ...newRoom, 
         id: Date.now().toString(), 
         price: Number(newRoom.price), 
-        capacity: Number(newRoom.capacity) || 1 
+        capacity: Number(newRoom.capacity) || 1,
+        roomPhoto: newRoom.roomPhoto,
+        photo: newRoom.roomPhoto
       }
     ];
     setSettings({ ...settings, rooms: updatedRooms });
-    setNewRoom({ number: '', price: '', size: '', capacity: 1 });
+    setNewRoom({ number: '', price: '', size: '3x4m', capacity: 1, roomPhoto: '' });
   };
 
   const handleDeleteRoom = (id) => {
@@ -1039,38 +1079,134 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
 
         {/* Add single room form */}
         <form onSubmit={handleAddRoom} style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '10px',
-          alignItems: 'end',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
           background: 'rgba(255,255,255,0.02)',
-          padding: '1rem',
-          borderRadius: '12px',
+          padding: '1.25rem',
+          borderRadius: '16px',
           border: '1px solid var(--border-color)'
         }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nomor Kamar</label>
-            <input type="text" required placeholder="Contoh: A01" value={newRoom.number} onChange={e => setNewRoom({...newRoom, number: e.target.value})} className="input-field" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Plus size={16} color="#3b82f6" /> Tambah Unit Kamar Baru (Wajib Foto Asli)
+            </span>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              Calon penyewa wajib melihat foto fisik asli tiap kamar
+            </span>
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Harga Sewa (Rp)</label>
-            <input type="number" required placeholder="1500000" value={newRoom.price} onChange={e => setNewRoom({...newRoom, price: e.target.value})} className="input-field" />
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '12px'
+          }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nomor Kamar *</label>
+              <input type="text" required placeholder="Contoh: A01" value={newRoom.number} onChange={e => setNewRoom({...newRoom, number: e.target.value})} className="input-field" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Harga Sewa (Rp) *</label>
+              <input type="number" required placeholder="1500000" value={newRoom.price} onChange={e => setNewRoom({...newRoom, price: e.target.value})} className="input-field" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Kapasitas Bed</label>
+              <input type="number" min="1" required value={newRoom.capacity} onChange={e => setNewRoom({...newRoom, capacity: e.target.value})} className="input-field" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Ukuran Kamar</label>
+              <input type="text" placeholder="Contoh: 3.5x4m" value={newRoom.size || ''} onChange={e => setNewRoom({...newRoom, size: e.target.value})} className="input-field" />
+            </div>
           </div>
+
+          {/* Upload Foto Kamar Asli (Wajib) */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Kapasitas Bed</label>
-            <input type="number" min="1" required value={newRoom.capacity} onChange={e => setNewRoom({...newRoom, capacity: e.target.value})} className="input-field" />
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', marginBottom: '6px' }}>
+              📸 Foto Fisik Kamar Ini (Wajib Diunggah) <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+
+            {newRoom.roomPhoto ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <img 
+                  src={newRoom.roomPhoto} 
+                  alt="Preview Kamar" 
+                  style={{ width: '90px', height: '65px', borderRadius: '8px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.15)' }} 
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '0.82rem', fontWeight: 700 }}>
+                    <CheckCircle size={15} /> Foto Kamar {newRoom.number || ''} Terpilih
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    Foto ini akan ditampilkan kepada calon penyewa saat memilih unit ini.
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', fontSize: '0.75rem', gap: '4px' }}>
+                    <Upload size={13} /> Ganti Foto
+                    <input type="file" accept="image/*" onChange={handleRoomPhotoUpload} hidden />
+                  </label>
+                  <button 
+                    type="button" 
+                    className="btn btn-danger btn-sm"
+                    style={{ fontSize: '0.75rem' }}
+                    onClick={() => setNewRoom(prev => ({ ...prev, roomPhoto: '' }))}
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1.25rem',
+                border: '2px dashed rgba(59, 130, 246, 0.4)',
+                borderRadius: '14px',
+                background: 'rgba(0, 0, 0, 0.25)',
+                cursor: 'pointer',
+                gap: '6px',
+                transition: 'border 0.2s'
+              }}>
+                <Camera size={26} color="#60a5fa" />
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>
+                  Pilih / Jepret Foto Fisik Kamar (Wajib)
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  Format JPG, PNG, atau WEBP (Maksimal 5MB)
+                </span>
+                <input type="file" accept="image/*" onChange={handleRoomPhotoUpload} hidden />
+              </label>
+            )}
           </div>
-          <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>
-            <Plus size={16} /> Tambah
-          </button>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              style={{ padding: '10px 24px', fontWeight: 700, fontSize: '0.88rem', gap: '8px' }}
+            >
+              <Plus size={16} /> Simpan Unit Kamar ({newRoom.number || 'Baru'})
+            </button>
+          </div>
         </form>
 
         {/* Room items grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-          gap: '10px',
-          maxHeight: '320px',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
+          gap: '12px',
+          maxHeight: '440px',
           overflowY: 'auto'
         }}>
           {settings.rooms.map(room => (
@@ -1079,34 +1215,123 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
               style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                padding: '0.85rem',
-                textAlign: 'center',
+                borderRadius: '14px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
                 position: 'relative'
               }}
             >
+              {/* Delete button */}
               <button 
                 onClick={() => handleDeleteRoom(room.id)}
                 style={{
                   position: 'absolute',
-                  top: '6px',
-                  right: '6px',
-                  background: 'none',
+                  top: '8px',
+                  right: '8px',
+                  background: 'rgba(0, 0, 0, 0.65)',
                   border: 'none',
                   color: 'var(--accent-danger)',
                   cursor: 'pointer',
-                  padding: '2px'
+                  borderRadius: '50%',
+                  width: '26px',
+                  height: '26px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 2
                 }}
+                title="Hapus Kamar"
               >
                 <Trash2 size={13} />
               </button>
-              <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', color: 'white' }}>{room.number}</h4>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
-                {formatRupiah(room.price)}
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                {room.capacity || 1} Bed
-              </span>
+
+              {/* Room Photo Thumbnail */}
+              <div style={{
+                width: '100%',
+                height: '115px',
+                background: '#0f172a',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {room.roomPhoto || room.photo ? (
+                  <>
+                    <img 
+                      src={room.roomPhoto || room.photo} 
+                      alt={`Foto Kamar ${room.number}`} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                    <label style={{
+                      position: 'absolute',
+                      bottom: '6px',
+                      right: '6px',
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      backdropFilter: 'blur(4px)',
+                      color: '#93c5fd',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}>
+                      <Camera size={10} /> Ganti Foto
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={e => handleUpdateRoomCardPhoto(room.id, e.target.files?.[0])} 
+                        hidden 
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <label style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    textAlign: 'center'
+                  }}>
+                    <Camera size={20} color="#f87171" />
+                    <span style={{ fontSize: '0.7rem', color: '#f87171', fontWeight: 700 }}>
+                      ⚠️ Belum Ada Foto
+                    </span>
+                    <span style={{ fontSize: '0.65rem', color: '#38bdf8', textDecoration: 'underline' }}>
+                      Upload Foto
+                    </span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={e => handleUpdateRoomCardPhoto(room.id, e.target.files?.[0])} 
+                      hidden 
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Room Details */}
+              <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'white', fontWeight: 800 }}>{room.number}</h4>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {room.capacity || 1} Bed
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.85rem', color: '#60a5fa', fontWeight: 700 }}>
+                  {formatRupiah(room.price)}
+                </span>
+                {room.size && (
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                    Ukuran: {room.size}
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1164,6 +1389,21 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Harga Sewa per Kamar (Rp)</label>
                 <input type="number" required placeholder="1500000" value={bulkConfig.price} onChange={e => setBulkConfig({...bulkConfig, price: e.target.value})} className="input-field" />
+              </div>
+
+              <div style={{
+                background: 'rgba(245, 158, 11, 0.1)',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '0.75rem',
+                color: '#fbbf24',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span>Setelah digenerate, lengkapi foto fisik asli satu per satu untuk masing-masing unit kamar pada daftar kamar.</span>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>

@@ -1092,7 +1092,12 @@ app.get('/api/settings', (req, res) => {
   if (!kost) return res.status(404).json({ error: 'Kost tidak ditemukan' });
   
   const s = kost.settings || {};
-  if (!s.rooms) s.rooms = [];
+  if (!s.rooms || s.rooms.length === 0) {
+    s.rooms = (kost.rooms || []).map(r => ({
+      ...r,
+      roomPhoto: r.roomPhoto || r.photo || ''
+    }));
+  }
   if (!s.employees) s.employees = [];
   
   res.json(s);
@@ -1107,8 +1112,9 @@ app.put('/api/settings', (req, res) => {
   const index = db.kosts.findIndex(k => k.uid === kostUid);
   if (index === -1) return res.status(404).json({ error: 'Kost tidak ditemukan' });
   
+  const roomList = Array.isArray(rooms) ? rooms : [];
   db.kosts[index].settings = {
-    rooms: Array.isArray(rooms) ? rooms : [],
+    rooms: roomList,
     employees: Array.isArray(employees) ? employees : [],
     bedsheetCount: Number(bedsheetCount) || 0,
     waterRate: Number(waterRate) || 0,
@@ -1116,7 +1122,10 @@ app.put('/api/settings', (req, res) => {
     depositAmount: Number(depositAmount) || 0
   };
   
-  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kost telah diperbarui');
+  // Also sync directly to kost.rooms for public marketplace availability
+  db.kosts[index].rooms = roomList;
+  
+  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kamar & kost telah diperbarui');
   writeDB(db);
   
   res.json(db.kosts[index].settings);
