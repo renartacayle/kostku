@@ -4,7 +4,6 @@ import {
   LayoutDashboard, 
   Users, 
   DollarSign, 
-  PieChart, 
   Settings, 
   LogOut, 
   Home, 
@@ -24,8 +23,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
     { path: '/dashboard', name: user?.role === 'staff' ? 'Dashboard Staf' : user?.role === 'owner' ? 'My Kost (Overview)' : 'Kost Saya', icon: <LayoutDashboard size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
     { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/keuangan', name: user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan', icon: <DollarSign size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/laporan', name: 'Laporan', icon: <PieChart size={20} />, roles: ['owner', 'master'] },
+    { path: '/keuangan', name: user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan & Laporan', icon: <DollarSign size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/pengaturan', name: user?.role === 'staff' ? 'Profil Staf' : 'Pengaturan', icon: <Settings size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
   ];
 

@@ -22,7 +22,6 @@ import Dashboard from './pages/Dashboard';
 import Penghuni from './pages/Penghuni';
 import Pengaturan from './pages/Pengaturan';
 import Keuangan from './pages/Keuangan';
-import Laporan from './pages/Laporan';
 import Komplain from './pages/Komplain';
 import Home from './pages/Home';
 import SearchKost from './pages/SearchKost';
@@ -249,13 +248,7 @@ function App() {
 
         <Route 
           path="/laporan" 
-          element={activeUser ? (
-            <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-              {activeUser.role === 'owner' || activeUser.role === 'master' ? <Laporan user={activeUser} /> : <Navigate to="/dashboard" replace />}
-            </MainLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )} 
+          element={<Navigate to="/keuangan" replace />} 
         />
 
         <Route 
