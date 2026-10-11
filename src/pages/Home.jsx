@@ -1465,18 +1465,48 @@ export default function Home({ user }) {
           </div>
         )}
 
-        {/* ── Interactive Spatial Map View (Gold Standard Feature) ── */}
-        {viewMode === 'map' && (
+        {/* ── View Mode: Interactive Spatial Map OR Listing Grid ── */}
+        {viewMode === 'map' ? (
           <div style={{ marginBottom: '2.5rem' }}>
+            {filtered.length === 0 && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '16px',
+                padding: '12px 20px',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                color: '#fca5a5',
+                fontSize: '0.85rem'
+              }}>
+                <span>Tidak ada kost yang cocok dengan filter saat ini.</span>
+                <button
+                  type="button"
+                  onClick={resetAllFilters}
+                  style={{
+                    background: '#EF4444',
+                    border: 'none',
+                    color: 'white',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Reset Filter
+                </button>
+              </div>
+            )}
             <InteractiveMarketplaceMap 
               kosts={filtered} 
               selectedCity={searchLocation || (filtered[0]?.city || 'Semarang')} 
+              userLocation={userLocation}
             />
           </div>
-        )}
-
-        {/* Empty State */}
-        {filtered.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '4rem 2rem',
