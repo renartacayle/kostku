@@ -33,7 +33,6 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
-import PanoramaViewer360 from '../components/PanoramaViewer360';
 import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
 
 // Interactive SVG 2D Room Blueprint Component
@@ -504,27 +503,6 @@ export default function KostDetail({ user }) {
                 <Ruler size={16} />
                 <span>📐 Denah & Blueprint Kamar {selectedRoom || ''}</span>
               </button>
-
-              <button
-                onClick={() => setActiveTab('virtual360')}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: activeTab === 'virtual360' ? '#2563eb' : 'rgba(255, 255, 255, 0.05)',
-                  color: activeTab === 'virtual360' ? 'white' : '#94a3b8',
-                  boxShadow: activeTab === 'virtual360' ? '0 4px 12px rgba(37, 99, 235, 0.35)' : 'none',
-                  transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)'
-                }}
-              >
-                <span>🌀 Virtual Tour 360°</span>
-              </button>
             </div>
 
             {/* TAB CONTENT 1: FOTO ASLI GALLERY */}
@@ -690,13 +668,6 @@ export default function KostDetail({ user }) {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* TAB CONTENT 3: VIRTUAL TOUR 360 PANORAMA */}
-            {activeTab === 'virtual360' && (
-              <div className="animate-fade-in" style={{ marginBottom: '1.5rem' }}>
-                <PanoramaViewer360 roomName={selectedRoomObj ? `Kamar ${selectedRoomObj.number} - ${selectedRoomObj.type || kost.type}` : kost.kostName} />
               </div>
             )}
 

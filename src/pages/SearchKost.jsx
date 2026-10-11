@@ -1210,22 +1210,6 @@ export default function SearchKost({ user }) {
                         <ShieldCheck size={11} />
                         <span>Verifikasi</span>
                       </span>
-
-                      <span style={{
-                        background: 'rgba(124, 58, 237, 0.85)',
-                        backdropFilter: 'blur(8px)',
-                        color: 'white',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        boxShadow: '0 2px 8px rgba(124, 58, 237, 0.4)'
-                      }}>
-                        <span>🌀 360° Tour</span>
-                      </span>
                     </div>
 
                     {/* Top Right: Wishlist Heart Button */}
