@@ -1203,7 +1203,7 @@ export default function Home({ user }) {
           </div>
 
           {/* ═══════════════════════════════════════════════════════════════════
-              SECTION 2: METRIK KUNCI EVALUASI UX (Design Spec V2.0 Section 2)
+              SECTION 2: KEUNGGULAN UTAMA KOSTKU (Marketing Value Props)
               ═══════════════════════════════════════════════════════════════════ */}
           <div style={{
             display: 'grid',
@@ -1211,63 +1211,66 @@ export default function Home({ user }) {
             gap: '14px',
             textAlign: 'left'
           }}>
-            {/* Card 1: LCP REDUCTION */}
+            {/* Card 1: VERIFIKASI ASLI 100% */}
             <div style={{
               background: 'rgba(30, 41, 59, 0.6)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '16px',
               padding: '1.25rem',
-              borderLeft: '4px solid #10B981'
+              borderLeft: '4px solid #10B981',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                LCP REDUCTION
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                🛡️ VERIFIKASI FISIK & FOTO
               </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#34d399', margin: '4px 0 2px', fontFamily: "'JetBrains Mono', monospace" }}>
-                -65%
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                100% <span style={{ color: '#34d399', fontSize: '1.25rem' }}>Asli</span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.4 }}>
-                Pemuatan hero di bawah 1.2s tanpa video scroll kanvas berat.
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.5 }}>
+                Disurvei langsung oleh tim KostKu, lengkap dengan titik GPS akurat & denah 2D/3D.
               </p>
             </div>
 
-            {/* Card 2: SEARCH DISCOVERY */}
+            {/* Card 2: BIAYA TRANSPARAN RP 0 */}
             <div style={{
               background: 'rgba(30, 41, 59, 0.6)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '16px',
               padding: '1.25rem',
-              borderLeft: '4px solid #2563EB'
+              borderLeft: '4px solid #2563EB',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                SEARCH DISCOVERY
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#60A5FA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                ⚡ BIAYA TRANSPARAN
               </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#60A5FA', margin: '4px 0 2px', fontFamily: "'JetBrains Mono', monospace" }}>
-                100%
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Rp 0 <span style={{ color: '#60A5FA', fontSize: '1.1rem' }}>Biaya Admin</span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.4 }}>
-                Fitur pencarian dan filter langsung terlihat di viewport utama.
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.5 }}>
+                Bebas komisi perantara. Dilengkapi simulasi estimasi token listrik PLN yang transparan.
               </p>
             </div>
 
-            {/* Card 3: READABILITY SCORE */}
+            {/* Card 3: KEPUASAN PENGHUNI */}
             <div style={{
               background: 'rgba(30, 41, 59, 0.6)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '16px',
               padding: '1.25rem',
-              borderLeft: '4px solid #F59E0B'
+              borderLeft: '4px solid #F59E0B',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                READABILITY SCORE
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#FBBF24', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                ⭐ KEPUASAN PENGHUNI
               </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#FBBF24', margin: '4px 0 2px', fontFamily: "'JetBrains Mono', monospace" }}>
-                AA/AAA
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                4.9 <span style={{ color: '#FBBF24', fontSize: '1.2rem' }}>/ 5.0</span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.4 }}>
-                Kontras rasio teks sekunder ditingkatkan ke min 4.5:1.
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.5 }}>
+                Pilihan favorit ribuan mahasiswa dan profesional muda di berbagai kota kampus ternama.
               </p>
             </div>
           </div>
