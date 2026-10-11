@@ -1832,30 +1832,32 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
           }}>
             {/* Quick Action Tools */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onOpenFloorPlan?.(kost);
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  background: 'rgba(59, 130, 246, 0.15)',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
-                  color: '#93c5fd',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                title="Lihat Blueprint Denah Kamar 2D"
-              >
-                <Ruler size={11} /> Denah 2D
-              </button>
+              {Boolean(kost.layoutImage || kost.blueprintImage || kost.floorPlanImage || (typeof kost.floorPlan === 'string' && kost.floorPlan.startsWith('http'))) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenFloorPlan?.(kost);
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    background: 'rgba(59, 130, 246, 0.15)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    color: '#93c5fd',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  title="Lihat Blueprint Denah Kamar 2D"
+                >
+                  <Ruler size={11} /> Denah 2D
+                </button>
+              )}
 
               <button
                 type="button"

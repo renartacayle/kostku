@@ -202,6 +202,19 @@ export default function KostDetail({ user }) {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const hasBlueprint = Boolean(
+    kost?.layoutImage || 
+    kost?.blueprintImage || 
+    kost?.floorPlanImage ||
+    (typeof kost?.floorPlan === 'string' && kost.floorPlan.startsWith('http'))
+  );
+
+  useEffect(() => {
+    if (kost && !hasBlueprint && activeTab === 'layout') {
+      setActiveTab('photos');
+    }
+  }, [kost, hasBlueprint, activeTab]);
+
   const handleApplyClick = () => {
     if (user) {
       if (user.name && !tenantName) setTenantName(user.name);
@@ -339,10 +352,10 @@ export default function KostDetail({ user }) {
   const activeFloorPlan = selectedRoomObj?.floorPlan || kost.floorPlan || {
     dimensions: selectedRoomObj?.size || layout.roomDimensions || "3.5m x 4.0m",
     bedType: "super_single",
-    furnitures: ["wardrobe", "desk", "bathroom", "ac", "window"],
-    generated: true
+    furnitures: ["wardrobe", "desk", "bathroom", "ac", "window"]
   };
   const activeRoomPhoto = selectedRoomObj?.roomPhoto || kost.roomPhoto || null;
+
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: '#f8fafc', paddingBottom: 'clamp(90px, 14vh, 150px)' }}>
@@ -483,26 +496,28 @@ export default function KostDetail({ user }) {
                 <span>📸 Galeri Foto Asli ({images.length})</span>
               </button>
 
-              <button
-                onClick={() => setActiveTab('layout')}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: activeTab === 'layout' ? 'linear-gradient(135deg, #0284c7, #0ea5e9)' : 'rgba(255, 255, 255, 0.05)',
-                  color: activeTab === 'layout' ? 'white' : '#94a3b8',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Ruler size={16} />
-                <span>📐 Denah & Blueprint Kamar {selectedRoom || ''}</span>
-              </button>
+              {hasBlueprint && (
+                <button
+                  onClick={() => setActiveTab('layout')}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: activeTab === 'layout' ? 'linear-gradient(135deg, #0284c7, #0ea5e9)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeTab === 'layout' ? 'white' : '#94a3b8',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Ruler size={16} />
+                  <span>📐 Denah & Blueprint Kamar {selectedRoom || ''}</span>
+                </button>
+              )}
             </div>
 
             {/* TAB CONTENT 1: FOTO ASLI GALLERY */}
@@ -589,7 +604,7 @@ export default function KostDetail({ user }) {
             )}
 
             {/* TAB CONTENT 2: DENAH & BLUEPRINT RUANG */}
-            {activeTab === 'layout' && (
+            {hasBlueprint && activeTab === 'layout' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <RoomFloorPlanViewer 
                   dimensions={activeFloorPlan.dimensions || selectedRoomObj?.size || layout.roomDimensions || "3.5m x 4.0m"} 

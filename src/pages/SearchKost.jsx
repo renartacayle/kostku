@@ -1240,25 +1240,27 @@ export default function SearchKost({ user }) {
                     </button>
 
                     {/* Ada Denah Badge */}
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '10px',
-                      left: '10px',
-                      background: 'rgba(2, 132, 199, 0.9)',
-                      backdropFilter: 'blur(8px)',
-                      color: 'white',
-                      padding: '3px 8px',
-                      borderRadius: '8px',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      zIndex: 2
-                    }}>
-                      <Ruler size={11} />
-                      <span>Denah {layout.roomDimensions || '4.0x4.5m'}</span>
-                    </div>
+                    {Boolean(kost.layoutImage || kost.blueprintImage || kost.floorPlanImage || (typeof kost.floorPlan === 'string' && kost.floorPlan.startsWith('http'))) && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '10px',
+                        left: '10px',
+                        background: 'rgba(2, 132, 199, 0.9)',
+                        backdropFilter: 'blur(8px)',
+                        color: 'white',
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        zIndex: 2
+                      }}>
+                        <Ruler size={11} />
+                        <span>Denah {layout.roomDimensions || '4.0x4.5m'}</span>
+                      </div>
+                    )}
 
                     {/* Room count pill */}
                     <div style={{
@@ -1376,26 +1378,28 @@ export default function SearchKost({ user }) {
                         </div>
 
                         {/* Quick Blueprint Modal Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => setPreviewLayoutKost(kost)}
-                          style={{
-                            padding: '6px 12px',
-                            background: 'rgba(59, 130, 246, 0.12)',
-                            color: '#93c5fd',
-                            border: '1px solid rgba(59, 130, 246, 0.25)',
-                            borderRadius: '8px',
-                            fontSize: '0.74rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <Ruler size={13} />
-                          <span>Denah 2D</span>
-                        </button>
+                        {Boolean(kost.layoutImage || kost.blueprintImage || kost.floorPlanImage || (typeof kost.floorPlan === 'string' && kost.floorPlan.startsWith('http'))) && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewLayoutKost(kost)}
+                            style={{
+                              padding: '6px 12px',
+                              background: 'rgba(59, 130, 246, 0.12)',
+                              color: '#93c5fd',
+                              border: '1px solid rgba(59, 130, 246, 0.25)',
+                              borderRadius: '8px',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Ruler size={13} />
+                            <span>Denah 2D</span>
+                          </button>
+                        )}
                       </div>
 
                       {/* Action buttons row */}
