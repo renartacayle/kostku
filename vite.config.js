@@ -15,6 +15,18 @@ export default defineConfig({
       '/downloads': {
         target: 'http://localhost:3001',
         changeOrigin: true
+      },
+      '/download': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      },
+      '/unduh': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      },
+      '/apk': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
       }
     }
   },
@@ -27,6 +39,18 @@ export default defineConfig({
         changeOrigin: true
       },
       '/downloads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      },
+      '/download': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      },
+      '/unduh': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      },
+      '/apk': {
         target: 'http://localhost:3001',
         changeOrigin: true
       }

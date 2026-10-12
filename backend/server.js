@@ -286,7 +286,7 @@ app.get(['/download', '/unduh'], (req, res) => {
   <div class="card">
     <div class="logo">🏠</div>
     <h1>KostKu Android</h1>
-    <div class="badge">Versi 1.0.4 • ${sizeMb} MB • Official Build</div>
+    <div class="badge">Versi 1.1.0 • ${sizeMb} MB • Official Build</div>
     <p class="subtitle">Aplikasi Manajemen & Pencarian Kost Pintar</p>
 
     <a href="/downloads/KostKu-Android.apk" class="btn-download" download="KostKu.apk">
