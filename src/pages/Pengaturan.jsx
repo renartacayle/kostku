@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Settings as SettingsIcon, 
   Save, 
@@ -761,6 +762,48 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
           ══════════════════════════════════════════════════════ */}
       {activeTab === 'app' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* BANNER: PENGATURAN KOST TERSEDIA DI OVERVIEW */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(124, 58, 237, 0.12) 100%)',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
+            padding: '1.25rem 1.5rem',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 4px 20px rgba(37, 99, 235, 0.15)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                background: 'var(--accent-gradient)',
+                padding: '12px',
+                borderRadius: '12px',
+                color: 'white',
+                display: 'flex'
+              }}>
+                <BedDouble size={22} />
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'white', fontWeight: 700 }}>
+                  Kelola Unit Kamar & Tarif Langsung di My Kost (Overview)
+                </h4>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Kini pengaturan operasional kost (tarif listrik & air, deposit, unit kamar fisik, foto asli kamar, dan generate massal) dapat diakses langsung dari halaman My Kost (Overview).
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/dashboard?tab=pengaturan"
+              className="btn btn-primary"
+              style={{ gap: '8px', padding: '9px 18px', fontSize: '0.85rem', textDecoration: 'none' }}
+            >
+              <SettingsIcon size={16} />
+              <span>Buka Pengaturan Kost di Overview →</span>
+            </Link>
+          </div>
+
           {/* SECTION 1: MULTI-DEVICE CLOUD DATABASE SYNC */}
           <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.85rem' }}>

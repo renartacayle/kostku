@@ -1125,10 +1125,51 @@
             "gaji": 1500000
           }
         ],
-        "bedsheetCount": 30
+        "bedsheetCount": 30,
+        "waterRate": 7500,
+        "electricityRate": 2200,
+        "depositAmount": 500000
       },
       "rating": 4.7,
-      "reviewCount": 3
+      "reviewCount": 3,
+      "rooms": [
+        {
+          "id": "1790329612927",
+          "number": "A01",
+          "price": 1200000,
+          "size": "3x4"
+        },
+        {
+          "id": "1790329612928",
+          "number": "A02",
+          "price": 1200000,
+          "size": "3x4"
+        },
+        {
+          "id": "1790329612929",
+          "number": "A03",
+          "price": 1200000,
+          "size": "3x4"
+        },
+        {
+          "id": "1790329612930",
+          "number": "B01",
+          "price": 1500000,
+          "size": "4x4"
+        },
+        {
+          "id": "1790329612931",
+          "number": "B02",
+          "price": 1500000,
+          "size": "4x4"
+        },
+        {
+          "id": "1790329612932",
+          "number": "C01",
+          "price": 2000000,
+          "size": "4x5"
+        }
+      ]
     },
     {
       "uid": "KOST-DAQ3E4",
@@ -1473,6 +1514,20 @@
       "type": "ulasan",
       "text": "Testing Reviewer memberikan rating ⭐ 5 untuk Kost Taman Sukun Co-Living & Exclusive",
       "time": "2026-10-11T22:55:50.670Z"
+    },
+    {
+      "id": "ACT-1791764188213",
+      "kostUid": "KOST-K12DQR",
+      "type": "pengaturan",
+      "text": "Pengaturan kamar & kost telah diperbarui",
+      "time": "2026-10-12T00:16:28.213Z"
+    },
+    {
+      "id": "ACT-1791764245265",
+      "kostUid": "KOST-K12DQR",
+      "type": "pengaturan",
+      "text": "Pengaturan kamar & kost telah diperbarui",
+      "time": "2026-10-12T00:17:25.265Z"
     }
   ],
   "invoices": [
