@@ -272,8 +272,6 @@ export const apiCreateOwnerKost = (data) => {
   });
 };
 
-export const apiGetOwnerPortfolio = (ownerId) => request(`/owner/portfolio?ownerId=${ownerId}`);
-
 export const apiSwitchOwnerKost = (userId, targetKostUid) => {
   return request('/owner/switch-kost', {
     method: 'PUT',

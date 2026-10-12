@@ -10,11 +10,10 @@ import {
   Cloud, 
   Download,
   AlertCircle,
-  Search,
-  Building2
+  Search
 } from 'lucide-react';
 
-export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync, onOpenPortfolio }) {
+export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync }) {
   const location = useLocation();
 
   const menuItems = [
@@ -111,32 +110,6 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
             </Link>
           );
         })}
-
-        {(user?.role === 'owner' || user?.role === 'master') && onOpenPortfolio && (
-          <button
-            type="button"
-            onClick={onOpenPortfolio}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '11px 16px',
-              borderRadius: '12px',
-              border: '1px solid rgba(59, 130, 246, 0.35)',
-              background: 'rgba(37, 99, 235, 0.12)',
-              color: '#93c5fd',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '0.92rem',
-              marginTop: '4px',
-              textAlign: 'left',
-              transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)'
-            }}
-          >
-            <Building2 size={20} color="#60a5fa" />
-            <span>Portofolio Kost</span>
-          </button>
-        )}
       </nav>
 
       {/* Cloud & Multi-Device Action Card */}

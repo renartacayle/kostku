@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Cloud, Download, Wifi, RefreshCw, User as UserIcon, Building2 } from 'lucide-react';
+import { Home, Cloud, Download, Wifi, RefreshCw, User as UserIcon } from 'lucide-react';
 import { getCloudConfig, testApiConnection } from '../services/api';
 import PropertySwitcher from './PropertySwitcher';
 
@@ -10,8 +10,7 @@ export default function Navbar({
   onOpenInstall, 
   onOpenCloudSync,
   onSwitchKost,
-  onOpenAddKost,
-  onOpenPortfolio
+  onOpenAddKost
 }) {
   const [connectionStatus, setConnectionStatus] = useState({ online: true, isCloud: false, latency: 20 });
 
@@ -88,25 +87,12 @@ export default function Navbar({
             activeKostName={kostName}
             onSwitchKost={onSwitchKost}
             onOpenAddModal={onOpenAddKost}
-            onOpenPortfolioModal={onOpenPortfolio}
           />
         )}
       </div>
 
       {/* Right Action Items */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* Portfolio Button for Owners */}
-        {(user?.role === 'owner' || user?.role === 'master') && (
-          <button
-            onClick={onOpenPortfolio}
-            className="btn btn-secondary btn-sm desktop-only"
-            style={{ gap: '6px', fontSize: '0.8rem', padding: '6px 12px' }}
-            title="Lihat ringkasan multi-kost portofolio"
-          >
-            <Building2 size={14} color="#60a5fa" />
-            <span>Portofolio Kost</span>
-          </button>
-        )}
         {/* Cloud Connection Badge */}
         <button
           onClick={onOpenCloudSync}

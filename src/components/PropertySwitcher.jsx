@@ -4,7 +4,6 @@ import {
   ChevronDown, 
   Check, 
   Plus, 
-  Layers, 
   Sparkles, 
   Home, 
   MapPin,
@@ -17,8 +16,7 @@ export default function PropertySwitcher({
   activeKostUid, 
   activeKostName, 
   onSwitchKost, 
-  onOpenAddModal, 
-  onOpenPortfolioModal 
+  onOpenAddModal 
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [kosts, setKosts] = useState([]);
@@ -252,31 +250,6 @@ export default function PropertySwitcher({
             flexDirection: 'column',
             gap: '4px'
           }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                if (onOpenPortfolioModal) onOpenPortfolioModal();
-              }}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 10px',
-                borderRadius: '10px',
-                background: 'rgba(99, 102, 241, 0.1)',
-                border: '1px solid rgba(99, 102, 241, 0.25)',
-                color: '#c7d2fe',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              <Layers size={14} />
-              <span>Ringkasan Portofolio (Semua Kost)</span>
-            </button>
-
             <button
               type="button"
               onClick={() => {

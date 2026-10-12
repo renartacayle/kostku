@@ -13,7 +13,6 @@ import InstallModal from './components/InstallModal';
 import CloudSyncModal from './components/CloudSyncModal';
 import AutoUpdateModal from './components/AutoUpdateModal';
 import AddPropertyModal from './components/AddPropertyModal';
-import PortfolioOverviewModal from './components/PortfolioOverviewModal';
 import { apiSwitchOwnerKost } from './services/api';
 
 import Login from './pages/Login';
@@ -32,7 +31,6 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
   const [showAddKostModal, setShowAddKostModal] = useState(false);
-  const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [kostName, setKostName] = useState(localStorage.getItem('kostName') || 'KostKu');
 
   useEffect(() => {
@@ -65,7 +63,6 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
           onLogout={onLogout} 
           onOpenInstall={() => setShowInstallModal(true)}
           onOpenCloudSync={() => setShowCloudSyncModal(true)}
-          onOpenPortfolio={() => setShowPortfolioModal(true)}
         />
       </div>
 
@@ -85,7 +82,6 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
           onOpenCloudSync={() => setShowCloudSyncModal(true)}
           onSwitchKost={onSwitchKost}
           onOpenAddKost={() => setShowAddKostModal(true)}
-          onOpenPortfolio={() => setShowPortfolioModal(true)}
         />
 
         {/* Page View Container */}
@@ -115,14 +111,6 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
         onClose={() => setShowAddKostModal(false)}
         user={user}
         onKostAdded={handleKostAdded}
-      />
-      <PortfolioOverviewModal
-        isOpen={showPortfolioModal}
-        onClose={() => setShowPortfolioModal(false)}
-        user={user}
-        activeKostUid={user?.kostUid}
-        onSwitchKost={onSwitchKost}
-        onOpenAddModal={() => setShowAddKostModal(true)}
       />
     </div>
   );
