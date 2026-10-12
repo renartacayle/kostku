@@ -1104,7 +1104,7 @@ app.get('/api/settings', (req, res) => {
 // Endpoint: Update Settings
 app.put('/api/settings', (req, res) => {
   const { kostUid } = req.query;
-  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount } = req.body;
+  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount, discount } = req.body;
   const db = getDB();
   
   const index = db.kosts.findIndex(k => k.uid === kostUid);
@@ -1117,11 +1117,13 @@ app.put('/api/settings', (req, res) => {
     bedsheetCount: Number(bedsheetCount) || 0,
     waterRate: Number(waterRate) || 0,
     electricityRate: Number(electricityRate) || 0,
-    depositAmount: Number(depositAmount) || 0
+    depositAmount: Number(depositAmount) || 0,
+    discount: discount !== undefined ? discount : (db.kosts[index].settings?.discount || null)
   };
   
-  // Also sync directly to kost.rooms for public marketplace availability
+  // Also sync directly to kost.rooms and kost.discount for public marketplace availability
   db.kosts[index].rooms = roomList;
+  db.kosts[index].discount = db.kosts[index].settings.discount;
   
   addActivity(db, kostUid, 'pengaturan', 'Pengaturan kamar & kost telah diperbarui');
   writeDB(db);
@@ -1682,7 +1684,9 @@ app.get('/api/public/kosts', (req, res) => {
         status: r.status || 'available',
         roomPhoto: r.roomPhoto || k.roomPhoto || '',
         floorPlan: r.floorPlan || k.floorPlan || null
-      }))
+      })),
+      discount: k.settings?.discount || k.discount || null,
+      depositAmount: k.settings?.depositAmount || 500000
     };
   });
   res.json(verifiedKosts);

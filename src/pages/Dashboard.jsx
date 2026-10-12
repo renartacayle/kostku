@@ -28,7 +28,10 @@ import {
   SlidersHorizontal,
   LayoutDashboard,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  Tag,
+  Percent,
+  Calendar
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
@@ -67,7 +70,15 @@ const Dashboard = ({ user }) => {
     bedsheetCount: 0,
     waterRate: 0,
     electricityRate: 0,
-    depositAmount: 0
+    depositAmount: 0,
+    discount: {
+      enabled: false,
+      type: 'percent',
+      value: 10,
+      durationMonths: '1',
+      validUntil: '',
+      label: 'Promo Spesial'
+    }
   });
   const [tenants, setTenants] = useState([]);
   const [activeComplaints, setActiveComplaints] = useState(0);
@@ -164,7 +175,15 @@ const Dashboard = ({ user }) => {
           bedsheetCount: sets.bedsheetCount || 0,
           waterRate: sets.waterRate || 0,
           electricityRate: sets.electricityRate || 0,
-          depositAmount: sets.depositAmount || 0
+          depositAmount: sets.depositAmount || 0,
+          discount: sets.discount || {
+            enabled: false,
+            type: 'percent',
+            value: 10,
+            durationMonths: '1',
+            validUntil: '',
+            label: 'Promo Spesial'
+          }
         });
       }
       setTenants(Array.isArray(usrs) ? usrs : []);
@@ -590,6 +609,84 @@ const Dashboard = ({ user }) => {
               </Link>
             </div>
           )}
+
+          {/* Banner Status Program Diskon Kost */}
+          <div style={{
+            background: settings.discount?.enabled 
+              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(59, 130, 246, 0.12) 100%)' 
+              : 'rgba(255, 255, 255, 0.03)',
+            border: `1px solid ${settings.discount?.enabled ? 'rgba(52, 211, 153, 0.35)' : 'var(--border-color)'}`,
+            borderRadius: 'var(--radius-lg)',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+              <div style={{
+                background: settings.discount?.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.12)',
+                color: settings.discount?.enabled ? '#34d399' : '#94a3b8',
+                padding: '0.65rem',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Tag size={20} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {settings.discount?.enabled 
+                      ? `Program Promo Aktif: Diskon ${settings.discount.type === 'percent' ? `${settings.discount.value}%` : formatRupiah(settings.discount.value)}` 
+                      : 'Program Diskon: Nonaktif (Harga Normal)'}
+                  </h4>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: settings.discount?.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.15)',
+                    color: settings.discount?.enabled ? '#34d399' : '#94a3b8'
+                  }}>
+                    {settings.discount?.enabled ? 'SEDANG BERJALAN' : 'NORMAL'}
+                  </span>
+                </div>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  {settings.discount?.enabled ? (
+                    <>
+                      Dipromosikan untuk <strong>{settings.discount.durationMonths === 'all' ? 'Sepanjang Masa Sewa' : `${settings.discount.durationMonths} Bulan Pertama`}</strong>
+                      {settings.discount.validUntil ? ` • Berlaku s.d ${new Date(settings.discount.validUntil).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : ' • Berlaku Berkelanjutan'}
+                    </>
+                  ) : (
+                    'Semua unit kamar disewakan dengan tarif standar tanpa potongan. Anda dapat mengaktifkan diskon kapan saja untuk menarik calon penyewa.'
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('pengaturan')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.55rem 1.1rem',
+                background: settings.discount?.enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.12)',
+                border: `1px solid ${settings.discount?.enabled ? 'rgba(52, 211, 153, 0.4)' : 'rgba(59, 130, 246, 0.3)'}`,
+                borderRadius: 'var(--radius-md)',
+                color: settings.discount?.enabled ? '#34d399' : '#60a5fa',
+                fontWeight: 600,
+                fontSize: '0.84rem',
+                cursor: 'pointer'
+              }}
+            >
+              {settings.discount?.enabled ? 'Kelola Diskon' : 'Atur Diskon Promo'} <ArrowUpRight size={16} />
+            </button>
+          </div>
 
           {/* 4 Stat Cards */}
           <div className="grid-responsive-stats">
@@ -1036,7 +1133,337 @@ const Dashboard = ({ user }) => {
             </div>
           </div>
 
-          {/* SECTION 2: ROOMS MANAGEMENT */}
+          {/* SECTION 2: PROGRAM DISKON & PROMO SEWA KOST */}
+          <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  background: settings.discount?.enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  padding: '10px',
+                  borderRadius: '12px',
+                  color: settings.discount?.enabled ? '#10b981' : 'var(--text-secondary)',
+                  display: 'flex'
+                }}>
+                  <Tag size={20} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Program Diskon & Promo Sewa Kost</h3>
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      background: settings.discount?.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.15)',
+                      color: settings.discount?.enabled ? '#34d399' : '#94a3b8',
+                      border: `1px solid ${settings.discount?.enabled ? 'rgba(52, 211, 153, 0.4)' : 'rgba(148, 163, 184, 0.2)'}`
+                    }}>
+                      {settings.discount?.enabled ? '● PROMO AKTIF' : '○ NONAKTIF (HARGA NORMAL)'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Tentukan sendiri apakah kost Anda memberikan diskon, berapa besar potongannya, dan berapa lama durasi diskonnya
+                  </span>
+                </div>
+              </div>
+
+              {/* Master Switch Toggle */}
+              <label style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                background: settings.discount?.enabled ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                padding: '8px 14px',
+                borderRadius: '12px',
+                border: `1px solid ${settings.discount?.enabled ? 'rgba(52, 211, 153, 0.4)' : 'var(--border-color)'}`,
+                transition: 'all 0.2s'
+              }}>
+                <input 
+                  type="checkbox"
+                  checked={!!settings.discount?.enabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setSettings(prev => ({
+                      ...prev,
+                      discount: {
+                        ...(prev.discount || { type: 'percent', value: 10, durationMonths: '1', validUntil: '', label: 'Promo Spesial' }),
+                        enabled
+                      }
+                    }));
+                  }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981' }}
+                />
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: settings.discount?.enabled ? '#34d399' : 'var(--text-secondary)' }}>
+                  {settings.discount?.enabled ? 'Diskon Promo Aktif' : 'Aktifkan Diskon Promo'}
+                </span>
+              </label>
+            </div>
+
+            {!settings.discount?.enabled ? (
+              <div style={{
+                padding: '1.5rem',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed var(--border-color)',
+                textAlign: 'center'
+              }}>
+                <Tag size={32} style={{ margin: '0 auto 8px', color: '#64748b', opacity: 0.6 }} />
+                <h4 style={{ margin: '0 0 6px', fontSize: '1rem', color: 'var(--text-main)', fontWeight: 700 }}>
+                  Saat ini tidak ada program diskon aktif
+                </h4>
+                <p style={{ margin: '0 auto', maxWidth: '580px', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  Semua kamar kost disewakan dengan harga penuh (normal) tanpa potongan durasi sewa. Centang opsi <strong>"Aktifkan Diskon Promo"</strong> di atas jika Anda ingin menarik minat calon penyewa baru.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                
+                {/* Form Fields Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.1rem' }}>
+                  
+                  {/* 1. Tipe & Besaran Diskon */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <Percent size={14} color="#3b82f6" /> Tipe & Besaran Potongan
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${settings.discount?.type === 'percent' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.8rem' }}
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          discount: { ...prev.discount, type: 'percent', value: prev.discount?.type === 'percent' ? prev.discount.value : 10 }
+                        }))}
+                      >
+                        Persentase (%)
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${settings.discount?.type === 'fixed' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.8rem' }}
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          discount: { ...prev.discount, type: 'fixed', value: prev.discount?.type === 'fixed' ? prev.discount.value : 100000 }
+                        }))}
+                      >
+                        Nominal (Rp)
+                      </button>
+                    </div>
+
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        type="number"
+                        className="input-field"
+                        placeholder={settings.discount?.type === 'percent' ? 'Contoh: 10' : 'Contoh: 100000'}
+                        value={settings.discount?.value || ''}
+                        min={1}
+                        max={settings.discount?.type === 'percent' ? 100 : undefined}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          setSettings(prev => ({
+                            ...prev,
+                            discount: { ...prev.discount, value: val }
+                          }));
+                        }}
+                      />
+                      <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.82rem', color: '#94a3b8', pointerEvents: 'none' }}>
+                        {settings.discount?.type === 'percent' ? '%' : 'Rp / bln'}
+                      </span>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', alignSelf: 'center', marginRight: '4px' }}>Preset:</span>
+                      {settings.discount?.type === 'percent' ? (
+                        [5, 10, 15, 20, 25].map(p => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setSettings(prev => ({ ...prev, discount: { ...prev.discount, value: p } }))}
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              background: settings.discount?.value === p ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                              color: settings.discount?.value === p ? '#60a5fa' : '#94a3b8',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {p}%
+                          </button>
+                        ))
+                      ) : (
+                        [50000, 100000, 150000, 200000].map(amt => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setSettings(prev => ({ ...prev, discount: { ...prev.discount, value: amt } }))}
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              background: settings.discount?.value === amt ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                              color: settings.discount?.value === amt ? '#60a5fa' : '#94a3b8',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {amt / 1000}rb
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Durasi Sewa yang Didiskon */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <Clock size={14} color="#f59e0b" /> Durasi Sewa yang Didiskon
+                    </label>
+                    <select
+                      className="input-field"
+                      value={settings.discount?.durationMonths || '1'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        discount: { ...prev.discount, durationMonths: e.target.value }
+                      }))}
+                      style={{ width: '100%', marginBottom: '8px' }}
+                    >
+                      <option value="1">1 Bulan Pertama (Welcome Promo)</option>
+                      <option value="3">3 Bulan Pertama</option>
+                      <option value="6">6 Bulan Pertama</option>
+                      <option value="all">Sepanjang Masa Sewa (Semua Bulan Terdiskon)</option>
+                    </select>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', lineHeight: '1.3' }}>
+                      {settings.discount?.durationMonths === '1' && '💡 Penyewa hanya mendapat diskon di bulan pertama masuk, bulan berikutnya bayar harga normal.'}
+                      {settings.discount?.durationMonths === '3' && '💡 Diskon dipotong untuk maksimal 3 bulan sewa pertama.'}
+                      {settings.discount?.durationMonths === '6' && '💡 Diskon dipotong untuk maksimal 6 bulan sewa pertama.'}
+                      {settings.discount?.durationMonths === 'all' && '💡 Diskon berlaku penuh untuk setiap bulan yang disewa.'}
+                    </span>
+                  </div>
+
+                  {/* 3. Batas Waktu Promo (Masa Berlaku) */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <Calendar size={14} color="#ec4899" /> Batas Waktu Promo (Expired Date)
+                    </label>
+                    <input 
+                      type="date"
+                      className="input-field"
+                      value={settings.discount?.validUntil || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        discount: { ...prev.discount, validUntil: e.target.value }
+                      }))}
+                      style={{ width: '100%', marginBottom: '6px' }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                        {settings.discount?.validUntil 
+                          ? `Berakhir: ${new Date(settings.discount.validUntil).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}` 
+                          : 'Promo berkelanjutan tanpa batas akhir'}
+                      </span>
+                      {settings.discount?.validUntil && (
+                        <button
+                          type="button"
+                          onClick={() => setSettings(prev => ({ ...prev, discount: { ...prev.discount, validUntil: '' } }))}
+                          style={{ background: 'none', border: 'none', color: '#f87171', fontSize: '0.72rem', cursor: 'pointer', padding: 0 }}
+                        >
+                          Hapus Batas
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. Label / Nama Promo */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <Tag size={14} color="#10b981" /> Nama / Judul Promo
+                    </label>
+                    <input 
+                      type="text"
+                      className="input-field"
+                      placeholder="Contoh: Promo Mahasiswa Baru"
+                      value={settings.discount?.label || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        discount: { ...prev.discount, label: e.target.value }
+                      }))}
+                      style={{ width: '100%' }}
+                    />
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
+                      Ditampilkan pada rincian pemesanan dan kartu sewa calon penyewa
+                    </span>
+                  </div>
+                </div>
+
+                {/* Interactive Simulation Card */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: '12px',
+                  padding: '1rem 1.25rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Sparkles size={16} color="#60a5fa" />
+                    <strong style={{ fontSize: '0.88rem', color: '#93c5fd' }}>Simulasi Perhitungan Calon Penyewa</strong>
+                  </div>
+                  
+                  {(() => {
+                    const samplePrice = Number(settings.rooms?.[0]?.price) || 1200000;
+                    const sampleDur = 3; // sewa 3 bulan
+                    const discountMonths = settings.discount?.durationMonths === 'all' ? sampleDur : Math.min(sampleDur, Number(settings.discount?.durationMonths) || 1);
+                    const cutPerMonth = settings.discount?.type === 'percent'
+                      ? Math.round(samplePrice * ((Number(settings.discount?.value) || 0) / 100))
+                      : Math.min(samplePrice, Number(settings.discount?.value) || 0);
+                    const totalCut = cutPerMonth * discountMonths;
+                    const totalRent = (samplePrice * sampleDur) - totalCut;
+
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.82rem' }}>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Contoh Tarif Kamar:</span>
+                          <strong style={{ color: 'white' }}>{formatRupiah(samplePrice)} / bln</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Potongan per bln:</span>
+                          <strong style={{ color: '#34d399' }}>- {formatRupiah(cutPerMonth)}</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Durasi didiskon:</span>
+                          <strong style={{ color: '#38bdf8' }}>{discountMonths} Bulan</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Total sewa 3 bln:</span>
+                          <strong style={{ color: '#60a5fa', fontSize: '0.95rem' }}>
+                            {formatRupiah(totalRent)}{' '}
+                            <span style={{ fontSize: '0.72rem', color: '#34d399' }}>(Hemat {formatRupiah(totalCut)})</span>
+                          </strong>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => handleSaveKostSettings()} 
+                    disabled={savingSettings}
+                    className="btn btn-primary btn-sm"
+                    style={{ gap: '6px' }}
+                  >
+                    <Save size={14} /> Simpan Pengaturan Diskon
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 3: ROOMS MANAGEMENT */}
           <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

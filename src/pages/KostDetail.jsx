@@ -342,11 +342,33 @@ export default function KostDetail({ user }) {
   const selectedRoomObj = roomsList.find(r => r.number === selectedRoom) || roomsList[0];
   const baseMonthlyPrice = selectedRoomObj ? (Number(selectedRoomObj.price) || 1200000) : 1200000;
 
-  // Discount calculation
-  const discountRate = rentalDuration === 3 ? 0.05 : rentalDuration === 6 ? 0.08 : rentalDuration === 12 ? 0.12 : 0;
+  // Owner-Configured Discount calculation
+  const ownerDiscount = kost.discount || kost.settings?.discount || null;
+  const isDiscountActive = Boolean(
+    ownerDiscount &&
+    ownerDiscount.enabled &&
+    Number(ownerDiscount.value) > 0 &&
+    (!ownerDiscount.validUntil || new Date(ownerDiscount.validUntil + 'T23:59:59') >= new Date())
+  );
+
   const rawRent = baseMonthlyPrice * rentalDuration;
-  const discountAmount = rawRent * discountRate;
-  const depositAmount = 500000; // Refundable deposit standard
+  
+  let discountAmount = 0;
+  let discountedMonths = 0;
+
+  if (isDiscountActive) {
+    discountedMonths = ownerDiscount.durationMonths === 'all'
+      ? rentalDuration
+      : Math.min(rentalDuration, Number(ownerDiscount.durationMonths) || 1);
+    
+    const cutPerMonth = ownerDiscount.type === 'percent'
+      ? Math.round(baseMonthlyPrice * (Number(ownerDiscount.value) / 100))
+      : Math.min(baseMonthlyPrice, Number(ownerDiscount.value) || 0);
+
+    discountAmount = cutPerMonth * discountedMonths;
+  }
+
+  const depositAmount = Number(kost.depositAmount || kost.settings?.depositAmount) || 500000;
   const totalFirstPayment = (rawRent - discountAmount) + depositAmount;
 
   const layout = kost.layoutInfo || {};
@@ -900,6 +922,41 @@ export default function KostDetail({ user }) {
                 </div>
               </div>
 
+              {/* Owner Discount Promo Banner (if active) */}
+              {isDiscountActive && (
+                <div style={{
+                  marginBottom: '1.25rem',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
+                  border: '1px solid rgba(52, 211, 153, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <div style={{
+                    background: '#10b981',
+                    color: '#000',
+                    padding: '6px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Tag size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#34d399' }}>
+                      {ownerDiscount?.label || 'Program Promo Spesial Pemilik Kost'}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
+                      Diskon {ownerDiscount?.type === 'percent' ? `${ownerDiscount.value}%` : `Rp ${Number(ownerDiscount.value).toLocaleString('id-ID')}`} ({ownerDiscount?.durationMonths === 'all' ? 'sepanjang masa sewa' : `${ownerDiscount?.durationMonths} bulan pertama`})
+                      {ownerDiscount?.validUntil ? ` • s.d ${new Date(ownerDiscount.validUntil).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` : ''}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Rental Duration Selector */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '8px' }}>
@@ -907,36 +964,49 @@ export default function KostDetail({ user }) {
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {[
-                    { dur: 1, label: '1 Bulan', tag: null },
-                    { dur: 3, label: '3 Bulan', tag: 'Diskon 5%' },
-                    { dur: 6, label: '6 Bulan', tag: 'Diskon 8%' },
-                    { dur: 12, label: '1 Tahun', tag: 'Hemat 12% ⭐' }
-                  ].map(d => (
-                    <button
-                      key={d.dur}
-                      type="button"
-                      onClick={() => setRentalDuration(d.dur)}
-                      style={{
-                        padding: '10px 8px',
-                        borderRadius: '12px',
-                        border: rentalDuration === d.dur ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
-                        background: rentalDuration === d.dur ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.03)',
-                        color: rentalDuration === d.dur ? 'white' : '#94a3b8',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                        transition: 'all 0.15s'
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{d.label}</div>
-                      {d.tag ? (
-                        <div style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700, marginTop: '2px' }}>
-                          {d.tag}
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>Harga Normal</div>
-                      )}
-                    </button>
-                  ))}
+                    { dur: 1, label: '1 Bulan' },
+                    { dur: 3, label: '3 Bulan' },
+                    { dur: 6, label: '6 Bulan' },
+                    { dur: 12, label: '1 Tahun' }
+                  ].map(d => {
+                    let promoTag = null;
+                    if (isDiscountActive) {
+                      const sampleMonths = ownerDiscount.durationMonths === 'all' ? d.dur : Math.min(d.dur, Number(ownerDiscount.durationMonths) || 1);
+                      if (ownerDiscount.type === 'percent') {
+                        promoTag = `Diskon ${ownerDiscount.value}%${ownerDiscount.durationMonths !== 'all' ? ` (${sampleMonths} bln)` : ''}`;
+                      } else {
+                        const cutK = Math.round((Number(ownerDiscount.value) || 0) / 1000);
+                        promoTag = `Hemat ${cutK}rb/bln${ownerDiscount.durationMonths !== 'all' ? ` (${sampleMonths} bln)` : ''}`;
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={d.dur}
+                        type="button"
+                        onClick={() => setRentalDuration(d.dur)}
+                        style={{
+                          padding: '10px 8px',
+                          borderRadius: '12px',
+                          border: rentalDuration === d.dur ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
+                          background: rentalDuration === d.dur ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.03)',
+                          color: rentalDuration === d.dur ? 'white' : '#94a3b8',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{d.label}</div>
+                        {promoTag ? (
+                          <div style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700, marginTop: '2px' }}>
+                            🏷️ {promoTag}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>Harga Normal</div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -960,7 +1030,7 @@ export default function KostDetail({ user }) {
 
                   {discountAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#34d399' }}>
-                      <span>Potongan Diskon Durasi:</span>
+                      <span>Potongan Promo ({ownerDiscount?.label || 'Diskon'} - {discountedMonths} Bln):</span>
                       <span>- Rp {discountAmount.toLocaleString('id-ID')}</span>
                     </div>
                   )}

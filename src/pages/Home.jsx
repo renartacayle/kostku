@@ -1571,6 +1571,13 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
   const hasKmDalam = facilities.some(f => f.includes('mandi dalam') || f.includes('km dalam'));
   const hasWifi = facilities.some(f => f.includes('wifi') || f.includes('internet'));
 
+  const hasActiveDiscount = Boolean(
+    kost.discount && 
+    kost.discount.enabled && 
+    Number(kost.discount.value) > 0 &&
+    (!kost.discount.validUntil || new Date(kost.discount.validUntil + 'T23:59:59') >= new Date())
+  );
+
   return (
     <Link
       to={`/kost/${kost.uid}`}
@@ -1838,6 +1845,24 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
 
             {/* Price Tag */}
             <div style={{ textAlign: 'right' }}>
+              {hasActiveDiscount && (
+                <div style={{ marginBottom: '2px' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(52, 211, 153, 0.3)',
+                    color: '#34d399',
+                    fontSize: '0.68rem',
+                    fontWeight: 700
+                  }}>
+                    🏷️ {kost.discount.type === 'percent' ? `Diskon ${kost.discount.value}%` : `Hemat ${Math.round(kost.discount.value / 1000)}rb`}
+                  </span>
+                </div>
+              )}
               <span style={{
                 fontSize: '1.15rem',
                 fontWeight: 800,
