@@ -335,19 +335,18 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   const baseUrl = `${protocol}://${host}`;
 
   res.json({
-    version: '1.0.4',
-    buildNumber: 104,
-    releaseDate: '2026-10-08',
-    title: 'Pembaruan KostKu v1.0.4 Enterprise Production! 🚀',
+    version: '1.1.0',
+    buildNumber: 110,
+    releaseDate: '2026-10-12',
+    title: 'Pembaruan KostKu v1.1.0 (Major Release) 🚀',
     changelog: [
-      'AI Vision Room Scanner & Kuesioner Interaktif Perabot Kamar (Single, Queen, King, AC, KM Dalam)',
-      'Dual 2D Blueprint Arsitektural CAD (SVG Scale 1:50) & 3D Isometric Cutaway Viewer 4 Sudut Pandang',
-      'Sistem Keamanan Anti-Bot 1 KTP 1 Akun & Validasi NIK 16 Digit Resmi Kemendagri',
-      'Fitur Pemulihan Akun Mandiri via NIK & Nama Resmi e-KTP',
-      'Verifikasi Buka Kost via Google Maps GPS Pinning & Deteksi Koordinat Akurat',
-      'Alur Reservasi Sewa Otomatis & Approval 1-Klik Pemilik Kos (Auto-Assign Kamar & PIN Smart Lock)',
-      'Portofolio Multi-Cabang Kos & Kontrak Digital Staf bertanda tangan E-Signature Canvas',
-      'Optimasi Responsif Mobile (Touch Slider Carousel, Adaptive Search Bar, Sticky Video Scrollytelling)'
+      'Integrasi Pengaturan Kost & Kamar langsung di Overview (Tarif Utilitas, Unit Kamar, Staf)',
+      'Generate Kamar Massal Cerdas dengan 1 foto fisik asli otomatis untuk seluruh unit identik',
+      'Halaman Keuangan & Laporan Terpadu 1 Halaman dengan Analisis Arus Kas 6 Bulan',
+      'Sistem Rating & Ulasan Multi-Aspek per Kost (Kebersihan, Kenyamanan, Keamanan, Fasilitas)',
+      'Pembersihan Navigasi: Penghapusan tombol menu Portofolio Kost yang redundan',
+      'Peta Spasial Interaktif Leaflet Kampus & Landmark Semarang dengan Slider UI Kontrol Cepat',
+      'Penyegaran Service Worker PWA v110 & Sinkronisasi Mobile Capacitor Android'
     ],
     downloadUrls: {
       windows: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download',
