@@ -335,18 +335,16 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   const baseUrl = `${protocol}://${host}`;
 
   res.json({
-    version: '1.1.0',
-    buildNumber: 110,
+    version: '1.1.1',
+    buildNumber: 111,
     releaseDate: '2026-10-12',
-    title: 'Pembaruan KostKu v1.1.0 (Major Release) 🚀',
+    title: 'Pembaruan KostKu v1.1.1 🚀',
     changelog: [
-      'Integrasi Pengaturan Kost & Kamar langsung di Overview (Tarif Utilitas, Unit Kamar, Staf)',
+      'Pembersihan Pengaturan: Halaman Pengaturan kini murni untuk Profil Akun Pengguna (pengaturan operasional & kamar terpusat di Overview)',
+      'Optimalisasi Tampilan Responsif & Modal Detail Kamar pada My Kost (Overview)',
       'Generate Kamar Massal Cerdas dengan 1 foto fisik asli otomatis untuk seluruh unit identik',
       'Halaman Keuangan & Laporan Terpadu 1 Halaman dengan Analisis Arus Kas 6 Bulan',
-      'Sistem Rating & Ulasan Multi-Aspek per Kost (Kebersihan, Kenyamanan, Keamanan, Fasilitas)',
-      'Pembersihan Navigasi: Penghapusan tombol menu Portofolio Kost yang redundan',
-      'Peta Spasial Interaktif Leaflet Kampus & Landmark Semarang dengan Slider UI Kontrol Cepat',
-      'Penyegaran Service Worker PWA v110 & Sinkronisasi Mobile Capacitor Android'
+      'Penyegaran Service Worker PWA v111'
     ],
     downloadUrls: {
       windows: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download',

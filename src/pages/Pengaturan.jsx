@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { 
   User, 
   Lock, 
@@ -9,10 +8,7 @@ import {
   LogOut, 
   CheckCircle, 
   AlertCircle, 
-  Save, 
-  Home, 
-  Settings as SettingsIcon,
-  Check
+  Save
 } from 'lucide-react';
 import { apiUpdateProfile } from '../services/api';
 
@@ -84,70 +80,13 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>
-            Pengaturan Akun & Profil
+            Pengaturan Profil Akun
           </h1>
           <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             Kelola informasi data pribadi, kontak WhatsApp, kata sandi, dan keamanan sesi akun Anda
           </p>
         </div>
-
-        {user?.role === 'owner' && (
-          <Link
-            to="/dashboard?tab=pengaturan"
-            className="btn btn-secondary btn-sm"
-            style={{ gap: '6px', borderRadius: '10px', textDecoration: 'none' }}
-          >
-            <SettingsIcon size={15} /> Pengaturan Kost di Overview →
-          </Link>
-        )}
       </div>
-
-      {/* BANNER SHORTCUT KE PENGATURAN KOST DI OVERVIEW (KHUSUS OWNER) */}
-      {user?.role === 'owner' && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(124, 58, 237, 0.08) 100%)',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
-          padding: '1rem 1.25rem',
-          borderRadius: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.75rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              background: 'rgba(59, 130, 246, 0.2)',
-              color: '#60a5fa',
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <Home size={18} />
-            </div>
-            <div>
-              <strong style={{ fontSize: '0.9rem', color: '#f8fafc', display: 'block' }}>
-                Pengaturan Operasional Kost Kini Terpusat di My Kost (Overview)
-              </strong>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                Tarif utilitas (air/listrik/deposit), unit kamar fisik, foto asli kamar, dan akun staf penjaga dapat dikelola langsung dari tab <strong>Pengaturan Kost & Kamar</strong> di Overview.
-              </span>
-            </div>
-          </div>
-          <Link
-            to="/dashboard?tab=pengaturan"
-            className="btn btn-primary btn-sm"
-            style={{ gap: '6px', fontSize: '0.82rem', padding: '7px 14px', textDecoration: 'none', borderRadius: '10px' }}
-          >
-            <SettingsIcon size={14} />
-            <span>Kelola di Overview →</span>
-          </Link>
-        </div>
-      )}
 
       {/* FEEDBACK MESSAGE */}
       {profileMsg && (
