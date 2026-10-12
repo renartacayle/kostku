@@ -19,7 +19,9 @@ import {
   Eye,
   EyeOff,
   UserCheck,
-  ExternalLink
+  ExternalLink,
+  Zap,
+  Droplet
 } from 'lucide-react';
 import { apiRegister, apiCheckNik } from '../services/api';
 import AiRoomPlanSection from '../components/AiRoomPlanSection';
@@ -47,6 +49,7 @@ const Register = () => {
   const [address, setAddress] = useState('');
   const [gmapsUrl, setGmapsUrl] = useState('');
   const [description, setDescription] = useState('');
+  const [utilityScheme, setUtilityScheme] = useState('all_kost'); // 'all_kost', 'electric_mandiri', 'water_mandiri', 'all_mandiri'
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
   const [imageFront, setImageFront] = useState(null);
@@ -208,7 +211,8 @@ const Register = () => {
           gmapsUrl: gmapsUrl.trim() || (address.trim() ? `https://maps.google.com/?q=${encodeURIComponent(address.trim())}` : `https://maps.google.com/?q=${effectiveLat},${effectiveLng}`),
           imageFront,
           roomPhoto: roomPhoto || '',
-          floorPlan
+          floorPlan,
+          utilityScheme
         } : {})
       };
 
@@ -673,6 +677,74 @@ const Register = () => {
                         style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '10px', marginTop: '8px', border: '1px solid var(--border-color)' }} 
                       />
                     )}
+                  </div>
+
+                  {/* Skema Tagihan Listrik & Air (Utilitas) */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Skema Tagihan Listrik & Air <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                      {[
+                        {
+                          id: 'all_kost',
+                          icon: <span style={{ display: 'flex', gap: '2px' }}><Zap size={14} color="#eab308" /><Droplet size={14} color="#38bdf8" /></span>,
+                          title: 'Air & Listrik dari Kost (Dikelola Kost)',
+                          desc: 'Disediakan & ditagih oleh pihak kost (sudah include atau meteran kost).'
+                        },
+                        {
+                          id: 'electric_mandiri',
+                          icon: <Zap size={15} color="#eab308" />,
+                          title: 'Listrik Mandiri (Token PLN per Kamar)',
+                          desc: 'Penghuni beli token listrik PLN sendiri per kamar. Air dari pihak kost.'
+                        },
+                        {
+                          id: 'water_mandiri',
+                          icon: <Droplet size={15} color="#38bdf8" />,
+                          title: 'Air Mandiri (PDAM/Sumur Mandiri)',
+                          desc: 'Penghuni bayar meteran air sendiri. Listrik disediakan dari kost.'
+                        },
+                        {
+                          id: 'all_mandiri',
+                          icon: <span style={{ display: 'flex', gap: '2px' }}><Zap size={14} color="#eab308" /><Droplet size={14} color="#38bdf8" /></span>,
+                          title: 'Listrik & Air Keduanya Mandiri',
+                          desc: 'Penghuni bayar token PLN & air sendiri. Kost hanya tagih sewa kamar.'
+                        }
+                      ].map(opt => (
+                        <div
+                          key={opt.id}
+                          onClick={() => setUtilityScheme(opt.id)}
+                          style={{
+                            padding: '9px 12px',
+                            borderRadius: '10px',
+                            border: utilityScheme === opt.id ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: utilityScheme === opt.id ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <div style={{ marginTop: '2px' }}>{opt.icon}</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: utilityScheme === opt.id ? '#93c5fd' : '#f8fafc' }}>
+                              {opt.title}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                              {opt.desc}
+                            </div>
+                          </div>
+                          <input
+                            type="radio"
+                            name="regUtilityScheme"
+                            checked={utilityScheme === opt.id}
+                            onChange={() => setUtilityScheme(opt.id)}
+                            style={{ accentColor: '#3b82f6', marginTop: '2px' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Denah Kamar Otomatis / Manual dengan AI */}

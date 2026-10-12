@@ -518,7 +518,7 @@ app.post('/api/recover-account', (req, res) => {
 
 // Endpoint: Register (Wajib NIK 16 digit, Foto KTP, & Nama Sesuai KTP - Anti Bot 1 KTP 1 Akun)
 app.post('/api/register', (req, res) => {
-  const { role, name, nik, ktpImage, email, password, kostName, kostUid, kamar, phone, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description } = req.body;
+  const { role, name, nik, ktpImage, email, password, kostName, kostUid, kamar, phone, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description, utilityScheme } = req.body;
   const db = getDB();
 
   if (!name || name.trim().length < 2) {
@@ -623,12 +623,14 @@ app.post('/api/register', (req, res) => {
       images: kostImages,
       description: description || '',
       status: 'verified',
+      utilityScheme: utilityScheme || 'all_kost',
       settings: {
         rooms: initialRooms,
         employees: [],
         bedsheetCount: 12,
-        waterRate: 5000,
-        electricityRate: 2000,
+        utilityScheme: utilityScheme || 'all_kost',
+        waterRate: (utilityScheme === 'water_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 5000,
+        electricityRate: (utilityScheme === 'electric_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 2000,
         depositAmount: 500000
       }
     });
@@ -871,7 +873,7 @@ app.get('/api/owner/kosts', (req, res) => {
 
 // Endpoint: Create a new kost for an existing owner
 app.post('/api/owner/kosts', (req, res) => {
-  const { ownerId, kostName, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description, type, roomsCount, defaultPrice } = req.body;
+  const { ownerId, kostName, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description, type, roomsCount, defaultPrice, utilityScheme } = req.body;
   const db = getDB();
 
   if (!ownerId) return res.status(400).json({ error: 'ownerId wajib disertakan' });
@@ -935,12 +937,14 @@ app.post('/api/owner/kosts', (req, res) => {
     images: kostImages,
     description: description || `Properti cabang baru ${kostName} dikelola oleh ${owner.name}`,
     status: 'verified',
+    utilityScheme: utilityScheme || 'all_kost',
     settings: {
       rooms: initialRooms,
       employees: [],
       bedsheetCount: count * 2,
-      waterRate: 5000,
-      electricityRate: 2000,
+      utilityScheme: utilityScheme || 'all_kost',
+      waterRate: (utilityScheme === 'water_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 5000,
+      electricityRate: (utilityScheme === 'electric_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 2000,
       depositAmount: 500000
     }
   };
@@ -1104,28 +1108,34 @@ app.get('/api/settings', (req, res) => {
 // Endpoint: Update Settings
 app.put('/api/settings', (req, res) => {
   const { kostUid } = req.query;
-  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount, discount } = req.body;
+  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount, discount, utilityScheme } = req.body;
   const db = getDB();
   
   const index = db.kosts.findIndex(k => k.uid === kostUid);
   if (index === -1) return res.status(404).json({ error: 'Kost tidak ditemukan' });
   
   const roomList = Array.isArray(rooms) ? rooms : [];
+  const effectiveUtilityScheme = utilityScheme || db.kosts[index].settings?.utilityScheme || db.kosts[index].utilityScheme || 'all_kost';
+
   db.kosts[index].settings = {
     rooms: roomList,
     employees: Array.isArray(employees) ? employees : [],
     bedsheetCount: Number(bedsheetCount) || 0,
+    utilityScheme: effectiveUtilityScheme,
     waterRate: Number(waterRate) || 0,
     electricityRate: Number(electricityRate) || 0,
     depositAmount: Number(depositAmount) || 0,
     discount: discount !== undefined ? discount : (db.kosts[index].settings?.discount || null)
   };
   
-  // Also sync directly to kost.rooms and kost.discount for public marketplace availability
+  // Also sync directly to kost object for public marketplace availability
   db.kosts[index].rooms = roomList;
   db.kosts[index].discount = db.kosts[index].settings.discount;
+  db.kosts[index].utilityScheme = effectiveUtilityScheme;
+  db.kosts[index].waterRate = Number(waterRate) || 0;
+  db.kosts[index].electricityRate = Number(electricityRate) || 0;
   
-  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kamar & kost telah diperbarui');
+  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kamar, skema utilitas, & tarif kost telah diperbarui');
   writeDB(db);
   
   res.json(db.kosts[index].settings);
@@ -1683,13 +1693,67 @@ app.get('/api/public/kosts', (req, res) => {
         capacity: r.capacity || 1,
         status: r.status || 'available',
         roomPhoto: r.roomPhoto || k.roomPhoto || '',
-        floorPlan: r.floorPlan || k.floorPlan || null
+        floorPlan: r.floorPlan || k.floorPlan || null,
+        plnMeterNo: r.plnMeterNo || '',
+        pdamMeterNo: r.pdamMeterNo || ''
       })),
+      utilityScheme: k.settings?.utilityScheme || k.utilityScheme || 'all_kost',
+      waterRate: Number(k.settings?.waterRate != null ? k.settings.waterRate : k.waterRate) || 0,
+      electricityRate: Number(k.settings?.electricityRate != null ? k.settings.electricityRate : k.electricityRate) || 0,
       discount: k.settings?.discount || k.discount || null,
       depositAmount: k.settings?.depositAmount || 500000
     };
   });
   res.json(verifiedKosts);
+});
+
+// Endpoint: Inquiry & Cek ID Pelanggan PLN / PDAM (Simulator & PPOB Readiness)
+app.get('/api/utilities/inquiry', (req, res) => {
+  const { type, idNumber, city } = req.query;
+  
+  const cleanId = String(idNumber || '').trim().replace(/\D/g, '');
+  if (!cleanId) {
+    return res.status(400).json({ error: 'Nomor Meter / ID Pelanggan wajib diisi' });
+  }
+
+  if (type === 'pln') {
+    if (cleanId.length < 10 || cleanId.length > 13) {
+      return res.status(400).json({ 
+        error: 'ID Pelanggan / Nomor Meter PLN harus terdiri dari 11 atau 12 digit angka.' 
+      });
+    }
+
+    const tariffs = ['R1M / 900 VA', 'R1 / 1300 VA', 'R1 / 2200 VA', 'B1 / 4400 VA'];
+    const selectedTariff = tariffs[parseInt(cleanId.slice(-1), 10) % tariffs.length];
+    
+    return res.json({
+      type: 'pln',
+      valid: true,
+      customerId: cleanId,
+      name: `PELANGGAN PLN #${cleanId.slice(-4)}`,
+      tariff: selectedTariff,
+      meterType: 'PRABAYAR (TOKEN LISTRIK)',
+      status: 'NORMAL / AKTIF',
+      supportedVendors: ['PLN Mobile', 'GoPay', 'Shopee', 'Tokopedia', 'DANA', 'Mobile Banking BCA / Mandiri / BRI'],
+      message: 'ID Meteran PLN terverifikasi dan aktif.'
+    });
+  }
+
+  if (type === 'pdam') {
+    return res.json({
+      type: 'pdam',
+      valid: true,
+      customerId: cleanId,
+      region: city || 'Kota Semarang',
+      name: `PELANGGAN PDAM #${cleanId.slice(-4)}`,
+      tariff: 'Rumah Tangga 2 (Non-Niaga)',
+      status: 'LANCAR',
+      currentPeriod: 'Oktober 2026',
+      message: 'ID Pelanggan PDAM terverifikasi aktif.'
+    });
+  }
+
+  return res.status(400).json({ error: 'Tipe utilitas tidak valid. Pilih pln atau pdam' });
 });
 
 // Endpoint: Apply to Kost

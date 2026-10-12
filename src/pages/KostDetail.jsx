@@ -31,7 +31,10 @@ import {
   HelpCircle,
   Heart,
   ExternalLink,
-  Camera
+  Camera,
+  Zap,
+  Droplet,
+  Copy
 } from 'lucide-react';
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
 import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
@@ -189,6 +192,16 @@ export default function KostDetail({ user }) {
   const [notes, setNotes] = useState('');
   const [applying, setApplying] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [copiedMeter, setCopiedMeter] = useState('');
+
+  const handleCopyText = (text, type) => {
+    if (!text) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+    }
+    setCopiedMeter(type);
+    setTimeout(() => setCopiedMeter(''), 2500);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -807,6 +820,96 @@ export default function KostDetail({ user }) {
                       </strong>
                       <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/bulan</span>
                     </div>
+
+                    {/* Utilitas & Ketentuan Listrik/Air Kamar Ini */}
+                    <div style={{
+                      marginTop: '14px',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          ⚡ Ketentuan Listrik & Air
+                        </span>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontWeight: 700,
+                          background: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                            ? 'rgba(245, 158, 11, 0.15)'
+                            : 'rgba(59, 130, 246, 0.15)',
+                          color: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                            ? '#fbbf24'
+                            : '#60a5fa'
+                        }}>
+                          {kost.utilityScheme === 'electric_mandiri' ? '⚡ Token Listrik Mandiri' :
+                           kost.utilityScheme === 'water_mandiri' ? '💧 Air Mandiri' :
+                           kost.utilityScheme === 'all_mandiri' ? '⚡💧 Listrik & Air Mandiri' : '🏢 Air & Listrik Dikelola Kost'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', fontSize: '0.8rem' }}>
+                        {/* Listrik Status */}
+                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontWeight: 700, fontSize: '0.78rem' }}>
+                            <Zap size={14} /> Listrik: {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? 'Token Mandiri' : 'Dikelola Kost'}
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginTop: '2px' }}>
+                            {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                              ? 'Isi token PLN prabayar sendiri per kamar sesuai pemakaian.'
+                              : (kost.electricityRate && Number(kost.electricityRate) > 0)
+                                ? `Tarif Rp ${Number(kost.electricityRate).toLocaleString('id-ID')}/bln ke kost.`
+                                : 'Sudah termasuk dalam biaya sewa bulanan.'}
+                          </span>
+                          {selectedRoomObj.plnMeterNo && (
+                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(251, 191, 36, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#fef08a' }}>No. Meter: <strong>{selectedRoomObj.plnMeterNo}</strong></span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(selectedRoomObj.plnMeterNo, 'pln')}
+                                style={{ background: 'transparent', border: 'none', color: '#fbbf24', cursor: 'pointer', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                              >
+                                {copiedMeter === 'pln' ? <Check size={11} /> : <Copy size={11} />}
+                                {copiedMeter === 'pln' ? 'Tersalin' : 'Salin'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Air Status */}
+                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontWeight: 700, fontSize: '0.78rem' }}>
+                            <Droplet size={14} /> Air Bersih: {(kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri') ? 'Mandiri' : 'Dari Kost'}
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginTop: '2px' }}>
+                            {(kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri')
+                              ? 'Biaya air ditanggung mandiri per unit.'
+                              : (kost.waterRate && Number(kost.waterRate) > 0)
+                                ? `Tarif Rp ${Number(kost.waterRate).toLocaleString('id-ID')}/bln ke kost.`
+                                : 'Air bersih gratis/sudah termasuk fasilitas kost.'}
+                          </span>
+                          {selectedRoomObj.pdamMeterNo && (
+                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(56, 189, 248, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#7dd3fc' }}>No. PDAM: <strong>{selectedRoomObj.pdamMeterNo}</strong></span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(selectedRoomObj.pdamMeterNo, 'pdam')}
+                                style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                              >
+                                {copiedMeter === 'pdam' ? <Check size={11} /> : <Copy size={11} />}
+                                {copiedMeter === 'pdam' ? 'Tersalin' : 'Salin'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1043,6 +1146,28 @@ export default function KostDetail({ user }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#38bdf8' }}>
                     <span>Biaya Layanan & Admin:</span>
                     <span style={{ fontWeight: 700 }}>GRATIS (Rp 0)</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                    <span>⚡ Listrik Kamar:</span>
+                    <span style={{ color: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? '#fbbf24' : '#e2e8f0' }}>
+                      {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                        ? 'Token Mandiri (Penghuni)'
+                        : (kost.electricityRate && Number(kost.electricityRate) > 0)
+                          ? `Rp ${Number(kost.electricityRate).toLocaleString('id-ID')}/bln`
+                          : 'Termasuk Sewa'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                    <span>💧 Air Bersih:</span>
+                    <span style={{ color: (kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri') ? '#38bdf8' : '#e2e8f0' }}>
+                      {(kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri')
+                        ? 'Mandiri (Penghuni)'
+                        : (kost.waterRate && Number(kost.waterRate) > 0)
+                          ? `Rp ${Number(kost.waterRate).toLocaleString('id-ID')}/bln`
+                          : 'Termasuk Sewa'}
+                    </span>
                   </div>
 
                   <div style={{

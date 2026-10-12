@@ -406,4 +406,11 @@ export const apiLikeReview = (reviewId) => {
   });
 };
 
+// ── Inquiry ID Pelanggan PLN & PDAM ─────────────────────────
+export const apiGetUtilityInquiry = (type, idNumber, city) => {
+  const params = new URLSearchParams({ type, idNumber });
+  if (city) params.append('city', city);
+  return request(`/utilities/inquiry?${params.toString()}`);
+};
+
 

@@ -13,7 +13,9 @@ import {
   ExternalLink,
   Camera,
   Compass,
-  Upload
+  Upload,
+  Zap,
+  Droplet
 } from 'lucide-react';
 import { apiCreateOwnerKost } from '../services/api';
 import AiRoomPlanSection from './AiRoomPlanSection';
@@ -32,6 +34,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
   const [type, setType] = useState('Campur');
   const [roomsCount, setRoomsCount] = useState(8);
   const [defaultPrice, setDefaultPrice] = useState('1500000');
+  const [utilityScheme, setUtilityScheme] = useState('all_kost'); // 'all_kost', 'electric_mandiri', 'water_mandiri', 'all_mandiri'
   const [selectedImage, setSelectedImage] = useState(PRESET_IMAGES[0].url);
   const [customImageFront, setCustomImageFront] = useState('');
   const [roomPhoto, setRoomPhoto] = useState('');
@@ -94,6 +97,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
         type,
         roomsCount: Number(roomsCount) || 8,
         defaultPrice: Number(defaultPrice) || 1500000,
+        utilityScheme,
         imageFront: effectiveImageFront,
         roomPhoto: roomPhoto || '',
         floorPlan,
@@ -347,6 +351,74 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
             <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
               Kamar akan di-generate otomatis (101 s.d {Number(roomsCount) >= 10 ? `1${roomsCount}` : `10${roomsCount}`}) dengan tarif ini.
             </span>
+          </div>
+
+          {/* Skema Tagihan Listrik & Air (Utilitas) */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>
+              Skema Tagihan Listrik & Air <span style={{ color: '#f43f5e' }}>*</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+              {[
+                {
+                  id: 'all_kost',
+                  icon: <span style={{ display: 'flex', gap: '2px' }}><Zap size={15} color="#eab308" /><Droplet size={15} color="#38bdf8" /></span>,
+                  title: 'Air & Listrik dari Kost (Dikelola Kost)',
+                  desc: 'Listrik & air disediakan pihak kost (sudah include sewa atau meteran kost).'
+                },
+                {
+                  id: 'electric_mandiri',
+                  icon: <Zap size={16} color="#eab308" />,
+                  title: 'Listrik Mandiri (Token PLN per Kamar)',
+                  desc: 'Penghuni beli token listrik PLN sendiri per kamar. Air tetap dari kost.'
+                },
+                {
+                  id: 'water_mandiri',
+                  icon: <Droplet size={16} color="#38bdf8" />,
+                  title: 'Air Mandiri (PDAM/Sumur Mandiri)',
+                  desc: 'Penghuni bayar meteran air sendiri. Listrik disediakan/dari kost.'
+                },
+                {
+                  id: 'all_mandiri',
+                  icon: <span style={{ display: 'flex', gap: '2px' }}><Zap size={15} color="#eab308" /><Droplet size={15} color="#38bdf8" /></span>,
+                  title: 'Listrik & Air Keduanya Mandiri',
+                  desc: 'Penghuni beli token PLN sendiri & bayar air sendiri. Kost hanya tagih sewa kamar.'
+                }
+              ].map(opt => (
+                <div
+                  key={opt.id}
+                  onClick={() => setUtilityScheme(opt.id)}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: utilityScheme === opt.id ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
+                    background: utilityScheme === opt.id ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ marginTop: '2px' }}>{opt.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 700, color: utilityScheme === opt.id ? '#93c5fd' : '#f8fafc' }}>
+                      {opt.title}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                      {opt.desc}
+                    </div>
+                  </div>
+                  <input
+                    type="radio"
+                    name="modalUtilityScheme"
+                    checked={utilityScheme === opt.id}
+                    onChange={() => setUtilityScheme(opt.id)}
+                    style={{ accentColor: '#3b82f6', marginTop: '3px' }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Foto Cover Depan */}
