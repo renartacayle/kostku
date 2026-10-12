@@ -77,8 +77,23 @@ const Dashboard = ({ user }) => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState(null);
   const [newRoom, setNewRoom] = useState({ number: '', price: '', size: '3x4m', capacity: 1, roomPhoto: '' });
-  const [bulkConfig, setBulkConfig] = useState({ prefix: '', count: '', startNumber: '', price: '', size: '', capacity: 1 });
+  const [bulkConfig, setBulkConfig] = useState({ prefix: '', count: '', startNumber: '', price: '', size: '3x4m', capacity: 1, roomPhoto: '' });
   const [showBulkModal, setShowBulkModal] = useState(false);
+
+  const handleBulkPhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran file foto terlalu besar (maksimal 5MB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBulkConfig(prev => ({ ...prev, roomPhoto: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     if (tabFromUrl === 'pengaturan' || tabFromUrl === 'overview') {
@@ -264,6 +279,11 @@ const Dashboard = ({ user }) => {
     
     if (!count || !startNum || !price) return;
 
+    if (!bulkConfig.roomPhoto) {
+      alert('Silakan pilih 1 foto fisik asli kamar untuk unit-unit yang digenerate massal!');
+      return;
+    }
+
     let generated = [];
     for (let i = 0; i < count; i++) {
       const roomNumber = `${bulkConfig.prefix}${startNum + i}`;
@@ -273,7 +293,9 @@ const Dashboard = ({ user }) => {
           number: roomNumber,
           price: price,
           size: bulkConfig.size || '3x4m',
-          capacity: capacity
+          capacity: capacity,
+          roomPhoto: bulkConfig.roomPhoto,
+          photo: bulkConfig.roomPhoto
         });
       }
     }
@@ -282,11 +304,11 @@ const Dashboard = ({ user }) => {
     const newSettings = { ...settings, rooms: updatedRooms };
     setSettings(newSettings);
     setShowBulkModal(false);
-    setBulkConfig({ prefix: '', count: '', startNumber: '', price: '', size: '', capacity: 1 });
+    setBulkConfig({ prefix: '', count: '', startNumber: '', price: '', size: '3x4m', capacity: 1, roomPhoto: '' });
 
     try {
       await apiUpdateSettings(user.kostUid, newSettings);
-      setSettingsMessage({ type: 'success', text: `${generated.length} kamar berhasil digenerate massal!` });
+      setSettingsMessage({ type: 'success', text: `${generated.length} unit kamar berhasil digenerate dengan foto fisik identik!` });
       setTimeout(() => setSettingsMessage(null), 3500);
     } catch (err) {
       console.error('Bulk generate failed:', err);
@@ -1229,9 +1251,10 @@ const Dashboard = ({ user }) => {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: '1rem'
+          padding: '1rem',
+          overflowY: 'auto'
         }}>
-          <div className="card glass-panel" style={{ maxWidth: '440px', width: '100%', padding: '1.75rem', border: '1px solid var(--border-light)' }}>
+          <div className="card glass-panel" style={{ maxWidth: '480px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', border: '1px solid var(--border-light)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Generate Kamar Massal</h3>
               <button onClick={() => setShowBulkModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
@@ -1262,24 +1285,99 @@ const Dashboard = ({ user }) => {
                 </div>
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Harga Sewa (Rp)</label>
+                  <input type="number" required placeholder="1500000" value={bulkConfig.price} onChange={e => setBulkConfig({...bulkConfig, price: e.target.value})} className="input-field" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Ukuran Kamar</label>
+                  <input type="text" placeholder="Contoh: 3x4m" value={bulkConfig.size || ''} onChange={e => setBulkConfig({...bulkConfig, size: e.target.value})} className="input-field" />
+                </div>
+              </div>
+
+              {/* Upload 1 Foto Kamar Identik */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Harga Sewa per Kamar (Rp)</label>
-                <input type="number" required placeholder="1500000" value={bulkConfig.price} onChange={e => setBulkConfig({...bulkConfig, price: e.target.value})} className="input-field" />
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', marginBottom: '6px' }}>
+                  📸 1 Foto Fisik Kamar (Otomatis Diterapkan ke Semua Unit) <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+
+                {bulkConfig.roomPhoto ? (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    padding: '8px 12px',
+                    borderRadius: '10px'
+                  }}>
+                    <img 
+                      src={bulkConfig.roomPhoto} 
+                      alt="Preview Foto Massal" 
+                      style={{ width: '70px', height: '50px', borderRadius: '6px', objectFit: 'cover' }} 
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#4ade80', fontSize: '0.78rem', fontWeight: 700 }}>
+                        <CheckCircle size={14} /> Foto Tipe Kamar Terpilih
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Akan diterapkan ke {bulkConfig.count || 'seluruh'} unit kamar
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', fontSize: '0.72rem', padding: '4px 8px', gap: '4px' }}>
+                        <Upload size={12} /> Ganti
+                        <input type="file" accept="image/*" onChange={handleBulkPhotoUpload} hidden />
+                      </label>
+                      <button 
+                        type="button" 
+                        className="btn btn-danger btn-sm"
+                        style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                        onClick={() => setBulkConfig(prev => ({ ...prev, roomPhoto: '' }))}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1rem',
+                    border: '2px dashed rgba(59, 130, 246, 0.4)',
+                    borderRadius: '12px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    cursor: 'pointer',
+                    gap: '4px'
+                  }}>
+                    <Camera size={22} color="#60a5fa" />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>
+                      Pilih 1 Foto Fisik Kamar (Wajib)
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      Foto ini otomatis dipakai untuk semua kamar massal karena identik
+                    </span>
+                    <input type="file" accept="image/*" onChange={handleBulkPhotoUpload} hidden />
+                  </label>
+                )}
               </div>
 
               <div style={{
-                background: 'rgba(245, 158, 11, 0.1)',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
-                color: '#fbbf24',
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                fontSize: '0.76rem',
+                color: '#93c5fd',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                <span>Setelah digenerate, lengkapi foto fisik asli satu per satu untuk masing-masing unit kamar pada daftar kamar.</span>
+                <Sparkles size={15} style={{ flexShrink: 0 }} color="#60a5fa" />
+                <span>Cukup unggah 1 foto untuk seluruh unit kamar yang digenerate karena tipe kamar identik. Foto per unit tetap dapat diganti kemudian.</span>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>
