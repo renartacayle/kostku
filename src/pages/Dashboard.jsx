@@ -295,7 +295,7 @@ const Dashboard = ({ user }) => {
     if (!targetKostUid) return;
     setLoading(true);
     try {
-      const [acts, sets, usrs, comps, invs, apps, msgs] = await Promise.all([
+      const [acts, sets, usrs, comps, invs, apps, msgs, merchs, merchSum] = await Promise.all([
         apiGetActivities(targetKostUid).catch(() => []),
         apiGetSettings(targetKostUid).catch(() => ({ rooms: [], employees: [] })),
         apiGetUsers(targetKostUid).catch(() => []),
@@ -2130,80 +2130,120 @@ const Dashboard = ({ user }) => {
               </div>
 
               {/* Grid Daftar Mitra */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginBottom: '8px' }}>
                 {(ownerMerchants.length > 0 ? ownerMerchants : [
-                  { id: 'def1', icon: '💧', name: 'Depot Air & Gas Barokah', category: 'galon', phone: '081398765432', distanceKm: 0.15, commissionOwner: 1000, products: [{ name: 'Aqua 19L', price: 19000 }] },
-                  { id: 'def2', icon: '🧺', name: 'Melati Express Laundry Kiloan', category: 'laundry', phone: '081287654321', distanceKm: 0.35, commissionOwner: 1000, products: [{ name: 'Cuci Setrika', price: 6000 }] },
-                  { id: 'def3', icon: '🍱', name: 'Dapur Kost Bu Nurul (Affiliate)', category: 'makanan', phone: '081576543210', distanceKm: 0.25, commissionOwner: 1500, isAffiliate: true, products: [{ name: 'Nasi Rames', price: 18000 }] },
-                  { id: 'def4', icon: '❄️', name: 'Teknisi AC Sejuk Mandiri (Affiliate)', category: 'service', phone: '081987654321', distanceKm: 1.2, commissionOwner: 5000, isAffiliate: true, products: [{ name: 'Cuci AC', price: 50000 }] }
-                ]).map((m, idx) => (
-                  <div
-                    key={m.id || idx}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '10px',
-                      padding: '10px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '6px'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '1.25rem' }}>{m.icon || '🏪'}</span>
-                          <div>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>{m.name}</div>
-                            <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                              📍 {m.distanceKm || 0.2} km • {m.phone || 'Toko Terverifikasi'}
+                  { id: 'PTR-DEF-01', icon: '💧', name: 'Depot Air & Gas Barokah', category: 'galon', phone: '081398765432', distanceKm: 0.15, commissionOwner: 1000, products: [{ name: 'Aqua 19L', price: 19000 }] },
+                  { id: 'PTR-DEF-02', icon: '🧺', name: 'Melati Express Laundry Kiloan', category: 'laundry', phone: '081287654321', distanceKm: 0.35, commissionOwner: 1000, products: [{ name: 'Cuci Setrika', price: 6000 }] },
+                  { id: 'PTR-DEF-03', icon: '🍱', name: 'Dapur Kost Bu Nurul', category: 'makanan', phone: '081576543210', distanceKm: 0.25, commissionOwner: 1500, isAffiliate: true, products: [{ name: 'Nasi Rames', price: 18000 }] },
+                  { id: 'PTR-DEF-04', icon: '❄️', name: 'Teknisi AC Sejuk Mandiri', category: 'service', phone: '081987654321', distanceKm: 1.2, commissionOwner: 5000, isAffiliate: true, products: [{ name: 'Cuci AC', price: 50000 }] }
+                ]).map((m, idx) => {
+                  const cleanName = (m.name || '').replace(/\s*\((Affiliate|Affiliate Mitra|Katering Harian)\)/gi, '').trim();
+                  const isCustomMerchant = !m.isAffiliate && !String(m.id).includes('DEF') && !String(m.id).startsWith('def');
+
+                  return (
+                    <div
+                      key={m.id || idx}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.025)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '12px',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        transition: 'border-color 0.2s'
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', minWidth: 0, flex: 1 }}>
+                            <span style={{ fontSize: '1.4rem', lineHeight: 1, marginTop: '2px' }}>{m.icon || '🏪'}</span>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div
+                                style={{
+                                  fontSize: '0.82rem',
+                                  fontWeight: 800,
+                                  color: '#f8fafc',
+                                  lineHeight: '1.25',
+                                  minHeight: '2.1rem',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  wordBreak: 'normal',
+                                  overflowWrap: 'break-word'
+                                }}
+                                title={cleanName}
+                              >
+                                {cleanName}
+                              </div>
+                              <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '2px' }}>
+                                📍 {m.distanceKm || 0.2} km • {m.phone || 'Toko Terverifikasi'}
+                              </div>
                             </div>
                           </div>
+
+                          {m.isAffiliate ? (
+                            <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0, marginTop: '2px' }}>
+                              Affiliate
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0, marginTop: '2px' }}>
+                              Pribadi
+                            </span>
+                          )}
                         </div>
-                        {m.isAffiliate ? (
-                          <span style={{ fontSize: '0.6rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontWeight: 700 }}>
-                            Affiliate
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.6rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontWeight: 700 }}>
-                            Pribadi
-                          </span>
-                        )}
+
+                        <div style={{
+                          fontSize: '0.68rem',
+                          color: 'var(--text-secondary)',
+                          background: 'rgba(0, 0, 0, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.04)',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          margin: '4px 0',
+                          minHeight: '2.5rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}>
+                          <div>📦 <strong>{m.products?.length || 1} Produk Katalog:</strong></div>
+                          <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span style={{ color: '#93c5fd' }}>{m.products?.[0]?.name || 'Layanan Standar'}</span>{' '}
+                            <span style={{ color: '#86efac' }}>(Rp {(m.products?.[0]?.price || 15000).toLocaleString('id-ID')})</span>
+                          </div>
+                        </div>
                       </div>
 
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.2)', padding: '5px 7px', borderRadius: '5px', margin: '3px 0' }}>
-                        📦 <strong>{m.products?.length || 1} Produk Katalog:</strong> {m.products?.[0]?.name || 'Layanan Standar'} (Rp {(m.products?.[0]?.price || 15000).toLocaleString('id-ID')})
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 700 }}>
-                        +Rp {(m.commissionOwner || 1000).toLocaleString('id-ID')} Komisi
-                      </span>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {!String(m.id).startsWith('PTR-DEF') && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>
+                          +Rp {(m.commissionOwner || 1000).toLocaleString('id-ID')} Komisi
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {isCustomMerchant && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMerchant(m.id, m.name)}
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: '0.7rem' }}
+                              title="Hapus Mitra"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={() => handleDeleteMerchant(m.id, m.name)}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: '0.7rem' }}
-                            title="Hapus Mitra"
+                            onClick={() => setSelectedPartnerService(m)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.72rem', padding: '4px 10px', fontWeight: 700 }}
                           >
-                            <Trash2 size={13} />
+                            Pesan Layanan &rarr;
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPartnerService(m)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.68rem', padding: '3px 8px' }}
-                        >
-                          Uji Order &rarr;
-                        </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Inbox Obrolan Masuk Calon Penyewa */}
