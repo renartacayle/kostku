@@ -387,6 +387,8 @@ const getDB = () => {
     if (!_dbCache.reviews) _dbCache.reviews = [];
     if (!_dbCache.settings) _dbCache.settings = {};
     if (!_dbCache.google_config) _dbCache.google_config = {};
+    if (!_dbCache.messages) _dbCache.messages = [];
+    if (!_dbCache.partner_orders) _dbCache.partner_orders = [];
   }
   return _dbCache;
 };
@@ -1983,6 +1985,114 @@ app.put('/api/applications/:id', (req, res) => {
   
   writeDB(db);
   res.json(application);
+});
+
+// ── IN-APP DIRECT CHAT (ELIMINATES EXTERNAL FAKE WA SPAM) ───────────
+app.get('/api/messages', (req, res) => {
+  const { kostUid, userId } = req.query;
+  const db = getDB();
+  db.messages = db.messages || [];
+
+  let list = db.messages;
+  if (kostUid) {
+    list = list.filter(m => m.kostUid === kostUid);
+  }
+  if (userId) {
+    list = list.filter(m => String(m.senderId) === String(userId) || String(m.recipientId) === String(userId));
+  }
+
+  // Sort chronologically ascending for chat view
+  list.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  res.json(list);
+});
+
+app.post('/api/messages', (req, res) => {
+  const { kostUid, senderId, senderName, senderRole, recipientId, recipientName, text, roomNumber, category } = req.body;
+  if (!kostUid || !text || !text.trim()) {
+    return res.status(400).json({ error: 'Data pesan tidak lengkap' });
+  }
+
+  const db = getDB();
+  db.messages = db.messages || [];
+
+  const newMsg = {
+    id: 'MSG-' + Date.now(),
+    kostUid,
+    senderId: senderId || 'GUEST',
+    senderName: senderName || 'Calon Penyewa',
+    senderRole: senderRole || 'user',
+    recipientId: recipientId || 'OWNER',
+    recipientName: recipientName || 'Pemilik Kost',
+    text: text.trim(),
+    roomNumber: roomNumber || null,
+    category: category || 'tanya_kamar',
+    read: false,
+    timestamp: new Date().toISOString()
+  };
+
+  db.messages.push(newMsg);
+  addActivity(db, kostUid, 'pesan', `Pesan baru dari ${newMsg.senderName}: "${newMsg.text.slice(0, 35)}..."`);
+  writeDB(db);
+
+  res.status(201).json({ success: true, message: newMsg });
+});
+
+app.put('/api/messages/mark-read', (req, res) => {
+  const { kostUid, userId } = req.body;
+  const db = getDB();
+  db.messages = db.messages || [];
+
+  db.messages.forEach(m => {
+    if (m.kostUid === kostUid && (String(m.recipientId) === String(userId) || !userId)) {
+      m.read = true;
+    }
+  });
+
+  writeDB(db);
+  res.json({ success: true, message: 'Pesan ditandai terbaca' });
+});
+
+// ── IN-APP PARTNER SERVICE ORDERS (REPLACES FAKE WA REDIRECTS) ──────
+app.get('/api/partner-orders', (req, res) => {
+  const { kostUid, userId } = req.query;
+  const db = getDB();
+  db.partner_orders = db.partner_orders || [];
+
+  let list = db.partner_orders;
+  if (kostUid) list = list.filter(o => o.kostUid === kostUid);
+  if (userId) list = list.filter(o => String(o.userId) === String(userId));
+  res.json(list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+});
+
+app.post('/api/partner-orders', (req, res) => {
+  const { kostUid, userId, userName, userPhone, roomNumber, serviceName, serviceType, notes } = req.body;
+  if (!serviceName) {
+    return res.status(400).json({ error: 'Nama layanan wajib diisi' });
+  }
+
+  const db = getDB();
+  db.partner_orders = db.partner_orders || [];
+
+  const newOrder = {
+    id: 'ORD-SRV-' + Date.now(),
+    kostUid: kostUid || 'GENERAL',
+    userId: userId || 'GUEST',
+    userName: userName || 'Penghuni Kost',
+    userPhone: userPhone || '-',
+    roomNumber: roomNumber || '-',
+    serviceName,
+    serviceType: serviceType || 'b2c',
+    notes: notes || '',
+    status: 'Diproses Mitra',
+    estimatedTime: serviceName.includes('Galon') ? '15 Menit' : serviceName.includes('Laundry') ? '1 Hari' : 'Sesuai Jadwal',
+    createdAt: new Date().toISOString()
+  };
+
+  db.partner_orders.push(newOrder);
+  addActivity(db, kostUid || 'GENERAL', 'layanan', `Pesanan mitra baru: ${serviceName} dari ${newOrder.userName} (Kamar ${roomNumber})`);
+  writeDB(db);
+
+  res.status(201).json({ success: true, order: newOrder, message: 'Pesanan layanan berhasil dibuat tanpa keluar aplikasi!' });
 });
 
 // ── UPGRADE: PAYMENT GATEWAY (MIDTRANS / QRIS / VA) ─────────────

@@ -421,4 +421,41 @@ export const apiPromoteKost = (data) => {
   });
 };
 
+// ── In-App Direct Chat (Eliminates Fake WA Spam) ─────────────
+export const apiGetMessages = (kostUid = null, userId = null) => {
+  const params = new URLSearchParams();
+  if (kostUid) params.append('kostUid', kostUid);
+  if (userId) params.append('userId', userId);
+  return request(`/messages?${params.toString()}`);
+};
+
+export const apiSendMessage = (data) => {
+  return request('/messages', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiMarkMessagesRead = (kostUid, userId) => {
+  return request('/messages/mark-read', {
+    method: 'PUT',
+    body: JSON.stringify({ kostUid, userId })
+  });
+};
+
+// ── In-App Partner Service Orders (No External WA Spam) ────
+export const apiGetPartnerOrders = (kostUid = null, userId = null) => {
+  const params = new URLSearchParams();
+  if (kostUid) params.append('kostUid', kostUid);
+  if (userId) params.append('userId', userId);
+  return request(`/partner-orders?${params.toString()}`);
+};
+
+export const apiCreatePartnerOrder = (data) => {
+  return request('/partner-orders', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
 

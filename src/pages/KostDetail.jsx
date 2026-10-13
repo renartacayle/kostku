@@ -39,6 +39,7 @@ import {
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
 import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
 import KostRatingReviewSection from '../components/KostRatingReviewSection';
+import InAppChatModal from '../components/InAppChatModal';
 
 // Interactive SVG 2D Room Blueprint Component
 const RoomBlueprintSvg = ({ dimensions = "4.0m x 4.5m", area = "18 m²", kostName = "Kamar Kost", roomNumber = "101", roomType = "Exclusive" }) => {
@@ -193,6 +194,8 @@ export default function KostDetail({ user }) {
   const [applying, setApplying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [copiedMeter, setCopiedMeter] = useState('');
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatInitialText, setChatInitialText] = useState('');
 
   const handleCopyText = (text, type) => {
     if (!text) return;
@@ -328,15 +331,17 @@ export default function KostDetail({ user }) {
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <a
-              href={`https://wa.me/6281234567890?text=${encodeURIComponent(`Halo Pemilik ${kost.kostName}, saya ${tenantName || 'calon penyewa'} baru saja mengajukan sewa untuk Kamar ${selectedRoom} durasi ${rentalDuration} bulan via aplikasi KostKu. Mohon konfirmasinya ya!`)}`}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => {
+                setChatInitialText(`Halo Pemilik ${kost.kostName}, saya ${tenantName || 'calon penyewa'} baru saja mengajukan sewa untuk Kamar ${selectedRoom} durasi ${rentalDuration} bulan via aplikasi KostKu. Mohon konfirmasinya ya!`);
+                setShowChatModal(true);
+              }}
               className="btn btn-primary"
-              style={{ background: '#22c55e', borderColor: '#22c55e', padding: '12px', justifyContent: 'center' }}
+              style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)', padding: '12px', justifyContent: 'center', gap: '8px' }}
             >
-              <MessageCircle size={18} /> Chat Pemilik via WhatsApp Sekarang
-            </a>
+              <MessageCircle size={18} /> Chat Langsung Pemilik di Aplikasi (Aman & Bebas Spam)
+            </button>
 
             <button onClick={() => navigate('/dashboard')} className="btn btn-secondary" style={{ padding: '12px' }}>
               Ke Dashboard Saya
@@ -1231,18 +1236,20 @@ export default function KostDetail({ user }) {
                   <span>Ajukan Sewa Kamar {selectedRoom}</span>
                 </button>
 
-                {/* Direct WhatsApp Consultation */}
-                <a
-                  href={`https://wa.me/6281234567890?text=${encodeURIComponent(`Halo Pemilik ${kost.kostName}, saya tertarik ingin menyewa Kamar ${selectedRoom} seharga Rp ${(selectedRoomObj ? Number(selectedRoomObj.price) : baseMonthlyPrice).toLocaleString('id-ID')}/bln. Apakah unit ini bisa dijadwalkan untuk survei lokasi?`)}`}
-                  target="_blank"
-                  rel="noreferrer"
+                {/* Direct In-App Chat Consultation (Eliminates External WhatsApp Spam) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChatInitialText(`Halo Pemilik ${kost.kostName}, saya tertarik ingin menyewa Kamar ${selectedRoom} seharga Rp ${(selectedRoomObj ? Number(selectedRoomObj.price) : baseMonthlyPrice).toLocaleString('id-ID')}/bln. Apakah unit ini bisa dijadwalkan untuk survei lokasi?`);
+                    setShowChatModal(true);
+                  }}
                   style={{
                     width: '100%',
-                    padding: '11px',
+                    padding: '12px',
                     borderRadius: '14px',
-                    border: '1px solid rgba(34, 197, 94, 0.35)',
-                    background: 'rgba(34, 197, 94, 0.1)',
-                    color: '#4ade80',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    color: '#60a5fa',
                     fontWeight: 700,
                     fontSize: '0.88rem',
                     cursor: 'pointer',
@@ -1250,13 +1257,13 @@ export default function KostDetail({ user }) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    textDecoration: 'none',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s'
                   }}
                 >
                   <MessageCircle size={16} />
-                  <span>Tanya Pemilik via WhatsApp</span>
-                </a>
+                  <span>💬 Tanya Pemilik via Chat Langsung</span>
+                </button>
               </div>
 
               <div style={{ textAlign: 'center', marginTop: '14px' }}>
@@ -1470,6 +1477,16 @@ export default function KostDetail({ user }) {
           />
         </div>
       )}
+
+      {/* IN-APP DIRECT CHAT MODAL (0% FAKE WA SPAM) */}
+      <InAppChatModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        kost={kost}
+        roomNumber={selectedRoom}
+        initialMessage={chatInitialText}
+        user={user}
+      />
     </div>
   );
 }

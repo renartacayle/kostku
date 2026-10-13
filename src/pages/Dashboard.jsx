@@ -47,11 +47,15 @@ import {
   apiGetApplications,
   apiGetOwnerKosts,
   apiGetUtilityInquiry,
-  apiPromoteKost
+  apiPromoteKost,
+  apiGetMessages,
+  apiSendMessage
 } from '../services/api';
 import UserDashboard from './UserDashboard';
 import StaffDashboard from '../components/StaffDashboard';
 import StaffManagementCard from '../components/StaffManagementCard';
+import InAppChatModal from '../components/InAppChatModal';
+import PartnerOrderModal from '../components/PartnerOrderModal';
 
 const Dashboard = ({ user }) => {
   // If role is tenant, show UserDashboard
@@ -144,6 +148,12 @@ const Dashboard = ({ user }) => {
   const [utilityInquiryResult, setUtilityInquiryResult] = useState(null);
   const [utilityInquiryError, setUtilityInquiryError] = useState(null);
 
+  // In-App Chat & Partner Order states for Owner
+  const [selectedPartnerService, setSelectedPartnerService] = useState(null);
+  const [showOwnerChatModal, setShowOwnerChatModal] = useState(false);
+  const [chatActiveUser, setChatActiveUser] = useState(null);
+  const [inboxMessages, setInboxMessages] = useState([]);
+
   const handleCheckUtilityMeter = async (typeOverride, numberOverride) => {
     const typeToUse = typeOverride || utilityInquiryType;
     const numToUse = numberOverride || utilityMeterQuery;
@@ -200,16 +210,18 @@ const Dashboard = ({ user }) => {
     if (!targetKostUid) return;
     setLoading(true);
     try {
-      const [acts, sets, usrs, comps, invs, apps] = await Promise.all([
+      const [acts, sets, usrs, comps, invs, apps, msgs] = await Promise.all([
         apiGetActivities(targetKostUid).catch(() => []),
         apiGetSettings(targetKostUid).catch(() => ({ rooms: [], employees: [] })),
         apiGetUsers(targetKostUid).catch(() => []),
         apiGetComplaints(targetKostUid).catch(() => []),
         apiGetInvoices(targetKostUid).catch(() => []),
-        apiGetApplications(targetKostUid).catch(() => [])
+        apiGetApplications(targetKostUid).catch(() => []),
+        apiGetMessages(targetKostUid).catch(() => [])
       ]);
 
       setActivities(Array.isArray(acts) ? acts : []);
+      setInboxMessages(Array.isArray(msgs) ? msgs : []);
       if (sets && !sets.error) {
         setSettings({
           rooms: sets.rooms || [],
@@ -1969,18 +1981,16 @@ const Dashboard = ({ user }) => {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
                 {[
-                  { icon: '❄️', title: 'Service & Cuci AC Kost', desc: 'Rp 45rb/unit (Min. 5 kamar)', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20ingin%20pesan%20paket%20cuci%20AC%20kost' },
-                  { icon: '📶', title: 'WiFi Dedicated Kost', desc: 'Promo Biznet / IndiHome Kost', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20ingin%20info%20promo%20WiFi%20kost' },
-                  { icon: '🧺', title: 'Mitra Laundry Kiloan', desc: 'Komisi 10% bagi pemilik kost', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20tertarik%20kerjasama%20laundry%20kost' },
-                  { icon: '🛏️', title: 'Grosir Kasur & Sprei', desc: 'Diskon 20% standar hotel', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20ingin%20lihat%20katalog%20kasur%20dan%20sprei' }
+                  { icon: '❄️', title: 'Service & Cuci AC Kost', desc: 'Rp 45rb/unit (Min. 5 kamar)', type: 'b2b' },
+                  { icon: '📶', title: 'WiFi Dedicated Kost', desc: 'Promo Biznet / IndiHome Kost', type: 'b2b' },
+                  { icon: '🧺', title: 'Mitra Laundry Kiloan', desc: 'Komisi 10% bagi pemilik kost', type: 'b2b' },
+                  { icon: '🛏️', title: 'Grosir Kasur & Sprei', desc: 'Diskon 20% standar hotel', type: 'b2b' }
                 ].map((partner, idx) => (
-                  <a
+                  <div
                     key={idx}
-                    href={partner.link}
-                    target="_blank"
-                    rel="noreferrer"
+                    onClick={() => setSelectedPartnerService(partner)}
                     style={{
-                      textDecoration: 'none',
+                      cursor: 'pointer',
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(255, 255, 255, 0.07)',
                       borderRadius: '10px',
@@ -1991,6 +2001,8 @@ const Dashboard = ({ user }) => {
                       gap: '8px',
                       transition: 'all 0.15s'
                     }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '1.15rem' }}>{partner.icon}</span>
@@ -1999,9 +2011,78 @@ const Dashboard = ({ user }) => {
                         <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{partner.desc}</div>
                       </div>
                     </div>
-                    <ExternalLink size={12} color="#60a5fa" style={{ flexShrink: 0 }} />
-                  </a>
+                    <span style={{ fontSize: '0.68rem', color: '#60a5fa', fontWeight: 700, whiteSpace: 'nowrap' }}>Pesan &rarr;</span>
+                  </div>
                 ))}
+              </div>
+
+              {/* Inbox Obrolan Masuk Calon Penyewa */}
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.04)',
+                border: '1px solid rgba(59, 130, 246, 0.18)',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                marginTop: '10px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '4px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#93c5fd', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MessageCircle size={14} color="#60a5fa" />
+                    Obrolan Calon Penyewa In-App ({inboxMessages.length} Pesan Masuk)
+                  </span>
+                  <span style={{ fontSize: '0.66rem', color: '#22c55e', fontWeight: 600 }}>
+                    ● 100% Bebas Spam WhatsApp
+                  </span>
+                </div>
+
+                {inboxMessages.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                    Belum ada pesan masuk. Calon penyewa dapat mengirim chat langsung dari tombol <em>"💬 Tanya Pemilik via Chat Langsung"</em> di halaman Detail Kost tanpa perlu WhatsApp.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {inboxMessages.slice(-3).reverse().map((msg, idx) => (
+                      <div
+                        key={msg.id || idx}
+                        onClick={() => {
+                          setChatActiveUser({
+                            id: msg.senderId,
+                            name: msg.senderName,
+                            roomNumber: msg.roomNumber
+                          });
+                          setShowOwnerChatModal(true);
+                        }}
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.7)',
+                          border: '1px solid rgba(255, 255, 255, 0.07)',
+                          borderRadius: '8px',
+                          padding: '8px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <strong style={{ fontSize: '0.78rem', color: 'white' }}>{msg.senderName}</strong>
+                            {msg.roomNumber && <span className="badge badge-primary" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>Kamar {msg.roomNumber}</span>}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            "{msg.text}"
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '0.7rem', padding: '4px 8px', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.35)', flexShrink: 0 }}
+                        >
+                          Balas Chat &rarr;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -3264,6 +3345,24 @@ const Dashboard = ({ user }) => {
         </div>,
         document.body
       )}
+
+      {/* IN-APP DIRECT CHAT WITH TENANTS (0% FAKE WA SPAM) */}
+      <InAppChatModal
+        isOpen={showOwnerChatModal}
+        onClose={() => setShowOwnerChatModal(false)}
+        kost={{ uid: targetKostUid, kostName: settings.kostName || user?.kostName || 'Kost Anda' }}
+        roomNumber={chatActiveUser?.roomNumber || ''}
+        user={user}
+      />
+
+      {/* IN-APP OPERATIONAL PARTNER ORDERS (0% FAKE WA SPAM) */}
+      <PartnerOrderModal
+        isOpen={!!selectedPartnerService}
+        onClose={() => setSelectedPartnerService(null)}
+        service={selectedPartnerService}
+        user={user}
+        kost={{ uid: targetKostUid, kostName: settings.kostName || user?.kostName || 'Kost Anda' }}
+      />
 
     </div>
   );

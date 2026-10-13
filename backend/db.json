@@ -1550,6 +1550,20 @@
       "type": "pengaturan",
       "text": "Sundul Kost aktif selama 7 hari (🔥 Rekomendasi Utama)",
       "time": "2026-10-13T07:17:53.106Z"
+    },
+    {
+      "id": "ACT-1791877351837",
+      "kostUid": "KOST-K12DQR",
+      "type": "pesan",
+      "text": "Pesan baru dari Calon Penyewa: \"Halo Pemilik Kost Melati Indah, say...\"",
+      "time": "2026-10-13T07:42:31.837Z"
+    },
+    {
+      "id": "ACT-1791877449044",
+      "kostUid": "KOST-K12DQR",
+      "type": "pesan",
+      "text": "Pesan baru dari Calon Penyewa: \"Halo Pemilik Kost Melati Indah, say...\"",
+      "time": "2026-10-13T07:44:09.044Z"
     }
   ],
   "invoices": [
@@ -1945,5 +1959,36 @@
       "verified": true,
       "likes": 15
     }
-  ]
+  ],
+  "messages": [
+    {
+      "id": "MSG-1791877351837",
+      "kostUid": "KOST-K12DQR",
+      "senderId": "GUEST-1791877348430",
+      "senderName": "Calon Penyewa",
+      "senderRole": "user",
+      "recipientId": "OWNER",
+      "recipientName": "Pemilik Kost",
+      "text": "Halo Pemilik Kost Melati Indah, saya tertarik ingin menyewa Kamar A01 seharga Rp 1.200.000/bln. Apakah unit ini bisa dijadwalkan untuk survei lokasi?Halo pemilik kost, apakah kamar A01 masih bisa disurvei besok sore jam 4?",
+      "roomNumber": "A01",
+      "category": "tanya_kamar",
+      "read": false,
+      "timestamp": "2026-10-13T07:42:31.837Z"
+    },
+    {
+      "id": "MSG-1791877449044",
+      "kostUid": "KOST-K12DQR",
+      "senderId": "GUEST-1791877445957",
+      "senderName": "Calon Penyewa",
+      "senderRole": "user",
+      "recipientId": "OWNER",
+      "recipientName": "Pemilik Kost",
+      "text": "Halo Pemilik Kost Melati Indah, saya tertarik ingin menyewa Kamar A01 seharga Rp 1.200.000/bln. Apakah unit ini bisa dijadwalkan untuk survei lokasi?Halo pemilik kost, apakah kamar A01 masih bisa disurvei besok sore jam 4?",
+      "roomNumber": "A01",
+      "category": "tanya_kamar",
+      "read": false,
+      "timestamp": "2026-10-13T07:44:09.044Z"
+    }
+  ],
+  "partner_orders": []
 }

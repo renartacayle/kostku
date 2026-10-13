@@ -23,7 +23,8 @@ import {
   RefreshCw,
   Building2,
   ArrowRight,
-  Star
+  Star,
+  MessageCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { 
@@ -39,6 +40,8 @@ import DigitalReceiptModal from '../components/DigitalReceiptModal';
 import SignaturePadModal from '../components/SignaturePadModal';
 import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
 import PackageLockerCard from '../components/PackageLockerCard';
+import InAppChatModal from '../components/InAppChatModal';
+import PartnerOrderModal from '../components/PartnerOrderModal';
 
 const UserDashboard = ({ user }) => {
   const [currentUser, setCurrentUser] = useState(user);
@@ -58,6 +61,8 @@ const UserDashboard = ({ user }) => {
   const [selectedReceiptId, setSelectedReceiptId] = useState(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showSmartLockModal, setShowSmartLockModal] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [showOwnerChat, setShowOwnerChat] = useState(false);
 
   const fetchData = async () => {
     if (!user?.id) return;
@@ -394,6 +399,23 @@ const UserDashboard = ({ user }) => {
                   <span>Beri Rating Kost</span>
                 </Link>
               )}
+
+              <button
+                onClick={() => setShowOwnerChat(true)}
+                className="btn btn-secondary"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '8px 12px',
+                  gap: '6px',
+                  borderColor: 'rgba(59, 130, 246, 0.45)',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  color: '#60a5fa'
+                }}
+                title="Chat langsung dengan pemilik kost tanpa keluar aplikasi"
+              >
+                <MessageCircle size={14} />
+                <span>💬 Chat Pemilik</span>
+              </button>
             </div>
           </div>
           {/* Approved Application Alert Banner if applicable */}
@@ -643,18 +665,16 @@ const UserDashboard = ({ user }) => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' }}>
               {[
-                { icon: '🧺', title: 'Laundry Kiloan Express', sub: 'Rp 6.000/kg • Gratis Antar-Jemput Kamar', cta: 'Pesan WA', wa: 'Halo%20Mitra%20Laundry%20KostKu,%20saya%20mau%20jemput%20laundry%20di%20kamar%20kost' },
-                { icon: '🍱', title: 'Katering Harian Anak Kost', sub: 'Mulai Rp 15rb/porsi • Menu Berganti Tiap Hari', cta: 'Lihat Menu', wa: 'Halo%20Mitra%20Katering%20KostKu,%20minta%20daftar%20menu%20minggu%20ini' },
-                { icon: '💧', title: 'Antar Galon Aqua & Gas', sub: 'Diantar sampai depan pintu kamar (15 menit)', cta: 'Pesan Galon', wa: 'Halo%20Mitra%20Galon%20KostKu,%20pesan%201%20galon%20antar%20ke%20kamar' },
-                { icon: '🚚', title: 'Jasa Angkut & Pindahan', sub: 'Pick-up & Engkel hemat khusus anak kost', cta: 'Cek Tarif', wa: 'Halo%20Mitra%20Angkut%20KostKu,%20mau%20tanya%20tarif%20pindahan%20kost' }
+                { icon: '🧺', title: 'Laundry Kiloan Express', sub: 'Rp 6.000/kg • Gratis Antar-Jemput Kamar', cta: 'Pesan Layanan' },
+                { icon: '🍱', title: 'Katering Harian Anak Kost', sub: 'Mulai Rp 15rb/porsi • Menu Berganti Tiap Hari', cta: 'Pesan Katering' },
+                { icon: '💧', title: 'Antar Galon Aqua & Gas', sub: 'Diantar sampai depan pintu kamar (15 menit)', cta: 'Pesan Galon' },
+                { icon: '🚚', title: 'Jasa Angkut & Pindahan', sub: 'Pick-up & Engkel hemat khusus anak kost', cta: 'Pesan Jasa Angkut' }
               ].map((item, idx) => (
-                <a
+                <div
                   key={idx}
-                  href={`https://wa.me/6281234567890?text=${item.wa}`}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => setSelectedService(item)}
                   style={{
-                    textDecoration: 'none',
+                    cursor: 'pointer',
                     background: 'rgba(255, 255, 255, 0.025)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '12px',
@@ -665,6 +685,8 @@ const UserDashboard = ({ user }) => {
                     gap: '8px',
                     transition: 'all 0.2s'
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                     <span style={{ fontSize: '1.35rem' }}>{item.icon}</span>
@@ -677,7 +699,7 @@ const UserDashboard = ({ user }) => {
                     <span>{item.cta}</span>
                     <ArrowRight size={12} />
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           </div>
@@ -725,6 +747,24 @@ const UserDashboard = ({ user }) => {
         onClose={() => setShowSmartLockModal(false)}
         user={currentUser}
         roomNumber={currentUser?.kamar || '101'}
+      />
+
+      {/* IN-APP DIRECT CHAT WITH OWNER (0% FAKE WA SPAM) */}
+      <InAppChatModal
+        isOpen={showOwnerChat}
+        onClose={() => setShowOwnerChat(false)}
+        kost={{ uid: currentUser?.kostUid || user?.kostUid, kostName: kostName || 'Pengelola Kost' }}
+        roomNumber={currentUser?.kamar || user?.kamar}
+        user={currentUser || user}
+      />
+
+      {/* IN-APP PARTNER SERVICE ORDER MODAL (0% EXTERNAL SPAM) */}
+      <PartnerOrderModal
+        isOpen={!!selectedService}
+        onClose={() => setSelectedService(null)}
+        service={selectedService}
+        user={currentUser || user}
+        kost={{ uid: currentUser?.kostUid || user?.kostUid, kostName: kostName || 'KostKu' }}
       />
 
     </div>
