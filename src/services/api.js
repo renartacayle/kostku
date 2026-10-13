@@ -443,7 +443,7 @@ export const apiMarkMessagesRead = (kostUid, userId) => {
   });
 };
 
-// ── In-App Partner Service Orders (No External WA Spam) ────
+// ── In-App Partner Service Orders & Merchant Ecosystem ────
 export const apiGetPartnerOrders = (kostUid = null, userId = null) => {
   const params = new URLSearchParams();
   if (kostUid) params.append('kostUid', kostUid);
@@ -457,5 +457,38 @@ export const apiCreatePartnerOrder = (data) => {
     body: JSON.stringify(data)
   });
 };
+
+export const apiGetMerchants = (kostUid = null) => {
+  const params = new URLSearchParams();
+  if (kostUid) params.append('kostUid', kostUid);
+  return request(`/merchants?${params.toString()}`);
+};
+
+export const apiCreateMerchant = (data) => {
+  return request('/merchants', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiUpdateMerchant = (id, data) => {
+  return request(`/merchants/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiDeleteMerchant = (id) => {
+  return request(`/merchants/${id}`, {
+    method: 'DELETE'
+  });
+};
+
+export const apiGetMerchantSummary = (kostUid = null) => {
+  const params = new URLSearchParams();
+  if (kostUid) params.append('kostUid', kostUid);
+  return request(`/merchants/summary?${params.toString()}`);
+};
+
 
 

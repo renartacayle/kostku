@@ -389,6 +389,7 @@ const getDB = () => {
     if (!_dbCache.google_config) _dbCache.google_config = {};
     if (!_dbCache.messages) _dbCache.messages = [];
     if (!_dbCache.partner_orders) _dbCache.partner_orders = [];
+    if (!_dbCache.merchants) _dbCache.merchants = [];
   }
   return _dbCache;
 };
@@ -2052,7 +2053,215 @@ app.put('/api/messages/mark-read', (req, res) => {
   res.json({ success: true, message: 'Pesan ditandai terbaca' });
 });
 
-// ── IN-APP PARTNER SERVICE ORDERS (REPLACES FAKE WA REDIRECTS) ──────
+// ── IN-APP HYPERLOCAL MERCHANTS & PARTNER ECOSYSTEM (GPS, AFFILIATE & NON-COD) ──
+const getDefaultMerchants = (kostUid, kostLat = -6.2383, kostLng = 106.8532) => [
+  {
+    id: `PTR-DEF-01-${kostUid || 'DEF'}`,
+    kostUid: kostUid || 'KOST-JAKSEL-01',
+    isAffiliate: false,
+    name: 'Depot Air & Gas Barokah',
+    category: 'galon',
+    icon: '💧',
+    phone: '081398765432',
+    address: 'Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)',
+    distanceKm: 0.15,
+    location: { lat: kostLat + 0.001, lng: kostLng + 0.001 },
+    commissionOwner: 1000,
+    platformFee: 500,
+    paymentMethods: ['qris', 'monthly_bill'],
+    products: [
+      { id: 'P-GLN-01', name: 'Air Galon Aqua 19L', price: 19000, desc: 'Diantar sampai depan pintu kamar' },
+      { id: 'P-GLN-02', name: 'Air Galon Le Minerale', price: 21000, desc: 'Galon higienis sekali pakai' },
+      { id: 'P-GAS-01', name: 'Gas LPG 3kg Melon', price: 23000, desc: 'Tabung gas segel SNI resmi' },
+      { id: 'P-GLN-03', name: 'Air Galon Vit 19L', price: 16000, desc: 'Ekonomis & higienis' }
+    ],
+    status: 'active',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `PTR-DEF-02-${kostUid || 'DEF'}`,
+    kostUid: kostUid || 'KOST-JAKSEL-01',
+    isAffiliate: false,
+    name: 'Melati Express Laundry Kiloan',
+    category: 'laundry',
+    icon: '🧺',
+    phone: '081287654321',
+    address: 'Jl. Tebet Barat Dalam VII No. 5',
+    distanceKm: 0.35,
+    location: { lat: kostLat - 0.002, lng: kostLng + 0.001 },
+    commissionOwner: 1000,
+    platformFee: 500,
+    paymentMethods: ['qris', 'monthly_bill'],
+    products: [
+      { id: 'P-LND-01', name: 'Cuci + Setrika Reguler (2 Hari)', price: 6000, desc: 'Harga per kg, wangi rapi terbungkus plastik' },
+      { id: 'P-LND-02', name: 'Cuci Komplit Kilat Express (1 Hari)', price: 9000, desc: 'Harga per kg, selesai 24 jam' },
+      { id: 'P-LND-03', name: 'Cuci Sprei & Selimut Tebal', price: 20000, desc: 'Per set sprei + sarung bantal' }
+    ],
+    status: 'active',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `PTR-DEF-03-${kostUid || 'DEF'}`,
+    kostUid: kostUid || 'KOST-JAKSEL-01',
+    isAffiliate: true,
+    name: 'Dapur Kost Bu Nurul (Katering Harian)',
+    category: 'makanan',
+    icon: '🍱',
+    phone: '081576543210',
+    address: 'Gg. Kancil No. 8',
+    distanceKm: 0.25,
+    location: { lat: kostLat + 0.0015, lng: kostLng - 0.001 },
+    commissionOwner: 1500,
+    platformFee: 500,
+    paymentMethods: ['qris', 'monthly_bill'],
+    products: [
+      { id: 'P-CAT-01', name: 'Paket Nasi Rames Ayam Suwir', price: 18000, desc: 'Nasi pulen, lauk ayam, sayur, sambal' },
+      { id: 'P-CAT-02', name: 'Paket Nasi Goreng Spesial Telur', price: 15000, desc: 'Porsi kenyang + kerupuk + acar' },
+      { id: 'P-CAT-03', name: 'Paket Sayur Segar & Tahu Tempe', price: 13000, desc: 'Menu sehat & hemat anak kost' }
+    ],
+    status: 'active',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `PTR-DEF-04-${kostUid || 'DEF'}`,
+    kostUid: kostUid || 'KOST-JAKSEL-01',
+    isAffiliate: true,
+    name: 'Teknisi AC Sejuk Mandiri (Affiliate Mitra)',
+    category: 'service',
+    icon: '❄️',
+    phone: '081987654321',
+    address: 'Spesialis Servis Kamar Kost Jabodetabek',
+    distanceKm: 1.2,
+    location: { lat: kostLat - 0.005, lng: kostLng - 0.003 },
+    commissionOwner: 5000,
+    platformFee: 1000,
+    paymentMethods: ['qris', 'monthly_bill'],
+    products: [
+      { id: 'P-AC-01', name: 'Cuci AC Standar 0.5 - 1 PK', price: 50000, desc: 'Pembersihan indoor & outdoor unit' },
+      { id: 'P-AC-02', name: 'Cuci AC + Tambah Freon R32/R410', price: 130000, desc: 'Isi tekanan freon dingin maksimal' }
+    ],
+    status: 'active',
+    createdAt: new Date().toISOString()
+  }
+];
+
+app.get('/api/merchants', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+  db.merchants = db.merchants || [];
+
+  const uid = kostUid || 'KOST-JAKSEL-01';
+  const targetKost = (db.kosts || []).find(k => k.uid === uid) || db.kosts?.[0] || {};
+  const lat = targetKost?.location?.lat || -6.2383;
+  const lng = targetKost?.location?.lng || 106.8532;
+
+  let existing = db.merchants.filter(m => m.kostUid === uid || m.kostUid === 'GENERAL');
+  if (existing.length === 0) {
+    const defaults = getDefaultMerchants(uid, lat, lng);
+    db.merchants.push(...defaults);
+    writeDB(db);
+    existing = defaults;
+  }
+  res.json(existing);
+});
+
+app.post('/api/merchants', (req, res) => {
+  const { kostUid, name, category, icon, phone, address, distanceKm, location, commissionOwner, platformFee, paymentMethods, products, isAffiliate } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Nama toko/mitra wajib diisi' });
+  }
+
+  const db = getDB();
+  db.merchants = db.merchants || [];
+
+  const newMerchant = {
+    id: 'PTR-' + Date.now(),
+    kostUid: kostUid || 'KOST-JAKSEL-01',
+    name: name.trim(),
+    category: category || 'lainnya',
+    icon: icon || (category === 'galon' ? '💧' : category === 'laundry' ? '🧺' : category === 'makanan' ? '🍱' : category === 'service' ? '❄️' : '🏪'),
+    phone: phone ? phone.trim() : '',
+    address: address ? address.trim() : '',
+    distanceKm: Number(distanceKm) > 0 ? Number(distanceKm) : 0.5,
+    location: location || { lat: -6.2383, lng: 106.8532 },
+    commissionOwner: Number(commissionOwner) >= 0 ? Number(commissionOwner) : 1000,
+    platformFee: Number(platformFee) >= 0 ? Number(platformFee) : 500,
+    paymentMethods: Array.isArray(paymentMethods) && paymentMethods.length > 0 ? paymentMethods : ['qris', 'monthly_bill'],
+    products: Array.isArray(products) && products.length > 0 ? products : [
+      { id: 'P-' + Date.now(), name: 'Layanan Utama', price: 20000, desc: 'Layanan standar siap antar' }
+    ],
+    isAffiliate: Boolean(isAffiliate),
+    status: 'active',
+    createdAt: new Date().toISOString()
+  };
+
+  db.merchants.push(newMerchant);
+  addActivity(db, newMerchant.kostUid, 'pengaturan', `Mitra baru didaftarkan: ${newMerchant.name} (${newMerchant.category})`);
+  writeDB(db);
+
+  res.status(201).json({ success: true, merchant: newMerchant, message: 'Mitra berhasil didaftarkan' });
+});
+
+app.put('/api/merchants/:id', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  db.merchants = db.merchants || [];
+
+  const idx = db.merchants.findIndex(m => String(m.id) === String(id));
+  if (idx === -1) {
+    return res.status(404).json({ error: 'Mitra tidak ditemukan' });
+  }
+
+  db.merchants[idx] = {
+    ...db.merchants[idx],
+    ...req.body,
+    id: db.merchants[idx].id,
+    updatedAt: new Date().toISOString()
+  };
+
+  writeDB(db);
+  res.json({ success: true, merchant: db.merchants[idx], message: 'Data mitra berhasil diperbarui' });
+});
+
+app.delete('/api/merchants/:id', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  db.merchants = db.merchants || [];
+
+  const idx = db.merchants.findIndex(m => String(m.id) === String(id));
+  if (idx === -1) {
+    return res.status(404).json({ error: 'Mitra tidak ditemukan' });
+  }
+
+  const removed = db.merchants.splice(idx, 1)[0];
+  writeDB(db);
+  res.json({ success: true, message: `Mitra ${removed.name} berhasil dihapus` });
+});
+
+app.get('/api/merchants/summary', (req, res) => {
+  const { kostUid } = req.query;
+  const db = getDB();
+  const uid = kostUid || 'KOST-JAKSEL-01';
+
+  const orders = (db.partner_orders || []).filter(o => o.kostUid === uid);
+  const paidOrBilledOrders = orders.filter(o => o.paymentStatus === 'paid' || o.paymentStatus === 'billed_monthly');
+
+  const totalOwnerCommission = paidOrBilledOrders.reduce((acc, curr) => acc + (Number(curr.ownerCommission) || 1000), 0);
+  const totalPlatformFee = paidOrBilledOrders.reduce((acc, curr) => acc + (Number(curr.platformFee) || 500), 0);
+  const totalGrossAmount = paidOrBilledOrders.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+
+  res.json({
+    kostUid: uid,
+    totalOrders: orders.length,
+    activeOrders: orders.filter(o => o.status && !o.status.includes('Selesai')).length,
+    completedOrders: paidOrBilledOrders.length,
+    totalOwnerCommission,
+    totalPlatformFee,
+    totalGrossAmount,
+    recentOrders: orders.slice(0, 10)
+  });
+});
+
 app.get('/api/partner-orders', (req, res) => {
   const { kostUid, userId } = req.query;
   const db = getDB();
@@ -2065,34 +2274,98 @@ app.get('/api/partner-orders', (req, res) => {
 });
 
 app.post('/api/partner-orders', (req, res) => {
-  const { kostUid, userId, userName, userPhone, roomNumber, serviceName, serviceType, notes } = req.body;
-  if (!serviceName) {
-    return res.status(400).json({ error: 'Nama layanan wajib diisi' });
-  }
+  const {
+    kostUid,
+    userId,
+    userName,
+    userPhone,
+    roomNumber,
+    merchantId,
+    merchantName,
+    serviceName,
+    items,
+    subtotal,
+    ownerCommission,
+    platformFee,
+    total,
+    paymentMethod,
+    notes
+  } = req.body;
 
+  const title = serviceName || merchantName || 'Pesanan Layanan';
   const db = getDB();
   db.partner_orders = db.partner_orders || [];
 
+  const pMethod = paymentMethod || 'qris';
+  let paymentStatus = 'paid';
+  let orderStatus = 'Lunas (QRIS Instan) - Menyiapkan Pengantaran';
+  let paymentMeta = {};
+
+  const calcSubtotal = Number(subtotal) || 18500;
+  const calcCommission = Number(ownerCommission) >= 0 ? Number(ownerCommission) : 1000;
+  const calcPlatformFee = Number(platformFee) >= 0 ? Number(platformFee) : 500;
+  const calcTotal = Number(total) || (calcSubtotal + calcCommission + calcPlatformFee);
+
+  if (pMethod === 'monthly_bill') {
+    paymentStatus = 'billed_monthly';
+    orderStatus = 'Masuk Tagihan Sewa Kamar - Menyiapkan Pengantaran';
+    
+    // Auto-attach to active unpaid invoice if available
+    db.invoices = db.invoices || [];
+    const activeInv = db.invoices.find(i => String(i.userId) === String(userId) && i.status !== 'lunas');
+    if (activeInv) {
+      activeInv.partnerOrderCost = (Number(activeInv.partnerOrderCost) || 0) + calcTotal;
+      activeInv.total = (Number(activeInv.total) || 0) + calcTotal;
+      paymentMeta.billedInvoiceId = activeInv.id;
+    }
+  } else if (pMethod === 'cod') {
+    paymentStatus = 'pending_cash';
+    orderStatus = 'Menunggu Pengantaran (Bayar Tunai COD di Kamar)';
+  } else {
+    // QRIS (default non-cod)
+    paymentStatus = 'paid';
+    orderStatus = 'Lunas (QRIS Instan) - Menyiapkan Pengantaran';
+    paymentMeta.qrisTrxId = 'QRIS-' + Date.now();
+    paymentMeta.paidAt = new Date().toISOString();
+  }
+
   const newOrder = {
     id: 'ORD-SRV-' + Date.now(),
-    kostUid: kostUid || 'GENERAL',
+    kostUid: kostUid || 'KOST-JAKSEL-01',
     userId: userId || 'GUEST',
     userName: userName || 'Penghuni Kost',
     userPhone: userPhone || '-',
     roomNumber: roomNumber || '-',
-    serviceName,
-    serviceType: serviceType || 'b2c',
+    merchantId: merchantId || null,
+    merchantName: merchantName || title,
+    serviceName: title,
+    items: Array.isArray(items) && items.length > 0 ? items : [{ name: title, price: calcSubtotal, qty: 1 }],
+    subtotal: calcSubtotal,
+    ownerCommission: calcCommission,
+    platformFee: calcPlatformFee,
+    total: calcTotal,
+    paymentMethod: pMethod,
+    paymentStatus,
+    paymentMeta,
     notes: notes || '',
-    status: 'Diproses Mitra',
-    estimatedTime: serviceName.includes('Galon') ? '15 Menit' : serviceName.includes('Laundry') ? '1 Hari' : 'Sesuai Jadwal',
+    status: orderStatus,
+    estimatedTime: title.toLowerCase().includes('galon') ? '15 - 20 Menit' : title.toLowerCase().includes('laundry') ? '1 Hari' : 'Sesuai Jadwal',
     createdAt: new Date().toISOString()
   };
 
   db.partner_orders.push(newOrder);
-  addActivity(db, kostUid || 'GENERAL', 'layanan', `Pesanan mitra baru: ${serviceName} dari ${newOrder.userName} (Kamar ${roomNumber})`);
+  addActivity(db, kostUid || 'GENERAL', 'layanan', `Pesanan mitra baru: ${title} (${pMethod.toUpperCase()}) dari ${newOrder.userName} (Kamar ${roomNumber}) - Total Rp ${calcTotal.toLocaleString('id-ID')}`);
   writeDB(db);
 
-  res.status(201).json({ success: true, order: newOrder, message: 'Pesanan layanan berhasil dibuat tanpa keluar aplikasi!' });
+  res.status(201).json({
+    success: true,
+    order: newOrder,
+    message: pMethod === 'qris'
+      ? 'Pembayaran QRIS berhasil! Pesanan langsung diteruskan ke mitra.'
+      : pMethod === 'monthly_bill'
+      ? 'Pesanan berhasil dicatat ke tagihan sewa kamar bulan depan.'
+      : 'Pesanan dibuat (Bayar Tunai COD saat diantar).'
+  });
 });
 
 // ── UPGRADE: PAYMENT GATEWAY (MIDTRANS / QRIS / VA) ─────────────

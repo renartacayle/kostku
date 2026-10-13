@@ -32,7 +32,8 @@ import {
   apiCreateComplaint, 
   apiGetInvoices, 
   apiGetContract,
-  apiGetUserProfile 
+  apiGetUserProfile,
+  apiGetMerchants
 } from '../services/api';
 
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
@@ -63,6 +64,7 @@ const UserDashboard = ({ user }) => {
   const [showSmartLockModal, setShowSmartLockModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [showOwnerChat, setShowOwnerChat] = useState(false);
+  const [merchants, setMerchants] = useState([]);
 
   const fetchData = async () => {
     if (!user?.id) return;
@@ -92,14 +94,23 @@ const UserDashboard = ({ user }) => {
 
       // 2. Fetch tenant dashboard data if assigned to a kost
       if (activeKostUid) {
-        const [comps, invs, ctc] = await Promise.all([
+        const [comps, invs, ctc, merchList] = await Promise.all([
           apiGetComplaints(activeKostUid, activeUserId).catch(() => []),
           apiGetInvoices(activeKostUid, activeUserId).catch(() => []),
-          apiGetContract(activeUserId).catch(() => ({ contract: null }))
+          apiGetContract(activeUserId).catch(() => ({ contract: null })),
+          apiGetMerchants(activeKostUid).catch(() => [])
         ]);
         setComplaints(Array.isArray(comps) ? comps : []);
         setInvoices(Array.isArray(invs) ? invs : []);
         setContract(ctc?.contract || null);
+        if (Array.isArray(merchList) && merchList.length > 0) {
+          setMerchants(merchList);
+        }
+      } else {
+        const merchList = await apiGetMerchants('KOST-JAKSEL-01').catch(() => []);
+        if (Array.isArray(merchList) && merchList.length > 0) {
+          setMerchants(merchList);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch tenant data', err);
@@ -640,67 +651,82 @@ const UserDashboard = ({ user }) => {
             )}
           </div>
 
-          {/* Direktori Layanan Sekitar Kost (0% Gangguan UX - Terasa Seperti Fasilitas Concierge) */}
+          {/* Direktori Layanan Sekitar Kost (0% Gangguan UX - Terasa Seperti Fasilitas Concierge Non-Tunai) */}
           <div className="card glass-panel" style={{ border: '1px solid rgba(59, 130, 246, 0.25)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Sparkles size={18} color="#60a5fa" /> Layanan Partner Sekitar Kost
+                  <Sparkles size={18} color="#60a5fa" /> Layanan Mitra Sekitar Kost
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Kebutuhan harian penghuni kost dengan layanan antar-jemput langsung ke kamar Anda
+                  Kebutuhan harian penghuni kost (Galon, Laundry, Katering, Gas) • Pembayaran non-tunai bebas uang kembalian
                 </span>
               </div>
-              <span style={{
-                fontSize: '0.68rem',
-                padding: '3px 8px',
-                borderRadius: '999px',
-                background: 'rgba(59, 130, 246, 0.12)',
-                color: '#93c5fd',
-                fontWeight: 600
-              }}>
-                Mitra Resmi Terverifikasi
-              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '3px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  color: '#4ade80',
+                  fontWeight: 700,
+                  border: '1px solid rgba(34, 197, 94, 0.3)'
+                }}>
+                  💳 Non-Tunai / QRIS & Masuk Tagihan
+                </span>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' }}>
-              {[
-                { icon: '🧺', title: 'Laundry Kiloan Express', sub: 'Rp 6.000/kg • Gratis Antar-Jemput Kamar', cta: 'Pesan Layanan' },
-                { icon: '🍱', title: 'Katering Harian Anak Kost', sub: 'Mulai Rp 15rb/porsi • Menu Berganti Tiap Hari', cta: 'Pesan Katering' },
-                { icon: '💧', title: 'Antar Galon Aqua & Gas', sub: 'Diantar sampai depan pintu kamar (15 menit)', cta: 'Pesan Galon' },
-                { icon: '🚚', title: 'Jasa Angkut & Pindahan', sub: 'Pick-up & Engkel hemat khusus anak kost', cta: 'Pesan Jasa Angkut' }
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedService(item)}
-                  style={{
-                    cursor: 'pointer',
-                    background: 'rgba(255, 255, 255, 0.025)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '12px',
-                    padding: '10px 12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '8px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <span style={{ fontSize: '1.35rem' }}>{item.icon}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+              {(merchants.length > 0 ? merchants : [
+                { id: 'm1', icon: '💧', name: 'Depot Air & Gas Barokah', category: 'galon', distanceKm: 0.15, products: [{ id: 'p1', name: 'Galon Aqua 19L', price: 19000, desc: 'Antar kamar' }] },
+                { id: 'm2', icon: '🧺', name: 'Melati Express Laundry Kiloan', category: 'laundry', distanceKm: 0.35, products: [{ id: 'p2', name: 'Cuci + Setrika Reguler', price: 6000, desc: 'Per kg' }] },
+                { id: 'm3', icon: '🍱', name: 'Dapur Kost Bu Nurul', category: 'makanan', distanceKm: 0.25, products: [{ id: 'p3', name: 'Paket Nasi Rames Ayam', price: 18000, desc: 'Menu sehat' }] },
+                { id: 'm4', icon: '❄️', name: 'Teknisi AC Sejuk Mandiri', category: 'service', distanceKm: 1.2, products: [{ id: 'p4', name: 'Cuci AC Standar', price: 50000, desc: 'Indoor & outdoor' }] }
+              ]).map((item, idx) => {
+                const sampleProduct = item.products?.[0];
+                return (
+                  <div
+                    key={item.id || idx}
+                    onClick={() => setSelectedService(item)}
+                    style={{
+                      cursor: 'pointer',
+                      background: 'rgba(255, 255, 255, 0.025)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'; }}
+                  >
                     <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>{item.title}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.35, marginTop: '2px' }}>{item.sub}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '1.4rem' }}>{item.icon || '🏪'}</span>
+                        <span style={{ fontSize: '0.65rem', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                          📍 {item.distanceKm || 0.2} km
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc' }}>{item.name || item.title}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {sampleProduct ? `${sampleProduct.name} (Rp ${sampleProduct.price.toLocaleString('id-ID')})` : (item.desc || 'Layanan siap antar')}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
+                      <span style={{ color: '#4ade80', fontWeight: 600 }}>QRIS / Tagihan</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#60a5fa', fontWeight: 700 }}>
+                        <span>Pesan</span>
+                        <ArrowRight size={12} />
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700, color: '#60a5fa' }}>
-                    <span>{item.cta}</span>
-                    <ArrowRight size={12} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </>
