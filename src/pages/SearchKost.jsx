@@ -122,6 +122,7 @@ export default function SearchKost({ user }) {
   const initialFacilities = searchParams.get('facility')
     ? [searchParams.get('facility')]
     : (searchParams.get('facilities') ? searchParams.get('facilities').split(',') : []);
+  const highlightUid = searchParams.get('highlight') || '';
 
   const [kosts, setKosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +224,19 @@ export default function SearchKost({ user }) {
         setLoading(false);
       });
   }, []);
+
+  // Auto-scroll & focus to highlighted promoted kost (from Dashboard check)
+  useEffect(() => {
+    if (!loading && highlightUid) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`kost-card-${highlightUid}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, highlightUid]);
 
   const toggleWishlist = (uid, e) => {
     if (e) e.stopPropagation();
@@ -344,6 +358,11 @@ export default function SearchKost({ user }) {
 
     return matchesSearch && matchesCity && matchesType && matchesPrice && matchesFacilities;
   }).sort((a, b) => {
+    // SUNDUL KOST BOOST: Promoted listing SELALU di posisi #1 teratas pada semua filter sortir!
+    const promoA = a.promoted?.active ? 1 : 0;
+    const promoB = b.promoted?.active ? 1 : 0;
+    if (promoB !== promoA) return promoB - promoA;
+
     if (sortBy === 'nearest' && userLocation) {
       const distA = calculateDistanceKm(userLocation.lat, userLocation.lng, a.location?.lat, a.location?.lng) ?? 999999;
       const distB = calculateDistanceKm(userLocation.lat, userLocation.lng, b.location?.lat, b.location?.lng) ?? 999999;
@@ -352,10 +371,6 @@ export default function SearchKost({ user }) {
     if (sortBy === 'lowest') return getMinPrice(a) - getMinPrice(b);
     if (sortBy === 'highest') return getMinPrice(b) - getMinPrice(a);
     if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
-    // Default 'recommended' sort puts 'Sundul Kost' (Promoted Listing) at #1
-    const promoA = a.promoted?.active ? 1 : 0;
-    const promoB = b.promoted?.active ? 1 : 0;
-    if (promoB !== promoA) return promoB - promoA;
     return 0;
   });
 
@@ -1057,16 +1072,43 @@ export default function SearchKost({ user }) {
               const layout = kost.layoutInfo || {};
               const distanceKm = userLocation ? calculateDistanceKm(userLocation.lat, userLocation.lng, kost.location?.lat, kost.location?.lng) : null;
 
+              const isHighlighted = Boolean(highlightUid && (kost.uid === highlightUid));
+
               return (
                 <div 
                   key={kost.uid} 
+                  id={`kost-card-${kost.uid}`}
                   className="kost-card-container animate-fade-in"
                   style={{
                     position: 'relative',
-                    border: isCompared ? '1.5px solid #3b82f6' : (kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)'),
-                    boxShadow: isCompared ? '0 0 20px rgba(59, 130, 246, 0.25)' : (kost.promoted?.active ? '0 4px 20px rgba(245, 158, 11, 0.22)' : undefined)
+                    border: isHighlighted
+                      ? '2.5px solid #f59e0b'
+                      : (isCompared ? '1.5px solid #3b82f6' : (kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)')),
+                    boxShadow: isHighlighted
+                      ? '0 0 30px rgba(245, 158, 11, 0.5), 0 10px 25px rgba(0, 0, 0, 0.5)'
+                      : (isCompared ? '0 0 20px rgba(59, 130, 246, 0.25)' : (kost.promoted?.active ? '0 8px 24px rgba(245, 158, 11, 0.25)' : undefined)),
+                    transform: isHighlighted ? 'scale(1.01)' : undefined,
+                    transition: 'all 0.3s ease'
                   }}
                 >
+                  {isHighlighted && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      color: '#000000',
+                      fontWeight: 900,
+                      fontSize: '0.74rem',
+                      padding: '5px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      letterSpacing: '0.02em',
+                      boxShadow: '0 2px 10px rgba(245, 158, 11, 0.3)'
+                    }}>
+                      <span>⭐</span>
+                      <span>PROPERTI ANDA TERVERIFIKASI AKTIF DI POSISI #1 (SUNDUL KOST)</span>
+                    </div>
+                  )}
                   {/* Card Image Area with In-Card Slider */}
                   <div className="kost-card-image-wrapper">
                     <img 

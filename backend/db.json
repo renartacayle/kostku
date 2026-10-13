@@ -264,7 +264,20 @@
             "email": "joko.penjaga@kostku.id",
             "hasLogin": true
           }
-        ]
+        ],
+        "promoted": {
+          "active": true,
+          "plan": "7d",
+          "days": 7,
+          "badgeText": "🔥 Rekomendasi Utama",
+          "activatedAt": "2026-10-13T11:39:28.243Z",
+          "expiresAt": "2026-10-20T11:39:28.243Z",
+          "price": 20000,
+          "paymentMethod": "qris",
+          "paymentRef": "SDK-563448",
+          "viewsCount": 412,
+          "leadsCount": 16
+        }
       },
       "ownerId": "1784987558042",
       "rooms": [
@@ -308,7 +321,20 @@
           "roomPhoto": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
           "photo": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80"
         }
-      ]
+      ],
+      "promoted": {
+        "active": true,
+        "plan": "7d",
+        "days": 7,
+        "badgeText": "🔥 Rekomendasi Utama",
+        "activatedAt": "2026-10-13T11:39:28.243Z",
+        "expiresAt": "2026-10-20T11:39:28.243Z",
+        "price": 20000,
+        "paymentMethod": "qris",
+        "paymentRef": "SDK-563448",
+        "viewsCount": 412,
+        "leadsCount": 16
+      }
     },
     {
       "uid": "KOST-BDG-02",
@@ -1585,6 +1611,20 @@
       "type": "layanan",
       "text": "Pesanan mitra baru: Depot Air & Gas Barokah (QRIS) dari Siti Rahma (Kamar A02) - Total Rp 20.500",
       "time": "2026-10-13T08:31:40.841Z"
+    },
+    {
+      "id": "ACT-1791890603100",
+      "kostUid": "KOST-JAKSEL-01",
+      "type": "pengaturan",
+      "text": "Sundul Kost aktif selama 7 hari (🔥 Rekomendasi Utama)",
+      "time": "2026-10-13T11:23:23.100Z"
+    },
+    {
+      "id": "ACT-1791891568260",
+      "kostUid": "KOST-JAKSEL-01",
+      "type": "pengaturan",
+      "text": "Sundul Kost aktif 7 hari (🔥 Rekomendasi Utama) - Rp 20.000 via QRIS",
+      "time": "2026-10-13T11:39:28.260Z"
     }
   ],
   "invoices": [

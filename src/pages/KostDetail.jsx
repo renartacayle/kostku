@@ -462,7 +462,7 @@ export default function KostDetail({ user }) {
                     gap: '4px',
                     boxShadow: '0 0 12px rgba(245, 158, 11, 0.25)'
                   }}>
-                    🔥 Rekomendasi Utama
+                    {kost.promoted.badgeText || '🔥 Rekomendasi Utama'}
                   </span>
                 )}
 

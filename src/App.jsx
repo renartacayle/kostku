@@ -187,6 +187,7 @@ function App() {
         {/* Public Landing & Marketplace */}
         <Route path="/" element={<Home user={activeUser} />} />
         <Route path="/search" element={<SearchKost user={activeUser} />} />
+        <Route path="/cari-kost" element={<SearchKost user={activeUser} />} />
         <Route path="/cari" element={<Navigate to="/search" replace />} />
         <Route path="/kost/:id" element={<KostDetail user={activeUser} />} />
         

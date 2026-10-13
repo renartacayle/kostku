@@ -48,7 +48,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════
 // 1. REVISED KOST CARD IMAGE SLIDER (DYNAMIC 4:3 ASPECT RATIO)
 // ═══════════════════════════════════════════════════════════════════
-function KostCardImageSlider({ images, kostName, type, availableRoomsCount, distanceKm }) {
+function KostCardImageSlider({ images, kostName, type, availableRoomsCount, distanceKm, isPromoted, promotedBadge }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -162,17 +162,43 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
         ))}
       </div>
 
+      {/* Golden Boost / Sundul Kost Badge */}
+      {isPromoted && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '12px',
+          zIndex: 4,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          color: '#000000',
+          padding: '4px 10px',
+          borderRadius: '100px',
+          fontSize: '0.72rem',
+          fontWeight: 900,
+          letterSpacing: '0.02em',
+          boxShadow: '0 4px 14px rgba(245, 158, 11, 0.55)',
+          border: '1px solid rgba(255, 255, 255, 0.4)'
+        }}>
+          <span>🚀</span>
+          <span>{promotedBadge || 'Rekomendasi Utama'}</span>
+        </div>
+      )}
+
       {/* Floating Badges Over Image: Tipe Kategori & Status Kamar */}
       <div style={{
         position: 'absolute',
-        top: '12px',
+        top: isPromoted ? '42px' : '12px',
         left: '12px',
         right: '12px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         zIndex: 3,
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        transition: 'top 0.2s ease'
       }}>
         {/* Tipe Kost Badge (Putri: #FEF3C7, Putra: #DBEAFE, Campur: #E0E7FF) */}
         <span style={{
@@ -682,6 +708,11 @@ export default function Home({ user }) {
     }
     return { ...k, distanceKm };
   }).sort((a, b) => {
+    // SUNDUL KOST BOOST: Listing yang aktif dipromosikan SELALU tampil di posisi #1 teratas!
+    const promoA = a.promoted?.active ? 1 : 0;
+    const promoB = b.promoted?.active ? 1 : 0;
+    if (promoB !== promoA) return promoB - promoA;
+
     if (userLocation) {
       if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm;
       if (a.distanceKm != null) return -1;
@@ -1477,7 +1508,7 @@ export default function Home({ user }) {
         ) : (
           <>
             {/* ── BATCH 1: FIRST 6 KOST LISTINGS (Above Bento) ── */}
-            <div className="kost-responsive-grid">
+            <div id="listing" className="kost-responsive-grid">
               {batch1.map((kost, idx) => (
                 <KostCard 
                   key={kost.uid || idx} 
@@ -1593,11 +1624,13 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
         className="card"
         style={{
           background: '#1E293B', // Dark Slate Surface (Design Spec V2.0)
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          border: kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '20px',
           overflow: 'hidden',
           padding: 0,
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4)',
+          boxShadow: kost.promoted?.active
+            ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
+            : '0 10px 25px -5px rgba(0, 0, 0, 0.4)',
           transition: 'all 0.25s cubic-bezier(0.2, 0, 0, 1)',
           cursor: 'pointer',
           width: '100%',
@@ -1605,13 +1638,17 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-6px)';
-          e.currentTarget.style.boxShadow = '0 18px 36px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(37, 99, 235, 0.3)';
-          e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.4)';
+          e.currentTarget.style.boxShadow = kost.promoted?.active
+            ? '0 20px 40px -8px rgba(245, 158, 11, 0.35), 0 0 0 1px rgba(245, 158, 11, 0.5)'
+            : '0 18px 36px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(37, 99, 235, 0.3)';
+          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'rgba(37, 99, 235, 0.4)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.4)';
-          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+          e.currentTarget.style.boxShadow = kost.promoted?.active
+            ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
+            : '0 10px 25px -5px rgba(0, 0, 0, 0.4)';
+          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'rgba(255, 255, 255, 0.08)';
         }}
       >
         {/* Dynamic 4:3 Aspect Ratio Photo Slider */}
@@ -1621,10 +1658,30 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
           type={kost.type}
           availableRoomsCount={availableRoomsCount}
           distanceKm={kost.distanceKm}
+          isPromoted={Boolean(kost.promoted?.active)}
+          promotedBadge={kost.promoted?.badgeText}
         />
 
         {/* Card Body with strict information hierarchy: foto → status kamar → fasilitas → harga */}
         <div style={{ padding: '1.15rem', width: '100%', boxSizing: 'border-box' }}>
+          
+          {kost.promoted?.active && (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              color: '#fbbf24',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              marginBottom: '6px'
+            }}>
+              <span>⭐ Rekomendasi Unggulan #1</span>
+            </div>
+          )}
           
           {/* Header Row: Title & Rating */}
           <div style={{

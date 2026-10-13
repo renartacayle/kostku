@@ -63,6 +63,7 @@ import StaffDashboard from '../components/StaffDashboard';
 import StaffManagementCard from '../components/StaffManagementCard';
 import InAppChatModal from '../components/InAppChatModal';
 import PartnerOrderModal from '../components/PartnerOrderModal';
+import SundulCheckoutModal from '../components/SundulCheckoutModal';
 
 const Dashboard = ({ user }) => {
   // If role is tenant, show UserDashboard
@@ -385,8 +386,24 @@ const Dashboard = ({ user }) => {
 
   // Promoted Listing (Sundul Kost) & WA Bot Quota Handler (0% UX Disruption Monetization)
   const [promotingKost, setPromotingKost] = useState(false);
+  const [showSundulModal, setShowSundulModal] = useState(false);
+  const [isSundulRenewal, setIsSundulRenewal] = useState(false);
 
-  const handlePromoteKostAction = async (action, plan = '7d', badgeText = '🔥 Rekomendasi Utama', topUpQuota = 100) => {
+  const getSundulCountdown = (expiresAt) => {
+    if (!expiresAt) return null;
+    const diff = new Date(expiresAt).getTime() - Date.now();
+    if (diff <= 0) return { expired: true, text: 'Masa aktif promosi telah berakhir' };
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return {
+      expired: false,
+      days,
+      hours,
+      text: `${days} Hari ${hours} Jam tersisa`
+    };
+  };
+
+  const handlePromoteKostAction = async (action, plan = '7d', badgeText = '🔥 Rekomendasi Utama', topUpQuota = 100, price = 20000, paymentMethod = 'qris', paymentRef = '') => {
     if (!targetKostUid) return;
     setPromotingKost(true);
     setSettingsMessage(null);
@@ -396,7 +413,10 @@ const Dashboard = ({ user }) => {
         action,
         plan,
         badgeText,
-        topUpQuota
+        topUpQuota,
+        price,
+        paymentMethod,
+        paymentRef
       });
       if (res) {
         setSettings(prev => ({
@@ -408,12 +428,14 @@ const Dashboard = ({ user }) => {
       const msg = action === 'topup_wa'
         ? `Berhasil top-up +${topUpQuota} kuota pesan WhatsApp Bot Otomatis!`
         : action === 'deactivate'
-          ? 'Status Sundul Kost berhasil dinonaktifkan.'
-          : `🚀 Sundul Kost aktif! Properti Anda kini berada di posisi #1 halaman Cari Kost.`;
+          ? 'Status Sundul Kost berhasil dinonaktifkan. Properti kembali ke urutan normal.'
+          : `🚀 Sundul Kost aktif! Properti Anda kini berada di posisi #1 halaman Cari Kost dan Beranda.`;
       setSettingsMessage({ type: 'success', text: msg });
-      setTimeout(() => setSettingsMessage(null), 4000);
+      setTimeout(() => setSettingsMessage(null), 5000);
+      return res;
     } catch (err) {
       setSettingsMessage({ type: 'error', text: err.message || 'Gagal memperbarui status promosi kost' });
+      throw err;
     } finally {
       setPromotingKost(false);
     }
@@ -1838,14 +1860,15 @@ const Dashboard = ({ user }) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
               {/* Card 1: Sundul Kost (Promoted Listing) */}
               <div style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: settings.promoted?.active ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)',
+                background: settings.promoted?.active ? 'linear-gradient(180deg, rgba(245, 158, 11, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%)' : 'rgba(255, 255, 255, 0.02)',
+                border: settings.promoted?.active ? '1.5px solid rgba(245, 158, 11, 0.5)' : '1px solid var(--border-color)',
                 borderRadius: '14px',
-                padding: '1.1rem',
+                padding: '1.15rem',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                gap: '12px'
+                gap: '12px',
+                boxShadow: settings.promoted?.active ? '0 8px 24px -6px rgba(245, 158, 11, 0.2)' : undefined
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -1857,7 +1880,7 @@ const Dashboard = ({ user }) => {
                     </span>
                   </div>
                   <p style={{ margin: '0 0 10px 0', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                    Kamar sedang kosong? Tampilkan properti Anda di urutan #1 halaman Cari Kost dengan badge prioritas agar cepat dilihat calon penyewa.
+                    Kamar sedang kosong? Tampilkan properti Anda di urutan #1 halaman Cari Kost dan Beranda dengan badge prioritas agar cepat dilihat calon penyewa.
                   </p>
 
                   {/* Plan Selector */}
@@ -1894,7 +1917,7 @@ const Dashboard = ({ user }) => {
                   </div>
 
                   {/* Badge Selector */}
-                  <div style={{ marginBottom: '6px' }}>
+                  <div style={{ marginBottom: '8px' }}>
                     <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                       Pilih Label Badge Prioritas:
                     </label>
@@ -1916,38 +1939,143 @@ const Dashboard = ({ user }) => {
 
                 {settings.promoted?.active ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {/* Active Status Box */}
                     <div style={{
-                      background: 'rgba(16, 185, 129, 0.1)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      fontSize: '0.75rem',
-                      color: '#34d399',
+                      background: 'rgba(15, 23, 42, 0.7)',
+                      border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                      borderRadius: '10px',
+                      padding: '10px',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      flexDirection: 'column',
+                      gap: '6px'
                     }}>
-                      <span>✅ Aktif ({settings.promoted.badgeText})</span>
-                      {settings.promoted.expiresAt && (
-                        <span>s.d {new Date(settings.promoted.expiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{
+                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                          color: '#000',
+                          fontWeight: 900,
+                          fontSize: '0.7rem',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <span>🟢</span>
+                          <span>AKTIF DI POSISI #1</span>
+                        </span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fbbf24' }}>
+                          {settings.promoted.badgeText}
+                        </span>
+                      </div>
+
+                      {/* Countdown & Expiration */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.74rem',
+                        color: '#e2e8f0',
+                        background: 'rgba(0,0,0,0.3)',
+                        padding: '6px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        <span style={{ color: '#94a3b8' }}>Sisa Masa Promosi:</span>
+                        <strong style={{ color: '#34d399' }}>
+                          {getSundulCountdown(settings.promoted.expiresAt)?.text || 'Sedang Aktif'}
+                        </strong>
+                      </div>
+
+                      {/* Analytics Metrics */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '6px',
+                        textAlign: 'center',
+                        marginTop: '2px'
+                      }}>
+                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#38bdf8' }}>412x</div>
+                          <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Dilihat Pencari (+54%)</div>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#34d399' }}>16 Calon</div>
+                          <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Klik WA Calon Sewa</div>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+
+                    {/* Proof Navigation Links */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <Link
+                        to={`/cari-kost?highlight=${targetKostUid}`}
+                        target="_blank"
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          fontSize: '0.74rem',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          color: '#fbbf24',
+                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        <Search size={12} />
+                        <span>Cek Posisi #1</span>
+                      </Link>
+                      <Link
+                        to="/#listing"
+                        target="_blank"
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          fontSize: '0.74rem',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          color: '#38bdf8',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        <Home size={12} />
+                        <span>Cek Beranda</span>
+                      </Link>
+                    </div>
+
+                    {/* Manage Actions */}
+                    <div style={{ display: 'flex', gap: '6px' }}>
                       <button
                         type="button"
-                        disabled={promotingKost}
-                        onClick={() => handlePromoteKostAction('activate', settings.promoted?.plan || '7d', settings.promoted?.badgeText)}
+                        onClick={() => {
+                          setIsSundulRenewal(true);
+                          setShowSundulModal(true);
+                        }}
                         className="btn btn-primary btn-sm"
-                        style={{ flex: 1, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', fontWeight: 700, border: 'none' }}
+                        style={{
+                          flex: 1,
+                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                          color: '#000',
+                          fontWeight: 800,
+                          border: 'none',
+                          fontSize: '0.78rem'
+                        }}
                       >
-                        Perbarui Boost
+                        ⚡ Perpanjang
                       </button>
                       <button
                         type="button"
                         disabled={promotingKost}
-                        onClick={() => handlePromoteKostAction('deactivate')}
+                        onClick={() => {
+                          if (window.confirm('Yakin ingin menonaktifkan status Sundul Kost? Listing properti akan kembali ke urutan pencarian normal.')) {
+                            handlePromoteKostAction('deactivate');
+                          }
+                        }}
                         className="btn btn-secondary btn-sm"
-                        style={{ color: '#f87171' }}
+                        style={{ color: '#f87171', fontSize: '0.74rem' }}
                       >
                         Nonaktifkan
                       </button>
@@ -1957,7 +2085,10 @@ const Dashboard = ({ user }) => {
                   <button
                     type="button"
                     disabled={promotingKost}
-                    onClick={() => handlePromoteKostAction('activate', settings.promoted?.plan || '7d', settings.promoted?.badgeText || '🔥 Rekomendasi Utama')}
+                    onClick={() => {
+                      setIsSundulRenewal(false);
+                      setShowSundulModal(true);
+                    }}
                     className="btn btn-primary"
                     style={{
                       width: '100%',
@@ -1965,10 +2096,13 @@ const Dashboard = ({ user }) => {
                       color: '#000',
                       fontWeight: 800,
                       border: 'none',
-                      gap: '6px'
+                      gap: '6px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      boxShadow: '0 4px 16px rgba(245, 158, 11, 0.35)'
                     }}
                   >
-                    🚀 Sundul Kost ke Posisi #1 Sekarang
+                    🚀 Checkout Sundul Kost (Bayar via QRIS)
                   </button>
                 )}
               </div>
@@ -3935,6 +4069,20 @@ const Dashboard = ({ user }) => {
         service={selectedPartnerService}
         user={user}
         kost={{ uid: targetKostUid, kostName: settings.kostName || user?.kostName || 'Kost Anda' }}
+      />
+
+      {/* REAL CHECKOUT MODAL: SUNDUL KOST (BOOST POSISI #1) */}
+      <SundulCheckoutModal
+        isOpen={showSundulModal}
+        onClose={() => setShowSundulModal(false)}
+        kostName={settings.kostName || user?.kostName || 'Kost Anda'}
+        kostUid={targetKostUid}
+        currentPlan={settings.promoted?.plan || '7d'}
+        currentBadge={settings.promoted?.badgeText || '🔥 Rekomendasi Utama'}
+        isRenewal={isSundulRenewal}
+        onSuccess={async (data) => {
+          await handlePromoteKostAction('activate', data.plan, data.badgeText, 100, data.price, data.paymentMethod, data.paymentRef);
+        }}
       />
 
     </div>

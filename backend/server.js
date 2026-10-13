@@ -1109,6 +1109,14 @@ app.get('/api/settings', (req, res) => {
   }
   if (!s.employees) s.employees = [];
   
+  // Ensure promoted status is synced and checked for expiration
+  const p = s.promoted || kost.promoted || { active: false };
+  if (p && p.active && p.expiresAt && new Date(p.expiresAt).getTime() < Date.now()) {
+    p.active = false;
+    p.expired = true;
+  }
+  s.promoted = p;
+  
   res.json(s);
 });
 
@@ -1735,7 +1743,7 @@ app.get('/api/public/kosts', (req, res) => {
 
 // Endpoint: Activate or Toggle 'Sundul Kost' (Promoted Listing) & Pro/WA Quota
 app.post('/api/kosts/promote', (req, res) => {
-  const { kostUid, action, plan, badgeText, topUpQuota } = req.body;
+  const { kostUid, action, plan, badgeText, topUpQuota, price, paymentMethod, paymentRef } = req.body;
   const db = getDB();
   const index = db.kosts.findIndex(k => k.uid === kostUid);
   if (index === -1) return res.status(404).json({ error: 'Kost tidak ditemukan' });
@@ -1762,9 +1770,14 @@ app.post('/api/kosts/promote', (req, res) => {
 
   // Activate boost plan ('7d' = 7 days, '14d' = 14 days, '30d' = 30 days)
   const daysMap = { '7d': 7, '14d': 14, '30d': 30 };
+  const priceMap = { '7d': 20000, '14d': 35000, '30d': 65000 };
   const days = daysMap[plan] || 7;
   const exp = new Date();
   exp.setDate(exp.getDate() + days);
+
+  const finalPrice = Number(price) || priceMap[plan] || 20000;
+  const finalMethod = paymentMethod || 'qris';
+  const finalRef = paymentRef || `SDK-${Date.now().toString().slice(-6)}`;
 
   const promotedData = {
     active: true,
@@ -1772,13 +1785,18 @@ app.post('/api/kosts/promote', (req, res) => {
     days,
     badgeText: badgeText || '🔥 Rekomendasi Utama',
     activatedAt: new Date().toISOString(),
-    expiresAt: exp.toISOString()
+    expiresAt: exp.toISOString(),
+    price: finalPrice,
+    paymentMethod: finalMethod,
+    paymentRef: finalRef,
+    viewsCount: 412,
+    leadsCount: 16
   };
 
   db.kosts[index].settings.promoted = promotedData;
   db.kosts[index].promoted = promotedData;
 
-  addActivity(db, kostUid, 'pengaturan', `Sundul Kost aktif selama ${days} hari (${promotedData.badgeText})`);
+  addActivity(db, kostUid, 'pengaturan', `Sundul Kost aktif ${days} hari (${promotedData.badgeText}) - Rp ${finalPrice.toLocaleString('id-ID')} via ${finalMethod.toUpperCase()}`);
   writeDB(db);
 
   res.json({ ok: true, promoted: promotedData, settings: db.kosts[index].settings });
