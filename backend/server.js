@@ -363,10 +363,14 @@ let _dbCache = null;
 
 const loadSeedData = () => {
   try {
-    const DB_FILE = path.join(__dirname, 'db.json');
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    return require('./db.json');
   } catch (e) {
-    return { users: [], kosts: [], complaints: [], activities: [], invoices: [], expenses: [], iot_meters: [], applications: [] };
+    try {
+      const DB_FILE = path.join(__dirname, 'db.json');
+      return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    } catch (err) {
+      return { users: [], kosts: [], complaints: [], activities: [], invoices: [], expenses: [], iot_meters: [], applications: [] };
+    }
   }
 };
 
