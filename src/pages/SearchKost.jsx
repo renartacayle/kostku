@@ -352,7 +352,11 @@ export default function SearchKost({ user }) {
     if (sortBy === 'lowest') return getMinPrice(a) - getMinPrice(b);
     if (sortBy === 'highest') return getMinPrice(b) - getMinPrice(a);
     if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
-    return 0; // recommended
+    // Default 'recommended' sort puts 'Sundul Kost' (Promoted Listing) at #1
+    const promoA = a.promoted?.active ? 1 : 0;
+    const promoB = b.promoted?.active ? 1 : 0;
+    if (promoB !== promoA) return promoB - promoA;
+    return 0;
   });
 
   const cityBadges = [
@@ -1059,8 +1063,8 @@ export default function SearchKost({ user }) {
                   className="kost-card-container animate-fade-in"
                   style={{
                     position: 'relative',
-                    border: isCompared ? '1.5px solid #3b82f6' : '1px solid var(--border-color)',
-                    boxShadow: isCompared ? '0 0 20px rgba(59, 130, 246, 0.25)' : undefined
+                    border: isCompared ? '1.5px solid #3b82f6' : (kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)'),
+                    boxShadow: isCompared ? '0 0 20px rgba(59, 130, 246, 0.25)' : (kost.promoted?.active ? '0 4px 20px rgba(245, 158, 11, 0.22)' : undefined)
                   }}
                 >
                   {/* Card Image Area with In-Card Slider */}
@@ -1163,6 +1167,23 @@ export default function SearchKost({ user }) {
                       zIndex: 3,
                       maxWidth: 'calc(100% - 60px)'
                     }}>
+                      {kost.promoted?.active && (
+                        <span style={{
+                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                          color: '#000',
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.72rem',
+                          fontWeight: 900,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          boxShadow: '0 2px 10px rgba(245, 158, 11, 0.5)',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {kost.promoted.badgeText || '🔥 Rekomendasi Utama'}
+                        </span>
+                      )}
                       <span style={{
                         background: kost.type === 'Putri' ? '#ec4899' : kost.type === 'Putra' ? '#2563eb' : '#059669',
                         color: 'white',

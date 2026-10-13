@@ -413,4 +413,12 @@ export const apiGetUtilityInquiry = (type, idNumber, city) => {
   return request(`/utilities/inquiry?${params.toString()}`);
 };
 
+// ── Promoted Listing (Sundul Kost) & Pro Quota ─────────────
+export const apiPromoteKost = (data) => {
+  return request('/kosts/promote', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
 

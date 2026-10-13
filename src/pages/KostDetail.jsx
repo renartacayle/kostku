@@ -443,6 +443,24 @@ export default function KostDetail({ user }) {
                   {kost.type === 'Putri' ? '🌸 Kost Putri' : kost.type === 'Putra' ? '👔 Kost Putra' : '🏡 Kost Campur'}
                 </span>
 
+                {kost.promoted?.active && (
+                  <span style={{
+                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.25) 100%)',
+                    color: '#fbbf24',
+                    border: '1px solid rgba(245, 158, 11, 0.5)',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 0 12px rgba(245, 158, 11, 0.25)'
+                  }}>
+                    🔥 Rekomendasi Utama
+                  </span>
+                )}
+
                 <span style={{
                   background: 'rgba(16, 185, 129, 0.15)',
                   color: '#4ade80',
@@ -1145,7 +1163,7 @@ export default function KostDetail({ user }) {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#38bdf8' }}>
                     <span>Biaya Layanan & Admin:</span>
-                    <span style={{ fontWeight: 700 }}>GRATIS (Rp 0)</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.78rem' }}>Rp 0 (Manual) / Rp 2.000 (QRIS/VA)</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>

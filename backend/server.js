@@ -1108,7 +1108,7 @@ app.get('/api/settings', (req, res) => {
 // Endpoint: Update Settings
 app.put('/api/settings', (req, res) => {
   const { kostUid } = req.query;
-  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount, discount, utilityScheme } = req.body;
+  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount, discount, utilityScheme, promoted, waBotQuota, isPro } = req.body;
   const db = getDB();
   
   const index = db.kosts.findIndex(k => k.uid === kostUid);
@@ -1116,6 +1116,9 @@ app.put('/api/settings', (req, res) => {
   
   const roomList = Array.isArray(rooms) ? rooms : [];
   const effectiveUtilityScheme = utilityScheme || db.kosts[index].settings?.utilityScheme || db.kosts[index].utilityScheme || 'all_kost';
+  const effectivePromoted = promoted !== undefined ? promoted : (db.kosts[index].settings?.promoted || db.kosts[index].promoted || { active: false, plan: '7d', badgeText: '🔥 Rekomendasi Utama', expiresAt: '' });
+  const effectiveWaQuota = waBotQuota !== undefined ? Number(waBotQuota) : (db.kosts[index].settings?.waBotQuota ?? 25);
+  const effectiveIsPro = isPro !== undefined ? Boolean(isPro) : Boolean(db.kosts[index].settings?.isPro);
 
   db.kosts[index].settings = {
     rooms: roomList,
@@ -1125,17 +1128,21 @@ app.put('/api/settings', (req, res) => {
     waterRate: Number(waterRate) || 0,
     electricityRate: Number(electricityRate) || 0,
     depositAmount: Number(depositAmount) || 0,
-    discount: discount !== undefined ? discount : (db.kosts[index].settings?.discount || null)
+    discount: discount !== undefined ? discount : (db.kosts[index].settings?.discount || null),
+    promoted: effectivePromoted,
+    waBotQuota: effectiveWaQuota,
+    isPro: effectiveIsPro
   };
   
   // Also sync directly to kost object for public marketplace availability
   db.kosts[index].rooms = roomList;
   db.kosts[index].discount = db.kosts[index].settings.discount;
+  db.kosts[index].promoted = effectivePromoted;
   db.kosts[index].utilityScheme = effectiveUtilityScheme;
   db.kosts[index].waterRate = Number(waterRate) || 0;
   db.kosts[index].electricityRate = Number(electricityRate) || 0;
   
-  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kamar, skema utilitas, & tarif kost telah diperbarui');
+  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kamar, skema utilitas, & promosi kost telah diperbarui');
   writeDB(db);
   
   res.json(db.kosts[index].settings);
@@ -1701,10 +1708,73 @@ app.get('/api/public/kosts', (req, res) => {
       waterRate: Number(k.settings?.waterRate != null ? k.settings.waterRate : k.waterRate) || 0,
       electricityRate: Number(k.settings?.electricityRate != null ? k.settings.electricityRate : k.electricityRate) || 0,
       discount: k.settings?.discount || k.discount || null,
-      depositAmount: k.settings?.depositAmount || 500000
+      depositAmount: k.settings?.depositAmount || 500000,
+      promoted: (() => {
+        const p = k.settings?.promoted || k.promoted;
+        if (!p || !p.active) return { active: false };
+        if (p.expiresAt && new Date(p.expiresAt).getTime() < Date.now()) {
+          return { active: false, expired: true };
+        }
+        return p;
+      })()
     };
   });
+
+  // Sort promoted kosts first (0% disruption native boost)
+  verifiedKosts.sort((a, b) => (b.promoted?.active ? 1 : 0) - (a.promoted?.active ? 1 : 0));
+
   res.json(verifiedKosts);
+});
+
+// Endpoint: Activate or Toggle 'Sundul Kost' (Promoted Listing) & Pro/WA Quota
+app.post('/api/kosts/promote', (req, res) => {
+  const { kostUid, action, plan, badgeText, topUpQuota } = req.body;
+  const db = getDB();
+  const index = db.kosts.findIndex(k => k.uid === kostUid);
+  if (index === -1) return res.status(404).json({ error: 'Kost tidak ditemukan' });
+
+  if (!db.kosts[index].settings) db.kosts[index].settings = {};
+
+  if (action === 'topup_wa') {
+    const addAmount = Number(topUpQuota) || 100;
+    const currentQuota = Number(db.kosts[index].settings.waBotQuota ?? 25);
+    db.kosts[index].settings.waBotQuota = currentQuota + addAmount;
+    addActivity(db, kostUid, 'pengaturan', `Top-up Kuota Robot WhatsApp Otomatis +${addAmount} pesan berhasil`);
+    writeDB(db);
+    return res.json({ ok: true, waBotQuota: db.kosts[index].settings.waBotQuota, settings: db.kosts[index].settings });
+  }
+
+  if (action === 'deactivate') {
+    const deactivated = { active: false, plan: 'none', badgeText: '', expiresAt: '' };
+    db.kosts[index].settings.promoted = deactivated;
+    db.kosts[index].promoted = deactivated;
+    addActivity(db, kostUid, 'pengaturan', 'Status Sundul Kost (Promoted Listing) dinonaktifkan');
+    writeDB(db);
+    return res.json({ ok: true, promoted: deactivated, settings: db.kosts[index].settings });
+  }
+
+  // Activate boost plan ('7d' = 7 days, '14d' = 14 days, '30d' = 30 days)
+  const daysMap = { '7d': 7, '14d': 14, '30d': 30 };
+  const days = daysMap[plan] || 7;
+  const exp = new Date();
+  exp.setDate(exp.getDate() + days);
+
+  const promotedData = {
+    active: true,
+    plan: plan || '7d',
+    days,
+    badgeText: badgeText || '🔥 Rekomendasi Utama',
+    activatedAt: new Date().toISOString(),
+    expiresAt: exp.toISOString()
+  };
+
+  db.kosts[index].settings.promoted = promotedData;
+  db.kosts[index].promoted = promotedData;
+
+  addActivity(db, kostUid, 'pengaturan', `Sundul Kost aktif selama ${days} hari (${promotedData.badgeText})`);
+  writeDB(db);
+
+  res.json({ ok: true, promoted: promotedData, settings: db.kosts[index].settings });
 });
 
 // Endpoint: Inquiry & Cek ID Pelanggan PLN / PDAM (Simulator & PPOB Readiness)

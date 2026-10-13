@@ -1106,6 +1106,14 @@
           "durationMonths": "3",
           "validUntil": "",
           "label": "Promo Spesial"
+        },
+        "promoted": {
+          "active": true,
+          "plan": "7d",
+          "days": 7,
+          "badgeText": "🔥 Rekomendasi Utama",
+          "activatedAt": "2026-10-13T07:17:53.106Z",
+          "expiresAt": "2026-10-20T07:17:53.106Z"
         }
       },
       "rating": 4.7,
@@ -1140,7 +1148,15 @@
       },
       "utilityScheme": "electric_mandiri",
       "waterRate": 0,
-      "electricityRate": 0
+      "electricityRate": 0,
+      "promoted": {
+        "active": true,
+        "plan": "7d",
+        "days": 7,
+        "badgeText": "🔥 Rekomendasi Utama",
+        "activatedAt": "2026-10-13T07:17:53.106Z",
+        "expiresAt": "2026-10-20T07:17:53.106Z"
+      }
     },
     {
       "uid": "KOST-DAQ3E4",
@@ -1527,6 +1543,13 @@
       "type": "pengaturan",
       "text": "Pengaturan kamar, skema utilitas, & tarif kost telah diperbarui",
       "time": "2026-10-12T11:06:39.549Z"
+    },
+    {
+      "id": "ACT-1791875873106",
+      "kostUid": "KOST-K12DQR",
+      "type": "pengaturan",
+      "text": "Sundul Kost aktif selama 7 hari (🔥 Rekomendasi Utama)",
+      "time": "2026-10-13T07:17:53.106Z"
     }
   ],
   "invoices": [
@@ -1607,6 +1630,36 @@
       "createdAt": "2026-10-04T09:43:51.756Z",
       "expiryTime": "2026-10-04T09:58:51.756Z",
       "settledAt": "2026-10-04T09:43:57.563Z"
+    },
+    {
+      "id": 1791876058429,
+      "orderId": "ORDER-1791876058429-1159",
+      "invoiceId": "INV-1790329613118",
+      "kostUid": "KOST-K12DQR",
+      "userId": 1790329612919,
+      "customerName": "Budi Santoso (Owner)",
+      "roomNumber": "A02",
+      "amount": 2000,
+      "paymentMethod": "QRIS",
+      "vaNumber": null,
+      "status": "pending",
+      "createdAt": "2026-10-13T07:20:58.429Z",
+      "expiryTime": "2026-10-13T07:35:58.429Z"
+    },
+    {
+      "id": 1791876146411,
+      "orderId": "ORDER-1791876146411-1616",
+      "invoiceId": "INV-1790329613118",
+      "kostUid": "KOST-K12DQR",
+      "userId": 1790329612919,
+      "customerName": "Budi Santoso (Owner)",
+      "roomNumber": "A02",
+      "amount": 1202000,
+      "paymentMethod": "QRIS",
+      "vaNumber": null,
+      "status": "pending",
+      "createdAt": "2026-10-13T07:22:26.411Z",
+      "expiryTime": "2026-10-13T07:37:26.411Z"
     }
   ],
   "contracts": [

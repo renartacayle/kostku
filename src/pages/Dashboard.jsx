@@ -46,7 +46,8 @@ import {
   apiGetInvoices,
   apiGetApplications,
   apiGetOwnerKosts,
-  apiGetUtilityInquiry
+  apiGetUtilityInquiry,
+  apiPromoteKost
 } from '../services/api';
 import UserDashboard from './UserDashboard';
 import StaffDashboard from '../components/StaffDashboard';
@@ -83,7 +84,15 @@ const Dashboard = ({ user }) => {
       durationMonths: '1',
       validUntil: '',
       label: 'Promo Spesial'
-    }
+    },
+    promoted: {
+      active: false,
+      plan: '7d',
+      badgeText: '🔥 Rekomendasi Utama',
+      expiresAt: ''
+    },
+    waBotQuota: 25,
+    isPro: false
   });
   const [tenants, setTenants] = useState([]);
   const [activeComplaints, setActiveComplaints] = useState(0);
@@ -217,7 +226,15 @@ const Dashboard = ({ user }) => {
             durationMonths: '1',
             validUntil: '',
             label: 'Promo Spesial'
-          }
+          },
+          promoted: sets.promoted || {
+            active: false,
+            plan: '7d',
+            badgeText: '🔥 Rekomendasi Utama',
+            expiresAt: ''
+          },
+          waBotQuota: sets.waBotQuota ?? 25,
+          isPro: Boolean(sets.isPro)
         });
       }
       setTenants(Array.isArray(usrs) ? usrs : []);
@@ -261,6 +278,42 @@ const Dashboard = ({ user }) => {
       setSettingsMessage({ type: 'error', text: err.message || 'Gagal menyimpan pengaturan kost' });
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  // Promoted Listing (Sundul Kost) & WA Bot Quota Handler (0% UX Disruption Monetization)
+  const [promotingKost, setPromotingKost] = useState(false);
+
+  const handlePromoteKostAction = async (action, plan = '7d', badgeText = '🔥 Rekomendasi Utama', topUpQuota = 100) => {
+    if (!targetKostUid) return;
+    setPromotingKost(true);
+    setSettingsMessage(null);
+    try {
+      const res = await apiPromoteKost({
+        kostUid: targetKostUid,
+        action,
+        plan,
+        badgeText,
+        topUpQuota
+      });
+      if (res) {
+        setSettings(prev => ({
+          ...prev,
+          promoted: res.promoted !== undefined ? res.promoted : prev.promoted,
+          waBotQuota: res.waBotQuota !== undefined ? res.waBotQuota : prev.waBotQuota
+        }));
+      }
+      const msg = action === 'topup_wa'
+        ? `Berhasil top-up +${topUpQuota} kuota pesan WhatsApp Bot Otomatis!`
+        : action === 'deactivate'
+          ? 'Status Sundul Kost berhasil dinonaktifkan.'
+          : `🚀 Sundul Kost aktif! Properti Anda kini berada di posisi #1 halaman Cari Kost.`;
+      setSettingsMessage({ type: 'success', text: msg });
+      setTimeout(() => setSettingsMessage(null), 4000);
+    } catch (err) {
+      setSettingsMessage({ type: 'error', text: err.message || 'Gagal memperbarui status promosi kost' });
+    } finally {
+      setPromotingKost(false);
     }
   };
 
@@ -1632,6 +1685,325 @@ const Dashboard = ({ user }) => {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* SECTION 2B: 0% DISRUPTION MONETIZATION (SUNDUL KOST, WA BOT QUOTA & PARTNER DIRECTORY) */}
+          <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', border: settings.promoted?.active ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: settings.promoted?.active ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: settings.promoted?.active ? '#fbbf24' : '#60a5fa'
+                }}>
+                  <TrendingUp size={20} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Sundul Kost & Ekosistem Layanan (0% Gangguan Iklan)</h3>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      fontWeight: 700,
+                      background: settings.promoted?.active ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                      color: settings.promoted?.active ? '#fbbf24' : '#34d399',
+                      border: settings.promoted?.active ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(16, 185, 129, 0.3)'
+                    }}>
+                      {settings.promoted?.active ? '🔥 Aktif di Posisi #1 Cari Kost' : '✅ Bebas Iklan Mengganggu'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Naikkan kost ke urutan teratas saat ada kamar kosong, kelola kuota pesan otomatis, & akses mitra perawatan kost
+                  </span>
+                </div>
+              </div>
+
+              <Link
+                to="/cari-kost"
+                className="btn btn-secondary btn-sm"
+                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}
+              >
+                <ExternalLink size={13} /> Cek Posisi di Cari Kost
+              </Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              {/* Card 1: Sundul Kost (Promoted Listing) */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: settings.promoted?.active ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)',
+                borderRadius: '14px',
+                padding: '1.1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: '12px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <strong style={{ fontSize: '0.92rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🚀 Fitur "Sundul Kost" (Boost Posisi #1)
+                    </strong>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                      Biaya Pasif
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                    Kamar sedang kosong? Tampilkan properti Anda di urutan #1 halaman Cari Kost dengan badge prioritas agar cepat dilihat calon penyewa.
+                  </p>
+
+                  {/* Plan Selector */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '10px' }}>
+                    {[
+                      { id: '7d', label: '7 Hari', price: 'Rp 20rb', sub: 'Cepat Laku' },
+                      { id: '14d', label: '14 Hari', price: 'Rp 35rb', sub: 'Hemat 12%' },
+                      { id: '30d', label: '30 Hari', price: 'Rp 65rb', sub: 'Terlaris' }
+                    ].map(p => {
+                      const isSel = (settings.promoted?.plan || '7d') === p.id;
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => setSettings(prev => ({
+                            ...prev,
+                            promoted: { ...(prev.promoted || {}), plan: p.id }
+                          }))}
+                          style={{
+                            padding: '8px 6px',
+                            borderRadius: '10px',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            border: isSel ? '1.5px solid #f59e0b' : '1px solid var(--border-color)',
+                            background: isSel ? 'rgba(245, 158, 11, 0.14)' : 'rgba(0,0,0,0.2)',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: isSel ? '#fbbf24' : '#e2e8f0' }}>{p.label}</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'white', margin: '2px 0' }}>{p.price}</div>
+                          <div style={{ fontSize: '0.64rem', color: isSel ? '#fde68a' : '#94a3b8' }}>{p.sub}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Badge Selector */}
+                  <div style={{ marginBottom: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      Pilih Label Badge Prioritas:
+                    </label>
+                    <select
+                      className="input-field"
+                      value={settings.promoted?.badgeText || '🔥 Rekomendasi Utama'}
+                      onChange={e => setSettings(prev => ({
+                        ...prev,
+                        promoted: { ...(prev.promoted || {}), badgeText: e.target.value }
+                      }))}
+                      style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                    >
+                      <option value="🔥 Rekomendasi Utama">🔥 Rekomendasi Utama</option>
+                      <option value="⚡ Prioritas Pencarian">⚡ Prioritas Pencarian</option>
+                      <option value="🌟 Kost Terverifikasi Unggulan">🌟 Kost Terverifikasi Unggulan</option>
+                    </select>
+                  </div>
+                </div>
+
+                {settings.promoted?.active ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      fontSize: '0.75rem',
+                      color: '#34d399',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span>✅ Aktif ({settings.promoted.badgeText})</span>
+                      {settings.promoted.expiresAt && (
+                        <span>s.d {new Date(settings.promoted.expiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        disabled={promotingKost}
+                        onClick={() => handlePromoteKostAction('activate', settings.promoted?.plan || '7d', settings.promoted?.badgeText)}
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', fontWeight: 700, border: 'none' }}
+                      >
+                        Perbarui Boost
+                      </button>
+                      <button
+                        type="button"
+                        disabled={promotingKost}
+                        onClick={() => handlePromoteKostAction('deactivate')}
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#f87171' }}
+                      >
+                        Nonaktifkan
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={promotingKost}
+                    onClick={() => handlePromoteKostAction('activate', settings.promoted?.plan || '7d', settings.promoted?.badgeText || '🔥 Rekomendasi Utama')}
+                    className="btn btn-primary"
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      color: '#000',
+                      fontWeight: 800,
+                      border: 'none',
+                      gap: '6px'
+                    }}
+                  >
+                    🚀 Sundul Kost ke Posisi #1 Sekarang
+                  </button>
+                )}
+              </div>
+
+              {/* Card 2: Kuota Robot WhatsApp & Biaya Transaksi (Self-Liquidating Active Cost) */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '14px',
+                padding: '1.1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: '12px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <strong style={{ fontSize: '0.92rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🤖 Kuota WA Bot & Proteksi Biaya Aktif
+                    </strong>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                      Biaya Aktif
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                    Fitur dasar KostKu <strong>100% Gratis Selamanya</strong>. Biaya API aktif hanya dikenakan sesuai pemakaian agar aplikasi bebas dari iklan spam.
+                  </p>
+
+                  {/* Quota Display Box */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    marginBottom: '10px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Sisa Kuota WA Bot Otomatis:</span>
+                      <strong style={{ fontSize: '1.1rem', color: '#38bdf8' }}>{settings.waBotQuota ?? 25} Pesan</strong>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={promotingKost}
+                      onClick={() => handlePromoteKostAction('topup_wa', '7d', '', 100)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.74rem', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#7dd3fc' }}
+                    >
+                      +100 Kuota (Rp 25rb)
+                    </button>
+                  </div>
+
+                  {/* Cost Mapping List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>• Kirim Tagihan WA Manual (Klik `wa.me`):</span>
+                      <strong style={{ color: '#34d399' }}>GRATIS (Rp 0)</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>• Pembukuan Kamar, Keuangan & Komplain:</span>
+                      <strong style={{ color: '#34d399' }}>GRATIS (Rp 0)</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>• Biaya Layanan Checkout Digital / Token:</span>
+                      <strong style={{ color: '#fbbf24' }}>Rp 2.000 / trx</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                  borderRadius: '8px',
+                  padding: '8px 10px',
+                  fontSize: '0.72rem',
+                  color: '#a7f3d0'
+                }}>
+                  💡 <strong>Zero-Ads Policy:</strong> Halaman keuangan, tagihan, dan komplain dijamin 100% bersih tanpa iklan pihak ketiga.
+                </div>
+              </div>
+            </div>
+
+            {/* Contextual B2B & B2C Partner Directory (Non-Annoying Value-Added Partners) */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.45)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '0.9rem 1rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '4px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🤝 Direktori Partner Kebutuhan Operasional Kost (Diskon Khusus Owner & Penghuni)
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                  Partner resmi terkurasi • Tanpa pop-up
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                {[
+                  { icon: '❄️', title: 'Service & Cuci AC Kost', desc: 'Rp 45rb/unit (Min. 5 kamar)', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20ingin%20pesan%20paket%20cuci%20AC%20kost' },
+                  { icon: '📶', title: 'WiFi Dedicated Kost', desc: 'Promo Biznet / IndiHome Kost', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20ingin%20info%20promo%20WiFi%20kost' },
+                  { icon: '🧺', title: 'Mitra Laundry Kiloan', desc: 'Komisi 10% bagi pemilik kost', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20tertarik%20kerjasama%20laundry%20kost' },
+                  { icon: '🛏️', title: 'Grosir Kasur & Sprei', desc: 'Diskon 20% standar hotel', link: 'https://wa.me/6281234567890?text=Halo%20Mitra%20KostKu,%20saya%20ingin%20lihat%20katalog%20kasur%20dan%20sprei' }
+                ].map((partner, idx) => (
+                  <a
+                    key={idx}
+                    href={partner.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      textDecoration: 'none',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '10px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.15rem' }}>{partner.icon}</span>
+                      <div>
+                        <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f8fafc' }}>{partner.title}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{partner.desc}</div>
+                      </div>
+                    </div>
+                    <ExternalLink size={12} color="#60a5fa" style={{ flexShrink: 0 }} />
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* SECTION 3: ROOMS MANAGEMENT */}

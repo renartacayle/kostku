@@ -59,13 +59,17 @@ const PaymentGatewayModal = ({
     }
   }, [isOpen, invoice, activeTab, selectedBank]);
 
+  const baseRentAmount = Number(invoice?.total || invoice?.amount || 0);
+  const convenienceFee = 2000;
+  const totalWithFee = baseRentAmount + convenienceFee;
+
   const initTransaction = async () => {
     try {
       const trx = await apiCreatePaymentTransaction({
         invoiceId: invoice.id,
         kostUid: invoice.kostUid || user?.kostUid,
         userId: invoice.userId || user?.id,
-        amount: invoice.total,
+        amount: totalWithFee,
         customerName: user?.name || invoice.userName || 'Penghuni Kost',
         roomNumber: invoice.kamar || user?.kamar || '-',
         paymentMethod: activeTab === 'va' ? `VA ${selectedBank}` : activeTab === 'ewallet' ? selectedWallet : 'QRIS'
@@ -244,8 +248,16 @@ const PaymentGatewayModal = ({
                   <span style={{ color: '#f8fafc', fontWeight: 700 }}>{invoice.kamar || user?.kamar}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#94a3b8' }}>Sewa Pokok (100% ke Pemilik):</span>
+                  <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{formatRupiah(baseRentAmount)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#94a3b8' }}>Layanan Gateway & WA Otomatis:</span>
+                  <span style={{ color: '#38bdf8', fontWeight: 600 }}>{formatRupiah(convenienceFee)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
                   <span style={{ color: '#94a3b8' }}>Total Dibayar:</span>
-                  <span style={{ color: '#22c55e', fontWeight: 800, fontSize: '1.05rem' }}>{formatRupiah(invoice.total)}</span>
+                  <span style={{ color: '#22c55e', fontWeight: 800, fontSize: '1.05rem' }}>{formatRupiah(totalWithFee)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
                   <span style={{ color: '#94a3b8' }}>Status:</span>
@@ -287,11 +299,16 @@ const PaymentGatewayModal = ({
                 alignItems: 'center'
               }}>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>TOTAL PEMBAYARAN</span>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>TOTAL PEMBAYARAN OTOMATIS</span>
                   <strong style={{ fontSize: '1.35rem', color: '#60a5fa', fontWeight: 900 }}>
-                    {formatRupiah(invoice.total)}
+                    {formatRupiah(totalWithFee)}
                   </strong>
-                  <span style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginTop: '2px' }}>
+                  <div style={{ marginTop: '4px', fontSize: '0.72rem', color: '#cbd5e1' }}>
+                    <span>Sewa: {formatRupiah(baseRentAmount)} (100% ke Pemilik)</span>
+                    <span style={{ margin: '0 6px', color: '#64748b' }}>•</span>
+                    <span style={{ color: '#38bdf8', fontWeight: 600 }}>Biaya Sistem & WA Bot: {formatRupiah(convenienceFee)}</span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
                     Sewa Kamar {invoice.kamar || user?.kamar} • Order ID: {transaction?.orderId || `ORD-${invoice.id}`}
                   </span>
                 </div>
@@ -539,7 +556,7 @@ const PaymentGatewayModal = ({
                     <div style={{ marginTop: '12px', fontSize: '0.76rem', color: '#94a3b8', lineHeight: '1.4' }}>
                       <p style={{ margin: '0 0 4px 0' }}>• Buka m-Banking {selectedBank} &gt; Pilih Bayar &gt; Virtual Account</p>
                       <p style={{ margin: '0 0 4px 0' }}>• Masukkan nomor VA di atas</p>
-                      <p style={{ margin: 0 }}>• Nominal otomatis sesuai tagihan ({formatRupiah(invoice.total)})</p>
+                      <p style={{ margin: 0 }}>• Nominal otomatis sesuai tagihan ({formatRupiah(totalWithFee)})</p>
                     </div>
                   </div>
                 </div>

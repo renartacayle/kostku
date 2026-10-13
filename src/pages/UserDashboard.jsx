@@ -617,6 +617,70 @@ const UserDashboard = ({ user }) => {
               </div>
             )}
           </div>
+
+          {/* Direktori Layanan Sekitar Kost (0% Gangguan UX - Terasa Seperti Fasilitas Concierge) */}
+          <div className="card glass-panel" style={{ border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={18} color="#60a5fa" /> Layanan Partner Sekitar Kost
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Kebutuhan harian penghuni kost dengan layanan antar-jemput langsung ke kamar Anda
+                </span>
+              </div>
+              <span style={{
+                fontSize: '0.68rem',
+                padding: '3px 8px',
+                borderRadius: '999px',
+                background: 'rgba(59, 130, 246, 0.12)',
+                color: '#93c5fd',
+                fontWeight: 600
+              }}>
+                Mitra Resmi Terverifikasi
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' }}>
+              {[
+                { icon: '🧺', title: 'Laundry Kiloan Express', sub: 'Rp 6.000/kg • Gratis Antar-Jemput Kamar', cta: 'Pesan WA', wa: 'Halo%20Mitra%20Laundry%20KostKu,%20saya%20mau%20jemput%20laundry%20di%20kamar%20kost' },
+                { icon: '🍱', title: 'Katering Harian Anak Kost', sub: 'Mulai Rp 15rb/porsi • Menu Berganti Tiap Hari', cta: 'Lihat Menu', wa: 'Halo%20Mitra%20Katering%20KostKu,%20minta%20daftar%20menu%20minggu%20ini' },
+                { icon: '💧', title: 'Antar Galon Aqua & Gas', sub: 'Diantar sampai depan pintu kamar (15 menit)', cta: 'Pesan Galon', wa: 'Halo%20Mitra%20Galon%20KostKu,%20pesan%201%20galon%20antar%20ke%20kamar' },
+                { icon: '🚚', title: 'Jasa Angkut & Pindahan', sub: 'Pick-up & Engkel hemat khusus anak kost', cta: 'Cek Tarif', wa: 'Halo%20Mitra%20Angkut%20KostKu,%20mau%20tanya%20tarif%20pindahan%20kost' }
+              ].map((item, idx) => (
+                <a
+                  key={idx}
+                  href={`https://wa.me/6281234567890?text=${item.wa}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    textDecoration: 'none',
+                    background: 'rgba(255, 255, 255, 0.025)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '12px',
+                    padding: '10px 12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <span style={{ fontSize: '1.35rem' }}>{item.icon}</span>
+                    <div>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>{item.title}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.35, marginTop: '2px' }}>{item.sub}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700, color: '#60a5fa' }}>
+                    <span>{item.cta}</span>
+                    <ArrowRight size={12} />
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
         </>
       )}
 
