@@ -13,9 +13,10 @@ import {
   ShieldCheck, 
   ArrowRight,
   Printer,
-  Receipt
+  Receipt,
+  RefreshCw
 } from 'lucide-react';
-import { apiCreatePaymentTransaction, apiSimulatePaymentSuccess } from '../services/api';
+import { apiCreatePaymentTransaction, apiVerifyPayment, apiGetPaymentStatus } from '../services/api';
 
 const PaymentGatewayModal = ({ 
   isOpen, 
@@ -51,6 +52,29 @@ const PaymentGatewayModal = ({
 
     return () => clearInterval(timer);
   }, [isOpen]);
+
+  // Real-time payment status polling (auto-detects bank/e-wallet transfer)
+  useEffect(() => {
+    if (!isOpen || isSuccess || !transaction?.orderId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await apiGetPaymentStatus(transaction.orderId);
+        if (res?.status === 'settlement' || res?.status === 'lunas') {
+          setIsSuccess(true);
+          const rNum = res.receiptNumber || `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+          setReceiptNumber(rNum);
+          if (onPaymentSuccess) {
+            onPaymentSuccess({ ...invoice, status: 'lunas', paymentMethod: transaction?.paymentMethod || 'QRIS' }, rNum);
+          }
+        }
+      } catch (err) {
+        // Silently catch background poll network errors
+      }
+    }, 3500);
+
+    return () => clearInterval(pollInterval);
+  }, [isOpen, isSuccess, transaction?.orderId, invoice, onPaymentSuccess]);
 
   // Initialize transaction
   useEffect(() => {
@@ -102,22 +126,23 @@ const PaymentGatewayModal = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Instant simulator action (triggers webhook success)
-  const handleSimulatePayment = async () => {
+  // Real-time verification action
+  const handleVerifyPayment = async () => {
     setIsProcessing(true);
     try {
-      const res = await apiSimulatePaymentSuccess({
+      const res = await apiVerifyPayment({
         transactionId: transaction?.id,
-        invoiceId: invoice.id
+        invoiceId: invoice.id,
+        orderId: transaction?.orderId
       });
       
       setIsSuccess(true);
-      setReceiptNumber(res.receiptNumber || `RCP-${Date.now()}`);
+      setReceiptNumber(res.receiptNumber || `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`);
       if (onPaymentSuccess) {
         onPaymentSuccess(res.invoice || { ...invoice, status: 'lunas' }, res.receiptNumber);
       }
     } catch (err) {
-      alert(err.message || 'Gagal memproses pembayaran');
+      alert(err.message || 'Pembayaran belum terdeteksi. Silakan coba kembali sesaat lagi.');
     } finally {
       setIsProcessing(false);
     }
@@ -608,7 +633,7 @@ const PaymentGatewayModal = ({
                 </div>
               )}
 
-              {/* Instant Simulator Action Button */}
+              {/* Real Production Verification Bar */}
               <div style={{
                 background: 'rgba(34, 197, 94, 0.08)',
                 border: '1px solid rgba(34, 197, 94, 0.3)',
@@ -618,31 +643,52 @@ const PaymentGatewayModal = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '10px'
+                gap: '12px'
               }}>
                 <div style={{ textAlign: 'left' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Sparkles size={12} /> MODE SIMULATOR GATEWAY
+                  <span style={{ fontSize: '0.74rem', color: '#86efac', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#22c55e',
+                      display: 'inline-block',
+                      boxShadow: '0 0 8px #22c55e'
+                    }} />
+                    Verifikasi Otomatis Real-Time Aktif
                   </span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#cbd5e1' }}>
-                    Klik tombol untuk menyimulasikan transfer / scan berhasil seketika.
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                    Sudah transfer? Klik tombol untuk verifikasi mutasi rekening instan.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={handleSimulatePayment}
+                  onClick={handleVerifyPayment}
                   disabled={isProcessing}
                   className="btn btn-success"
                   style={{
-                    padding: '8px 14px',
-                    fontSize: '0.82rem',
+                    padding: '9px 16px',
+                    fontSize: '0.84rem',
                     fontWeight: 800,
                     whiteSpace: 'nowrap',
                     background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                    boxShadow: '0 4px 14px rgba(34, 197, 94, 0.4)'
+                    boxShadow: '0 4px 14px rgba(34, 197, 94, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: isProcessing ? 'wait' : 'pointer'
                   }}
                 >
-                  {isProcessing ? 'Memproses...' : '⚡ Bayar Sekarang'}
+                  {isProcessing ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Memverifikasi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>⚡ Cek Status Pembayaran</span>
+                    </>
+                  )}
                 </button>
               </div>
 

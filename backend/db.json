@@ -1571,6 +1571,20 @@
       "type": "layanan",
       "text": "Pesanan mitra baru: Depot Air & Gas Barokah (QRIS) dari Yes (Kamar 122) - Total Rp 20.500",
       "time": "2026-10-13T08:11:39.847Z"
+    },
+    {
+      "id": "ACT-1791880224512",
+      "kostUid": "KOST-K12DQR",
+      "type": "transaksi",
+      "text": "Pembayaran resmi RCP-KST-2026224497 (A02) sebesar Rp 0 LUNAS via QRIS",
+      "time": "2026-10-13T08:30:24.512Z"
+    },
+    {
+      "id": "ACT-1791880300841",
+      "kostUid": "KOST-K12DQR",
+      "type": "layanan",
+      "text": "Pesanan mitra baru: Depot Air & Gas Barokah (QRIS) dari Siti Rahma (Kamar A02) - Total Rp 20.500",
+      "time": "2026-10-13T08:31:40.841Z"
     }
   ],
   "invoices": [
@@ -1593,9 +1607,12 @@
       "userName": "Siti Rahma",
       "kamar": "A02",
       "amount": 1200000,
-      "status": "belum",
+      "status": "lunas",
       "month": "September 2026",
-      "date": "2026-09-25T09:46:52.917Z"
+      "date": "2026-09-25T09:46:52.917Z",
+      "paidAt": "2026-10-13T08:30:24.497Z",
+      "paymentMethod": "QRIS",
+      "receiptNumber": "RCP-KST-2026224497"
     },
     {
       "id": "INV-1790329613119",
@@ -1681,6 +1698,37 @@
       "status": "pending",
       "createdAt": "2026-10-13T07:22:26.411Z",
       "expiryTime": "2026-10-13T07:37:26.411Z"
+    },
+    {
+      "id": 1791880222992,
+      "orderId": "ORDER-1791880222992-9185",
+      "invoiceId": "INV-1790329613118",
+      "kostUid": "KOST-K12DQR",
+      "userId": 1790329612919,
+      "customerName": "Siti Rahma",
+      "roomNumber": "A02",
+      "amount": 1202000,
+      "paymentMethod": "QRIS",
+      "vaNumber": null,
+      "status": "settlement",
+      "createdAt": "2026-10-13T08:30:22.992Z",
+      "expiryTime": "2026-10-13T08:45:22.992Z",
+      "settledAt": "2026-10-13T08:30:24.497Z"
+    },
+    {
+      "id": 1791880224534,
+      "orderId": "ORDER-1791880224534-5428",
+      "invoiceId": "INV-1790329613118",
+      "kostUid": "KOST-K12DQR",
+      "userId": 1790329612919,
+      "customerName": "Siti Rahma",
+      "roomNumber": "A02",
+      "amount": 1202000,
+      "paymentMethod": "QRIS",
+      "vaNumber": null,
+      "status": "pending",
+      "createdAt": "2026-10-13T08:30:24.534Z",
+      "expiryTime": "2026-10-13T08:45:24.534Z"
     }
   ],
   "contracts": [
@@ -2031,6 +2079,40 @@
       "status": "Lunas (QRIS Instan) - Menyiapkan Pengantaran",
       "estimatedTime": "Sesuai Jadwal",
       "createdAt": "2026-10-13T08:11:39.833Z"
+    },
+    {
+      "id": "ORD-SRV-1791880300841",
+      "kostUid": "KOST-K12DQR",
+      "userId": 1790329612919,
+      "userName": "Siti Rahma",
+      "userPhone": "-",
+      "roomNumber": "A02",
+      "merchantId": "PTR-DEF-01-KOST-K12DQR",
+      "merchantName": "Depot Air & Gas Barokah",
+      "serviceName": "Depot Air & Gas Barokah",
+      "items": [
+        {
+          "id": "P-GLN-01",
+          "name": "Air Galon Aqua 19L",
+          "price": 19000,
+          "desc": "Diantar sampai depan pintu kamar",
+          "qty": 1
+        }
+      ],
+      "subtotal": 19000,
+      "ownerCommission": 1000,
+      "platformFee": 500,
+      "total": 20500,
+      "paymentMethod": "qris",
+      "paymentStatus": "paid",
+      "paymentMeta": {
+        "qrisTrxId": "QRIS-1791880300841",
+        "paidAt": "2026-10-13T08:31:40.841Z"
+      },
+      "notes": "Waktu: Segera (15-20 Menit). Catatan: ",
+      "status": "Lunas (QRIS Instan) - Menyiapkan Pengantaran",
+      "estimatedTime": "Sesuai Jadwal",
+      "createdAt": "2026-10-13T08:31:40.841Z"
     }
   ],
   "merchants": [
@@ -2377,6 +2459,178 @@
       ],
       "status": "active",
       "createdAt": "2026-10-13T08:10:32.550Z"
+    },
+    {
+      "id": "PTR-DEF-01-KOST-K12DQR",
+      "kostUid": "KOST-K12DQR",
+      "isAffiliate": false,
+      "name": "Depot Air & Gas Barokah",
+      "category": "galon",
+      "icon": "💧",
+      "phone": "081398765432",
+      "address": "Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)",
+      "distanceKm": 0.15,
+      "location": {
+        "lat": -6.237299999999999,
+        "lng": 106.8542
+      },
+      "commissionOwner": 1000,
+      "platformFee": 500,
+      "paymentMethods": [
+        "qris",
+        "monthly_bill"
+      ],
+      "products": [
+        {
+          "id": "P-GLN-01",
+          "name": "Air Galon Aqua 19L",
+          "price": 19000,
+          "desc": "Diantar sampai depan pintu kamar"
+        },
+        {
+          "id": "P-GLN-02",
+          "name": "Air Galon Le Minerale",
+          "price": 21000,
+          "desc": "Galon higienis sekali pakai"
+        },
+        {
+          "id": "P-GAS-01",
+          "name": "Gas LPG 3kg Melon",
+          "price": 23000,
+          "desc": "Tabung gas segel SNI resmi"
+        },
+        {
+          "id": "P-GLN-03",
+          "name": "Air Galon Vit 19L",
+          "price": 16000,
+          "desc": "Ekonomis & higienis"
+        }
+      ],
+      "status": "active",
+      "createdAt": "2026-10-13T08:30:20.925Z"
+    },
+    {
+      "id": "PTR-DEF-02-KOST-K12DQR",
+      "kostUid": "KOST-K12DQR",
+      "isAffiliate": false,
+      "name": "Melati Express Laundry Kiloan",
+      "category": "laundry",
+      "icon": "🧺",
+      "phone": "081287654321",
+      "address": "Jl. Tebet Barat Dalam VII No. 5",
+      "distanceKm": 0.35,
+      "location": {
+        "lat": -6.2402999999999995,
+        "lng": 106.8542
+      },
+      "commissionOwner": 1000,
+      "platformFee": 500,
+      "paymentMethods": [
+        "qris",
+        "monthly_bill"
+      ],
+      "products": [
+        {
+          "id": "P-LND-01",
+          "name": "Cuci + Setrika Reguler (2 Hari)",
+          "price": 6000,
+          "desc": "Harga per kg, wangi rapi terbungkus plastik"
+        },
+        {
+          "id": "P-LND-02",
+          "name": "Cuci Komplit Kilat Express (1 Hari)",
+          "price": 9000,
+          "desc": "Harga per kg, selesai 24 jam"
+        },
+        {
+          "id": "P-LND-03",
+          "name": "Cuci Sprei & Selimut Tebal",
+          "price": 20000,
+          "desc": "Per set sprei + sarung bantal"
+        }
+      ],
+      "status": "active",
+      "createdAt": "2026-10-13T08:30:20.925Z"
+    },
+    {
+      "id": "PTR-DEF-03-KOST-K12DQR",
+      "kostUid": "KOST-K12DQR",
+      "isAffiliate": true,
+      "name": "Dapur Kost Bu Nurul (Katering Harian)",
+      "category": "makanan",
+      "icon": "🍱",
+      "phone": "081576543210",
+      "address": "Gg. Kancil No. 8",
+      "distanceKm": 0.25,
+      "location": {
+        "lat": -6.2368,
+        "lng": 106.8522
+      },
+      "commissionOwner": 1500,
+      "platformFee": 500,
+      "paymentMethods": [
+        "qris",
+        "monthly_bill"
+      ],
+      "products": [
+        {
+          "id": "P-CAT-01",
+          "name": "Paket Nasi Rames Ayam Suwir",
+          "price": 18000,
+          "desc": "Nasi pulen, lauk ayam, sayur, sambal"
+        },
+        {
+          "id": "P-CAT-02",
+          "name": "Paket Nasi Goreng Spesial Telur",
+          "price": 15000,
+          "desc": "Porsi kenyang + kerupuk + acar"
+        },
+        {
+          "id": "P-CAT-03",
+          "name": "Paket Sayur Segar & Tahu Tempe",
+          "price": 13000,
+          "desc": "Menu sehat & hemat anak kost"
+        }
+      ],
+      "status": "active",
+      "createdAt": "2026-10-13T08:30:20.925Z"
+    },
+    {
+      "id": "PTR-DEF-04-KOST-K12DQR",
+      "kostUid": "KOST-K12DQR",
+      "isAffiliate": true,
+      "name": "Teknisi AC Sejuk Mandiri (Affiliate Mitra)",
+      "category": "service",
+      "icon": "❄️",
+      "phone": "081987654321",
+      "address": "Spesialis Servis Kamar Kost Jabodetabek",
+      "distanceKm": 1.2,
+      "location": {
+        "lat": -6.2433,
+        "lng": 106.8502
+      },
+      "commissionOwner": 5000,
+      "platformFee": 1000,
+      "paymentMethods": [
+        "qris",
+        "monthly_bill"
+      ],
+      "products": [
+        {
+          "id": "P-AC-01",
+          "name": "Cuci AC Standar 0.5 - 1 PK",
+          "price": 50000,
+          "desc": "Pembersihan indoor & outdoor unit"
+        },
+        {
+          "id": "P-AC-02",
+          "name": "Cuci AC + Tambah Freon R32/R410",
+          "price": 130000,
+          "desc": "Isi tekanan freon dingin maksimal"
+        }
+      ],
+      "status": "active",
+      "createdAt": "2026-10-13T08:30:20.925Z"
     }
   ]
 }

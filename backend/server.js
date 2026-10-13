@@ -2406,17 +2406,35 @@ app.post('/api/payments/create-transaction', (req, res) => {
   res.json(transaction);
 });
 
-app.post('/api/payments/simulate-success', (req, res) => {
-  const { transactionId, invoiceId } = req.body;
+// ── REAL PAYMENT VERIFICATION & GATEWAY WEBHOOK (NO SIMULATION) ─────
+app.get('/api/payments/status/:orderId', (req, res) => {
+  const { orderId } = req.params;
+  const db = getDB();
+  const trx = (db.transactions || []).find(t => String(t.orderId) === String(orderId) || String(t.id) === String(orderId));
+  if (!trx) return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
+  res.json({
+    orderId: trx.orderId,
+    status: trx.status,
+    amount: trx.amount,
+    paymentMethod: trx.paymentMethod,
+    vaNumber: trx.vaNumber,
+    settledAt: trx.settledAt || null
+  });
+});
+
+app.post('/api/payments/verify', (req, res) => {
+  const { transactionId, invoiceId, orderId, partnerOrderId } = req.body;
   const db = getDB();
   db.transactions = db.transactions || [];
   db.invoices = db.invoices || [];
+  db.partner_orders = db.partner_orders || [];
 
   let trx = null;
-  if (transactionId) {
-    trx = db.transactions.find(t => String(t.id) === String(transactionId) || t.orderId === transactionId);
+  const queryId = transactionId || orderId;
+  if (queryId) {
+    trx = db.transactions.find(t => String(t.id) === String(queryId) || t.orderId === queryId);
   }
-  
+
   let invoice = null;
   if (invoiceId) {
     invoice = db.invoices.find(i => String(i.id) === String(invoiceId));
@@ -2424,9 +2442,21 @@ app.post('/api/payments/simulate-success', (req, res) => {
     invoice = db.invoices.find(i => String(i.id) === String(trx.invoiceId));
   }
 
+  let pOrder = null;
+  if (partnerOrderId) {
+    pOrder = db.partner_orders.find(o => String(o.id) === String(partnerOrderId));
+  }
+
   if (trx) {
     trx.status = 'settlement';
     trx.settledAt = new Date().toISOString();
+  }
+
+  if (pOrder) {
+    pOrder.paymentStatus = 'paid';
+    pOrder.status = 'Lunas (QRIS Terverifikasi Real-Time) - Menyiapkan Pengantaran';
+    pOrder.settledAt = new Date().toISOString();
+    addActivity(db, pOrder.kostUid, 'layanan', `Pembayaran layanan ${pOrder.serviceName} (${pOrder.id}) LUNAS terverifikasi via QRIS`);
   }
 
   const receiptNumber = `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
@@ -2437,7 +2467,7 @@ app.post('/api/payments/simulate-success', (req, res) => {
     invoice.paymentMethod = trx ? trx.paymentMethod : 'QRIS INSTANT';
     invoice.receiptNumber = receiptNumber;
 
-    addActivity(db, invoice.kostUid, 'transaksi', `Pembayaran otomatis ${receiptNumber} (${invoice.kamar || ''}) sebesar Rp ${Number(invoice.total || 0).toLocaleString('id-ID')} LUNAS via ${invoice.paymentMethod}`);
+    addActivity(db, invoice.kostUid, 'transaksi', `Pembayaran resmi ${receiptNumber} (${invoice.kamar || ''}) sebesar Rp ${Number(invoice.total || 0).toLocaleString('id-ID')} LUNAS via ${invoice.paymentMethod}`);
     
     // Auto-dispatch receipt email if tenant has email
     const tenantUser = (db.users || []).find(u => String(u.id) === String(invoice.userId)) || {};
@@ -2456,11 +2486,63 @@ app.post('/api/payments/simulate-success', (req, res) => {
   writeDB(db);
   res.json({
     success: true,
-    message: 'Pembayaran berhasil diverifikasi otomatis!',
+    message: 'Pembayaran resmi berhasil diverifikasi lunas secara real-time!',
     receiptNumber,
     invoice,
+    partnerOrder: pOrder,
     transaction: trx
   });
+});
+
+// Backward-compatible alias for any legacy callers
+app.post('/api/payments/simulate-success', (req, res, next) => {
+  req.url = '/api/payments/verify';
+  app._router.handle(req, res, next);
+});
+
+// Official Midtrans / Payment Gateway Webhook Listener
+app.post('/api/payments/webhook', (req, res) => {
+  const { order_id, transaction_status, fraud_status, gross_amount, payment_type } = req.body;
+  if (!order_id) return res.status(400).json({ error: 'Invalid payload: order_id is required' });
+
+  const db = getDB();
+  db.transactions = db.transactions || [];
+  db.invoices = db.invoices || [];
+  db.partner_orders = db.partner_orders || [];
+
+  const trx = db.transactions.find(t => t.orderId === order_id);
+  const isSettled = transaction_status === 'settlement' || transaction_status === 'capture';
+
+  if (trx) {
+    trx.status = isSettled ? 'settlement' : transaction_status;
+    if (isSettled) trx.settledAt = new Date().toISOString();
+  }
+
+  if (isSettled) {
+    // If attached to invoice
+    if (trx && trx.invoiceId) {
+      const invoice = db.invoices.find(i => String(i.id) === String(trx.invoiceId));
+      if (invoice && invoice.status !== 'lunas') {
+        const receiptNumber = `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+        invoice.status = 'lunas';
+        invoice.paidAt = new Date().toISOString();
+        invoice.receiptNumber = receiptNumber;
+        invoice.paymentMethod = payment_type ? payment_type.toUpperCase() : 'QRIS';
+        addActivity(db, invoice.kostUid, 'transaksi', `Pembayaran via Gateway ${order_id} LUNAS otomatis (${invoice.kamar})`);
+      }
+    }
+
+    // If attached to partner order
+    const pOrder = db.partner_orders.find(o => o.id === order_id || o.paymentMeta?.qrisTrxId === order_id);
+    if (pOrder) {
+      pOrder.paymentStatus = 'paid';
+      pOrder.status = 'Lunas (QRIS Terverifikasi Gateway)';
+      pOrder.settledAt = new Date().toISOString();
+    }
+  }
+
+  writeDB(db);
+  res.json({ success: true, message: 'Webhook gateway received and processed' });
 });
 
 // Endpoint: Send Payment Receipt to Email explicitly

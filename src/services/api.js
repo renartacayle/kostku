@@ -315,11 +315,19 @@ export const apiCreatePaymentTransaction = (data) => {
   });
 };
 
-export const apiSimulatePaymentSuccess = (data) => {
-  return request('/payments/simulate-success', {
+export const apiVerifyPayment = (data) => {
+  return request('/payments/verify', {
     method: 'POST',
     body: JSON.stringify(data)
   });
+};
+
+export const apiGetPaymentStatus = (orderId) => {
+  return request(`/payments/status/${orderId}`);
+};
+
+export const apiSimulatePaymentSuccess = (data) => {
+  return apiVerifyPayment(data);
 };
 
 export const apiGetPaymentReceipt = (invoiceId) => {

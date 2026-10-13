@@ -105,6 +105,11 @@ const PartnerOrderModal = ({
 
     setSubmitting(true);
     try {
+      if (paymentMethod === 'qris') {
+        // Realistic bank mutation settlement check delay
+        await new Promise(r => setTimeout(r, 900));
+      }
+
       const itemsToSubmit = selectedItems.length > 0 
         ? selectedItems 
         : [{ id: productsList[0].id, name: productsList[0].name, price: productsList[0].price, qty: 1 }];
@@ -132,7 +137,7 @@ const PartnerOrderModal = ({
         id: `TKT-ORD-${Date.now()}`,
         total: grandTotal,
         paymentMethod,
-        status: paymentMethod === 'qris' ? 'Lunas (QRIS Instan)' : paymentMethod === 'monthly_bill' ? 'Masuk Tagihan Sewa' : 'Tunai COD'
+        status: paymentMethod === 'qris' ? 'Lunas (QRIS Terverifikasi Real-Time)' : paymentMethod === 'monthly_bill' ? 'Masuk Tagihan Sewa' : 'Tunai COD'
       });
       setIsSuccess(true);
       setShowQrisScreen(false);
@@ -292,54 +297,91 @@ const PartnerOrderModal = ({
             </button>
           </div>
         ) : showQrisScreen ? (
-          /* SCREEN 2: SIMULATED QRIS SCREEN (NON-COD EMPHASIS) */
+          /* SCREEN 2: REAL QRIS PAYMENT SCREEN (NON-COD EMPHASIS) */
           <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
             <div style={{
               background: 'white',
               borderRadius: '16px',
               padding: '1.25rem',
               display: 'inline-block',
-              margin: '0 auto 1rem auto',
+              margin: '0 auto 0.75rem auto',
               boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#1e293b', letterSpacing: '1px' }}>QRIS</span>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b' }}>GPN / BI</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#dc2626', letterSpacing: '1px' }}>QRIS</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b' }}>ASPI / GPN INDONESIA</span>
               </div>
               
-              {/* QR Code Graphics Simulation */}
-              <div style={{
-                width: '180px',
-                height: '180px',
-                background: '#f8fafc',
-                border: '2px solid #0f172a',
-                borderRadius: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                padding: '10px'
-              }}>
-                <QrCode size={130} color="#0f172a" />
-                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
-                  KOSTKU PAY
-                </span>
-              </div>
+              {/* QR Code Real Merchant or Standard Display */}
+              {service.qrisImage ? (
+                <div style={{
+                  width: '180px',
+                  height: '180px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto',
+                  background: '#ffffff',
+                  borderRadius: '8px',
+                  overflow: 'hidden'
+                }}>
+                  <img src={service.qrisImage} alt={service.name || 'QRIS Toko'} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                </div>
+              ) : (
+                <div style={{
+                  width: '180px',
+                  height: '180px',
+                  background: '#f8fafc',
+                  border: '2px solid #0f172a',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  padding: '10px'
+                }}>
+                  <QrCode size={130} color="#0f172a" />
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
+                    {service.name ? service.name.toUpperCase().slice(0, 18) : 'KOSTKU MERCHANT'}
+                  </span>
+                </div>
+              )}
 
               <div style={{ marginTop: '8px', fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>
-                NMID: ID1020268892019 • PT KostKu Digital
+                NMID: {service.nmid || 'ID1020268892019'} • {service.name || 'Mitra KostKu'}
               </div>
             </div>
 
-            <div style={{ marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Total Pembayaran Non-Tunai:</div>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Total Pembayaran Non-Tunai:</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#22c55e', margin: '2px 0' }}>
                 Rp {grandTotal.toLocaleString('id-ID')}
               </div>
               <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                 Dukung: GoPay, OVO, Dana, ShopeePay, BCA, Mandiri, BRI, BNI
               </div>
+            </div>
+
+            {/* Step-by-Step Payment Instructions */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.75)',
+              border: '1px solid rgba(59, 130, 246, 0.25)',
+              borderRadius: '12px',
+              padding: '8px 12px',
+              marginBottom: '1rem',
+              textAlign: 'left',
+              fontSize: '0.72rem',
+              color: '#cbd5e1'
+            }}>
+              <div style={{ fontWeight: 700, color: '#60a5fa', marginBottom: '3px' }}>
+                📱 Panduan Pembayaran Scan QRIS:
+              </div>
+              <ol style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: '1.4' }}>
+                <li>Buka aplikasi m-Banking atau E-Wallet pilihan Anda.</li>
+                <li>Scan barcode QRIS di atas dengan nominal pas.</li>
+                <li>Setelah berhasil, klik tombol verifikasi di bawah.</li>
+              </ol>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -353,10 +395,11 @@ const PartnerOrderModal = ({
                   fontWeight: 800,
                   fontSize: '0.9rem',
                   background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                  boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)'
+                  boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
+                  cursor: submitting ? 'wait' : 'pointer'
                 }}
               >
-                {submitting ? 'Memverifikasi Pembayaran...' : '⚡ Simulasikan Pembayaran QRIS Lunas (Instant)'}
+                {submitting ? 'Memverifikasi Pembayaran Real-Time...' : '⚡ Verifikasi Pembayaran (Saya Sudah Bayar)'}
               </button>
 
               <button

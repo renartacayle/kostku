@@ -175,6 +175,7 @@ const Dashboard = ({ user }) => {
     distanceKm: '0.2',
     commissionOwner: 1000,
     platformFee: 500,
+    qrisImage: '',
     isAffiliate: false,
     products: [
       { id: 'p1', name: 'Air Galon Aqua 19L', price: 19000, desc: 'Diantar sampai dalam kamar' }
@@ -195,6 +196,7 @@ const Dashboard = ({ user }) => {
         distanceKm: Number(newMerchantForm.distanceKm) || 0.3,
         commissionOwner: Number(newMerchantForm.commissionOwner) || 1000,
         platformFee: 500,
+        qrisImage: newMerchantForm.qrisImage?.trim() || null,
         paymentMethods: ['qris', 'monthly_bill']
       });
       setShowAddMerchantModal(false);
@@ -207,6 +209,7 @@ const Dashboard = ({ user }) => {
         distanceKm: '0.2',
         commissionOwner: 1000,
         platformFee: 500,
+        qrisImage: '',
         isAffiliate: false,
         products: [
           { id: 'p1', name: 'Air Galon Aqua 19L', price: 19000, desc: 'Diantar sampai dalam kamar' }
@@ -3650,6 +3653,23 @@ const Dashboard = ({ user }) => {
                   className="input-field"
                   style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
+                  Foto / URL QRIS Toko Asli (Opsional):
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://... atau kosongkan untuk pakai barcode QRIS KostKu"
+                  value={newMerchantForm.qrisImage}
+                  onChange={e => setNewMerchantForm(prev => ({ ...prev, qrisImage: e.target.value }))}
+                  className="input-field"
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                  💡 Jika diisi gambar QRIS rekening toko (BCA/GoPay/dll), anak kost akan men-scan kode asli tersebut.
+                </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
