@@ -166,6 +166,7 @@ const Dashboard = ({ user }) => {
   const [merchantSummary, setMerchantSummary] = useState(null);
   const [showAddMerchantModal, setShowAddMerchantModal] = useState(false);
   const [addingMerchant, setAddingMerchant] = useState(false);
+  const [merchantTab, setMerchantTab] = useState('all'); // 'all', 'personal', 'affiliate'
   const [newMerchantForm, setNewMerchantForm] = useState({
     name: '',
     category: 'galon',
@@ -173,8 +174,8 @@ const Dashboard = ({ user }) => {
     phone: '',
     address: '',
     distanceKm: '0.2',
-    commissionOwner: 1000,
-    platformFee: 500,
+    commissionOwner: 500,
+    platformFee: 200,
     qrisImage: '',
     isAffiliate: false,
     products: [
@@ -194,8 +195,8 @@ const Dashboard = ({ user }) => {
         ...newMerchantForm,
         kostUid: targetKostUid,
         distanceKm: Number(newMerchantForm.distanceKm) || 0.3,
-        commissionOwner: Number(newMerchantForm.commissionOwner) || 1000,
-        platformFee: 500,
+        commissionOwner: Math.min(500, Number(newMerchantForm.commissionOwner) || 500),
+        platformFee: 200,
         qrisImage: newMerchantForm.qrisImage?.trim() || null,
         paymentMethods: ['qris', 'monthly_bill']
       });
@@ -207,8 +208,8 @@ const Dashboard = ({ user }) => {
         phone: '',
         address: '',
         distanceKm: '0.2',
-        commissionOwner: 1000,
-        platformFee: 500,
+        commissionOwner: 500,
+        platformFee: 200,
         qrisImage: '',
         isAffiliate: false,
         products: [
@@ -2115,7 +2116,7 @@ const Dashboard = ({ user }) => {
                     ⚙️ Biaya Platform KostKu:
                   </div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#93c5fd', marginTop: '2px' }}>
-                    Rp 500 / order
+                    Rp 200 / order
                   </div>
                 </div>
 
@@ -2129,122 +2130,213 @@ const Dashboard = ({ user }) => {
                 </div>
               </div>
 
-              {/* Grid Daftar Mitra */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginBottom: '8px' }}>
-                {(ownerMerchants.length > 0 ? ownerMerchants : [
-                  { id: 'PTR-DEF-01', icon: '💧', name: 'Depot Air & Gas Barokah', category: 'galon', phone: '081398765432', distanceKm: 0.15, commissionOwner: 1000, products: [{ name: 'Aqua 19L', price: 19000 }] },
-                  { id: 'PTR-DEF-02', icon: '🧺', name: 'Melati Express Laundry Kiloan', category: 'laundry', phone: '081287654321', distanceKm: 0.35, commissionOwner: 1000, products: [{ name: 'Cuci Setrika', price: 6000 }] },
-                  { id: 'PTR-DEF-03', icon: '🍱', name: 'Dapur Kost Bu Nurul', category: 'makanan', phone: '081576543210', distanceKm: 0.25, commissionOwner: 1500, isAffiliate: true, products: [{ name: 'Nasi Rames', price: 18000 }] },
-                  { id: 'PTR-DEF-04', icon: '❄️', name: 'Teknisi AC Sejuk Mandiri', category: 'service', phone: '081987654321', distanceKm: 1.2, commissionOwner: 5000, isAffiliate: true, products: [{ name: 'Cuci AC', price: 50000 }] }
-                ]).map((m, idx) => {
-                  const cleanName = (m.name || '').replace(/\s*\((Affiliate|Affiliate Mitra|Katering Harian)\)/gi, '').trim();
-                  const isCustomMerchant = !m.isAffiliate && !String(m.id).includes('DEF') && !String(m.id).startsWith('def');
+              {/* Tab Filter Mitra: Pribadi vs Affiliate */}
+              {(() => {
+                const defaultList = [
+                  { id: 'PTR-DEF-01', icon: '💧', name: 'Depot Air & Gas Barokah', category: 'galon', phone: '081398765432', distanceKm: 0.15, commissionOwner: 500, isAffiliate: false, products: [{ name: 'Air Galon Vit 19L', price: 16000 }, { name: 'Air Galon Aqua 19L', price: 19000 }, { name: 'Air Galon Le Minerale', price: 21000 }] },
+                  { id: 'PTR-DEF-02', icon: '🧺', name: 'Melati Express Laundry Kiloan', category: 'laundry', phone: '081287654321', distanceKm: 0.35, commissionOwner: 500, isAffiliate: false, products: [{ name: 'Cuci Setrika Reguler', price: 6000 }, { name: 'Cuci Kilat Express', price: 9000 }] }
+                ];
+                const activeList = ownerMerchants.length > 0 ? ownerMerchants : defaultList;
+                const personalList = activeList.filter(m => !m.isAffiliate);
+                const affiliateList = activeList.filter(m => m.isAffiliate);
 
-                  return (
-                    <div
-                      key={m.id || idx}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.025)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                const displayedList = merchantTab === 'personal'
+                  ? personalList
+                  : merchantTab === 'affiliate'
+                  ? affiliateList
+                  : activeList;
+
+                return (
+                  <div>
+                    {/* Filter Tab Pills */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setMerchantTab('all')}
+                        style={{
+                          background: merchantTab === 'all' ? '#2563eb' : 'rgba(255, 255, 255, 0.04)',
+                          border: merchantTab === 'all' ? '1px solid #3b82f6' : '1px solid var(--border-color)',
+                          color: merchantTab === 'all' ? '#ffffff' : '#94a3b8',
+                          borderRadius: '8px',
+                          padding: '4px 10px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Semua Mitra ({activeList.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMerchantTab('personal')}
+                        style={{
+                          background: merchantTab === 'personal' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                          border: merchantTab === 'personal' ? '1px solid #22c55e' : '1px solid var(--border-color)',
+                          color: merchantTab === 'personal' ? '#4ade80' : '#94a3b8',
+                          borderRadius: '8px',
+                          padding: '4px 10px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🏢 Mitra Pribadi Kost ({personalList.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMerchantTab('affiliate')}
+                        style={{
+                          background: merchantTab === 'affiliate' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                          border: merchantTab === 'affiliate' ? '1px solid #f59e0b' : '1px solid var(--border-color)',
+                          color: merchantTab === 'affiliate' ? '#fbbf24' : '#94a3b8',
+                          borderRadius: '8px',
+                          padding: '4px 10px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🌐 Affiliate Jaringan ({affiliateList.length})
+                      </button>
+                    </div>
+
+                    {/* Jika Tab Affiliate dipilih atau kosong */}
+                    {merchantTab === 'affiliate' && affiliateList.length === 0 ? (
+                      <div style={{
+                        background: 'rgba(245, 158, 11, 0.03)',
+                        border: '1px dashed rgba(245, 158, 11, 0.3)',
                         borderRadius: '12px',
-                        padding: '12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                        transition: 'border-color 0.2s'
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '4px' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', minWidth: 0, flex: 1 }}>
-                            <span style={{ fontSize: '1.4rem', lineHeight: 1, marginTop: '2px' }}>{m.icon || '🏪'}</span>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div
-                                style={{
-                                  fontSize: '0.82rem',
-                                  fontWeight: 800,
-                                  color: '#f8fafc',
-                                  lineHeight: '1.25',
-                                  minHeight: '2.1rem',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  wordBreak: 'normal',
-                                  overflowWrap: 'break-word'
-                                }}
-                                title={cleanName}
-                              >
-                                {cleanName}
+                        padding: '16px',
+                        textAlign: 'center',
+                        marginBottom: '8px'
+                      }}>
+                        <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>📡</div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
+                          Belum Ada Affiliate Aktif di Radius 1.5 km Kost
+                        </div>
+                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', maxWidth: '480px', margin: '0 auto 8px auto', lineHeight: '1.4' }}>
+                          Saat ini belum ada pedagang atau teknisi affiliate mandiri yang mendaftar di area sekitar kost ini. Begitu ada affiliate baru yang bergabung di jaringan KostKu, otomatis akan langsung tampil di sini.
+                        </p>
+                        <span style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: 600 }}>
+                          ✓ Penghuni Anda saat ini tetap terlayani optimal oleh {personalList.length} Mitra Pribadi langganan Anda.
+                        </span>
+                      </div>
+                    ) : (
+                      /* Grid Daftar Mitra */
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginBottom: '8px' }}>
+                        {displayedList.map((m, idx) => {
+                          const cleanName = (m.name || '').replace(/\s*\((Affiliate|Affiliate Mitra|Katering Harian)\)/gi, '').trim();
+                          const isCustomMerchant = !m.isAffiliate && !String(m.id).includes('DEF') && !String(m.id).startsWith('def');
+
+                          return (
+                            <div
+                              key={m.id || idx}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.025)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '12px',
+                                padding: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                gap: '8px',
+                                transition: 'border-color 0.2s'
+                              }}
+                            >
+                              <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', minWidth: 0, flex: 1 }}>
+                                    <span style={{ fontSize: '1.4rem', lineHeight: 1, marginTop: '2px' }}>{m.icon || '🏪'}</span>
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                      <div
+                                        style={{
+                                          fontSize: '0.82rem',
+                                          fontWeight: 800,
+                                          color: '#f8fafc',
+                                          lineHeight: '1.25',
+                                          minHeight: '2.1rem',
+                                          display: '-webkit-box',
+                                          WebkitLineClamp: 2,
+                                          WebkitBoxOrient: 'vertical',
+                                          overflow: 'hidden',
+                                          wordBreak: 'normal',
+                                          overflowWrap: 'break-word'
+                                        }}
+                                        title={cleanName}
+                                      >
+                                        {cleanName}
+                                      </div>
+                                      <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '2px' }}>
+                                        📍 {m.distanceKm || 0.2} km • {m.phone || 'Toko Terverifikasi'}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {m.isAffiliate ? (
+                                    <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0, marginTop: '2px' }}>
+                                      Affiliate
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0, marginTop: '2px' }}>
+                                      Pribadi
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div style={{
+                                  fontSize: '0.68rem',
+                                  color: 'var(--text-secondary)',
+                                  background: 'rgba(0, 0, 0, 0.25)',
+                                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                                  padding: '6px 8px',
+                                  borderRadius: '6px',
+                                  margin: '4px 0',
+                                  minHeight: '2.5rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'center'
+                                }}>
+                                  <div>📦 <strong>{m.products?.length || 1} Produk Katalog:</strong></div>
+                                  <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <span style={{ color: '#93c5fd' }}>{m.products?.[0]?.name || 'Layanan Standar'}</span>{' '}
+                                    <span style={{ color: '#86efac' }}>(Rp {(m.products?.[0]?.price || 16000).toLocaleString('id-ID')})</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '2px' }}>
-                                📍 {m.distanceKm || 0.2} km • {m.phone || 'Toko Terverifikasi'}
+
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
+                                <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>
+                                  +Rp {(m.commissionOwner || 500).toLocaleString('id-ID')} Komisi
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {isCustomMerchant && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteMerchant(m.id, m.name)}
+                                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: '0.7rem' }}
+                                      title="Hapus Mitra"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedPartnerService(m)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.72rem', padding: '4px 10px', fontWeight: 700 }}
+                                  >
+                                    Pesan Layanan &rarr;
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-
-                          {m.isAffiliate ? (
-                            <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0, marginTop: '2px' }}>
-                              Affiliate
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0, marginTop: '2px' }}>
-                              Pribadi
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{
-                          fontSize: '0.68rem',
-                          color: 'var(--text-secondary)',
-                          background: 'rgba(0, 0, 0, 0.25)',
-                          border: '1px solid rgba(255, 255, 255, 0.04)',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          margin: '4px 0',
-                          minHeight: '2.5rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <div>📦 <strong>{m.products?.length || 1} Produk Katalog:</strong></div>
-                          <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            <span style={{ color: '#93c5fd' }}>{m.products?.[0]?.name || 'Layanan Standar'}</span>{' '}
-                            <span style={{ color: '#86efac' }}>(Rp {(m.products?.[0]?.price || 15000).toLocaleString('id-ID')})</span>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
-                        <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>
-                          +Rp {(m.commissionOwner || 1000).toLocaleString('id-ID')} Komisi
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {isCustomMerchant && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteMerchant(m.id, m.name)}
-                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: '0.7rem' }}
-                              title="Hapus Mitra"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPartnerService(m)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.72rem', padding: '4px 10px', fontWeight: 700 }}
-                          >
-                            Pesan Layanan &rarr;
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Inbox Obrolan Masuk Calon Penyewa */}
               <div style={{
@@ -3715,18 +3807,22 @@ const Dashboard = ({ user }) => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', color: '#38bdf8', marginBottom: '4px', fontWeight: 700 }}>
-                    Komisi Pemilik Kost (Rp):
+                    Komisi Pemilik (Maks. Rp 500):
                   </label>
                   <input
                     type="number"
                     min="0"
-                    step="500"
-                    placeholder="1000"
+                    max="500"
+                    step="100"
+                    placeholder="500"
                     value={newMerchantForm.commissionOwner}
-                    onChange={e => setNewMerchantForm(prev => ({ ...prev, commissionOwner: Number(e.target.value) }))}
+                    onChange={e => setNewMerchantForm(prev => ({ ...prev, commissionOwner: Math.min(500, Number(e.target.value)) }))}
                     className="input-field"
                     style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem', borderColor: 'rgba(56, 189, 248, 0.4)' }}
                   />
+                  <span style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                    💡 Cukup Rp 100 - Rp 500 perak
+                  </span>
                 </div>
 
                 <div>
@@ -3742,8 +3838,11 @@ const Dashboard = ({ user }) => {
                     color: '#94a3b8',
                     fontWeight: 700
                   }}>
-                    Rp 500 / order
+                    Rp 200 / order
                   </div>
+                  <span style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                    ⚡ Biaya platform non-COD
+                  </span>
                 </div>
               </div>
 

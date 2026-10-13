@@ -65,6 +65,10 @@ const UserDashboard = ({ user }) => {
   const [selectedService, setSelectedService] = useState(null);
   const [showOwnerChat, setShowOwnerChat] = useState(false);
   const [merchants, setMerchants] = useState([]);
+  const [partnerCategory, setPartnerCategory] = useState('all');
+  const [partnerSort, setPartnerSort] = useState('cheapest'); // 'cheapest', 'distance'
+  const [partnerBrand, setPartnerBrand] = useState('all');
+  const [partnerSearch, setPartnerSearch] = useState('');
 
   const fetchData = async () => {
     if (!user?.id) return;
@@ -651,18 +655,18 @@ const UserDashboard = ({ user }) => {
             )}
           </div>
 
-          {/* Direktori Layanan Sekitar Kost (0% Gangguan UX - Terasa Seperti Fasilitas Concierge Non-Tunai) */}
+          {/* Direktori Layanan Sekitar Kost (0% Gangguan UX - Fasilitas Concierge Non-Tunai) */}
           <div className="card glass-panel" style={{ border: '1px solid rgba(59, 130, 246, 0.25)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Sparkles size={18} color="#60a5fa" /> Layanan Mitra Sekitar Kost
+                  <Sparkles size={18} color="#60a5fa" /> Layanan Toko & Mitra Sekitar Kost
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Kebutuhan harian penghuni kost (Galon, Laundry, Katering, Gas) • Pembayaran non-tunai bebas uang kembalian
+                  Bebas pilih toko langganan & bandingkan harga termurah / beda merek • Antar langsung ke pintu kamar
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 <span style={{
                   fontSize: '0.68rem',
                   padding: '3px 8px',
@@ -672,62 +676,357 @@ const UserDashboard = ({ user }) => {
                   fontWeight: 700,
                   border: '1px solid rgba(34, 197, 94, 0.3)'
                 }}>
-                  💳 Non-Tunai / QRIS & Masuk Tagihan
+                  💳 Non-Tunai: QRIS & Masuk Tagihan Sewa
+                </span>
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '3px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  color: '#93c5fd',
+                  fontWeight: 700,
+                  border: '1px solid rgba(59, 130, 246, 0.3)'
+                }}>
+                  🏷️ Komisi Hemat Max Rp 500
                 </span>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-              {(merchants.length > 0 ? merchants : [
-                { id: 'm1', icon: '💧', name: 'Depot Air & Gas Barokah', category: 'galon', distanceKm: 0.15, products: [{ id: 'p1', name: 'Galon Aqua 19L', price: 19000, desc: 'Antar kamar' }] },
-                { id: 'm2', icon: '🧺', name: 'Melati Express Laundry Kiloan', category: 'laundry', distanceKm: 0.35, products: [{ id: 'p2', name: 'Cuci + Setrika Reguler', price: 6000, desc: 'Per kg' }] },
-                { id: 'm3', icon: '🍱', name: 'Dapur Kost Bu Nurul', category: 'makanan', distanceKm: 0.25, products: [{ id: 'p3', name: 'Paket Nasi Rames Ayam', price: 18000, desc: 'Menu sehat' }] },
-                { id: 'm4', icon: '❄️', name: 'Teknisi AC Sejuk Mandiri', category: 'service', distanceKm: 1.2, products: [{ id: 'p4', name: 'Cuci AC Standar', price: 50000, desc: 'Indoor & outdoor' }] }
-              ]).map((item, idx) => {
-                const sampleProduct = item.products?.[0];
-                return (
-                  <div
-                    key={item.id || idx}
-                    onClick={() => setSelectedService(item)}
-                    style={{
-                      cursor: 'pointer',
-                      background: 'rgba(255, 255, 255, 0.025)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '12px',
-                      padding: '12px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'; }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '1.4rem' }}>{item.icon || '🏪'}</span>
-                        <span style={{ fontSize: '0.65rem', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                          📍 {item.distanceKm || 0.2} km
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc' }}>{item.name || item.title}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        {sampleProduct ? `${sampleProduct.name} (Rp ${sampleProduct.price.toLocaleString('id-ID')})` : (item.desc || 'Layanan siap antar')}
-                      </div>
+            {/* Filter Kategori, Sortir & Pencarian */}
+            {(() => {
+              const defaultUserMerchants = [
+                {
+                  id: 'PTR-DEF-01',
+                  icon: '💧',
+                  name: 'Depot Air & Gas Barokah',
+                  category: 'galon',
+                  distanceKm: 0.15,
+                  isAffiliate: false,
+                  commissionOwner: 500,
+                  products: [
+                    { id: 'P-GLN-03', name: 'Air Galon Vit 19L', brand: 'Vit', price: 16000, desc: 'Paling hemat & higienis' },
+                    { id: 'P-GLN-01', name: 'Air Galon Aqua 19L', brand: 'Aqua', price: 19000, desc: 'Air mineral alami pegunungan' },
+                    { id: 'P-GLN-02', name: 'Air Galon Le Minerale 19L', brand: 'Le Minerale', price: 21000, desc: 'Galon sekali pakai higienis' },
+                    { id: 'P-GAS-01', name: 'Gas LPG 3kg Melon', brand: 'Pertamina', price: 23000, desc: 'Tabung gas segel resmi SNI' }
+                  ]
+                },
+                {
+                  id: 'PTR-DEF-02',
+                  icon: '🧺',
+                  name: 'Melati Express Laundry Kiloan',
+                  category: 'laundry',
+                  distanceKm: 0.35,
+                  isAffiliate: false,
+                  commissionOwner: 500,
+                  products: [
+                    { id: 'P-LND-01', name: 'Cuci + Setrika Reguler (2 Hari)', brand: 'Reguler', price: 6000, desc: 'Harga per kg, wangi rapi' },
+                    { id: 'P-LND-02', name: 'Cuci Komplit Kilat Express (1 Hari)', brand: 'Express', price: 9000, desc: 'Harga per kg, selesai 24 jam' },
+                    { id: 'P-LND-03', name: 'Cuci Sprei & Selimut Tebal', brand: 'Bedding', price: 20000, desc: 'Per set sprei + sarung bantal' }
+                  ]
+                }
+              ];
+
+              const rawList = merchants.length > 0 ? merchants : defaultUserMerchants;
+
+              // Filter by category
+              let list = rawList.filter(m => {
+                if (partnerCategory === 'all') return true;
+                if (partnerCategory === 'galon') return m.category === 'galon' || (m.products || []).some(p => p.name.toLowerCase().includes('galon'));
+                if (partnerCategory === 'laundry') return m.category === 'laundry' || (m.products || []).some(p => p.name.toLowerCase().includes('laundry') || p.name.toLowerCase().includes('cuci'));
+                if (partnerCategory === 'gas') return m.category === 'gas' || (m.products || []).some(p => p.name.toLowerCase().includes('gas') || p.name.toLowerCase().includes('lpg'));
+                if (partnerCategory === 'makanan') return m.category === 'makanan';
+                if (partnerCategory === 'service') return m.category === 'service';
+                return m.category === partnerCategory;
+              });
+
+              // Filter by brand
+              if (partnerBrand !== 'all') {
+                list = list.filter(m => {
+                  return (m.products || []).some(p => 
+                    (p.brand || '').toLowerCase() === partnerBrand.toLowerCase() ||
+                    p.name.toLowerCase().includes(partnerBrand.toLowerCase())
+                  );
+                });
+              }
+
+              // Filter by search query
+              if (partnerSearch.trim()) {
+                const q = partnerSearch.toLowerCase();
+                list = list.filter(m => {
+                  const matchName = m.name?.toLowerCase().includes(q);
+                  const matchProd = (m.products || []).some(p => 
+                    p.name?.toLowerCase().includes(q) || 
+                    p.desc?.toLowerCase().includes(q) || 
+                    p.brand?.toLowerCase().includes(q)
+                  );
+                  return matchName || matchProd;
+                });
+              }
+
+              // Sort list
+              list.sort((a, b) => {
+                if (partnerSort === 'cheapest') {
+                  const minA = Math.min(...(a.products || [{ price: 999999 }]).map(p => p.price));
+                  const minB = Math.min(...(b.products || [{ price: 999999 }]).map(p => p.price));
+                  return minA - minB;
+                } else if (partnerSort === 'distance') {
+                  return (a.distanceKm || 0) - (b.distanceKm || 0);
+                }
+                return 0;
+              });
+
+              return (
+                <div>
+                  {/* Controls Bar: Category Tabs & Sort Pills */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                    {/* Category Selector */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'all', label: 'Semua Layanan' },
+                        { id: 'galon', label: '💧 Air Galon' },
+                        { id: 'laundry', label: '🧺 Laundry' },
+                        { id: 'gas', label: '🔥 Gas LPG' }
+                      ].map(cat => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => { setPartnerCategory(cat.id); setPartnerBrand('all'); }}
+                          style={{
+                            background: partnerCategory === cat.id ? '#2563eb' : 'rgba(255, 255, 255, 0.04)',
+                            border: partnerCategory === cat.id ? '1px solid #3b82f6' : '1px solid var(--border-color)',
+                            color: partnerCategory === cat.id ? '#ffffff' : '#cbd5e1',
+                            borderRadius: '8px',
+                            padding: '4px 10px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
-                      <span style={{ color: '#4ade80', fontWeight: 600 }}>QRIS / Tagihan</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#60a5fa', fontWeight: 700 }}>
-                        <span>Pesan</span>
-                        <ArrowRight size={12} />
-                      </div>
+                    {/* Sorting Toggle: Termurah vs Terdekat */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.03)', padding: '3px 6px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Urutkan:</span>
+                      <button
+                        type="button"
+                        onClick={() => setPartnerSort('cheapest')}
+                        style={{
+                          background: partnerSort === 'cheapest' ? 'rgba(34, 197, 94, 0.2)' : 'transparent',
+                          color: partnerSort === 'cheapest' ? '#4ade80' : '#94a3b8',
+                          border: partnerSort === 'cheapest' ? '1px solid #22c55e' : 'none',
+                          borderRadius: '6px',
+                          padding: '2px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🏷️ Termurah
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPartnerSort('distance')}
+                        style={{
+                          background: partnerSort === 'distance' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                          color: partnerSort === 'distance' ? '#60a5fa' : '#94a3b8',
+                          border: partnerSort === 'distance' ? '1px solid #3b82f6' : 'none',
+                          borderRadius: '6px',
+                          padding: '2px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📍 Terdekat GPS
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* Brand Selector Pills (Khusus Galon atau jika ada filter merek) */}
+                  {(partnerCategory === 'galon' || partnerCategory === 'all') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>Pilih Merek Galon:</span>
+                      {[
+                        { id: 'all', label: 'Semua Merek' },
+                        { id: 'Vit', label: 'Vit (Rp 16rb - Hemat)' },
+                        { id: 'Aqua', label: 'Aqua (Rp 19rb)' },
+                        { id: 'Le Minerale', label: 'Le Minerale (Rp 21rb)' }
+                      ].map(b => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setPartnerBrand(b.id)}
+                          style={{
+                            background: partnerBrand === b.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.02)',
+                            border: partnerBrand === b.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.07)',
+                            color: partnerBrand === b.id ? '#38bdf8' : '#94a3b8',
+                            borderRadius: '999px',
+                            padding: '2px 9px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {b.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Grid Cards */}
+                  {list.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+                      <p style={{ margin: 0, fontSize: '0.84rem', color: '#94a3b8' }}>
+                        Tidak ditemukan mitra atau affiliate yang cocok dengan filter ini.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => { setPartnerCategory('all'); setPartnerBrand('all'); setPartnerSearch(''); }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ marginTop: '8px', fontSize: '0.74rem' }}
+                      >
+                        Reset Filter
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+                      {list.map((item, idx) => {
+                        const sortedProds = [...(item.products || [])].sort((a, b) => a.price - b.price);
+                        const cheapestProd = sortedProds[0];
+
+                        return (
+                          <div
+                            key={item.id || idx}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.025)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '14px',
+                              padding: '14px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              transition: 'all 0.2s',
+                              position: 'relative'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.06)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.025)'; }}
+                          >
+                            <div>
+                              {/* Top Bar: Icon, Name, Badge */}
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>{item.icon || '🏪'}</span>
+                                  <div>
+                                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.25 }}>
+                                      {item.name || item.title}
+                                    </div>
+                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                                      📍 {item.distanceKm || 0.2} km dari kost • Antar ke Pintu Kamar
+                                    </div>
+                                  </div>
+                                </div>
+                                {item.isAffiliate ? (
+                                  <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontWeight: 700, flexShrink: 0 }}>
+                                    Affiliate GPS
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontWeight: 700, flexShrink: 0 }}>
+                                    Mitra Kost
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Pilihan Merek & Produk dalam Toko ini */}
+                              <div style={{
+                                background: 'rgba(0, 0, 0, 0.25)',
+                                border: '1px solid rgba(255, 255, 255, 0.04)',
+                                borderRadius: '10px',
+                                padding: '8px 10px',
+                                margin: '6px 0'
+                              }}>
+                                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginBottom: '4px' }}>
+                                  Pilihan Varian / Merek Tersedia:
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {sortedProds.slice(0, 3).map((p, pIdx) => (
+                                    <div
+                                      key={p.id || pIdx}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedService({ ...item, preferredProductId: p.id });
+                                      }}
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        fontSize: '0.72rem',
+                                        padding: '3px 6px',
+                                        borderRadius: '6px',
+                                        background: pIdx === 0 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span style={{ color: '#f8fafc', fontWeight: 600 }}>{p.name}</span>
+                                        {pIdx === 0 && (
+                                          <span style={{ fontSize: '0.58rem', padding: '1px 4px', borderRadius: '3px', background: '#22c55e', color: '#0f172a', fontWeight: 800 }}>
+                                            Termurah
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span style={{ color: '#4ade80', fontWeight: 700 }}>
+                                        Rp {p.price.toLocaleString('id-ID')}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {sortedProds.length > 3 && (
+                                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textAlign: 'right', marginTop: '2px' }}>
+                                      +{sortedProds.length - 3} varian lainnya
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bottom Card Footer: Admin Transparan & Tombol Pesan */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                              <div>
+                                <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>Mulai dari:</div>
+                                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#4ade80' }}>
+                                  Rp {(cheapestProd?.price || 16000).toLocaleString('id-ID')}
+                                </div>
+                                <div style={{ fontSize: '0.62rem', color: '#38bdf8' }}>
+                                  +Rp 500 jasa antar/komisi
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setSelectedService(item)}
+                                className="btn btn-primary btn-sm"
+                                style={{
+                                  padding: '6px 12px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                                  borderRadius: '8px'
+                                }}
+                              >
+                                Pilih Merek & Pesan &rarr;
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </>
       )}

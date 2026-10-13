@@ -53,9 +53,10 @@ const PartnerOrderModal = ({
     if (service) {
       const initial = {};
       const prods = service.products || [];
+      const targetId = service.preferredProductId || prods[0]?.id;
       if (prods.length > 0) {
         prods.forEach((p, idx) => {
-          initial[p.id] = idx === 0 ? 1 : 0; // default 1 of first product
+          initial[p.id] = (p.id === targetId || (!targetId && idx === 0)) ? 1 : 0;
         });
       }
       setQuantities(initial);
@@ -68,14 +69,18 @@ const PartnerOrderModal = ({
 
   if (!isOpen || !service) return null;
 
-  const productsList = service.products && service.products.length > 0 ? service.products : [
+  const rawProducts = service.products && service.products.length > 0 ? service.products : [
     {
       id: 'default-prod',
       name: service.title || 'Layanan Standar',
-      price: service.title?.toLowerCase().includes('laundry') ? 6000 : service.title?.toLowerCase().includes('galon') ? 19000 : 20000,
+      brand: 'Standar',
+      price: service.title?.toLowerCase().includes('laundry') ? 6000 : service.title?.toLowerCase().includes('galon') ? 16000 : 20000,
       desc: service.desc || service.sub || 'Layanan siap antar ke kamar'
     }
   ];
+
+  // Urutkan produk dari harga termurah ke termahal agar anak kost langsung melihat opsi paling hemat
+  const productsList = [...rawProducts].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
 
   const updateQty = (id, delta) => {
     setQuantities(prev => {
@@ -91,9 +96,11 @@ const PartnerOrderModal = ({
     .filter(p => p.qty > 0);
 
   const subtotal = selectedItems.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
-  const effectiveSubtotal = subtotal > 0 ? subtotal : (productsList[0]?.price || 20000);
-  const ownerCommission = Number(service.commissionOwner) >= 0 ? Number(service.commissionOwner) : 1000;
-  const platformFee = Number(service.platformFee) >= 0 ? Number(service.platformFee) : 500;
+  const effectiveSubtotal = subtotal > 0 ? subtotal : (productsList[0]?.price || 16000);
+  
+  // Batasi komisi pemilik maksimal Rp 500 perak dan platform fee Rp 200
+  const ownerCommission = Math.min(500, Math.max(0, Number(service.commissionOwner) >= 0 ? Number(service.commissionOwner) : 500));
+  const platformFee = Math.min(500, Math.max(0, Number(service.platformFee) >= 0 ? Number(service.platformFee) : 200));
   const grandTotal = effectiveSubtotal + ownerCommission + platformFee;
 
   const handleProceedOrder = async () => {
@@ -426,8 +433,9 @@ const PartnerOrderModal = ({
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {productsList.map(prod => {
+                {productsList.map((prod, pIdx) => {
                   const qty = quantities[prod.id] || 0;
+                  const isLowest = pIdx === 0;
                   return (
                     <div
                       key={prod.id}
@@ -443,13 +451,25 @@ const PartnerOrderModal = ({
                       }}
                     >
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>
-                          {prod.name}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>
+                            {prod.name}
+                          </span>
+                          {prod.brand && (
+                            <span style={{ fontSize: '0.62rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', fontWeight: 700 }}>
+                              {prod.brand}
+                            </span>
+                          )}
+                          {isLowest && (
+                            <span style={{ fontSize: '0.62rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', fontWeight: 700 }}>
+                              Paling Hemat
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
                           {prod.desc || 'Siap diantar'}
                         </div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#60a5fa', marginTop: '2px' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#60a5fa', marginTop: '2px' }}>
                           Rp {prod.price.toLocaleString('id-ID')}
                         </div>
                       </div>
@@ -714,12 +734,12 @@ const PartnerOrderModal = ({
                 <span>Rp {effectiveSubtotal.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
-                <span>Komisi Mitra & Pengelola Kost</span>
-                <span style={{ color: '#38bdf8' }}>Rp {ownerCommission.toLocaleString('id-ID')}</span>
+                <span>Jasa Antar & Komisi Pemilik Kost (Maks. Rp 500)</span>
+                <span style={{ color: '#38bdf8', fontWeight: 700 }}>Rp {ownerCommission.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#94a3b8' }}>
-                <span>Biaya Layanan Aplikasi</span>
-                <span style={{ color: '#94a3b8' }}>Rp {platformFee.toLocaleString('id-ID')}</span>
+                <span>Biaya Platform KostKu (Non-COD)</span>
+                <span style={{ color: '#94a3b8', fontWeight: 600 }}>Rp {platformFee.toLocaleString('id-ID')}</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -732,6 +752,9 @@ const PartnerOrderModal = ({
               }}>
                 <span>Total Pembayaran:</span>
                 <span style={{ color: '#4ade80' }}>Rp {grandTotal.toLocaleString('id-ID')}</span>
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px', textAlign: 'center' }}>
+                💡 Komisi hemat Rp 500 perak • Transaksi langsung ke merchant tanpa markup mahal
               </div>
             </div>
 

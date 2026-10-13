@@ -2070,14 +2070,14 @@ const getDefaultMerchants = (kostUid, kostLat = -6.2383, kostLng = 106.8532) => 
     address: 'Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)',
     distanceKm: 0.15,
     location: { lat: kostLat + 0.001, lng: kostLng + 0.001 },
-    commissionOwner: 1000,
-    platformFee: 500,
+    commissionOwner: 500,
+    platformFee: 200,
     paymentMethods: ['qris', 'monthly_bill'],
     products: [
-      { id: 'P-GLN-01', name: 'Air Galon Aqua 19L', price: 19000, desc: 'Diantar sampai depan pintu kamar' },
-      { id: 'P-GLN-02', name: 'Air Galon Le Minerale', price: 21000, desc: 'Galon higienis sekali pakai' },
-      { id: 'P-GAS-01', name: 'Gas LPG 3kg Melon', price: 23000, desc: 'Tabung gas segel SNI resmi' },
-      { id: 'P-GLN-03', name: 'Air Galon Vit 19L', price: 16000, desc: 'Ekonomis & higienis' }
+      { id: 'P-GLN-03', name: 'Air Galon Vit 19L', brand: 'Vit', price: 16000, desc: 'Paling hemat & higienis (Termurah)' },
+      { id: 'P-GLN-01', name: 'Air Galon Aqua 19L', brand: 'Aqua', price: 19000, desc: 'Air mineral alami pegunungan' },
+      { id: 'P-GLN-02', name: 'Air Galon Le Minerale 19L', brand: 'Le Minerale', price: 21000, desc: 'Galon sekali pakai higienis bebas BPA' },
+      { id: 'P-GAS-01', name: 'Gas LPG 3kg Melon', brand: 'Pertamina', price: 23000, desc: 'Tabung gas segel SNI resmi' }
     ],
     status: 'active',
     createdAt: new Date().toISOString()
@@ -2093,56 +2093,13 @@ const getDefaultMerchants = (kostUid, kostLat = -6.2383, kostLng = 106.8532) => 
     address: 'Jl. Tebet Barat Dalam VII No. 5',
     distanceKm: 0.35,
     location: { lat: kostLat - 0.002, lng: kostLng + 0.001 },
-    commissionOwner: 1000,
-    platformFee: 500,
+    commissionOwner: 500,
+    platformFee: 200,
     paymentMethods: ['qris', 'monthly_bill'],
     products: [
-      { id: 'P-LND-01', name: 'Cuci + Setrika Reguler (2 Hari)', price: 6000, desc: 'Harga per kg, wangi rapi terbungkus plastik' },
-      { id: 'P-LND-02', name: 'Cuci Komplit Kilat Express (1 Hari)', price: 9000, desc: 'Harga per kg, selesai 24 jam' },
-      { id: 'P-LND-03', name: 'Cuci Sprei & Selimut Tebal', price: 20000, desc: 'Per set sprei + sarung bantal' }
-    ],
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: `PTR-DEF-03-${kostUid || 'DEF'}`,
-    kostUid: kostUid || 'KOST-JAKSEL-01',
-    isAffiliate: true,
-    name: 'Dapur Kost Bu Nurul',
-    category: 'makanan',
-    icon: '🍱',
-    phone: '081576543210',
-    address: 'Gg. Kancil No. 8',
-    distanceKm: 0.25,
-    location: { lat: kostLat + 0.0015, lng: kostLng - 0.001 },
-    commissionOwner: 1500,
-    platformFee: 500,
-    paymentMethods: ['qris', 'monthly_bill'],
-    products: [
-      { id: 'P-CAT-01', name: 'Paket Nasi Rames Ayam Suwir', price: 18000, desc: 'Nasi pulen, lauk ayam, sayur, sambal' },
-      { id: 'P-CAT-02', name: 'Paket Nasi Goreng Spesial Telur', price: 15000, desc: 'Porsi kenyang + kerupuk + acar' },
-      { id: 'P-CAT-03', name: 'Paket Sayur Segar & Tahu Tempe', price: 13000, desc: 'Menu sehat & hemat anak kost' }
-    ],
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: `PTR-DEF-04-${kostUid || 'DEF'}`,
-    kostUid: kostUid || 'KOST-JAKSEL-01',
-    isAffiliate: true,
-    name: 'Teknisi AC Sejuk Mandiri',
-    category: 'service',
-    icon: '❄️',
-    phone: '081987654321',
-    address: 'Spesialis Servis Kamar Kost Jabodetabek',
-    distanceKm: 1.2,
-    location: { lat: kostLat - 0.005, lng: kostLng - 0.003 },
-    commissionOwner: 5000,
-    platformFee: 1000,
-    paymentMethods: ['qris', 'monthly_bill'],
-    products: [
-      { id: 'P-AC-01', name: 'Cuci AC Standar 0.5 - 1 PK', price: 50000, desc: 'Pembersihan indoor & outdoor unit' },
-      { id: 'P-AC-02', name: 'Cuci AC + Tambah Freon R32/R410', price: 130000, desc: 'Isi tekanan freon dingin maksimal' }
+      { id: 'P-LND-01', name: 'Cuci + Setrika Reguler (2 Hari)', brand: 'Reguler', price: 6000, desc: 'Harga per kg, wangi rapi terbungkus plastik' },
+      { id: 'P-LND-02', name: 'Cuci Komplit Kilat Express (1 Hari)', brand: 'Express', price: 9000, desc: 'Harga per kg, selesai 24 jam' },
+      { id: 'P-LND-03', name: 'Cuci Sprei & Selimut Tebal', brand: 'Bedding', price: 20000, desc: 'Per set sprei + sarung bantal' }
     ],
     status: 'active',
     createdAt: new Date().toISOString()
@@ -2159,7 +2116,8 @@ app.get('/api/merchants', (req, res) => {
   const lat = targetKost?.location?.lat || -6.2383;
   const lng = targetKost?.location?.lng || 106.8532;
 
-  let existing = db.merchants.filter(m => m.kostUid === uid || m.kostUid === 'GENERAL');
+  // Filter: hanya kembalikan mitra pribadi milik kost ini atau affiliate aktif riil
+  let existing = db.merchants.filter(m => m.kostUid === uid || (m.isAffiliate && m.status === 'active'));
   if (existing.length === 0) {
     const defaults = getDefaultMerchants(uid, lat, lng);
     db.merchants.push(...defaults);
@@ -2178,6 +2136,10 @@ app.post('/api/merchants', (req, res) => {
   const db = getDB();
   db.merchants = db.merchants || [];
 
+  // Batasi komisi maksimal 500 perak sesuai aturan
+  const validCommission = Math.min(500, Math.max(0, Number(commissionOwner) >= 0 ? Number(commissionOwner) : 500));
+  const validPlatformFee = Math.min(500, Math.max(0, Number(platformFee) >= 0 ? Number(platformFee) : 200));
+
   const newMerchant = {
     id: 'PTR-' + Date.now(),
     kostUid: kostUid || 'KOST-JAKSEL-01',
@@ -2188,11 +2150,11 @@ app.post('/api/merchants', (req, res) => {
     address: address ? address.trim() : '',
     distanceKm: Number(distanceKm) > 0 ? Number(distanceKm) : 0.5,
     location: location || { lat: -6.2383, lng: 106.8532 },
-    commissionOwner: Number(commissionOwner) >= 0 ? Number(commissionOwner) : 1000,
-    platformFee: Number(platformFee) >= 0 ? Number(platformFee) : 500,
+    commissionOwner: validCommission,
+    platformFee: validPlatformFee,
     paymentMethods: Array.isArray(paymentMethods) && paymentMethods.length > 0 ? paymentMethods : ['qris', 'monthly_bill'],
     products: Array.isArray(products) && products.length > 0 ? products : [
-      { id: 'P-' + Date.now(), name: 'Layanan Utama', price: 20000, desc: 'Layanan standar siap antar' }
+      { id: 'P-' + Date.now(), name: 'Layanan Utama', price: 16000, desc: 'Layanan standar siap antar' }
     ],
     isAffiliate: Boolean(isAffiliate),
     status: 'active',
@@ -2250,8 +2212,8 @@ app.get('/api/merchants/summary', (req, res) => {
   const orders = (db.partner_orders || []).filter(o => o.kostUid === uid);
   const paidOrBilledOrders = orders.filter(o => o.paymentStatus === 'paid' || o.paymentStatus === 'billed_monthly');
 
-  const totalOwnerCommission = paidOrBilledOrders.reduce((acc, curr) => acc + (Number(curr.ownerCommission) || 1000), 0);
-  const totalPlatformFee = paidOrBilledOrders.reduce((acc, curr) => acc + (Number(curr.platformFee) || 500), 0);
+  const totalOwnerCommission = paidOrBilledOrders.reduce((acc, curr) => acc + Math.min(500, Number(curr.ownerCommission) || 500), 0);
+  const totalPlatformFee = paidOrBilledOrders.reduce((acc, curr) => acc + Math.min(500, Number(curr.platformFee) || 200), 0);
   const totalGrossAmount = paidOrBilledOrders.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
 
   res.json({
@@ -2305,9 +2267,10 @@ app.post('/api/partner-orders', (req, res) => {
   let orderStatus = 'Lunas (QRIS Instan) - Menyiapkan Pengantaran';
   let paymentMeta = {};
 
-  const calcSubtotal = Number(subtotal) || 18500;
-  const calcCommission = Number(ownerCommission) >= 0 ? Number(ownerCommission) : 1000;
-  const calcPlatformFee = Number(platformFee) >= 0 ? Number(platformFee) : 500;
+  const calcSubtotal = Number(subtotal) || 16000;
+  // Batasi komisi pemilik maksimal Rp 500 dan platform fee max Rp 200
+  const calcCommission = Math.min(500, Math.max(0, Number(ownerCommission) >= 0 ? Number(ownerCommission) : 500));
+  const calcPlatformFee = Math.min(500, Math.max(0, Number(platformFee) >= 0 ? Number(platformFee) : 200));
   const calcTotal = Number(total) || (calcSubtotal + calcCommission + calcPlatformFee);
 
   if (pMethod === 'monthly_bill') {
