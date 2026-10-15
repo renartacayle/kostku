@@ -234,6 +234,10 @@ export default function KostDetail({ user }) {
   }, [kost, hasBlueprint, activeTab]);
 
   const handleApplyClick = () => {
+    if (selectedRoomObj?.status === 'occupied') {
+      alert(`Kamar ${selectedRoom} saat ini sedang terisi/dihuni. Silakan pilih nomor kamar lain yang masih Siap Huni.`);
+      return;
+    }
     if (user) {
       if (user.name && !tenantName) setTenantName(user.name);
       if (user.phone && !phone) setPhone(user.phone);
@@ -750,11 +754,11 @@ export default function KostDetail({ user }) {
                             fontSize: '0.68rem',
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            color: '#6ee7b7',
+                            background: r.status === 'occupied' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                            color: r.status === 'occupied' ? '#f87171' : '#6ee7b7',
                             fontWeight: 700
                           }}>
-                            Siap Huni
+                            {r.status === 'occupied' ? 'Terisi' : 'Siap Huni'}
                           </span>
                         </div>
                         <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
@@ -1214,17 +1218,20 @@ export default function KostDetail({ user }) {
                 <button 
                   type="button"
                   onClick={handleApplyClick}
+                  disabled={selectedRoomObj?.status === 'occupied'}
                   style={{
                     width: '100%',
                     padding: '14px',
                     borderRadius: '14px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                    color: 'white',
+                    background: selectedRoomObj?.status === 'occupied'
+                      ? 'rgba(100, 116, 139, 0.25)'
+                      : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                    color: selectedRoomObj?.status === 'occupied' ? '#94a3b8' : 'white',
                     fontWeight: 800,
                     fontSize: '1rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 8px 20px rgba(37, 99, 235, 0.4)',
+                    cursor: selectedRoomObj?.status === 'occupied' ? 'not-allowed' : 'pointer',
+                    boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 8px 20px rgba(37, 99, 235, 0.4)',
                     transition: 'all 0.2s',
                     display: 'flex',
                     alignItems: 'center',
@@ -1233,7 +1240,11 @@ export default function KostDetail({ user }) {
                   }}
                 >
                   <CheckCircle2 size={18} />
-                  <span>Ajukan Sewa Kamar {selectedRoom}</span>
+                  <span>
+                    {selectedRoomObj?.status === 'occupied' 
+                      ? `Kamar ${selectedRoom} Sedang Terisi` 
+                      : `Ajukan Sewa Kamar ${selectedRoom}`}
+                  </span>
                 </button>
 
                 {/* Direct In-App Chat Consultation (Eliminates External WhatsApp Spam) */}
@@ -1289,22 +1300,25 @@ export default function KostDetail({ user }) {
         <button
           type="button"
           onClick={handleApplyClick}
+          disabled={selectedRoomObj?.status === 'occupied'}
           style={{
             padding: '10px 22px',
             borderRadius: '12px',
             border: 'none',
-            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            color: 'white',
+            background: selectedRoomObj?.status === 'occupied'
+              ? 'rgba(100, 116, 139, 0.3)'
+              : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            color: selectedRoomObj?.status === 'occupied' ? '#94a3b8' : 'white',
             fontWeight: 800,
             fontSize: '0.9rem',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)',
+            cursor: selectedRoomObj?.status === 'occupied' ? 'not-allowed' : 'pointer',
+            boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)',
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
           }}
         >
-          <span>Ajukan Sewa</span>
+          <span>{selectedRoomObj?.status === 'occupied' ? 'Kamar Terisi' : 'Ajukan Sewa'}</span>
         </button>
       </div>
 

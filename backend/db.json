@@ -1107,7 +1107,8 @@
             "capacity": 1,
             "size": "3x4m",
             "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80",
-            "plnMeterNo": "14285930219"
+            "plnMeterNo": "14285930219",
+            "status": "available"
           },
           {
             "id": "R2",
@@ -1152,7 +1153,8 @@
           "capacity": 1,
           "size": "3x4m",
           "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80",
-          "plnMeterNo": "14285930219"
+          "plnMeterNo": "14285930219",
+          "status": "available"
         },
         {
           "id": "R2",
@@ -1625,6 +1627,20 @@
       "type": "pengaturan",
       "text": "Sundul Kost aktif 7 hari (🔥 Rekomendasi Utama) - Rp 20.000 via QRIS",
       "time": "2026-10-13T11:39:28.260Z"
+    },
+    {
+      "id": "ACT-1792026168332",
+      "kostUid": "KOST-K12DQR",
+      "type": "pengguna",
+      "text": "Penghuni baru Sdr. Hendra Pratama (Kamar A01) telah didaftarkan",
+      "time": "2026-10-15T01:02:48.332Z"
+    },
+    {
+      "id": "ACT-1792026212667",
+      "kostUid": "KOST-K12DQR",
+      "type": "pengguna",
+      "text": "Penghuni Kamar A01 (Sdr. Hendra Pratama) telah dihapus",
+      "time": "2026-10-15T01:03:32.667Z"
     }
   ],
   "invoices": [

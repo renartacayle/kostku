@@ -532,22 +532,27 @@ app.post('/api/register', (req, res) => {
     return res.status(400).json({ error: 'Nama lengkap sesuai KTP wajib diisi' });
   }
 
-  // Validate NIK
-  const cleanNik = String(nik || '').trim();
-  if (!cleanNik || !/^\d{16}$/.test(cleanNik)) {
-    return res.status(400).json({ error: 'NIK wajib 16 digit angka sesuai KTP Anda' });
-  }
+  const isOwnerManualAdd = (role === 'user' && Boolean(kostUid));
 
-  // Enforce 1 KTP 1 Akun
-  const existingUserByNik = db.users.find(u => u.nik && String(u.nik) === cleanNik);
-  if (existingUserByNik) {
-    return res.status(400).json({ 
-      error: 'NIK ini sudah terdaftar! 1 KTP hanya berlaku untuk 1 akun. Jika ini akun Anda, silakan gunakan fitur Pemulihan Akun dengan NIK.' 
-    });
+  // Validate NIK
+  let cleanNik = String(nik || '').trim();
+  if (isOwnerManualAdd && !cleanNik) {
+    cleanNik = `MANUAL-${Date.now()}`;
+  } else {
+    if (!cleanNik || !/^\d{16}$/.test(cleanNik)) {
+      return res.status(400).json({ error: 'NIK wajib 16 digit angka sesuai KTP Anda' });
+    }
+    // Enforce 1 KTP 1 Akun
+    const existingUserByNik = db.users.find(u => u.nik && String(u.nik) === cleanNik);
+    if (existingUserByNik) {
+      return res.status(400).json({ 
+        error: 'NIK ini sudah terdaftar! 1 KTP hanya berlaku untuk 1 akun. Jika ini akun Anda, silakan gunakan fitur Pemulihan Akun dengan NIK.' 
+      });
+    }
   }
 
   // Validate Foto KTP (Anti-Bot)
-  if (!ktpImage) {
+  if (!isOwnerManualAdd && !ktpImage) {
     return res.status(400).json({ error: 'Foto KTP wajib diunggah untuk verifikasi identitas resmi (anti-bot)!' });
   }
 
@@ -566,12 +571,15 @@ app.post('/api/register', (req, res) => {
     id: Date.now().toString(),
     name: name.trim(),
     nik: cleanNik,
-    ktpImage,
+    ktpImage: ktpImage || '',
     email: email ? email.trim().toLowerCase() : '',
     phone: phone ? phone.trim() : '',
     password,
     role: role || 'user',
-    verifiedKtp: true,
+    kostUid: kostUid || undefined,
+    kamar: kamar || undefined,
+    bedsheets: 0,
+    verifiedKtp: !isOwnerManualAdd,
     createdAt: new Date().toISOString()
   };
 
@@ -655,14 +663,36 @@ app.post('/api/register', (req, res) => {
     });
 
   } else if (role === 'user') {
+    if (kostUid && kamar) {
+      const kost = db.kosts.find(k => k.uid === kostUid);
+      if (kost) {
+        if (kost.settings && kost.settings.rooms) {
+          const room = kost.settings.rooms.find(r => r.number === kamar);
+          if (room) {
+            room.status = 'occupied';
+            room.tenantId = newUser.id;
+            room.tenantName = newUser.name;
+          }
+        }
+        if (kost.rooms) {
+          const room = kost.rooms.find(r => r.number === kamar);
+          if (room) {
+            room.status = 'occupied';
+            room.tenantId = newUser.id;
+            room.tenantName = newUser.name;
+          }
+        }
+      }
+    }
+
     db.users.push(newUser);
-    addActivity(db, 'GLOBAL', 'pengguna', `Penghuni baru ${newUser.name} mendaftar (NIK terverifikasi)`);
+    addActivity(db, kostUid || 'GLOBAL', 'pengguna', `Penghuni baru ${newUser.name} ${kamar ? `(Kamar ${kamar}) ` : ''}telah didaftarkan`);
     writeDB(db);
 
     const safeUser = { ...newUser };
     delete safeUser.password;
     return res.json({ 
-      message: 'Berhasil mendaftar sebagai pencari kost! Identitas KTP terverifikasi.',
+      message: kostUid ? 'Penghuni berhasil didaftarkan ke kost!' : 'Berhasil mendaftar sebagai pencari kost! Identitas KTP terverifikasi.',
       user: safeUser
     });
 
@@ -822,10 +852,33 @@ app.delete('/api/users/:id', (req, res) => {
   const removedUser = db.users[index];
   db.users.splice(index, 1);
   
+  // Free up room in kost.settings.rooms and kost.rooms
+  if (removedUser.kostUid && removedUser.kamar) {
+    const kost = db.kosts.find(k => k.uid === removedUser.kostUid);
+    if (kost) {
+      if (kost.settings?.rooms) {
+        const room = kost.settings.rooms.find(r => r.number === removedUser.kamar);
+        if (room) {
+          room.status = 'available';
+          delete room.tenantId;
+          delete room.tenantName;
+        }
+      }
+      if (kost.rooms) {
+        const room = kost.rooms.find(r => r.number === removedUser.kamar);
+        if (room) {
+          room.status = 'available';
+          delete room.tenantId;
+          delete room.tenantName;
+        }
+      }
+    }
+  }
+
   addActivity(db, removedUser.kostUid, 'pengguna', `Penghuni Kamar ${removedUser.kamar} (${removedUser.name}) telah dihapus`);
   
   writeDB(db);
-  res.json({ message: 'Penghuni berhasil dihapus' });
+  res.json({ message: 'Penghuni berhasil dihapus dan kamar kembali tersedia' });
 });
 
 // ── OWNER MULTI-PROPERTIES (MULTI-KOST) ENDPOINTS ───────────────
@@ -1963,13 +2016,23 @@ app.put('/api/applications/:id', (req, res) => {
     const kost = db.kosts.find(k => k.uid === application.kostUid);
     const roomSettings = (kost?.settings?.rooms || []).find(r => r.number === application.kamar);
     
-    // Mark room occupied in kost settings
-    if (kost && kost.settings && kost.settings.rooms) {
-      const room = kost.settings.rooms.find(r => r.number === application.kamar);
-      if (room) {
-        room.status = 'occupied';
-        room.tenantId = user.id;
-        room.tenantName = user.name;
+    // Mark room occupied in kost settings and kost.rooms
+    if (kost) {
+      if (kost.settings && kost.settings.rooms) {
+        const room = kost.settings.rooms.find(r => r.number === application.kamar);
+        if (room) {
+          room.status = 'occupied';
+          room.tenantId = user.id;
+          room.tenantName = user.name;
+        }
+      }
+      if (kost.rooms) {
+        const room = kost.rooms.find(r => r.number === application.kamar);
+        if (room) {
+          room.status = 'occupied';
+          room.tenantId = user.id;
+          room.tenantName = user.name;
+        }
       }
     }
 

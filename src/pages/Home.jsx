@@ -1867,17 +1867,18 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
               </button>
 
               {kost.location?.lat && kost.location?.lng && (
-                <a
-                  href={getGmapsDirectionsUrl(
-                    kost.location.lat,
-                    kost.location.lng,
-                    userLocation?.lat,
-                    userLocation?.lng
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+                    const url = getGmapsDirectionsUrl(
+                      kost.location.lat,
+                      kost.location.lng,
+                      userLocation?.lat,
+                      userLocation?.lng
+                    );
+                    window.open(url, '_blank', 'noopener,noreferrer');
                   }}
                   style={{
                     padding: '4px 8px',
@@ -1888,7 +1889,6 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                     fontSize: '0.72rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    textDecoration: 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px'
@@ -1896,7 +1896,7 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                   title="Buka Navigasi Rute Google Maps"
                 >
                   <Navigation size={11} /> 🗺️ Rute
-                </a>
+                </button>
               )}
             </div>
 

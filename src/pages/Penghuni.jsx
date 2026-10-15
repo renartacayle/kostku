@@ -15,7 +15,8 @@ import {
   Users,
   ClipboardCheck,
   Key,
-  FileCheck
+  FileCheck,
+  Zap
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { 
