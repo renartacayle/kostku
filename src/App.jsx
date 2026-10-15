@@ -13,6 +13,7 @@ import InstallModal from './components/InstallModal';
 import CloudSyncModal from './components/CloudSyncModal';
 import AutoUpdateModal from './components/AutoUpdateModal';
 import AddPropertyModal from './components/AddPropertyModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { apiSwitchOwnerKost } from './services/api';
 
 import Login from './pages/Login';
@@ -183,88 +184,90 @@ function App() {
   return (
     <Router>
       <AutoUpdateModal />
-      <Routes>
-        {/* Public Landing & Marketplace */}
-        <Route path="/" element={<Home user={activeUser} />} />
-        <Route path="/search" element={<SearchKost user={activeUser} />} />
-        <Route path="/cari-kost" element={<SearchKost user={activeUser} />} />
-        <Route path="/cari" element={<Navigate to="/search" replace />} />
-        <Route path="/kost/:id" element={<KostDetail user={activeUser} />} />
-        
-        {/* Auth Pages (redirect to /dashboard if already logged in) */}
-        <Route 
-          path="/login" 
-          element={activeUser ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />} 
-        />
-        <Route 
-          path="/register" 
-          element={activeUser ? <Navigate to="/dashboard" replace /> : <Register onLogin={handleLogin} />} 
-        />
+      <ErrorBoundary>
+        <Routes>
+          {/* Public Landing & Marketplace */}
+          <Route path="/" element={<Home user={activeUser} />} />
+          <Route path="/search" element={<SearchKost user={activeUser} />} />
+          <Route path="/cari-kost" element={<SearchKost user={activeUser} />} />
+          <Route path="/cari" element={<Navigate to="/search" replace />} />
+          <Route path="/kost/:id" element={<KostDetail user={activeUser} />} />
+          
+          {/* Auth Pages (redirect to /dashboard if already logged in) */}
+          <Route 
+            path="/login" 
+            element={activeUser ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />} 
+          />
+          <Route 
+            path="/register" 
+            element={activeUser ? <Navigate to="/dashboard" replace /> : <Register onLogin={handleLogin} />} 
+          />
 
-        {/* Protected App Pages */}
-        <Route 
-          path="/dashboard" 
-          element={activeUser ? (
-            <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-              <Dashboard user={activeUser} />
-            </MainLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )} 
-        />
+          {/* Protected App Pages */}
+          <Route 
+            path="/dashboard" 
+            element={activeUser ? (
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                <Dashboard user={activeUser} />
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
 
-        <Route 
-          path="/penghuni" 
-          element={activeUser ? (
-            <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-              {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Penghuni user={activeUser} /> : <Navigate to="/dashboard" replace />}
-            </MainLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )} 
-        />
+          <Route 
+            path="/penghuni" 
+            element={activeUser ? (
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Penghuni user={activeUser} /> : <Navigate to="/dashboard" replace />}
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
 
-        <Route 
-          path="/keuangan" 
-          element={activeUser ? (
-            <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-              {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Keuangan user={activeUser} /> : <Navigate to="/dashboard" replace />}
-            </MainLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )} 
-        />
+          <Route 
+            path="/keuangan" 
+            element={activeUser ? (
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Keuangan user={activeUser} /> : <Navigate to="/dashboard" replace />}
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
 
-        <Route 
-          path="/laporan" 
-          element={<Navigate to="/keuangan" replace />} 
-        />
+          <Route 
+            path="/laporan" 
+            element={<Navigate to="/keuangan" replace />} 
+          />
 
-        <Route 
-          path="/komplain" 
-          element={activeUser ? (
-            <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-              <Komplain user={activeUser} />
-            </MainLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )} 
-        />
+          <Route 
+            path="/komplain" 
+            element={activeUser ? (
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                <Komplain user={activeUser} />
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
 
-        <Route 
-          path="/pengaturan" 
-          element={activeUser ? (
-            <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-              <Pengaturan user={activeUser} onUpdateUser={handleLogin} onLogout={handleLogout} />
-            </MainLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )} 
-        />
+          <Route 
+            path="/pengaturan" 
+            element={activeUser ? (
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                <Pengaturan user={activeUser} onUpdateUser={handleLogin} onLogout={handleLogout} />
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
 
-        {/* Global Fallback Route */}
-        <Route path="*" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />
-      </Routes>
+          {/* Global Fallback Route */}
+          <Route path="*" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />
+        </Routes>
+      </ErrorBoundary>
 
       {/* Global Mobile Bottom Navigation Bar (Home, Search, My Kost, Settings) */}
       <MobileBottomNav user={activeUser} />
