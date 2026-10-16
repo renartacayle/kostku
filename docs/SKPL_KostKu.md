@@ -335,9 +335,13 @@ flowchart TD
     D7[("D7: Activities & Logs")]
 
     %% P1 Autentikasi
-    PK & PM & AK -->|Data Registrasi KTP / Login| P1
+    PK -->|Data Registrasi KTP / Login| P1
+    PM -->|Data Registrasi KTP / Login| P1
+    AK -->|Data Registrasi KTP / Login| P1
     P1 <-->|Read / Write Akun User| D1
-    P1 -->|Session Token & Hak Akses| PK & PM & AK
+    P1 -->|Session Token & Hak Akses| PK
+    P1 -->|Session Token & Hak Akses| PM
+    P1 -->|Session Token & Hak Akses| AK
 
     %% P2 Eksplorasi
     PK -->|Kriteria Filter & GPS| P2
@@ -347,7 +351,7 @@ flowchart TD
     %% P3 Siklus Sewa
     PK -->|Kirim Formulir Booking| P3
     P3 <-->|Tulis / Update Status Aplikasi| D3
-    P3 <-->|Update Status Kamar (Available/Occupied)| D2
+    P3 <-->|"Update Status Kamar (Available/Occupied)"| D2
     P3 -->|Notifikasi Pengajuan Baru| PM
     PM -->|Konfirmasi Approval Sewa| P3
 
@@ -367,7 +371,7 @@ flowchart TD
     PM -->|Aktivasi Sundul Kost QRIS| P6
     P6 <-->|Update Badge Promosi & Timer| D2
     AK -->|Pesan Layanan Laundry/Katering| P6
-    P6 <-->|Tulis Order Mitra (Fee Rp 500)| D6
+    P6 <-->|"Tulis Order Mitra (Fee Rp 500)"| D6
     P6 -->|Penerusan Order ke Mitra Lokal| MT
     P6 <-->|Catat Jejak Log Audit| D7
 ```
