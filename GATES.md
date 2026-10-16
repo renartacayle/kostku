@@ -1,30 +1,30 @@
-# Gates: Master PPTX Presentation KostKu (Native PowerPoint 16:9 Deck)
+# Gates: Technical Blueprint & System Specification (Sistem Manajemen Kost & Hyperlocal UMKM)
 
-OWNS: scripts/generate_pptx.py, scripts/verify-pptx-*.mjs, GATES.md
+OWNS: BLUEPRINT_SISTEM_KOST.md, scripts/verify-blueprint-sistem-kost-*.mjs, GATES.md
 
-Scope: Menghasilkan presentasi PowerPoint native (.pptx) 16:9 beresolusi tinggi di Desktop yang mencakup seluruh isi SKPL KostKu untuk user dan developer (18 slide) berstandar Taste-Skill dan terverifikasi unlazy.
+Scope: Implementasi menyeluruh dokumen arsitektur dan spesifikasi teknis BLUEPRINT_SISTEM_KOST.md mencakup model bisnis B2B2C Freemium, 4 User Roles, 5 Koleksi Cloud Firestore terstruktur, logika mutasi Unified Wallet & Overdraft Limit (-15000), Firebase Storage Security Rules KTP, SLA Engine, dan checklist UI lengkap.
 
-- [x] G1: Generator script scripts/generate_pptx.py authored with 18 slides covering dual-track user and developer SKPL content
-  CHECK: node scripts/verify-pptx-generator.mjs
-  EXPECT: pptx generator script verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=3626817f1c612a73a9536751ed4adc02521213eddef65cb0ffecad1ca7518eca; exit=0; EXPECT=matched; output-sha256=2cfdd8a992d2e32df483bae56149c109f7c88197bf95f8501037267df039c3c5; output-bytes=42; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G1: Master blueprint document BLUEPRINT_SISTEM_KOST.md authored with complete depth covering business model, roles, database schema, implementation stages, and UI checklist
+  CHECK: node scripts/verify-blueprint-sistem-kost-doc.mjs
+  EXPECT: blueprint sistem kost doc verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=14b6eb8edce402edb57f5a0f4de6d67ff1e623aaaa040b47175d1de9025194cf; exit=0; EXPECT=matched; output-sha256=89fdb6aa75e66cc345a8d6809ecfbb184283a4b64e83140b71a90ad276a28779; output-bytes=46; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G2: Native PowerPoint file KostKu_SKPL_Presentation.pptx successfully compiled on Desktop with valid binary size
-  CHECK: node scripts/verify-pptx-file-exists.mjs
-  EXPECT: pptx file existence verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=eeabc86368f6d0b022a99e534330933f2e8f2d1c987e34ac512c1045a0fe8f4c; exit=0; EXPECT=matched; output-sha256=e96c9c3f66768188bbdbc12715cc2a6b59395bc5a9d4e48ac26eb23f13ae1925; output-bytes=40; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G2: Cloud Firestore schema definitions verified across all 5 collections (users, properties, mitra_umkm, products, orders) with exact fields and nested KYC/wallet objects
+  CHECK: node scripts/verify-blueprint-sistem-kost-schema.mjs
+  EXPECT: blueprint sistem kost schema verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=9dd664ce83410d332214dc7651e56a8fc6d176b5013a3a6d98a6a9de12275f19; exit=0; EXPECT=matched; output-sha256=fadc2b10399148995c391e64c8869479f8db51182fef81bd736e91b3475fb7f7; output-bytes=49; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G3: Generated PPTX presentation verified to contain exactly 18 slides in widescreen 16:9 format
-  CHECK: node scripts/verify-pptx-slide-count.mjs
-  EXPECT: pptx slide count verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=06398225f0241a9108feeddf1b7b0a0a23e191204506e01c66d0cd70ceaea46a; exit=0; EXPECT=matched; output-sha256=44ebc25efce5e8f90366de58552f30ae8b762af10543770cc46b0229262200a3; output-bytes=88; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G3: Unified Wallet mathematical mutation logic verified for QRIS settlement, COD fee debit, overdraft limit (-15000), and single-node owner payout
+  CHECK: node scripts/verify-blueprint-sistem-kost-wallet.mjs
+  EXPECT: blueprint sistem kost wallet verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=c021694f89d65277233ed2f46e19324be05d14e5b124db594f32eaef097182f0; exit=0; EXPECT=matched; output-sha256=c25b5b303d1cb8f2f06e8083a8ae34e1ab5dbcb591e9b86050c0a49ba1988bb5; output-bytes=49; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G4: PPTX presentation content verified to integrate complete dual perspectives for User and Developer tracks
-  CHECK: node scripts/verify-pptx-perspectives.mjs
-  EXPECT: pptx perspectives verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=ecfb9df91e33046d038c4f9d4c05661968946d8cb935ebd7da3a294e4eb4571b; exit=0; EXPECT=matched; output-sha256=784623a45bde670b38c6905e0580c92d1fb61e2e7bfb083eec819dbeed7aa11c; output-bytes=38; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G4: Firebase Security Rules and KTP data privacy specifications verified for Cloud Storage and Firestore queries
+  CHECK: node scripts/verify-blueprint-sistem-kost-security.mjs
+  EXPECT: blueprint sistem kost security verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=7f81834ea86228efe02ed723f1a1254f650cdc21c603ac625ad11a07937f8a33; exit=0; EXPECT=matched; output-sha256=45d2f832d054d4b4f26d4fbaa33f586d315d6f79f98efce12f20a4a7da256437; output-bytes=51; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G5: PPTX visual design verified to implement Taste-Skill bento layouts, Blue Hour theme, and colored badge pills
-  CHECK: node scripts/verify-pptx-taste-design.mjs
-  EXPECT: pptx taste design verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=4f653f41385889ca5f1e74a1e3ad086d43a881df6540e47302aa27c8a4cc6d86; exit=0; EXPECT=matched; output-sha256=d1e79d9a44437872325d357347b271b9ea33fced574d0b362d21383a505ff01d; output-bytes=71; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G5: Master blueprint file verified on Desktop at /home/rena/Desktop/BLUEPRINT_SISTEM_KOST.md with complete content and zero placeholders
+  CHECK: node scripts/verify-blueprint-sistem-kost-desktop.mjs
+  EXPECT: blueprint sistem kost desktop export verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=1ba2330afb93111855231f9236edd235a4e61e27200cc6e83d932b3282ac05b1; exit=0; EXPECT=matched; output-sha256=6d25f38850119c3783cd8b729028736c5b377d67cb8aac3845e579518a873ebc; output-bytes=57; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
