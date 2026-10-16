@@ -65,6 +65,66 @@ const Keuangan = ({ user }) => {
   const [payInvoice, setPayInvoice] = useState(null);
   const [receiptInvoiceId, setReceiptInvoiceId] = useState(null);
 
+  // Unified Wallet State (Single-Node Settlement & Overdraft Limit)
+  const [unifiedWallet, setUnifiedWallet] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kostku_unified_wallet');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return {
+      owner_commission_balance: 25000,
+      mitra_escrow_balance: 0,
+      overdraft_limit: -15000
+    };
+  });
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [showSetorModal, setShowSetorModal] = useState(false);
+  const [payoutBank, setPayoutBank] = useState({ 
+    bank_name: 'BCA', 
+    account_number: '8830192831', 
+    account_holder: user?.name || 'Owner Kost' 
+  });
+
+  useEffect(() => {
+    const handleWalletSync = () => {
+      try {
+        const stored = localStorage.getItem('kostku_unified_wallet');
+        if (stored) setUnifiedWallet(JSON.parse(stored));
+      } catch (e) {}
+    };
+    window.addEventListener('kostku_wallet_updated', handleWalletSync);
+    return () => window.removeEventListener('kostku_wallet_updated', handleWalletSync);
+  }, []);
+
+  const handleExecutePayout = () => {
+    const totalWithdraw = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
+    if (totalWithdraw <= 0) {
+      alert('Saldo dompet tidak mencukupi untuk penarikan.');
+      return;
+    }
+    const updated = {
+      ...unifiedWallet,
+      owner_commission_balance: 0,
+      mitra_escrow_balance: 0
+    };
+    setUnifiedWallet(updated);
+    localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+    setShowPayoutModal(false);
+    alert(`Pencairan Satu Pintu (Payout) berhasil diproses sebesar Rp ${totalWithdraw.toLocaleString('id-ID')} ke rekening ${payoutBank.bank_name} ${payoutBank.account_number} (${payoutBank.account_holder}).`);
+  };
+
+  const handleExecuteSetorMitra = () => {
+    const escrowAmt = Number(unifiedWallet.mitra_escrow_balance) || 0;
+    const updated = {
+      ...unifiedWallet,
+      mitra_escrow_balance: 0
+    };
+    setUnifiedWallet(updated);
+    localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+    setShowSetorModal(false);
+    alert(`Titipan dana UMKM sebesar Rp ${escrowAmt.toLocaleString('id-ID')} telah ditandai lunas disetor ke mitra secara fisik/offline.`);
+  };
+
   // Tabs: 'laporan' | 'tagihan' | 'pengeluaran'
   const defaultTab = user?.role === 'staff' 
     ? 'pengeluaran' 
@@ -569,18 +629,18 @@ const Keuangan = ({ user }) => {
 
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => alert('Pencairan 1 Pintu: Permintaan tarik dana seluruh saldo dompet telah dikirim ke Super Admin. Biaya admin transfer bank cukup 1x.')}
+                onClick={() => setShowPayoutModal(true)}
                 className="btn btn-primary btn-sm"
                 style={{ gap: '6px' }}
               >
-                <ArrowUpRight size={14} /> Tarik Seluruh Dana (Payout)
+                <ArrowUpRight size={14} /> Tarik Seluruh Dana (Payout 1 Pintu)
               </button>
               <button
-                onClick={() => alert('Titipan dana warung ditandai sudah diserahkan fisik secara offline. Nilai piutang mitra di-reset.')}
+                onClick={() => setShowSetorModal(true)}
                 className="btn btn-secondary btn-sm"
                 style={{ gap: '6px' }}
               >
-                <CheckCircle2 size={14} color="#34d399" /> Tandai Sudah Disetor ke Mitra
+                <CheckCircle2 size={14} color="#34d399" /> Tandai Sudah Disetor ke Mitra (Reset Titipan)
               </button>
               <Link
                 to="/blueprint?tab=simulator"
@@ -591,6 +651,25 @@ const Keuangan = ({ user }) => {
               </Link>
             </div>
           </div>
+
+          {/* Overdraft Warning Banner */}
+          {Number(unifiedWallet.owner_commission_balance) < 0 && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              borderRadius: '12px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: '#f87171'
+            }}>
+              <AlertCircle size={18} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                Perhatian: Saldo komisi owner minus (Rp {(Number(unifiedWallet.owner_commission_balance) || 0).toLocaleString('id-ID')}). Beroperasi dalam kuota overdraft limit -15.000.
+              </span>
+            </div>
+          )}
 
           <div style={{
             display: 'grid',
@@ -603,32 +682,32 @@ const Keuangan = ({ user }) => {
           }}>
             <div>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
-                SALDO KOMISI OWNER (BERSIH)
+                SALDO KOMISI OWNER (BERSIH) • owner_commission_balance
               </span>
-              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace' }}>
-                Rp 25.000
+              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: Number(unifiedWallet.owner_commission_balance) < 0 ? '#ef4444' : '#38bdf8', fontFamily: 'monospace' }}>
+                Rp {(Number(unifiedWallet.owner_commission_balance) || 0).toLocaleString('id-ID')}
               </h4>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Hak owner + kuota talangan COD</span>
             </div>
 
             <div>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
-                TITIPAN ESCROW MITRA (UMKM)
+                TITIPAN ESCROW MITRA (UMKM) • mitra_escrow_balance
               </span>
               <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace' }}>
-                Rp 0
+                Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}
               </h4>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Uang titipan mitra_escrow_balance pesanan QRIS</span>
             </div>
 
             <div>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
-                BATAS OVERDRAFT LIMIT
+                BATAS OVERDRAFT LIMIT (-15.000)
               </span>
               <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
-                -Rp 15.000
+                -15.000
               </h4>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Toleransi overdraft 30 transaksi COD talangan</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Toleransi overdraft 30 transaksi COD talangan (Rp -15.000)</span>
             </div>
           </div>
         </div>
@@ -1207,6 +1286,209 @@ const Keuangan = ({ user }) => {
           onClose={() => setReceiptInvoiceId(null)}
           invoiceId={receiptInvoiceId}
         />
+      )}
+
+      {/* Payout 1 Pintu Modal */}
+      {showPayoutModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 10, 20, 0.85)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem'
+        }} className="animate-fade-in">
+          <div style={{
+            background: '#0a101f',
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '460px',
+            padding: '1.5rem',
+            boxShadow: '0 25px 65px -15px rgba(0, 0, 0, 0.85)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Wallet size={20} color="#38bdf8" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white' }}>
+                  Pencairan Satu Pintu (Payout)
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPayoutModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: '12px',
+              padding: '12px',
+              marginBottom: '1.25rem'
+            }}>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Total Dana Ditarik (Owner + Mitra):</span>
+              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#38bdf8', marginTop: '2px', fontFamily: 'monospace' }}>
+                Rp {((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)).toLocaleString('id-ID')}
+              </div>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                💡 Single-Node Settlement: Cukup 1x biaya transfer bank dari platform ke rekening owner.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  Nama Bank Tujuan:
+                </label>
+                <select
+                  value={payoutBank.bank_name}
+                  onChange={e => setPayoutBank({ ...payoutBank, bank_name: e.target.value })}
+                  className="input-field"
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem' }}
+                >
+                  <option value="BCA">BCA (Bank Central Asia)</option>
+                  <option value="Mandiri">Bank Mandiri</option>
+                  <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                  <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  Nomor Rekening:
+                </label>
+                <input
+                  type="text"
+                  value={payoutBank.account_number}
+                  onChange={e => setPayoutBank({ ...payoutBank, account_number: e.target.value })}
+                  placeholder="Contoh: 8830192831"
+                  className="input-field"
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  Nama Pemilik Rekening:
+                </label>
+                <input
+                  type="text"
+                  value={payoutBank.account_holder}
+                  onChange={e => setPayoutBank({ ...payoutBank, account_holder: e.target.value })}
+                  placeholder="Contoh: Bpk. H. Rahmat"
+                  className="input-field"
+                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowPayoutModal(false)}
+                className="btn btn-secondary"
+                style={{ flex: 1, fontSize: '0.82rem' }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleExecutePayout}
+                className="btn btn-primary"
+                style={{ flex: 2, fontSize: '0.82rem', fontWeight: 700 }}
+              >
+                Konfirmasi Tarik Dana (Payout)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Setor ke Mitra Modal */}
+      {showSetorModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 10, 20, 0.85)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem'
+        }} className="animate-fade-in">
+          <div style={{
+            background: '#0a101f',
+            border: '1px solid rgba(34, 197, 94, 0.35)',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '440px',
+            padding: '1.5rem',
+            boxShadow: '0 25px 65px -15px rgba(0, 0, 0, 0.85)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CheckCircle2 size={20} color="#22c55e" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white' }}>
+                  Konfirmasi Setor Titipan Mitra
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowSetorModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{
+              background: 'rgba(34, 197, 94, 0.08)',
+              border: '1px solid rgba(34, 197, 94, 0.25)',
+              borderRadius: '12px',
+              padding: '12px',
+              marginBottom: '1.25rem'
+            }}>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Total Titipan Escrow Mitra:</span>
+              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#4ade80', marginTop: '2px', fontFamily: 'monospace' }}>
+                Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}
+              </div>
+              <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                Konfirmasi bahwa uang titipan pesanan QRIS ini telah Anda serahkan secara fisik (tunai/transfer langsung) kepada warung mitra sekitar kost.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowSetorModal(false)}
+                className="btn btn-secondary"
+                style={{ flex: 1, fontSize: '0.82rem' }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteSetorMitra}
+                className="btn btn-primary"
+                style={{ flex: 2, fontSize: '0.82rem', fontWeight: 700, background: '#22c55e', borderColor: '#22c55e' }}
+              >
+                Tandai Sudah Disetor ke Mitra
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

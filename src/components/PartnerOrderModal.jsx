@@ -15,7 +15,8 @@ import {
   Plus,
   Minus,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Star
 } from 'lucide-react';
 import { apiCreatePartnerOrder } from '../services/api';
 
@@ -39,6 +40,28 @@ const PartnerOrderModal = ({
 
   // Products quantity state
   const [quantities, setQuantities] = useState({});
+
+  // SLA Timer, Rating, and Unified Wallet state
+  const slaInitialMinutes = Number(service?.slaMinutes || service?.sla_minutes || 15);
+  const [slaSecondsLeft, setSlaSecondsLeft] = useState(slaInitialMinutes * 60);
+  const [rating, setRating] = useState(5);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (isSuccess && slaSecondsLeft > 0) {
+      timer = setInterval(() => {
+        setSlaSecondsLeft(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isSuccess, slaSecondsLeft]);
+
+  const formatSlaCountdown = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     if (user) {
@@ -64,6 +87,9 @@ const PartnerOrderModal = ({
       setShowQrisScreen(false);
       setIsSuccess(false);
       setOrderResult(null);
+      setSlaSecondsLeft(slaInitialMinutes * 60);
+      setRating(5);
+      setRatingSubmitted(false);
     }
   }, [service]);
 
@@ -98,10 +124,35 @@ const PartnerOrderModal = ({
   const subtotal = selectedItems.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
   const effectiveSubtotal = subtotal > 0 ? subtotal : (productsList[0]?.price || 16000);
   
-  // Batasi komisi pemilik maksimal Rp 500 perak dan platform fee Rp 200
-  const ownerCommission = Math.min(500, Math.max(0, Number(service.commissionOwner) >= 0 ? Number(service.commissionOwner) : 500));
-  const platformFee = Math.min(500, Math.max(0, Number(service.platformFee) >= 0 ? Number(service.platformFee) : 200));
+  // Price Lock Sesuai Blueprint: Base Price + Fixed Platform Fee (Rp 500) + Owner Markup Fee (Default: Rp 1.000)
+  const platformFee = 500; // Fixed Rp 500/transaksi
+  const ownerMarkupFee = Number(service.ownerMarkupFee ?? service.commissionOwner ?? 1000);
+  const ownerCommission = ownerMarkupFee;
   const grandTotal = effectiveSubtotal + ownerCommission + platformFee;
+  const slaMinutes = slaInitialMinutes;
+
+  const mutateUnifiedWallet = (method, subtotalAmt, markupAmt) => {
+    try {
+      const stored = localStorage.getItem('kostku_unified_wallet');
+      const current = stored ? JSON.parse(stored) : {
+        owner_commission_balance: 25000,
+        mitra_escrow_balance: 0,
+        overdraft_limit: -15000
+      };
+      
+      if (method === 'qris') {
+        current.owner_commission_balance = (Number(current.owner_commission_balance) || 0) + markupAmt;
+        current.mitra_escrow_balance = (Number(current.mitra_escrow_balance) || 0) + subtotalAmt;
+      } else if (method === 'cod') {
+        current.owner_commission_balance = (Number(current.owner_commission_balance) || 0) - 500; // Fixed Rp 500 platform fee
+      }
+      
+      localStorage.setItem('kostku_unified_wallet', JSON.stringify(current));
+      window.dispatchEvent(new Event('kostku_wallet_updated'));
+    } catch (e) {
+      console.warn('Wallet mutation error:', e);
+    }
+  };
 
   const handleProceedOrder = async () => {
     if (paymentMethod === 'qris' && !showQrisScreen) {
@@ -146,6 +197,10 @@ const PartnerOrderModal = ({
         paymentMethod,
         status: paymentMethod === 'qris' ? 'Lunas (QRIS Terverifikasi Real-Time)' : paymentMethod === 'monthly_bill' ? 'Masuk Tagihan Sewa' : 'Tunai COD'
       });
+      
+      // Real-time Unified Wallet Mutation
+      mutateUnifiedWallet(paymentMethod, effectiveSubtotal, ownerCommission);
+
       setIsSuccess(true);
       setShowQrisScreen(false);
     } catch (err) {
@@ -293,6 +348,118 @@ const PartnerOrderModal = ({
                   {service.name?.toLowerCase().includes('galon') || service.title?.toLowerCase().includes('galon') ? '15 - 20 Menit' : 'Sesuai Jadwal'}
                 </span>
               </div>
+            </div>
+
+            {/* SLA Real-Time Countdown Timer */}
+            <div style={{
+              background: slaSecondsLeft > 0 ? 'rgba(56, 189, 248, 0.1)' : 'rgba(239, 68, 68, 0.15)',
+              border: `1px solid ${slaSecondsLeft > 0 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(239, 68, 68, 0.4)'}`,
+              borderRadius: '16px',
+              padding: '1rem',
+              textAlign: 'left',
+              marginBottom: '1rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Clock size={16} color={slaSecondsLeft > 0 ? '#38bdf8' : '#ef4444'} />
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc' }}>
+                    SLA Pengantaran Mitra
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: '1.15rem',
+                  fontWeight: 900,
+                  fontFamily: 'monospace',
+                  color: slaSecondsLeft > 0 ? '#38bdf8' : '#ef4444'
+                }}>
+                  {formatSlaCountdown(slaSecondsLeft)}
+                </span>
+              </div>
+              <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: '#94a3b8' }}>
+                {slaSecondsLeft > 0
+                  ? `Batas waktu SLA (${slaMinutes} menit) untuk kurir mitra mengantarkan barang sampai di pintu Kamar ${roomNumber}.`
+                  : '⚠️ Batas waktu SLA telah lewat! Garansi pembatalan pesanan otomatis (cancelled_timeout) & refund dana siap diklaim.'}
+              </p>
+            </div>
+
+            {/* WhatsApp Trigger Button (wa.me) */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <a
+                href={`https://wa.me/${String(service?.whatsapp_number || service?.phone || '6281234567890').replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                  `Halo Mitra *${service?.name || service?.title || 'UMKM'}*,\nAda pesanan baru dari KostKu!\n\n📋 *ID Tiket:* ${orderResult?.id || 'ORD-NEW'}\n🏢 *Kamar:* ${roomNumber} (${customerName})\n💰 *Total:* Rp ${(orderResult?.total || grandTotal).toLocaleString('id-ID')}\n💳 *Metode:* ${paymentMethod === 'qris' ? 'LUNAS (QRIS)' : 'COD'}\n⏱️ *SLA:* ${slaMinutes} Menit\n\nMohon segera diproses dan diantar. Terima kasih!`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 15px rgba(37, 211, 102, 0.35)',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <Phone size={16} />
+                <span>Kirim Notifikasi via WhatsApp (wa.me)</span>
+              </a>
+              <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                Format otomatis memuat nomor kamar, nama pemesan, dan batas SLA pengantaran.
+              </span>
+            </div>
+
+            {/* Rating Mitra UMKM */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '12px',
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', marginBottom: '8px' }}>
+                Beri Rating Layanan Mitra:
+              </div>
+              {ratingSubmitted ? (
+                <div style={{ fontSize: '0.78rem', color: '#4ade80', fontWeight: 600 }}>
+                  ✓ Terima kasih! Ulasan {rating} bintang telah dicatat untuk auto-ranking mitra.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          color: star <= rating ? '#fbbf24' : '#475569'
+                        }}
+                      >
+                        <Star size={24} fill={star <= rating ? '#fbbf24' : 'none'} />
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRatingSubmitted(true)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.74rem', padding: '4px 12px' }}
+                  >
+                    Kirim Rating {rating} Bintang
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
@@ -730,15 +897,15 @@ const PartnerOrderModal = ({
               fontSize: '0.8rem'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
-                <span>Subtotal Barang ({selectedItems.length || 1} item)</span>
+                <span>Harga Dasar Mitra UMKM ({selectedItems.length || 1} item)</span>
                 <span>Rp {effectiveSubtotal.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
-                <span>Jasa Antar & Komisi Pemilik Kost (Maks. Rp 500)</span>
+                <span>Komisi Pemilik Kost (Markup Fee)</span>
                 <span style={{ color: '#38bdf8', fontWeight: 700 }}>Rp {ownerCommission.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#94a3b8' }}>
-                <span>Biaya Platform KostKu (Non-COD)</span>
+                <span>Biaya Platform KostKu (Fixed Platform Fee)</span>
                 <span style={{ color: '#94a3b8', fontWeight: 600 }}>Rp {platformFee.toLocaleString('id-ID')}</span>
               </div>
               <div style={{
@@ -750,11 +917,11 @@ const PartnerOrderModal = ({
                 fontSize: '0.92rem',
                 color: '#f8fafc'
               }}>
-                <span>Total Pembayaran:</span>
+                <span>Total Pembayaran Tenant:</span>
                 <span style={{ color: '#4ade80' }}>Rp {grandTotal.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px', textAlign: 'center' }}>
-                💡 Komisi hemat Rp 500 perak • Transaksi langsung ke merchant tanpa markup mahal
+                💡 Price Lock: Biaya Platform tetap Rp 500 • Ekosistem Hyperlocal UMKM Terpercaya
               </div>
             </div>
 

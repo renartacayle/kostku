@@ -43,6 +43,7 @@ import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
 import PackageLockerCard from '../components/PackageLockerCard';
 import InAppChatModal from '../components/InAppChatModal';
 import PartnerOrderModal from '../components/PartnerOrderModal';
+import TenantKycModal from '../components/TenantKycModal';
 
 const UserDashboard = ({ user }) => {
   const [currentUser, setCurrentUser] = useState(user);
@@ -62,6 +63,7 @@ const UserDashboard = ({ user }) => {
   const [selectedReceiptId, setSelectedReceiptId] = useState(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showSmartLockModal, setShowSmartLockModal] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [showOwnerChat, setShowOwnerChat] = useState(false);
   const [merchants, setMerchants] = useState([]);
@@ -369,7 +371,7 @@ const UserDashboard = ({ user }) => {
                 <span className="badge badge-primary">Penghuni Aktif</span>
               </div>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {kostName && <><strong style={{ color: '#93c5fd' }}>{kostName}</strong> • </>}Kamar: <strong style={{ color: 'white' }}>{currentUser.kamar}</strong> • Cuci Sprei: <strong style={{ color: 'var(--accent-success)' }}>{currentUser.bedsheets || 0}x</strong>
+                {kostName && <><strong style={{ color: '#93c5fd' }}>{kostName}</strong> • </>}Kamar: <strong style={{ color: 'white' }}>{currentUser.kamar}</strong> • Cuci Sprei: <strong style={{ color: 'var(--accent-success)' }}>{currentUser.bedsheets || 0}x</strong> • Poin: <strong style={{ color: '#fbbf24' }}>{currentUser?.loyalty_points || 250} Poin</strong>
               </p>
             </div>
 
@@ -433,6 +435,75 @@ const UserDashboard = ({ user }) => {
               </button>
             </div>
           </div>
+
+          {/* KYC KTP & Wajib Lapor RT/RW Banner */}
+          {currentUser?.kyc_data?.verified_status === 'verified' ? (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              borderRadius: '16px',
+              padding: '12px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShieldCheck size={20} color="#34d399" />
+                <div>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc' }}>
+                    ✓ Identitas Terverifikasi Resmi RT/RW
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>
+                    NIK: {currentUser?.kyc_data?.nik ? `${currentUser.kyc_data.nik.slice(0, 6)}******${currentUser.kyc_data.nik.slice(-4)}` : '337401******1234'} • Sinkronisasi Data Kependudukan Aktif
+                  </span>
+                </div>
+              </div>
+              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontWeight: 700, fontSize: '0.74rem' }}>
+                Check-in Sah Hukum
+              </span>
+            </div>
+          ) : (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.1) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              borderRadius: '16px',
+              padding: '14px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'rgba(245, 158, 11, 0.2)', padding: '8px', borderRadius: '10px', color: '#fbbf24' }}>
+                  <AlertCircle size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#f8fafc' }}>
+                    {currentUser?.kyc_data?.verified_status === 'pending'
+                      ? '⏳ Verifikasi KTP Sedang Ditinjau Pengelola Kost'
+                      : '⚠️ Wajib Lapor Kependudukan RT/RW: Lengkapi KTP & NIK 16 Digit'}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#cbd5e1', marginTop: '2px' }}>
+                    {currentUser?.kyc_data?.verified_status === 'pending'
+                      ? `NIK: ${currentUser.kyc_data.nik} • Pengelola sedang memeriksa keaslian foto KTP Anda.`
+                      : 'Wajib diisi oleh seluruh penghuni saat check-in agar tercatat resmi di sistem kependudukan lingkungan kost.'}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowKycModal(true)}
+                className="btn btn-primary btn-sm"
+                style={{ gap: '6px', fontWeight: 700, padding: '8px 14px' }}
+              >
+                <ShieldCheck size={14} />
+                <span>{currentUser?.kyc_data?.verified_status === 'pending' ? 'Perbarui KTP' : 'Unggah KTP & NIK Sekarang'}</span>
+              </button>
+            </div>
+          )}
           {/* Approved Application Alert Banner if applicable */}
           {activeApplication?.status === 'approved' && (
             <div style={{
@@ -1090,6 +1161,16 @@ const UserDashboard = ({ user }) => {
         service={selectedService}
         user={currentUser || user}
         kost={{ uid: currentUser?.kostUid || user?.kostUid, kostName: kostName || 'KostKu' }}
+      />
+
+      {/* TENANT KYC & KTP CHECK-IN MODAL */}
+      <TenantKycModal
+        isOpen={showKycModal}
+        onClose={() => setShowKycModal(false)}
+        user={currentUser || user}
+        onKycSubmitted={(newKyc) => {
+          setCurrentUser(prev => ({ ...prev, kyc_data: newKyc }));
+        }}
       />
 
     </div>
