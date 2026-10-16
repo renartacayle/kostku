@@ -2735,10 +2735,18 @@ async function checkOrSyncPaymentStatus(orderId, req = null) {
     return { notFound: true, status: 'not_found', error: 'Pesanan / transaksi tidak ditemukan' };
   }
 
-  const currentStatus = trx?.status || pOrder?.paymentStatus || inv?.status || 'pending';
+  // Hierarchy of payment status:
+  // If a specific transaction attempt exists, it is the primary entity.
+  // A transaction attempt (QRIS/VA) is ONLY settled if trx.status === 'settlement'.
+  // We do NOT allow a past settled invoice or unrelated record to prematurely mark a pending transaction attempt as settled!
+  const isAlreadySettled = trx
+    ? (trx.status === 'settlement')
+    : pOrder
+      ? (pOrder.paymentStatus === 'paid')
+      : (inv && String(inv.id) === String(orderId) ? (inv.status === 'lunas') : false);
 
   // If already settled, return immediately
-  if (currentStatus === 'settlement' || currentStatus === 'paid' || currentStatus === 'lunas') {
+  if (isAlreadySettled) {
     return {
       success: true,
       orderId,
@@ -2881,12 +2889,23 @@ async function checkOrSyncPaymentStatus(orderId, req = null) {
     }
   }
 
-  // Fallback: check local database status
-  const isSettled = trx?.status === 'settlement' || pOrder?.paymentStatus === 'paid' || inv?.status === 'lunas';
+  // Fallback: check local database status strictly
+  const isSettled = trx
+    ? (trx.status === 'settlement')
+    : pOrder
+      ? (pOrder.paymentStatus === 'paid')
+      : (inv && String(inv.id) === String(orderId) ? (inv.status === 'lunas') : false);
+
+  const fallbackStatus = trx
+    ? trx.status
+    : pOrder
+      ? (pOrder.paymentStatus === 'paid' ? 'settlement' : (pOrder.paymentStatus || 'pending'))
+      : (inv && String(inv.id) === String(orderId) ? (inv.status === 'lunas' ? 'settlement' : inv.status) : 'pending');
+
   return {
     success: isSettled,
     orderId,
-    status: isSettled ? 'settlement' : (trx?.status || 'pending'),
+    status: isSettled ? 'settlement' : fallbackStatus,
     isPaid: isSettled,
     amount: trx?.amount || pOrder?.total || inv?.total || 0,
     paymentMethod: trx?.paymentMethod || 'QRIS',
@@ -3174,6 +3193,13 @@ app.post('/api/payments/verify', async (req, res) => {
         invoice: syncRes.inv,
         partnerOrder: syncRes.pOrder,
         transaction: syncRes.trx
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        status: syncRes.status || 'pending',
+        message: 'Pembayaran belum terdeteksi masuk dari gateway atau e-wallet. Silakan selesaikan pembayaran terlebih dahulu.',
+        orderId: queryId
       });
     }
   }
