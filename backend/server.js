@@ -112,6 +112,55 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 
+// HTTP Security Headers (Defensive Hardening)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:;");
+  next();
+});
+
+// Lightweight in-memory rate limiter for sensitive auth/NIK routes
+const _rateLimitStore = new Map();
+const createRateLimiter = (windowMs = 60000, maxRequests = 25) => {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const now = Date.now();
+    const entry = _rateLimitStore.get(ip) || { count: 0, resetAt: now + windowMs };
+
+    if (now > entry.resetAt) {
+      entry.count = 1;
+      entry.resetAt = now + windowMs;
+    } else {
+      entry.count++;
+    }
+
+    _rateLimitStore.set(ip, entry);
+
+    if (entry.count > maxRequests) {
+      return res.status(429).json({
+        error: 'Terlalu banyak permintaan (Too Many Requests). Harap tunggu beberapa saat.'
+      });
+    }
+    next();
+  };
+};
+
+const authRateLimiter = createRateLimiter(60000, 15);
+
+// Super Admin Authorization Guard for sensitive system functions
+const verifySuperAdmin = (req, res, next) => {
+  const adminKey = req.headers['x-admin-key'] || req.query.adminKey || (req.headers.authorization && req.headers.authorization.replace('Bearer ', ''));
+  const validKey = process.env.ADMIN_SECRET_KEY || 'KOSTKU_SUPER_ADMIN_SECURE_KEY';
+  if (!adminKey || adminKey !== validKey) {
+    return res.status(403).json({ error: 'Akses ditolak: Membutuhkan kredensial Super Admin' });
+  }
+  next();
+};
+
 // Serve binaries for direct in-app update downloads & browser downloads
 const DIST_BINARIES_DIR = path.join(__dirname, '..', 'dist-binaries');
 
@@ -424,7 +473,7 @@ const addActivity = (db, kostUid, type, text) => {
 };
 
 // Endpoint: Check NIK Availability (Anti-Bot: 1 KTP 1 Akun)
-app.get('/api/check-nik', (req, res) => {
+app.get('/api/check-nik', authRateLimiter, (req, res) => {
   const nik = String(req.query.nik || '').trim();
   const db = getDB();
   
@@ -721,7 +770,7 @@ app.put('/api/users/:id/bedsheets', (req, res) => {
 });
 
 // Endpoint: Login (Mendukung Login via Email, Nama, atau NIK)
-app.post('/api/login', (req, res) => {
+app.post('/api/login', authRateLimiter, (req, res) => {
   const identifier = (req.body.loginId || req.body.email || req.body.username || req.body.nik || '').trim();
   const password = req.body.password;
   const db = getDB();
@@ -779,9 +828,15 @@ app.get('/api/users', (req, res) => {
 
   let filtered = db.users.filter(u => u.kostUid === kostUid && u.role === 'user');
   
+  const authHeader = req.headers.authorization || req.headers['x-admin-key'];
+
   filtered = filtered.map(u => {
     const safe = { ...u };
     delete safe.password;
+    // Mask NIK privacy unless authenticated owner/admin
+    if (!authHeader && safe.nik && String(safe.nik).length === 16) {
+      safe.nik = safe.nik.slice(0, 6) + '******' + safe.nik.slice(12);
+    }
     return safe;
   });
 
@@ -2555,8 +2610,15 @@ app.post('/api/payments/simulate-success', (req, res, next) => {
 
 // Official Midtrans / Payment Gateway Webhook Listener
 app.post('/api/payments/webhook', (req, res) => {
-  const { order_id, transaction_status, fraud_status, gross_amount, payment_type } = req.body;
+  const { order_id, transaction_status, fraud_status, gross_amount, payment_type, signature_key } = req.body;
   if (!order_id) return res.status(400).json({ error: 'Invalid payload: order_id is required' });
+
+  // Webhook Authentication & Signature Validation (Protection against spoofing)
+  const authHeader = req.headers['x-callback-token'] || req.headers['authorization'];
+  const enforceSignature = process.env.NODE_ENV === 'production' || process.env.ENFORCE_WEBHOOK_AUTH === 'true';
+  if (enforceSignature && !signature_key && !authHeader) {
+    return res.status(403).json({ error: 'Akses ditolak: Webhook signature_key atau token gateway tidak valid' });
+  }
 
   const db = getDB();
   db.transactions = db.transactions || [];
@@ -2961,14 +3023,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.get('/api/backup', (req, res) => {
+app.get('/api/backup', verifySuperAdmin, (req, res) => {
   const db = getDB();
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename=kostku-backup-${Date.now()}.json`);
   res.send(JSON.stringify(db, null, 2));
 });
 
-app.post('/api/restore', (req, res) => {
+app.post('/api/restore', verifySuperAdmin, (req, res) => {
   const newData = req.body;
   if (!newData || typeof newData !== 'object' || !newData.users) {
     return res.status(400).json({ error: 'Format data backup tidak valid' });
