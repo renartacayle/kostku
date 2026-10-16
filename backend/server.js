@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const QRCode = require('qrcode');
 const nodemailer = require('nodemailer');
 
 // Helper: Dynamic Email Transporter & Payment Receipt Email Sender
@@ -2403,16 +2405,28 @@ app.post('/api/partner-orders', (req, res) => {
   const db = getDB();
   db.partner_orders = db.partner_orders || [];
 
+  // Defensive validation against price tampering & negative injection
+  const rawSubtotal = Number(subtotal);
+  const rawTotal = Number(total);
+  if (isNaN(rawSubtotal) || rawSubtotal < 0 || (total !== undefined && (isNaN(rawTotal) || rawTotal <= 0))) {
+    return res.status(400).json({ error: 'Nilai subtotal dan total pesanan harus berupa angka positif yang sah.' });
+  }
+
+  const sanitizeStr = (s) => String(s || '').replace(/<[^>]*>?/gm, '').trim();
+  const cleanUserName = sanitizeStr(userName) || 'Penghuni Kost';
+  const cleanRoomNumber = sanitizeStr(roomNumber) || '-';
+  const cleanNotes = sanitizeStr(notes);
+
   const pMethod = paymentMethod || 'qris';
   let paymentStatus = 'paid';
   let orderStatus = 'Lunas (QRIS Instan) - Menyiapkan Pengantaran';
   let paymentMeta = {};
 
-  const calcSubtotal = Number(subtotal) || 16000;
-  // Batasi komisi pemilik maksimal Rp 500 dan platform fee max Rp 200
-  const calcCommission = Math.min(500, Math.max(0, Number(ownerCommission) >= 0 ? Number(ownerCommission) : 500));
-  const calcPlatformFee = Math.min(500, Math.max(0, Number(platformFee) >= 0 ? Number(platformFee) : 200));
-  const calcTotal = Number(total) || (calcSubtotal + calcCommission + calcPlatformFee);
+  const calcSubtotal = rawSubtotal > 0 ? rawSubtotal : 16000;
+  // Batasi komisi pemilik & platform fee sesuai blueprint
+  const calcCommission = Math.max(0, Math.min(10000, Number(ownerCommission) >= 0 ? Number(ownerCommission) : 1000));
+  const calcPlatformFee = 500; // Fixed Rp 500 platform fee
+  const calcTotal = rawTotal > 0 ? rawTotal : (calcSubtotal + calcCommission + calcPlatformFee);
 
   if (pMethod === 'monthly_bill') {
     paymentStatus = 'billed_monthly';
@@ -2441,12 +2455,12 @@ app.post('/api/partner-orders', (req, res) => {
     id: 'ORD-SRV-' + Date.now(),
     kostUid: kostUid || 'KOST-JAKSEL-01',
     userId: userId || 'GUEST',
-    userName: userName || 'Penghuni Kost',
-    userPhone: userPhone || '-',
-    roomNumber: roomNumber || '-',
+    userName: cleanUserName,
+    userPhone: sanitizeStr(userPhone) || '-',
+    roomNumber: cleanRoomNumber,
     merchantId: merchantId || null,
-    merchantName: merchantName || title,
-    serviceName: title,
+    merchantName: sanitizeStr(merchantName || title),
+    serviceName: sanitizeStr(title),
     items: Array.isArray(items) && items.length > 0 ? items : [{ name: title, price: calcSubtotal, qty: 1 }],
     subtotal: calcSubtotal,
     ownerCommission: calcCommission,
@@ -2455,7 +2469,7 @@ app.post('/api/partner-orders', (req, res) => {
     paymentMethod: pMethod,
     paymentStatus,
     paymentMeta,
-    notes: notes || '',
+    notes: cleanNotes,
     status: orderStatus,
     estimatedTime: title.toLowerCase().includes('galon') ? '15 - 20 Menit' : title.toLowerCase().includes('laundry') ? '1 Hari' : 'Sesuai Jadwal',
     createdAt: new Date().toISOString()
@@ -2474,6 +2488,476 @@ app.post('/api/partner-orders', (req, res) => {
       ? 'Pesanan berhasil dicatat ke tagihan sewa kamar bulan depan.'
       : 'Pesanan dibuat (Bayar Tunai COD saat diantar).'
   });
+});
+
+// ── UPGRADE: BANK INDONESIA ASPI & MIDTRANS REAL DYNAMIC QRIS CORE ENGINE ──
+function calculateCrc16(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+      } else {
+        crc = (crc << 1) & 0xFFFF;
+      }
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function generateEMVCoQris({
+  nmid = 'ID1020268892019',
+  merchantName = 'DEPOT AIR & GAS BAROKAH',
+  city = 'JAKARTA',
+  postalCode = '12810',
+  amount = 17000,
+  orderId = 'ORD-' + Date.now()
+}) {
+  const cleanName = String(merchantName).toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 25) || 'KOSTKU MERCHANT';
+  const cleanCity = String(city).toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 15) || 'JAKARTA';
+  const cleanPostal = String(postalCode).slice(0, 5) || '12810';
+  const cleanNmid = String(nmid).replace(/[^A-Za-z0-9]/g, '') || 'ID1020268892019';
+  const amtStr = String(Math.round(Number(amount) || 0));
+
+  // Tag 26: LinkAja / GPN National Merchant ID
+  const tag26Sub00 = '0014ID.LINKAJA.WWW';
+  const tag26Sub01 = '0118936009110022207908';
+  const tag26Sub02 = `0215${cleanNmid.padEnd(15, '0')}`;
+  const tag26Sub03 = '0303UME';
+  const tag26Val = tag26Sub00 + tag26Sub01 + tag26Sub02 + tag26Sub03;
+  const tag26 = `26${String(tag26Val.length).padStart(2, '0')}${tag26Val}`;
+
+  // Tag 51: DANA / ShopeePay / QRIS Network
+  const tag51Sub00 = '0014ID.DANA.WWW';
+  const tag51Sub01 = '0118936008980000207908';
+  const tag51Sub02 = `0215${cleanNmid.padEnd(15, '0')}`;
+  const tag51Sub03 = '0303UME';
+  const tag51Val = tag51Sub00 + tag51Sub01 + tag51Sub02 + tag51Sub03;
+  const tag51 = `51${String(tag51Val.length).padStart(2, '0')}${tag51Val}`;
+
+  const tag52 = '52045411';
+  const tag53 = '5303360';
+  const tag54 = `54${String(amtStr.length).padStart(2, '0')}${amtStr}`;
+  const tag58 = '5802ID';
+  const tag59 = `59${String(cleanName.length).padStart(2, '0')}${cleanName}`;
+  const tag60 = `60${String(cleanCity.length).padStart(2, '0')}${cleanCity}`;
+  const tag61 = `61${String(cleanPostal.length).padStart(2, '0')}${cleanPostal}`;
+  const refStr = String(orderId).slice(-16);
+  const tag62Val = `01${String(refStr.length).padStart(2, '0')}${refStr}`;
+  const tag62 = `62${String(tag62Val.length).padStart(2, '0')}${tag62Val}`;
+
+  const base = `000201010212${tag26}${tag51}${tag52}${tag53}${tag54}${tag58}${tag59}${tag60}${tag61}${tag62}6304`;
+  const checksum = calculateCrc16(base);
+  return base + checksum;
+}
+
+async function chargeQrisGateway({
+  orderId,
+  amount,
+  merchantName = 'DEPOT AIR & GAS BAROKAH',
+  nmid = 'ID1020268892019',
+  serverKey = null,
+  isProduction = false
+}) {
+  const db = getDB();
+  const gwConfig = db.settings?.gateway || {};
+  const effectiveKey = (serverKey || process.env.MIDTRANS_SERVER_KEY || gwConfig.serverKey || '').trim();
+  const effectiveIsProd = isProduction || gwConfig.isProduction || process.env.NODE_ENV === 'production';
+  const isRealKey = effectiveKey && !effectiveKey.includes('TESTKEY') && effectiveKey.length > 15;
+
+  let provider = 'aspi_emvco_dynamic';
+  let qrString = '';
+  let midtransActionUrl = null;
+
+  if (isRealKey) {
+    try {
+      const midtransBase = effectiveIsProd ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
+      const authHeader = 'Basic ' + Buffer.from(effectiveKey + ':').toString('base64');
+      const midtransRes = await fetch(`${midtransBase}/v2/charge`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
+        },
+        body: JSON.stringify({
+          payment_type: 'qris',
+          transaction_details: {
+            order_id: orderId,
+            gross_amount: Math.round(Number(amount) || 0)
+          },
+          qris: {
+            acquirer: 'gopay'
+          }
+        })
+      });
+
+      const midData = await midtransRes.json();
+      if (midtransRes.ok && (midData.status_code === '201' || midData.status_code === '200')) {
+        provider = effectiveIsProd ? 'midtrans_production' : 'midtrans_sandbox';
+        qrString = midData.qr_string || '';
+        const qrAction = Array.isArray(midData.actions) ? midData.actions.find(a => a.name === 'generate-qr-code') : null;
+        if (qrAction) midtransActionUrl = qrAction.url;
+      } else {
+        console.warn('[Midtrans Notice, fallback to ASPI dynamic]:', midData.status_message || midData);
+      }
+    } catch (err) {
+      console.warn('[Midtrans Network error, fallback to ASPI dynamic]:', err.message);
+    }
+  }
+
+  if (!qrString) {
+    qrString = generateEMVCoQris({
+      nmid,
+      merchantName,
+      amount,
+      orderId
+    });
+  }
+
+  let qrCodeUrl = '';
+  try {
+    qrCodeUrl = await QRCode.toDataURL(qrString, {
+      margin: 1,
+      width: 320,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff'
+      },
+      errorCorrectionLevel: 'M'
+    });
+  } catch (e) {
+    qrCodeUrl = midtransActionUrl || `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=${encodeURIComponent(qrString)}`;
+  }
+
+  return {
+    provider,
+    qrString,
+    qrCodeUrl,
+    midtransActionUrl
+  };
+}
+
+// ── ENDPOINT: CHARGE DYNAMIC QRIS (REAL SCANNABLE BARCODE) ──
+app.post('/api/payments/qris/charge', async (req, res) => {
+  const {
+    orderId: reqOrderId,
+    amount,
+    customerName,
+    roomNumber,
+    merchantName,
+    nmid,
+    invoiceId,
+    partnerOrderId,
+    serverKey,
+    isProduction
+  } = req.body;
+
+  const numAmount = Number(amount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    return res.status(400).json({ error: 'Nominal pembayaran harus berupa angka positif yang sah.' });
+  }
+
+  const orderId = reqOrderId || `QRIS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const cleanMerchant = String(merchantName || 'DEPOT AIR & GAS BAROKAH').replace(/[^a-zA-Z0-9 ]/g, '').slice(0, 25);
+  const cleanNmid = String(nmid || 'ID1020268892019').replace(/[^a-zA-Z0-9]/g, '');
+
+  const chargeRes = await chargeQrisGateway({
+    orderId,
+    amount: numAmount,
+    merchantName: cleanMerchant,
+    nmid: cleanNmid,
+    serverKey,
+    isProduction
+  });
+
+  const db = getDB();
+  db.transactions = db.transactions || [];
+
+  const expiryTime = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  let existingTrx = db.transactions.find(t => t.orderId === orderId);
+
+  if (existingTrx) {
+    existingTrx.amount = numAmount;
+    existingTrx.qrString = chargeRes.qrString;
+    existingTrx.qrCodeUrl = chargeRes.qrCodeUrl;
+    existingTrx.provider = chargeRes.provider;
+    existingTrx.expiryTime = expiryTime;
+  } else {
+    existingTrx = {
+      id: Date.now(),
+      orderId,
+      invoiceId: invoiceId ? String(invoiceId) : null,
+      partnerOrderId: partnerOrderId ? String(partnerOrderId) : null,
+      amount: numAmount,
+      customerName: customerName || 'Penghuni Kost',
+      roomNumber: roomNumber || '-',
+      paymentMethod: 'QRIS',
+      provider: chargeRes.provider,
+      qrString: chargeRes.qrString,
+      qrCodeUrl: chargeRes.qrCodeUrl,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      expiryTime
+    };
+    db.transactions.push(existingTrx);
+  }
+
+  writeDB(db);
+
+  res.json({
+    success: true,
+    orderId,
+    amount: numAmount,
+    qrString: chargeRes.qrString,
+    qrCodeUrl: chargeRes.qrCodeUrl,
+    provider: chargeRes.provider,
+    nmid: cleanNmid,
+    merchantName: cleanMerchant,
+    expiryTime,
+    status: existingTrx.status
+  });
+});
+
+// ── ENDPOINT: QRIS REAL-TIME STATUS CHECK (AUTO-POLLING) ──
+app.get('/api/payments/qris/status/:orderId', async (req, res) => {
+  const { orderId } = req.params;
+  const db = getDB();
+  db.transactions = db.transactions || [];
+  db.partner_orders = db.partner_orders || [];
+  db.invoices = db.invoices || [];
+
+  const trx = db.transactions.find(t => String(t.orderId) === String(orderId) || String(t.id) === String(orderId));
+  const pOrder = db.partner_orders.find(o => String(o.id) === String(orderId) || o.paymentMeta?.qrisTrxId === orderId);
+  const inv = db.invoices.find(i => String(i.id) === String(orderId) || (trx && String(i.id) === String(trx.invoiceId)));
+
+  if (!trx && !pOrder && !inv) {
+    return res.status(404).json({ error: 'Pesanan / transaksi tidak ditemukan', status: 'not_found' });
+  }
+
+  // If trx is pending and was created via Midtrans, check Midtrans status directly
+  if (trx && trx.status === 'pending' && trx.provider && trx.provider.startsWith('midtrans')) {
+    try {
+      const gwConfig = db.settings?.gateway || {};
+      const effectiveKey = (process.env.MIDTRANS_SERVER_KEY || gwConfig.serverKey || '').trim();
+      const isProd = trx.provider === 'midtrans_production';
+      if (effectiveKey && !effectiveKey.includes('TESTKEY')) {
+        const midBase = isProd ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
+        const authHeader = 'Basic ' + Buffer.from(effectiveKey + ':').toString('base64');
+        const mRes = await fetch(`${midBase}/v2/${orderId}/status`, {
+          headers: { 'Accept': 'application/json', 'Authorization': authHeader }
+        });
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          if (mData.transaction_status === 'settlement' || mData.transaction_status === 'capture') {
+            trx.status = 'settlement';
+            trx.settledAt = new Date().toISOString();
+            if (pOrder) {
+              pOrder.paymentStatus = 'paid';
+              pOrder.status = 'Lunas (QRIS Midtrans Terverifikasi)';
+              pOrder.settledAt = trx.settledAt;
+            }
+            if (inv) {
+              inv.status = 'lunas';
+              inv.paidAt = trx.settledAt;
+            }
+            writeDB(db);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Midtrans status check poll warning:', e.message);
+    }
+  }
+
+  const isSettled = trx?.status === 'settlement' || pOrder?.paymentStatus === 'paid' || inv?.status === 'lunas';
+  res.json({
+    orderId,
+    status: isSettled ? 'settlement' : (trx?.status || 'pending'),
+    amount: trx?.amount || pOrder?.total || inv?.total || 0,
+    paymentMethod: 'QRIS',
+    provider: trx?.provider || 'aspi_emvco_dynamic',
+    settledAt: trx?.settledAt || pOrder?.settledAt || inv?.paidAt || null,
+    receiptNumber: trx?.receiptNumber || inv?.receiptNumber || (pOrder ? `RCP-${pOrder.id}` : null)
+  });
+});
+
+// ── ENDPOINT: SIMULATE QRIS SCAN SETTLEMENT (FOR TESTING / EVALUATION) ──
+app.post('/api/payments/qris/simulate-scan', (req, res) => {
+  const { orderId, partnerOrderId, invoiceId } = req.body;
+  const db = getDB();
+  db.transactions = db.transactions || [];
+  db.partner_orders = db.partner_orders || [];
+  db.invoices = db.invoices || [];
+
+  const qId = orderId || partnerOrderId || invoiceId;
+  const trx = db.transactions.find(t => String(t.orderId) === String(qId) || String(t.id) === String(qId));
+  const pOrder = db.partner_orders.find(o => String(o.id) === String(qId) || o.paymentMeta?.qrisTrxId === qId);
+  const inv = db.invoices.find(i => String(i.id) === String(qId) || (trx && String(i.id) === String(trx.invoiceId)));
+
+  const settledTime = new Date().toISOString();
+  const receiptNum = `RCP-QRIS-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+
+  if (trx) {
+    trx.status = 'settlement';
+    trx.settledAt = settledTime;
+    trx.receiptNumber = receiptNum;
+  }
+  if (pOrder) {
+    pOrder.paymentStatus = 'paid';
+    pOrder.status = 'Lunas (QRIS Terverifikasi Real-Time) - Menyiapkan Pengantaran';
+    pOrder.settledAt = settledTime;
+  }
+  if (inv) {
+    inv.status = 'lunas';
+    inv.paidAt = settledTime;
+    inv.receiptNumber = receiptNum;
+    inv.paymentMethod = 'QRIS INSTANT';
+  }
+
+  writeDB(db);
+
+  res.json({
+    success: true,
+    message: 'Simulasi scan barcode QRIS berhasil diselesaikan (settlement)!',
+    orderId: qId,
+    status: 'settlement',
+    settledAt: settledTime,
+    receiptNumber: receiptNum
+  });
+});
+
+// ── ENDPOINT: GATEWAY CONFIGURATION (MIDTRANS SANDBOX / PROD / ASPI) ──
+app.get('/api/payments/gateway-config', (req, res) => {
+  const db = getDB();
+  const gw = db.settings?.gateway || {};
+  const currentKey = gw.serverKey || process.env.MIDTRANS_SERVER_KEY || 'SB-Mid-server-TESTKEY-KOSTKU';
+  const maskedKey = currentKey.length > 8 ? currentKey.slice(0, 7) + '...' + currentKey.slice(-4) : 'SB-Mid-server-***';
+
+  res.json({
+    provider: gw.provider || 'midtrans_sandbox',
+    isSandbox: gw.isSandbox !== undefined ? gw.isSandbox : true,
+    isProduction: !!gw.isProduction,
+    merchantId: gw.merchantId || 'G1020268892',
+    clientKey: gw.clientKey || 'SB-Mid-client-TESTKEY-KOSTKU',
+    serverKeyMasked: maskedKey,
+    hasCustomServerKey: !!(gw.serverKey && !gw.serverKey.includes('TESTKEY'))
+  });
+});
+
+app.post('/api/payments/gateway-config', (req, res) => {
+  const { provider, serverKey, clientKey, merchantId, isSandbox, isProduction } = req.body;
+  const db = getDB();
+  db.settings = db.settings || {};
+  db.settings.gateway = db.settings.gateway || {};
+
+  if (provider) db.settings.gateway.provider = provider;
+  if (serverKey) db.settings.gateway.serverKey = String(serverKey).trim();
+  if (clientKey) db.settings.gateway.clientKey = String(clientKey).trim();
+  if (merchantId) db.settings.gateway.merchantId = String(merchantId).trim();
+  if (isSandbox !== undefined) db.settings.gateway.isSandbox = !!isSandbox;
+  if (isProduction !== undefined) db.settings.gateway.isProduction = !!isProduction;
+
+  writeDB(db);
+  res.json({
+    success: true,
+    message: 'Konfigurasi Payment Gateway berhasil diperbarui!'
+  });
+});
+
+// ── ENDPOINT: UNIFIED WALLET (BLUEPRINT: SINGLE-NODE SETTLEMENT) ──
+app.get('/api/wallet', (req, res) => {
+  const db = getDB();
+  db.settings = db.settings || {};
+  if (!db.settings.wallet) {
+    db.settings.wallet = {
+      owner_commission_balance: 25000,
+      mitra_escrow_balance: 0,
+      overdraft_limit: -15000,
+      total_commission_earned: 25000,
+      total_mitra_settled: 0,
+      history: []
+    };
+    writeDB(db);
+  }
+  res.json(db.settings.wallet);
+});
+
+app.post('/api/wallet/mutate', (req, res) => {
+  const { method, subtotalAmt = 0, markupAmt = 0, note = '' } = req.body;
+  const db = getDB();
+  db.settings = db.settings || {};
+  db.settings.wallet = db.settings.wallet || {
+    owner_commission_balance: 25000,
+    mitra_escrow_balance: 0,
+    overdraft_limit: -15000,
+    total_commission_earned: 25000,
+    total_mitra_settled: 0,
+    history: []
+  };
+
+  const wallet = db.settings.wallet;
+  const sub = Number(subtotalAmt) || 0;
+  const mark = Number(markupAmt) || 0;
+
+  if (method === 'qris') {
+    wallet.owner_commission_balance = (Number(wallet.owner_commission_balance) || 0) + mark;
+    wallet.mitra_escrow_balance = (Number(wallet.mitra_escrow_balance) || 0) + sub;
+    wallet.total_commission_earned = (Number(wallet.total_commission_earned) || 0) + mark;
+  } else if (method === 'cod') {
+    // Fee aplikasi Rp 500 dipotong dari wallet owner
+    const nextBal = (Number(wallet.owner_commission_balance) || 0) - 500;
+    if (nextBal < wallet.overdraft_limit) {
+      return res.status(400).json({
+        error: 'Transaksi ditolak: Saldo Owner telah mencapai batas maksimal minus (overdraft limit Rp -15.000). Harap isi saldo atau lunasi tagihan platform.'
+      });
+    }
+    wallet.owner_commission_balance = nextBal;
+  }
+
+  wallet.history = wallet.history || [];
+  wallet.history.unshift({
+    timestamp: new Date().toISOString(),
+    method,
+    subtotal: sub,
+    markup: mark,
+    resultingBalance: wallet.owner_commission_balance,
+    note: note || (method === 'qris' ? 'Pendapatan QRIS + Escrow' : 'Potongan Fee Platform COD')
+  });
+
+  if (wallet.history.length > 50) wallet.history = wallet.history.slice(0, 50);
+
+  writeDB(db);
+  res.json({ success: true, wallet });
+});
+
+app.post('/api/wallet/settle-mitra', (req, res) => {
+  const { amount } = req.body;
+  const db = getDB();
+  db.settings = db.settings || {};
+  const wallet = db.settings.wallet || {
+    owner_commission_balance: 25000,
+    mitra_escrow_balance: 0,
+    overdraft_limit: -15000,
+    total_mitra_settled: 0,
+    history: []
+  };
+
+  const settleAmt = Number(amount) || Number(wallet.mitra_escrow_balance) || 0;
+  wallet.total_mitra_settled = (Number(wallet.total_mitra_settled) || 0) + settleAmt;
+  wallet.mitra_escrow_balance = Math.max(0, (Number(wallet.mitra_escrow_balance) || 0) - settleAmt);
+
+  wallet.history = wallet.history || [];
+  wallet.history.unshift({
+    timestamp: new Date().toISOString(),
+    type: 'mitra_settlement',
+    amount: settleAmt,
+    note: 'Penyetoran uang titipan ke Mitra UMKM oleh Pemilik Kost'
+  });
+
+  writeDB(db);
+  res.json({ success: true, message: 'Uang titipan mitra berhasil disetor', wallet });
 });
 
 // ── UPGRADE: PAYMENT GATEWAY (MIDTRANS / QRIS / VA) ─────────────

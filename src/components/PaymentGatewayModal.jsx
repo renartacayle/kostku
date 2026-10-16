@@ -16,7 +16,8 @@ import {
   Receipt,
   RefreshCw
 } from 'lucide-react';
-import { apiCreatePaymentTransaction, apiVerifyPayment, apiGetPaymentStatus } from '../services/api';
+import { apiCreatePaymentTransaction, apiVerifyPayment, apiGetPaymentStatus, apiChargeQris, apiSimulateQrisScan } from '../services/api';
+import { generateQrisDataUrl } from '../utils/qrisEngine';
 
 const PaymentGatewayModal = ({ 
   isOpen, 
@@ -35,6 +36,8 @@ const PaymentGatewayModal = ({
   const [isSuccess, setIsSuccess] = useState(false);
   const [transaction, setTransaction] = useState(null);
   const [receiptNumber, setReceiptNumber] = useState('');
+  const [qrisDataUrl, setQrisDataUrl] = useState('');
+  const [qrisLoading, setQrisLoading] = useState(false);
 
   // 15-minute countdown
   useEffect(() => {
@@ -99,6 +102,34 @@ const PaymentGatewayModal = ({
         paymentMethod: activeTab === 'va' ? `VA ${selectedBank}` : activeTab === 'ewallet' ? selectedWallet : 'QRIS'
       });
       setTransaction(trx);
+
+      if (activeTab === 'qris') {
+        setQrisLoading(true);
+        try {
+          const qrisRes = await apiChargeQris({
+            orderId: trx.orderId,
+            amount: totalWithFee,
+            customerName: user?.name || invoice.userName || 'Penghuni Kost',
+            roomNumber: invoice.kamar || user?.kamar || '-',
+            merchantName: `KOSTKU SEWA KMR ${invoice.kamar || user?.kamar || '-'}`,
+            invoiceId: invoice.id
+          });
+          if (qrisRes?.qrCodeUrl) {
+            setQrisDataUrl(qrisRes.qrCodeUrl);
+          } else {
+            throw new Error('No QR Code Url');
+          }
+        } catch (e) {
+          const fallback = await generateQrisDataUrl({
+            amount: totalWithFee,
+            orderId: trx.orderId,
+            merchantName: `KOSTKU SEWA KMR ${invoice.kamar || user?.kamar || '-'}`
+          });
+          setQrisDataUrl(fallback.dataUrl);
+        } finally {
+          setQrisLoading(false);
+        }
+      }
     } catch (err) {
       console.error('Error creating payment transaction:', err);
     }
@@ -445,69 +476,61 @@ const PaymentGatewayModal = ({
                     display: 'inline-block',
                     margin: '0 auto 1rem auto',
                     boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
-                    border: '4px solid #f1f5f9'
+                    border: '4px solid #f1f5f9',
+                    maxWidth: '280px',
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}>
                     {/* Header QRIS */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#dc2626', letterSpacing: '1px' }}>QRIS</span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#475569' }}>PEMBAYARAN RESMI</span>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#dc2626', letterSpacing: '1px' }}>QRIS</span>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#475569' }}>BANK INDONESIA / ASPI</span>
                     </div>
 
-                    {/* QR Code Graphic (SVG generated) */}
-                    <div style={{ position: 'relative', width: '180px', height: '180px', margin: '0 auto' }}>
-                      <svg viewBox="0 0 100 100" width="180" height="180">
-                        {/* Background */}
-                        <rect width="100" height="100" fill="#ffffff" />
-                        
-                        {/* Corner Targets */}
-                        <rect x="5" y="5" width="26" height="26" fill="#000000" rx="3" />
-                        <rect x="8" y="8" width="20" height="20" fill="#ffffff" rx="2" />
-                        <rect x="12" y="12" width="12" height="12" fill="#000000" rx="1" />
-
-                        <rect x="69" y="5" width="26" height="26" fill="#000000" rx="3" />
-                        <rect x="72" y="8" width="20" height="20" fill="#ffffff" rx="2" />
-                        <rect x="76" y="12" width="12" height="12" fill="#000000" rx="1" />
-
-                        <rect x="5" y="69" width="26" height="26" fill="#000000" rx="3" />
-                        <rect x="8" y="72" width="20" height="20" fill="#ffffff" rx="2" />
-                        <rect x="12" y="76" width="12" height="12" fill="#000000" rx="1" />
-
-                        {/* QR Matrix Bits */}
-                        <rect x="36" y="8" width="6" height="6" fill="#000000" />
-                        <rect x="46" y="8" width="6" height="6" fill="#000000" />
-                        <rect x="56" y="8" width="6" height="6" fill="#000000" />
-                        <rect x="36" y="18" width="6" height="6" fill="#000000" />
-                        <rect x="46" y="24" width="6" height="6" fill="#000000" />
-
-                        <rect x="8" y="36" width="6" height="6" fill="#000000" />
-                        <rect x="18" y="42" width="6" height="6" fill="#000000" />
-                        <rect x="28" y="36" width="6" height="6" fill="#000000" />
-
-                        <rect x="36" y="36" width="28" height="28" fill="#1e40af" rx="4" />
-                        <text x="50" y="53" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">KOST</text>
-
-                        <rect x="68" y="36" width="6" height="6" fill="#000000" />
-                        <rect x="78" y="42" width="6" height="6" fill="#000000" />
-                        <rect x="86" y="36" width="6" height="6" fill="#000000" />
-
-                        <rect x="36" y="68" width="6" height="6" fill="#000000" />
-                        <rect x="46" y="76" width="6" height="6" fill="#000000" />
-                        <rect x="56" y="68" width="6" height="6" fill="#000000" />
-                        <rect x="68" y="74" width="6" height="6" fill="#000000" />
-                        <rect x="76" y="84" width="6" height="6" fill="#000000" />
-                        <rect x="84" y="68" width="6" height="6" fill="#000000" />
-                      </svg>
+                    {/* QR Code Dynamic Scannable Image */}
+                    <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {qrisLoading ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
+                          <RefreshCw size={24} className="animate-spin" color="#2563eb" />
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Membuat QRIS Dinamis...</span>
+                        </div>
+                      ) : qrisDataUrl ? (
+                        <img
+                          src={qrisDataUrl}
+                          alt="QRIS Dinamis Tagihan Sewa"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          <RefreshCw size={24} className="animate-spin" color="#2563eb" />
+                          <span style={{ fontSize: '0.68rem', color: '#0f172a' }}>Menghubungkan ke Gateway...</span>
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ marginTop: '8px', borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
                       <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', fontWeight: 600 }}>NMID: ID1029384758920</span>
-                      <span style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 800 }}>KostKu Managed Properties</span>
+                      <span style={{ fontSize: '0.74rem', color: '#0f172a', fontWeight: 800 }}>KostKu Managed Properties</span>
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 1rem 0' }}>
-                    Buka BCA Mobile, Livin, BRImo, GoPay, OVO, ShopeePay, atau DANA, lalu scan kode QR di atas.
-                  </p>
+                  <div style={{
+                    background: 'rgba(34, 197, 94, 0.1)',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    borderRadius: '12px',
+                    padding: '8px 12px',
+                    margin: '0 auto 1rem auto',
+                    maxWidth: '420px',
+                    fontSize: '0.74rem',
+                    color: '#cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textAlign: 'left'
+                  }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} className="animate-pulse" />
+                    <span><strong>Auto-Detect Aktif:</strong> Buka BCA Mobile, Livin, GoPay, OVO, ShopeePay, atau DANA, lalu scan barcode di atas. Tagihan otomatis lunas saat transfer selesai.</span>
+                  </div>
                 </div>
               )}
 

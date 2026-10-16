@@ -341,6 +341,55 @@ export const apiSendReceiptEmail = (invoiceId, email) => {
   });
 };
 
+// ── Real Dynamic QRIS (Midtrans Core API & ASPI EMVCo) ─────
+export const apiChargeQris = (data) => {
+  return request('/payments/qris/charge', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiCheckQrisStatus = (orderId) => {
+  return request(`/payments/qris/status/${orderId}`);
+};
+
+export const apiSimulateQrisScan = (data) => {
+  return request('/payments/qris/simulate-scan', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiGetGatewayConfig = () => {
+  return request('/payments/gateway-config');
+};
+
+export const apiSaveGatewayConfig = (config) => {
+  return request('/payments/gateway-config', {
+    method: 'POST',
+    body: JSON.stringify(config)
+  });
+};
+
+// ── Unified Wallet (Blueprint: Single-Node Settlement) ─────
+export const apiGetWallet = () => {
+  return request('/wallet');
+};
+
+export const apiMutateWallet = (data) => {
+  return request('/wallet/mutate', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiSettleMitraWallet = (amount) => {
+  return request('/wallet/settle-mitra', {
+    method: 'POST',
+    body: JSON.stringify({ amount })
+  });
+};
+
 // ── Digital Contracts & E-Signature ────────────────────────
 export const apiSignContract = (data) => {
   return request('/contracts/sign', {
