@@ -24,10 +24,10 @@ export default function PropertySwitcher({
   const dropdownRef = useRef(null);
 
   const fetchKosts = async () => {
-    if (!user?.id || (user.role !== 'owner' && user.role !== 'master')) return;
+    if (!user?.id || (user?.role !== 'owner' && user?.role !== 'master')) return;
     setLoading(true);
     try {
-      const data = await apiGetOwnerKosts(user.id);
+      const data = await apiGetOwnerKosts(user?.id);
       setKosts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load owned kosts:', err);

@@ -76,12 +76,12 @@ const InAppChatModal = ({
     setSending(true);
     const tempMsg = {
       id: 'TEMP-' + Date.now(),
-      kostUid: kost.uid,
+      kostUid: kost?.uid,
       senderId: effectiveUserId,
       senderName: effectiveUserName,
       senderRole: user?.role || 'user',
-      recipientId: kost.ownerId || 'OWNER',
-      recipientName: kost.ownerName || 'Pemilik Kost',
+      recipientId: kost?.ownerId || 'OWNER',
+      recipientName: kost?.ownerName || 'Pemilik Kost',
       text: textToSend,
       roomNumber: roomNumber || null,
       timestamp: new Date().toISOString(),
@@ -94,12 +94,12 @@ const InAppChatModal = ({
 
     try {
       const res = await apiSendMessage({
-        kostUid: kost.uid,
+        kostUid: kost?.uid,
         senderId: effectiveUserId,
         senderName: effectiveUserName,
         senderRole: user?.role || 'user',
-        recipientId: kost.ownerId || 'OWNER',
-        recipientName: kost.ownerName || 'Pemilik Kost',
+        recipientId: kost?.ownerId || 'OWNER',
+        recipientName: kost?.ownerName || 'Pemilik Kost',
         text: textToSend,
         roomNumber: roomNumber || null,
         category: 'tanya_kamar'

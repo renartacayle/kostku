@@ -113,7 +113,7 @@ const PartnerOrderModal = ({
     }
   }, [service]);
 
-  const rawProducts = service?.products && service.products.length > 0 ? service.products : [
+  const rawProducts = (service?.products?.length > 0) ? service.products : [
     {
       id: 'default-prod',
       name: service?.title || 'Layanan Standar',
@@ -144,7 +144,7 @@ const PartnerOrderModal = ({
   
   // Price Lock Sesuai Blueprint: Base Price + Fixed Platform Fee (Rp 500) + Owner Markup Fee (Default: Rp 1.000)
   const platformFee = 500; // Fixed Rp 500/transaksi
-  const ownerMarkupFee = Number(service.ownerMarkupFee ?? service.commissionOwner ?? 1000);
+  const ownerMarkupFee = Number(service?.ownerMarkupFee ?? service?.commissionOwner ?? 1000);
   const ownerCommission = ownerMarkupFee;
   const grandTotal = effectiveSubtotal + ownerCommission + platformFee;
   const slaMinutes = slaInitialMinutes;
@@ -257,9 +257,9 @@ const PartnerOrderModal = ({
         userName: customerName.trim() || 'Penghuni Kost',
         userPhone: customerPhone.trim() || '-',
         roomNumber: roomNumber.trim() || '101',
-        merchantId: service.id || null,
-        merchantName: service.name || service.title,
-        serviceName: service.title || service.name,
+        merchantId: service?.id || null,
+        merchantName: service?.name || service?.title || 'Mitra UMKM',
+        serviceName: service?.title || service?.name || 'Pesanan Layanan',
         items: itemsToSubmit,
         subtotal: effectiveSubtotal,
         ownerCommission,

@@ -91,14 +91,15 @@ const PaymentGatewayModal = ({
   const totalWithFee = baseRentAmount + convenienceFee;
 
   const initTransaction = async () => {
+    if (!isOpen || !invoice) return;
     try {
       const trx = await apiCreatePaymentTransaction({
-        invoiceId: invoice.id,
-        kostUid: invoice.kostUid || user?.kostUid,
-        userId: invoice.userId || user?.id,
+        invoiceId: invoice?.id,
+        kostUid: invoice?.kostUid || user?.kostUid,
+        userId: invoice?.userId || user?.id,
         amount: totalWithFee,
-        customerName: user?.name || invoice.userName || 'Penghuni Kost',
-        roomNumber: invoice.kamar || user?.kamar || '-',
+        customerName: user?.name || invoice?.userName || 'Penghuni Kost',
+        roomNumber: invoice?.kamar || user?.kamar || '-',
         paymentMethod: activeTab === 'va' ? `VA ${selectedBank}` : activeTab === 'ewallet' ? selectedWallet : 'QRIS'
       });
       setTransaction(trx);
@@ -109,10 +110,10 @@ const PaymentGatewayModal = ({
           const qrisRes = await apiChargeQris({
             orderId: trx.orderId,
             amount: totalWithFee,
-            customerName: user?.name || invoice.userName || 'Penghuni Kost',
-            roomNumber: invoice.kamar || user?.kamar || '-',
-            merchantName: `KOSTKU SEWA KMR ${invoice.kamar || user?.kamar || '-'}`,
-            invoiceId: invoice.id
+            customerName: user?.name || invoice?.userName || 'Penghuni Kost',
+            roomNumber: invoice?.kamar || user?.kamar || '-',
+            merchantName: `KOSTKU SEWA KMR ${invoice?.kamar || user?.kamar || '-'}`,
+            invoiceId: invoice?.id
           });
           if (qrisRes?.qrCodeUrl) {
             setQrisDataUrl(qrisRes.qrCodeUrl);
@@ -123,7 +124,7 @@ const PaymentGatewayModal = ({
           const fallback = await generateQrisDataUrl({
             amount: totalWithFee,
             orderId: trx.orderId,
-            merchantName: `KOSTKU SEWA KMR ${invoice.kamar || user?.kamar || '-'}`
+            merchantName: `KOSTKU SEWA KMR ${invoice?.kamar || user?.kamar || '-'}`
           });
           setQrisDataUrl(fallback.dataUrl);
         } finally {
