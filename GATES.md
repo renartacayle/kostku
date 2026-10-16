@@ -1,30 +1,30 @@
-# Gates: Master Blueprint KostKu (PDF, Kodingan, Database, Flowchart, UI/UX, Fitur)
+# Gates: Template Presentasi PPT SKPL KostKu (User & Developer Unified Deck)
 
-OWNS: docs/BLUEPRINT_KOSTKU.md, scripts/verify-blueprint-*.mjs, scripts/generate_blueprint_pdf.mjs, GATES.md
+OWNS: docs/PPT_SKPL_KOSTKU.md, scripts/verify-ppt-*.mjs, scripts/generate_ppt_deck.mjs, GATES.md
 
-Scope: Menghasilkan Master Technical & Design Blueprint lengkap untuk KostKu yang mencakup dokumentasi arsitektur kodingan, skema basis data lengkap 9 entitas, seluruh flowchart dan diagram DFD/ERD/User-flow, spesifikasi UI/UX berstandar Taste-Skill, serta mengekspornya menjadi file PDF master beresolusi tinggi di Desktop pengguna.
+Scope: Menyusun template presentasi PPT berformat Markdown (.md) dengan panjang antara 15 hingga 20 halaman/slide yang merangkum isi SKPL KostKu dari perspektif User (pemilik, penyewa, mitra) dan Developer (arsitektur, basis data, DFD, keamanan) dalam satu dokumen terpadu berstandar Taste-Skill, serta mengekspornya ke Desktop.
 
-- [x] G1: Master blueprint document docs/BLUEPRINT_KOSTKU.md authored with complete depth covering code, database, flowcharts, UI/UX, and features
-  CHECK: node scripts/verify-blueprint-doc.mjs
-  EXPECT: blueprint document verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=545da701779ca3566897c85197bb2ca0ed2f23fe97771ba4a32fcd8ec55cb65d; exit=0; EXPECT=matched; output-sha256=371f6cc745a8206a268aafcd34b39a6e8b1b83b85831fcb1aac5b2b11f64d279; output-bytes=39; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G1: Slide deck Markdown file docs/PPT_SKPL_KOSTKU.md created with exact slide count between 15 and 20 slides
+  CHECK: node scripts/verify-ppt-slide-count.mjs
+  EXPECT: ppt slide count verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=0a48f40f6a7dc22a50b984e202a69702e95bcb20da4aafaed08c54935e4f47b4; exit=0; EXPECT=matched; output-sha256=d5fd33640ac6881c8ace83cd81f3096e6e20c7dcf78c9b0a5010d32132e0e568; output-bytes=53; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G2: Complete diagram and flowchart suite verified with architecture, context, DFD level 1, DFD level 2, ERD, and user flows
-  CHECK: node scripts/verify-blueprint-diagrams.mjs
-  EXPECT: blueprint diagrams verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=5106d34b9ad0e6aaf4858906cdb3893ee2bf4a8da5ff32a33a6d396866309ec4; exit=0; EXPECT=matched; output-sha256=ad8543dc178ab28862484100da01a6761efc6552dd7e300569d2fc9ed4f39d5d; output-bytes=39; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G2: Slide deck integrates dual perspectives covering Track User and Track Developer in one cohesive deck
+  CHECK: node scripts/verify-ppt-perspectives.mjs
+  EXPECT: ppt dual perspectives verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=3119cfdd9cdd7876b1ce1c4bfae1f0295d16624ba21bfefeff5d9d76fe191a4c; exit=0; EXPECT=matched; output-sha256=d75365ef7be008a790657793e199722067fa99103e5d0c713aa2fab8e97c80f7; output-bytes=42; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G3: Comprehensive database schema dictionary defines all 9 entities with fields, types, keys, and relational cardinality
-  CHECK: node scripts/verify-blueprint-db-schema.mjs
-  EXPECT: blueprint database schema verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=4987473600df3af1c64c65148d74e46f34922a938cd58247a8110461dbd977f3; exit=0; EXPECT=matched; output-sha256=1393299cac80f9c791f10c481ff7c794c77f53260460731f8b263f987b1dc652; output-bytes=46; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G3: Slide deck adheres to Taste-Skill visual design system with Blue Hour palette, bento layouts, and badge tags
+  CHECK: node scripts/verify-ppt-taste-styling.mjs
+  EXPECT: ppt taste styling verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=6643a5275802e409d608ecf9d9bd755bf171fc8788b8debbb7f3da526ba72f5b; exit=0; EXPECT=matched; output-sha256=daffeeea300b3c296a910ba0c2d20ef2ec7e3adb9dee0583b7eceb7b8fda2265; output-bytes=38; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G4: High-fidelity PDF generation engine scripts/generate_blueprint_pdf.mjs compiles with Taste-Skill styling and paged media
-  CHECK: node scripts/verify-blueprint-pdf-generator.mjs
-  EXPECT: blueprint pdf engine verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=5348952dded8ed620209035561c5577061b2bbfa24de57159e1375db9d2f9d7b; exit=0; EXPECT=matched; output-sha256=ceb64dc9a3d4e06bf1833a20d3b1d4c8cc2451a5a510133ae0f687d9d5b37abb; output-bytes=41; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G4: Interactive presentation viewer engine scripts/generate_ppt_deck.mjs compiles standalone slide deck with keyboard controls
+  CHECK: node scripts/verify-ppt-interactive-engine.mjs
+  EXPECT: ppt interactive engine verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=3ea1418cddb90fd1e8b9ff52db060edb8c7bd113521d5a03e9cfaa49f2702485; exit=0; EXPECT=matched; output-sha256=86174fa8b8068cb88fcb9b9c07af8b8fd4ffbd0d0b990504d3bf66c0fb902199; output-bytes=43; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
 
-- [x] G5: Master Blueprint PDF file KostKu_Full_Blueprint.pdf successfully exported to Desktop with valid size and verified pages
-  CHECK: node scripts/verify-blueprint-pdf-exists.mjs
-  EXPECT: blueprint pdf export verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=839794f780a86221dd1a1762a71776979f6b6269ffa1136f8ff1d682b5a9ea44; exit=0; EXPECT=matched; output-sha256=dfbb12b4d75e94214ca772f7c494e55dc5de334f496608907aa8a7208afcd37b; output-bytes=41; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+- [x] G5: Presentation files successfully copied and verified on Desktop as Markdown and interactive HTML slide deck
+  CHECK: node scripts/verify-ppt-desktop-exports.mjs
+  EXPECT: ppt desktop exports verification passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=e2d8b1c722f9b4a188f88d904745241182fb468f8aeb2fa7278afd54ca2b8a76; exit=0; EXPECT=matched; output-sha256=0a58bc9b79397e6b12fd46d7b9d612e6b8d8be3e3402e787c0d6138884abf132; output-bytes=40; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
