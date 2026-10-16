@@ -65,17 +65,7 @@ import InAppChatModal from '../components/InAppChatModal';
 import PartnerOrderModal from '../components/PartnerOrderModal';
 import SundulCheckoutModal from '../components/SundulCheckoutModal';
 
-const Dashboard = ({ user }) => {
-  // If role is tenant, show UserDashboard
-  if (user?.role === 'user') {
-    return <UserDashboard user={user} />;
-  }
-
-  // If role is staff / penjaga kost, show StaffDashboard
-  if (user?.role === 'staff') {
-    return <StaffDashboard user={user} />;
-  }
-
+const OwnerDashboard = ({ user }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl === 'pengaturan' ? 'pengaturan' : 'overview');
@@ -4087,6 +4077,20 @@ const Dashboard = ({ user }) => {
 
     </div>
   );
+};
+
+const Dashboard = ({ user }) => {
+  // If role is tenant, show UserDashboard
+  if (user?.role === 'user') {
+    return <UserDashboard user={user} />;
+  }
+
+  // If role is staff / penjaga kost, show StaffDashboard
+  if (user?.role === 'staff') {
+    return <StaffDashboard user={user} />;
+  }
+
+  return <OwnerDashboard user={user} />;
 };
 
 export default Dashboard;

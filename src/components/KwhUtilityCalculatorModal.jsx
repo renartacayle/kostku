@@ -19,8 +19,6 @@ import {
  * Mengatasi kekhawatiran nomor satu mahasiswa & pekerja: biaya utilitas tersembunyi.
  */
 export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKost = null }) {
-  if (!isOpen) return null;
-
   // Base rent price (defaults to selectedKost or Rp 1.500.000)
   const initialRent = selectedKost?.rooms?.[0]?.price || 1500000;
   const [rentPrice, setRentPrice] = useState(initialRent);
@@ -77,6 +75,8 @@ export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKos
     currency: 'IDR',
     maximumFractionDigits: 0
   }).format(val || 0);
+
+  if (!isOpen) return null;
 
   return (
     <div style={{

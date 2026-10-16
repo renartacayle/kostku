@@ -113,15 +113,13 @@ const PartnerOrderModal = ({
     }
   }, [service]);
 
-  if (!isOpen || !service) return null;
-
-  const rawProducts = service.products && service.products.length > 0 ? service.products : [
+  const rawProducts = service?.products && service.products.length > 0 ? service.products : [
     {
       id: 'default-prod',
-      name: service.title || 'Layanan Standar',
+      name: service?.title || 'Layanan Standar',
       brand: 'Standar',
-      price: service.title?.toLowerCase().includes('laundry') ? 6000 : service.title?.toLowerCase().includes('galon') ? 16000 : 20000,
-      desc: service.desc || service.sub || 'Layanan siap antar ke kamar'
+      price: service?.title?.toLowerCase().includes('laundry') ? 6000 : service?.title?.toLowerCase().includes('galon') ? 16000 : 20000,
+      desc: service?.desc || service?.sub || 'Layanan siap antar ke kamar'
     }
   ];
 
@@ -176,6 +174,7 @@ const PartnerOrderModal = ({
 
   // Generate authentic dynamic QRIS from backend or client engine
   const loadDynamicQris = async () => {
+    if (!isOpen || !service) return;
     setQrisLoading(true);
     const newOrderId = `ORD-QRIS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
     try {
@@ -184,8 +183,8 @@ const PartnerOrderModal = ({
         amount: grandTotal,
         customerName: customerName || 'Penghuni Kost',
         roomNumber: roomNumber || '101',
-        merchantName: service.name || service.title || 'DEPOT AIR & GAS BAROKAH',
-        nmid: service.nmid || 'ID1020268892019'
+        merchantName: service?.name || service?.title || 'DEPOT AIR & GAS BAROKAH',
+        nmid: service?.nmid || 'ID1020268892019'
       });
       if (res && res.qrCodeUrl) {
         setQrisData(res);
@@ -197,8 +196,8 @@ const PartnerOrderModal = ({
       const fallback = await generateQrisDataUrl({
         amount: grandTotal,
         orderId: newOrderId,
-        merchantName: service.name || service.title || 'DEPOT AIR & GAS BAROKAH',
-        nmid: service.nmid || 'ID1020268892019'
+        merchantName: service?.name || service?.title || 'DEPOT AIR & GAS BAROKAH',
+        nmid: service?.nmid || 'ID1020268892019'
       });
       setQrisData({
         orderId: newOrderId,
@@ -206,8 +205,8 @@ const PartnerOrderModal = ({
         qrCodeUrl: fallback.dataUrl,
         qrString: fallback.qrString,
         provider: 'aspi_emvco_dynamic',
-        nmid: service.nmid || 'ID1020268892019',
-        merchantName: service.name || service.title || 'DEPOT AIR & GAS BAROKAH'
+        nmid: service?.nmid || 'ID1020268892019',
+        merchantName: service?.name || service?.title || 'DEPOT AIR & GAS BAROKAH'
       });
     } finally {
       setQrisLoading(false);
@@ -215,15 +214,15 @@ const PartnerOrderModal = ({
   };
 
   useEffect(() => {
-    if (showQrisScreen) {
+    if (isOpen && showQrisScreen && service) {
       loadDynamicQris();
     }
-  }, [showQrisScreen, grandTotal]);
+  }, [isOpen, showQrisScreen, grandTotal, service]);
 
   // Real-time Auto-Polling (checks payment settlement every 3 seconds)
   useEffect(() => {
     let pollInterval;
-    if (showQrisScreen && qrisData?.orderId && !isSuccess && !submitting) {
+    if (isOpen && showQrisScreen && qrisData?.orderId && !isSuccess && !submitting) {
       setIsPolling(true);
       pollInterval = setInterval(async () => {
         try {
@@ -241,7 +240,7 @@ const PartnerOrderModal = ({
       setIsPolling(false);
     }
     return () => clearInterval(pollInterval);
-  }, [showQrisScreen, qrisData?.orderId, isSuccess, submitting]);
+  }, [isOpen, showQrisScreen, qrisData?.orderId, isSuccess, submitting]);
 
   const executeFinalOrder = async (orderIdOverride = null, methodOverride = null) => {
     setSubmitting(true);
@@ -330,6 +329,8 @@ const PartnerOrderModal = ({
     setNotes('');
     onClose();
   };
+
+  if (!isOpen || !service) return null;
 
   return (
     <div style={{
