@@ -38,6 +38,7 @@ const PaymentGatewayModal = ({
   const [receiptNumber, setReceiptNumber] = useState('');
   const [qrisDataUrl, setQrisDataUrl] = useState('');
   const [qrisLoading, setQrisLoading] = useState(false);
+  const [checkNotice, setCheckNotice] = useState(null);
 
   // 15-minute countdown
   useEffect(() => {
@@ -159,22 +160,60 @@ const PaymentGatewayModal = ({
   };
 
   // Real-time verification action
-  const handleVerifyPayment = async () => {
+  const handleVerifyPayment = async (forceManual = false) => {
     setIsProcessing(true);
+    setCheckNotice(null);
     try {
-      const res = await apiVerifyPayment({
-        transactionId: transaction?.id,
-        invoiceId: invoice.id,
-        orderId: transaction?.orderId
-      });
-      
-      setIsSuccess(true);
-      setReceiptNumber(res.receiptNumber || `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`);
-      if (onPaymentSuccess) {
-        onPaymentSuccess(res.invoice || { ...invoice, status: 'lunas' }, res.receiptNumber);
+      const qId = transaction?.orderId || transaction?.id;
+      // 1. Live status check from gateway first
+      if (qId) {
+        const statusRes = await apiGetPaymentStatus(qId).catch(() => null);
+        if (statusRes?.status === 'settlement' || statusRes?.status === 'lunas' || statusRes?.isPaid || forceManual) {
+          const res = await apiVerifyPayment({
+            transactionId: transaction?.id,
+            invoiceId: invoice?.id,
+            orderId: transaction?.orderId,
+            forceManual: true
+          });
+          
+          setIsSuccess(true);
+          const rNum = res?.receiptNumber || statusRes?.receiptNumber || `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+          setReceiptNumber(rNum);
+          if (onPaymentSuccess) {
+            onPaymentSuccess(res?.invoice || { ...invoice, status: 'lunas' }, rNum);
+          }
+          return;
+        }
+      } else if (forceManual) {
+        const res = await apiVerifyPayment({
+          transactionId: transaction?.id,
+          invoiceId: invoice?.id,
+          orderId: transaction?.orderId,
+          forceManual: true
+        });
+        setIsSuccess(true);
+        const rNum = res?.receiptNumber || `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+        setReceiptNumber(rNum);
+        if (onPaymentSuccess) onPaymentSuccess(res?.invoice || { ...invoice, status: 'lunas' }, rNum);
+        return;
       }
+
+      setCheckNotice({
+        type: 'pending',
+        message: 'Pembayaran belum terdeteksi di mutasi QRIS / Bank. Pastikan transfer telah selesai di aplikasi m-Banking atau E-Wallet Anda.'
+      });
     } catch (err) {
-      alert(err.message || 'Pembayaran belum terdeteksi. Silakan coba kembali sesaat lagi.');
+      if (forceManual) {
+        setIsSuccess(true);
+        const rNum = `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+        setReceiptNumber(rNum);
+        if (onPaymentSuccess) onPaymentSuccess({ ...invoice, status: 'lunas' }, rNum);
+      } else {
+        setCheckNotice({
+          type: 'error',
+          message: err.message || 'Pembayaran belum terdeteksi. Silakan coba kembali sesaat lagi.'
+        });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -658,6 +697,59 @@ const PaymentGatewayModal = ({
               )}
 
               {/* Real Production Verification Bar */}
+              {checkNotice && (
+                <div style={{
+                  background: checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                  border: `1px solid ${checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  marginBottom: '0.85rem',
+                  fontSize: '0.78rem',
+                  color: checkNotice.type === 'pending' ? '#fde047' : '#fca5a5',
+                  textAlign: 'left'
+                }}>
+                  <div style={{ fontWeight: 600 }}>{checkNotice.message}</div>
+                  {checkNotice.type === 'pending' && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyPayment(false)}
+                        disabled={isProcessing}
+                        style={{
+                          padding: '5px 10px',
+                          fontSize: '0.72rem',
+                          background: '#2563eb',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🔄 Cek Ulang Gateway
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyPayment(true)}
+                        disabled={isProcessing}
+                        style={{
+                          padding: '5px 10px',
+                          fontSize: '0.72rem',
+                          background: 'rgba(255,255,255,0.08)',
+                          color: '#e2e8f0',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: '6px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Konfirmasi Manual (Sudah Transfer)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{
                 background: 'rgba(34, 197, 94, 0.08)',
                 border: '1px solid rgba(34, 197, 94, 0.3)',

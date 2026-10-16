@@ -322,8 +322,17 @@ export const apiVerifyPayment = (data) => {
   });
 };
 
-export const apiGetPaymentStatus = (orderId) => {
-  return request(`/payments/status/${orderId}`);
+export const apiGetPaymentStatus = (orderId, options = {}) => {
+  const headers = {};
+  try {
+    const rawGw = localStorage.getItem('kostku_gateway_config');
+    if (rawGw) {
+      const gw = JSON.parse(rawGw);
+      if (gw?.serverKey) headers['x-midtrans-server-key'] = gw.serverKey;
+      if (gw?.isSandbox !== undefined) headers['x-midtrans-is-production'] = gw.isSandbox ? 'false' : 'true';
+    }
+  } catch (e) {}
+  return request(`/payments/status/${orderId}`, { headers: { ...headers, ...(options.headers || {}) } });
 };
 
 export const apiSimulatePaymentSuccess = (data) => {
@@ -343,14 +352,33 @@ export const apiSendReceiptEmail = (invoiceId, email) => {
 
 // ── Real Dynamic QRIS (Midtrans Core API & ASPI EMVCo) ─────
 export const apiChargeQris = (data) => {
+  const headers = {};
+  try {
+    const rawGw = localStorage.getItem('kostku_gateway_config');
+    if (rawGw) {
+      const gw = JSON.parse(rawGw);
+      if (gw?.serverKey) headers['x-midtrans-server-key'] = gw.serverKey;
+      if (gw?.isSandbox !== undefined) headers['x-midtrans-is-production'] = gw.isSandbox ? 'false' : 'true';
+    }
+  } catch (e) {}
   return request('/payments/qris/charge', {
     method: 'POST',
+    headers,
     body: JSON.stringify(data)
   });
 };
 
-export const apiCheckQrisStatus = (orderId) => {
-  return request(`/payments/qris/status/${orderId}`);
+export const apiCheckQrisStatus = (orderId, options = {}) => {
+  const headers = {};
+  try {
+    const rawGw = localStorage.getItem('kostku_gateway_config');
+    if (rawGw) {
+      const gw = JSON.parse(rawGw);
+      if (gw?.serverKey) headers['x-midtrans-server-key'] = gw.serverKey;
+      if (gw?.isSandbox !== undefined) headers['x-midtrans-is-production'] = gw.isSandbox ? 'false' : 'true';
+    }
+  } catch (e) {}
+  return request(`/payments/qris/status/${orderId}`, { headers: { ...headers, ...(options.headers || {}) } });
 };
 
 export const apiSimulateQrisScan = (data) => {

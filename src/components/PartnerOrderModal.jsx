@@ -57,6 +57,8 @@ const PartnerOrderModal = ({
   const [showGatewayConfig, setShowGatewayConfig] = useState(false);
   const [gwConfig, setGwConfig] = useState(getGatewayConfig());
   const [configSavedToast, setConfigSavedToast] = useState(false);
+  const [checkNotice, setCheckNotice] = useState(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   // Products quantity state
   const [quantities, setQuantities] = useState({});
@@ -298,6 +300,46 @@ const PartnerOrderModal = ({
     } catch (err) {
       // Fallback
       await executeFinalOrder(qrisData.orderId, 'qris');
+    }
+  };
+
+  const handleCheckQrisPaymentStatus = async (forceManual = false) => {
+    if (!qrisData?.orderId || checkingStatus || submitting) return;
+    setCheckingStatus(true);
+    setCheckNotice(null);
+    try {
+      if (!forceManual) {
+        const res = await apiCheckQrisStatus(qrisData.orderId);
+        if (res?.status === 'settlement' || res?.status === 'paid' || res?.status === 'capture' || res?.isPaid) {
+          setCheckNotice({ type: 'success', message: '✅ Pembayaran QRIS Terverifikasi Lunas!' });
+          await executeFinalOrder(qrisData.orderId, 'qris');
+          return;
+        } else if (res?.status === 'expired') {
+          setCheckNotice({ type: 'error', message: '⚠️ Masa berlaku QRIS telah habis. Silakan buat kode QRIS baru.' });
+          return;
+        }
+        
+        // If still pending
+        setCheckNotice({
+          type: 'pending',
+          message: '⏳ Pembayaran belum terdeteksi di mutasi perbankan. Silakan selesaikan scan di aplikasi m-Banking atau E-Wallet Anda, lalu klik Cek kembali.'
+        });
+      } else {
+        // Force manual confirmation (user confirms they already transferred)
+        setCheckNotice({ type: 'success', message: '✅ Konfirmasi Pembayaran Berhasil Diterima!' });
+        await executeFinalOrder(qrisData.orderId, 'qris');
+      }
+    } catch (err) {
+      if (forceManual) {
+        await executeFinalOrder(qrisData.orderId, 'qris');
+      } else {
+        setCheckNotice({
+          type: 'error',
+          message: err.message || 'Belum dapat memeriksa status mutasi. Silakan coba kembali.'
+        });
+      }
+    } finally {
+      setCheckingStatus(false);
     }
   };
 
@@ -835,11 +877,66 @@ const PartnerOrderModal = ({
               </button>
             </div>
 
+            {/* Live Gateway Check Feedback Notice */}
+            {checkNotice && (
+              <div style={{
+                background: checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.12)' : checkNotice.type === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                border: `1px solid ${checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.35)' : checkNotice.type === 'error' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.35)'}`,
+                borderRadius: '12px',
+                padding: '10px 14px',
+                marginBottom: '0.85rem',
+                fontSize: '0.78rem',
+                color: checkNotice.type === 'pending' ? '#fde047' : checkNotice.type === 'error' ? '#fca5a5' : '#86efac',
+                textAlign: 'left'
+              }}>
+                <div style={{ fontWeight: 600 }}>{checkNotice.message}</div>
+                {checkNotice.type === 'pending' && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleCheckQrisPaymentStatus(false)}
+                      disabled={checkingStatus || submitting}
+                      style={{
+                        padding: '5px 10px',
+                        fontSize: '0.72rem',
+                        background: '#2563eb',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔄 Cek Ulang Gateway
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCheckQrisPaymentStatus(true)}
+                      disabled={checkingStatus || submitting}
+                      style={{
+                        padding: '5px 10px',
+                        fontSize: '0.72rem',
+                        background: 'rgba(255,255,255,0.08)',
+                        color: '#e2e8f0',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Konfirmasi Manual (Sudah Transfer)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button
-                onClick={() => executeFinalOrder(qrisData?.orderId, 'qris')}
-                disabled={submitting}
+                type="button"
+                onClick={() => handleCheckQrisPaymentStatus(false)}
+                disabled={checkingStatus || submitting}
                 className="btn btn-primary"
                 style={{
                   width: '100%',
@@ -848,22 +945,22 @@ const PartnerOrderModal = ({
                   fontSize: '0.9rem',
                   background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                   boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
-                  cursor: submitting ? 'wait' : 'pointer',
+                  cursor: (checkingStatus || submitting) ? 'wait' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px'
                 }}
               >
-                {submitting ? (
+                {checkingStatus || submitting ? (
                   <>
                     <RefreshCw size={16} className="animate-spin" />
-                    <span>Memverifikasi Pembayaran Real-Time...</span>
+                    <span>Memeriksa Status Mutasi Gateway...</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck size={18} />
-                    <span>Cek Status Pembayaran (Saya Sudah Bayar)</span>
+                    <span>⚡ Cek Status Pembayaran (Saya Sudah Bayar)</span>
                   </>
                 )}
               </button>

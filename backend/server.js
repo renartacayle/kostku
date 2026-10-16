@@ -2720,9 +2720,8 @@ app.post('/api/payments/qris/charge', async (req, res) => {
   });
 });
 
-// ── ENDPOINT: QRIS REAL-TIME STATUS CHECK (AUTO-POLLING) ──
-app.get('/api/payments/qris/status/:orderId', async (req, res) => {
-  const { orderId } = req.params;
+// ── UNIFIED QRIS & PAYMENT STATUS CHECKING ENGINE ──
+async function checkOrSyncPaymentStatus(orderId, req = null) {
   const db = getDB();
   db.transactions = db.transactions || [];
   db.partner_orders = db.partner_orders || [];
@@ -2733,53 +2732,190 @@ app.get('/api/payments/qris/status/:orderId', async (req, res) => {
   const inv = db.invoices.find(i => String(i.id) === String(orderId) || (trx && String(i.id) === String(trx.invoiceId)));
 
   if (!trx && !pOrder && !inv) {
-    return res.status(404).json({ error: 'Pesanan / transaksi tidak ditemukan', status: 'not_found' });
+    return { notFound: true, status: 'not_found', error: 'Pesanan / transaksi tidak ditemukan' };
   }
 
-  // If trx is pending and was created via Midtrans, check Midtrans status directly
-  if (trx && trx.status === 'pending' && trx.provider && trx.provider.startsWith('midtrans')) {
+  const currentStatus = trx?.status || pOrder?.paymentStatus || inv?.status || 'pending';
+
+  // If already settled, return immediately
+  if (currentStatus === 'settlement' || currentStatus === 'paid' || currentStatus === 'lunas') {
+    return {
+      success: true,
+      orderId,
+      status: 'settlement',
+      isPaid: true,
+      amount: trx?.amount || pOrder?.total || inv?.total || 0,
+      paymentMethod: trx?.paymentMethod || 'QRIS',
+      provider: trx?.provider || 'aspi_emvco_dynamic',
+      settledAt: trx?.settledAt || pOrder?.settledAt || inv?.paidAt || new Date().toISOString(),
+      receiptNumber: trx?.receiptNumber || inv?.receiptNumber || (pOrder ? `RCP-${pOrder.id}` : null),
+      trx,
+      pOrder,
+      inv
+    };
+  }
+
+  // Gateway Key Resolution:
+  // 1. From request header 'x-midtrans-server-key'
+  // 2. From request query 'serverKey'
+  // 3. From environment variable MIDTRANS_SERVER_KEY
+  // 4. From db.settings.gateway.serverKey
+  const headerKey = req?.headers?.['x-midtrans-server-key'];
+  const queryKey = req?.query?.serverKey;
+  const gwConfig = db.settings?.gateway || {};
+  const effectiveKey = (headerKey || queryKey || process.env.MIDTRANS_SERVER_KEY || gwConfig.serverKey || '').trim();
+  
+  const headerIsProd = req?.headers?.['x-midtrans-is-production'] === 'true';
+  const queryIsProd = req?.query?.isProduction === 'true';
+  const isProd = headerIsProd || queryIsProd || trx?.provider === 'midtrans_production' || gwConfig.isProduction || false;
+
+  // If effectiveKey is valid and not a placeholder, query Midtrans API directly
+  if (effectiveKey && !effectiveKey.includes('TESTKEY') && effectiveKey.length > 10) {
     try {
-      const gwConfig = db.settings?.gateway || {};
-      const effectiveKey = (process.env.MIDTRANS_SERVER_KEY || gwConfig.serverKey || '').trim();
-      const isProd = trx.provider === 'midtrans_production';
-      if (effectiveKey && !effectiveKey.includes('TESTKEY')) {
-        const midBase = isProd ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
-        const authHeader = 'Basic ' + Buffer.from(effectiveKey + ':').toString('base64');
-        const mRes = await fetch(`${midBase}/v2/${orderId}/status`, {
-          headers: { 'Accept': 'application/json', 'Authorization': authHeader }
-        });
-        if (mRes.ok) {
-          const mData = await mRes.json();
-          if (mData.transaction_status === 'settlement' || mData.transaction_status === 'capture') {
+      const midBase = isProd ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
+      const authHeader = 'Basic ' + Buffer.from(effectiveKey + ':').toString('base64');
+      
+      const mRes = await fetch(`${midBase}/v2/${orderId}/status`, {
+        headers: { 'Accept': 'application/json', 'Authorization': authHeader }
+      });
+
+      if (mRes.ok) {
+        const mData = await mRes.json();
+        const mStatus = mData.transaction_status;
+        
+        if (mStatus === 'settlement' || mStatus === 'capture') {
+          const settledTime = new Date().toISOString();
+          const rNum = `RCP-QRIS-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+
+          if (trx) {
             trx.status = 'settlement';
-            trx.settledAt = new Date().toISOString();
-            if (pOrder) {
-              pOrder.paymentStatus = 'paid';
-              pOrder.status = 'Lunas (QRIS Midtrans Terverifikasi)';
-              pOrder.settledAt = trx.settledAt;
-            }
-            if (inv) {
-              inv.status = 'lunas';
-              inv.paidAt = trx.settledAt;
-            }
-            writeDB(db);
+            trx.settledAt = settledTime;
+            trx.receiptNumber = rNum;
+            trx.provider = isProd ? 'midtrans_production' : 'midtrans_sandbox';
           }
+          if (pOrder) {
+            pOrder.paymentStatus = 'paid';
+            pOrder.status = 'Lunas (QRIS Midtrans Terverifikasi) - Menyiapkan Pengantaran';
+            pOrder.settledAt = settledTime;
+            addActivity(db, pOrder.kostUid, 'layanan', `Pembayaran layanan ${pOrder.serviceName} (${pOrder.id}) LUNAS via QRIS Midtrans`);
+          }
+          if (inv) {
+            inv.status = 'lunas';
+            inv.paidAt = settledTime;
+            inv.paymentMethod = 'QRIS MIDTRANS';
+            inv.receiptNumber = rNum;
+            addActivity(db, inv.kostUid, 'transaksi', `Pembayaran sewa kamar ${inv.kamar || ''} LUNAS via QRIS Midtrans`);
+          }
+
+          // Mutate Unified Wallet if this is a partner order or has markup
+          if (pOrder) {
+            db.settings = db.settings || {};
+            db.settings.wallet = db.settings.wallet || {
+              owner_commission_balance: 25000,
+              mitra_escrow_balance: 0,
+              overdraft_limit: -15000,
+              total_commission_earned: 25000,
+              total_mitra_settled: 0,
+              history: []
+            };
+            const w = db.settings.wallet;
+            const markup = Number(pOrder.ownerCommission) || 1000;
+            const subtotal = Number(pOrder.subtotal) || (pOrder.total - markup - 500);
+            w.owner_commission_balance = (Number(w.owner_commission_balance) || 0) + markup;
+            w.mitra_escrow_balance = (Number(w.mitra_escrow_balance) || 0) + subtotal;
+            w.total_commission_earned = (Number(w.total_commission_earned) || 0) + markup;
+            w.history = w.history || [];
+            w.history.unshift({
+              timestamp: settledTime,
+              method: 'qris',
+              subtotal,
+              markup,
+              resultingBalance: w.owner_commission_balance,
+              note: `Pendapatan QRIS Midtrans (${pOrder.serviceName})`
+            });
+          }
+
+          writeDB(db);
+
+          return {
+            success: true,
+            orderId,
+            status: 'settlement',
+            isPaid: true,
+            amount: trx?.amount || pOrder?.total || inv?.total || mData.gross_amount || 0,
+            paymentMethod: 'QRIS',
+            provider: isProd ? 'midtrans_production' : 'midtrans_sandbox',
+            settledAt: settledTime,
+            receiptNumber: rNum,
+            midtransData: mData,
+            trx,
+            pOrder,
+            inv
+          };
+        } else if (mStatus === 'expire') {
+          if (trx) trx.status = 'expired';
+          writeDB(db);
+          return {
+            success: false,
+            orderId,
+            status: 'expired',
+            isPaid: false,
+            message: 'Masa berlaku QRIS telah habis. Silakan buat kode QRIS baru.',
+            trx
+          };
+        } else if (mStatus === 'deny' || mStatus === 'cancel') {
+          if (trx) trx.status = 'cancelled';
+          writeDB(db);
+          return {
+            success: false,
+            orderId,
+            status: 'cancelled',
+            isPaid: false,
+            message: 'Pembayaran QRIS dibatalkan atau ditolak oleh sistem perbankan.',
+            trx
+          };
         }
       }
-    } catch (e) {
-      console.warn('Midtrans status check poll warning:', e.message);
+    } catch (err) {
+      console.warn('[Midtrans Status Check Error]:', err.message);
     }
   }
 
+  // Fallback: check local database status
   const isSettled = trx?.status === 'settlement' || pOrder?.paymentStatus === 'paid' || inv?.status === 'lunas';
-  res.json({
+  return {
+    success: isSettled,
     orderId,
     status: isSettled ? 'settlement' : (trx?.status || 'pending'),
+    isPaid: isSettled,
     amount: trx?.amount || pOrder?.total || inv?.total || 0,
-    paymentMethod: 'QRIS',
+    paymentMethod: trx?.paymentMethod || 'QRIS',
     provider: trx?.provider || 'aspi_emvco_dynamic',
     settledAt: trx?.settledAt || pOrder?.settledAt || inv?.paidAt || null,
-    receiptNumber: trx?.receiptNumber || inv?.receiptNumber || (pOrder ? `RCP-${pOrder.id}` : null)
+    receiptNumber: trx?.receiptNumber || inv?.receiptNumber || (pOrder ? `RCP-${pOrder.id}` : null),
+    message: isSettled ? 'Pembayaran berhasil terverifikasi' : 'Menunggu pembayaran transfer QRIS...',
+    trx,
+    pOrder,
+    inv
+  };
+}
+
+// ── ENDPOINT: QRIS REAL-TIME STATUS CHECK (AUTO-POLLING) ──
+app.get('/api/payments/qris/status/:orderId', async (req, res) => {
+  const result = await checkOrSyncPaymentStatus(req.params.orderId, req);
+  if (result.notFound) {
+    return res.status(404).json({ error: 'Pesanan / transaksi tidak ditemukan', status: 'not_found' });
+  }
+  res.json({
+    orderId: result.orderId,
+    status: result.status,
+    amount: result.amount,
+    paymentMethod: result.paymentMethod,
+    provider: result.provider,
+    settledAt: result.settledAt,
+    receiptNumber: result.receiptNumber,
+    isPaid: result.isPaid,
+    message: result.message
   });
 });
 
@@ -2999,32 +3135,52 @@ app.post('/api/payments/create-transaction', (req, res) => {
 });
 
 // ── REAL PAYMENT VERIFICATION & GATEWAY WEBHOOK (NO SIMULATION) ─────
-app.get('/api/payments/status/:orderId', (req, res) => {
-  const { orderId } = req.params;
-  const db = getDB();
-  const trx = (db.transactions || []).find(t => String(t.orderId) === String(orderId) || String(t.id) === String(orderId));
-  if (!trx) return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
+app.get('/api/payments/status/:orderId', async (req, res) => {
+  const result = await checkOrSyncPaymentStatus(req.params.orderId, req);
+  if (result.notFound) {
+    return res.status(404).json({ error: 'Transaksi tidak ditemukan', status: 'not_found' });
+  }
   res.json({
-    orderId: trx.orderId,
-    status: trx.status,
-    amount: trx.amount,
-    paymentMethod: trx.paymentMethod,
-    vaNumber: trx.vaNumber,
-    settledAt: trx.settledAt || null
+    orderId: result.orderId,
+    status: result.status,
+    amount: result.amount,
+    paymentMethod: result.paymentMethod,
+    vaNumber: result.trx?.vaNumber || null,
+    settledAt: result.settledAt,
+    receiptNumber: result.receiptNumber,
+    isPaid: result.isPaid,
+    message: result.message
   });
 });
 
-app.post('/api/payments/verify', (req, res) => {
-  const { transactionId, invoiceId, orderId, partnerOrderId } = req.body;
+app.post('/api/payments/verify', async (req, res) => {
+  const { transactionId, invoiceId, orderId, partnerOrderId, forceManual } = req.body;
   const db = getDB();
   db.transactions = db.transactions || [];
   db.invoices = db.invoices || [];
   db.partner_orders = db.partner_orders || [];
 
+  const queryId = transactionId || orderId || partnerOrderId || invoiceId;
+
+  // First, perform live sync from Gateway unless forced manual
+  if (queryId && !forceManual) {
+    const syncRes = await checkOrSyncPaymentStatus(queryId, req);
+    if (syncRes.isPaid) {
+      return res.json({
+        success: true,
+        status: 'settlement',
+        message: 'Pembayaran resmi berhasil diverifikasi lunas secara real-time via Gateway!',
+        receiptNumber: syncRes.receiptNumber,
+        invoice: syncRes.inv,
+        partnerOrder: syncRes.pOrder,
+        transaction: syncRes.trx
+      });
+    }
+  }
+
   let trx = null;
-  const queryId = transactionId || orderId;
   if (queryId) {
-    trx = db.transactions.find(t => String(t.id) === String(queryId) || t.orderId === queryId);
+    trx = db.transactions.find(t => String(t.id) === String(queryId) || String(t.orderId) === String(queryId));
   }
 
   let invoice = null;
@@ -3037,25 +3193,29 @@ app.post('/api/payments/verify', (req, res) => {
   let pOrder = null;
   if (partnerOrderId) {
     pOrder = db.partner_orders.find(o => String(o.id) === String(partnerOrderId));
+  } else if (queryId) {
+    pOrder = db.partner_orders.find(o => String(o.id) === String(queryId) || o.paymentMeta?.qrisTrxId === queryId);
   }
+
+  const settledTime = new Date().toISOString();
+  const receiptNumber = `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
 
   if (trx) {
     trx.status = 'settlement';
-    trx.settledAt = new Date().toISOString();
+    trx.settledAt = settledTime;
+    trx.receiptNumber = receiptNumber;
   }
 
   if (pOrder) {
     pOrder.paymentStatus = 'paid';
     pOrder.status = 'Lunas (QRIS Terverifikasi Real-Time) - Menyiapkan Pengantaran';
-    pOrder.settledAt = new Date().toISOString();
+    pOrder.settledAt = settledTime;
     addActivity(db, pOrder.kostUid, 'layanan', `Pembayaran layanan ${pOrder.serviceName} (${pOrder.id}) LUNAS terverifikasi via QRIS`);
   }
 
-  const receiptNumber = `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
-
   if (invoice) {
     invoice.status = 'lunas';
-    invoice.paidAt = new Date().toISOString();
+    invoice.paidAt = settledTime;
     invoice.paymentMethod = trx ? trx.paymentMethod : 'QRIS INSTANT';
     invoice.receiptNumber = receiptNumber;
 
@@ -3078,6 +3238,7 @@ app.post('/api/payments/verify', (req, res) => {
   writeDB(db);
   res.json({
     success: true,
+    status: 'settlement',
     message: 'Pembayaran resmi berhasil diverifikasi lunas secara real-time!',
     receiptNumber,
     invoice,
