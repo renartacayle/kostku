@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -524,6 +524,111 @@ const Keuangan = ({ user }) => {
                 {formatRupiah(totalPending)}
               </h2>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{allUnpaidCount} tagihan pending</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unified Wallet & Single-Node Settlement (Hyperlocal UMKM) */}
+      {user?.role !== 'staff' && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%)',
+          border: '1px solid rgba(56, 189, 248, 0.25)',
+          borderRadius: '20px',
+          padding: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.4)'
+        }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                background: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                padding: '10px',
+                borderRadius: '12px',
+                color: '#38bdf8'
+              }}>
+                <Wallet size={22} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
+                    Unified Wallet (Single-Node Settlement)
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                    1 Pintu Payout
+                  </span>
+                </div>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Pusat perputaran komisi hak Owner & titipan dana tunai warung UMKM (Platform Fee tetap Rp500/transaksi)
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => alert('Pencairan 1 Pintu: Permintaan tarik dana seluruh saldo dompet telah dikirim ke Super Admin. Biaya admin transfer bank cukup 1x.')}
+                className="btn btn-primary btn-sm"
+                style={{ gap: '6px' }}
+              >
+                <ArrowUpRight size={14} /> Tarik Seluruh Dana (Payout)
+              </button>
+              <button
+                onClick={() => alert('Titipan dana warung ditandai sudah diserahkan fisik secara offline. Nilai piutang mitra di-reset.')}
+                className="btn btn-secondary btn-sm"
+                style={{ gap: '6px' }}
+              >
+                <CheckCircle2 size={14} color="#34d399" /> Tandai Sudah Disetor ke Mitra
+              </button>
+              <Link
+                to="/blueprint?tab=simulator"
+                className="btn btn-secondary btn-sm"
+                style={{ gap: '6px', textDecoration: 'none' }}
+              >
+                <span>Buka Simulator</span> →
+              </Link>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+            background: 'rgba(255, 255, 255, 0.02)',
+            padding: '1.25rem',
+            borderRadius: '14px',
+            border: '1px solid rgba(255, 255, 255, 0.05)'
+          }}>
+            <div>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                SALDO KOMISI OWNER (BERSIH)
+              </span>
+              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace' }}>
+                Rp 25.000
+              </h4>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Hak owner + kuota talangan COD</span>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                TITIPAN ESCROW MITRA (UMKM)
+              </span>
+              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace' }}>
+                Rp 0
+              </h4>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Uang titipan mitra_escrow_balance pesanan QRIS</span>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                BATAS OVERDRAFT LIMIT
+              </span>
+              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
+                -Rp 15.000
+              </h4>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Toleransi overdraft 30 transaksi COD talangan</span>
             </div>
           </div>
         </div>

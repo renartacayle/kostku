@@ -324,6 +324,11 @@ if (fs.existsSync(DIST_BINARIES_DIR)) {
   app.use('/downloads', express.static(DIST_BINARIES_DIR));
 }
 
+const PUBLIC_DOWNLOADS_DIR = path.join(__dirname, '..', 'public', 'downloads');
+if (fs.existsSync(PUBLIC_DOWNLOADS_DIR)) {
+  app.use('/downloads', express.static(PUBLIC_DOWNLOADS_DIR));
+}
+
 // Endpoint: App Version Check for Auto-Update (Supports both /api/app-version & /app-version)
 app.get(['/api/app-version', '/app-version'], (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

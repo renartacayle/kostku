@@ -10,7 +10,8 @@ import {
   Cloud, 
   Download,
   AlertCircle,
-  Search
+  Search,
+  FileText
 } from 'lucide-react';
 
 export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync }) {
@@ -23,6 +24,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
     { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/keuangan', name: user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan & Laporan', icon: <DollarSign size={20} />, roles: ['owner', 'master', 'staff'] },
+    { path: '/blueprint', name: 'Blueprint Sistem', icon: <FileText size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
     { path: '/pengaturan', name: user?.role === 'staff' ? 'Profil Staf' : 'Pengaturan', icon: <Settings size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
   ];
 

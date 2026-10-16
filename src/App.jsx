@@ -26,6 +26,7 @@ import Komplain from './pages/Komplain';
 import Home from './pages/Home';
 import SearchKost from './pages/SearchKost';
 import KostDetail from './pages/KostDetail';
+import BlueprintHub from './pages/BlueprintHub';
 
 // Main Layout Component for Responsive Mobile & Laptop
 const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
@@ -192,6 +193,31 @@ function App() {
           <Route path="/cari-kost" element={<SearchKost user={activeUser} />} />
           <Route path="/cari" element={<Navigate to="/search" replace />} />
           <Route path="/kost/:id" element={<KostDetail user={activeUser} />} />
+          
+          {/* Technical Blueprint & Hyperlocal UMKM Specification Hub */}
+          <Route 
+            path="/blueprint" 
+            element={
+              activeUser ? (
+                <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                  <BlueprintHub user={activeUser} />
+                </MainLayout>
+              ) : (
+                <div style={{ minHeight: '100vh', background: 'var(--bg-main, #0a0f1d)', padding: '2rem 1rem' }}>
+                  <div style={{ maxWidth: '1280px', margin: '0 auto', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Link to="/" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      ← Kembali ke Halaman Utama
+                    </Link>
+                    <Link to="/login" className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
+                      Login Dashboard
+                    </Link>
+                  </div>
+                  <BlueprintHub user={null} />
+                </div>
+              )
+            } 
+          />
+          <Route path="/docs/blueprint" element={<Navigate to="/blueprint" replace />} />
           
           {/* Auth Pages (redirect to /dashboard if already logged in) */}
           <Route 

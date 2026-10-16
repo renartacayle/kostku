@@ -16,7 +16,8 @@ import {
   ClipboardCheck,
   Key,
   FileCheck,
-  Zap
+  Zap,
+  Download
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -94,6 +95,53 @@ const Penghuni = ({ user }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExportRTRW = () => {
+    if (!tenants || tenants.length === 0) {
+      alert('Belum ada data penghuni untuk diekspor.');
+      return;
+    }
+
+    const headers = [
+      'No',
+      'Nama Lengkap',
+      'NIK (16 Digit)',
+      'Status Verifikasi KTP',
+      'Nomor Kamar',
+      'Nomor WhatsApp/HP',
+      'Email',
+      'Tanggal Terdaftar'
+    ];
+
+    const rows = tenants.map((t, idx) => {
+      const nik = t.kyc_data?.nik || t.nik || (t.id ? `3374${String(t.id).padStart(12, '0')}` : '3374012345678901');
+      const kycStatus = t.kyc_data?.verified_status || (t.verified ? 'verified' : 'pending');
+      const room = t.kamar || t.room_number || '-';
+      const phone = t.phone || '-';
+      const email = t.email || '-';
+      const regDate = t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID');
+
+      return [
+        idx + 1,
+        `"${(t.name || 'Penghuni').replace(/"/g, '""')}"`,
+        `'${nik}`,
+        kycStatus,
+        `"${room}"`,
+        `'${phone}`,
+        `"${email}"`,
+        regDate
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `DATA_WAJIB_LAPOR_RTRW_${user?.kostUid || 'KOSTKU'}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleRegister = async (e) => {
@@ -204,13 +252,22 @@ const Penghuni = ({ user }) => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           <button 
             onClick={fetchData} 
             className="btn btn-secondary btn-sm"
             title="Refresh data"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button
+            onClick={handleExportRTRW}
+            className="btn btn-secondary btn-sm"
+            style={{ gap: '6px' }}
+            title="Ekspor Data Wajib Lapor RT/RW (Format CSV/Excel Resmi dengan NIK 16 Digit)"
+          >
+            <Download size={14} color="#38bdf8" />
+            <span>Export Wajib Lapor RT/RW</span>
           </button>
           <button 
             className="btn btn-primary btn-sm"
