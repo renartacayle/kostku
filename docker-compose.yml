@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  kostku-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kostku_app
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MIDTRANS_SERVER_KEY=${MIDTRANS_SERVER_KEY:-}
+      - MIDTRANS_CLIENT_KEY=${MIDTRANS_CLIENT_KEY:-}
+      - MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION:-false}
+      - ENFORCE_WEBHOOK_AUTH=${ENFORCE_WEBHOOK_AUTH:-true}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - DATA_PATH=/app/backend/data/db.json
+    volumes:
+      - kostku_database_data:/app/backend/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  kostku_database_data:
+    driver: local

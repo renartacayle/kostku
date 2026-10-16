@@ -6,6 +6,34 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 const nodemailer = require('nodemailer');
 
+// ── AUTOMATIC PRODUCTION ENV LOADER (.env / .env.production) ──
+const envCandidates = [
+  path.join(process.cwd(), '.env.production'),
+  path.join(process.cwd(), '.env'),
+  path.join(__dirname, '../.env.production'),
+  path.join(__dirname, '../.env'),
+  path.join(__dirname, '.env')
+];
+for (const envFile of envCandidates) {
+  if (fs.existsSync(envFile)) {
+    try {
+      const rawEnv = fs.readFileSync(envFile, 'utf8');
+      rawEnv.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+          const eqIdx = trimmed.indexOf('=');
+          const k = trimmed.slice(0, eqIdx).trim();
+          const v = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+          if (!process.env[k] && v !== '') {
+            process.env[k] = v;
+          }
+        }
+      });
+      break;
+    } catch (_) {}
+  }
+}
+
 // Helper: Dynamic Email Transporter & Payment Receipt Email Sender
 const sendPaymentReceiptEmail = async ({ toEmail, receiptNumber, invoice, kost, user }) => {
   if (!toEmail || !toEmail.includes('@')) {
@@ -417,16 +445,28 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
 // ── In-memory Database (Vercel-compatible) ────────────────────────────────────
 let _dbCache = null;
 
+const getDbFilePath = () => {
+  if (process.env.DATA_PATH) {
+    const customDir = path.dirname(process.env.DATA_PATH);
+    if (!fs.existsSync(customDir)) {
+      try { fs.mkdirSync(customDir, { recursive: true }); } catch (_) {}
+    }
+    return process.env.DATA_PATH;
+  }
+  return path.join(__dirname, 'db.json');
+};
+
 const loadSeedData = () => {
+  const dbFile = getDbFilePath();
+  if (fs.existsSync(dbFile)) {
+    try {
+      return JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+    } catch (_) {}
+  }
   try {
     return require('./db.json');
   } catch (e) {
-    try {
-      const DB_FILE = path.join(__dirname, 'db.json');
-      return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    } catch (err) {
-      return { users: [], kosts: [], complaints: [], activities: [], invoices: [], expenses: [], iot_meters: [], applications: [] };
-    }
+    return { users: [], kosts: [], complaints: [], activities: [], invoices: [], expenses: [], iot_meters: [], applications: [] };
   }
 };
 
@@ -458,8 +498,8 @@ const getDB = () => {
 const writeDB = (data) => {
   _dbCache = data;
   try {
-    const DB_FILE = path.join(__dirname, 'db.json');
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+    const dbFile = getDbFilePath();
+    fs.writeFileSync(dbFile, JSON.stringify(data, null, 2));
   } catch (_) { /* read-only FS on serverless — data stays in memory */ }
 };
 
@@ -2563,7 +2603,9 @@ async function chargeQrisGateway({
   const db = getDB();
   const gwConfig = db.settings?.gateway || {};
   const effectiveKey = (serverKey || process.env.MIDTRANS_SERVER_KEY || gwConfig.serverKey || '').trim();
-  const effectiveIsProd = isProduction || gwConfig.isProduction || process.env.NODE_ENV === 'production';
+  const isKeySandbox = effectiveKey.toUpperCase().startsWith('SB-');
+  const isEnvProd = process.env.MIDTRANS_IS_PRODUCTION === 'true';
+  const effectiveIsProd = !isKeySandbox && (isProduction || gwConfig.isProduction || isEnvProd);
   const isRealKey = effectiveKey && !effectiveKey.includes('TESTKEY') && effectiveKey.length > 15;
 
   let provider = 'aspi_emvco_dynamic';
@@ -2773,9 +2815,11 @@ async function checkOrSyncPaymentStatus(orderId, req = null) {
   const gwConfig = db.settings?.gateway || {};
   const effectiveKey = (headerKey || queryKey || process.env.MIDTRANS_SERVER_KEY || gwConfig.serverKey || '').trim();
   
+  const isKeySandbox = effectiveKey.toUpperCase().startsWith('SB-');
+  const isEnvProd = process.env.MIDTRANS_IS_PRODUCTION === 'true';
   const headerIsProd = req?.headers?.['x-midtrans-is-production'] === 'true';
   const queryIsProd = req?.query?.isProduction === 'true';
-  const isProd = headerIsProd || queryIsProd || trx?.provider === 'midtrans_production' || gwConfig.isProduction || false;
+  const isProd = !isKeySandbox && (headerIsProd || queryIsProd || trx?.provider === 'midtrans_production' || gwConfig.isProduction || isEnvProd || false);
 
   // If effectiveKey is valid and not a placeholder, query Midtrans API directly
   if (effectiveKey && !effectiveKey.includes('TESTKEY') && effectiveKey.length > 10) {
@@ -3287,7 +3331,19 @@ app.post('/api/payments/webhook', (req, res) => {
   // Webhook Authentication & Signature Validation (Protection against spoofing)
   const authHeader = req.headers['x-callback-token'] || req.headers['authorization'];
   const enforceSignature = process.env.NODE_ENV === 'production' || process.env.ENFORCE_WEBHOOK_AUTH === 'true';
-  if (enforceSignature && !signature_key && !authHeader) {
+  const gwConfig = (getDB().settings && getDB().settings.gateway) || {};
+  const effectiveServerKey = (process.env.MIDTRANS_SERVER_KEY || gwConfig.serverKey || '').trim();
+
+  if (signature_key && effectiveServerKey && !effectiveServerKey.includes('TESTKEY') && effectiveServerKey.length > 10) {
+    const rawExpected = `${order_id}${req.body.status_code || ''}${gross_amount || ''}${effectiveServerKey}`;
+    const calculatedSig = crypto.createHash('sha512').update(rawExpected).digest('hex');
+    if (signature_key !== calculatedSig) {
+      console.warn('[Midtrans Webhook Security Alert]: Invalid signature received!', { received: signature_key, calculated: calculatedSig });
+      if (enforceSignature) {
+        return res.status(403).json({ error: 'Akses ditolak: Webhook signature_key tidak cocok dengan Server Key.' });
+      }
+    }
+  } else if (enforceSignature && !signature_key && !authHeader) {
     return res.status(403).json({ error: 'Akses ditolak: Webhook signature_key atau token gateway tidak valid' });
   }
 
