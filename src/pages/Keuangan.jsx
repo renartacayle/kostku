@@ -225,8 +225,27 @@ const Keuangan = ({ user }) => {
         apiGetExpenses(user.kostUid).catch(() => [])
       ]);
       
-      setInvoices(Array.isArray(dataInv) ? dataInv : []);
+      const invoicesList = Array.isArray(dataInv) ? dataInv : [];
+      setInvoices(invoicesList);
       setExpenses(Array.isArray(dataExp) ? dataExp : []);
+
+      // Auto-sync Unified Wallet with verified paid invoices
+      const totalPaidRent = invoicesList
+        .filter(i => i.status === 'lunas')
+        .reduce((sum, i) => sum + (Number(i.total || i.amount) || 0), 0);
+
+      setUnifiedWallet(prev => {
+        const storedPayouts = Number(localStorage.getItem('kostku_total_paid_out')) || 0;
+        const available = Math.max(0, totalPaidRent - storedPayouts);
+        const currentBal = Number(prev.owner_commission_balance) || 0;
+        const finalBal = currentBal <= 0 ? (available > 0 ? available : totalPaidRent) : currentBal;
+        const updated = {
+          ...prev,
+          owner_commission_balance: finalBal
+        };
+        localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+        return updated;
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -1331,8 +1350,18 @@ const Keuangan = ({ user }) => {
           onClose={() => setPayInvoice(null)}
           invoice={payInvoice}
           user={user}
-          onPaymentSuccess={() => {
+          onPaymentSuccess={(paidInv) => {
             fetchData();
+            const rentAmt = Number(paidInv?.total || paidInv?.amount || payInvoice?.total || payInvoice?.amount || 1650000);
+            setUnifiedWallet(prev => {
+              const updated = {
+                ...prev,
+                owner_commission_balance: (Number(prev.owner_commission_balance) || 0) + rentAmt
+              };
+              localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+              window.dispatchEvent(new Event('kostku_wallet_updated'));
+              return updated;
+            });
           }}
           onOpenReceipt={(invId) => {
             setReceiptInvoiceId(invId);
