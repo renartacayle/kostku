@@ -419,16 +419,14 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   const baseUrl = `${protocol}://${host}`;
 
   res.json({
-    version: '1.1.1',
-    buildNumber: 111,
-    releaseDate: '2026-10-12',
-    title: 'Pembaruan KostKu v1.1.1 🚀',
+    version: '1.2.0',
+    buildNumber: 120,
+    releaseDate: '2026-10-18',
+    title: 'Pembaruan KostKu v1.2.0 🚀',
     changelog: [
-      'Pembersihan Pengaturan: Halaman Pengaturan kini murni untuk Profil Akun Pengguna (pengaturan operasional & kamar terpusat di Overview)',
-      'Optimalisasi Tampilan Responsif & Modal Detail Kamar pada My Kost (Overview)',
-      'Generate Kamar Massal Cerdas dengan 1 foto fisik asli otomatis untuk seluruh unit identik',
-      'Halaman Keuangan & Laporan Terpadu 1 Halaman dengan Analisis Arus Kas 6 Bulan',
-      'Penyegaran Service Worker PWA v111'
+      'Desain Baru e-KTP Digital Otentik Republik Indonesia (Garuda Pancasila, Guilloche, EMV Chip, Validasi Dukcapil)',
+      'Perbaikan Pengajuan Sewa & Otomatisasi Tagihan Kamar Penghuni',
+      'Pembaruan Service Worker PWA & Pembersihan Cache Otomatis'
     ],
     downloadUrls: {
       windows: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download',
@@ -438,7 +436,7 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
       androidAbsolute: `${baseUrl}/downloads/KostKu-Android.apk`,
       windowsAbsolute: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download'
     },
-    isCritical: false
+    isCritical: true
   });
 });
 

@@ -42,13 +42,47 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // Register PWA Service Worker
+      // Clear outdated caches immediately on page load
+      if ('caches' in window) {
+        caches.keys().then((keys) => {
+          keys.forEach((key) => {
+            if (key !== 'kostku-cache-v120') {
+              console.log('[KostKu] Purging old cache storage:', key);
+              caches.delete(key);
+            }
+          });
+        });
+      }
+
+      // Register PWA Service Worker with aggressive auto-update
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(
-            (reg) => console.log('KostKu SW registered:', reg.scope),
-            (err) => console.log('KostKu SW registration failed:', err)
-          );
+          navigator.serviceWorker.register('/sw.js').then((reg) => {
+            console.log('KostKu SW registered:', reg.scope);
+            // Force update check
+            reg.update();
+            reg.onupdatefound = () => {
+              const installing = reg.installing;
+              if (installing) {
+                installing.onstatechange = () => {
+                  if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[KostKu] New Service Worker installed, skip waiting...');
+                    installing.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                };
+              }
+            };
+          }).catch((err) => console.log('KostKu SW registration failed:', err));
+        });
+
+        // Auto reload when controller changes
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            console.log('[KostKu] Controller changed, auto reloading page...');
+            window.location.reload();
+          }
         });
       }
     </script>

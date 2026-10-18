@@ -107,7 +107,7 @@ export default function AutoUpdateModal() {
     // Check update on launch
     const timer = setTimeout(() => {
       checkForUpdates(false);
-    }, 2500);
+    }, 800);
 
     // Listen to manual check triggered from Settings
     const handleManualCheck = () => checkForUpdates(true);

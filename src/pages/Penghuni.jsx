@@ -283,6 +283,22 @@ const Penghuni = ({ user }) => {
     return `https://wa.me/${clean}?text=${text}`;
   };
 
+  const [purging, setPurging] = useState(false);
+  const handlePurgeCache = async () => {
+    setPurging(true);
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (let r of regs) await r.unregister();
+      }
+    } catch (_) {}
+    window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
+  };
+
   const filteredTenants = tenants.filter(t => 
     t.name?.toLowerCase().includes(search.toLowerCase()) ||
     t.kamar?.toLowerCase().includes(search.toLowerCase()) ||
@@ -318,6 +334,15 @@ const Penghuni = ({ user }) => {
             title="Refresh data"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button 
+            onClick={handlePurgeCache} 
+            className="btn btn-secondary btn-sm"
+            title="Bersihkan cache browser & perbarui ke versi terbaru"
+            style={{ gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+          >
+            <Sparkles size={14} className={purging ? 'animate-spin' : ''} />
+            <span>Update Versi v1.2.0</span>
           </button>
           <button
             onClick={handleExportRTRW}
