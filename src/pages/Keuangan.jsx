@@ -642,13 +642,6 @@ const Keuangan = ({ user }) => {
               >
                 <CheckCircle2 size={14} color="#34d399" /> Tandai Sudah Disetor ke Mitra (Reset Titipan)
               </button>
-              <Link
-                to="/blueprint?tab=simulator"
-                className="btn btn-secondary btn-sm"
-                style={{ gap: '6px', textDecoration: 'none' }}
-              >
-                <span>Buka Simulator</span> →
-              </Link>
             </div>
           </div>
 

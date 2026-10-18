@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Cloud, Download, Wifi, RefreshCw, User as UserIcon, FileText } from 'lucide-react';
+import { Home, Cloud, Download, Wifi, RefreshCw, User as UserIcon } from 'lucide-react';
 import { getCloudConfig, testApiConnection } from '../services/api';
 import PropertySwitcher from './PropertySwitcher';
 
@@ -117,17 +117,6 @@ export default function Navbar({
             {connectionStatus.online ? (connectionStatus.isCloud ? 'Cloud Online' : 'Database Lokal') : 'Offline'}
           </span>
         </button>
-
-        {/* Blueprint Hub Link */}
-        <Link
-          to="/blueprint"
-          className="btn btn-secondary btn-sm"
-          title="Buka Dokumen Blueprint & Spesifikasi Sistem"
-          style={{ gap: '6px', textDecoration: 'none' }}
-        >
-          <FileText size={15} color="var(--accent-primary)" />
-          <span className="desktop-only">Blueprint</span>
-        </Link>
 
         {/* Install App Button */}
         <button

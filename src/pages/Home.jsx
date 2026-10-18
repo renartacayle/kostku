@@ -1553,63 +1553,6 @@ export default function Home({ user }) {
                 </div>
               </div>
             )}
-            {/* Showcase Banner: Blueprint Sistem & Ekosistem Hyperlocal UMKM */}
-            <div style={{
-              marginTop: '4rem',
-              marginBottom: '2rem',
-              padding: '2.5rem 2rem',
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)',
-              borderRadius: '24px',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '1.5rem',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)'
-            }}>
-              <div>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '4px 12px',
-                  borderRadius: '9999px',
-                  background: 'rgba(56, 189, 248, 0.15)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  color: '#38bdf8',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  marginBottom: '10px'
-                }}>
-                  🚀 DOKUMEN ARSITEKTUR & SPESIFIKASI RESMI
-                </div>
-                <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'white' }}>
-                  Sistem Manajemen Properti & Ekosistem Hyperlocal UMKM
-                </h3>
-                <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '0.9rem', maxWidth: '640px', lineHeight: 1.6 }}>
-                  Pelajari arsitektur B2B2C Freemium SaaS Hook (0% komisi kamar), skema Cloud Firestore, Unified Wallet (Single-Node Settlement), serta unduh berkas blueprint PDF & presentasi PPTX.
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <Link
-                  to="/blueprint"
-                  className="btn btn-primary"
-                  style={{ padding: '10px 20px', borderRadius: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}
-                >
-                  Buka Blueprint Hub →
-                </Link>
-                <a
-                  href="/downloads/KostKu_Full_Blueprint.pdf"
-                  download="KostKu_Full_Blueprint.pdf"
-                  className="btn btn-secondary"
-                  style={{ padding: '10px 18px', borderRadius: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
-                >
-                  Unduh PDF (Blueprint)
-                </a>
-              </div>
-            </div>
-
           </>
         )}
 

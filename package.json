@@ -9,6 +9,7 @@
     "dev": "vite",
     "build": "vite build",
     "deploy": "npm run build && cd backend && npm install --omit=dev",
+    "test": "node tests/security_and_qris_stress_test.cjs",
     "test:security": "node tests/security_and_qris_stress_test.cjs",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
