@@ -575,5 +575,19 @@ export const apiGetMerchantSummary = (kostUid = null) => {
   return request(`/merchants/summary?${params.toString()}`);
 };
 
+// ── Flip Business Payout & Disbursement API ──────────────────
+export const apiGetFlipConfig = () => request('/payout/flip/config');
 
+export const apiFlipInquiry = (data) => {
+  return request('/payout/flip/inquiry', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
 
+export const apiFlipDisburse = (data) => {
+  return request('/payout/flip/disburse', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};

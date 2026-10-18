@@ -37,14 +37,21 @@ import {
   Layers,
   ArrowUpRight,
   ArrowDownRight,
-  Download
+  Download,
+  Check,
+  ExternalLink,
+  ShieldCheck,
+  Search
 } from 'lucide-react';
 import { 
   apiGetInvoices, 
   apiGetExpenses, 
   apiVerifyInvoice, 
   apiAddExpense, 
-  apiDeleteExpense 
+  apiDeleteExpense,
+  apiGetFlipConfig,
+  apiFlipInquiry,
+  apiFlipDisburse
 } from '../services/api';
 
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
@@ -82,8 +89,26 @@ const Keuangan = ({ user }) => {
   const [payoutBank, setPayoutBank] = useState({ 
     bank_name: 'BCA', 
     account_number: '8830192831', 
-    account_holder: user?.name || 'Owner Kost' 
+    account_holder: user?.name || 'Ibu Hj. Nurhasanah' 
   });
+  const [flipConfig, setFlipConfig] = useState({
+    mode: 'sandbox',
+    status: 'verifying_demo',
+    isDemo: true,
+    sandboxBalance: 500000000,
+    feePerTransfer: 0
+  });
+  const [inquiryLoading, setInquiryLoading] = useState(false);
+  const [inquiryResult, setInquiryResult] = useState(null);
+  const [payoutStep, setPayoutStep] = useState('form'); // 'form' | 'processing' | 'receipt'
+  const [payoutReceipt, setPayoutReceipt] = useState(null);
+  const [payoutExecuting, setPayoutExecuting] = useState(false);
+
+  useEffect(() => {
+    apiGetFlipConfig().then(cfg => {
+      if (cfg) setFlipConfig(cfg);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleWalletSync = () => {
@@ -96,21 +121,63 @@ const Keuangan = ({ user }) => {
     return () => window.removeEventListener('kostku_wallet_updated', handleWalletSync);
   }, []);
 
-  const handleExecutePayout = () => {
+  const handleInquiryBank = async () => {
+    if (!payoutBank.account_number || payoutBank.account_number.length < 5) {
+      alert('Masukkan nomor rekening bank tujuan.');
+      return;
+    }
+    setInquiryLoading(true);
+    try {
+      const res = await apiFlipInquiry({
+        bank_code: payoutBank.bank_name,
+        account_number: payoutBank.account_number
+      });
+      if (res.account_holder) {
+        setPayoutBank(prev => ({ ...prev, account_holder: res.account_holder }));
+        setInquiryResult(res);
+      }
+    } catch (err) {
+      console.warn('Inquiry failed:', err);
+    } finally {
+      setInquiryLoading(false);
+    }
+  };
+
+  const handleExecutePayout = async () => {
     const totalWithdraw = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
     if (totalWithdraw <= 0) {
       alert('Saldo dompet tidak mencukupi untuk penarikan.');
       return;
     }
-    const updated = {
-      ...unifiedWallet,
-      owner_commission_balance: 0,
-      mitra_escrow_balance: 0
-    };
-    setUnifiedWallet(updated);
-    localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
-    setShowPayoutModal(false);
-    alert(`Pencairan Satu Pintu (Payout) berhasil diproses sebesar Rp ${totalWithdraw.toLocaleString('id-ID')} ke rekening ${payoutBank.bank_name} ${payoutBank.account_number} (${payoutBank.account_holder}).`);
+
+    setPayoutExecuting(true);
+    setPayoutStep('processing');
+    try {
+      // Step: Request Flip Disbursement API
+      const res = await apiFlipDisburse({
+        bank_code: payoutBank.bank_name,
+        account_number: payoutBank.account_number,
+        account_holder: payoutBank.account_holder,
+        amount: totalWithdraw,
+        remark: `Payout KostKu ${user?.kostUid || 'General'}`
+      });
+
+      const updated = {
+        ...unifiedWallet,
+        owner_commission_balance: 0,
+        mitra_escrow_balance: 0
+      };
+      setUnifiedWallet(updated);
+      localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+
+      setPayoutReceipt(res);
+      setPayoutStep('receipt');
+    } catch (err) {
+      alert(err.message || 'Gagal memproses payout via Flip.');
+      setPayoutStep('form');
+    } finally {
+      setPayoutExecuting(false);
+    }
   };
 
   const handleExecuteSetorMitra = () => {
@@ -1281,7 +1348,7 @@ const Keuangan = ({ user }) => {
         />
       )}
 
-      {/* Payout 1 Pintu Modal */}
+      {/* Payout 1 Pintu Modal - Flip Business Demo / Sandbox Studio */}
       {showPayoutModal && (
         <div style={{
           position: 'fixed',
@@ -1289,8 +1356,8 @@ const Keuangan = ({ user }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
-          backdropFilter: 'blur(10px)',
+          background: 'rgba(5, 10, 20, 0.88)',
+          backdropFilter: 'blur(12px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1300,108 +1367,396 @@ const Keuangan = ({ user }) => {
           <div style={{
             background: '#0a101f',
             border: '1px solid rgba(56, 189, 248, 0.35)',
-            borderRadius: '20px',
+            borderRadius: '24px',
             width: '100%',
-            maxWidth: '460px',
-            padding: '1.5rem',
-            boxShadow: '0 25px 65px -15px rgba(0, 0, 0, 0.85)'
+            maxWidth: '520px',
+            padding: '1.75rem',
+            boxShadow: '0 25px 70px -15px rgba(0, 0, 0, 0.9)',
+            maxHeight: '92vh',
+            overflowY: 'auto'
           }}>
+            {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Wallet size={20} color="#38bdf8" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white' }}>
-                  Pencairan Satu Pintu (Payout)
-                </h3>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(56, 189, 248, 0.3)'
+                }}>
+                  <Wallet size={20} color="#38bdf8" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white' }}>
+                    Pencairan Dana (Flip Payout)
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      background: 'rgba(245, 158, 11, 0.18)',
+                      color: '#f59e0b',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      fontWeight: 700
+                    }}>
+                      ⚡ SANDBOX / DEMO AKTIF
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Flip for Business API</span>
+                  </div>
+                </div>
               </div>
               <button
-                onClick={() => setShowPayoutModal(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                onClick={() => {
+                  setShowPayoutModal(false);
+                  setPayoutStep('form');
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
                 <X size={18} />
               </button>
             </div>
 
+            {/* Sandbox Notice Banner */}
             <div style={{
-              background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              borderRadius: '12px',
-              padding: '12px',
-              marginBottom: '1.25rem'
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              gap: '10px'
             }}>
-              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Total Dana Ditarik (Owner + Mitra):</span>
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#38bdf8', marginTop: '2px', fontFamily: 'monospace' }}>
-                Rp {((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)).toLocaleString('id-ID')}
-              </div>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                💡 Single-Node Settlement: Cukup 1x biaya transfer bank dari platform ke rekening owner.
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.25rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
-                  Nama Bank Tujuan:
-                </label>
-                <select
-                  value={payoutBank.bank_name}
-                  onChange={e => setPayoutBank({ ...payoutBank, bank_name: e.target.value })}
-                  className="input-field"
-                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem' }}
-                >
-                  <option value="BCA">BCA (Bank Central Asia)</option>
-                  <option value="Mandiri">Bank Mandiri</option>
-                  <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
-                  <option value="BNI">BNI (Bank Negara Indonesia)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
-                  Nomor Rekening:
-                </label>
-                <input
-                  type="text"
-                  value={payoutBank.account_number}
-                  onChange={e => setPayoutBank({ ...payoutBank, account_number: e.target.value })}
-                  placeholder="Contoh: 8830192831"
-                  className="input-field"
-                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
-                  Nama Pemilik Rekening:
-                </label>
-                <input
-                  type="text"
-                  value={payoutBank.account_holder}
-                  onChange={e => setPayoutBank({ ...payoutBank, account_holder: e.target.value })}
-                  placeholder="Contoh: Bpk. H. Rahmat"
-                  className="input-field"
-                  style={{ width: '100%', padding: '8px 10px', fontSize: '0.84rem' }}
-                />
+              <AlertCircle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.45' }}>
+                <strong style={{ color: '#fbbf24', display: 'block', marginBottom: '2px' }}>
+                  Akun Flip Sedang Diverifikasi? Coba Demo Dulu!
+                </strong>
+                Anda dapat langsung menguji transfer uang dan validasi rekening menggunakan lingkungan <strong>Sandbox / Demo Flip</strong> tanpa menunggu approval verifikasi dokumen (1-3 hari kerja). Saldo virtual sandbox: <span style={{ color: '#38bdf8', fontFamily: 'monospace', fontWeight: 700 }}>Rp 500.000.000</span>.
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setShowPayoutModal(false)}
-                className="btn btn-secondary"
-                style={{ flex: 1, fontSize: '0.82rem' }}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleExecutePayout}
-                className="btn btn-primary"
-                style={{ flex: 2, fontSize: '0.82rem', fontWeight: 700 }}
-              >
-                Konfirmasi Tarik Dana (Payout)
-              </button>
-            </div>
+            {/* STEP 1: FORM INPUT */}
+            {payoutStep === 'form' && (
+              <>
+                <div style={{
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '14px',
+                  padding: '14px',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Total Dana Ditarik (Owner + Mitra):</span>
+                    <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                      Single-Node Payout
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#38bdf8', marginTop: '4px', fontFamily: 'monospace' }}>
+                    Rp {((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)).toLocaleString('id-ID')}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '6px' }}>
+                    <span>Komisi Owner: Rp {(Number(unifiedWallet.owner_commission_balance) || 0).toLocaleString('id-ID')}</span>
+                    <span>Escrow Mitra: Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                      Bank Tujuan Transfer:
+                    </label>
+                    <select
+                      value={payoutBank.bank_name}
+                      onChange={e => setPayoutBank({ ...payoutBank, bank_name: e.target.value })}
+                      className="input-field"
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
+                    >
+                      <option value="BCA">BCA (Bank Central Asia)</option>
+                      <option value="Mandiri">Bank Mandiri</option>
+                      <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                      <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                      <option value="CIMB">CIMB Niaga</option>
+                      <option value="Permata">Bank Permata</option>
+                      <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600 }}>
+                        Nomor Rekening Tujuan:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleInquiryBank}
+                        disabled={inquiryLoading}
+                        style={{
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          color: '#38bdf8',
+                          fontSize: '0.72rem',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 700
+                        }}
+                      >
+                        {inquiryLoading ? <RefreshCw size={12} className="animate-spin" /> : <Search size={12} />}
+                        {inquiryLoading ? 'Mengecek...' : 'Cek Rekening via Flip'}
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={payoutBank.account_number}
+                      onChange={e => {
+                        setPayoutBank({ ...payoutBank, account_number: e.target.value });
+                        setInquiryResult(null);
+                      }}
+                      placeholder="Contoh: 8830192831"
+                      className="input-field"
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
+                    />
+                    {inquiryResult && (
+                      <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.74rem' }}>
+                        <ShieldCheck size={14} />
+                        <span>Rekening Valid Flip: <strong>{inquiryResult.account_holder}</strong></span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                      Nama Pemilik Rekening:
+                    </label>
+                    <input
+                      type="text"
+                      value={payoutBank.account_holder}
+                      onChange={e => setPayoutBank({ ...payoutBank, account_holder: e.target.value })}
+                      placeholder="Nama di buku rekening"
+                      className="input-field"
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
+                    />
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.74rem'
+                  }}>
+                    <span style={{ color: '#94a3b8' }}>Biaya Transfer Flip:</span>
+                    <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Gratis - Mode Demo)</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowPayoutModal(false)}
+                    className="btn btn-secondary"
+                    style={{ flex: 1, fontSize: '0.82rem' }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExecutePayout}
+                    disabled={payoutExecuting || ((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)) <= 0}
+                    className="btn btn-primary"
+                    style={{
+                      flex: 2,
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    Kirim Payout via Flip Demo
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* STEP 2: PROCESSING ANIMATION */}
+            {payoutStep === 'processing' && (
+              <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  border: '2px solid #38bdf8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1.25rem',
+                  animation: 'pulse 1.5s infinite'
+                }}>
+                  <RefreshCw size={28} color="#38bdf8" className="animate-spin" />
+                </div>
+                <h4 style={{ color: 'white', margin: '0 0 6px', fontSize: '1.1rem' }}>
+                  Memproses Transfer Flip API...
+                </h4>
+                <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '0 0 1.25rem' }}>
+                  Menghubungkan ke endpoint sandbox BigFlip (`api/v2/disbursement`)
+                </p>
+
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  fontSize: '0.74rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981' }}>
+                    <CheckCircle2 size={14} />
+                    <span>Inquiry rekening {payoutBank.bank_name} {payoutBank.account_number}: Terverifikasi</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8' }}>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Mengirim payload disbursement ke Flip Engine...</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
+                    <Clock size={14} />
+                    <span>Update Single-Node Settlement Wallet KostKu</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: FLIP OFFICIAL RECEIPT */}
+            {payoutStep === 'receipt' && (
+              <div>
+                <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '2px solid #10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px'
+                  }}>
+                    <CheckCircle2 size={32} color="#10b981" />
+                  </div>
+                  <h4 style={{ color: 'white', margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800 }}>
+                    Transfer Berhasil! (Flip Demo)
+                  </h4>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    ID Transaksi Flip: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{payoutReceipt?.id || 'FLIP-DISB-DEMO'}</strong>
+                  </span>
+                </div>
+
+                {/* Receipt Card */}
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px dashed rgba(56, 189, 248, 0.4)',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.8rem',
+                  color: '#cbd5e1'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b' }}>Bank Tujuan:</span>
+                    <strong style={{ color: 'white' }}>{payoutBank.bank_name}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b' }}>Nomor Rekening:</span>
+                    <span style={{ fontFamily: 'monospace', color: 'white' }}>{payoutBank.account_number}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b' }}>Nama Penerima:</span>
+                    <strong style={{ color: '#10b981' }}>{payoutReceipt?.account_holder || payoutBank.account_holder}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b' }}>Jumlah Transfer:</span>
+                    <strong style={{ color: '#38bdf8', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                      Rp {(payoutReceipt?.amount || 0).toLocaleString('id-ID')}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b' }}>Biaya Admin:</span>
+                    <span style={{ color: '#10b981' }}>Rp 0 (Sandbox Waived)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b' }}>Waktu Selesai:</span>
+                    <span style={{ fontSize: '0.74rem' }}>{payoutReceipt?.timestamp || new Date().toLocaleString('id-ID')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '8px' }}>
+                    <span style={{ color: '#64748b' }}>Status Flip:</span>
+                    <span style={{ color: '#10b981', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                      DONE (BERHASIL)
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.72rem',
+                  color: '#94a3b8',
+                  lineHeight: '1.4'
+                }}>
+                  💡 <strong>Catatan:</strong> Ini adalah simulasi transfer via Flip Sandbox. Saldo asli Anda aman. Setelah verifikasi akun Flip Anda disetujui, endpoint ini langsung otomatis mengirimkan dana riil ke rekening tujuan.
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="btn btn-secondary"
+                    style={{ flex: 1, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <Printer size={14} /> Cetak Bukti
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPayoutModal(false);
+                      setPayoutStep('form');
+                    }}
+                    className="btn btn-primary"
+                    style={{ flex: 1, fontSize: '0.82rem', fontWeight: 700 }}
+                  >
+                    Selesai
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
