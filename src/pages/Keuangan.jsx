@@ -1124,6 +1124,25 @@ const Keuangan = ({ user }) => {
       {/* Tab Content 2: Tagihan Sewa */}
       {activeTab === 'tagihan' && user?.role !== 'staff' && (
         <div>
+          {/* Tenant Self-Service Education Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+            borderRadius: '14px',
+            padding: '10px 14px',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.78rem',
+            color: '#cbd5e1'
+          }}>
+            <span style={{ fontSize: '1.1rem' }}>💡</span>
+            <span>
+              <strong>Penghuni Bayar Mandiri dari HP:</strong> Setiap anak kost dapat langsung membuka tagihan dan membayar mandiri lewat akun mereka (via QRIS / Virtual Account). Anda <strong>tidak perlu</strong> mengirimkan QRIS manual. Tombol di bawah digunakan hanya jika anak kost membayar tunai di meja pengelola atau untuk pengujian di tempat.
+            </span>
+          </div>
+
           {invoices.length === 0 ? (
             <div className="card glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
               Belum ada riwayat tagihan terbit. Tagihan otomatis dibuat saat pengajuan sewa disetujui.
@@ -1175,18 +1194,19 @@ const Keuangan = ({ user }) => {
                           <>
                             <button
                               onClick={() => setPayInvoice(inv)}
-                              className="btn btn-primary btn-sm"
-                              style={{ gap: '6px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}
-                              title="Bayar Otomatis via QRIS / VA"
+                              className="btn btn-secondary btn-sm"
+                              style={{ gap: '6px', fontSize: '0.76rem' }}
+                              title="Tampilkan QRIS di layar meja pengelola jika anak kost bayar di tempat"
                             >
-                              <QrCode size={14} /> Bayar QRIS
+                              <QrCode size={13} /> QRIS Kasir
                             </button>
                             <button
                               onClick={() => handleVerify(inv.id, inv.userName, inv.kamar)}
                               className="btn btn-success btn-sm"
-                              style={{ gap: '6px' }}
+                              style={{ gap: '6px', fontSize: '0.76rem' }}
+                              title="Tandai lunas jika anak kost bayar uang tunai fisik / transfer manual"
                             >
-                              <CheckCircle size={14} /> Verifikasi
+                              <CheckCircle size={13} /> Terima Tunai
                             </button>
                           </>
                         ) : (
