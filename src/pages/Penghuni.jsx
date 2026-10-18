@@ -149,14 +149,15 @@ const Penghuni = ({ user }) => {
     document.body.removeChild(link);
   };
 
-  const handleUpdateKycStatus = (tenantId, status) => {
+  const handleUpdateKycStatus = (tenantId, status, updatedKycData) => {
     setTenants(prev => prev.map(t => {
       if (t.id === tenantId) {
         return {
           ...t,
           kyc_data: {
             ...(t.kyc_data || {}),
-            nik: t.kyc_data?.nik || t.nik || '3374012345678901',
+            ...(updatedKycData || {}),
+            nik: updatedKycData?.nik || t.kyc_data?.nik || t.nik || '3273015509010003',
             verified_status: status
           },
           verified: status === 'verified'

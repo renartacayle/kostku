@@ -24,9 +24,13 @@ import {
   Building2,
   ArrowRight,
   Star,
-  MessageCircle
+  MessageCircle,
+  Camera,
+  X,
+  Eye
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { compressImage } from '../utils/imageCompressor';
 import { 
   apiGetComplaints, 
   apiCreateComplaint, 
@@ -52,8 +56,10 @@ const UserDashboard = ({ user }) => {
   const [syncingProfile, setSyncingProfile] = useState(false);
   const [complaints, setComplaints] = useState([]);
   const [invoices, setInvoices] = useState([]);
-  const [contract, setContract] = useState(null);
   const [newComplaint, setNewComplaint] = useState('');
+  const [complaintPhoto, setComplaintPhoto] = useState(null);
+  const [compressingPhoto, setCompressingPhoto] = useState(false);
+  const [selectedComplaintPhoto, setSelectedComplaintPhoto] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showTransferInfo, setShowTransferInfo] = useState(false);
 
@@ -131,6 +137,20 @@ const UserDashboard = ({ user }) => {
     }
   }, [user?.id]);
 
+  const handleComplaintPhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setCompressingPhoto(true);
+      const compressed = await compressImage(file, 1200, 1200, 0.8);
+      setComplaintPhoto(compressed);
+    } catch (err) {
+      alert('Gagal memproses foto: ' + (err.message || ''));
+    } finally {
+      setCompressingPhoto(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComplaint.trim()) return;
@@ -142,9 +162,11 @@ const UserDashboard = ({ user }) => {
         userId: currentUser.id,
         userName: currentUser.name,
         kamar: currentUser.kamar,
-        text: newComplaint
+        text: newComplaint,
+        photo: complaintPhoto
       });
       setNewComplaint('');
+      setComplaintPhoto(null);
       fetchData();
     } catch (err) {
       alert(err.message || 'Gagal mengirim komplain');
@@ -655,28 +677,102 @@ const UserDashboard = ({ user }) => {
 
             {/* Buat Komplain Card */}
             <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Punya Keluhan atau Kerusakan?</h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Laporkan masalah fasilitas kamar atau gangguan langsung ke pengelola kost.
-                </p>
+              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Punya Keluhan atau Kerusakan?</h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    Laporkan masalah fasilitas kamar atau gangguan langsung ke pengelola kost beserta bukti foto.
+                  </p>
+                </div>
+                <span className="badge badge-primary" style={{ fontSize: '0.68rem', gap: '4px' }}>
+                  <Camera size={11} /> Foto Bukti
+                </span>
               </div>
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '10px' }}>
                 <textarea 
                   value={newComplaint}
                   onChange={e => setNewComplaint(e.target.value)}
-                  placeholder="Jelaskan kendala Anda... (Contoh: Lampu kamar mandi mati, air keran pelan)" 
+                  placeholder="Jelaskan kendala Anda... (Contoh: Lampu kamar mandi mati, kran wastafel bocor, AC kurang dingin)" 
                   className="input-field"
-                  style={{ flex: 1, minHeight: '100px', resize: 'vertical' }}
+                  style={{ flex: 1, minHeight: '85px', resize: 'vertical' }}
                   required
                 />
+
+                {/* Photo Attachment / Camera Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  {complaintPhoto ? (
+                    <div style={{
+                      position: 'relative',
+                      display: 'inline-block',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(56, 189, 248, 0.5)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                      background: '#0f172a'
+                    }}>
+                      <img 
+                        src={complaintPhoto} 
+                        alt="Foto Bukti Komplain" 
+                        style={{ height: '75px', width: 'auto', display: 'block', objectFit: 'cover' }} 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setComplaintPhoto(null)}
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                        title="Hapus Foto"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: '1px dashed rgba(56, 189, 248, 0.4)',
+                      background: 'rgba(56, 189, 248, 0.05)',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      color: '#93c5fd',
+                      fontWeight: 600,
+                      transition: 'all 0.2s'
+                    }}>
+                      <Camera size={15} color="#38bdf8" />
+                      <span>{compressingPhoto ? 'Mengompresi Gambar...' : '📸 Ambil Foto / Unggah Bukti Kerusakan'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="environment" 
+                        onChange={handleComplaintPhotoChange}
+                        style={{ display: 'none' }}
+                        disabled={compressingPhoto}
+                      />
+                    </label>
+                  )}
+                </div>
                 
                 <button 
                   type="submit" 
-                  disabled={loading} 
+                  disabled={loading || compressingPhoto} 
                   className="btn btn-primary"
-                  style={{ gap: '8px' }}
+                  style={{ gap: '8px', marginTop: '4px' }}
                 >
                   <Send size={15} /> {loading ? 'Mengirim...' : 'Kirim Laporan Keluhan'}
                 </button>
@@ -708,14 +804,43 @@ const UserDashboard = ({ user }) => {
                       padding: '1rem',
                       background: 'rgba(255, 255, 255, 0.02)',
                       borderRadius: '12px',
-                      border: '1px solid var(--border-color)'
+                      border: '1px solid var(--border-color)',
+                      gap: '12px',
+                      flexWrap: 'wrap'
                     }}
                   >
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{c.text}</h4>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        Dilaporkan: {new Date(c.date).toLocaleDateString('id-ID')}
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '220px' }}>
+                      {c.photo && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedComplaintPhoto(c.photo)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid rgba(56, 189, 248, 0.4)',
+                            borderRadius: '8px',
+                            padding: 0,
+                            cursor: 'pointer',
+                            overflow: 'hidden',
+                            width: '48px',
+                            height: '48px',
+                            flexShrink: 0,
+                            position: 'relative'
+                          }}
+                          title="Klik untuk memperbesar foto bukti"
+                        >
+                          <img src={c.photo} alt="Bukti" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Eye size={14} color="white" />
+                          </div>
+                        </button>
+                      )}
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{c.text}</h4>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          Dilaporkan: {new Date(c.date).toLocaleDateString('id-ID')}
+                          {c.photo && ' • 📸 Ada Foto Bukti'}
+                        </span>
+                      </div>
                     </div>
                     <div>
                       {getStatusBadge(c.status)}
@@ -725,6 +850,50 @@ const UserDashboard = ({ user }) => {
               </div>
             )}
           </div>
+
+          {/* Lightbox Modal for Complaint Photo */}
+          {selectedComplaintPhoto && (
+            <div style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.9)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 10001,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem'
+            }}>
+              <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedComplaintPhoto(null)}
+                  style={{
+                    position: 'absolute',
+                    top: '-40px',
+                    right: 0,
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+                <img 
+                  src={selectedComplaintPhoto} 
+                  alt="Bukti Kerusakan Penuh" 
+                  style={{ maxWidth: '100%', maxHeight: '85vh', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }} 
+                />
+              </div>
+            </div>
+          )}
 
           {/* Direktori Layanan Sekitar Kost (0% Gangguan UX - Fasilitas Concierge Non-Tunai) */}
           <div className="card glass-panel" style={{ border: '1px solid rgba(59, 130, 246, 0.25)' }}>

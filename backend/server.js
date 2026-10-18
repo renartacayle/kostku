@@ -1588,13 +1588,18 @@ app.get('/api/complaints', (req, res) => {
 
 // Endpoint: Create Complaint
 app.post('/api/complaints', (req, res) => {
-  const { kostUid, userId, userName, kamar, text } = req.body;
+  const { kostUid, userId, userName, kamar, text, photo, image } = req.body;
   if (!text) return res.status(400).json({ error: 'Keluhan tidak boleh kosong' });
 
   const db = getDB();
   const newComplaint = {
     id: 'COMP-' + Date.now(),
-    kostUid, userId, userName, kamar, text,
+    kostUid, 
+    userId, 
+    userName, 
+    kamar, 
+    text,
+    photo: photo || image || null,
     status: 'pending', 
     date: new Date().toISOString()
   };
