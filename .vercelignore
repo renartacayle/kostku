@@ -1,0 +1,11 @@
+node_modules
+android
+dist-binaries
+release
+.gradle
+*.log
+.git
+BLUEPRINT_CLIENT_KOSTKU.md
+BLUEPRINT_DEVELOPER_KOSTKU.md
+docs/BLUEPRINT_CLIENT_KOSTKU.md
+docs/BLUEPRINT_DEVELOPER_KOSTKU.md
