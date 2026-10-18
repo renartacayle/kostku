@@ -486,3 +486,14 @@ html, body {
 .spin-anim {
   animation: spin 0.8s linear infinite;
 }
+
+/* Global Print Layout Optimization */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print, nav, header, footer, .mobile-bottom-booking-bar, .glass-nav {
+    display: none !important;
+  }
+}
