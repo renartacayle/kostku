@@ -1,0 +1,11 @@
+# robots.txt for KostKu
+# Allows search engine crawlers (Googlebot, Bingbot) for public indexation
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: *
+Allow: /
