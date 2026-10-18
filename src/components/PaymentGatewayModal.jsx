@@ -273,12 +273,22 @@ const PaymentGatewayModal = ({
               <CreditCard size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Payment Gateway KostKu
-                <span style={{ fontSize: '0.65rem', background: '#22c55e', color: '#000', padding: '2px 6px', borderRadius: '6px', fontWeight: 800 }}>LIVE</span>
+                <span style={{
+                  fontSize: '0.65rem',
+                  background: 'rgba(245, 158, 11, 0.2)',
+                  color: '#f59e0b',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontWeight: 800
+                }}>
+                  ⚡ SANDBOX / TEST MODE
+                </span>
               </h3>
               <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
-                Pembayaran Otomatis Real-time & Verifikasi Instan
+                Simulasi Pembayaran Otomatis Real-time & Verifikasi Instan
               </p>
             </div>
           </div>
@@ -555,21 +565,52 @@ const PaymentGatewayModal = ({
                   </div>
 
                   <div style={{
-                    background: 'rgba(34, 197, 94, 0.1)',
-                    border: '1px solid rgba(34, 197, 94, 0.25)',
-                    borderRadius: '12px',
-                    padding: '8px 12px',
                     margin: '0 auto 1rem auto',
                     maxWidth: '420px',
-                    fontSize: '0.74rem',
-                    color: '#cbd5e1',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    textAlign: 'left'
+                    flexDirection: 'column',
+                    gap: '8px'
                   }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} className="animate-pulse" />
-                    <span><strong>Auto-Detect Aktif:</strong> Buka BCA Mobile, Livin, GoPay, OVO, ShopeePay, atau DANA, lalu scan barcode di atas. Tagihan otomatis lunas saat transfer selesai.</span>
+                    <div style={{
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      borderRadius: '12px',
+                      padding: '8px 12px',
+                      fontSize: '0.74rem',
+                      color: '#cbd5e1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      textAlign: 'left'
+                    }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} className="animate-pulse" />
+                      <span><strong>Mode Simulasi / Demo:</strong> Ini adalah QRIS uji coba (belum memotong saldo m-Banking asli). Anda bisa klik tombol di bawah untuk simulasi instan:</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleVerifyPayment(true)}
+                      disabled={isProcessing}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)',
+                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                        color: '#38bdf8',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <Sparkles size={15} />
+                      <span>⚡ Simulasi Bayar Lunas (Uji Coba Demo)</span>
+                    </button>
                   </div>
                 </div>
               )}
