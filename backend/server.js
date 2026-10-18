@@ -2132,9 +2132,10 @@ app.put('/api/applications/:id', (req, res) => {
   application.userEmail = applicantEmail;
   application.phone = applicantPhone;
   
+  let user = null;
   if (action === 'approve') {
     application.status = 'approved';
-    let user = db.users.find(u => String(u.id) === String(application.userId));
+    user = db.users.find(u => String(u.id) === String(application.userId));
     if (!user && (applicantEmail || applicantPhone)) {
       user = db.users.find(u => 
         (applicantEmail && u.email && u.email.toLowerCase() === applicantEmail.toLowerCase()) ||
