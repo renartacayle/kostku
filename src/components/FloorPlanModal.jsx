@@ -4,7 +4,7 @@ import RoomFloorPlanViewer from './RoomFloorPlanViewer';
 
 /**
  * FloorPlanModal
- * Modal pratinjau arsitektur denah 2D dan potongan isometrik 3D kamar kost.
+ * Modal pratinjau arsitektur denah 2D presisi kamar kost.
  */
 export default function FloorPlanModal({ isOpen, onClose, kost }) {
   if (!isOpen || !kost) return null;

@@ -37,7 +37,6 @@ import {
   Copy
 } from 'lucide-react';
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
-import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
 import KostRatingReviewSection from '../components/KostRatingReviewSection';
 import InAppChatModal from '../components/InAppChatModal';
 

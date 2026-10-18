@@ -114,10 +114,10 @@ const DEMO_ACCOUNTS = [
     email: 'calon@kostku.id',
     password: 'password123',
     targetKost: 'Pengajuan Sewa Kamar 102 (Menunggu Persetujuan)',
-    desc: 'Pengalaman calon anak kost: melacak status pengajuan sewa kamar 102 yang sedang ditinjau pemilik, eksplorasi denah 2D arsitektur & 3D WebGL, serta simulasi biaya sewa & utilitas.',
+    desc: 'Pengalaman calon anak kost: melacak status pengajuan sewa kamar 102 yang sedang ditinjau pemilik, eksplorasi denah 2D arsitektural SVG yang presisi, serta simulasi biaya sewa & utilitas.',
     features: [
       '⏳ Pelacakan Status Booking Kamar 102 (Pending)',
-      '🗺️ Eksplorasi Kost: Denah 2D Arsitektural & 3D WebGL',
+      '📐 Denah 2D Arsitektural Presisi',
       '🧮 Simulasi Kalkulator Estimasi Biaya & Utilitas',
       '📍 Pencarian Peta GPS Radius Kampus ITB/Unpad'
     ]

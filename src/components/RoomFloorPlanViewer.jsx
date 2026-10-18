@@ -15,14 +15,14 @@ import {
 
 /**
  * RoomFloorPlanViewer
- * Renders high-precision architectural 2D Blueprint and Isometric 3D Room Cutaway.
+ * Renders high-precision architectural 2D Blueprint.
  * Props:
  * - dimensions: string (e.g. '3.0m x 4.0m')
  * - bedType: 'single' | 'super_single' | 'queen' | 'king'
  * - furnitures: array of string ids ('wardrobe', 'desk', 'bathroom', 'ac', 'window', 'fridge')
  * - roomNumber: string (e.g. '101')
  * - kostName: string
- * - initialView: '2d' | '3d'
+ * - initialView: '2d'
  */
 export default function RoomFloorPlanViewer({
   dimensions = '3.0m x 4.0m',

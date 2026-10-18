@@ -1357,7 +1357,7 @@ export default function Home({ user }) {
             </p>
           </div>
 
-          {/* Action Toolbar: View Switcher, Utility Calculator & Optional 3D */}
+          {/* Action Toolbar: View Switcher & Utility Calculator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {/* View Mode Switcher (Grid vs Spatial Map) */}
             <div style={{
@@ -1570,7 +1570,7 @@ export default function Home({ user }) {
         />
       )}
 
-      {/* 2D & 3D Floorplan Blueprint Modal */}
+      {/* 2D Architectural Floorplan Blueprint Modal */}
       {previewFloorPlanKost && (
         <FloorPlanModal
           isOpen={Boolean(previewFloorPlanKost)}
