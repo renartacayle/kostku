@@ -15,7 +15,15 @@ import {
   ChevronDown, 
   ChevronUp, 
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Crown,
+  Wrench,
+  Search,
+  Zap,
+  Copy,
+  ExternalLink,
+  Truck,
+  CreditCard
 } from 'lucide-react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
@@ -27,12 +35,103 @@ import {
 } from '../services/api';
 import AccountRecoveryModal from '../components/AccountRecoveryModal';
 
+// Dedicated Official Demo Accounts for every KostKu platform role & feature
+const DEMO_ACCOUNTS = [
+  {
+    id: 'owner',
+    role: 'owner',
+    title: 'Pemilik Kost (Juragan)',
+    badge: '👑 Owner / Juragan',
+    color: '#f59e0b',
+    gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%)',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    name: 'Ibu Hj. Nurhasanah',
+    email: 'pemilik@kostku.id',
+    password: 'password123',
+    targetKost: 'Kost Putri Griya Asri Dago & Kost Melati Indah (Multi-Cabang)',
+    desc: 'Akses penuh pengelola: approval sewa masuk, audit KYC KTP & ekspor data kependudukan RT/RW, laporan laba rugi, mutasi payout Flip/Tripay, penugasan staf, & kontrol utilitas.',
+    features: [
+      '🏢 Multi-Cabang Dago & Melati',
+      '🛏️ Manajemen Kamar & Denah Arsitektural',
+      '👥 Audit KYC KTP & Ekspor Wajib Lapor RT/RW',
+      '💰 Laporan Laba Rugi, Pemasukan, & Payout',
+      '🛠️ Manajemen Staf Lapangan & Utilitas',
+      '🔥 Sundul Kost Posisi #1 & Merchant UMKM'
+    ]
+  },
+  {
+    id: 'tenant',
+    role: 'user',
+    title: 'Anak Kost (Penghuni Kamar 101)',
+    badge: '🏠 Penghuni Aktif',
+    color: '#38bdf8',
+    gradient: 'linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%)',
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    name: 'Annisa Rahmawati',
+    email: 'penghuni@kostku.id',
+    password: 'password123',
+    targetKost: 'Kost Putri Griya Asri Dago — Kamar 101',
+    desc: 'Pengalaman anak kost: bayar sewa bulanan via Dynamic QRIS (dengan Simulator Bayar Instan), unduh e-kuitansi resmi ber-QR, token PLN, pesan makan/laundry warung, & loker paket.',
+    features: [
+      '💳 Dynamic QRIS (+ Simulator Bayar Realtime)',
+      '🧾 Unduh E-Kuitansi Pembayaran Digital',
+      '⚡ Token Listrik PLN & Riwayat Meteran IoT',
+      '🛍️ Order Hyperlocal Warung Makan & Laundry Kilat',
+      '📦 Notifikasi Loker Paket Kurir (Kode OTP)',
+      '🔧 Lapor Komplain Kerusakan Fasilitas Kamar'
+    ]
+  },
+  {
+    id: 'staff',
+    role: 'staff',
+    title: 'Staf Lapangan (Penjaga Kost)',
+    badge: '🛠️ Penjaga & Teknisi',
+    color: '#10b981',
+    gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    name: 'Pak Joko Susanto',
+    email: 'staff@kostku.id',
+    password: 'password123',
+    targetKost: 'Kost Putri Griya Asri Dago (Operasional)',
+    desc: 'Dashboard operasional lapangan: catat meteran utilitas (listrik kWh & air m³), intake paket kurir & buat kode OTP pickup untuk penghuni, proses tiket perbaikan, & kas kecil.',
+    features: [
+      '⚡ Input Meteran Listrik kWh & Air m³ Per Kamar',
+      '📦 Penerimaan Paket Ekspedisi & Generate OTP Pickup',
+      '🔧 Eksekusi & Update Tiket Perbaikan Fasilitas',
+      '💵 Catat Pengeluaran Kas Kecil Lapangan',
+      '📋 Checklist Inspeksi Kamar Check-in/Out'
+    ]
+  },
+  {
+    id: 'applicant',
+    role: 'applicant',
+    title: 'Calon Penghuni (Pencari Kost)',
+    badge: '🔍 Pencari Kost / Booking',
+    color: '#a855f7',
+    gradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%)',
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    name: 'Rizky Ramadhan',
+    email: 'calon@kostku.id',
+    password: 'password123',
+    targetKost: 'Pengajuan Sewa Kamar 102 (Menunggu Persetujuan)',
+    desc: 'Pengalaman calon anak kost: melacak status pengajuan sewa kamar 102 yang sedang ditinjau pemilik, eksplorasi denah 2D arsitektur & 3D WebGL, serta simulasi biaya sewa & utilitas.',
+    features: [
+      '⏳ Pelacakan Status Booking Kamar 102 (Pending)',
+      '🗺️ Eksplorasi Kost: Denah 2D Arsitektural & 3D WebGL',
+      '🧮 Simulasi Kalkulator Estimasi Biaya & Utilitas',
+      '📍 Pencarian Peta GPS Radius Kampus ITB/Unpad'
+    ]
+  }
+];
+
 export default function Login({ onLogin }) {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(null);
+  const [loggingInDemoId, setLoggingInDemoId] = useState(null);
 
   // Google Sign-In State
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -317,6 +416,44 @@ export default function Login({ onLogin }) {
     setTimeout(() => setClientIdSavedMessage(''), 3000);
   };
 
+  // Handlers for Demo Accounts
+  const handleInstantDemoLogin = async (demo) => {
+    setLoggingInDemoId(demo.id);
+    setLoading(true);
+    setError('');
+    setLoginId(demo.email);
+    setPassword(demo.password);
+
+    try {
+      const data = await apiLogin(demo.email, demo.password);
+      if (data.kostName) {
+        localStorage.setItem('kostName', data.kostName);
+      }
+      localStorage.setItem('kostUser', JSON.stringify(data.user));
+      onLogin(data.user, data.kostName);
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.message || `Gagal login sebagai ${demo.title}.`);
+    } finally {
+      setLoading(false);
+      setLoggingInDemoId(null);
+    }
+  };
+
+  const handleFillForm = (demo) => {
+    setLoginId(demo.email);
+    setPassword(demo.password);
+    setError('');
+  };
+
+  const handleCopyText = (text, key) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    }
+  };
+
   // Standard password login
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -345,197 +482,478 @@ export default function Login({ onLogin }) {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'radial-gradient(circle at 50% 20%, rgba(37, 99, 235, 0.15) 0%, var(--bg-main) 70%)',
-      padding: '1.5rem'
+      padding: '2.5rem 1.25rem',
+      boxSizing: 'border-box'
     }}>
-      <div className="card glass-panel animate-fade-in" style={{
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        justifyContent: 'center',
+        gap: '2rem',
+        maxWidth: '1180px',
         width: '100%',
-        maxWidth: '430px',
-        padding: '2.5rem 2rem',
-        border: '1px solid var(--border-light)',
-        boxShadow: 'var(--shadow-lg)'
+        margin: '0 auto',
+        flexWrap: 'wrap'
       }}>
-        {/* Brand Logo */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-          <div style={{
-            width: 64,
-            height: 64,
-            borderRadius: 18,
-            background: 'var(--accent-gradient)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--shadow-glow)'
-          }}>
-            <Home size={32} color="white" />
-          </div>
-        </div>
-
-        <h2 style={{
-          textAlign: 'center',
-          margin: '0 0 0.5rem 0',
-          fontSize: '1.6rem',
-          fontWeight: 800,
-          fontFamily: 'var(--font-display)',
-          background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }}>
-          Masuk ke KostKu
-        </h2>
-
-        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.75rem' }}>
-          Platform Manajemen & Marketplace Kost Terverifikasi
-        </p>
-
-        {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: 'var(--accent-danger)',
-            padding: '0.8rem',
-            borderRadius: '10px',
-            marginBottom: '1.25rem',
-            fontSize: '0.85rem',
-            textAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            justifyContent: 'center'
-          }}>
-            <AlertCircle size={16} />
-            <span>{error}</span>
-          </div>
-        )}
-
         {/* ══════════════════════════════════════════════════
-            TOMBOL LOGIN GOOGLE PRIBADI
+            KOLOM KIRI: FORM LOGIN UTAMA
             ══════════════════════════════════════════════════ */}
-        <div style={{ marginBottom: '1.5rem', width: '100%' }}>
-          <button 
-            type="button"
-            onClick={() => {
-              setError('');
-              setShowGoogleModal(true);
-            }}
-            style={{ 
-              width: '100%',
-              padding: '12px 18px',
-              background: '#ffffff',
-              color: '#3c4043',
-              borderRadius: '28px',
-              border: '1px solid #dadce0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              fontWeight: 700,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(66, 133, 244, 0.25), 0 2px 6px rgba(0,0,0,0.15)';
-              e.currentTarget.style.backgroundColor = '#f8fafd';
-              e.currentTarget.style.borderColor = '#4285F4';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)';
-              e.currentTarget.style.backgroundColor = '#ffffff';
-              e.currentTarget.style.borderColor = '#dadce0';
-            }}
-          >
-            {/* Official Google 4-Color Icon */}
-            <svg width="22" height="22" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-            </svg>
-            <span>Masuk lewat Akun Google</span>
-          </button>
-
-          {/* Quick link hint */}
-          <div style={{ textAlign: 'center', marginTop: '6px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#60a5fa' }}>
-              ✦ Login instan untuk Pemilik Kost & Anak Kost
-            </span>
-          </div>
-        </div>
-
-        {/* Separator */}
-        <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-          <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>atau login dengan password</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-        </div>
-
-        {/* Standard Form */}
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="card glass-panel animate-fade-in" style={{
+          flex: '1 1 380px',
+          maxWidth: '450px',
+          padding: '2.5rem 2rem',
+          border: '1px solid var(--border-light)',
+          boxShadow: 'var(--shadow-lg)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Email, NIK KTP (16 digit), atau Nama
-            </label>
-            <input 
-              type="text" 
-              required
-              value={loginId} 
-              onChange={e => setLoginId(e.target.value)}
-              placeholder="nama@email.com, NIK (16 digit), atau nama" 
-              className="input-field"
-            />
-          </div>
+            {/* Brand Logo */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: 64,
+                height: 64,
+                borderRadius: 18,
+                background: 'var(--accent-gradient)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: 'var(--shadow-glow)'
+              }}>
+                <Home size={32} color="white" />
+              </div>
+            </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Password
-            </label>
-            <input 
-              type="password" 
-              required
-              value={password} 
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Masukkan password Anda" 
-              className="input-field"
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+            <h2 style={{
+              textAlign: 'center',
+              margin: '0 0 0.5rem 0',
+              fontSize: '1.6rem',
+              fontWeight: 800,
+              fontFamily: 'var(--font-display)',
+              background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              Masuk ke KostKu
+            </h2>
+
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.75rem' }}>
+              Platform Manajemen & Marketplace Kost Terverifikasi
+            </p>
+
+            {error && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: 'var(--accent-danger)',
+                padding: '0.8rem',
+                borderRadius: '10px',
+                marginBottom: '1.25rem',
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                justifyContent: 'center'
+              }}>
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════
+                TOMBOL LOGIN GOOGLE PRIBADI
+                ══════════════════════════════════════════════════ */}
+            <div style={{ marginBottom: '1.5rem', width: '100%' }}>
               <button 
                 type="button"
-                onClick={() => setShowRecoveryModal(true)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#60a5fa',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'inline-flex',
+                onClick={() => {
+                  setError('');
+                  setShowGoogleModal(true);
+                }}
+                style={{ 
+                  width: '100%',
+                  padding: '12px 18px',
+                  background: '#ffffff',
+                  color: '#3c4043',
+                  borderRadius: '28px',
+                  border: '1px solid #dadce0',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '5px'
+                  justifyContent: 'center',
+                  gap: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(66, 133, 244, 0.25), 0 2px 6px rgba(0,0,0,0.15)';
+                  e.currentTarget.style.backgroundColor = '#f8fafd';
+                  e.currentTarget.style.borderColor = '#4285F4';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)';
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.borderColor = '#dadce0';
                 }}
               >
-                <Key size={13} /> Lupa Password? Pulihkan Akun dengan NIK
+                {/* Official Google 4-Color Icon */}
+                <svg width="22" height="22" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>Masuk lewat Akun Google</span>
               </button>
+
+              <div style={{ textAlign: 'center', marginTop: '6px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#60a5fa' }}>
+                  ✦ Login instan untuk Pemilik Kost & Anak Kost
+                </span>
+              </div>
             </div>
+
+            {/* Separator */}
+            <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+              <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>atau login dengan password</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+            </div>
+
+            {/* Standard Form */}
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Email, NIK KTP (16 digit), atau Nama
+                </label>
+                <input 
+                  type="text" 
+                  required
+                  value={loginId} 
+                  onChange={e => setLoginId(e.target.value)}
+                  placeholder="nama@email.com, NIK (16 digit), atau nama" 
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Password
+                </label>
+                <input 
+                  type="password" 
+                  required
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Masukkan password Anda" 
+                  className="input-field"
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+                  <button 
+                    type="button"
+                    onClick={() => setShowRecoveryModal(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#60a5fa',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Key size={13} /> Lupa Password? Pulihkan Akun dengan NIK
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '12px', marginTop: '0.5rem', fontSize: '0.95rem' }}
+              >
+                {loading ? 'Memeriksa Akun...' : 'Masuk Sekarang'} <ArrowRight size={16} />
+              </button>
+            </form>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="btn btn-primary"
-            style={{ width: '100%', padding: '12px', marginTop: '0.5rem', fontSize: '0.95rem' }}
-          >
-            {loading ? 'Memeriksa Akun...' : 'Masuk Sekarang'} <ArrowRight size={16} />
-          </button>
-        </form>
+          <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            Belum memiliki akun terverifikasi?{' '}
+            <Link to="/register" style={{ color: '#60a5fa', fontWeight: 700, textDecoration: 'none' }}>
+              Daftar Akun Baru (KTP Anti-Bot)
+            </Link>
+          </div>
+        </div>
 
-        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          Belum memiliki akun terverifikasi?{' '}
-          <Link to="/register" style={{ color: '#60a5fa', fontWeight: 700, textDecoration: 'none' }}>
-            Daftar Akun Baru (KTP Anti-Bot)
-          </Link>
+        {/* ══════════════════════════════════════════════════
+            KOLOM KANAN: HUB AKUN DEMO RESMI SEMUA FITUR
+            ══════════════════════════════════════════════════ */}
+        <div className="card glass-panel animate-fade-in" style={{
+          flex: '1 1 480px',
+          maxWidth: '640px',
+          padding: '2.25rem 2rem',
+          border: '1px solid rgba(59, 130, 246, 0.35)',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          boxShadow: '0 20px 45px rgba(0, 0, 0, 0.45)',
+          borderRadius: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem'
+        }}>
+          {/* Header Demo Hub */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                  color: 'white',
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)'
+                }}>
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc' }}>
+                    Akun Demo Setiap Fitur
+                  </h3>
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                    Pilih peran & jelajahi seluruh fitur platform tanpa registrasi
+                  </span>
+                </div>
+              </div>
+
+              <span style={{
+                background: 'rgba(59, 130, 246, 0.15)',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                color: '#60a5fa',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                letterSpacing: '0.02em'
+              }}>
+                ✦ 1-Klik Masuk Instan
+              </span>
+            </div>
+
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.45 }}>
+              Setiap akun telah dilengkapi mock data realistis (invoices, laporan keuangan, loker paket OTP, komplain, meteran IoT, & pengajuan sewa) untuk menguji fitur secara langsung.
+            </p>
+          </div>
+
+          {/* Grid 4 Kartu Demo */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+            {DEMO_ACCOUNTS.map((demo) => {
+              const isLoggingThis = loggingInDemoId === demo.id;
+              return (
+                <div 
+                  key={demo.id}
+                  style={{
+                    background: demo.gradient,
+                    border: demo.borderColor,
+                    borderRadius: '14px',
+                    padding: '1.15rem 1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = `0 8px 24px ${demo.color}22`;
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  {/* Top Bar: Title & Credentials Pill */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          color: demo.color,
+                          background: `${demo.color}1a`,
+                          border: `1px solid ${demo.color}40`,
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {demo.badge}
+                        </span>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#f1f5f9' }}>
+                          {demo.name}
+                        </h4>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        📍 {demo.targetKost}
+                      </span>
+                    </div>
+
+                    {/* Quick Credential Copy Pills */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(demo.email, `${demo.id}-email`)}
+                        title="Salin Email"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          color: copiedKey === `${demo.id}-email` ? '#4ade80' : '#cbd5e1',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontFamily: 'monospace',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {copiedKey === `${demo.id}-email` ? <Check size={11} /> : <Copy size={11} />}
+                        {demo.email}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Deskripsi Singkat */}
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.4 }}>
+                    {demo.desc}
+                  </p>
+
+                  {/* Feature Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {demo.features.map((feat, idx) => (
+                      <span 
+                        key={idx}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          color: '#e2e8f0',
+                          fontSize: '0.7rem',
+                          fontWeight: 500,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {feat}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleInstantDemoLogin(demo)}
+                      style={{
+                        flex: 1,
+                        padding: '8px 14px',
+                        background: `linear-gradient(135deg, ${demo.color} 0%, ${demo.color}dd 100%)`,
+                        color: demo.id === 'owner' ? '#18181b' : '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: `0 4px 12px ${demo.color}33`,
+                        transition: 'opacity 0.15s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.opacity = '0.92'}
+                      onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      {isLoggingThis ? (
+                        <>
+                          <div style={{
+                            width: 13,
+                            height: 13,
+                            border: '2px solid currentColor',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 0.6s linear infinite'
+                          }} />
+                          <span>Memuat Akun...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>1-Klik Masuk ({demo.title.split(' ')[0]})</span>
+                          <ArrowRight size={14} />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleFillForm(demo)}
+                      title="Salin kredensial ke formulir login di sebelah kiri"
+                      style={{
+                        padding: '8px 12px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        color: '#94a3b8',
+                        borderRadius: '8px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.color = '#f1f5f9';
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.color = '#94a3b8';
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      }}
+                    >
+                      Isi Form
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Notice at Bottom of Demo Box */}
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.08)',
+            border: '1px dashed rgba(59, 130, 246, 0.25)',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            fontSize: '0.75rem',
+            color: '#93c5fd',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <ShieldCheck size={18} style={{ flexShrink: 0 }} />
+            <span>
+              Semua password demo adalah <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 5px', borderRadius: '4px', color: '#fef08a' }}>password123</code>. Anda dapat menguji perpindahan multi-properti, transaksi QRIS, pencatatan meteran, dan alur booking langsung secara live.
+            </span>
+          </div>
         </div>
       </div>
 
