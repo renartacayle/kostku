@@ -84,17 +84,14 @@ const Penghuni = ({ user }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'penghuni') {
-        const [dataUsers, dataSettings] = await Promise.all([
-          apiGetUsers(user.kostUid).catch(() => []),
-          apiGetSettings(user.kostUid).catch(() => ({ rooms: [] }))
-        ]);
-        setTenants(Array.isArray(dataUsers) ? dataUsers : []);
-        setRooms(dataSettings?.rooms || []);
-      } else {
-        const dataApps = await apiGetApplications(user.kostUid).catch(() => []);
-        setApplications(Array.isArray(dataApps) ? dataApps : []);
-      }
+      const [dataUsers, dataSettings, dataApps] = await Promise.all([
+        apiGetUsers(user.kostUid).catch(() => []),
+        apiGetSettings(user.kostUid).catch(() => ({ rooms: [] })),
+        apiGetApplications(user.kostUid).catch(() => [])
+      ]);
+      setTenants(Array.isArray(dataUsers) ? dataUsers : []);
+      setRooms(dataSettings?.rooms || []);
+      setApplications(Array.isArray(dataApps) ? dataApps : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -235,22 +232,45 @@ const Penghuni = ({ user }) => {
   };
 
   const handleApproveApplication = async (appId) => {
-    if (!window.confirm('Terima dan konfirmasi pengajuan sewa ini?')) return;
+    const targetApp = applications.find(a => String(a.id) === String(appId));
+    const applicantName = targetApp?.userName || targetApp?.applicantName || 'Calon Penghuni';
+    const roomNo = targetApp?.kamar || 'Kamar';
+
+    if (!window.confirm(`Terima dan konfirmasi pengajuan sewa dari ${applicantName} untuk Kamar ${roomNo}?\n\nKamar akan otomatis ditandai terisi (occupied), data penghuni aktif diperbarui, dan tagihan sewa pertama langsung diterbitkan.`)) return;
+
     try {
+      setLoading(true);
       await apiProcessApplication(appId, 'approve');
-      fetchData();
+
+      // Optimistic update so it never bounces back
+      setApplications(prev => prev.map(a => String(a.id) === String(appId) ? { ...a, status: 'approved' } : a));
+      
+      await fetchData();
+
+      setActiveTab('penghuni');
+      alert(`✅ Berhasil! Pengajuan sewa dari ${applicantName} telah diterima.\n\nPenghuni otomatis ditempatkan di Kamar ${roomNo} dan masuk ke daftar Penghuni Aktif.`);
     } catch (err) {
-      alert(err.message);
+      alert(err.message || 'Gagal memproses pengajuan sewa');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRejectApplication = async (appId) => {
-    if (!window.confirm('Tolak pengajuan sewa ini?')) return;
+    const targetApp = applications.find(a => String(a.id) === String(appId));
+    const applicantName = targetApp?.userName || targetApp?.applicantName || 'Calon Penghuni';
+
+    if (!window.confirm(`Tolak pengajuan sewa dari ${applicantName}?`)) return;
+
     try {
+      setLoading(true);
       await apiProcessApplication(appId, 'reject');
-      fetchData();
+      setApplications(prev => prev.map(a => String(a.id) === String(appId) ? { ...a, status: 'rejected' } : a));
+      await fetchData();
     } catch (err) {
-      alert(err.message);
+      alert(err.message || 'Gagal menolak pengajuan sewa');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -596,36 +616,51 @@ const Penghuni = ({ user }) => {
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{app.userName}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{app.userName || app.applicantName || 'Calon Penghuni'}</h3>
                     <span className="badge badge-warning">Kamar {app.kamar}</span>
                     <span className={`badge ${app.status === 'approved' ? 'badge-success' : app.status === 'rejected' ? 'badge-danger' : 'badge-warning'}`}>
-                      {app.status.toUpperCase()}
+                      {app.status === 'approved' ? '✓ DISETUJUI' : app.status === 'rejected' ? '✕ DITOLAK' : 'MENUNGGU KONFIRMASI'}
                     </span>
                   </div>
                   <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Telepon: {app.phone} • Tanggal: {new Date(app.date).toLocaleDateString('id-ID')}
+                    Telepon: {app.phone || app.applicantPhone || '-'} • Email: {app.userEmail || app.applicantEmail || '-'} • Diajukan: {new Date(app.date).toLocaleDateString('id-ID')}
                   </p>
+                  {app.notes && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Catatan: "{app.notes}"
+                    </p>
+                  )}
                 </div>
 
-                {app.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {app.status === 'pending' ? (
+                    <>
+                      <button 
+                        onClick={() => handleApproveApplication(app.id)}
+                        className="btn btn-success btn-sm"
+                        style={{ gap: '6px' }}
+                      >
+                        <CheckCircle size={16} /> Terima & Terbitkan Tagihan
+                      </button>
+                      <button 
+                        onClick={() => handleRejectApplication(app.id)}
+                        className="btn btn-danger btn-sm"
+                        style={{ gap: '6px' }}
+                      >
+                        <XCircle size={16} /> Tolak
+                      </button>
+                    </>
+                  ) : app.status === 'approved' ? (
                     <button 
-                      onClick={() => handleApproveApplication(app.id)}
-                      className="btn btn-success btn-sm"
-                      style={{ gap: '6px' }}
+                      onClick={() => setActiveTab('penghuni')}
+                      className="btn btn-secondary btn-sm"
+                      style={{ gap: '6px', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.4)' }}
                     >
-                      <CheckCircle size={16} /> Terima & Terbitkan Tagihan
+                      <CheckCircle size={15} /> Lihat di Penghuni Aktif →
                     </button>
-                    <button 
-                      onClick={() => handleRejectApplication(app.id)}
-                      className="btn btn-danger btn-sm"
-                      style={{ gap: '6px' }}
-                    >
-                      <XCircle size={16} /> Tolak
-                    </button>
-                  </div>
-                )}
+                  ) : null}
+                </div>
               </div>
             ))
           )}

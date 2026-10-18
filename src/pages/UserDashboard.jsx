@@ -90,6 +90,11 @@ const UserDashboard = ({ user }) => {
         const profileRes = await apiGetUserProfile(user.id);
         if (profileRes?.user) {
           const merged = { ...user, ...currentUser, ...profileRes.user };
+          // If application is approved, auto-activate tenant dashboard immediately
+          if (profileRes.activeApplication?.status === 'approved' && profileRes.activeApplication?.kamar) {
+            merged.kostUid = profileRes.activeApplication.kostUid;
+            merged.kamar = profileRes.activeApplication.kamar;
+          }
           setCurrentUser(merged);
           activeKostUid = merged.kostUid;
           localStorage.setItem('kostUser', JSON.stringify(merged));

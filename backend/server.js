@@ -442,7 +442,7 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   });
 });
 
-// ── In-memory Database (Vercel-compatible) ────────────────────────────────────
+// ── In-memory Database (Vercel & Local persistence) ──────────────────────────
 let _dbCache = null;
 
 const getDbFilePath = () => {
@@ -452,6 +452,10 @@ const getDbFilePath = () => {
       try { fs.mkdirSync(customDir, { recursive: true }); } catch (_) {}
     }
     return process.env.DATA_PATH;
+  }
+  // On Vercel Serverless Lambda, /tmp is the only writable directory!
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return '/tmp/kostku_db.json';
   }
   return path.join(__dirname, 'db.json');
 };
@@ -464,7 +468,14 @@ const loadSeedData = () => {
     } catch (_) {}
   }
   try {
-    return require('./db.json');
+    const seed = require('./db.json');
+    // If running in /tmp on Vercel, initialize /tmp/kostku_db.json with seed data
+    if (dbFile.startsWith('/tmp/')) {
+      try {
+        fs.writeFileSync(dbFile, JSON.stringify(seed, null, 2));
+      } catch (_) {}
+    }
+    return seed;
   } catch (e) {
     return { users: [], kosts: [], complaints: [], activities: [], invoices: [], expenses: [], iot_meters: [], applications: [] };
   }
@@ -494,13 +505,17 @@ const getDB = () => {
   return _dbCache;
 };
 
-// writeDB: update in-memory; try file write (works locally, silently skip on Vercel read-only FS)
+// writeDB: update in-memory and write to persistent storage (supports /tmp on Vercel)
 const writeDB = (data) => {
   _dbCache = data;
   try {
     const dbFile = getDbFilePath();
     fs.writeFileSync(dbFile, JSON.stringify(data, null, 2));
-  } catch (_) { /* read-only FS on serverless — data stays in memory */ }
+  } catch (err) {
+    try {
+      fs.writeFileSync('/tmp/kostku_db.json', JSON.stringify(data, null, 2));
+    } catch (_) {}
+  }
 };
 
 // Helper: Add Activity
@@ -921,7 +936,20 @@ app.get('/api/users/:id', (req, res) => {
   const safeUser = { ...user };
   delete safeUser.password;
 
-  let kostName = 'KostKu';
+  // Auto-sync user kamar & kostUid from approved application if empty
+  const approvedApp = (db.applications || [])
+    .filter(a => (String(a.userId) === String(user.id) || (user.email && a.userEmail === user.email)) && a.status === 'approved')
+    .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+
+  if (approvedApp) {
+    if (!user.kostUid || !user.kamar) {
+      user.kostUid = approvedApp.kostUid;
+      user.kamar = approvedApp.kamar;
+      safeUser.kostUid = approvedApp.kostUid;
+      safeUser.kamar = approvedApp.kamar;
+    }
+  }
+
   if (user.kostUid) {
     const kost = db.kosts.find(k => k.uid === user.kostUid);
     if (kost) kostName = kost.kostName;
@@ -2095,30 +2123,39 @@ app.put('/api/applications/:id', (req, res) => {
   if (appIndex === -1) return res.status(404).json({ error: 'Aplikasi tidak ditemukan' });
   
   const application = db.applications[appIndex];
+  const applicantName = application.userName || application.applicantName || 'Penghuni';
+  const applicantEmail = application.userEmail || application.applicantEmail || '';
+  const applicantPhone = application.phone || application.applicantPhone || '';
+
+  application.userName = applicantName;
+  application.applicantName = applicantName;
+  application.userEmail = applicantEmail;
+  application.phone = applicantPhone;
   
   if (action === 'approve') {
     application.status = 'approved';
     let user = db.users.find(u => String(u.id) === String(application.userId));
-    if (!user && (application.userEmail || application.phone)) {
+    if (!user && (applicantEmail || applicantPhone)) {
       user = db.users.find(u => 
-        (application.userEmail && u.email && u.email.toLowerCase() === application.userEmail.toLowerCase()) ||
-        (application.phone && u.phone && u.phone === application.phone)
+        (applicantEmail && u.email && u.email.toLowerCase() === applicantEmail.toLowerCase()) ||
+        (applicantPhone && u.phone && u.phone === applicantPhone)
       );
     }
     if (!user) {
       user = {
         id: application.userId || ('USER-' + Date.now()),
-        name: application.userName || 'Penghuni',
-        email: application.userEmail || '',
-        phone: application.phone || '',
+        name: applicantName,
+        email: applicantEmail,
+        phone: applicantPhone,
         role: 'user'
       };
       db.users.push(user);
     }
 
+    user.name = applicantName;
     user.kostUid = application.kostUid;
     user.kamar = application.kamar;
-    user.phone = application.phone || user.phone;
+    user.phone = applicantPhone || user.phone;
     user.bedsheets = user.bedsheets || 0;
     
     const kost = db.kosts.find(k => k.uid === application.kostUid);
@@ -2146,12 +2183,12 @@ app.put('/api/applications/:id', (req, res) => {
 
     // Generate Invoice if not already created
     const deposit = kost?.settings?.depositAmount || 0;
-    const basePrice = roomSettings?.price || 0;
+    const basePrice = roomSettings?.price || 1650000;
     const existingInv = (db.invoices || []).find(i => 
       String(i.userId) === String(user.id) && 
       i.kostUid === application.kostUid && 
       i.kamar === application.kamar && 
-      i.status === 'pending'
+      (i.status === 'pending' || i.status === 'belum_lunas')
     );
 
     if (!existingInv) {
@@ -2162,23 +2199,24 @@ app.put('/api/applications/:id', (req, res) => {
         userName: user.name,
         kamar: application.kamar,
         date: new Date().toISOString(),
+        month: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
         basePrice: basePrice,
         deposit: deposit,
         waterCost: 0,
         electricityCost: 0,
         total: Number(basePrice) + Number(deposit),
-        status: 'pending'
+        status: 'belum_lunas'
       });
     }
     
     addActivity(db, application.kostUid, 'pengguna', `Pengajuan sewa ${user.name} (Kamar ${application.kamar}) telah disetujui`);
   } else {
     application.status = 'rejected';
-    addActivity(db, application.kostUid, 'pengguna', `Pengajuan sewa ${application.userName} (Kamar ${application.kamar}) ditolak`);
+    addActivity(db, application.kostUid, 'pengguna', `Pengajuan sewa ${applicantName} (Kamar ${application.kamar}) ditolak`);
   }
   
   writeDB(db);
-  res.json(application);
+  res.json({ message: 'Pengajuan sewa berhasil diproses', application, user: user || null });
 });
 
 // ── IN-APP DIRECT CHAT (ELIMINATES EXTERNAL FAKE WA SPAM) ───────────
