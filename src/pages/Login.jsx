@@ -144,6 +144,9 @@ export default function Login({ onLogin }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [recentGoogleAccounts, setRecentGoogleAccounts] = useState([]);
 
+  // Anti-Bot Honeypot Trap
+  const [honeypot, setHoneypot] = useState('');
+
   // Google OAuth 2.0 / Client ID Configuration
   const [googleClientId, setGoogleClientId] = useState('');
   const [showConfigClientId, setShowConfigClientId] = useState(false);
@@ -459,8 +462,16 @@ export default function Login({ onLogin }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Check Honeypot trap
+    if (honeypot.trim()) {
+      setLoading(false);
+      setError('Aktivitas otomatis (bot) terdeteksi.');
+      return;
+    }
+
     try {
-      const data = await apiLogin(loginId, password);
+      const data = await apiLogin(loginId, password, { website: honeypot });
       if (data.kostName) {
         localStorage.setItem('kostName', data.kostName);
       }
@@ -628,6 +639,18 @@ export default function Login({ onLogin }) {
 
             {/* Standard Form */}
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Anti-Bot Honeypot Trap */}
+              <div style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+                <input 
+                  type="text" 
+                  name="website" 
+                  tabIndex={-1} 
+                  autoComplete="off" 
+                  value={honeypot} 
+                  onChange={e => setHoneypot(e.target.value)} 
+                />
+              </div>
+
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   Email, NIK KTP (16 digit), atau Nama

@@ -806,7 +806,7 @@ export default function Home({ user }) {
           </Link>
 
           <Link
-            to="/register"
+            to="/register?role=owner"
             className="btn btn-secondary btn-sm desktop-only"
             style={{ gap: '6px' }}
           >

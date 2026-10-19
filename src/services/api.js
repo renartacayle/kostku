@@ -94,10 +94,10 @@ async function request(endpoint, options = {}) {
 }
 
 // ── Auth Endpoints ──────────────────────────────────────────
-export const apiLogin = (loginId, password) => {
+export const apiLogin = (loginId, password, extra = {}) => {
   return request('/login', {
     method: 'POST',
-    body: JSON.stringify({ loginId, password })
+    body: JSON.stringify({ loginId, password, ...extra })
   });
 };
 

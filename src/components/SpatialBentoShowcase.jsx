@@ -127,7 +127,7 @@ export default function SpatialBentoShowcase() {
       statNumber: '95%+',
       statLabel: 'Rata-rata Okupansi Mitra',
       ctaText: 'Daftarkan Kost Sekarang →',
-      ctaLink: '/register',
+      ctaLink: '/register?role=owner',
       floatingBadge: '📊 Monitoring Kamar Real-Time',
       floatingIcon: '📊',
       image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000&auto=format&fit=crop&q=80'
@@ -147,7 +147,7 @@ export default function SpatialBentoShowcase() {
       statNumber: '1-Click',
       statLabel: 'Kirim Kwitansi WA Instan',
       ctaText: 'Mulai Kelola Keuangan →',
-      ctaLink: '/register',
+      ctaLink: '/register?role=owner',
       floatingBadge: '🧾 Kwitansi WA Digital Otomatis',
       floatingIcon: '🧾',
       image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1000&auto=format&fit=crop&q=80'
@@ -167,7 +167,7 @@ export default function SpatialBentoShowcase() {
       statNumber: '99.9%',
       statLabel: 'Bebas Masalah & Kondusif',
       ctaText: 'Dapatkan Penyewa Berkualitas →',
-      ctaLink: '/register',
+      ctaLink: '/register?role=owner',
       floatingBadge: '🔒 Verifikasi Identitas Sah',
       floatingIcon: '🔒',
       image: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1000&auto=format&fit=crop&q=80'
@@ -187,7 +187,7 @@ export default function SpatialBentoShowcase() {
       statNumber: '50.000+',
       statLabel: 'Pencari Aktif / Bulan',
       ctaText: 'Pasang Iklan Kost Gratis →',
-      ctaLink: '/register',
+      ctaLink: '/register?role=owner',
       floatingBadge: '🎯 Radar GPS Kampus Terdekat',
       floatingIcon: '🎯',
       image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80'

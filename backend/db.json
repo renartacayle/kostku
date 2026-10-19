@@ -170,6 +170,35 @@
       "nik": "3273011204990002",
       "verifiedKtp": true,
       "picture": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "1792370747703",
+      "name": "Haji Ahmad Pemilik Kost",
+      "nik": "OWNER-1792370747703-283",
+      "ktpImage": "",
+      "email": "juragan.1792370747672@kostku.id",
+      "phone": "081234567899",
+      "password": "password123",
+      "role": "owner",
+      "kostUid": "KOST-CJ9S06",
+      "bedsheets": 0,
+      "verifiedKtp": false,
+      "verifiedOtp": true,
+      "otpChannel": "whatsapp",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "verifiedAt": "2026-10-19T00:45:47.703Z",
+      "createdAt": "2026-10-19T00:45:47.703Z"
+    },
+    {
+      "id": 1792370747741,
+      "name": "Google User Asli",
+      "email": "google.user.1792370747739@gmail.com",
+      "role": "user",
+      "picture": "",
+      "authProvider": "google",
+      "googleId": "",
+      "password": "google-oauth-y6uj54"
     }
   ],
   "kosts": [
@@ -1351,6 +1380,227 @@
       },
       "rating": 4.9,
       "reviewCount": 12
+    },
+    {
+      "uid": "KOST-CJ9S06",
+      "kostName": "Kost Griya Berkah",
+      "ownerId": "1792370747703",
+      "address": "Jl. Pemuda No. 45 Semarang",
+      "location": {
+        "lat": -6.2088,
+        "lng": 106.8456
+      },
+      "gmapsUrl": "https://maps.google.com/?q=Jl.%20Pemuda%20No.%2045%20Semarang",
+      "roomPhoto": "",
+      "floorPlan": {
+        "dimensions": "3.0m x 4.0m",
+        "bedType": "super_single",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "bathroom",
+          "ac",
+          "window"
+        ],
+        "generated": true,
+        "mode": "ai"
+      },
+      "images": [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      ],
+      "description": "",
+      "status": "verified",
+      "utilityScheme": "all_kost",
+      "settings": {
+        "rooms": [
+          {
+            "id": "RM-KOST-CJ9S06-101",
+            "number": "101",
+            "price": 1500000,
+            "size": "3.0m x 4.0m",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "super_single",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "bathroom",
+                "ac",
+                "window"
+              ],
+              "generated": true,
+              "mode": "ai"
+            },
+            "facilities": [
+              "WiFi",
+              "Kamar Mandi Dalam",
+              "Kasur Springbed",
+              "Meja Belajar",
+              "Lemari",
+              "AC"
+            ]
+          },
+          {
+            "id": "RM-KOST-CJ9S06-102",
+            "number": "102",
+            "price": 1500000,
+            "size": "3.0m x 4.0m",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "super_single",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "bathroom",
+                "ac",
+                "window"
+              ],
+              "generated": true,
+              "mode": "ai"
+            },
+            "facilities": [
+              "WiFi",
+              "Kamar Mandi Dalam",
+              "Kasur Springbed",
+              "Meja Belajar",
+              "Lemari",
+              "AC"
+            ]
+          },
+          {
+            "id": "RM-KOST-CJ9S06-103",
+            "number": "103",
+            "price": 1500000,
+            "size": "3.0m x 4.0m",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "super_single",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "bathroom",
+                "ac",
+                "window"
+              ],
+              "generated": true,
+              "mode": "ai"
+            },
+            "facilities": [
+              "WiFi",
+              "Kamar Mandi Dalam",
+              "Kasur Springbed",
+              "Meja Belajar",
+              "Lemari",
+              "AC"
+            ]
+          },
+          {
+            "id": "RM-KOST-CJ9S06-104",
+            "number": "104",
+            "price": 1500000,
+            "size": "3.0m x 4.0m",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "super_single",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "bathroom",
+                "ac",
+                "window"
+              ],
+              "generated": true,
+              "mode": "ai"
+            },
+            "facilities": [
+              "WiFi",
+              "Kamar Mandi Dalam",
+              "Kasur Springbed",
+              "Meja Belajar",
+              "Lemari",
+              "AC"
+            ]
+          },
+          {
+            "id": "RM-KOST-CJ9S06-105",
+            "number": "105",
+            "price": 1500000,
+            "size": "3.0m x 4.0m",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "super_single",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "bathroom",
+                "ac",
+                "window"
+              ],
+              "generated": true,
+              "mode": "ai"
+            },
+            "facilities": [
+              "WiFi",
+              "Kamar Mandi Dalam",
+              "Kasur Springbed",
+              "Meja Belajar",
+              "Lemari",
+              "AC"
+            ]
+          },
+          {
+            "id": "RM-KOST-CJ9S06-106",
+            "number": "106",
+            "price": 1500000,
+            "size": "3.0m x 4.0m",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "super_single",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "bathroom",
+                "ac",
+                "window"
+              ],
+              "generated": true,
+              "mode": "ai"
+            },
+            "facilities": [
+              "WiFi",
+              "Kamar Mandi Dalam",
+              "Kasur Springbed",
+              "Meja Belajar",
+              "Lemari",
+              "AC"
+            ]
+          }
+        ],
+        "employees": [],
+        "bedsheetCount": 12,
+        "utilityScheme": "all_kost",
+        "waterRate": 5000,
+        "electricityRate": 2000,
+        "depositAmount": 500000
+      }
     }
   ],
   "complaints": [
@@ -3142,6 +3392,20 @@
       "type": "layanan",
       "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
       "time": "2026-10-18T14:08:57.543Z"
+    },
+    {
+      "id": "ACT-1792370747703",
+      "kostUid": "KOST-CJ9S06",
+      "type": "pengguna",
+      "text": "Kost Kost Griya Berkah didaftarkan oleh Haji Ahmad Pemilik Kost (Verifikasi OTP WhatsApp & Cloudflare Turnstile)",
+      "time": "2026-10-19T00:45:47.703Z"
+    },
+    {
+      "id": "ACT-1792370747741",
+      "kostUid": "GLOBAL",
+      "type": "pengguna",
+      "text": "Penghuni baru Google User Asli terdaftar via Akun Google (google.user.1792370747739@gmail.com)",
+      "time": "2026-10-19T00:45:47.741Z"
     }
   ],
   "invoices": [
