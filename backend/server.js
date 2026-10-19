@@ -1179,7 +1179,7 @@ app.post('/api/register', async (req, res) => {
     const safeUser = { ...newUser };
     delete safeUser.password;
     return res.json({ 
-      message: kostUid ? 'Penghuni berhasil didaftarkan ke kost!' : 'Berhasil mendaftar sebagai pencari kost! Identitas KTP terverifikasi.',
+      message: kostUid ? 'Penghuni berhasil didaftarkan ke kost!' : 'Berhasil mendaftar sebagai pencari kost! Akun Anda aktif dan siap digunakan.',
       user: safeUser
     });
 
