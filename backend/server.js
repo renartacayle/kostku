@@ -419,16 +419,15 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   const baseUrl = `${protocol}://${host}`;
 
   res.json({
-    version: '1.2.2',
-    buildNumber: 122,
+    version: '1.2.3',
+    buildNumber: 123,
     releaseDate: '2026-10-19',
-    title: 'Pembaruan KostKu v1.2.2 - Proteksi 4-Pilar Anti-Bot & Pasang Kost Bebas KTP 🚀',
+    title: 'Pembaruan KostKu v1.2.3 - Registrasi Bersih Bebas KTP (Simpan Nama Lengkap) 🚀',
     changelog: [
-      'Proteksi Keamanan 4-Pilar Anti-Bot: Cloudflare Turnstile, OTP WhatsApp, Google Sign-In 1-Klik, & Honeypot Trap',
-      'Pasang Kost Bebas KTP: Pendaftaran pemilik kost instan tanpa perlu unggah foto KTP atau NIK',
-      'Daftar Cepat 1-Klik dengan Akun Google untuk Pemilik Kost & Pencari',
-      'Filter Anti-Bot Honeypot cerdas untuk mencegah bot spammer dan brute force',
-      'Pembaruan Service Worker PWA (kostku-cache-v122) & auto cache busting'
+      'Penghapusan total kolom KTP & NIK pada form pendaftaran (Registrasi Bersih & Cepat)',
+      'Mempertahankan penyimpanan Nama Lengkap, Nomor WhatsApp, dan Email pengguna',
+      'Proteksi 4-Pilar Anti-Bot: Cloudflare Turnstile, OTP WhatsApp, Google Sign-In, & Honeypot',
+      'Cache Buster Service Worker kostku-cache-v123'
     ],
     downloadUrls: {
       windows: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download',

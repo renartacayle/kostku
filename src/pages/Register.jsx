@@ -14,7 +14,6 @@ import {
   Camera, 
   Sparkles,
   ShieldCheck,
-  CreditCard,
   Phone,
   AlertCircle,
   RefreshCw,
@@ -30,7 +29,7 @@ import {
   Send,
   X
 } from 'lucide-react';
-import { apiRegister, apiCheckNik, apiSendOtp, apiVerifyOtp, apiGoogleAuth, apiCheckEmail } from '../services/api';
+import { apiRegister, apiSendOtp, apiVerifyOtp, apiGoogleAuth, apiCheckEmail } from '../services/api';
 import AiRoomPlanSection from '../components/AiRoomPlanSection';
 import CloudflareTurnstile from '../components/CloudflareTurnstile';
 
@@ -60,19 +59,13 @@ const Register = () => {
   // Step Workflow: 'form' | 'otp' | 'success'
   const [step, setStep] = useState('form');
 
-  // Identitas & Akun Dasar
+  // Identitas & Akun (Nama Lengkap Disimpan)
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // KTP (Hanya opsional untuk Pencari / Anak Kost, sama sekali TIDAK diperlukan untuk Pasang Kost / Owner)
-  const [nik, setNik] = useState('');
-  const [ktpImage, setKtpImage] = useState(null);
-  const [nikStatus, setNikStatus] = useState(null);
-  const [checkingNik, setCheckingNik] = useState(false);
 
   // 4-Pilar Anti-Bot: Cloudflare Turnstile, OTP WhatsApp/Gmail, Google Sign-In, & Honeypot
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -120,45 +113,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-
-  // Debounced NIK availability check (Khusus role === 'user' jika mengisi NIK)
-  useEffect(() => {
-    if (role !== 'user') return;
-    const cleanNik = nik.trim();
-    if (cleanNik.length !== 16) {
-      setNikStatus(null);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setCheckingNik(true);
-      try {
-        const res = await apiCheckNik(cleanNik);
-        setNikStatus(res);
-      } catch (err) {
-        setNikStatus({ valid: true, available: true, message: 'NIK dapat digunakan' });
-      } finally {
-        setCheckingNik(false);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [nik, role]);
-
-  const handleNikChange = (e) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 16);
-    setNik(val);
-    if (error) setError('');
-  };
-
-  const handleKtpImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setKtpImage(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleImageFrontChange = (e) => {
     const file = e.target.files[0];
@@ -212,25 +166,13 @@ const Register = () => {
       return false;
     }
 
-    // 2. Validasi Nama
+    // 2. Simpan & Validasi Nama Lengkap
     if (!name.trim()) {
       setError(role === 'owner' ? 'Nama pemilik / pengelola kost wajib diisi.' : 'Nama lengkap wajib diisi.');
       return false;
     }
 
-    // 3. Khusus User: Jika mengisi NIK, pastikan tepat 16 digit angka
-    if (role === 'user' && nik.trim()) {
-      if (nik.trim().length !== 16) {
-        setError('NIK harus tepat 16 digit angka sesuai e-KTP.');
-        return false;
-      }
-      if (nikStatus && !nikStatus.available) {
-        setError('NIK ini sudah terdaftar! Silakan login jika ini akun Anda.');
-        return false;
-      }
-    }
-
-    // 4. Validasi Password
+    // 3. Validasi Password
     if (password.length < 6) {
       setError('Password minimal 6 karakter.');
       return false;
@@ -241,7 +183,7 @@ const Register = () => {
       return false;
     }
 
-    // 5. Validasi khusus Owner (Pasang Kost) - Tidak perlu KTP, hanya data properti
+    // 4. Validasi khusus Owner (Pasang Kost) - Data Properti
     if (role === 'owner') {
       if (!kostName.trim()) {
         setError('Nama properti kost wajib diisi.');
@@ -261,7 +203,7 @@ const Register = () => {
       }
     }
 
-    // 6. Validasi target kontak sesuai saluran OTP
+    // 5. Validasi target kontak sesuai saluran OTP
     const target = channelToUse === 'email' ? email.trim() : phone.trim();
     if (channelToUse === 'whatsapp' && (!phone || phone.trim().length < 8)) {
       setError('Nomor WhatsApp wajib diisi (minimal 9 digit) untuk menerima kode OTP verifikasi akun.');
@@ -370,9 +312,7 @@ const Register = () => {
 
       const payload = {
         role,
-        name: name.trim(),
-        nik: role === 'owner' ? '' : nik.trim(), // Owner tidak butuh NIK
-        ktpImage: role === 'owner' ? null : ktpImage, // Owner tidak butuh KTP
+        name: name.trim(), // Nama lengkap tersimpan resmi
         email: email.trim(),
         phone: phone.trim(),
         password,
@@ -452,8 +392,6 @@ const Register = () => {
     if (otpChannel === 'email' && (!email || !email.includes('@'))) return true;
     if (role === 'owner') {
       if (!kostName.trim() || !address.trim() || !email.trim() || !imageFront) return true;
-    } else {
-      if (nik.trim() && (nik.trim().length !== 16 || (nikStatus && !nikStatus.available))) return true;
     }
     return false;
   };
@@ -468,7 +406,7 @@ const Register = () => {
       padding: '2.5rem 1rem'
     }}>
       <div className="card glass-panel animate-fade-in" style={{
-        maxWidth: '580px',
+        maxWidth: '560px',
         width: '100%',
         padding: '2.5rem 2rem',
         border: '1px solid var(--border-light)',
@@ -493,7 +431,7 @@ const Register = () => {
           </h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.88rem' }}>
             {role === 'owner' 
-              ? 'Daftarkan properti kost Anda dan kelola penghuni tanpa ribet upload KTP.'
+              ? 'Daftarkan properti kost Anda dan kelola penghuni dengan mudah dan cepat.'
               : 'Verifikasi instan via WhatsApp OTP & Cloudflare Turnstile (Anti-Bot Tanpa Captcha).'}
           </p>
         </div>
@@ -518,11 +456,11 @@ const Register = () => {
           <div>
             {role === 'owner' ? (
               <>
-                <strong style={{ color: '#6ee7b7' }}>⚡ Tanpa KTP untuk Pasang Kost:</strong> Pemilik kost tidak perlu mengunggah foto KTP. Sistem KostKu menggunakan verifikasi nomor WhatsApp OTP dan Cloudflare Turnstile untuk membuktikan manusia asli secara otomatis dan legal.
+                <strong style={{ color: '#6ee7b7' }}>⚡ Registrasi Cepat & Praktis:</strong> Cukup isi nama, nomor kontak WhatsApp, dan informasi kost Anda untuk langsung menayangkan kamar.
               </>
             ) : (
               <>
-                <strong style={{ color: '#93c5fd' }}>🛡️ Proteksi Keamanan 4-Pilar Anti-Bot:</strong> Cloudflare Turnstile (tanpa captcha gambar ribet), Verifikasi OTP WhatsApp, Google Sign-In, & Honeypot Trap menjamin 100% pengguna nyata.
+                <strong style={{ color: '#93c5fd' }}>🛡️ Proteksi Keamanan 4-Pilar Anti-Bot:</strong> Cloudflare Turnstile (tanpa captcha gambar ribet), Verifikasi OTP WhatsApp, Google Sign-In, & Honeypot Trap menjamin keamanan akun nyata.
               </>
             )}
           </div>
@@ -686,16 +624,16 @@ const Register = () => {
             </div>
 
             {/* ═════════════════════════════════════════════════════
-                SECTION 1: DATA AKUN & KONTAK RESMI (TIDAK ADA KTP UNTUK OWNER)
+                SECTION 1: DATA AKUN & KONTAK RESMI (NAMA LENGKAP TERSIMPAN)
                 ═════════════════════════════════════════════════════ */}
             <div>
               <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <User size={16} color={role === 'owner' ? '#34d399' : '#60a5fa'} /> 
-                {role === 'owner' ? '1. Data Pemilik & Akun Pengelola Kost' : '1. Data Akun & Kontak'}
+                {role === 'owner' ? '1. Data Pemilik & Akun Pengelola' : '1. Data Akun & Kontak'}
               </h4>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                {/* Nama Lengkap */}
+                {/* Nama Lengkap Pengguna */}
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                     {role === 'owner' ? 'Nama Pemilik / Pengelola Kost' : 'Nama Lengkap'} <span style={{ color: '#ef4444' }}>*</span>
@@ -874,116 +812,6 @@ const Register = () => {
                 </div>
               </div>
             </div>
-
-            {/* ═════════════════════════════════════════════════════
-                SECTION 2 (KHUSUS USER/ANAK KOST): VERIFIKASI e-KTP OPSIONAL
-                ═════════════════════════════════════════════════════ */}
-            {role === 'user' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
-                  <h4 style={{ margin: 0, color: 'white', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CreditCard size={16} color="#60a5fa" /> 2. Verifikasi e-KTP (Opsional)
-                  </h4>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '6px' }}>
-                    Dapat diisi nanti saat sewa kamar
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                  {/* NIK 16 Digit */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Nomor Induk Kependudukan (NIK)
-                      </label>
-                      <span style={{ fontSize: '0.75rem', color: nik.length === 16 ? '#4ade80' : 'var(--text-muted)' }}>
-                        {nik.length} / 16 digit
-                      </span>
-                    </div>
-                    
-                    <div style={{ position: 'relative' }}>
-                      <input 
-                        type="text" 
-                        inputMode="numeric"
-                        value={nik} 
-                        onChange={handleNikChange} 
-                        placeholder="16 digit NIK KTP (opsional saat daftar awal)" 
-                        className="input-field" 
-                        style={{
-                          fontFamily: 'monospace',
-                          letterSpacing: '1px',
-                          paddingRight: '36px'
-                        }}
-                      />
-                      {checkingNik && (
-                        <RefreshCw size={16} className="animate-spin" color="#60a5fa" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                      )}
-                      {!checkingNik && nikStatus && nikStatus.available && (
-                        <CheckCircle size={16} color="#4ade80" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Upload Foto KTP */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Foto e-KTP (Opsional)
-                    </label>
-
-                    <div style={{
-                      border: '2px dashed rgba(59, 130, 246, 0.4)',
-                      borderRadius: '14px',
-                      padding: '0.8rem',
-                      textAlign: 'center',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      cursor: 'pointer',
-                      position: 'relative'
-                    }}>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleKtpImageChange} 
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          opacity: 0,
-                          cursor: 'pointer',
-                          width: '100%',
-                          height: '100%'
-                        }} 
-                      />
-
-                      {ktpImage ? (
-                        <div>
-                          <img 
-                            src={ktpImage} 
-                            alt="Preview KTP" 
-                            style={{
-                              maxWidth: '100%',
-                              maxHeight: '140px',
-                              objectFit: 'contain',
-                              borderRadius: '8px',
-                              border: '1px solid rgba(255, 255, 255, 0.1)',
-                              marginBottom: '6px'
-                            }} 
-                          />
-                          <div style={{ fontSize: '0.75rem', color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                            <CheckCircle size={14} /> Foto KTP Dipilih (Klik untuk ganti)
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                          <Camera size={24} color="#60a5fa" />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#93c5fd' }}>
-                            Unggah Foto KTP (Bisa dilewati)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* ═════════════════════════════════════════════════════
                 SECTION 2 (KHUSUS OWNER): INFORMASI PROPERTI KOST (PASANG KOST)
@@ -1612,7 +1440,7 @@ const Register = () => {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Nama Anda
+                  Nama Lengkap Anda
                 </label>
                 <input 
                   type="text" 
