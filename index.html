@@ -46,7 +46,7 @@
       if ('caches' in window) {
         caches.keys().then((keys) => {
           keys.forEach((key) => {
-            if (key !== 'kostku-cache-v120') {
+            if (key !== 'kostku-cache-v121') {
               console.log('[KostKu] Purging old cache storage:', key);
               caches.delete(key);
             }

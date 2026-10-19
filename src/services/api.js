@@ -134,6 +134,20 @@ export const apiRegister = (userData) => {
   });
 };
 
+export const apiSendOtp = (payload) => {
+  return request('/auth/send-otp', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+};
+
+export const apiVerifyOtp = (payload) => {
+  return request('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+};
+
 export const apiCheckNik = (nik) => {
   return request(`/check-nik?nik=${encodeURIComponent(nik)}`);
 };

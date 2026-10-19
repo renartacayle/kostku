@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kostku-cache-v120';
+const CACHE_NAME = 'kostku-cache-v121';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
