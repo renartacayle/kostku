@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import StaffManagementCard from '../components/StaffManagementCard';
 import StaffCalendarView from '../components/StaffCalendarView';
+import OwnerNavBanner from '../components/OwnerNavBanner';
 
 export default function Karyawan({ user }) {
   const [activeStaff, setActiveStaff] = useState(null);
@@ -18,41 +19,8 @@ export default function Karyawan({ user }) {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '6rem' }}>
       
-      {/* Page Header */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
-        padding: '1.25rem 1.5rem',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-color)',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>
-              Pengaturan Karyawan
-            </h1>
-            <span style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#34d399',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              padding: '3px 8px',
-              borderRadius: '8px',
-              border: '1px solid rgba(16, 185, 129, 0.3)'
-            }}>
-              Profil & Kalender Kerja Harian
-            </span>
-          </div>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Daftar profil staf lapangan, penugasan single/multiple role, serta kalender interaktif riwayat jam absen dan foto hasil tugas harian.
-          </p>
-        </div>
-      </div>
+      {/* Persistent Shopee-style Owner Navigation Banner */}
+      <OwnerNavBanner user={user} activeNav="karyawan" />
 
       {/* 1. Profil Karyawan Section */}
       <StaffManagementCard 

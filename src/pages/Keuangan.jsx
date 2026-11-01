@@ -60,6 +60,7 @@ import {
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
 import DigitalReceiptModal from '../components/DigitalReceiptModal';
 import FintechDunningAndReconcile from '../components/FintechDunningAndReconcile';
+import OwnerNavBanner from '../components/OwnerNavBanner';
 import { useTheme } from '../context/ThemeContext';
 
 const PIE_COLORS = ['#10b981', '#ef4444'];
@@ -507,39 +508,23 @@ const Keuangan = ({ user }) => {
         }
       `}</style>
 
-      {/* Header Bar */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-        padding: '1.25rem 1.5rem',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-color)'
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>
-            {user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan & Laporan'}
-          </h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            {user?.role === 'staff'
-              ? 'Pencatatan pengeluaran operasional dan pemeliharaan kost'
-              : 'Analisis arus kas, grafik performa, penagihan sewa, dan pengeluaran operasional'}
-          </p>
-        </div>
-
-        <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-          <button 
-            onClick={fetchData} 
-            className="btn btn-secondary btn-sm"
-            title="Segarkan data"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          </button>
-          
-          {user?.role !== 'staff' && (
+      {/* Persistent Shopee-style Owner Navigation Banner */}
+      {user?.role !== 'staff' ? (
+        <>
+          <OwnerNavBanner
+            user={user}
+            activeNav="keuangan"
+            onRefresh={fetchData}
+            loading={loading}
+          />
+          <div className="no-print" style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+            marginBottom: '0.25rem'
+          }}>
             <button 
               onClick={() => window.print()} 
               className="btn btn-secondary btn-sm"
@@ -548,17 +533,54 @@ const Keuangan = ({ user }) => {
             >
               <Printer size={15} /> Cetak Laporan
             </button>
-          )}
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowExpenseModal(true)}
+              style={{ gap: '6px' }}
+            >
+              <Plus size={15} /> Catat Pengeluaran
+            </button>
+          </div>
+        </>
+      ) : (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+          padding: '1.25rem 1.5rem',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>
+              Pengeluaran Lapangan
+            </h1>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Pencatatan pengeluaran operasional dan pemeliharaan kost
+            </p>
+          </div>
 
-          <button 
-            className="btn btn-primary btn-sm"
-            onClick={() => setShowExpenseModal(true)}
-            style={{ gap: '6px' }}
-          >
-            <Plus size={15} /> Catat Pengeluaran
-          </button>
+          <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <button 
+              onClick={fetchData} 
+              className="btn btn-secondary btn-sm"
+              title="Segarkan data"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowExpenseModal(true)}
+              style={{ gap: '6px' }}
+            >
+              <Plus size={15} /> Catat Pengeluaran
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Financial Stat KPI Cards */}
       {user?.role === 'staff' ? (

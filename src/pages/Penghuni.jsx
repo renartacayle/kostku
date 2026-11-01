@@ -33,6 +33,7 @@ import {
 } from '../services/api';
 
 import RoomInspectionModal from '../components/RoomInspectionModal';
+import OwnerNavBanner from '../components/OwnerNavBanner';
 import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
 import SignaturePadModal from '../components/SignaturePadModal';
 
@@ -269,59 +270,76 @@ const Penghuni = ({ user }) => {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '6rem' }}>
       
-      {/* Header Bar */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-        padding: '1.25rem 1.5rem',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-color)'
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Manajemen Penghuni</h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Total {tenants.length} orang aktif di Kost Anda
-          </p>
-        </div>
+      {/* Persistent Shopee-style Owner Navigation Banner */}
+      {user?.role === 'owner' || user?.role === 'master' ? (
+        <>
+          <OwnerNavBanner
+            user={user}
+            activeNav="penghuni"
+            onRefresh={fetchData}
+            loading={loading}
+          />
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+            marginBottom: '0.25rem'
+          }}>
+            <button
+              onClick={handleExportPenghuni}
+              className="btn btn-secondary btn-sm"
+              style={{ gap: '6px' }}
+              title="Ekspor Data Penghuni (Format CSV/Excel)"
+            >
+              <Download size={14} color="#38bdf8" />
+              <span>Export CSV</span>
+            </button>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowAddModal(true)}
+            >
+              <UserPlus size={15} /> Tambah Penghuni
+            </button>
+          </div>
+        </>
+      ) : (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+          padding: '1.25rem 1.5rem',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Manajemen Penghuni</h1>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Total {tenants.length} orang aktif di Kost Anda
+            </p>
+          </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-          <button 
-            onClick={fetchData} 
-            className="btn btn-secondary btn-sm"
-            title="Refresh data"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button 
-            onClick={handlePurgeCache} 
-            className="btn btn-secondary btn-sm"
-            title="Bersihkan cache browser & perbarui ke versi terbaru"
-            style={{ gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
-          >
-            <Sparkles size={14} className={purging ? 'animate-spin' : ''} />
-            <span>Update Versi v1.2.0</span>
-          </button>
-          <button
-            onClick={handleExportPenghuni}
-            className="btn btn-secondary btn-sm"
-            style={{ gap: '6px' }}
-            title="Ekspor Data Penghuni (Format CSV/Excel)"
-          >
-            <Download size={14} color="#38bdf8" />
-            <span>Export Data Penghuni</span>
-          </button>
-          <button 
-            className="btn btn-primary btn-sm"
-            onClick={() => setShowAddModal(true)}
-          >
-            <UserPlus size={15} /> Tambah Penghuni
-          </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <button 
+              onClick={fetchData} 
+              className="btn btn-secondary btn-sm"
+              title="Refresh data"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowAddModal(true)}
+            >
+              <UserPlus size={15} /> Tambah Penghuni
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs & Search Bar */}
       <div style={{

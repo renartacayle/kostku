@@ -29,6 +29,7 @@ import {
   apiAssignComplaintToStaff,
   apiResolveComplaintWithProof
 } from '../services/api';
+import OwnerNavBanner from '../components/OwnerNavBanner';
 
 const Komplain = ({ user }) => {
   const [complaints, setComplaints] = useState([]);
@@ -197,46 +198,56 @@ const Komplain = ({ user }) => {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '6rem' }}>
       
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-        padding: '1.25rem 1.5rem',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-color)'
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Pusat Keluhan & Komplain</h1>
-            <span style={{
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: '#38bdf8',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '6px',
-              border: '1px solid rgba(56, 189, 248, 0.3)'
-            }}>
-              ⚡ Disposisi Kalender Staf & Rating
-            </span>
+      {/* Persistent Shopee-style Owner Navigation Banner */}
+      {user?.role === 'owner' || user?.role === 'master' ? (
+        <OwnerNavBanner
+          user={user}
+          activeNav="komplain"
+          onRefresh={fetchComplaints}
+          loading={loading}
+          activeComplaints={complaints.filter(c => c.status !== 'selesai').length}
+        />
+      ) : (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+          padding: '1.25rem 1.5rem',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Pusat Keluhan & Komplain</h1>
+              <span style={{
+                background: 'rgba(56, 189, 248, 0.15)',
+                color: '#38bdf8',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(56, 189, 248, 0.3)'
+              }}>
+                ⚡ Disposisi Kalender Staf & Rating
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Disposisi komplain fasilitas ke kalender staf, unggah foto bukti before-after, dan monitor ulasan serta tip apresiasi anak kost.
+            </p>
           </div>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Disposisi komplain fasilitas ke kalender staf, unggah foto bukti before-after, dan monitor ulasan serta tip apresiasi anak kost.
-          </p>
-        </div>
 
-        <button 
-          onClick={fetchComplaints} 
-          className="btn btn-secondary btn-sm"
-          title="Refresh"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-        </button>
-      </div>
+          <button 
+            onClick={fetchComplaints} 
+            className="btn btn-secondary btn-sm"
+            title="Refresh"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div style={{
