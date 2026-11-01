@@ -68,8 +68,10 @@ import SundulCheckoutModal from '../components/SundulCheckoutModal';
 import CommunityBulletinBoard from '../components/CommunityBulletinBoard';
 import PrelovedMarketplace from '../components/PrelovedMarketplace';
 import GuestRegistrationModal from '../components/GuestRegistrationModal';
+import { useTheme } from '../context/ThemeContext';
 
 const OwnerDashboard = ({ user }) => {
+  const { isLight } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(['pengaturan', 'komunitas'].includes(tabFromUrl) ? tabFromUrl : 'overview');
@@ -598,11 +600,11 @@ const OwnerDashboard = ({ user }) => {
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
+        background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
         padding: '1.25rem 1.5rem',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-color)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+        boxShadow: isLight ? 'var(--shadow-sm)' : '0 8px 32px rgba(0,0,0,0.2)'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -632,12 +634,12 @@ const OwnerDashboard = ({ user }) => {
             type="button"
             onClick={() => setShowGuestModal(true)}
             className="btn btn-secondary btn-sm"
-            style={{ borderRadius: '10px', gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+            style={{ borderRadius: '10px', gap: '6px', color: isLight ? '#0284c7' : '#38bdf8', borderColor: isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.4)' }}
             title="Pantau & kelola buku tamu menginap digital"
           >
             <Users size={14} /> Buku Tamu Inap
           </button>
-          <Link to="/keuangan?tab=dunning" className="btn btn-secondary btn-sm" style={{ borderRadius: '10px', gap: '6px', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' }} title="Otomasi penagihan sewa WA & rekonsiliasi bank mutasi">
+          <Link to="/keuangan?tab=dunning" className="btn btn-secondary btn-sm" style={{ borderRadius: '10px', gap: '6px', color: isLight ? '#b45309' : '#fbbf24', borderColor: isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.4)' }} title="Otomasi penagihan sewa WA & rekonsiliasi bank mutasi">
             <Zap size={14} /> Dunning & Mutasi
           </Link>
           <Link to="/penghuni" className="btn btn-primary btn-sm" style={{ borderRadius: '10px', gap: '6px' }}>
@@ -652,89 +654,89 @@ const OwnerDashboard = ({ user }) => {
       {/* Main Tab Navigation: Modern Segmented Control */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '8px',
-        background: 'rgba(15, 23, 42, 0.7)',
-        padding: '6px',
-        borderRadius: '16px',
-        border: '1px solid rgba(255, 255, 255, 0.08)'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: '6px',
+        background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.7)',
+        padding: '5px',
+        borderRadius: '14px',
+        border: '1px solid var(--border-color)'
       }}>
         <button
           type="button"
           onClick={() => handleTabChange('overview')}
           style={{
-            padding: '11px 16px',
-            borderRadius: '12px',
+            padding: '9px 12px',
+            borderRadius: '10px',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
+            gap: '6px',
             fontWeight: 700,
-            fontSize: '0.92rem',
+            fontSize: '0.85rem',
             background: activeTab === 'overview' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent',
-            color: activeTab === 'overview' ? '#ffffff' : 'var(--text-secondary)',
+            color: activeTab === 'overview' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'overview' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none'
+            boxShadow: activeTab === 'overview' ? '0 4px 12px rgba(37, 99, 235, 0.35)' : 'none'
           }}
         >
-          <LayoutDashboard size={18} />
-          <span>Ringkasan & Ketersediaan</span>
+          <LayoutDashboard size={16} />
+          <span>Ringkasan & Unit</span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange('komunitas')}
           style={{
-            padding: '11px 16px',
-            borderRadius: '12px',
+            padding: '9px 12px',
+            borderRadius: '10px',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
+            gap: '6px',
             fontWeight: 700,
-            fontSize: '0.92rem',
+            fontSize: '0.85rem',
             background: activeTab === 'komunitas' ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'transparent',
-            color: activeTab === 'komunitas' ? '#0f172a' : 'var(--text-secondary)',
+            color: activeTab === 'komunitas' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'komunitas' ? '0 4px 12px rgba(56, 189, 248, 0.4)' : 'none'
+            boxShadow: activeTab === 'komunitas' ? '0 4px 12px rgba(56, 189, 248, 0.35)' : 'none'
           }}
         >
-          <Megaphone size={18} />
-          <span>Mading & Komunitas Kost</span>
+          <Megaphone size={16} />
+          <span>Mading & Komunitas</span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange('pengaturan')}
           style={{
-            padding: '11px 16px',
-            borderRadius: '12px',
+            padding: '9px 12px',
+            borderRadius: '10px',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
+            gap: '6px',
             fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'pengaturan' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent',
-            color: activeTab === 'pengaturan' ? '#ffffff' : 'var(--text-secondary)',
+            fontSize: '0.85rem',
+            background: activeTab === 'pengaturan' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+            color: activeTab === 'pengaturan' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'pengaturan' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none'
+            boxShadow: activeTab === 'pengaturan' ? '0 4px 12px rgba(99, 102, 241, 0.35)' : 'none'
           }}
         >
-          <SettingsIcon size={18} />
-          <span>Pengaturan Kost & Kamar</span>
+          <SettingsIcon size={16} />
+          <span>Pengaturan Kost</span>
           <span style={{
-            fontSize: '0.72rem',
-            background: activeTab === 'pengaturan' ? 'rgba(255,255,255,0.25)' : 'rgba(100, 116, 139, 0.15)',
-            color: activeTab === 'pengaturan' ? '#ffffff' : 'var(--text-secondary)',
-            padding: '2px 8px',
-            borderRadius: '10px',
+            fontSize: '0.68rem',
+            background: activeTab === 'pengaturan' ? 'rgba(255,255,255,0.25)' : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(100, 116, 139, 0.15)'),
+            color: activeTab === 'pengaturan' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
+            padding: '1px 6px',
+            borderRadius: '8px',
             fontWeight: 700
           }}>
             {totalKamar} Unit
@@ -1248,21 +1250,21 @@ const OwnerDashboard = ({ user }) => {
                               {statusLabel}
                             </span>
                           </div>
-                          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
+                          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                             {room.number}
                           </h3>
                         </div>
 
-                        <div style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
+                        <div style={{ marginTop: '8px', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
+                          <span style={{ fontSize: '0.75rem', color: isLight ? '#475569' : 'var(--text-secondary)', display: 'block', fontWeight: 600 }}>
                             {formatRupiah(room.price)}
                           </span>
                           {occupants.length > 0 ? (
-                            <span style={{ fontSize: '0.7rem', color: '#93c5fd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                            <span style={{ fontSize: '0.7rem', color: isLight ? '#1d4ed8' : '#93c5fd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', fontWeight: 600 }}>
                               👤 {occupants.map(o => o.name).join(', ')}
                             </span>
                           ) : (
-                            <span style={{ fontSize: '0.68rem', color: '#34d399', display: 'block' }}>
+                            <span style={{ fontSize: '0.68rem', color: isLight ? '#059669' : '#34d399', display: 'block', fontWeight: 600 }}>
                               ✓ Siap Huni
                             </span>
                           )}
@@ -1291,17 +1293,26 @@ const OwnerDashboard = ({ user }) => {
                 paddingRight: '6px',
                 flex: 1
               }}>
-                {activities.length === 0 ? (
-                  <div style={{
-                    textAlign: 'center',
-                    color: 'var(--text-secondary)',
-                    padding: '2rem 1rem',
-                    fontSize: '0.85rem'
-                  }}>
-                    Belum ada aktivitas tercatat.
-                  </div>
-                ) : (
-                  activities.slice(0, 15).map((act) => {
+                {(() => {
+                  const relevantActivities = activities.filter(act => {
+                    const txt = (act.text || '').toLowerCase();
+                    return !txt.includes('masuk via') && !txt.includes('login') && !txt.includes('oauth') && !txt.includes('google');
+                  });
+
+                  if (relevantActivities.length === 0) {
+                    return (
+                      <div style={{
+                        textAlign: 'center',
+                        color: 'var(--text-secondary)',
+                        padding: '2rem 1rem',
+                        fontSize: '0.85rem'
+                      }}>
+                        Belum ada aktivitas operasional tercatat.
+                      </div>
+                    );
+                  }
+
+                  return relevantActivities.slice(0, 15).map((act) => {
                     const dateObj = new Date(act.time);
                     const timeString = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
                     const dateString = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
@@ -1332,8 +1343,8 @@ const OwnerDashboard = ({ user }) => {
                         </div>
                       </div>
                     );
-                  })
-                )}
+                  });
+                })()}
               </div>
             </div>
 
@@ -1506,7 +1517,7 @@ const OwnerDashboard = ({ user }) => {
 
             {/* Pilihan 3 Skema Utilitas Utama */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 700, color: isLight ? '#0f172a' : '#e2e8f0', marginBottom: '8px' }}>
                 Pilih Skema Pengelolaan Listrik & Air:
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
@@ -1548,8 +1559,11 @@ const OwnerDashboard = ({ user }) => {
                       style={{
                         padding: '12px 14px',
                         borderRadius: '12px',
-                        border: isSelected ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
-                        background: isSelected ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(15, 23, 42, 0.6) 100%)' : 'rgba(255, 255, 255, 0.03)',
+                        border: isSelected ? '2px solid #3b82f6' : (isLight ? '1.5px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'),
+                        background: isSelected 
+                          ? (isLight ? '#eff6ff' : 'linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(15, 23, 42, 0.6) 100%)') 
+                          : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.03)'),
+                        boxShadow: isSelected && isLight ? '0 2px 10px rgba(37, 99, 235, 0.1)' : 'none',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
@@ -1560,7 +1574,7 @@ const OwnerDashboard = ({ user }) => {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {opt.icon}
-                          <strong style={{ fontSize: '0.88rem', color: isSelected ? '#93c5fd' : '#f8fafc' }}>
+                          <strong style={{ fontSize: '0.88rem', color: isSelected ? (isLight ? '#1d4ed8' : '#93c5fd') : (isLight ? '#0f172a' : '#f8fafc'), fontWeight: 700 }}>
                             {opt.title}
                           </strong>
                         </div>
@@ -1572,7 +1586,7 @@ const OwnerDashboard = ({ user }) => {
                           style={{ accentColor: '#3b82f6', cursor: 'pointer' }}
                         />
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#475569' : '#94a3b8', lineHeight: 1.4 }}>
                         {opt.desc}
                       </p>
                     </div>
@@ -2045,22 +2059,24 @@ const OwnerDashboard = ({ user }) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
               {/* Card 1: Sundul Kost (Promoted Listing) */}
               <div style={{
-                background: settings.promoted?.active ? 'linear-gradient(180deg, rgba(245, 158, 11, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%)' : 'rgba(255, 255, 255, 0.02)',
-                border: settings.promoted?.active ? '1.5px solid rgba(245, 158, 11, 0.5)' : '1px solid var(--border-color)',
+                background: settings.promoted?.active 
+                  ? (isLight ? '#fffbeb' : 'linear-gradient(180deg, rgba(245, 158, 11, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%)') 
+                  : (isLight ? 'var(--card-bg)' : 'rgba(255, 255, 255, 0.02)'),
+                border: settings.promoted?.active ? '2px solid #f59e0b' : '1px solid var(--border-color)',
                 borderRadius: '14px',
                 padding: '1.15rem',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 gap: '12px',
-                boxShadow: settings.promoted?.active ? '0 8px 24px -6px rgba(245, 158, 11, 0.2)' : undefined
+                boxShadow: isLight ? 'var(--shadow-sm)' : (settings.promoted?.active ? '0 8px 24px -6px rgba(245, 158, 11, 0.2)' : undefined)
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <strong style={{ fontSize: '0.92rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <strong style={{ fontSize: '0.92rem', color: isLight ? '#b45309' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       🚀 Fitur "Sundul Kost" (Boost Posisi #1)
                     </strong>
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
                       Biaya Pasif
                     </span>
                   </div>
@@ -2088,14 +2104,14 @@ const OwnerDashboard = ({ user }) => {
                             borderRadius: '10px',
                             textAlign: 'center',
                             cursor: 'pointer',
-                            border: isSel ? '1.5px solid #f59e0b' : '1px solid var(--border-color)',
-                            background: isSel ? 'rgba(245, 158, 11, 0.14)' : 'rgba(0,0,0,0.2)',
+                            border: isSel ? '2px solid #f59e0b' : (isLight ? '1.5px solid #e2e8f0' : '1px solid var(--border-color)'),
+                            background: isSel ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.14)') : (isLight ? '#f8fafc' : 'rgba(0,0,0,0.2)'),
                             transition: 'all 0.15s'
                           }}
                         >
-                          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: isSel ? '#fbbf24' : '#e2e8f0' }}>{p.label}</div>
-                          <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'white', margin: '2px 0' }}>{p.price}</div>
-                          <div style={{ fontSize: '0.64rem', color: isSel ? '#fde68a' : '#94a3b8' }}>{p.sub}</div>
+                          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: isSel ? (isLight ? '#b45309' : '#fbbf24') : (isLight ? '#475569' : '#e2e8f0') }}>{p.label}</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 800, color: isSel ? (isLight ? '#78350f' : 'white') : (isLight ? '#0f172a' : 'white'), margin: '2px 0' }}>{p.price}</div>
+                          <div style={{ fontSize: '0.64rem', color: isSel ? (isLight ? '#92400e' : '#fde68a') : (isLight ? '#64748b' : '#94a3b8') }}>{p.sub}</div>
                         </div>
                       );
                     })}
@@ -2126,8 +2142,8 @@ const OwnerDashboard = ({ user }) => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {/* Active Status Box */}
                     <div style={{
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                      background: isLight ? '#f0fdf4' : 'rgba(15, 23, 42, 0.7)',
+                      border: isLight ? '1.5px solid #86efac' : '1.5px solid rgba(245, 158, 11, 0.4)',
                       borderRadius: '10px',
                       padding: '10px',
                       display: 'flex',
@@ -2137,7 +2153,7 @@ const OwnerDashboard = ({ user }) => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{
                           background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                          color: '#000',
+                          color: '#ffffff',
                           fontWeight: 900,
                           fontSize: '0.7rem',
                           padding: '3px 8px',
@@ -2149,7 +2165,7 @@ const OwnerDashboard = ({ user }) => {
                           <span>🟢</span>
                           <span>AKTIF DI POSISI #1</span>
                         </span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fbbf24' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isLight ? '#166534' : '#fbbf24' }}>
                           {settings.promoted.badgeText}
                         </span>
                       </div>
@@ -2160,13 +2176,14 @@ const OwnerDashboard = ({ user }) => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         fontSize: '0.74rem',
-                        color: '#e2e8f0',
-                        background: 'rgba(0,0,0,0.3)',
+                        color: isLight ? '#0f172a' : '#e2e8f0',
+                        background: isLight ? '#ffffff' : 'rgba(0,0,0,0.3)',
                         padding: '6px 8px',
-                        borderRadius: '6px'
+                        borderRadius: '6px',
+                        border: isLight ? '1px solid #e2e8f0' : 'none'
                       }}>
-                        <span style={{ color: '#94a3b8' }}>Sisa Masa Promosi:</span>
-                        <strong style={{ color: '#34d399' }}>
+                        <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Sisa Masa Promosi:</span>
+                        <strong style={{ color: isLight ? '#15803d' : '#34d399' }}>
                           {getSundulCountdown(settings.promoted.expiresAt)?.text || 'Sedang Aktif'}
                         </strong>
                       </div>
@@ -2179,13 +2196,13 @@ const OwnerDashboard = ({ user }) => {
                         textAlign: 'center',
                         marginTop: '2px'
                       }}>
-                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#38bdf8' }}>412x</div>
-                          <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Dilihat Pencari (+54%)</div>
+                        <div style={{ background: isLight ? '#ffffff' : 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px', border: isLight ? '1px solid #e2e8f0' : 'none' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 900, color: isLight ? '#0284c7' : '#38bdf8' }}>412x</div>
+                          <div style={{ fontSize: '0.64rem', color: isLight ? '#64748b' : '#94a3b8' }}>Dilihat Pencari (+54%)</div>
                         </div>
-                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px' }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#34d399' }}>16 Calon</div>
-                          <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Klik WA Calon Sewa</div>
+                        <div style={{ background: isLight ? '#ffffff' : 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '6px', border: isLight ? '1px solid #e2e8f0' : 'none' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 900, color: isLight ? '#16a34a' : '#34d399' }}>16 Calon</div>
+                          <div style={{ fontSize: '0.64rem', color: isLight ? '#64748b' : '#94a3b8' }}>Klik WA Calon Sewa</div>
                         </div>
                       </div>
                     </div>
@@ -2203,8 +2220,8 @@ const OwnerDashboard = ({ user }) => {
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '4px',
-                          color: '#fbbf24',
-                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          color: isLight ? '#b45309' : '#fbbf24',
+                          border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
                           textDecoration: 'none'
                         }}
                       >
@@ -2222,7 +2239,7 @@ const OwnerDashboard = ({ user }) => {
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '4px',
-                          color: '#38bdf8',
+                          color: isLight ? '#0284c7' : '#38bdf8',
                           textDecoration: 'none'
                         }}
                       >
@@ -2243,7 +2260,7 @@ const OwnerDashboard = ({ user }) => {
                         style={{
                           flex: 1,
                           background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                          color: '#000',
+                          color: '#ffffff',
                           fontWeight: 800,
                           border: 'none',
                           fontSize: '0.78rem'
@@ -2260,7 +2277,7 @@ const OwnerDashboard = ({ user }) => {
                           }
                         }}
                         className="btn btn-secondary btn-sm"
-                        style={{ color: '#f87171', fontSize: '0.74rem' }}
+                        style={{ color: '#dc2626', fontSize: '0.74rem' }}
                       >
                         Nonaktifkan
                       </button>
@@ -2278,13 +2295,13 @@ const OwnerDashboard = ({ user }) => {
                     style={{
                       width: '100%',
                       background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                      color: '#000',
+                      color: '#ffffff',
                       fontWeight: 800,
                       border: 'none',
                       gap: '6px',
                       padding: '10px 14px',
                       borderRadius: '10px',
-                      boxShadow: '0 4px 16px rgba(245, 158, 11, 0.35)'
+                      boxShadow: '0 4px 14px rgba(217, 119, 6, 0.3)'
                     }}
                   >
                     🚀 Checkout Sundul Kost (Bayar via QRIS)
@@ -2294,21 +2311,22 @@ const OwnerDashboard = ({ user }) => {
 
               {/* Card 2: Kuota Robot WhatsApp & Biaya Transaksi (Self-Liquidating Active Cost) */}
               <div style={{
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: isLight ? 'var(--card-bg)' : 'rgba(255, 255, 255, 0.02)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '14px',
                 padding: '1.1rem',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                gap: '12px'
+                gap: '12px',
+                boxShadow: isLight ? 'var(--shadow-sm)' : 'none'
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <strong style={{ fontSize: '0.92rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <strong style={{ fontSize: '0.92rem', color: isLight ? '#0284c7' : '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       🤖 Kuota WA Bot & Proteksi Biaya Aktif
                     </strong>
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
                       Biaya Aktif
                     </span>
                   </div>
@@ -2318,8 +2336,8 @@ const OwnerDashboard = ({ user }) => {
 
                   {/* Quota Display Box */}
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: isLight ? '#f0f9ff' : 'rgba(15, 23, 42, 0.6)',
+                    border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.25)',
                     borderRadius: '10px',
                     padding: '10px 12px',
                     marginBottom: '10px',
@@ -2328,44 +2346,44 @@ const OwnerDashboard = ({ user }) => {
                     alignItems: 'center'
                   }}>
                     <div>
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Sisa Kuota WA Bot Otomatis:</span>
-                      <strong style={{ fontSize: '1.1rem', color: '#38bdf8' }}>{settings.waBotQuota ?? 25} Pesan</strong>
+                      <span style={{ fontSize: '0.7rem', color: isLight ? '#0369a1' : '#94a3b8', display: 'block' }}>Sisa Kuota WA Bot Otomatis:</span>
+                      <strong style={{ fontSize: '1.1rem', color: isLight ? '#0284c7' : '#38bdf8' }}>{settings.waBotQuota ?? 25} Pesan</strong>
                     </div>
                     <button
                       type="button"
                       disabled={promotingKost}
                       onClick={() => handlePromoteKostAction('topup_wa', '7d', '', 100)}
                       className="btn btn-secondary btn-sm"
-                      style={{ fontSize: '0.74rem', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#7dd3fc' }}
+                      style={{ fontSize: '0.74rem', borderColor: isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.4)', color: isLight ? '#0284c7' : '#7dd3fc' }}
                     >
                       +100 Kuota (Rp 25rb)
                     </button>
                   </div>
 
                   {/* Cost Mapping List */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>• Kirim Tagihan WA Manual (Klik `wa.me`):</span>
-                      <strong style={{ color: '#34d399' }}>GRATIS (Rp 0)</strong>
+                      <strong style={{ color: isLight ? '#059669' : '#34d399' }}>GRATIS (Rp 0)</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>• Pembukuan Kamar, Keuangan & Komplain:</span>
-                      <strong style={{ color: '#34d399' }}>GRATIS (Rp 0)</strong>
+                      <strong style={{ color: isLight ? '#059669' : '#34d399' }}>GRATIS (Rp 0)</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>• Biaya Layanan Checkout Digital / Token:</span>
-                      <strong style={{ color: '#fbbf24' }}>Rp 2.000 / trx</strong>
+                      <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>Rp 2.000 / trx</strong>
                     </div>
                   </div>
                 </div>
 
                 <div style={{
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                  background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.08)',
+                  border: isLight ? '1px solid #a7f3d0' : '1px solid rgba(16, 185, 129, 0.2)',
                   borderRadius: '8px',
                   padding: '8px 10px',
                   fontSize: '0.72rem',
-                  color: '#a7f3d0'
+                  color: isLight ? '#065f46' : '#a7f3d0'
                 }}>
                   💡 <strong>Zero-Ads Policy:</strong> Halaman keuangan, tagihan, dan komplain dijamin 100% bersih tanpa iklan pihak ketiga.
                 </div>
@@ -2374,23 +2392,24 @@ const OwnerDashboard = ({ user }) => {
 
             {/* Contextual B2B & B2C Partner Directory (Non-Annoying Value-Added Partners) */}
             <div style={{
-              background: 'rgba(15, 23, 42, 0.45)',
+              background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.45)',
               border: '1px solid var(--border-color)',
               borderRadius: '12px',
-              padding: '0.9rem 1rem'
+              padding: '0.9rem 1rem',
+              boxShadow: isLight ? 'var(--shadow-sm)' : 'none'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Store size={16} color="#60a5fa" />
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Store size={16} color={isLight ? '#2563eb' : '#60a5fa'} />
                       Mitra Pribadi & Toko Affiliate Sekitar Kost (Komisi Pasif)
                     </span>
-                    <span style={{ fontSize: '0.65rem', padding: '2px 7px', borderRadius: '999px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', fontWeight: 700, border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 7px', borderRadius: '999px', background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.15)', color: isLight ? '#15803d' : '#4ade80', fontWeight: 700, border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)' }}>
                       💳 Prioritas Non-COD (QRIS & Tagihan)
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                  <span style={{ fontSize: '0.72rem', color: isLight ? '#475569' : 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
                     Daftarkan toko langganan Anda sendiri (galon, laundry, katering) atau aktifkan affiliate berbasis GPS. Dapatkan komisi pasif per pesanan.
                   </span>
                 </div>
@@ -2412,34 +2431,34 @@ const OwnerDashboard = ({ user }) => {
                 gap: '8px',
                 marginBottom: '10px'
               }}>
-                <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <MapPin size={11} color="#60a5fa" /> Radius Jangkauan GPS:
+                <div style={{ background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
+                  <div style={{ fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <MapPin size={11} color={isLight ? '#2563eb' : '#60a5fa'} /> Radius Jangkauan GPS:
                   </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc', marginTop: '2px' }}>
                     1.5 km dari Kost
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '8px', padding: '8px 10px' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#4ade80', fontWeight: 600 }}>
+                <div style={{ background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.05)', border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '8px', padding: '8px 10px' }}>
+                  <div style={{ fontSize: '0.65rem', color: isLight ? '#166534' : '#4ade80', fontWeight: 600 }}>
                     💰 Komisi Pemilik Terkumpul:
                   </div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#22c55e', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: isLight ? '#15803d' : '#22c55e', marginTop: '2px' }}>
                     Rp {(merchantSummary?.totalOwnerCommission || 0).toLocaleString('id-ID')}
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '8px 10px' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#93c5fd', fontWeight: 600 }}>
+                <div style={{ background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.05)', border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '8px 10px' }}>
+                  <div style={{ fontSize: '0.65rem', color: isLight ? '#1e40af' : '#93c5fd', fontWeight: 600 }}>
                     ⚙️ Biaya Platform KostKu:
                   </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#93c5fd', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isLight ? '#1e40af' : '#93c5fd', marginTop: '2px' }}>
                     Rp 200 / order
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
+                <div style={{ background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
                   <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
                     📦 Pesanan Berhasil:
                   </div>
@@ -2824,10 +2843,10 @@ const OwnerDashboard = ({ user }) => {
                       style={{ width: '90px', height: '65px', borderRadius: '8px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.15)' }} 
                     />
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '0.82rem', fontWeight: 700 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isLight ? '#15803d' : '#4ade80', fontSize: '0.82rem', fontWeight: 700 }}>
                         <CheckCircle size={15} /> Foto Kamar {newRoom.number || ''} Terpilih
                       </div>
-                      <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.74rem', color: isLight ? '#475569' : '#94a3b8' }}>
                         Foto ini akan ditampilkan kepada calon penyewa saat melihat ketersediaan unit kamar ini.
                       </span>
                     </div>
@@ -2853,18 +2872,18 @@ const OwnerDashboard = ({ user }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '1.25rem',
-                    border: '2px dashed rgba(59, 130, 246, 0.4)',
+                    border: isLight ? '2px dashed #93c5fd' : '2px dashed rgba(59, 130, 246, 0.4)',
                     borderRadius: '14px',
-                    background: 'rgba(0, 0, 0, 0.25)',
+                    background: isLight ? '#f0f7ff' : 'rgba(0, 0, 0, 0.25)',
                     cursor: 'pointer',
                     gap: '6px',
-                    transition: 'border 0.2s'
+                    transition: 'all 0.2s'
                   }}>
-                    <Camera size={26} color="#60a5fa" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <Camera size={26} color={isLight ? '#2563eb' : '#60a5fa'} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: isLight ? '#1e3a8a' : '#f8fafc' }}>
                       Pilih / Jepret Foto Fisik Kamar (Wajib)
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    <span style={{ fontSize: '0.75rem', color: isLight ? '#475569' : '#94a3b8' }}>
                       Format JPG, PNG, atau WEBP (Maksimal 5MB)
                     </span>
                     <input type="file" accept="image/*" onChange={handleRoomPhotoUpload} hidden />
@@ -3543,10 +3562,10 @@ const OwnerDashboard = ({ user }) => {
                       style={{ width: '70px', height: '50px', borderRadius: '6px', objectFit: 'cover' }} 
                     />
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#4ade80', fontSize: '0.78rem', fontWeight: 700 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: isLight ? '#15803d' : '#4ade80', fontSize: '0.78rem', fontWeight: 700 }}>
                         <CheckCircle size={14} /> Foto Tipe Kamar Terpilih
                       </div>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8' }}>
                         Akan diterapkan ke {bulkConfig.count || 'seluruh'} unit kamar
                       </span>
                     </div>
@@ -3572,17 +3591,17 @@ const OwnerDashboard = ({ user }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '1rem',
-                    border: '2px dashed rgba(59, 130, 246, 0.4)',
+                    border: isLight ? '2px dashed #93c5fd' : '2px dashed rgba(59, 130, 246, 0.4)',
                     borderRadius: '12px',
-                    background: 'rgba(0, 0, 0, 0.2)',
+                    background: isLight ? '#f0f7ff' : 'rgba(0, 0, 0, 0.2)',
                     cursor: 'pointer',
                     gap: '4px'
                   }}>
-                    <Camera size={22} color="#60a5fa" />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <Camera size={22} color={isLight ? '#2563eb' : '#60a5fa'} />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#1e3a8a' : '#f8fafc' }}>
                       Pilih 1 Foto Fisik Kamar (Wajib)
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    <span style={{ fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8' }}>
                       Foto ini otomatis dipakai untuk semua kamar massal karena identik
                     </span>
                     <input type="file" accept="image/*" onChange={handleBulkPhotoUpload} hidden />

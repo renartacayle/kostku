@@ -18,15 +18,18 @@ export default function Navbar({
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      padding: 'clamp(0.6rem, 2vw, 0.85rem) clamp(0.75rem, 3vw, 1.5rem)',
+      padding: 'clamp(0.5rem, 1.8vw, 0.75rem) clamp(0.6rem, 2.5vw, 1.25rem)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: '0.6rem',
-      flexWrap: 'nowrap'
+      gap: '0.4rem',
+      flexWrap: 'nowrap',
+      maxWidth: '100vw',
+      boxSizing: 'border-box',
+      overflow: 'hidden'
     }}>
       {/* Brand / Kost Title & Property Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', minWidth: 0, flexShrink: 1 }}>
         {(user?.role === 'owner' || user?.role === 'master') ? (
           /* For Owners/Admins: Only show the interactive PropertySwitcher dropdown, static name removed */
           <PropertySwitcher
@@ -70,21 +73,22 @@ export default function Navbar({
       </div>
 
       {/* Right Action Items: Mode Indicator + Help & CS Button + Theme Toggle (Desktop & Mobile) + Mobile User Chips */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         {/* Mode Indicator: Demo Sandbox Only */}
         {user && (user?.isDemo || user?.email?.endsWith('@kostku.id')) && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
+            gap: '4px',
             background: isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(245, 158, 11, 0.18)',
             border: isLight ? '1px solid rgba(217, 119, 6, 0.35)' : '1px solid rgba(245, 158, 11, 0.35)',
             borderRadius: '8px',
-            padding: '4px 7px',
-            fontSize: '0.72rem',
+            padding: '3px 6px',
+            fontSize: '0.7rem',
             color: isLight ? '#92400e' : '#fbbf24',
             fontWeight: 700,
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            flexShrink: 0
           }}>
             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isLight ? '#d97706' : '#fbbf24' }} />
             <span>🧪 <span className="desktop-only">Mode </span>Demo</span>
@@ -107,18 +111,18 @@ export default function Navbar({
             </Link>
           </div>
         )}
-        {/* Help & CS Quick Button */}
+        {/* Help & CS Quick Button - desktop only to prevent mobile overflow since floating WhatsApp button is already present */}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('kostku:open-help'))}
           type="button"
           data-testid="navbar-help-cs-btn"
           title="Pusat Bantuan, FAQ & Kontak CS (081228263200)"
+          className="desktop-only-flex"
           style={{
             background: 'rgba(16, 185, 129, 0.12)',
             border: '1px solid rgba(16, 185, 129, 0.35)',
             borderRadius: '8px',
             padding: '6px 8px',
-            display: 'flex',
             alignItems: 'center',
             gap: '6px',
             color: '#10b981',
@@ -126,11 +130,12 @@ export default function Navbar({
             fontSize: '0.78rem',
             fontWeight: 700,
             transition: 'all 0.2s',
-            boxShadow: 'var(--shadow-sm)'
+            boxShadow: 'var(--shadow-sm)',
+            flexShrink: 0
           }}
         >
           <HelpCircle size={16} color="#10b981" />
-          <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Bantuan & CS</span>
+          <span style={{ fontSize: '0.74rem' }}>Bantuan & CS</span>
         </button>
 
         {/* Theme Toggle Button (Light Mode / Dark Mode) */}
@@ -143,26 +148,27 @@ export default function Navbar({
             background: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.07)',
             border: '1px solid var(--border-color)',
             borderRadius: '8px',
-            padding: '6px 8px',
+            padding: '5px 8px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             color: 'var(--text-primary)',
             cursor: 'pointer',
             fontSize: '0.78rem',
             fontWeight: 700,
             transition: 'all 0.2s',
-            boxShadow: 'var(--shadow-sm)'
+            boxShadow: 'var(--shadow-sm)',
+            flexShrink: 0
           }}
         >
           {isLight ? (
             <>
-              <Moon size={16} color="#2563eb" />
+              <Moon size={15} color="#2563eb" />
               <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Mode Gelap</span>
             </>
           ) : (
             <>
-              <Sun size={16} color="#f59e0b" />
+              <Sun size={15} color="#f59e0b" />
               <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Mode Terang</span>
             </>
           )}
@@ -179,9 +185,11 @@ export default function Navbar({
             alignItems: 'center',
             padding: '2px',
             borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--border-color)',
+            border: '1.5px solid var(--border-color)',
             cursor: 'pointer',
-            transition: 'background 0.2s'
+            transition: 'background 0.2s',
+            flexShrink: 0,
+            marginRight: '2px'
           }}
         >
           {user?.picture ? (

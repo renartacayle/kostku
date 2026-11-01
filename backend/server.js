@@ -3768,7 +3768,19 @@ app.get('/api/activities', (req, res) => {
   const db = getDB();
 
   let filtered = db.activities || [];
-  if (kostUid) filtered = filtered.filter(a => a.kostUid === kostUid);
+  if (kostUid) {
+    filtered = filtered.filter(a => a.kostUid === kostUid);
+  }
+
+  // Filter out noise so real-time timeline only displays relevant operational property events
+  filtered = filtered.filter(a => {
+    if (!a || !a.text) return false;
+    const t = a.text.toLowerCase();
+    if (t.includes('berhasil masuk via akun google') || t.includes('berhasil masuk via google') || t.includes('login google')) {
+      return false;
+    }
+    return true;
+  });
 
   res.json(filtered.sort((a,b) => new Date(b.time) - new Date(a.time)));
 });
@@ -3832,7 +3844,7 @@ app.post('/api/auth/google', (req, res) => {
       if (kost) resolvedKostName = kost.kostName;
     }
 
-    addActivity(db, user.kostUid || 'GLOBAL', 'pengguna', `${user.name} berhasil masuk via Akun Google (${effectiveEmail})`);
+    // Routine login success (not logged to operational feed to keep it clean)
     writeDB(db);
   } else {
     // New user registration via Google

@@ -169,9 +169,13 @@ const Register = () => {
     setError('');
     setOtpError('');
 
-    // 0. Wajib Setujui Syarat & Ketentuan serta Kebijakan Privasi
+    // 0. Wajib Setujui Syarat & Ketentuan serta Kebijakan Privasi & Perjanjian
     if (!agreedTerms) {
-      setError('Anda wajib mencentang persetujuan Syarat & Ketentuan serta Kebijakan Privasi KostKu untuk membuat akun.');
+      setError('⚠️ Anda wajib mencentang persetujuan Syarat & Ketentuan (S&K), Perjanjian Sewa/Kemitraan, serta Kebijakan Privasi KostKu untuk membuat akun.');
+      const el = document.getElementById('agreeTermsContainer');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return false;
     }
 
@@ -554,9 +558,8 @@ const Register = () => {
     }
   };
 
-  // Kondisi Tombol Lanjut ke OTP Aktif
+  // Kondisi Tombol Lanjut ke OTP Aktif (validasi form utama)
   const isSubmitDisabled = () => {
-    if (!agreedTerms) return true;
     if (otpSending) return true;
     if (!name.trim()) return true;
     if (password.length < 6 || password !== confirmPassword) return true;
@@ -798,9 +801,12 @@ const Register = () => {
                 }} 
               />
               <div style={{ textAlign: 'center', marginTop: '6px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#60a5fa' }}>
+                <span style={{ fontSize: '0.75rem', color: isLight ? '#2563eb' : '#60a5fa', fontWeight: 600 }}>
                   ✦ Registrasi resmi Google: 1-klik terverifikasi otomatis
                 </span>
+                <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>
+                  Dengan mendaftar via Google, Anda menyetujui S&K & Kebijakan Privasi KostKu.
+                </div>
               </div>
             </div>
 
@@ -1366,19 +1372,26 @@ const Register = () => {
                 KLAUSUL HUKUM: PERSETUJUAN SYARAT & KETENTUAN (CLICKWRAP)
                 ═════════════════════════════════════════════════════ */}
             <div 
+              id="agreeTermsContainer"
               style={{
                 marginTop: '1.25rem',
                 marginBottom: '1rem',
-                padding: '12px 14px',
+                padding: '14px 16px',
                 borderRadius: '14px',
-                background: agreedTerms ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-                border: agreedTerms ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                background: agreedTerms 
+                  ? (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)') 
+                  : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.04)'),
+                border: agreedTerms 
+                  ? '1.5px solid #10b981' 
+                  : (isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.2)'),
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '12px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                boxShadow: agreedTerms ? '0 0 15px rgba(16, 185, 129, 0.15)' : 'none'
+                boxShadow: agreedTerms 
+                  ? (isLight ? '0 2px 10px rgba(16, 185, 129, 0.18)' : '0 0 15px rgba(16, 185, 129, 0.2)') 
+                  : (isLight ? '0 1px 3px rgba(0,0,0,0.05)' : 'none')
               }}
               onClick={() => setAgreedTerms(!agreedTerms)}
             >
@@ -1389,46 +1402,60 @@ const Register = () => {
                 onChange={(e) => setAgreedTerms(e.target.checked)}
                 style={{
                   marginTop: '3px',
-                  width: '18px',
-                  height: '18px',
+                  width: '20px',
+                  height: '20px',
                   accentColor: '#2563eb',
                   cursor: 'pointer',
                   flexShrink: 0
                 }}
               />
-              <label 
-                htmlFor="agreeTermsCheckbox" 
-                style={{ 
-                  fontSize: '0.8rem', 
-                  color: '#cbd5e1', 
-                  lineHeight: 1.55, 
-                  cursor: 'pointer', 
-                  margin: 0,
-                  userSelect: 'none'
-                }}
-              >
-                Saya menyatakan telah membaca, memahami, dan menyetujui seluruh{' '}
-                <Link 
-                  to="/syarat-ketentuan" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ color: '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ 
+                    fontSize: '0.72rem', 
+                    fontWeight: 700, 
+                    letterSpacing: '0.05em', 
+                    textTransform: 'uppercase',
+                    color: agreedTerms ? '#10b981' : (isLight ? '#dc2626' : '#f87171')
+                  }}>
+                    {agreedTerms ? '✓ Persetujuan Dikonfirmasi' : '⚠️ Wajib Dicentang'}
+                  </span>
+                </div>
+                <label 
+                  htmlFor="agreeTermsCheckbox" 
+                  style={{ 
+                    fontSize: '0.82rem', 
+                    color: isLight ? '#1e293b' : '#f1f5f9', 
+                    lineHeight: 1.6, 
+                    cursor: 'pointer', 
+                    margin: 0,
+                    userSelect: 'none',
+                    display: 'block'
+                  }}
                 >
-                  Syarat & Ketentuan Layanan
-                </Link>
-                {' '}serta{' '}
-                <Link 
-                  to="/kebijakan-privasi" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ color: '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}
-                >
-                  Kebijakan Privasi
-                </Link>
-                {' '}KostKu, termasuk batasan tanggung jawab hukum platform dan pelepasan tuntutan. <span style={{ color: '#ef4444' }}>*</span>
-              </label>
+                  Saya menyatakan telah membaca, memahami, dan menyetujui seluruh{' '}
+                  <Link 
+                    to="/syarat-ketentuan" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ color: isLight ? '#1d4ed8' : '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}
+                  >
+                    Syarat & Ketentuan Layanan (S&K)
+                  </Link>
+                  ,{' '}
+                  <Link 
+                    to="/kebijakan-privasi" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ color: isLight ? '#1d4ed8' : '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}
+                  >
+                    Kebijakan Privasi
+                  </Link>
+                  , serta <strong>Perjanjian Sewa-Menyewa & Kemitraan Layanan KostKu</strong>. <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>
+                </label>
+              </div>
             </div>
 
             {/* Tombol Aksi: Batal / Lanjut ke OTP */}

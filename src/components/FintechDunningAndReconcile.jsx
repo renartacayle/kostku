@@ -31,8 +31,10 @@ import {
   apiSimulateBankMutation,
   apiReconcileBankMutation
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 export default function FintechDunningAndReconcile({ user, kostUid }) {
+  const { isLight } = useTheme();
   const [activeSubTab, setActiveSubTab] = useState('pipeline'); // 'pipeline' | 'mutations' | 'split'
   const [settings, setSettings] = useState({
     enabled: true,
@@ -336,8 +338,8 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
               
               {/* Checkboxes schedule */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 700 }}>Jadwal Pengingat WhatsApp Aktif:</span>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                <span style={{ fontSize: '0.82rem', color: isLight ? '#0f172a' : '#94a3b8', fontWeight: 700 }}>Jadwal Pengingat WhatsApp Aktif:</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: isLight ? '#1e293b' : '#cbd5e1', cursor: 'pointer' }}>
                   <input 
                     type="checkbox"
                     checked={settings.reminderHMinus3}
@@ -345,7 +347,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                   />
                   <span><strong>H-3:</strong> Pemberitahuan Ramah Awal</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: isLight ? '#1e293b' : '#cbd5e1', cursor: 'pointer' }}>
                   <input 
                     type="checkbox"
                     checked={settings.reminderHMinus1}
@@ -353,7 +355,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                   />
                   <span><strong>H-1:</strong> Pengingat Besok Jatuh Tempo</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: isLight ? '#1e293b' : '#cbd5e1', cursor: 'pointer' }}>
                   <input 
                     type="checkbox"
                     checked={settings.reminderDueDate}
@@ -361,7 +363,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                   />
                   <span><strong>Hari H:</strong> Alert Jatuh Tempo Hari Ini (23:59 WIB)</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: isLight ? '#1e293b' : '#cbd5e1', cursor: 'pointer' }}>
                   <input 
                     type="checkbox"
                     checked={settings.reminderOverdue}
@@ -374,11 +376,11 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
               {/* Late Fee inputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#334155' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Nominal Denda Harian (Per Hari Keterlambatan):
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Rp</span>
+                    <span style={{ fontSize: '0.85rem', color: isLight ? '#475569' : '#94a3b8' }}>Rp</span>
                     <input 
                       type="number"
                       min="0"
@@ -388,12 +390,12 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                       className="input-field"
                       style={{ fontWeight: 700 }}
                     />
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>/ hari</span>
+                    <span style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8' }}>/ hari</span>
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#334155' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Masa Tenggang Toleransi (Grace Period):
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -406,7 +408,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                       className="input-field"
                       style={{ fontWeight: 700 }}
                     />
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Hari bebas denda setelah jatuh tempo</span>
+                    <span style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8' }}>Hari bebas denda setelah jatuh tempo</span>
                   </div>
                 </div>
 
@@ -426,8 +428,8 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
           {/* Unpaid Invoices Pipeline Queue */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h4 style={{ margin: 0, fontSize: '1rem', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Clock size={16} color="#fbbf24" /> Antrean Tagihan Sewa Belum Lunas ({unpaidInvoices.length})
+              <h4 style={{ margin: 0, fontSize: '1rem', color: isLight ? '#0f172a' : 'white', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                <Clock size={16} color="#f59e0b" /> Antrean Tagihan Sewa Belum Lunas ({unpaidInvoices.length})
               </h4>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 Denda harian terhitung otomatis jika melewati batas toleransi ({settings.gracePeriodDays} hari)
@@ -447,16 +449,18 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                   const lateDays = isOverdue ? diffDays - settings.gracePeriodDays : 0;
                   const lateFee = lateDays * (settings.dailyLateFee || 5000);
                   const grandTotal = Number(inv.total || 0) + lateFee;
+                  const displayDueDate = inv.dueDate || inv.tanggal || 'Akhir Bulan';
 
                   return (
                     <div key={inv.id} style={{
-                      background: isOverdue ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255, 255, 255, 0.03)',
+                      background: isOverdue ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.05)') : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.03)'),
                       border: isOverdue ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1px solid var(--border-color)',
                       borderRadius: '12px',
                       padding: '14px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '10px'
+                      gap: '10px',
+                      boxShadow: isLight ? '0 2px 8px rgba(15, 23, 42, 0.05)' : 'none'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
@@ -465,13 +469,13 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                             fontWeight: 700,
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            background: 'rgba(59, 130, 246, 0.2)',
-                            color: '#60a5fa',
+                            background: isLight ? 'rgba(37, 99, 235, 0.12)' : 'rgba(59, 130, 246, 0.2)',
+                            color: isLight ? '#1d4ed8' : '#60a5fa',
                             marginRight: '6px'
                           }}>
                             Kamar {inv.kamar}
                           </span>
-                          <strong style={{ fontSize: '0.95rem', color: 'white' }}>{inv.userName || 'Penghuni'}</strong>
+                          <strong style={{ fontSize: '0.95rem', color: isLight ? '#0f172a' : 'white', fontWeight: 800 }}>{inv.userName || 'Penghuni'}</strong>
                         </div>
                         <span style={{
                           fontSize: '0.72rem',
@@ -479,24 +483,24 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                           padding: '2px 8px',
                           borderRadius: '6px',
                           background: isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                          color: isOverdue ? '#fca5a5' : '#fbbf24'
+                          color: isOverdue ? (isLight ? '#b91c1c' : '#fca5a5') : (isLight ? '#b45309' : '#fbbf24')
                         }}>
-                          {isOverdue ? `⚠️ Lewat ${diffDays} Hari` : `Jatuh Tempo: ${inv.dueDate}`}
+                          {isOverdue ? `⚠️ Lewat ${diffDays} Hari` : `Jatuh Tempo: ${displayDueDate}`}
                         </span>
                       </div>
 
-                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '8px', fontSize: '0.8rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}>
+                      <div style={{ background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid #e2e8f0' : 'none', padding: '10px 12px', borderRadius: '10px', fontSize: '0.8rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8' }}>
                           <span>Sewa Pokok:</span>
-                          <strong style={{ color: 'white' }}>{formatRupiah(inv.total)}</strong>
+                          <strong style={{ color: isLight ? '#0f172a' : 'white' }}>{formatRupiah(inv.total)}</strong>
                         </div>
                         {lateFee > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fca5a5', marginTop: '2px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#dc2626' : '#fca5a5', marginTop: '2px' }}>
                             <span>Denda Keterlambatan ({lateDays}h):</span>
                             <strong>+{formatRupiah(lateFee)}</strong>
                           </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#38bdf8', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '4px', fontWeight: 800 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#0284c7' : '#38bdf8', marginTop: '4px', borderTop: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.06)', paddingTop: '4px', fontWeight: 800 }}>
                           <span>Total Tagihan:</span>
                           <span>{formatRupiah(grandTotal)}</span>
                         </div>

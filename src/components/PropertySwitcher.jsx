@@ -79,18 +79,21 @@ export default function PropertySwitcher({
             ? '#ffffff' 
             : 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
           border: isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(59, 130, 246, 0.4)',
-          borderRadius: '14px',
-          padding: '7px 14px 7px 10px',
+          borderRadius: '12px',
+          padding: '5px 10px 5px 8px',
           cursor: 'pointer',
           color: 'var(--text-primary)',
           boxShadow: isLight ? '0 2px 8px rgba(15, 23, 42, 0.06)' : '0 4px 14px rgba(0, 0, 0, 0.3)',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          maxWidth: 'min(240px, 45vw)',
+          minWidth: 0,
+          flexShrink: 1
         }}
       >
         <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '10px',
+          width: '28px',
+          height: '28px',
+          borderRadius: '8px',
           background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
           border: '1px solid rgba(255, 255, 255, 0.25)',
           boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
@@ -99,32 +102,34 @@ export default function PropertySwitcher({
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          <Building2 size={18} color="white" />
+          <Building2 size={16} color="white" />
         </div>
 
-        <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ textAlign: 'left', lineHeight: 1.2, minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
             <span style={{
               fontWeight: 800,
-              fontSize: '0.94rem',
+              fontSize: '0.88rem',
               color: 'var(--text-primary)',
-              maxWidth: '280px',
+              maxWidth: 'clamp(95px, 28vw, 160px)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              textOverflow: 'ellipsis'
+              textOverflow: 'ellipsis',
+              display: 'inline-block'
             }}>
               {currentKost.kostName}
             </span>
             <ChevronDown 
-              size={15} 
+              size={14} 
               color={isLight ? '#2563eb' : '#93c5fd'} 
               style={{ 
                 transform: isOpen ? 'rotate(180deg)' : 'none', 
-                transition: 'transform 0.2s' 
+                transition: 'transform 0.2s',
+                flexShrink: 0
               }} 
             />
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+          <span className="desktop-only" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
             {kosts.length > 1 ? `${kosts.length} Cabang • Ganti Kost` : '1 Cabang Aktif'}
           </span>
         </div>

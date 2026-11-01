@@ -96,10 +96,11 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: '1rem',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+        background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
         padding: '1.25rem 1.5rem',
         borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-color)'
+        border: '1px solid var(--border-color)',
+        boxShadow: isLight ? 'var(--shadow-sm)' : 'none'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -107,13 +108,13 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
               Setting Owner
             </h1>
             <span style={{
-              background: 'rgba(59, 130, 246, 0.15)',
-              color: '#93c5fd',
+              background: isLight ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.15)',
+              color: isLight ? '#2563eb' : '#93c5fd',
               fontSize: '0.75rem',
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: '8px',
-              border: '1px solid rgba(59, 130, 246, 0.3)'
+              border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)'
             }}>
               {user?.role === 'owner' ? 'Owner Portal' : user?.role === 'master' ? 'Admin Portal' : 'User Setting'}
             </span>
@@ -128,7 +129,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
       <div style={{
         display: 'flex',
         gap: '8px',
-        background: 'rgba(15, 23, 42, 0.6)',
+        background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.6)',
         padding: '6px',
         borderRadius: '16px',
         border: '1px solid var(--border-color)'
@@ -141,7 +142,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
             padding: '10px 16px',
             borderRadius: '12px',
             background: activeTab === 'profil' ? 'var(--accent-gradient)' : 'transparent',
-            color: activeTab === 'profil' ? 'white' : 'var(--text-secondary)',
+            color: activeTab === 'profil' ? 'white' : (isLight ? '#475569' : 'var(--text-secondary)'),
             fontWeight: 700,
             fontSize: '0.9rem',
             border: activeTab === 'profil' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
@@ -167,7 +168,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
             padding: '10px 16px',
             borderRadius: '12px',
             background: activeTab === 'tema' ? 'var(--accent-gradient)' : 'transparent',
-            color: activeTab === 'tema' ? 'white' : 'var(--text-secondary)',
+            color: activeTab === 'tema' ? 'white' : (isLight ? '#475569' : 'var(--text-secondary)'),
             fontWeight: 700,
             fontSize: '0.9rem',
             border: activeTab === 'tema' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
@@ -192,7 +193,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
             padding: '10px 16px',
             borderRadius: '12px',
             background: activeTab === 'keamanan' ? 'var(--accent-gradient)' : 'transparent',
-            color: activeTab === 'keamanan' ? 'white' : 'var(--text-secondary)',
+            color: activeTab === 'keamanan' ? 'white' : (isLight ? '#475569' : 'var(--text-secondary)'),
             fontWeight: 700,
             fontSize: '0.9rem',
             border: activeTab === 'keamanan' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
@@ -447,16 +448,18 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
             flexWrap: 'wrap',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: 'rgba(15, 23, 42, 0.5)',
-            padding: '14px 18px',
-            borderRadius: '12px',
-            gap: '12px'
+            background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.04)',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
+            padding: '16px 20px',
+            borderRadius: '14px',
+            gap: '12px',
+            boxShadow: isLight ? '0 1px 3px rgba(15, 23, 42, 0.04)' : 'none'
           }}>
             <div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'white', display: 'block' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc', display: 'block' }}>
                 Metode Masuk: {user?.authProvider === 'google' ? 'Google Account (OAuth)' : 'Email & Password'}
               </span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 ID Pengguna: {user?.id}
               </span>
             </div>
@@ -471,14 +474,16 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                 }}
                 className="btn"
                 style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  color: '#f87171',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
+                  color: isLight ? '#b91c1c' : '#f87171',
+                  border: isLight ? '1px solid #fca5a5' : '1px solid rgba(239, 68, 68, 0.3)',
                   gap: '8px',
-                  padding: '8px 18px',
+                  padding: '9px 20px',
                   borderRadius: '10px',
                   fontSize: '0.85rem',
-                  cursor: 'pointer'
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 <LogOut size={16} />
