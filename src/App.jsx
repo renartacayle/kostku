@@ -3,8 +3,18 @@ import {
   BrowserRouter as Router, 
   Routes, 
   Route, 
-  Navigate 
+  Navigate,
+  useLocation
 } from 'react-router-dom';
+
+// Automatically reset scroll position to top whenever route or search params change
+function ScrollToTop() {
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname, search]);
+  return null;
+}
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -223,6 +233,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <RouteMetadataManager />
       <AutoUpdateModal />
       <ErrorBoundary>

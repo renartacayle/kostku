@@ -212,15 +212,28 @@ html, body {
 }
 
 /* Shopee-style unified icon menu grid */
+.owner-nav-banner {
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+}
 .shopee-menu-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: 12px 6px;
 }
 @media (max-width: 768px) {
+  .owner-nav-banner {
+    padding: 0.85rem 0.9rem !important;
+    margin-bottom: 0.85rem !important;
+    border-radius: 16px !important;
+  }
+  .owner-nav-banner h1 {
+    font-size: 1.2rem !important;
+  }
   .shopee-menu-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px 4px;
+    gap: 8px 3px;
   }
 }
 

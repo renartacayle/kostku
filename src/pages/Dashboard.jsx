@@ -260,6 +260,7 @@ const OwnerDashboard = ({ user }) => {
     } else {
       setSearchParams({});
     }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const targetKostUid = currentKostUid || user?.kostUid;

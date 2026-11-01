@@ -119,14 +119,14 @@ export default function OwnerNavBanner({
 
   return (
     <>
-      <div style={{
-        background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
-        padding: '1.1rem 1.25rem',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-color)',
-        boxShadow: isLight ? 'var(--shadow-sm)' : '0 8px 32px rgba(0,0,0,0.2)',
-        marginBottom: '1.25rem'
-      }}>
+      <div 
+        className="owner-nav-banner glass-panel"
+        style={{
+          background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
+          border: '1px solid var(--border-color)',
+          boxShadow: isLight ? 'var(--shadow-sm)' : '0 8px 32px rgba(0,0,0,0.2)'
+        }}
+      >
         {/* Header Title + Stats + Refresh */}
         <div style={{
           display: 'flex',
