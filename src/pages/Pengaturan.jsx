@@ -18,7 +18,9 @@ import {
   Camera,
   Trash2,
   RefreshCw,
-  Upload
+  Upload,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { apiUpdateProfile } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -41,6 +43,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null);
 
   useEffect(() => {
@@ -124,13 +127,24 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
           if (onUpdateUser) onUpdateUser(res.user);
           localStorage.setItem('kostUser', JSON.stringify(res.user));
           window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: res.user }));
-          setProfileMsg({ type: 'success', text: 'Foto profil berhasil diperbarui & disinkronkan ke seluruh halaman!' });
-          setTimeout(() => setProfileMsg(null), 3500);
+          if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+            window.navigator.vibrate([40, 30, 40]);
+          }
+          setProfileMsg({ 
+            type: 'success', 
+            title: 'Foto Profil Diperbarui!',
+            text: 'Foto profil baru Anda telah tersimpan dan langsung aktif di seluruh halaman KostKu.' 
+          });
+          setTimeout(() => setProfileMsg(null), 4000);
         }
       }
     } catch (err) {
       console.error('Error uploading profile picture:', err);
-      setProfileMsg({ type: 'error', text: 'Gagal memproses foto profil: ' + (err.message || 'Error tidak diketahui') });
+      setProfileMsg({ 
+        type: 'error', 
+        title: 'Gagal Mengunggah Foto',
+        text: 'Gagal memproses foto profil: ' + (err.message || 'Error tidak diketahui') 
+      });
     } finally {
       setUploadingPhoto(false);
       if (e.target) e.target.value = '';
@@ -151,12 +165,20 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         if (onUpdateUser) onUpdateUser(res.user);
         localStorage.setItem('kostUser', JSON.stringify(res.user));
         window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: res.user }));
-        setProfileMsg({ type: 'success', text: 'Foto profil dihapus (kembali ke avatar inisial).' });
+        setProfileMsg({ 
+          type: 'success', 
+          title: 'Foto Profil Dihapus',
+          text: 'Foto profil dihapus (akun kembali menggunakan inisial nama).' 
+        });
         setTimeout(() => setProfileMsg(null), 3500);
       }
     } catch (err) {
       console.error('Error removing profile picture:', err);
-      setProfileMsg({ type: 'error', text: 'Gagal menghapus foto profil' });
+      setProfileMsg({ 
+        type: 'error', 
+        title: 'Gagal Menghapus Foto',
+        text: 'Gagal menghapus foto profil' 
+      });
     } finally {
       setUploadingPhoto(false);
     }
@@ -165,19 +187,33 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
   const handleSaveProfile = async (e) => {
     e?.preventDefault();
     if (!profileName.trim()) {
-      setProfileMsg({ type: 'error', text: 'Nama lengkap tidak boleh kosong' });
+      setProfileMsg({ 
+        type: 'error', 
+        title: 'Data Belum Lengkap',
+        text: 'Nama lengkap tidak boleh kosong' 
+      });
       return;
     }
     if (newPassword && newPassword !== confirmPassword) {
-      setProfileMsg({ type: 'error', text: 'Konfirmasi kata sandi baru tidak cocok' });
+      setProfileMsg({ 
+        type: 'error', 
+        title: 'Kata Sandi Tidak Cocok',
+        text: 'Konfirmasi kata sandi baru tidak cocok' 
+      });
       return;
     }
     if (newPassword && newPassword.length < 6) {
-      setProfileMsg({ type: 'error', text: 'Kata sandi baru minimal 6 karakter' });
+      setProfileMsg({ 
+        type: 'error', 
+        title: 'Kata Sandi Terlalu Pendek',
+        text: 'Kata sandi baru minimal 6 karakter' 
+      });
       return;
     }
     setSavingProfile(true);
     setProfileMsg(null);
+    setSaveSuccess(false);
+
     try {
       const res = await apiUpdateProfile({
         id: user.id,
@@ -192,14 +228,29 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         if (onUpdateUser) onUpdateUser(res.user);
         localStorage.setItem('kostUser', JSON.stringify(res.user));
         window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: res.user }));
-        setProfileMsg({ type: 'success', text: 'Profil pengguna berhasil diperbarui!' });
+        
+        // Success feedback & haptic
+        setSaveSuccess(true);
+        if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+          window.navigator.vibrate([40, 30, 40]);
+        }
+        setProfileMsg({ 
+          type: 'success', 
+          title: 'Profil Berhasil Disimpan! 🎉',
+          text: 'Perubahan profil & identitas akun Anda telah diperbarui dan langsung disinkronkan ke seluruh halaman KostKu.' 
+        });
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        setTimeout(() => setProfileMsg(null), 4000);
+        setTimeout(() => setSaveSuccess(false), 3500);
+        setTimeout(() => setProfileMsg(null), 5000);
       }
     } catch (err) {
-      setProfileMsg({ type: 'error', text: err.message || 'Gagal memperbarui profil' });
+      setProfileMsg({ 
+        type: 'error', 
+        title: 'Gagal Menyimpan Perubahan',
+        text: err.message || 'Gagal memperbarui profil pengguna. Silakan periksa kembali dan coba lagi.' 
+      });
     } finally {
       setSavingProfile(false);
     }
@@ -330,21 +381,80 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         </button>
       </div>
 
-      {/* FEEDBACK MESSAGE */}
+      {/* FLOATING TOAST NOTIFICATION (Always visible regardless of scroll position) */}
       {profileMsg && (
-        <div style={{
-          background: profileMsg.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-          border: profileMsg.type === 'success' ? '1px solid #10b981' : '1px solid #ef4444',
-          color: profileMsg.type === 'success' ? 'var(--accent-success)' : 'var(--accent-danger)',
-          padding: '12px 18px',
-          borderRadius: '12px',
-          fontSize: '0.9rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
-        }}>
-          {profileMsg.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-          <span>{profileMsg.text}</span>
+        <div 
+          role="alert"
+          style={{
+            position: 'fixed',
+            top: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 18px',
+            borderRadius: '16px',
+            background: profileMsg.type === 'success' 
+              ? (isLight ? '#065f46' : 'rgba(6, 78, 59, 0.95)')
+              : (isLight ? '#991b1b' : 'rgba(127, 29, 29, 0.95)'),
+            color: '#ffffff',
+            boxShadow: profileMsg.type === 'success' 
+              ? '0 10px 30px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(16, 185, 129, 0.4)' 
+              : '0 10px 30px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(239, 68, 68, 0.4)',
+            backdropFilter: 'blur(12px)',
+            maxWidth: '92vw',
+            width: 'max-content',
+            animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            cursor: 'pointer'
+          }}
+          onClick={() => setProfileMsg(null)}
+        >
+          <div style={{
+            background: profileMsg.type === 'success' ? 'rgba(52, 211, 153, 0.25)' : 'rgba(248, 113, 113, 0.25)',
+            width: '34px',
+            height: '34px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            {profileMsg.type === 'success' ? (
+              <CheckCircle2 size={19} color="#34d399" />
+            ) : (
+              <AlertCircle size={19} color="#f87171" />
+            )}
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>
+              {profileMsg.title || (profileMsg.type === 'success' ? 'Berhasil Disimpan' : 'Pemberitahuan')}
+            </div>
+            <div style={{ fontSize: '0.78rem', opacity: 0.92, marginTop: '2px', lineHeight: 1.35 }}>
+              {profileMsg.text}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setProfileMsg(null);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.8)',
+              cursor: 'pointer',
+              padding: '4px',
+              marginLeft: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -626,15 +736,79 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            {/* In-Form Feedback Banner Directly Above the Submit Button */}
+            {profileMsg && (
+              <div style={{
+                background: profileMsg.type === 'success' 
+                  ? 'rgba(16, 185, 129, 0.12)' 
+                  : 'rgba(239, 68, 68, 0.12)',
+                border: profileMsg.type === 'success' 
+                  ? '1px solid rgba(16, 185, 129, 0.35)' 
+                  : '1px solid rgba(239, 68, 68, 0.35)',
+                color: profileMsg.type === 'success' ? '#10b981' : '#f87171',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                fontSize: '0.88rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginTop: '0.75rem',
+                animation: 'fadeIn 0.25s ease'
+              }}>
+                {profileMsg.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                <div style={{ flex: 1 }}>
+                  {profileMsg.title && <strong style={{ display: 'block', marginBottom: '2px' }}>{profileMsg.title}</strong>}
+                  <span style={{ fontSize: '0.82rem', opacity: 0.95 }}>{profileMsg.text}</span>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              {saveSuccess && (
+                <span style={{ 
+                  color: '#10b981', 
+                  fontSize: '0.85rem', 
+                  fontWeight: 700, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px' 
+                }}>
+                  <CheckCircle2 size={16} /> Perubahan profil berhasil disimpan!
+                </span>
+              )}
+
               <button
                 type="submit"
                 disabled={savingProfile}
                 className="btn btn-primary"
-                style={{ gap: '8px', padding: '10px 24px', borderRadius: '10px' }}
+                style={{ 
+                  gap: '8px', 
+                  padding: '11px 26px', 
+                  borderRadius: '10px',
+                  background: saveSuccess 
+                    ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' 
+                    : undefined,
+                  borderColor: saveSuccess ? '#059669' : undefined,
+                  boxShadow: saveSuccess ? '0 4px 18px rgba(16, 185, 129, 0.45)' : undefined,
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
               >
-                <Save size={16} />
-                <span>{savingProfile ? 'Menyimpan...' : 'Simpan Perubahan Profil'}</span>
+                {savingProfile ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span>Menyimpan Perubahan...</span>
+                  </>
+                ) : saveSuccess ? (
+                  <>
+                    <CheckCircle2 size={16} />
+                    <span>Tersimpan!</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    <span>Simpan Perubahan Profil</span>
+                  </>
+                )}
               </button>
             </div>
           </form>
