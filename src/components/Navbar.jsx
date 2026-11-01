@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Download, User as UserIcon, Sun, Moon, HelpCircle } from 'lucide-react';
+import { Home, Download, User as UserIcon, Sun, Moon, HelpCircle, Settings } from 'lucide-react';
 import PropertySwitcher from './PropertySwitcher';
 import { useTheme } from '../context/ThemeContext';
 
@@ -112,118 +112,79 @@ export default function Navbar({
           </div>
         )}
         {/* Help & CS Quick Button - desktop only to prevent mobile overflow since floating WhatsApp button is already present */}
+        {/* Pusat Bantuan & CS (Clean Template Icon) */}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('kostku:open-help'))}
           type="button"
           data-testid="navbar-help-cs-btn"
           title="Pusat Bantuan, FAQ & Kontak CS (081228263200)"
-          className="desktop-only-flex"
           style={{
-            background: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
-            borderRadius: '8px',
-            padding: '6px 8px',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            color: '#10b981',
+            justifyContent: 'center',
+            background: isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.07)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
+            color: isLight ? '#059669' : '#34d399',
             cursor: 'pointer',
-            fontSize: '0.78rem',
-            fontWeight: 700,
             transition: 'all 0.2s',
-            boxShadow: 'var(--shadow-sm)',
             flexShrink: 0
           }}
         >
-          <HelpCircle size={16} color="#10b981" />
-          <span style={{ fontSize: '0.74rem' }}>Bantuan & CS</span>
+          <HelpCircle size={17} strokeWidth={1.8} />
         </button>
 
-        {/* Theme Toggle Button (Light Mode / Dark Mode) */}
+        {/* Theme Toggle Button (Clean Template Icon) */}
         <button
           onClick={toggleTheme}
           type="button"
           data-testid="navbar-theme-toggle"
           title={isLight ? "Beralih ke Mode Gelap (Dark Mode)" : "Beralih ke Mode Terang (Light Mode)"}
           style={{
-            background: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.07)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            padding: '5px 8px',
+            width: '32px',
+            height: '32px',
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
+            justifyContent: 'center',
+            background: isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.07)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
             color: 'var(--text-primary)',
             cursor: 'pointer',
-            fontSize: '0.78rem',
-            fontWeight: 700,
             transition: 'all 0.2s',
-            boxShadow: 'var(--shadow-sm)',
             flexShrink: 0
           }}
         >
           {isLight ? (
-            <>
-              <Moon size={15} color="#2563eb" />
-              <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Mode Gelap</span>
-            </>
+            <Moon size={16} color="#2563eb" strokeWidth={1.8} />
           ) : (
-            <>
-              <Sun size={15} color="#f59e0b" />
-              <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Mode Terang</span>
-            </>
+            <Sun size={16} color="#f59e0b" strokeWidth={1.8} />
           )}
         </button>
 
-        {/* User Chip on Mobile - compact avatar without text overflow */}
+        {/* Pengaturan / Profil Link (Clean Template Icon - Shopee Style) */}
         <Link 
           to="/pengaturan" 
           title="Buka Pengaturan Akun & Profil"
-          className="mobile-only-flex"
           style={{
-            textDecoration: 'none',
-            color: 'inherit',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
             alignItems: 'center',
-            padding: '2px',
-            borderRadius: 'var(--radius-full)',
-            border: '1.5px solid var(--border-color)',
+            justifyContent: 'center',
+            background: isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.07)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
+            color: isLight ? '#1e293b' : '#f8fafc',
             cursor: 'pointer',
-            transition: 'background 0.2s',
-            flexShrink: 0,
-            marginRight: '2px'
+            textDecoration: 'none',
+            transition: 'all 0.2s',
+            flexShrink: 0
           }}
         >
-          {user?.picture ? (
-            <img 
-              src={user.picture} 
-              alt={user.name || 'User'}
-              referrerPolicy="no-referrer"
-              style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '1.5px solid #4285F4'
-              }}
-            />
-          ) : (
-            <div style={{
-              width: '26px',
-              height: '26px',
-              borderRadius: '50%',
-              background: 'var(--accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: 'white'
-            }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={13} />}
-            </div>
-          )}
-          <span className="desktop-only" style={{ fontSize: '0.8rem', fontWeight: 600, maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.name || 'User'}
-          </span>
+          <Settings size={17} strokeWidth={1.8} />
         </Link>
       </div>
     </header>

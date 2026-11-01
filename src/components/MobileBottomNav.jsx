@@ -52,15 +52,7 @@ export default function MobileBottomNav({ user }) {
       id: 'settings',
       path: user ? '/pengaturan' : '/login',
       label: 'Setting',
-      icon: user?.picture ? (
-        <img 
-          src={user.picture} 
-          alt="Avatar" 
-          style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} 
-        />
-      ) : (
-        <Settings size={20} />
-      ),
+      icon: <Settings size={20} strokeWidth={1.8} />,
       isActive: location.pathname === '/pengaturan' || location.pathname === '/setting'
     }
   ];

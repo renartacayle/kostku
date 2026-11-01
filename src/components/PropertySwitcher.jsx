@@ -91,18 +91,16 @@ export default function PropertySwitcher({
         }}
       >
         <div style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '8px',
-          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
-          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
+          width: '26px',
+          height: '26px',
+          borderRadius: '7px',
+          background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.15)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          <Building2 size={16} color="white" />
+          <Building2 size={15} color={isLight ? '#2563eb' : '#60a5fa'} strokeWidth={2} />
         </div>
 
         <div style={{ textAlign: 'left', lineHeight: 1.2, minWidth: 0, overflow: 'hidden' }}>

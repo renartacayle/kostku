@@ -372,6 +372,9 @@ html, body {
 .desktop-only {
   display: block;
 }
+.desktop-only-flex {
+  display: flex !important;
+}
 .mobile-only {
   display: none;
 }
@@ -380,7 +383,8 @@ html, body {
 }
 
 @media (max-width: 900px) {
-  .desktop-only {
+  .desktop-only,
+  .desktop-only-flex {
     display: none !important;
   }
   .mobile-only {
