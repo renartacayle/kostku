@@ -593,154 +593,279 @@ const OwnerDashboard = ({ user }) => {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* Page Title & Main Header */}
+      {/* Page Title & Main Header (Shopee-style Compact Card) */}
       <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem',
         background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
-        padding: '1.25rem 1.5rem',
+        padding: '1.1rem 1.25rem',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-color)',
         boxShadow: isLight ? 'var(--shadow-sm)' : '0 8px 32px rgba(0,0,0,0.2)'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>
-              {activeTab === 'pengaturan' ? 'Pengaturan Kost' : (activeTab === 'komunitas' ? 'Mading & Komunitas Kost' : 'My Kost (Overview)')}
-            </h1>
-            <span className="badge badge-primary">
-              <Sparkles size={12} /> Live Sync
-            </span>
+        {/* Header Title + Stats + Refresh */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '8px'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800 }}>
+                {activeTab === 'pengaturan' ? 'Pengaturan Kost' : (activeTab === 'komunitas' ? 'Mading & Komunitas Kost' : 'My Kost (Overview)')}
+              </h1>
+              <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
+                <Sparkles size={11} /> Live Sync
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Kode: <strong style={{ color: 'var(--text-primary)' }}>{targetKostUid || '-'}</strong> • {totalKamar} Unit • Okupansi: <strong style={{ color: 'var(--accent-success)' }}>{occupancyRate}%</strong>
+            </p>
           </div>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Kode Kost: <strong style={{ color: 'var(--text-primary)' }}>{targetKostUid || '-'}</strong> • {totalKamar} Unit Kamar • Okupansi: <strong style={{ color: 'var(--accent-success)' }}>{occupancyRate}%</strong>
-          </p>
-        </div>
 
-        {/* Quick Action Buttons */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button 
             onClick={loadData} 
             className="btn btn-secondary btn-sm"
             title="Muat ulang data"
-            style={{ borderRadius: '10px' }}
+            style={{ 
+              width: '32px', 
+              height: '32px', 
+              borderRadius: '9px', 
+              padding: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              flexShrink: 0 
+            }}
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button
+        </div>
+
+        {/* Shopee-style Quick Actions (Compact 4-Column Icon Grid) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '6px',
+          marginTop: '1rem',
+          paddingTop: '0.85rem',
+          borderTop: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          {/* Action 1: Penghuni Baru */}
+          <Link 
+            to="/penghuni"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              transition: 'transform 0.15s ease'
+            }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '11px',
+              background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)',
+              color: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isLight ? '0 2px 6px rgba(37, 99, 235, 0.12)' : 'none'
+            }}>
+              <Plus size={19} strokeWidth={2.4} />
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              + Penghuni
+            </span>
+          </Link>
+
+          {/* Action 2: Keuangan */}
+          <Link 
+            to="/keuangan"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              transition: 'transform 0.15s ease'
+            }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '11px',
+              background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)',
+              color: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isLight ? '0 2px 6px rgba(16, 185, 129, 0.12)' : 'none'
+            }}>
+              <DollarSign size={19} strokeWidth={2.2} />
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              Keuangan
+            </span>
+          </Link>
+
+          {/* Action 3: Dunning WA */}
+          <Link 
+            to="/keuangan?tab=dunning"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              transition: 'transform 0.15s ease'
+            }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '11px',
+              background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.15)',
+              color: '#f59e0b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isLight ? '0 2px 6px rgba(245, 158, 11, 0.12)' : 'none'
+            }}>
+              <Zap size={19} strokeWidth={2.2} />
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              Dunning WA
+            </span>
+          </Link>
+
+          {/* Action 4: Buku Tamu */}
+          <button 
             type="button"
             onClick={() => setShowGuestModal(true)}
-            className="btn btn-secondary btn-sm"
-            style={{ borderRadius: '10px', gap: '6px', color: isLight ? '#0284c7' : '#38bdf8', borderColor: isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.4)' }}
-            title="Pantau & kelola buku tamu menginap digital"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: 'none',
+              border: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              transition: 'transform 0.15s ease'
+            }}
           >
-            <Users size={14} /> Buku Tamu Inap
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '11px',
+              background: isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.15)',
+              color: '#0284c7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isLight ? '0 2px 6px rgba(2, 132, 199, 0.12)' : 'none'
+            }}>
+              <Users size={19} strokeWidth={2.2} />
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              Buku Tamu
+            </span>
           </button>
-          <Link to="/keuangan?tab=dunning" className="btn btn-secondary btn-sm" style={{ borderRadius: '10px', gap: '6px', color: isLight ? '#b45309' : '#fbbf24', borderColor: isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.4)' }} title="Otomasi penagihan sewa WA & rekonsiliasi bank mutasi">
-            <Zap size={14} /> Dunning & Mutasi
-          </Link>
-          <Link to="/penghuni" className="btn btn-primary btn-sm" style={{ borderRadius: '10px', gap: '6px' }}>
-            <Plus size={14} /> Penghuni Baru
-          </Link>
-          <Link to="/keuangan" className="btn btn-secondary btn-sm" style={{ borderRadius: '10px', gap: '6px' }}>
-            <DollarSign size={14} /> Keuangan & Laporan
-          </Link>
         </div>
       </div>
 
-      {/* Main Tab Navigation: Modern Segmented Control */}
+      {/* Main Tab Navigation: Compact Single-Row Segmented Control (Shopee Style) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: '6px',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '4px',
         background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.7)',
-        padding: '5px',
-        borderRadius: '14px',
+        padding: '4px',
+        borderRadius: '12px',
         border: '1px solid var(--border-color)'
       }}>
         <button
           type="button"
           onClick={() => handleTabChange('overview')}
           style={{
-            padding: '9px 12px',
-            borderRadius: '10px',
+            padding: '7px 4px',
+            borderRadius: '9px',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px',
+            gap: '5px',
             fontWeight: 700,
-            fontSize: '0.85rem',
+            fontSize: '0.78rem',
             background: activeTab === 'overview' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent',
             color: activeTab === 'overview' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'overview' ? '0 4px 12px rgba(37, 99, 235, 0.35)' : 'none'
+            boxShadow: activeTab === 'overview' ? '0 2px 8px rgba(37, 99, 235, 0.25)' : 'none',
+            whiteSpace: 'nowrap'
           }}
         >
-          <LayoutDashboard size={16} />
-          <span>Ringkasan & Unit</span>
+          <LayoutDashboard size={14} />
+          <span>Ringkasan</span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange('komunitas')}
           style={{
-            padding: '9px 12px',
-            borderRadius: '10px',
+            padding: '7px 4px',
+            borderRadius: '9px',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px',
+            gap: '5px',
             fontWeight: 700,
-            fontSize: '0.85rem',
+            fontSize: '0.78rem',
             background: activeTab === 'komunitas' ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'transparent',
             color: activeTab === 'komunitas' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'komunitas' ? '0 4px 12px rgba(56, 189, 248, 0.35)' : 'none'
+            boxShadow: activeTab === 'komunitas' ? '0 2px 8px rgba(56, 189, 248, 0.25)' : 'none',
+            whiteSpace: 'nowrap'
           }}
         >
-          <Megaphone size={16} />
-          <span>Mading & Komunitas</span>
+          <Megaphone size={14} />
+          <span>Mading</span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange('pengaturan')}
           style={{
-            padding: '9px 12px',
-            borderRadius: '10px',
+            padding: '7px 4px',
+            borderRadius: '9px',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px',
+            gap: '5px',
             fontWeight: 700,
-            fontSize: '0.85rem',
+            fontSize: '0.78rem',
             background: activeTab === 'pengaturan' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
             color: activeTab === 'pengaturan' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
             transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'pengaturan' ? '0 4px 12px rgba(99, 102, 241, 0.35)' : 'none'
+            boxShadow: activeTab === 'pengaturan' ? '0 2px 8px rgba(99, 102, 241, 0.25)' : 'none',
+            whiteSpace: 'nowrap'
           }}
         >
-          <SettingsIcon size={16} />
-          <span>Pengaturan Kost</span>
-          <span style={{
-            fontSize: '0.68rem',
-            background: activeTab === 'pengaturan' ? 'rgba(255,255,255,0.25)' : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(100, 116, 139, 0.15)'),
-            color: activeTab === 'pengaturan' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-            padding: '1px 6px',
-            borderRadius: '8px',
-            fontWeight: 700
-          }}>
-            {totalKamar} Unit
-          </span>
+          <SettingsIcon size={14} />
+          <span>Atur Unit</span>
         </button>
       </div>
 
