@@ -609,86 +609,90 @@ const Keuangan = ({ user }) => {
       ) : (
         <div className="grid-responsive-stats">
           {/* Pemasukan */}
-          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.1rem 1.25rem' }}>
             <div style={{
               background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%)',
               border: '1px solid rgba(16, 185, 129, 0.3)',
               padding: '14px',
               borderRadius: '16px',
               color: 'var(--accent-success)',
-              display: 'flex'
+              display: 'flex',
+              flexShrink: 0
             }}>
               <TrendingUp size={26} />
             </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TOTAL PEMASUKAN</span>
-              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-success)' }}>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>TOTAL PEMASUKAN</span>
+              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-success)', whiteSpace: 'nowrap' }}>
                 {formatRupiah(totalPemasukan)}
               </h2>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{allPaidCount} tagihan terealisasi</span>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', whiteSpace: 'nowrap' }}>{allPaidCount} tagihan terealisasi</span>
             </div>
           </div>
 
           {/* Pengeluaran */}
-          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.1rem 1.25rem' }}>
             <div style={{
               background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.1) 100%)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
               padding: '14px',
               borderRadius: '16px',
               color: 'var(--accent-danger)',
-              display: 'flex'
+              display: 'flex',
+              flexShrink: 0
             }}>
               <TrendingDown size={26} />
             </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TOTAL PENGELUARAN</span>
-              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-danger)' }}>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>TOTAL PENGELUARAN</span>
+              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-danger)', whiteSpace: 'nowrap' }}>
                 {formatRupiah(totalPengeluaran)}
               </h2>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{expenses.length} transaksi operasional</span>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', whiteSpace: 'nowrap' }}>{expenses.length} transaksi operasional</span>
             </div>
           </div>
 
           {/* Laba Bersih */}
-          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.1rem 1.25rem' }}>
             <div style={{
               background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)',
               border: '1px solid rgba(59, 130, 246, 0.3)',
               padding: '14px',
               borderRadius: '16px',
               color: 'var(--accent-primary)',
-              display: 'flex'
+              display: 'flex',
+              flexShrink: 0
             }}>
               <Wallet size={26} />
             </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>SALDO / LABA BERSIH</span>
-              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: labaBersih >= 0 ? '#60a5fa' : 'var(--accent-danger)' }}>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>SALDO / LABA BERSIH</span>
+              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: labaBersih >= 0 ? '#60a5fa' : 'var(--accent-danger)', whiteSpace: 'nowrap' }}>
                 {formatRupiah(labaBersih)}
               </h2>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Pemasukan - pengeluaran</span>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', whiteSpace: 'nowrap' }}>Pemasukan - pengeluaran</span>
             </div>
           </div>
 
           {/* Tagihan Tertunda */}
-          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="card glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.1rem 1.25rem' }}>
             <div style={{
               background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%)',
               border: '1px solid rgba(245, 158, 11, 0.3)',
               padding: '14px',
               borderRadius: '16px',
               color: 'var(--accent-warning)',
-              display: 'flex'
+              display: 'flex',
+              flexShrink: 0
             }}>
               <AlertCircle size={26} />
             </div>
-            <div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TAGIHAN TERTUNDA</span>
-              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: totalPending > 0 ? 'var(--accent-warning)' : 'var(--text-primary)' }}>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>TAGIHAN TERTUNDA</span>
+              <h2 style={{ margin: '2px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: totalPending > 0 ? 'var(--accent-warning)' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                 {formatRupiah(totalPending)}
               </h2>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{allUnpaidCount} tagihan pending</span>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', whiteSpace: 'nowrap' }}>{allUnpaidCount} tagihan pending</span>
             </div>
           </div>
         </div>
