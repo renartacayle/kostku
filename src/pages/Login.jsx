@@ -603,10 +603,36 @@ export default function Login({ onLogin }) {
                 }} 
               />
               <div style={{ textAlign: 'center', marginTop: '6px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#60a5fa' }}>
+                <span style={{ fontSize: '0.75rem', color: isLight ? '#2563eb' : '#60a5fa' }}>
                   ✦ Login resmi Google: 1-klik akun tanpa password
                 </span>
               </div>
+
+              {/* Fast Google Email Alternative Button */}
+              <button
+                type="button"
+                onClick={() => setShowGoogleModal(true)}
+                style={{
+                  marginTop: '10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.12)',
+                  border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(37, 99, 235, 0.3)',
+                  color: isLight ? '#1d4ed8' : '#93c5fd',
+                  padding: '7px 14px',
+                  borderRadius: '20px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={e => e.currentTarget.style.background = isLight ? '#dbeafe' : 'rgba(37, 99, 235, 0.2)'}
+                onMouseOut={e => e.currentTarget.style.background = isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.12)'}
+              >
+                <Mail size={13} />
+                <span>Masuk Cepat via Email Google (Alternatif)</span>
+              </button>
             </div>
 
             {/* Separator */}
@@ -837,6 +863,26 @@ export default function Login({ onLogin }) {
                     <X size={18} />
                   </button>
                 )}
+              </div>
+
+              {/* Informative Guidance Banner */}
+              <div style={{
+                marginBottom: '14px',
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: 'rgba(66, 133, 244, 0.1)',
+                border: '1px solid rgba(66, 133, 244, 0.25)',
+                fontSize: '0.78rem',
+                color: '#c2e7ff',
+                lineHeight: 1.4,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px'
+              }}>
+                <Sparkles size={16} color="#8ab4f8" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>
+                  Masukkan email akun Google Anda di formulir bawah untuk langsung masuk tanpa terhambat verifikasi <em>origin_mismatch</em> Google Cloud Console.
+                </span>
               </div>
 
               {/* 1. ROLE SELECTOR (Owner vs Tenant) */}

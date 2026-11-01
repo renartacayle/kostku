@@ -1,59 +1,7 @@
 :root,
-[data-theme="dark"] {
-  /* Taste Skill: Architectural Blue-Hour Twilight Void Palette (Default Dark) */
-  --bg-main: #080d1a;
-  --bg-primary: #0e1726;
-  --bg-secondary: #131f37;
-  --bg-card: rgba(14, 23, 38, 0.85);
-  --bg-card-hover: rgba(19, 31, 55, 0.95);
-  --bg-glass: rgba(8, 13, 26, 0.90);
-  --bg-hover: rgba(255, 255, 255, 0.05);
-
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-
-  /* Architectural Electric Blue & Warm Teak Wood Accents */
-  --accent-primary: #2563eb;
-  --accent-primary-hover: #1d4ed8;
-  --accent-secondary: #3b82f6;
-  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  --accent-glow: rgba(37, 99, 235, 0.35);
-  --accent-teak: #d97706;
-  --accent-teak-glow: rgba(217, 119, 6, 0.25);
-
-  --accent-success: #10b981;
-  --accent-success-bg: rgba(16, 185, 129, 0.12);
-  --accent-warning: #f59e0b;
-  --accent-warning-bg: rgba(245, 158, 11, 0.12);
-  --accent-danger: #ef4444;
-  --accent-danger-bg: rgba(239, 68, 68, 0.12);
-
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.16);
-  --border-accent: rgba(37, 99, 235, 0.35);
-
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 20px 35px -10px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 25px rgba(37, 99, 235, 0.3);
-
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-full: 9999px;
-
-  /* Typography: Humanist Neo-Grotesque UI + Tabular Monospace */
-  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Plus Jakarta Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   LIGHT MODE PALETTE (Clean Architectural Slate & Ivory Light Theme)
-   ══════════════════════════════════════════════════════════════════════════ */
-:root[data-theme="light"],
-[data-theme="light"] {
+[data-theme="light"],
+:root[data-theme="light"] {
+  /* Taste Skill: Clean Architectural Slate & Ivory Light Theme (Default) */
   --bg-main: #f1f5f9;         /* Slate 100 - modern airy background */
   --bg-primary: #ffffff;      /* Pure crisp white for surfaces/sidebar */
   --bg-secondary: #e2e8f0;    /* Slate 200 */
@@ -90,6 +38,56 @@
   --shadow-md: 0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.10);
   --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.15);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* Typography: Humanist Neo-Grotesque UI + Tabular Monospace */
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+[data-theme="dark"],
+:root[data-theme="dark"] {
+  /* Taste Skill: Architectural Blue-Hour Twilight Void Palette (Dark Mode) */
+  --bg-main: #080d1a;
+  --bg-primary: #0e1726;
+  --bg-secondary: #131f37;
+  --bg-card: rgba(14, 23, 38, 0.85);
+  --bg-card-hover: rgba(19, 31, 55, 0.95);
+  --bg-glass: rgba(8, 13, 26, 0.90);
+  --bg-hover: rgba(255, 255, 255, 0.05);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --accent-primary: #2563eb;
+  --accent-primary-hover: #1d4ed8;
+  --accent-secondary: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --accent-glow: rgba(37, 99, 235, 0.35);
+  --accent-teak: #d97706;
+  --accent-teak-glow: rgba(217, 119, 6, 0.25);
+
+  --accent-success: #10b981;
+  --accent-success-bg: rgba(16, 185, 129, 0.12);
+  --accent-warning: #f59e0b;
+  --accent-warning-bg: rgba(245, 158, 11, 0.12);
+  --accent-danger: #ef4444;
+  --accent-danger-bg: rgba(239, 68, 68, 0.12);
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.16);
+  --border-accent: rgba(37, 99, 235, 0.35);
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 35px -10px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 25px rgba(37, 99, 235, 0.3);
 }
 
 * {
@@ -476,8 +474,8 @@ html, body {
 @media (max-width: 640px) {
   .kost-responsive-grid,
   .koleksi-grid-4x2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.65rem !important;
+    grid-template-columns: 1fr !important;
+    gap: 1.15rem !important;
   }
 
   .kost-card-container,
@@ -1379,15 +1377,24 @@ html, body {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   HERO MARKETING VALUE BANNERS (Desktop Grid & Mobile Single-Row Swipe)
+   HERO MARKETING VALUE BANNERS (Desktop Grid & Mobile Single-Card Auto-Scroll)
    ══════════════════════════════════════════════════════════════════════════ */
-.hero-marketing-banners {
+.hero-marketing-desktop {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   text-align: left;
   width: 100%;
   box-sizing: border-box;
+}
+
+.hero-marketing-mobile-carousel {
+  display: none;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  margin-top: 0.5rem;
 }
 
 .hero-marketing-banner-card {
@@ -1399,34 +1406,16 @@ html, body {
   box-shadow: var(--shadow-sm);
   box-sizing: border-box;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: left;
 }
 
 @media (max-width: 768px) {
-  .hero-marketing-banners {
-    display: flex !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    gap: 12px !important;
-    padding: 4px 2px 14px 2px !important;
-    margin: 0 !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  .hero-marketing-banners::-webkit-scrollbar {
+  .hero-marketing-desktop {
     display: none !important;
   }
 
-  .hero-marketing-banner-card {
-    flex: 0 0 84% !important;
-    max-width: 84% !important;
-    min-width: 250px !important;
-    scroll-snap-align: start !important;
-    scroll-snap-stop: always !important;
-    box-sizing: border-box !important;
+  .hero-marketing-mobile-carousel {
+    display: block !important;
   }
 }
 

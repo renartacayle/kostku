@@ -41,7 +41,7 @@ import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
 import FloorPlanModal from '../components/FloorPlanModal';
 import KostFilterModal from '../components/KostFilterModal';
 import Footer from '../components/Footer';
-import { TactileButton, HoldToConfirmButton, ScrambleText, ReceiptPrinter, KitchenShowcaseSection } from '../components/kitchen';
+import { TactileButton } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
 import { FACILITY_OPTIONS, checkFacilityMatch } from './SearchKost';
 import { 
@@ -77,6 +77,42 @@ export const KOST_TYPES = [
   { id: 'Putra', label: '👔 Khusus Putra' },
   { id: 'Campur', label: '🏡 Campur' },
   { id: 'Pasutri', label: '👫 Boleh Pasutri' }
+];
+
+export const MARKETING_BANNERS = [
+  {
+    id: 'asli',
+    track: 'banner-asli',
+    borderColor: '#10B981',
+    badgeColor: '#10b981',
+    badge: '🛡️ VERIFIKASI FISIK & FOTO',
+    titleMain: '100%',
+    titleAccent: 'Asli',
+    accentColor: '#10b981',
+    desc: 'Disurvei langsung oleh tim KostKu, lengkap dengan titik GPS akurat & foto asli per kamar.'
+  },
+  {
+    id: 'rp0',
+    track: 'banner-rp0',
+    borderColor: '#2563EB',
+    badgeColor: '#2563EB',
+    badge: '⚡ BIAYA TRANSPARAN',
+    titleMain: 'Rp 0',
+    titleAccent: 'Biaya Admin',
+    accentColor: '#2563EB',
+    desc: 'Bebas komisi perantara. Dilengkapi simulasi estimasi token listrik PLN yang transparan.'
+  },
+  {
+    id: 'rating',
+    track: 'banner-rating',
+    borderColor: '#F59E0B',
+    badgeColor: '#D97706',
+    badge: '⭐ KEPUASAN PENGHUNI',
+    titleMain: '4.9',
+    titleAccent: '/ 5.0',
+    accentColor: '#D97706',
+    desc: 'Pilihan favorit ribuan mahasiswa dan profesional muda di berbagai kota kampus ternama.'
+  }
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -453,6 +489,42 @@ export default function Home({ user }) {
   const gridTouchStartX = useRef(0);
   const gridTouchStartY = useRef(0);
   const isGridSwiping = useRef(false);
+
+  // ── Mobile Single-Card Auto-Scroll Marketing Banner State ──
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [isBannerPaused, setIsBannerPaused] = useState(false);
+  const bannerTouchStartX = useRef(0);
+  const bannerTouchEndX = useRef(0);
+
+  useEffect(() => {
+    if (isBannerPaused) return;
+    const timer = setInterval(() => {
+      setActiveBannerIndex((prev) => (prev + 1) % MARKETING_BANNERS.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [isBannerPaused]);
+
+  const handleBannerTouchStart = (e) => {
+    setIsBannerPaused(true);
+    bannerTouchStartX.current = e.touches[0].clientX;
+    bannerTouchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleBannerTouchMove = (e) => {
+    bannerTouchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleBannerTouchEnd = () => {
+    const diff = bannerTouchStartX.current - bannerTouchEndX.current;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        setActiveBannerIndex((prev) => (prev + 1) % MARKETING_BANNERS.length);
+      } else {
+        setActiveBannerIndex((prev) => (prev - 1 + MARKETING_BANNERS.length) % MARKETING_BANNERS.length);
+      }
+    }
+    setTimeout(() => setIsBannerPaused(false), 2000);
+  };
 
   // Fallback verified real kost if backend server is sleeping or offline
   const FALLBACK_KOSTS = [
@@ -1205,45 +1277,109 @@ export default function Home({ user }) {
 
           {/* ═══════════════════════════════════════════════════════════════════
               SECTION 2: KEUNGGULAN UTAMA KOSTKU (Marketing Value Props)
+              - Desktop (>768px): 3 Kolom Grid Seimbang
+              - Mobile (<=768px): Tampil Satu per Satu dengan Auto-Scroll Otomatis & Swipe
               ═══════════════════════════════════════════════════════════════════ */}
-          <div className="hero-marketing-banners">
-            {/* Card 1: VERIFIKASI ASLI 100% */}
-            <div className="hero-marketing-banner-card" style={{ borderLeft: '4px solid #10B981' }} data-track="banner-asli">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                🛡️ VERIFIKASI FISIK & FOTO
-              </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                100% <span style={{ color: '#10b981', fontSize: '1.25rem' }}>Asli</span>
+          
+          {/* Desktop View: 3 Kolom Grid Bersebelahan */}
+          <div className="hero-marketing-desktop">
+            {MARKETING_BANNERS.map((banner) => (
+              <div
+                key={banner.id}
+                className="hero-marketing-banner-card"
+                style={{ borderLeft: `4px solid ${banner.borderColor}` }}
+                data-track={banner.track}
+              >
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  {banner.badge}
+                </span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: '1.25rem' }}>{banner.titleAccent}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  {banner.desc}
+                </p>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Disurvei langsung oleh tim KostKu, lengkap dengan titik GPS akurat & foto asli per kamar.
-              </p>
+            ))}
+          </div>
+
+          {/* Mobile View: Tampil Satu per Satu dengan Auto-Scroll Otomatis & Dot Indicators */}
+          <div 
+            className="hero-marketing-mobile-carousel"
+            onTouchStart={handleBannerTouchStart}
+            onTouchMove={handleBannerTouchMove}
+            onTouchEnd={handleBannerTouchEnd}
+            onMouseEnter={() => setIsBannerPaused(true)}
+            onMouseLeave={() => setIsBannerPaused(false)}
+          >
+            {/* Sliding Track: Exactly 1 card visible at a time (100% width per slide) */}
+            <div style={{
+              display: 'flex',
+              width: '100%',
+              transform: `translate3d(-${activeBannerIndex * 100}%, 0, 0)`,
+              transition: 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
+              willChange: 'transform'
+            }}>
+              {MARKETING_BANNERS.map((banner) => (
+                <div 
+                  key={banner.id}
+                  style={{
+                    flex: '0 0 100%',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '0 2px'
+                  }}
+                >
+                  <div 
+                    className="hero-marketing-banner-card"
+                    style={{ borderLeft: `4px solid ${banner.borderColor}`, width: '100%' }}
+                    data-track={banner.track}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                        {banner.badge}
+                      </span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: '100px' }}>
+                        {activeBannerIndex + 1}/3
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: '1.15rem' }}>{banner.titleAccent}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      {banner.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Card 2: BIAYA TRANSPARAN RP 0 */}
-            <div className="hero-marketing-banner-card" style={{ borderLeft: '4px solid #2563EB' }} data-track="banner-rp0">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563EB', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                ⚡ BIAYA TRANSPARAN
-              </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                Rp 0 <span style={{ color: '#2563EB', fontSize: '1.1rem' }}>Biaya Admin</span>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Bebas komisi perantara. Dilengkapi simulasi estimasi token listrik PLN yang transparan.
-              </p>
-            </div>
-
-            {/* Card 3: KEPUASAN PENGHUNI */}
-            <div className="hero-marketing-banner-card" style={{ borderLeft: '4px solid #F59E0B' }} data-track="banner-rating">
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#D97706', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                ⭐ KEPUASAN PENGHUNI
-              </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                4.9 <span style={{ color: '#D97706', fontSize: '1.2rem' }}>/ 5.0</span>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Pilihan favorit ribuan mahasiswa dan profesional muda di berbagai kota kampus ternama.
-              </p>
+            {/* Mobile Carousel Indicators */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              marginTop: '10px'
+            }}>
+              {MARKETING_BANNERS.map((banner, idx) => (
+                <button
+                  key={banner.id}
+                  type="button"
+                  onClick={() => setActiveBannerIndex(idx)}
+                  aria-label={`Lihat keunggulan ${idx + 1}`}
+                  style={{
+                    width: activeBannerIndex === idx ? '24px' : '7px',
+                    height: '7px',
+                    borderRadius: '100px',
+                    background: activeBannerIndex === idx ? banner.borderColor : 'var(--border-color)',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)'
+                  }}
+                />
+              ))}
             </div>
           </div>
 
@@ -1258,7 +1394,8 @@ export default function Home({ user }) {
         maxWidth: '1280px',
         margin: '0 auto',
         padding: 'clamp(1.25rem, 3vw, 2.5rem) clamp(0.65rem, 3vw, 2rem)',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        scrollMarginTop: '85px'
       }}>
         
         {/* Section Title & Active Filter Bar */}
@@ -1295,7 +1432,7 @@ export default function Home({ user }) {
               </span>
             </h2>
             <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Memindai poin krusial: Foto 4:3 → Status Kamar → 3 Fasilitas Esensial → Harga Tebal
+              Pilihan kamar kos terbaik yang disurvei langsung dan siap huni.
             </p>
           </div>
 
@@ -1771,9 +1908,6 @@ export default function Home({ user }) {
             )}
           </>
         )}
-
-        {/* ── THE KITCHEN TACTILE SUITE (Inspired by dqnamo Reel) ── */}
-        <KitchenShowcaseSection />
 
       </main>
       
