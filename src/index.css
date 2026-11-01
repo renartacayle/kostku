@@ -474,8 +474,14 @@ html, body {
 @media (max-width: 640px) {
   .kost-responsive-grid,
   .koleksi-grid-4x2 {
-    grid-template-columns: 1fr !important;
-    gap: 1.15rem !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
+  }
+
+  /* Sembunyikan panah foto di HP (geser dengan swipe sentuh) */
+  .kost-slider-container button[aria-label="Foto sebelumnya"],
+  .kost-slider-container button[aria-label="Foto selanjutnya"] {
+    display: none !important;
   }
 
   .kost-card-container,

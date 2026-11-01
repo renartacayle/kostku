@@ -2131,17 +2131,20 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
             </div>
           </div>
 
-          {/* Location & Room Dimension Line (High Contrast WCAG AA) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '5px',
-            color: isLight ? '#64748b' : '#94A3B8',
-            fontSize: '0.82rem',
-            marginBottom: '0.75rem',
-            minWidth: 0
-          }}>
+          {/* Location & Room Dimension Line (Desktop Only - hidden on mobile for clean card) */}
+          <div 
+            className="kost-card-location desktop-only"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '5px',
+              color: isLight ? '#64748b' : '#94A3B8',
+              fontSize: '0.8rem',
+              marginBottom: '0.65rem',
+              minWidth: 0
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
               <MapPin size={13} color="#60a5fa" style={{ flexShrink: 0 }} />
               <span style={{
@@ -2171,74 +2174,74 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
             </span>
           </div>
 
-          {/* Maksimal 3 Ikon Fasilitas Esensial (AC, KM Dalam, WiFi) as strictly required! */}
+          {/* Maksimal 3 Ikon Fasilitas Esensial (AC, KM Dalam, WiFi) */}
           <div 
             className="kost-card-facilities"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              marginBottom: '0.85rem',
+              gap: '4px',
+              marginBottom: '0.65rem',
               flexWrap: 'wrap'
             }}
           >
             {hasAc && (
-              <span style={{
+              <span className="facility-pill" style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '3px 8px',
+                gap: '3px',
+                padding: '2px 6px',
                 background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
                 color: isLight ? '#1d4ed8' : '#93c5fd',
                 borderRadius: '6px',
-                fontSize: '0.72rem',
+                fontSize: '0.68rem',
                 fontWeight: 600,
                 border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(37, 99, 235, 0.25)'
               }}>
-                <Wind size={12} /> AC
+                <Wind size={11} /> AC
               </span>
             )}
             {hasKmDalam && (
-              <span style={{
+              <span className="facility-pill" style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '3px 8px',
+                gap: '3px',
+                padding: '2px 6px',
                 background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
                 color: isLight ? '#1d4ed8' : '#93c5fd',
                 borderRadius: '6px',
-                fontSize: '0.72rem',
+                fontSize: '0.68rem',
                 fontWeight: 600,
                 border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(37, 99, 235, 0.25)'
               }}>
-                <Bath size={12} /> KM Dalam
+                <Bath size={11} /> KM Dalam
               </span>
             )}
             {hasWifi && (
-              <span style={{
+              <span className="facility-pill" style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '3px 8px',
+                gap: '3px',
+                padding: '2px 6px',
                 background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
                 color: isLight ? '#1d4ed8' : '#93c5fd',
                 borderRadius: '6px',
-                fontSize: '0.72rem',
+                fontSize: '0.68rem',
                 fontWeight: 600,
                 border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(37, 99, 235, 0.25)'
               }}>
-                <Wifi size={12} /> WiFi
+                <Wifi size={11} /> WiFi
               </span>
             )}
             {!hasAc && !hasKmDalam && !hasWifi && (
-              <span style={{
-                padding: '3px 8px',
+              <span className="facility-pill" style={{
+                padding: '2px 6px',
                 background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
                 color: isLight ? '#475569' : '#94a3b8',
                 borderRadius: '6px',
-                fontSize: '0.72rem'
+                fontSize: '0.68rem'
               }}>
-                Fasilitas Lengkap
+                Lengkap
               </span>
             )}
           </div>
@@ -2294,26 +2297,28 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                 </div>
               </div>
 
-              {/* Chat WhatsApp Direct Action with TactileButton from The Kitchen */}
-              <a
-                href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo, saya tertarik dengan kamar di ${kost.kostName}. Apakah masih ada kamar kosong?`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                style={{ textDecoration: 'none' }}
-                title="Tanya langsung ke pemilik via WhatsApp"
-              >
-                <TactileButton variant="whatsapp" size="sm" icon={<span style={{ fontSize: '13px' }}>💬</span>}>
-                  Tanya Pemilik
-                </TactileButton>
-              </a>
+              {/* Chat WhatsApp Direct Action (Desktop Only) */}
+              <div className="desktop-only">
+                <a
+                  href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo, saya tertarik dengan kamar di ${kost.kostName}. Apakah masih ada kamar kosong?`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  style={{ textDecoration: 'none' }}
+                  title="Tanya langsung ke pemilik via WhatsApp"
+                >
+                  <TactileButton variant="whatsapp" size="sm" icon={<span style={{ fontSize: '13px' }}>💬</span>}>
+                    Tanya Pemilik
+                  </TactileButton>
+                </a>
+              </div>
             </div>
 
-            {/* Row 2: Secondary Quick Utility Tools (Listrik & Maps) */}
+            {/* Row 2: Secondary Quick Utility Tools (Desktop Only) */}
             <div 
-              className="kost-card-action-tools"
+              className="kost-card-action-tools desktop-only"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}
             >
               <button
