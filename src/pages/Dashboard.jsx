@@ -641,48 +641,196 @@ const OwnerDashboard = ({ user }) => {
           </button>
         </div>
 
-        {/* Shopee-style Quick Actions (Compact 4-Column Icon Grid) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '6px',
+        {/* Shopee-style Unified Menu Grid (Tabs + Quick Actions) */}
+        <div className="shopee-menu-grid" style={{
           marginTop: '1rem',
           paddingTop: '0.85rem',
           borderTop: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)'
         }}>
-          {/* Action 1: Penghuni Baru */}
-          <Link 
-            to="/penghuni"
+          {/* 1. Ringkasan (Tab) */}
+          <button 
+            type="button"
+            onClick={() => handleTabChange('overview')}
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              textDecoration: 'none',
+              background: 'none',
+              border: 'none',
               gap: '5px',
               padding: '6px 2px',
               borderRadius: '10px',
-              transition: 'transform 0.15s ease'
+              cursor: 'pointer',
+              transition: 'transform 0.15s ease',
+              width: '100%',
+              position: 'relative'
             }}
           >
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '11px',
-              background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)',
-              color: '#2563eb',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: activeTab === 'overview'
+                ? (isLight ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'linear-gradient(135deg, #3b82f6, #2563eb)')
+                : (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)'),
+              color: activeTab === 'overview' ? '#ffffff' : '#2563eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: isLight ? '0 2px 6px rgba(37, 99, 235, 0.12)' : 'none'
+              boxShadow: activeTab === 'overview'
+                ? '0 4px 12px rgba(37, 99, 235, 0.35)'
+                : (isLight ? '0 2px 6px rgba(37, 99, 235, 0.1)' : 'none'),
+              border: activeTab === 'overview'
+                ? '2px solid rgba(255, 255, 255, 0.6)'
+                : (isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(59, 130, 246, 0.2)'),
+              transition: 'all 0.2s ease'
             }}>
-              <Plus size={19} strokeWidth={2.4} />
+              <LayoutDashboard size={20} strokeWidth={activeTab === 'overview' ? 2.5 : 2} />
             </div>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
-              + Penghuni
+            <span style={{ 
+              fontSize: '0.72rem', 
+              fontWeight: activeTab === 'overview' ? 800 : 600, 
+              color: activeTab === 'overview' ? '#2563eb' : (isLight ? '#1e293b' : '#f1f5f9'), 
+              textAlign: 'center', 
+              whiteSpace: 'nowrap' 
+            }}>
+              Ringkasan
             </span>
-          </Link>
+            {activeTab === 'overview' && (
+              <span style={{
+                position: 'absolute',
+                bottom: '0px',
+                width: '14px',
+                height: '3px',
+                borderRadius: '2px',
+                background: '#2563eb'
+              }} />
+            )}
+          </button>
 
-          {/* Action 2: Keuangan */}
+          {/* 2. Mading (Tab) */}
+          <button 
+            type="button"
+            onClick={() => handleTabChange('komunitas')}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: 'none',
+              border: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              transition: 'transform 0.15s ease',
+              width: '100%',
+              position: 'relative'
+            }}
+          >
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: activeTab === 'komunitas'
+                ? (isLight ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'linear-gradient(135deg, #38bdf8, #0284c7)')
+                : (isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.15)'),
+              color: activeTab === 'komunitas' ? '#ffffff' : '#0284c7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: activeTab === 'komunitas'
+                ? '0 4px 12px rgba(2, 132, 199, 0.35)'
+                : (isLight ? '0 2px 6px rgba(2, 132, 199, 0.1)' : 'none'),
+              border: activeTab === 'komunitas'
+                ? '2px solid rgba(255, 255, 255, 0.6)'
+                : (isLight ? '1px solid rgba(2, 132, 199, 0.2)' : '1px solid rgba(56, 189, 248, 0.2)'),
+              transition: 'all 0.2s ease'
+            }}>
+              <Megaphone size={20} strokeWidth={activeTab === 'komunitas' ? 2.5 : 2} />
+            </div>
+            <span style={{ 
+              fontSize: '0.72rem', 
+              fontWeight: activeTab === 'komunitas' ? 800 : 600, 
+              color: activeTab === 'komunitas' ? '#0284c7' : (isLight ? '#1e293b' : '#f1f5f9'), 
+              textAlign: 'center', 
+              whiteSpace: 'nowrap' 
+            }}>
+              Mading
+            </span>
+            {activeTab === 'komunitas' && (
+              <span style={{
+                position: 'absolute',
+                bottom: '0px',
+                width: '14px',
+                height: '3px',
+                borderRadius: '2px',
+                background: '#0284c7'
+              }} />
+            )}
+          </button>
+
+          {/* 3. Atur Unit (Tab) */}
+          <button 
+            type="button"
+            onClick={() => handleTabChange('pengaturan')}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: 'none',
+              border: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              transition: 'transform 0.15s ease',
+              width: '100%',
+              position: 'relative'
+            }}
+          >
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: activeTab === 'pengaturan'
+                ? (isLight ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #4f46e5)')
+                : (isLight ? '#eef2ff' : 'rgba(99, 102, 241, 0.15)'),
+              color: activeTab === 'pengaturan' ? '#ffffff' : '#4f46e5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: activeTab === 'pengaturan'
+                ? '0 4px 12px rgba(79, 70, 229, 0.35)'
+                : (isLight ? '0 2px 6px rgba(79, 70, 229, 0.1)' : 'none'),
+              border: activeTab === 'pengaturan'
+                ? '2px solid rgba(255, 255, 255, 0.6)'
+                : (isLight ? '1px solid rgba(79, 70, 229, 0.2)' : '1px solid rgba(99, 102, 241, 0.2)'),
+              transition: 'all 0.2s ease'
+            }}>
+              <SlidersHorizontal size={20} strokeWidth={activeTab === 'pengaturan' ? 2.5 : 2} />
+            </div>
+            <span style={{ 
+              fontSize: '0.72rem', 
+              fontWeight: activeTab === 'pengaturan' ? 800 : 600, 
+              color: activeTab === 'pengaturan' ? '#4f46e5' : (isLight ? '#1e293b' : '#f1f5f9'), 
+              textAlign: 'center', 
+              whiteSpace: 'nowrap' 
+            }}>
+              Atur Unit
+            </span>
+            {activeTab === 'pengaturan' && (
+              <span style={{
+                position: 'absolute',
+                bottom: '0px',
+                width: '14px',
+                height: '3px',
+                borderRadius: '2px',
+                background: '#4f46e5'
+              }} />
+            )}
+          </button>
+
+          {/* 4. Keuangan */}
           <Link 
             to="/keuangan"
             style={{
@@ -693,28 +841,64 @@ const OwnerDashboard = ({ user }) => {
               gap: '5px',
               padding: '6px 2px',
               borderRadius: '10px',
-              transition: 'transform 0.15s ease'
+              transition: 'transform 0.15s ease',
+              width: '100%'
             }}
           >
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '11px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
               background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)',
               color: '#10b981',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: isLight ? '0 2px 6px rgba(16, 185, 129, 0.12)' : 'none'
+              boxShadow: isLight ? '0 2px 6px rgba(16, 185, 129, 0.12)' : 'none',
+              border: isLight ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'
             }}>
-              <DollarSign size={19} strokeWidth={2.2} />
+              <DollarSign size={20} strokeWidth={2.2} />
             </div>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
               Keuangan
             </span>
           </Link>
 
-          {/* Action 3: Dunning WA */}
+          {/* 5. + Penghuni */}
+          <Link 
+            to="/penghuni"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              transition: 'transform 0.15s ease',
+              width: '100%'
+            }}
+          >
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)',
+              color: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isLight ? '0 2px 6px rgba(37, 99, 235, 0.12)' : 'none',
+              border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(59, 130, 246, 0.2)'
+            }}>
+              <Plus size={20} strokeWidth={2.4} />
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              + Penghuni
+            </span>
+          </Link>
+
+          {/* 6. Dunning WA */}
           <Link 
             to="/keuangan?tab=dunning"
             style={{
@@ -725,28 +909,30 @@ const OwnerDashboard = ({ user }) => {
               gap: '5px',
               padding: '6px 2px',
               borderRadius: '10px',
-              transition: 'transform 0.15s ease'
+              transition: 'transform 0.15s ease',
+              width: '100%'
             }}
           >
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '11px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
               background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.15)',
               color: '#f59e0b',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: isLight ? '0 2px 6px rgba(245, 158, 11, 0.12)' : 'none'
+              boxShadow: isLight ? '0 2px 6px rgba(245, 158, 11, 0.12)' : 'none',
+              border: isLight ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)'
             }}>
-              <Zap size={19} strokeWidth={2.2} />
+              <Zap size={20} strokeWidth={2.2} />
             </div>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
               Dunning WA
             </span>
           </Link>
 
-          {/* Action 4: Buku Tamu */}
+          {/* 7. Buku Tamu */}
           <button 
             type="button"
             onClick={() => setShowGuestModal(true)}
@@ -760,113 +946,87 @@ const OwnerDashboard = ({ user }) => {
               padding: '6px 2px',
               borderRadius: '10px',
               cursor: 'pointer',
-              transition: 'transform 0.15s ease'
+              transition: 'transform 0.15s ease',
+              width: '100%'
             }}
           >
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '11px',
-              background: isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.15)',
-              color: '#0284c7',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: isLight ? '#fdf4ff' : 'rgba(217, 70, 239, 0.15)',
+              color: '#c026d3',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: isLight ? '0 2px 6px rgba(2, 132, 199, 0.12)' : 'none'
+              boxShadow: isLight ? '0 2px 6px rgba(192, 38, 211, 0.12)' : 'none',
+              border: isLight ? '1px solid rgba(192, 38, 211, 0.2)' : '1px solid rgba(217, 70, 239, 0.2)'
             }}>
-              <Users size={19} strokeWidth={2.2} />
+              <Users size={20} strokeWidth={2.2} />
             </div>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
               Buku Tamu
             </span>
           </button>
+
+          {/* 8. Komplain */}
+          <Link 
+            to="/komplain"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              gap: '5px',
+              padding: '6px 2px',
+              borderRadius: '10px',
+              transition: 'transform 0.15s ease',
+              width: '100%',
+              position: 'relative'
+            }}
+          >
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)',
+              color: '#ef4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: isLight ? '0 2px 6px rgba(239, 68, 68, 0.12)' : 'none',
+              border: isLight ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
+              position: 'relative'
+            }}>
+              <AlertCircle size={20} strokeWidth={2.2} />
+              {activeComplaints > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  minWidth: '16px',
+                  height: '16px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 3px',
+                  border: '1.5px solid var(--card-bg)',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                }}>
+                  {activeComplaints}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#1e293b' : '#f1f5f9', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              Komplain
+            </span>
+          </Link>
         </div>
-      </div>
-
-      {/* Main Tab Navigation: Compact Single-Row Segmented Control (Shopee Style) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '4px',
-        background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.7)',
-        padding: '4px',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)'
-      }}>
-        <button
-          type="button"
-          onClick={() => handleTabChange('overview')}
-          style={{
-            padding: '7px 4px',
-            borderRadius: '9px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '5px',
-            fontWeight: 700,
-            fontSize: '0.78rem',
-            background: activeTab === 'overview' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent',
-            color: activeTab === 'overview' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'overview' ? '0 2px 8px rgba(37, 99, 235, 0.25)' : 'none',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <LayoutDashboard size={14} />
-          <span>Ringkasan</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('komunitas')}
-          style={{
-            padding: '7px 4px',
-            borderRadius: '9px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '5px',
-            fontWeight: 700,
-            fontSize: '0.78rem',
-            background: activeTab === 'komunitas' ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'transparent',
-            color: activeTab === 'komunitas' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'komunitas' ? '0 2px 8px rgba(56, 189, 248, 0.25)' : 'none',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <Megaphone size={14} />
-          <span>Mading</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('pengaturan')}
-          style={{
-            padding: '7px 4px',
-            borderRadius: '9px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '5px',
-            fontWeight: 700,
-            fontSize: '0.78rem',
-            background: activeTab === 'pengaturan' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
-            color: activeTab === 'pengaturan' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'pengaturan' ? '0 2px 8px rgba(99, 102, 241, 0.25)' : 'none',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <SettingsIcon size={14} />
-          <span>Atur Unit</span>
-        </button>
       </div>
 
       {/* Global Feedback Banner for Settings */}
