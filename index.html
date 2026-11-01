@@ -9,13 +9,104 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <!-- Search Engine & Crawler Optimization (Pure Indexing, No Ads) -->
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <meta name="googlebot" content="index, follow" />
-    <meta name="description" content="KostKu - Sistem Manajemen Hunian & Kos Pintar Modern Berbasis Denah Interaktif 2D/3D & Monitoring Kamar Real-time." />
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://kostku.riuph.me/" />
+
+    <!-- Google Search Console Site Verification -->
+    <meta name="google-site-verification" content="googlebfa8e244b449407c" />
+    <meta name="google-site-verification" content="bfa8e244b449407c" />
+
+    <!-- Google Analytics (gtag.js) & Telemetry Pipeline -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KOSTKUANALYTICS"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-KOSTKUANALYTICS', {
+        send_page_view: true,
+        cookie_flags: 'SameSite=None;Secure'
+      });
+    </script>
+
+    <!-- Search Engine & Crawler Optimization -->
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow" />
+    <meta name="description" content="KostKu - Platform All-in-One Manajemen Hunian & Kos Pintar Modern berbasis denah arsitektur 2D interaktif, pembayaran digital QRIS/VA otomatis, dan monitoring kamar real-time." />
+    <meta name="keywords" content="KostKu, kostku riuph, manajemen kost, aplikasi kost semarang, software kelola kost, kost dekat udinus, cari kost semarang, bayar sewa qris, smart lock kos, denah 2d kost" />
+    <meta name="author" content="Oscar Herdian Wijaya (FIK S1 Teknik Informatika UDINUS)" />
+    <meta name="geo.region" content="ID-JT" />
+    <meta name="geo.placename" content="Semarang" />
+
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn, Telegram) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="KostKu" />
+    <meta property="og:url" content="https://kostku.riuph.me/" />
+    <meta property="og:title" content="KostKu - Manajemen Hunian & Kos Pintar Modern" />
+    <meta property="og:description" content="Platform all-in-one kelola kamar kost, denah arsitektur 2D interaktif, penagihan sewa otomatis QRIS, dan kontrol utilitas IoT." />
+    <meta property="og:image" content="https://kostku.riuph.me/logo.png" />
+    <meta property="og:image:secure_url" content="https://kostku.riuph.me/logo.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:locale" content="id_ID" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KostKu - Manajemen Hunian & Kos Pintar Modern" />
+    <meta name="twitter:description" content="Platform all-in-one kelola kamar kost, denah arsitektur 2D interaktif, penagihan sewa otomatis QRIS, dan kontrol utilitas IoT." />
+    <meta name="twitter:image" content="https://kostku.riuph.me/logo.png" />
+
+    <!-- Schema.org JSON-LD Structured Data for Google Rich Results -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://kostku.riuph.me/#webapp",
+          "name": "KostKu",
+          "url": "https://kostku.riuph.me/",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "All",
+          "description": "KostKu adalah platform manajemen kos pintar modern berbasis denah arsitektur 2D interaktif, otomatisasi tagihan QRIS, dan kontrol IoT.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "IDR"
+          },
+          "author": {
+            "@type": "Person",
+            "name": "Oscar Herdian Wijaya",
+            "affiliation": "Universitas Dian Nuswantoro (UDINUS) Semarang"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://kostku.riuph.me/#website",
+          "url": "https://kostku.riuph.me/",
+          "name": "KostKu",
+          "description": "Sistem Manajemen & Marketplace Hunian Kos Pintar Modern",
+          "publisher": {
+            "@type": "Organization",
+            "name": "KostKu",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://kostku.riuph.me/logo.png"
+            }
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://kostku.riuph.me/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
 
     <!-- PWA & Mobile Web App Meta -->
-    <meta name="theme-color" content="#080d1a" />
+    <meta name="theme-color" content="#f8fafc" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="KostKu" />
@@ -23,8 +114,12 @@
     <meta name="application-name" content="KostKu" />
     <meta name="format-detection" content="telephone=no" />
     
-    <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <!-- Google Search & Multi-Device Favicons (Standard 48px Multiples) -->
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
 
@@ -36,6 +131,16 @@
     <!-- Google Identity Services (Sign In with Google) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
+    <!-- Theme Initialization (Prevent Flash of Unstyled Theme) -->
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('kostku_theme') || 'light';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (_) {}
+      })();
+    </script>
+
     <title>KostKu - Manajemen Kost Pintar Multi-Device</title>
   </head>
   <body>
@@ -46,7 +151,7 @@
       if ('caches' in window) {
         caches.keys().then((keys) => {
           keys.forEach((key) => {
-            if (key !== 'kostku-cache-v121') {
+            if (key !== 'kostku-cache-v139') {
               console.log('[KostKu] Purging old cache storage:', key);
               caches.delete(key);
             }

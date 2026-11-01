@@ -1,15 +1,36 @@
-import React from 'react';
-import { Droplets, TrendingUp, TrendingDown, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Droplets, TrendingUp, TrendingDown, Plus, CreditCard } from 'lucide-react';
+import PdamPaymentModal from '../components/PdamPaymentModal';
 
 const Air = () => {
+  const [showPdamModal, setShowPdamModal] = useState(false);
+
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ marginBottom: '0.2rem' }}>Pemakaian Air (PDAM)</h1>
-          <p style={{ margin: 0 }}>Catat angka meteran bulanan dan pantau lonjakan pemakaian.</p>
+          <p style={{ margin: 0 }}>Catat angka meteran bulanan dan pantau lonjakan pemakaian serta pembayaran online.</p>
         </div>
-        <button className="btn btn-primary"><Plus size={18}/> Input Meteran Baru</button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button 
+            className="btn"
+            onClick={() => setShowPdamModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(6, 182, 212, 0.15))',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 4px 14px rgba(14, 165, 233, 0.2)'
+            }}
+          >
+            <Droplets size={17} color="#38bdf8" /> Bayar Tagihan PDAM
+          </button>
+          <button className="btn btn-primary"><Plus size={18}/> Input Meteran Baru</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
@@ -62,6 +83,13 @@ const Air = () => {
           </tbody>
         </table>
       </div>
+
+      <PdamPaymentModal
+        isOpen={showPdamModal}
+        onClose={() => setShowPdamModal(false)}
+        user={{ name: 'Pengelola Kost', role: 'owner' }}
+        roomNumber="METER-UTAMA"
+      />
     </div>
   );
 };

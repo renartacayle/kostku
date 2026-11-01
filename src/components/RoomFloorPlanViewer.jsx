@@ -121,14 +121,13 @@ export default function RoomFloorPlanViewer({
         position: 'relative',
         minHeight: '380px',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
-        background: '#0b1329'
+        background: '#0b1329',
+        overflow: 'hidden'
       }}>
-          /* ═══════════════════════════════════════════════════════════════════
-             2D ARCHITECTURAL BLUEPRINT (SVG HIGH PRECISION)
-             ═══════════════════════════════════════════════════════════════════ */
           <svg 
             width="100%" 
             height="auto" 
@@ -453,15 +452,15 @@ export default function RoomFloorPlanViewer({
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#f8fafc' }}>
+            <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               Spesifikasi Kamar {roomNumber}
             </span>
             <span className="badge badge-primary" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
               {bedConfig.label}
             </span>
           </div>
-          <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-            Dimensi: <strong style={{ color: '#e2e8f0' }}>{widthM}m x {lengthM}m</strong> ({areaM2} m²) • {kostName}
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            Dimensi: <strong style={{ color: 'var(--text-primary)' }}>{widthM}m x {lengthM}m</strong> ({areaM2} m²) • {kostName}
           </span>
         </div>
 

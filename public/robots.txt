@@ -1,11 +1,30 @@
-# robots.txt for KostKu
-# Allows search engine crawlers (Googlebot, Bingbot) for public indexation
+# robots.txt for KostKu (https://kostku.riuph.me)
+# Mengizinkan perayapan Googlebot, Bingbot, dan crawler mesin pencari resmi
 
 User-agent: Googlebot
 Allow: /
+Disallow: /api/
+Disallow: /backend/
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /logo.png
+Allow: /favicon.png
+Allow: /favicon.ico
+Allow: /favicon-48x48.png
+Allow: /favicon-96x96.png
+Allow: /icon-192.png
+Allow: /hero-bg.jpg
 
 User-agent: Bingbot
 Allow: /
+Disallow: /api/
+Disallow: /backend/
 
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /backend/
+
+# Peta Situs Resmi (Sitemap Index)
+Sitemap: https://kostku.riuph.me/sitemap.xml

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   UserPlus, 
   Trash2, 
@@ -34,7 +35,6 @@ import {
 import RoomInspectionModal from '../components/RoomInspectionModal';
 import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
 import SignaturePadModal from '../components/SignaturePadModal';
-import TenantKycDetailModal from '../components/TenantKycDetailModal';
 
 const Penghuni = ({ user }) => {
   const location = useLocation();
@@ -54,16 +54,13 @@ const Penghuni = ({ user }) => {
   const [inspectTenant, setInspectTenant] = useState(null);
   const [smartLockTenant, setSmartLockTenant] = useState(null);
   const [contractTenant, setContractTenant] = useState(null);
-  const [selectedKycTenant, setSelectedKycTenant] = useState(null);
   
-  // New Tenant Form (KYC 16-Digit NIK & KTP)
+  // New Tenant Form
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [kamar, setKamar] = useState('');
   const [password, setPassword] = useState('');
-  const [nik, setNik] = useState('');
-  const [ktpImage, setKtpImage] = useState(null);
   
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -99,7 +96,7 @@ const Penghuni = ({ user }) => {
     }
   };
 
-  const handleExportRTRW = () => {
+  const handleExportPenghuni = () => {
     if (!tenants || tenants.length === 0) {
       alert('Belum ada data penghuni untuk diekspor.');
       return;
@@ -108,31 +105,28 @@ const Penghuni = ({ user }) => {
     const headers = [
       'No',
       'Nama Lengkap',
-      'NIK (16 Digit)',
-      'Status Verifikasi KTP',
       'Nomor Kamar',
       'Nomor WhatsApp/HP',
       'Email',
-      'Tanggal Terdaftar'
+      'Tanggal Terdaftar',
+      'Status'
     ];
 
     const rows = tenants.map((t, idx) => {
-      const nik = t.kyc_data?.nik || t.nik || (t.id ? `3374${String(t.id).padStart(12, '0')}` : '3374012345678901');
-      const kycStatus = t.kyc_data?.verified_status || (t.verified ? 'verified' : 'pending');
       const room = t.kamar || t.room_number || '-';
       const phone = t.phone || '-';
       const email = t.email || '-';
       const regDate = t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID');
+      const status = 'Aktif';
 
       return [
         idx + 1,
         `"${(t.name || 'Penghuni').replace(/"/g, '""')}"`,
-        `'${nik}`,
-        kycStatus,
         `"${room}"`,
         `'${phone}`,
         `"${email}"`,
-        regDate
+        regDate,
+        status
       ].join(',');
     });
 
@@ -140,50 +134,19 @@ const Penghuni = ({ user }) => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `DATA_WAJIB_LAPOR_RTRW_${user?.kostUid || 'KOSTKU'}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `DATA_PENGHUNI_${user?.kostUid || 'KOSTKU'}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleUpdateKycStatus = (tenantId, status, updatedKycData) => {
-    setTenants(prev => prev.map(t => {
-      if (t.id === tenantId) {
-        return {
-          ...t,
-          kyc_data: {
-            ...(t.kyc_data || {}),
-            ...(updatedKycData || {}),
-            nik: updatedKycData?.nik || t.kyc_data?.nik || t.nik || '3273015509010003',
-            verified_status: status
-          },
-          verified: status === 'verified'
-        };
-      }
-      return t;
-    }));
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setMessage('');
 
-    if (nik && !/^[0-9]{16}$/.test(nik.trim())) {
-      setMessage('NIK harus tepat 16 digit angka valid sesuai KTP.');
-      return;
-    }
-
     setSubmitting(true);
     
     try {
-      const cleanNik = nik.trim() || '3374012345678901';
-      const kycData = {
-        nik: cleanNik,
-        ktp_image_url: ktpImage,
-        verified_status: 'verified',
-        rtrw_sync_status: true
-      };
-
       await apiRegister({
         role: 'user',
         name, 
@@ -191,15 +154,13 @@ const Penghuni = ({ user }) => {
         email, 
         kamar, 
         password,
-        nik: cleanNik,
-        kyc_data: kycData,
         kostUid: user.kostUid
       });
       
-      setMessage('Penghuni & data KTP berhasil didaftarkan!');
+      setMessage('Penghuni baru berhasil didaftarkan!');
       setTimeout(() => {
         setShowAddModal(false);
-        setName(''); setPhone(''); setEmail(''); setKamar(''); setPassword(''); setNik(''); setKtpImage(null);
+        setName(''); setPhone(''); setEmail(''); setKamar(''); setPassword('');
         setMessage('');
         fetchData();
       }, 800);
@@ -306,7 +267,7 @@ const Penghuni = ({ user }) => {
   );
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '6rem' }}>
       
       {/* Header Bar */}
       <div style={{
@@ -345,13 +306,13 @@ const Penghuni = ({ user }) => {
             <span>Update Versi v1.2.0</span>
           </button>
           <button
-            onClick={handleExportRTRW}
+            onClick={handleExportPenghuni}
             className="btn btn-secondary btn-sm"
             style={{ gap: '6px' }}
-            title="Ekspor Data Wajib Lapor RT/RW (Format CSV/Excel Resmi dengan NIK 16 Digit)"
+            title="Ekspor Data Penghuni (Format CSV/Excel)"
           >
             <Download size={14} color="#38bdf8" />
-            <span>Export Wajib Lapor RT/RW</span>
+            <span>Export Data Penghuni</span>
           </button>
           <button 
             className="btn btn-primary btn-sm"
@@ -459,158 +420,167 @@ const Penghuni = ({ user }) => {
                     className="card glass-panel"
                     style={{
                       display: 'flex',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '1rem',
-                      padding: '1.1rem 1.25rem'
+                      flexDirection: 'column',
+                      gap: '0.9rem',
+                      padding: '1.15rem 1.25rem',
+                      borderRadius: '16px',
+                      border: '1px solid var(--border-color)',
+                      transition: 'all 0.2s ease'
                     }}
                   >
-                    {/* Left: Avatar & Info */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '220px' }}>
-                      <div style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '14px',
-                        background: 'var(--accent-gradient)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 800,
-                        fontSize: '1.2rem',
-                        flexShrink: 0
-                      }}>
-                        {t.name ? t.name.charAt(0).toUpperCase() : 'P'}
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>{t.name}</h3>
-                          <span className="badge badge-primary">
-                            Kamar {t.kamar || '-'}
-                          </span>
-                          {(() => {
-                            const kycStatus = t.kyc_data?.verified_status || (t.verified ? 'verified' : 'pending');
-                            const kycNik = t.kyc_data?.nik || t.nik || '3374012345678901';
-                            return (
-                              <span style={{
-                                fontSize: '0.68rem',
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                fontWeight: 700,
-                                background: kycStatus === 'verified' ? 'rgba(16, 185, 129, 0.15)' : kycStatus === 'rejected' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                                color: kycStatus === 'verified' ? '#34d399' : kycStatus === 'rejected' ? '#ef4444' : '#fbbf24',
-                                border: `1px solid ${kycStatus === 'verified' ? 'rgba(16, 185, 129, 0.3)' : kycStatus === 'rejected' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
-                              }}>
-                                {kycStatus === 'verified' ? `✓ NIK: ${kycNik.slice(0, 6)}...` : kycStatus === 'rejected' ? '✕ KTP Ditolak' : '⏳ KTP Pending'}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          {t.phone && <span>📞 {t.phone}</span>}
-                          {t.email && <span className="desktop-only">✉️ {t.email}</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Middle: Laundry / Sprei counter */}
+                    {/* Top Row: Avatar, Identity & Sprei Counter */}
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
-                      background: 'rgba(255,255,255,0.03)',
-                      padding: '6px 12px',
-                      borderRadius: '12px',
-                      border: '1px solid var(--border-color)'
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '0.85rem'
                     }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Cuci Sprei:</span>
-                      <strong style={{ color: 'white', minWidth: '18px', textAlign: 'center' }}>{t.bedsheets || 0}x</strong>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button 
-                          onClick={() => handleUpdateBedsheets(t.id, t.bedsheets, false)}
-                          style={{
-                            width: '24px', height: '24px', border: '1px solid var(--border-color)',
-                            background: 'transparent', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer'
-                          }}
-                        >-</button>
-                        <button 
-                          onClick={() => handleUpdateBedsheets(t.id, t.bedsheets, true)}
-                          style={{
-                            width: '24px', height: '24px', border: '1px solid var(--accent-primary)',
-                            background: 'rgba(59, 130, 246, 0.2)', color: 'white', borderRadius: '6px', cursor: 'pointer'
-                          }}
-                        >+</button>
+                      {/* Left: Avatar & Info */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '220px' }}>
+                        <div style={{
+                          width: '46px',
+                          height: '46px',
+                          borderRadius: '14px',
+                          background: 'var(--accent-gradient)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 800,
+                          fontSize: '1.2rem',
+                          flexShrink: 0
+                        }}>
+                          {t.name ? t.name.charAt(0).toUpperCase() : 'P'}
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>{t.name}</h3>
+                            <span className="badge badge-primary" style={{ fontWeight: 700 }}>
+                              Kamar {t.kamar || '-'}
+                            </span>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 700,
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              color: '#34d399',
+                              border: '1px solid rgba(16, 185, 129, 0.3)'
+                            }}>
+                              ✓ Aktif
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                            {t.phone && <span>📞 {t.phone}</span>}
+                            {t.email && <span>✉️ {t.email}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right of Top Row: Laundry / Sprei counter */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        background: 'rgba(255,255,255,0.03)',
+                        padding: '6px 12px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color)',
+                        marginLeft: 'auto'
+                      }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Cuci Sprei:</span>
+                        <strong style={{ color: 'white', minWidth: '18px', textAlign: 'center' }}>{t.bedsheets || 0}x</strong>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button 
+                            onClick={() => handleUpdateBedsheets(t.id, t.bedsheets, false)}
+                            style={{
+                              width: '24px', height: '24px', border: '1px solid var(--border-color)',
+                              background: 'transparent', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer'
+                            }}
+                          >-</button>
+                          <button 
+                            onClick={() => handleUpdateBedsheets(t.id, t.bedsheets, true)}
+                            style={{
+                              width: '24px', height: '24px', border: '1px solid var(--accent-primary)',
+                              background: 'rgba(59, 130, 246, 0.2)', color: 'white', borderRadius: '6px', cursor: 'pointer'
+                            }}
+                          >+</button>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Right: Actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Subtle Divider */}
+                    <div style={{ height: '1px', background: 'var(--border-light)', width: '100%', opacity: 0.6 }} />
+
+                    {/* Bottom Row: Dedicated Action Toolbar */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-start',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      width: '100%'
+                    }}>
                       {waUrl && (
                         <a 
                           href={waUrl} 
                           target="_blank" 
                           rel="noreferrer"
                           className="btn btn-secondary btn-sm"
-                          style={{ gap: '6px', color: '#4ade80' }}
+                          style={{ gap: '6px', color: '#4ade80', borderColor: 'rgba(74, 222, 128, 0.3)' }}
                           title="Chat via WhatsApp"
                         >
                           <MessageCircle size={15} />
-                          <span className="desktop-only">Chat WA</span>
+                          <span>Chat WA</span>
                         </a>
                       )}
-
-                      <button
-                        onClick={() => setSelectedKycTenant(t)}
-                        className="btn btn-secondary btn-sm"
-                        title="Lihat Foto KTP & Verifikasi Data Kependudukan RT/RW"
-                        style={{
-                          gap: '4px',
-                          borderColor: (t.kyc_data?.verified_status === 'verified' || t.verified) ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)',
-                          color: (t.kyc_data?.verified_status === 'verified' || t.verified) ? '#34d399' : '#fbbf24'
-                        }}
-                      >
-                        <ShieldCheck size={14} />
-                        <span className="desktop-only">KTP KYC</span>
-                      </button>
 
                       <button
                         onClick={() => setInspectTenant(t)}
                         className="btn btn-secondary btn-sm"
                         title="Inspeksi Kamar & Refund Deposit"
-                        style={{ gap: '4px' }}
+                        style={{ gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
                       >
-                        <ClipboardCheck size={14} color="#38bdf8" />
-                        <span className="desktop-only">Inspeksi</span>
+                        <ClipboardCheck size={14} />
+                        <span>Inspeksi Kamar</span>
                       </button>
 
                       <button
                         onClick={() => setSmartLockTenant(t)}
                         className="btn btn-secondary btn-sm"
                         title="Beli / Kirim Token Listrik PLN"
-                        style={{ gap: '4px' }}
+                        style={{ gap: '6px', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.3)' }}
                       >
-                        <Zap size={14} color="#fbbf24" />
-                        <span className="desktop-only">Token Listrik</span>
+                        <Zap size={14} />
+                        <span>Token Listrik</span>
                       </button>
 
                       <button
                         onClick={() => setContractTenant(t)}
                         className="btn btn-secondary btn-sm"
                         title="Lihat Kontrak Digital & E-Signature"
-                        style={{ gap: '4px' }}
+                        style={{
+                          gap: '6px',
+                          color: t.contractSigned ? '#4ade80' : '#c084fc',
+                          borderColor: t.contractSigned ? 'rgba(74, 222, 128, 0.3)' : 'rgba(192, 132, 252, 0.3)'
+                        }}
                       >
-                        <FileCheck size={14} color={t.contractSigned ? '#4ade80' : '#a78bfa'} />
-                        <span className="desktop-only">Kontrak</span>
+                        <FileCheck size={14} />
+                        <span>{t.contractSigned ? 'Kontrak Tervalidasi' : 'Ttd Kontrak'}</span>
                       </button>
 
-                      <button 
-                        onClick={() => handleDelete(t.id, t.name)}
-                        className="btn btn-danger btn-sm"
-                        title="Hapus Penghuni"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div style={{ marginLeft: 'auto' }}>
+                        <button 
+                          onClick={() => handleDelete(t.id, t.name)}
+                          className="btn btn-danger btn-sm"
+                          title="Hapus Penghuni"
+                          style={{ gap: '6px' }}
+                        >
+                          <Trash2 size={14} />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
                     </div>
 
                   </div>
@@ -693,26 +663,32 @@ const Penghuni = ({ user }) => {
       )}
 
       {/* Add Tenant Modal */}
-      {showAddModal && (
+      {showAddModal && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
           background: 'rgba(0,0,0,0.75)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
+          overflowY: 'auto',
+          zIndex: 999999,
+          padding: '1.25rem'
         }}>
           <div className="card glass-panel" style={{
+            margin: 'auto',
             maxWidth: '480px',
             width: '100%',
             padding: '1.75rem',
-            border: '1px solid var(--border-light)'
+            border: '1px solid var(--border-light)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Daftarkan Penghuni Baru</h3>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Daftarkan Penghuni Baru</h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Registrasi akun penghuni baru
+                </span>
+              </div>
               <button 
                 onClick={() => setShowAddModal(false)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
@@ -737,8 +713,8 @@ const Penghuni = ({ user }) => {
 
             <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                  Nama Lengkap:
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Nama Lengkap Penghuni <span style={{ color: '#ef4444' }}>*</span>:
                 </label>
                 <input 
                   type="text" 
@@ -750,43 +726,10 @@ const Penghuni = ({ user }) => {
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                  16 Digit NIK KTP Penghuni:
-                </label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  value={nik} 
-                  onChange={e => setNik(e.target.value.replace(/[^0-9]/g, '').slice(0, 16))} 
-                  placeholder="3374012345678901 (16 digit angka)"
-                  style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                  Unggah Foto KTP (Disimpan di ktp_uploads):
-                </label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = () => setKtpImage(reader.result);
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  style={{ fontSize: '0.8rem', color: '#94a3b8' }}
-                />
-              </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                    Pilih Kamar:
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Pilih Kamar <span style={{ color: '#ef4444' }}>*</span>:
                   </label>
                   <select 
                     className="input-field" 
@@ -802,8 +745,8 @@ const Penghuni = ({ user }) => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                    No. WhatsApp / HP:
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    No. WhatsApp / HP <span style={{ color: '#ef4444' }}>*</span>:
                   </label>
                   <input 
                     type="tel" 
@@ -814,6 +757,20 @@ const Penghuni = ({ user }) => {
                     placeholder="08123456789"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Password Login Akun Penghuni <span style={{ color: '#ef4444' }}>*</span>:
+                </label>
+                <input 
+                  type="password" 
+                  className="input-field" 
+                  required 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  placeholder="Password untuk login aplikasi penghuni"
+                />
               </div>
 
               <div>
@@ -829,18 +786,19 @@ const Penghuni = ({ user }) => {
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                  Password Login Penghuni:
-                </label>
-                <input 
-                  type="password" 
-                  className="input-field" 
-                  required 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  placeholder="Password untuk aplikasi penghuni"
-                />
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                fontSize: '0.78rem',
+                color: '#93c5fd',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+                <span>Akun langsung aktif. Penghuni dapat login menggunakan WhatsApp/Email & password di atas.</span>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>
@@ -863,7 +821,8 @@ const Penghuni = ({ user }) => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modals */}
@@ -893,15 +852,6 @@ const Penghuni = ({ user }) => {
           user={contractTenant}
           kostName={user?.kostName || 'KostKu Residence'}
           onSignedSuccess={() => fetchData()}
-        />
-      )}
-
-      {selectedKycTenant && (
-        <TenantKycDetailModal
-          isOpen={!!selectedKycTenant}
-          onClose={() => setSelectedKycTenant(null)}
-          tenant={selectedKycTenant}
-          onUpdateStatus={handleUpdateKycStatus}
         />
       )}
 

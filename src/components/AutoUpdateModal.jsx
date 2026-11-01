@@ -156,41 +156,6 @@ export default function AutoUpdateModal() {
     window.location.href = window.location.origin + window.location.pathname + '?reload=' + Date.now();
   };
 
-  // Download APK with guaranteed absolute URL & guidance
-  const handleDownloadApk = () => {
-    let downloadUrl = updateInfo?.downloadUrls?.androidAbsolute;
-
-    if (!downloadUrl) {
-      const base = getApiBaseUrl().replace(/\/api$/, '');
-      const path = updateInfo?.downloadUrls?.android || '/downloads/KostKu-Android.apk';
-      downloadUrl = `${base}${path.startsWith('/') ? '' : '/'}${path}`;
-    }
-
-    // If still relative or capacitor protocol, use LAN server IP
-    if (!downloadUrl.startsWith('http')) {
-      const serverIp = localStorage.getItem('kostku_server_ip') || 'http://192.168.18.6:3001';
-      downloadUrl = `${serverIp.replace(/\/+$/, '')}/downloads/KostKu-Android.apk`;
-    }
-
-    // Trigger download via external system browser / direct link
-    window.open(downloadUrl, '_blank');
-
-    setDownloadNotice(
-      'Unduhan APK KostKu telah dimulai di browser. Setelah selesai, buka folder Download dan pasang file APK terbaru.'
-    );
-  };
-
-  // Download Windows executable
-  const handleDownloadExe = () => {
-    let downloadUrl = updateInfo?.downloadUrls?.windowsAbsolute;
-    if (!downloadUrl) {
-      const base = getApiBaseUrl().replace(/\/api$/, '');
-      const path = updateInfo?.downloadUrls?.windows || '/downloads/KostKu-Windows.exe';
-      downloadUrl = `${base}${path.startsWith('/') ? '' : '/'}${path}`;
-    }
-    window.open(downloadUrl, '_blank');
-  };
-
   return (
     <>
       {/* Toast Feedback for Manual Update Check */}
@@ -352,48 +317,17 @@ export default function AutoUpdateModal() {
               </div>
             )}
 
-            {/* Action Buttons based on Platform */}
+            {/* Action Buttons: Unified Safe Web & PWA Update */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {isNativeAndroid ? (
-                <button 
-                  onClick={handleDownloadApk}
-                  className="btn btn-primary"
-                  style={{ width: '100%', padding: '12px', fontSize: '0.95rem', gap: '8px' }}
-                >
-                  <Smartphone size={18} /> Unduh & Pasang Update APK
-                </button>
-              ) : isElectron ? (
-                <button 
-                  onClick={handleDownloadExe}
-                  className="btn btn-primary"
-                  style={{ width: '100%', padding: '12px', fontSize: '0.95rem', gap: '8px' }}
-                >
-                  <Monitor size={18} /> Unduh Update Windows (.EXE)
-                </button>
-              ) : (
-                <button 
-                  onClick={handleWebReload}
-                  disabled={updating}
-                  className="btn btn-primary"
-                  style={{ width: '100%', padding: '12px', fontSize: '0.95rem', gap: '8px' }}
-                >
-                  <RefreshCw size={18} className={updating ? 'animate-spin' : ''} />
-                  {updating ? 'Memperbarui Cache...' : 'Perbarui & Muat Ulang Sekarang'}
-                </button>
-              )}
-
-              {/* Secondary Option: If Android native, also offer Web Reload fallback */}
-              {isNativeAndroid && (
-                <button 
-                  onClick={handleWebReload}
-                  disabled={updating}
-                  className="btn btn-secondary"
-                  style={{ width: '100%', padding: '10px', fontSize: '0.85rem', gap: '6px' }}
-                >
-                  <RefreshCw size={14} className={updating ? 'animate-spin' : ''} />
-                  {updating ? 'Memuat Ulang...' : 'Muat Ulang Halaman Dalam Aplikasi'}
-                </button>
-              )}
+              <button 
+                onClick={handleWebReload}
+                disabled={updating}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '12px', fontSize: '0.95rem', gap: '8px' }}
+              >
+                <RefreshCw size={18} className={updating ? 'animate-spin' : ''} />
+                {updating ? 'Memperbarui Cache...' : 'Perbarui & Muat Ulang Sekarang'}
+              </button>
 
               {!updateInfo.isCritical && (
                 <button 

@@ -245,9 +245,9 @@ const PaymentGatewayModal = ({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        position: 'relative',
         boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.2)'
       }}>
-
         {/* Modal Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
@@ -572,45 +572,20 @@ const PaymentGatewayModal = ({
                     gap: '8px'
                   }}>
                     <div style={{
-                      background: 'rgba(245, 158, 11, 0.1)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
                       borderRadius: '12px',
-                      padding: '8px 12px',
-                      fontSize: '0.74rem',
-                      color: '#cbd5e1',
+                      padding: '10px 14px',
+                      fontSize: '0.78rem',
+                      color: '#93c5fd',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
                       textAlign: 'left'
                     }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} className="animate-pulse" />
-                      <span><strong>Mode Simulasi / Demo:</strong> Ini adalah QRIS uji coba (belum memotong saldo m-Banking asli). Anda bisa klik tombol di bawah untuk simulasi instan:</span>
+                      <RefreshCw size={15} className="animate-spin" style={{ flexShrink: 0 }} />
+                      <span>Diproses aman melalui TriPay Payment Gateway resmi. Sistem otomatis memverifikasi transaksi Anda.</span>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleVerifyPayment(true)}
-                      disabled={isProcessing}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)',
-                        border: '1px solid rgba(56, 189, 248, 0.4)',
-                        color: '#38bdf8',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <Sparkles size={15} />
-                      <span>⚡ Simulasi Bayar Lunas (Uji Coba Demo)</span>
-                    </button>
                   </div>
                 </div>
               )}

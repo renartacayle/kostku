@@ -1,0 +1,663 @@
+// generate_architecture_svg.cjs
+// Script to generate a comprehensive, ultra-high-resolution SVG diagram of KostKu Full System Architecture & Workflow
+
+const fs = require('fs');
+const path = require('path');
+
+const width = 1800;
+const height = 1360;
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="background-color: #070B14; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGlowEmerald" cx="15%" cy="10%" r="40%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#070B14" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bgGlowIndigo" cx="85%" cy="15%" r="40%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#070B14" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bgGlowAmber" cx="50%" cy="55%" r="50%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#070B14" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Card Background Gradients -->
+    <linearGradient id="cardGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111C33"/>
+      <stop offset="100%" stop-color="#0B1324"/>
+    </linearGradient>
+    <linearGradient id="cardGradEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064E3B" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0B1324"/>
+    </linearGradient>
+    <linearGradient id="cardGradIndigo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312E81" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0B1324"/>
+    </linearGradient>
+    <linearGradient id="cardGradAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#78350F" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0B1324"/>
+    </linearGradient>
+    <linearGradient id="cardGradCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#164E63" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0B1324"/>
+    </linearGradient>
+    <linearGradient id="cardGradRose" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#881337" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0B1324"/>
+    </linearGradient>
+
+    <!-- Badges & Accents -->
+    <linearGradient id="badgeEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="shadowGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#10B981" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Arrow Markers -->
+    <marker id="arrowEmerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10B981"/>
+    </marker>
+    <marker id="arrowIndigo" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#818CF8"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#F59E0B"/>
+    </marker>
+    <marker id="arrowCyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#06B6D4"/>
+    </marker>
+
+    <!-- Background Grid Pattern -->
+    <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1E293B" stroke-width="0.5" stroke-opacity="0.4"/>
+      <circle cx="40" cy="40" r="1" fill="#334155" fill-opacity="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Ambient Background & Grid -->
+  <rect width="${width}" height="${height}" fill="#070B14"/>
+  <rect width="${width}" height="${height}" fill="url(#gridPattern)"/>
+  <rect width="${width}" height="${height}" fill="url(#bgGlowEmerald)"/>
+  <rect width="${width}" height="${height}" fill="url(#bgGlowIndigo)"/>
+  <rect width="${width}" height="${height}" fill="url(#bgGlowAmber)"/>
+
+  <!-- ========================================== -->
+  <!-- TOP HEADER / BANNER                        -->
+  <!-- ========================================== -->
+  <g transform="translate(50, 30)">
+    <!-- Logo Badge -->
+    <rect x="0" y="0" width="48" height="48" rx="12" fill="url(#badgeEmerald)" filter="url(#glowGreen)"/>
+    <!-- House icon -->
+    <path d="M 14 26 L 24 16 L 34 26 L 34 34 L 14 34 Z M 20 34 L 20 28 L 28 28 L 28 34" fill="#FFFFFF"/>
+    <circle cx="34" cy="16" r="3" fill="#FDE047"/>
+
+    <text x="62" y="28" font-size="24" font-weight="800" fill="#FFFFFF" letter-spacing="0.5">KostKu <tspan fill="#34D399" font-size="18" font-weight="600">ARCHITECTURE &amp; WORKFLOW</tspan></text>
+    <text x="62" y="46" font-size="13" font-weight="400" fill="#94A3B8">End-to-End PropTech, Multi-Mitra Marketplace, Field Operations &amp; Embedded Split-Fintech Ecosystem</text>
+
+    <!-- Top Status Badges -->
+    <g transform="translate(1040, 8)">
+      <!-- Badge 1 -->
+      <rect x="0" y="0" width="145" height="32" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <circle cx="16" cy="16" r="4" fill="#10B981"/>
+      <text x="28" y="20" font-size="11" font-weight="600" fill="#E2E8F0">Multi-Role System</text>
+
+      <!-- Badge 2 -->
+      <rect x="155" y="0" width="165" height="32" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <circle cx="171" cy="16" r="4" fill="#F59E0B"/>
+      <text x="183" y="20" font-size="11" font-weight="600" fill="#E2E8F0">Flat Rp 500 Admin Fee</text>
+
+      <!-- Badge 3 -->
+      <rect x="330" y="0" width="165" height="32" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <circle cx="346" cy="16" r="4" fill="#6366F1"/>
+      <text x="358" y="20" font-size="11" font-weight="600" fill="#E2E8F0">Tiered Delivery Engine</text>
+
+      <!-- Badge 4 -->
+      <rect x="505" y="0" width="170" height="32" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <circle cx="521" cy="16" r="4" fill="#06B6D4"/>
+      <text x="533" y="20" font-size="11" font-weight="600" fill="#E2E8F0">Automated Split Payout</text>
+    </g>
+  </g>
+
+  <!-- Divider Line -->
+  <line x1="50" y1="95" x2="1750" y2="95" stroke="#1E293B" stroke-width="1.5"/>
+
+  <!-- ========================================== -->
+  <!-- TIER 1: USER ACTORS & ENTRYPOINTS          -->
+  <!-- ========================================== -->
+  <g transform="translate(50, 115)">
+    <text x="0" y="0" font-size="12" font-weight="700" fill="#64748B" letter-spacing="1.5">TIER 1 · MULTI-USER ROLES &amp; CLIENT APPLICATIONS</text>
+
+    <!-- 5 Persona Cards (X: 0, 345, 690, 1035, 1380, width 320) -->
+
+    <!-- Persona 1: Pencari Kost -->
+    <g transform="translate(0, 15)">
+      <rect width="320" height="110" rx="12" fill="url(#cardGradEmerald)" stroke="#10B981" stroke-width="1.2" stroke-opacity="0.4" filter="url(#shadowGlow)"/>
+      <rect x="14" y="14" width="36" height="36" rx="8" fill="#065F46"/>
+      <!-- Search User Icon -->
+      <circle cx="32" cy="28" r="6" fill="#34D399"/>
+      <path d="M 22 42 C 22 36 42 36 42 42" fill="#34D399"/>
+      <text x="60" y="30" font-size="15" font-weight="700" fill="#FFFFFF">Pencari Kost</text>
+      <text x="60" y="45" font-size="11" font-weight="500" fill="#A7F3D0">Public Explorer · PWA / Web</text>
+      <line x1="14" y1="60" x2="306" y2="60" stroke="#1E293B" stroke-width="1"/>
+      <text x="14" y="77" font-size="11" fill="#94A3B8">• Filter Radius Kampus &amp; Fasilitas</text>
+      <text x="14" y="93" font-size="11" fill="#94A3B8">• 3D Spatial Bento Room Virtual Tour</text>
+      <text x="14" y="109" font-size="11" fill="#94A3B8">• Booking Instan &amp; Dynamic QRIS</text>
+    </g>
+
+    <!-- Persona 2: Anak Kost (Tenant) -->
+    <g transform="translate(345, 15)">
+      <rect width="320" height="110" rx="12" fill="url(#cardGradCyan)" stroke="#06B6D4" stroke-width="1.2" stroke-opacity="0.4" filter="url(#shadowGlow)"/>
+      <rect x="14" y="14" width="36" height="36" rx="8" fill="#155E75"/>
+      <!-- Key / Resident Icon -->
+      <path d="M 32 23 A 5 5 0 1 0 32 33 A 5 5 0 1 0 32 23 M 32 33 L 32 41 L 36 41 M 32 37 L 35 37" stroke="#38BDF8" stroke-width="2" fill="none"/>
+      <text x="60" y="30" font-size="15" font-weight="700" fill="#FFFFFF">Anak Kost (Penghuni)</text>
+      <text x="60" y="45" font-size="11" font-weight="500" fill="#BAE6FD">Tenant Resident · Mobile App</text>
+      <line x1="14" y1="60" x2="306" y2="60" stroke="#1E293B" stroke-width="1"/>
+      <text x="14" y="77" font-size="11" fill="#94A3B8">• Tagihan Sewa &amp; Split Pembayaran</text>
+      <text x="14" y="93" font-size="11" fill="#94A3B8">• Order Mitra (Laundry/Makan/Galon)</text>
+      <text x="14" y="109" font-size="11" fill="#94A3B8">• Tiket Komplain &amp; Tracking Teknisi</text>
+    </g>
+
+    <!-- Persona 3: Owner Kost (Juragan) -->
+    <g transform="translate(690, 15)">
+      <rect width="320" height="110" rx="12" fill="url(#cardGradIndigo)" stroke="#6366F1" stroke-width="1.2" stroke-opacity="0.4" filter="url(#shadowGlow)"/>
+      <rect x="14" y="14" width="36" height="36" rx="8" fill="#3730A3"/>
+      <!-- Crown / Dashboard Icon -->
+      <path d="M 22 40 L 42 40 L 40 28 L 32 34 L 24 28 Z" fill="#818CF8"/>
+      <text x="60" y="30" font-size="15" font-weight="700" fill="#FFFFFF">Pemilik Kost (Owner)</text>
+      <text x="60" y="45" font-size="11" font-weight="500" fill="#C7D2FE">Property Boss · Cockpit Desk/Tab</text>
+      <line x1="14" y1="60" x2="306" y2="60" stroke="#1E293B" stroke-width="1"/>
+      <text x="14" y="77" font-size="11" fill="#94A3B8">• Matrix Kamar, Tarif, &amp; Okupansi</text>
+      <text x="14" y="93" font-size="11" fill="#94A3B8">• Setting Ads Mitra &amp; Multi-Owner Split</text>
+      <text x="14" y="109" font-size="11" fill="#94A3B8">• Buku Kas Otomatis &amp; Payroll Staf</text>
+    </g>
+
+    <!-- Persona 4: Staf & Karyawan -->
+    <g transform="translate(1035, 15)">
+      <rect width="320" height="110" rx="12" fill="url(#cardGradAmber)" stroke="#F59E0B" stroke-width="1.2" stroke-opacity="0.4" filter="url(#shadowGlow)"/>
+      <rect x="14" y="14" width="36" height="36" rx="8" fill="#92400E"/>
+      <!-- Shield / Check Icon -->
+      <path d="M 32 20 L 41 24 L 41 33 C 41 39 32 43 32 43 C 32 43 23 39 23 33 L 23 24 Z" fill="#FBBF24"/>
+      <path d="M 28 32 L 31 35 L 37 28" stroke="#78350F" stroke-width="2" fill="none"/>
+      <text x="60" y="30" font-size="15" font-weight="700" fill="#FFFFFF">Staf Operasional</text>
+      <text x="60" y="45" font-size="11" font-weight="500" fill="#FDE68A">Field Crew · PWA Mobile Tracker</text>
+      <line x1="14" y1="60" x2="306" y2="60" stroke="#1E293B" stroke-width="1"/>
+      <text x="14" y="77" font-size="11" fill="#94A3B8">• Presensi GPS Anti-Mock &amp; Selfie</text>
+      <text x="14" y="93" font-size="11" fill="#94A3B8">• QR Patrol Checkpoint Lapangan</text>
+      <text x="14" y="109" font-size="11" fill="#94A3B8">• Task Checklist Kebersihan / Servis</text>
+    </g>
+
+    <!-- Persona 5: Mitra UMKM / Merchant -->
+    <g transform="translate(1380, 15)">
+      <rect width="320" height="110" rx="12" fill="url(#cardGradRose)" stroke="#F43F5E" stroke-width="1.2" stroke-opacity="0.4" filter="url(#shadowGlow)"/>
+      <rect x="14" y="14" width="36" height="36" rx="8" fill="#9F1239"/>
+      <!-- Store / Fork Icon -->
+      <path d="M 22 28 L 42 28 L 40 40 L 24 40 Z M 20 25 L 44 25" stroke="#FDA4AF" stroke-width="2" fill="none"/>
+      <text x="60" y="30" font-size="15" font-weight="700" fill="#FFFFFF">Mitra UMKM (Vendor)</text>
+      <text x="60" y="45" font-size="11" font-weight="500" fill="#FECDD3">Merchant · Order &amp; Menu App</text>
+      <line x1="14" y1="60" x2="306" y2="60" stroke="#1E293B" stroke-width="1"/>
+      <text x="14" y="77" font-size="11" fill="#94A3B8">• Manajemen Menu, Foto &amp; Logo</text>
+      <text x="14" y="93" font-size="11" fill="#94A3B8">• Notifikasi Order Masuk &amp; Antar</text>
+      <text x="14" y="109" font-size="11" fill="#94A3B8">• Settlement Otomatis ke Rekening</text>
+    </g>
+  </g>
+
+  <!-- Downward Connectors from Tier 1 to Tier 2 -->
+  <g stroke-width="1.8" stroke-dasharray="4 4" fill="none">
+    <line x1="210" y1="245" x2="210" y2="280" stroke="#10B981" marker-end="url(#arrowEmerald)"/>
+    <line x1="555" y1="245" x2="555" y2="280" stroke="#06B6D4" marker-end="url(#arrowCyan)"/>
+    <line x1="900" y1="245" x2="900" y2="280" stroke="#818CF8" marker-end="url(#arrowIndigo)"/>
+    <line x1="1245" y1="245" x2="1245" y2="280" stroke="#F59E0B" marker-end="url(#arrowAmber)"/>
+    <line x1="1590" y1="245" x2="1590" y2="280" stroke="#F43F5E" marker-end="url(#arrowCyan)"/>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- TIER 2: FRONTEND GATEWAY & INTERFACES      -->
+  <!-- ========================================== -->
+  <g transform="translate(50, 285)">
+    <text x="0" y="0" font-size="12" font-weight="700" fill="#64748B" letter-spacing="1.5">TIER 2 · FRONTEND PRESENTATION &amp; APPLICATION PORTALS</text>
+
+    <!-- Portal 1: Discovery Cockpit -->
+    <g transform="translate(0, 15)">
+      <rect width="320" height="125" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.5"/>
+      <text x="14" y="24" font-size="13" font-weight="700" fill="#34D399">1. Marketplace &amp; Search Cockpit</text>
+      <text x="14" y="44" font-size="11" fill="#CBD5E1">· Geolocation &amp; Campus Distance Filter</text>
+      <text x="14" y="62" font-size="11" fill="#CBD5E1">· Bento 3D Spatial Layout &amp; Blueprint</text>
+      <text x="14" y="80" font-size="11" fill="#CBD5E1">· Multi-angle Room Gallery &amp; Facilities</text>
+      <rect x="14" y="92" width="292" height="22" rx="5" fill="#064E3B" fill-opacity="0.5"/>
+      <text x="22" y="107" font-size="10" font-weight="600" fill="#6EE7B7">⚡ Instant Direct WhatsApp &amp; Booking</text>
+    </g>
+
+    <!-- Portal 2: Tenant Service Hub -->
+    <g transform="translate(345, 15)">
+      <rect width="320" height="125" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.5"/>
+      <text x="14" y="24" font-size="13" font-weight="700" fill="#38BDF8">2. Resident Service Portal</text>
+      <text x="14" y="44" font-size="11" fill="#CBD5E1">· Dynamic E-Bill &amp; Denda Keterlambatan</text>
+      <text x="14" y="62" font-size="11" fill="#CBD5E1">· Hyperlocal Mitra Food / Laundry Cart</text>
+      <text x="14" y="80" font-size="11" fill="#CBD5E1">· Live Courier Distance Fee Calculator</text>
+      <rect x="14" y="92" width="292" height="22" rx="5" fill="#0C4A6E" fill-opacity="0.5"/>
+      <text x="22" y="107" font-size="10" font-weight="600" fill="#7DD3FC">📱 Integrated Resident Self-Service</text>
+    </g>
+
+    <!-- Portal 3: Owner Command Cockpit -->
+    <g transform="translate(690, 15)">
+      <rect width="320" height="125" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.5"/>
+      <text x="14" y="24" font-size="13" font-weight="700" fill="#818CF8">3. Owner Management Cockpit</text>
+      <text x="14" y="44" font-size="11" fill="#CBD5E1">· Visual Room Floorplan &amp; Occupancy</text>
+      <text x="14" y="62" font-size="11" fill="#CBD5E1">· Custom Ads Fee Setting per Mitra</text>
+      <text x="14" y="80" font-size="11" fill="#CBD5E1">· Multi-Owner Mitra Cross-Listing Switch</text>
+      <rect x="14" y="92" width="292" height="22" rx="5" fill="#312E81" fill-opacity="0.5"/>
+      <text x="22" y="107" font-size="10" font-weight="600" fill="#A5B4FC">📊 Complete Financial &amp; Asset Control</text>
+    </g>
+
+    <!-- Portal 4: Staff Attendance & Tasks -->
+    <g transform="translate(1035, 15)">
+      <rect width="320" height="125" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.5"/>
+      <text x="14" y="24" font-size="13" font-weight="700" fill="#FBBF24">4. Field Staff Mobile Terminal</text>
+      <text x="14" y="44" font-size="11" fill="#CBD5E1">· Geo-fencing &amp; Anti-Mock Presensi</text>
+      <text x="14" y="62" font-size="11" fill="#CBD5E1">· QR Code Patrol Checkpoint Scanner</text>
+      <text x="14" y="80" font-size="11" fill="#CBD5E1">· Auto-assigned Room Turnover Tasks</text>
+      <rect x="14" y="92" width="292" height="22" rx="5" fill="#78350F" fill-opacity="0.5"/>
+      <text x="22" y="107" font-size="10" font-weight="600" fill="#FDE68A">🛡️ Anti-Fraud &amp; Physical Verification</text>
+    </g>
+
+    <!-- Portal 5: Mitra Merchant Hub -->
+    <g transform="translate(1380, 15)">
+      <rect width="320" height="125" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.5"/>
+      <text x="14" y="24" font-size="13" font-weight="700" fill="#FB7185">5. Mitra Merchant Hub</text>
+      <text x="14" y="44" font-size="11" fill="#CBD5E1">· Menu Grid (2x Mobile, 4x Desktop)</text>
+      <text x="14" y="62" font-size="11" fill="#CBD5E1">· Store Logo &amp; Operating Hours Setting</text>
+      <text x="14" y="80" font-size="11" fill="#CBD5E1">· Order Ingestion &amp; Dispatch Status</text>
+      <rect x="14" y="92" width="292" height="22" rx="5" fill="#881337" fill-opacity="0.5"/>
+      <text x="22" y="107" font-size="10" font-weight="600" fill="#FECDD3">🛒 Automated Hyperlocal Commerce</text>
+    </g>
+  </g>
+
+  <!-- Connectors into Core Micro-Engines -->
+  <g stroke-width="2" fill="none">
+    <path d="M 210 435 L 210 465 L 475 465 L 475 490" stroke="#10B981" stroke-dasharray="3 3"/>
+    <path d="M 555 435 L 555 490" stroke="#06B6D4" stroke-dasharray="3 3"/>
+    <path d="M 900 435 L 900 490" stroke="#818CF8" stroke-dasharray="3 3"/>
+    <path d="M 1245 435 L 1245 490" stroke="#F59E0B" stroke-dasharray="3 3"/>
+    <path d="M 1590 435 L 1590 465 L 1325 465 L 1325 490" stroke="#FB7185" stroke-dasharray="3 3"/>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- TIER 3: CORE LOGIC & MICRO-ENGINES (BRAIN) -->
+  <!-- ========================================== -->
+  <g transform="translate(50, 490)">
+    <text x="0" y="0" font-size="12" font-weight="700" fill="#64748B" letter-spacing="1.5">TIER 3 · CORE BACKEND LOGIC &amp; MICRO-ENGINES ("HOW IT WORKS")</text>
+
+    <!-- ENGINE A: MULTI-MITRA & DYNAMIC SPLIT ENGINE (HIGHLIGHT CORE FEATURE) -->
+    <g transform="translate(0, 15)">
+      <rect width="835" height="185" rx="14" fill="url(#cardGradDark)" stroke="#10B981" stroke-width="1.8" filter="url(#shadowGlow)"/>
+      <rect x="16" y="16" width="32" height="32" rx="8" fill="#065F46"/>
+      <text x="25" y="38" font-size="18" fill="#34D399">⚡</text>
+
+      <text x="58" y="32" font-size="16" font-weight="800" fill="#FFFFFF">Dynamic Multi-Mitra, Split Fee &amp; Delivery Engine</text>
+      <text x="58" y="48" font-size="11" font-weight="600" fill="#34D399">HYPERLOCAL COMMERCE &amp; MULTI-OWNER REVENUE SHARING</text>
+
+      <!-- 3 Sub-Blocks inside Engine A -->
+      <g transform="translate(16, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#FBBF24">💰 Flat Admin &amp; Owner Ads</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· <tspan font-weight="700" fill="#34D399">KostKu Platform:</tspan> Flat Rp 500</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· <tspan font-weight="700" fill="#818CF8">Mitra Owner Ads:</tspan> Custom %</text>
+        <text x="12" y="70" font-size="10" fill="#94A3B8">  (Bisa disetting di menu Mitra Owner)</text>
+        <text x="12" y="88" font-size="10.5" fill="#CBD5E1">· <tspan font-weight="700" fill="#F43F5E">Admin Fee Combined:</tspan> 1x Total</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Transparan tanpa biaya tersembunyi)</text>
+      </g>
+
+      <g transform="translate(285, 62)">
+        <rect width="265" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#38BDF8">🔄 Multi-Owner Catalog Routing</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· Toko lintas owner tetap tampil</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· <tspan font-weight="700" fill="#FDE047">Duit Mitra →</tspan> Pemilik mitra asal</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· <tspan font-weight="700" fill="#34D399">Mitra Utama:</tspan> Selalu pinned teratas</text>
+        <text x="12" y="86" font-size="10" fill="#94A3B8">  (Bisa di-filter ON/OFF oleh anak kost)</text>
+        <text x="12" y="101" font-size="10" fill="#94A3B8">· Filter: Termurah, Termahal, Terdekat</text>
+      </g>
+
+      <g transform="translate(564, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#34D399">🛵 Dynamic Tiered Delivery</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· <tspan font-weight="700" fill="#38BDF8">Radius Dekat (≤ 2 km):</tspan></text>
+        <text x="20" y="54" font-size="11" font-weight="700" fill="#34D399">Flat Rp 2.000 Ongkir</text>
+        <text x="12" y="72" font-size="10.5" fill="#CBD5E1">· <tspan font-weight="700" fill="#F59E0B">Radius Jauh (> 2 km):</tspan></text>
+        <text x="20" y="88" font-size="10.5" fill="#E2E8F0">Rp 2.000 + Rp 2.500 / km</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Dihitung via Haversine / OSRM API)</text>
+      </g>
+    </g>
+
+    <!-- ENGINE B: BOOKING & AUTOMATED ROOM ALLOCATION ENGINE -->
+    <g transform="translate(865, 15)">
+      <rect width="835" height="185" rx="14" fill="url(#cardGradDark)" stroke="#6366F1" stroke-width="1.8" filter="url(#shadowGlow)"/>
+      <rect x="16" y="16" width="32" height="32" rx="8" fill="#312E81"/>
+      <text x="25" y="38" font-size="18" fill="#818CF8">🏢</text>
+
+      <text x="58" y="32" font-size="16" font-weight="800" fill="#FFFFFF">Room Allocation, Lease Contract &amp; Smart Living Engine</text>
+      <text x="58" y="48" font-size="11" font-weight="600" fill="#818CF8">INVENTORY LOCKING, DIGITAL CONTRACT &amp; DEPOSIT MANAGEMENT</text>
+
+      <!-- 3 Sub-Blocks inside Engine B -->
+      <g transform="translate(16, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#818CF8">🔒 15-Min Inventory Lock</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· Anti double-booking otomatis</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· Real-time status: Kosong, Terisi,</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">  Booked, Booking Expired</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Countdown timer checkout kamar</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Otomatis rilis jika belum bayar)</text>
+      </g>
+
+      <g transform="translate(285, 62)">
+        <rect width="265" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#34D399">📝 Digital Lease Contract</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· Surat Perjanjian Sewa Digital (PDF)</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· Klausul deposit &amp; tata tertib kost</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Watermark identitas KTP verified</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Arsip digital tersimpan aman</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Bisa didownload oleh Owner &amp; Tenant)</text>
+      </g>
+
+      <g transform="translate(564, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#FBBF24">🔑 Smart Access / PIN Sync</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· PIN Smart Door Lock otomatis</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· PIN aktif saat hari check-in</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Auto-expire saat masa sewa usai</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Tanpa repot ganti kunci fisik</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Integrasi Tuya / TTLock API Gateway)</text>
+      </g>
+    </g>
+
+    <!-- ENGINE C: FIELD CREW, ANTI-MOCK & PATROL ENGINE -->
+    <g transform="translate(0, 215)">
+      <rect width="835" height="185" rx="14" fill="url(#cardGradDark)" stroke="#F59E0B" stroke-width="1.8" filter="url(#shadowGlow)"/>
+      <rect x="16" y="16" width="32" height="32" rx="8" fill="#78350F"/>
+      <text x="25" y="38" font-size="18" fill="#FBBF24">🛡️</text>
+
+      <text x="58" y="32" font-size="16" font-weight="800" fill="#FFFFFF">Field Operations, Anti-Mock GPS &amp; Patrol Checkpoint Engine</text>
+      <text x="58" y="48" font-size="11" font-weight="600" fill="#FBBF24">PHYSICAL VERIFICATION, SECURITY PATROLS &amp; TASK DISPATCHING</text>
+
+      <!-- 3 Sub-Blocks inside Engine C -->
+      <g transform="translate(16, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#FBBF24">📍 Anti-Mock Geofence</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· Deteksi Fake GPS / Emulator</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· Radius validasi ketat ≤ 50 meter</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Validasi kamera selfie asli</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Timestamp tersertifikasi server</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Mencegah presensi titip / curang)</text>
+      </g>
+
+      <g transform="translate(285, 62)">
+        <rect width="265" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#38BDF8">🏷️ QR Physical Checkpoints</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· QR Code titik rawan gedung kost</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">  (Pintu Gerbang, Toren Air, Panel MCB)</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Bukti patroli malam terjadwal</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Log inspeksi real-time ke Owner</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Notifikasi instan jika titik terlewat)</text>
+      </g>
+
+      <g transform="translate(564, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#34D399">🧹 Automated Task Dispatcher</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· Auto-assign pembersihan kamar</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">  saat anak kost check-out</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Routing tiket komplain ke teknisi</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Upload foto before &amp; after servis</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Tenant &amp; Owner dapat memantau)</text>
+      </g>
+    </g>
+
+    <!-- ENGINE D: AUTOMATED BILLING, QRIS & CASHFLOW ENGINE -->
+    <g transform="translate(865, 215)">
+      <rect width="835" height="185" rx="14" fill="url(#cardGradDark)" stroke="#06B6D4" stroke-width="1.8" filter="url(#shadowGlow)"/>
+      <rect x="16" y="16" width="32" height="32" rx="8" fill="#155E75"/>
+      <text x="25" y="38" font-size="18" fill="#38BDF8">💳</text>
+
+      <text x="58" y="32" font-size="16" font-weight="800" fill="#FFFFFF">Automated Invoicing, Dynamic QRIS &amp; Cashflow Engine</text>
+      <text x="58" y="48" font-size="11" font-weight="600" fill="#38BDF8">EMVCO DYNAMIC QRIS, WHATSAPP BILLING DISPATCH &amp; RECONCILIATION</text>
+
+      <!-- 3 Sub-Blocks inside Engine D -->
+      <g transform="translate(16, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#38BDF8">📱 WhatsApp Reminder Bot</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· Jadwal otomatis: H-3, H-1, Hari-H</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· Link bayar langsung tanpa login</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Denda harian otomatis saat H+1</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Notifikasi bukti lunas instan</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Integrasi WhatsApp Cloud API Gateway)</text>
+      </g>
+
+      <g transform="translate(285, 62)">
+        <rect width="265" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#34D399">⚡ ASPI / Dynamic QRIS</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· QRIS Standar Bank Indonesia</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· Nominal otomatis terkunci pas</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Dukung BCA, Mandiri, GoPay, Dana</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Verifikasi instan &lt; 2 detik</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Webhook settlement callback real-time)</text>
+      </g>
+
+      <g transform="translate(564, 62)">
+        <rect width="255" height="108" rx="8" fill="#0B1324" stroke="#1E293B" stroke-width="1"/>
+        <text x="12" y="20" font-size="12" font-weight="700" fill="#FBBF24">📊 Automated Reconciliation</text>
+        <text x="12" y="38" font-size="10.5" fill="#CBD5E1">· Catat otomatis ke Buku Kas Owner</text>
+        <text x="12" y="54" font-size="10.5" fill="#CBD5E1">· Split Payout ke Mitra UMKM &amp; Driver</text>
+        <text x="12" y="70" font-size="10.5" fill="#CBD5E1">· Pemasukan sewa vs Biaya listrik/air</text>
+        <text x="12" y="88" font-size="10" fill="#94A3B8">· Laporan Laba Rugi 1-Click PDF/Excel</text>
+        <text x="12" y="101" font-size="9.5" fill="#64748B">  (Transparansi penuh tanpa salah hitung)</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Connectors into Tier 4 Infrastructure -->
+  <g stroke-width="2" stroke="#334155" stroke-dasharray="4 4" fill="none">
+    <line x1="475" y1="905" x2="475" y2="930"/>
+    <line x1="1325" y1="905" x2="1325" y2="930"/>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- TIER 4: INFRASTRUCTURE & EXTERNAL GATEWAYS -->
+  <!-- ========================================== -->
+  <g transform="translate(50, 930)">
+    <text x="0" y="0" font-size="12" font-weight="700" fill="#64748B" letter-spacing="1.5">TIER 4 · STORAGE, RELATIONAL DATABASE &amp; EXTERNAL CLOUD SERVICES</text>
+
+    <!-- 4 Infras (Width: ~405, gap: 25) -->
+
+    <!-- Infra 1: Primary Database -->
+    <g transform="translate(0, 15)">
+      <rect width="405" height="85" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.2"/>
+      <rect x="14" y="14" width="30" height="30" rx="6" fill="#1E293B"/>
+      <text x="21" y="34" font-size="16">🗄️</text>
+      <text x="54" y="28" font-size="13" font-weight="700" fill="#FFFFFF">Relational Database &amp; Cache</text>
+      <text x="54" y="44" font-size="10.5" font-weight="500" fill="#64748B">PostgreSQL / Supabase / Redis Cache</text>
+      <text x="14" y="65" font-size="10.5" fill="#94A3B8">Multi-tenant schema, ACID Ledger, JWT Session, &amp; Realtime DB Triggers</text>
+    </g>
+
+    <!-- Infra 2: Media CDN & Storage -->
+    <g transform="translate(430, 15)">
+      <rect width="405" height="85" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.2"/>
+      <rect x="14" y="14" width="30" height="30" rx="6" fill="#1E293B"/>
+      <text x="21" y="34" font-size="16">☁️</text>
+      <text x="54" y="28" font-size="13" font-weight="700" fill="#FFFFFF">Cloud Media &amp; Static Assets</text>
+      <text x="54" y="44" font-size="10.5" font-weight="500" fill="#64748B">Cloudflare R2 / AWS S3 CDN Edge</text>
+      <text x="14" y="65" font-size="10.5" fill="#94A3B8">Foto kamar resolusi tinggi, logo mitra, foto menu makanan &amp; bukti patroli</text>
+    </g>
+
+    <!-- Infra 3: Payment & Payout Gateway -->
+    <g transform="translate(860, 15)">
+      <rect width="405" height="85" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.2"/>
+      <rect x="14" y="14" width="30" height="30" rx="6" fill="#1E293B"/>
+      <text x="21" y="34" font-size="16">💳</text>
+      <text x="54" y="28" font-size="13" font-weight="700" fill="#FFFFFF">Payment &amp; Payout Gateway</text>
+      <text x="54" y="44" font-size="10.5" font-weight="500" fill="#64748B">ASPI QRIS, Midtrans, Flip &amp; Tripay</text>
+      <text x="14" y="65" font-size="10.5" fill="#94A3B8">Inbound QRIS payment + Outbound instant payout ke mitra UMKM &amp; owner</text>
+    </g>
+
+    <!-- Infra 4: Geolocation & WhatsApp -->
+    <g transform="translate(1290, 15)">
+      <rect width="410" height="85" rx="10" fill="url(#cardGradDark)" stroke="#1E293B" stroke-width="1.2"/>
+      <rect x="14" y="14" width="30" height="30" rx="6" fill="#1E293B"/>
+      <text x="21" y="34" font-size="16">📡</text>
+      <text x="54" y="28" font-size="13" font-weight="700" fill="#FFFFFF">Spatial Maps &amp; WhatsApp Cloud</text>
+      <text x="54" y="44" font-size="10.5" font-weight="500" fill="#64748B">OSRM Routing + Meta WhatsApp API</text>
+      <text x="14" y="65" font-size="10.5" fill="#94A3B8">Kalkulasi jarak ongkir presisi &amp; pengiriman notifikasi tagihan/status pesanan</text>
+    </g>
+  </g>
+
+  <!-- Divider -->
+  <line x1="50" y1="1055" x2="1750" y2="1055" stroke="#1E293B" stroke-width="1.5"/>
+
+  <!-- ========================================== -->
+  <!-- TIER 5: END-TO-END FLOW WALKTHROUGH        -->
+  <!-- ========================================== -->
+  <g transform="translate(50, 1075)">
+    <text x="0" y="0" font-size="12" font-weight="700" fill="#64748B" letter-spacing="1.5">TIER 5 · CONCRETE WORKFLOW &amp; VALUE FLOW (CONTOH NYATA ORDER MITRA &amp; SPLIT BILL)</text>
+
+    <g transform="translate(0, 15)">
+      <rect width="1700" height="225" rx="14" fill="#0B1324" stroke="#334155" stroke-width="1.5" filter="url(#shadowGlow)"/>
+
+      <!-- Step 1: Pesan Menu & Hitung Jarak -->
+      <g transform="translate(25, 18)">
+        <circle cx="16" cy="16" r="16" fill="#065F46"/>
+        <text x="11" y="21" font-size="13" font-weight="800" fill="#34D399">1</text>
+        <text x="42" y="14" font-size="13" font-weight="700" fill="#FFFFFF">1. Anak Kost Checkout</text>
+        <text x="42" y="30" font-size="11" fill="#94A3B8">Pesan Makan / Laundry: <tspan fill="#34D399" font-weight="700">Rp 100.000</tspan></text>
+        <text x="42" y="44" font-size="10.5" fill="#94A3B8">Jarak Mitra ke Kost: <tspan fill="#F59E0B" font-weight="600">3.5 km (Jauh)</tspan></text>
+
+        <!-- Delivery Fee Rule Detail Box -->
+        <g transform="translate(0, 56)">
+          <rect width="265" height="92" rx="8" fill="#111C33" stroke="#1E293B"/>
+          <text x="12" y="20" font-size="11" font-weight="700" fill="#38BDF8">Kalkulasi Ongkir Jarak:</text>
+          <text x="12" y="38" font-size="10.5" fill="#CBD5E1">• 0 - 2 km (Dekat) = <tspan fill="#34D399" font-weight="700">Rp 2.000</tspan></text>
+          <text x="12" y="56" font-size="10.5" fill="#CBD5E1">• Sisa 1.5 km (Jauh) = 1.5 × 2.000</text>
+          <text x="12" y="76" font-size="11" font-weight="700" fill="#FBBF24">→ Total Ongkir: Rp 5.000</text>
+        </g>
+      </g>
+
+      <!-- Arrow 1 -> 2 -->
+      <path d="M 300 102 L 320 102" stroke="#34D399" stroke-width="2.5" marker-end="url(#arrowEmerald)" fill="none"/>
+
+      <!-- Step 2: KostKu Fee Engine Combined -->
+      <g transform="translate(330, 18)">
+        <circle cx="16" cy="16" r="16" fill="#155E75"/>
+        <text x="11" y="21" font-size="13" font-weight="800" fill="#38BDF8">2</text>
+        <text x="42" y="14" font-size="13" font-weight="700" fill="#FFFFFF">2. Gabungan Admin Fee</text>
+        <text x="42" y="30" font-size="11" fill="#94A3B8">Dijadikan 1 Total Transparan</text>
+        <text x="42" y="44" font-size="10.5" fill="#94A3B8">Total Tagihan: <tspan fill="#38BDF8" font-weight="700">Rp 105.500</tspan></text>
+
+        <g transform="translate(0, 56)">
+          <rect width="265" height="92" rx="8" fill="#111C33" stroke="#1E293B"/>
+          <text x="12" y="20" font-size="11" font-weight="700" fill="#FBBF24">Rincian Komponen Biaya:</text>
+          <text x="12" y="38" font-size="10.5" fill="#CBD5E1">• Subtotal Menu: Rp 100.000</text>
+          <text x="12" y="56" font-size="10.5" fill="#CBD5E1">• Ongkir Kurir: Rp 5.000</text>
+          <text x="12" y="76" font-size="11" font-weight="700" fill="#34D399">• Flat Admin KostKu: Rp 500</text>
+        </g>
+      </g>
+
+      <!-- Arrow 2 -> 3 -->
+      <path d="M 605 102 L 625 102" stroke="#38BDF8" stroke-width="2.5" marker-end="url(#arrowCyan)" fill="none"/>
+
+      <!-- Step 3: Pembayaran 1-Scan Dynamic QRIS -->
+      <g transform="translate(635, 18)">
+        <circle cx="16" cy="16" r="16" fill="#312E81"/>
+        <text x="11" y="21" font-size="13" font-weight="800" fill="#818CF8">3</text>
+        <text x="42" y="14" font-size="13" font-weight="700" fill="#FFFFFF">3. Pembayaran QRIS</text>
+        <text x="42" y="30" font-size="11" fill="#94A3B8">1-Scan Selesai Seketika</text>
+        <text x="42" y="44" font-size="10.5" fill="#94A3B8">Settlement Realtime Webhook</text>
+
+        <g transform="translate(0, 56)">
+          <rect width="265" height="92" rx="8" fill="#111C33" stroke="#1E293B"/>
+          <text x="12" y="20" font-size="11" font-weight="700" fill="#818CF8">Verifikasi &amp; Escrow:</text>
+          <text x="12" y="38" font-size="10.5" fill="#CBD5E1">• Dana masuk rekening escrow</text>
+          <text x="12" y="56" font-size="10.5" fill="#CBD5E1">• WhatsApp alert ke Toko Mitra</text>
+          <text x="12" y="76" font-size="11" font-weight="700" fill="#34D399">• Status: "Pesanan Diproses"</text>
+        </g>
+      </g>
+
+      <!-- Arrow 3 -> 4 -->
+      <path d="M 910 102 L 930 102" stroke="#818CF8" stroke-width="2.5" marker-end="url(#arrowIndigo)" fill="none"/>
+
+      <!-- Step 4: Split Pembagian Uang Otomatis -->
+      <g transform="translate(940, 18)">
+        <circle cx="16" cy="16" r="16" fill="#78350F"/>
+        <text x="11" y="21" font-size="13" font-weight="800" fill="#FBBF24">4</text>
+        <text x="42" y="14" font-size="13" font-weight="700" fill="#FFFFFF">4. Eksekusi Split Payout Otomatis</text>
+        <text x="42" y="30" font-size="11" fill="#94A3B8">Bagi Hasil Adil &amp; Transparan Sekaligus</text>
+        <text x="42" y="44" font-size="10.5" fill="#94A3B8">Multi-Owner &amp; Driver Automatic Disbursement</text>
+
+        <g transform="translate(0, 56)">
+          <rect width="730" height="92" rx="8" fill="#111C33" stroke="#1E293B"/>
+          <!-- 4 Split destinations -->
+          <g transform="translate(16, 12)">
+            <text x="0" y="14" font-size="11" font-weight="700" fill="#34D399">1. KostKu Platform</text>
+            <text x="0" y="36" font-size="16" font-weight="800" fill="#FFFFFF">Rp 500</text>
+            <text x="0" y="54" font-size="10" fill="#94A3B8">Biaya Server &amp; DB</text>
+            <text x="0" y="68" font-size="9.5" fill="#64748B">Flat per transaksi</text>
+          </g>
+          <line x1="180" y1="12" x2="180" y2="80" stroke="#1E293B" stroke-width="1.5"/>
+
+          <g transform="translate(195, 12)">
+            <text x="0" y="14" font-size="11" font-weight="700" fill="#818CF8">2. Owner Mitra (Ads Cut)</text>
+            <text x="0" y="36" font-size="16" font-weight="800" fill="#FFFFFF">Rp 10.000</text>
+            <text x="0" y="54" font-size="10" fill="#94A3B8">Bagi hasil ads owner</text>
+            <text x="0" y="68" font-size="9.5" fill="#64748B">Diset di menu Mitra Owner</text>
+          </g>
+          <line x1="375" y1="12" x2="375" y2="80" stroke="#1E293B" stroke-width="1.5"/>
+
+          <g transform="translate(390, 12)">
+            <text x="0" y="14" font-size="11" font-weight="700" fill="#38BDF8">3. Driver / Kurir</text>
+            <text x="0" y="36" font-size="16" font-weight="800" fill="#FFFFFF">Rp 5.000</text>
+            <text x="0" y="54" font-size="10" fill="#94A3B8">100% Ongkir penuh</text>
+            <text x="0" y="68" font-size="9.5" fill="#64748B">Tarif dekat + per km</text>
+          </g>
+          <line x1="550" y1="12" x2="550" y2="80" stroke="#1E293B" stroke-width="1.5"/>
+
+          <g transform="translate(565, 12)">
+            <text x="0" y="14" font-size="11" font-weight="700" fill="#F43F5E">4. Mitra UMKM Toko</text>
+            <text x="0" y="36" font-size="16" font-weight="800" fill="#FFFFFF">Rp 90.000</text>
+            <text x="0" y="54" font-size="10" fill="#94A3B8">Harga bersih produk</text>
+            <text x="0" y="68" font-size="9.5" fill="#64748B">Cair otomatis ke mitra</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- Multi-owner remark banner -->
+      <g transform="translate(25, 178)">
+        <rect width="1645" height="32" rx="6" fill="#164E63" fill-opacity="0.35" stroke="#0891B2" stroke-width="0.8"/>
+        <text x="16" y="20" font-size="11" font-weight="700" fill="#67E8F9">💡 Aturan Khusus Multi-Owner Mitra:</text>
+        <text x="255" y="20" font-size="11" fill="#E0F2FE">Jika menu berasal dari mitra milik owner kost lain, bagian Ads Cut (Rp 10.000) dialirkan langsung ke dompet Owner pemilik mitra tersebut. Jika mitra utama dari kost sendiri, owner memperoleh hak penuh!</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer Branding -->
+  <g transform="translate(50, 1335)">
+    <text x="0" y="0" font-size="11" fill="#64748B">KostKu PropTech Platform Architecture Engine · Designed with Deep-Think Precision &amp; Complete Execution Discipline</text>
+    <text x="1700" y="0" font-size="11" fill="#64748B" text-anchor="end">Production Blueprint v1.1.0 · SVG Vector Format</text>
+  </g>
+</svg>`;
+
+// Write to public folder
+const publicPath = path.join('/home/rena/.gemini/antigravity/scratch/kostku/public', 'kostku-full-system.svg');
+fs.writeFileSync(publicPath, svg, 'utf8');
+console.log('Successfully written to:', publicPath);
+
+// Also write to brain artifact directory
+const artifactDir = '/home/rena/.gemini/antigravity/brain/6318663c-dc01-4644-8421-dc82f19bcbdc';
+const artifactPath = path.join(artifactDir, 'kostku_full_system.svg');
+fs.writeFileSync(artifactPath, svg, 'utf8');
+console.log('Successfully written to artifact directory:', artifactPath);

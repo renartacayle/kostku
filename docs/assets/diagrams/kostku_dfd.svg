@@ -1,0 +1,464 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1520" width="1920" height="1520" style="background-color: #FFFFFF; font-family: 'Segoe UI', Arial, Helvetica, sans-serif;">
+  <defs>
+    <!-- Arrow Marker Pure Black -->
+    <marker id="arrowBlack" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#000000"/>
+    </marker>
+    <!-- Arrow Marker Reverse (Read from Store) -->
+    <marker id="arrowBlackRev" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 9 1.5 L 0 5 L 9 8.5 z" fill="#000000"/>
+    </marker>
+    <style>
+      .halo-text {
+        paint-order: stroke fill;
+        stroke: #FFFFFF;
+        stroke-width: 6px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1920" height="1520" fill="#FFFFFF"/>
+
+  <!-- ============================================================== -->
+  <!-- HEADER STANDAR DOKUMEN SKPL / RPL                              -->
+  <!-- ============================================================== -->
+  <g transform="translate(60, 40)">
+    <!-- Header Box -->
+    <rect x="0" y="0" width="1800" height="70" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <line x1="1250" y1="0" x2="1250" y2="70" stroke="#000000" stroke-width="1.5"/>
+    <line x1="1520" y1="0" x2="1520" y2="70" stroke="#000000" stroke-width="1.5"/>
+
+    <text x="24" y="30" font-size="20" font-weight="900" fill="#000000" letter-spacing="0.5">DATA FLOW DIAGRAM (DFD) — KOSTKU SYSTEM</text>
+    <text x="24" y="52" font-size="12" font-weight="500" fill="#000000">Standar Notasi Buku Teks: Yourdon &amp; DeMarco (Academic Monochrome Engineering Edition)</text>
+
+    <text x="1265" y="28" font-size="10" font-weight="700" fill="#000000">DOKUMEN:</text>
+    <text x="1265" y="48" font-size="12" font-weight="800" fill="#000000">SKPL / ARSITEKTUR</text>
+
+    <text x="1535" y="28" font-size="10" font-weight="700" fill="#000000">LEVEL:</text>
+    <text x="1535" y="48" font-size="12" font-weight="800" fill="#000000">LEVEL 0 &amp; LEVEL 1</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- BAGIAN A: DFD LEVEL 0 (DIAGRAM KONTEKS STANDAR MONOKROM)        -->
+  <!-- Kaidah: 1 Lingkaran Pusat (Proses 0), Entitas Kotak, NO STORE  -->
+  <!-- ============================================================== -->
+  <g transform="translate(60, 130)">
+    <!-- Section Outer Frame -->
+    <rect width="1800" height="470" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="0" y="0" width="380" height="28" fill="#000000"/>
+    <text x="14" y="19" font-size="12" font-weight="800" fill="#FFFFFF" letter-spacing="1">BAGIAN 1 · DFD LEVEL 0 (DIAGRAM KONTEKS)</text>
+
+    <!-- ENTITAS EKSTERNAL (TERMINATOR: KOTAK PERSEGI PANJANG HITAM PUTIH) -->
+
+    <!-- Entitas 1: Pencari Kost (Kiri Atas) -->
+    <g transform="translate(40, 60)">
+      <rect width="190" height="60" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <text x="95" y="28" font-size="13" font-weight="800" fill="#000000" text-anchor="middle">PENCARI KOST</text>
+      <text x="95" y="44" font-size="9.5" fill="#000000" text-anchor="middle">(External Entity E1)</text>
+    </g>
+
+    <!-- Entitas 2: Anak Kost / Penghuni (Kiri Tengah) -->
+    <g transform="translate(40, 205)">
+      <rect width="190" height="60" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <text x="95" y="28" font-size="13" font-weight="800" fill="#000000" text-anchor="middle">PENGHUNI KOST</text>
+      <text x="95" y="44" font-size="9.5" fill="#000000" text-anchor="middle">(External Entity E2)</text>
+    </g>
+
+    <!-- Entitas 3: Pemilik Kost / Owner (Kiri Bawah) -->
+    <g transform="translate(40, 350)">
+      <rect width="190" height="60" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <text x="95" y="28" font-size="13" font-weight="800" fill="#000000" text-anchor="middle">PEMILIK KOST</text>
+      <text x="95" y="44" font-size="9.5" fill="#000000" text-anchor="middle">(External Entity E3)</text>
+    </g>
+
+    <!-- PROSES PUSAT: LINGKARAN BESAR STANDAR YOURDON & DEMARCO (TENGAH) -->
+    <g transform="translate(900, 240)">
+      <!-- Circle Process -->
+      <circle cx="0" cy="0" r="110" fill="#FFFFFF" stroke="#000000" stroke-width="2.5"/>
+      <line x1="-100" y1="-32" x2="100" y2="-32" stroke="#000000" stroke-width="1.5"/>
+      <line x1="-100" y1="36" x2="100" y2="36" stroke="#000000" stroke-width="1.5"/>
+
+      <!-- Process Number Top -->
+      <text x="0" y="-48" font-size="18" font-weight="900" fill="#000000" text-anchor="middle">0</text>
+
+      <!-- Process Name Center -->
+      <text x="0" y="-10" font-size="14" font-weight="800" fill="#000000" text-anchor="middle">SISTEM INFORMASI</text>
+      <text x="0" y="10" font-size="14" font-weight="800" fill="#000000" text-anchor="middle">&amp; MARKETPLACE</text>
+      <text x="0" y="28" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">KOSTKU</text>
+
+      <!-- Process Subtitle / System Boundary -->
+      <text x="0" y="54" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">PROSES SISTEM PUSAT</text>
+    </g>
+
+    <!-- ENTITAS EKSTERNAL (KANAN) -->
+
+    <!-- Entitas 4: Staf Operasional (Kanan Atas) -->
+    <g transform="translate(1570, 45)">
+      <rect width="190" height="55" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <text x="95" y="26" font-size="12" font-weight="800" fill="#000000" text-anchor="middle">STAF OPERASIONAL</text>
+      <text x="95" y="42" font-size="9.5" fill="#000000" text-anchor="middle">(External Entity E4)</text>
+    </g>
+
+    <!-- Entitas 5: Mitra UMKM (Kanan Tengah-Atas) -->
+    <g transform="translate(1570, 145)">
+      <rect width="190" height="55" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <text x="95" y="26" font-size="12" font-weight="800" fill="#000000" text-anchor="middle">MITRA UMKM</text>
+      <text x="95" y="42" font-size="9.5" fill="#000000" text-anchor="middle">(External Entity E5)</text>
+    </g>
+
+    <!-- Entitas 6: Payment Gateway (Kanan Tengah-Bawah) -->
+    <g transform="translate(1570, 245)">
+      <rect width="190" height="55" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <text x="95" y="26" font-size="12" font-weight="800" fill="#000000" text-anchor="middle">PAYMENT GATEWAY</text>
+      <text x="95" y="42" font-size="9.5" fill="#000000" text-anchor="middle">(External Entity E6)</text>
+    </g>
+
+    <!-- Entitas 7: WhatsApp Gateway (Kanan Bawah) -->
+    <g transform="translate(1570, 345)">
+      <rect width="190" height="55" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <text x="95" y="26" font-size="12" font-weight="800" fill="#000000" text-anchor="middle">WHATSAPP GATEWAY</text>
+      <text x="95" y="42" font-size="9.5" fill="#000000" text-anchor="middle">(External Entity E7)</text>
+    </g>
+
+    <!-- ARUS DATA LEVEL 0 (GARIS HITAM SOLID DENGAN ROUTING JELAS) -->
+    <g stroke="#000000" stroke-width="1.4" fill="none">
+      <!-- 1. Pencari Kost <-> Sistem -->
+      <!-- Inflow: Form Pencarian, Booking Kamar -->
+      <path d="M 230 75 L 530 75 L 805 170" marker-end="url(#arrowBlack)"/>
+      <!-- Outflow: Info Kost, Bento 3D, Kuitansi Booking -->
+      <path d="M 795 195 L 530 105 L 230 105" marker-end="url(#arrowBlack)"/>
+
+      <!-- 2. Penghuni Kost <-> Sistem -->
+      <!-- Inflow: Bayar Sewa, Order Menu Mitra, Tiket Komplain -->
+      <path d="M 230 220 L 530 220 L 790 230" marker-end="url(#arrowBlack)"/>
+      <!-- Outflow: Tagihan Sewa, Status Order, Solusi Komplain -->
+      <path d="M 790 250 L 530 250 L 230 250" marker-end="url(#arrowBlack)"/>
+
+      <!-- 3. Pemilik Kost <-> Sistem -->
+      <!-- Inflow: Input Kamar, Setting Ads Mitra, Jadwal Staf -->
+      <path d="M 230 365 L 530 365 L 805 305" marker-end="url(#arrowBlack)"/>
+      <!-- Outflow: Laporan Okupansi, Buku Kas, Rekap Payout Mitra -->
+      <path d="M 795 325 L 530 395 L 230 395" marker-end="url(#arrowBlack)"/>
+
+      <!-- 4. Sistem <-> Staf Operasional -->
+      <!-- Inflow: Presensi GPS, Scan QR Ronda, Laporan Tugas -->
+      <path d="M 1570 65 L 1260 65 L 995 170" marker-end="url(#arrowBlack)"/>
+      <!-- Outflow: Validasi Presensi, Jadwal Ronda, Tiket Servis -->
+      <path d="M 1005 190 L 1260 90 L 1570 90" marker-end="url(#arrowBlack)"/>
+
+      <!-- 5. Sistem <-> Mitra UMKM -->
+      <!-- Inflow: Data Menu & Logo, Konfirmasi Order, Bukti Antar -->
+      <path d="M 1570 160 L 1260 160 L 1008 215" marker-end="url(#arrowBlack)"/>
+      <!-- Outflow: Notifikasi Order Masuk, Rekap Settlement Bersih -->
+      <path d="M 1008 235 L 1260 185 L 1570 185" marker-end="url(#arrowBlack)"/>
+
+      <!-- 6. Sistem <-> Payment Gateway -->
+      <!-- Outflow: Request Dynamic QRIS ASPI, Instruksi Split Payout -->
+      <path d="M 1008 255 L 1260 260 L 1570 260" marker-end="url(#arrowBlack)"/>
+      <!-- Inflow: Callback Webhook Lunas QRIS, Konfirmasi Payout Bank -->
+      <path d="M 1570 285 L 1260 285 L 998 275" marker-end="url(#arrowBlack)"/>
+
+      <!-- 7. Sistem -> WhatsApp Gateway -->
+      <!-- Outflow: Broadcast Billing Pengingat (H-3 s/d Denda), Kuitansi PDF -->
+      <path d="M 985 295 L 1260 365 L 1570 365" marker-end="url(#arrowBlack)"/>
+    </g>
+
+    <!-- DATA FLOW LABELS (TEKS HITAM DENGAN HALO PUTIH ANTI-TABRAKAN) -->
+    <!-- Kiri (User/Owner) -->
+    <text class="halo-text" x="380" y="68" font-size="10" font-weight="700" fill="#000000">Data Pencarian, Form Booking Kamar</text>
+    <text class="halo-text" x="380" y="118" font-size="10" font-weight="700" fill="#000000">Katalog Kamar, Tur Bento 3D, Kuitansi Booking</text>
+
+    <text class="halo-text" x="380" y="214" font-size="10" font-weight="700" fill="#000000">Pembayaran Sewa, Order Menu Mitra, Tiket Komplain</text>
+    <text class="halo-text" x="380" y="264" font-size="10" font-weight="700" fill="#000000">E-Bill Tagihan, Status Pesanan, Solusi Komplain</text>
+
+    <text class="halo-text" x="380" y="358" font-size="10" font-weight="700" fill="#000000">Input Kamar, Tarif, Setting % Ads Mitra, Shift Staf</text>
+    <text class="halo-text" x="380" y="408" font-size="10" font-weight="700" fill="#000000">Laporan Okupansi, Buku Kas, Rekap Payout Mitra</text>
+
+    <!-- Kanan (Staf/Mitra/Gateway) -->
+    <text class="halo-text" x="1400" y="58" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Presensi GPS, Scan QR Ronda, Laporan Tugas Selesai</text>
+    <text class="halo-text" x="1400" y="105" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Verifikasi Anti-Mock, Jadwal Ronda, Tiket Servis</text>
+
+    <text class="halo-text" x="1400" y="152" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Katalog Menu &amp; Logo, Konfirmasi Order, Bukti Antar</text>
+    <text class="halo-text" x="1400" y="198" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Notifikasi Order Baru Masuk, Settlement Dana Bersih</text>
+
+    <text class="halo-text" x="1400" y="252" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Request Dynamic ASPI QRIS, Instruksi Payout Disburse</text>
+    <text class="halo-text" x="1400" y="298" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Callback Webhook Lunas QRIS, Konfirmasi Payout Bank</text>
+
+    <text class="halo-text" x="1400" y="356" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Broadcast Billing Pengingat (H-3 s/d Denda), Kuitansi PDF</text>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- BAGIAN B: DFD LEVEL 1 (DEKOMPOSISI FUNGSIONAL & DATA STORE)    -->
+  <!-- Kaidah: Lingkaran Proses 1.0 - 6.0, Data Store Garis Paralel = -->
+  <!-- ============================================================== -->
+  <g transform="translate(60, 620)">
+    <rect width="1800" height="850" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="0" y="0" width="460" height="28" fill="#000000"/>
+    <text x="14" y="19" font-size="12" font-weight="800" fill="#FFFFFF" letter-spacing="1">BAGIAN 2 · DFD LEVEL 1 (DEKOMPOSISI PROSES &amp; DATA STORE)</text>
+
+    <!-- KOLOM KIRI: 6 PROSES (LINGKARAN STANDAR YOURDON & DEMARCO DENGAN RADIUS 54PX) -->
+
+    <!-- Proses 1.0 -->
+    <g transform="translate(180, 105)">
+      <circle cx="0" cy="0" r="54" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <line x1="-52" y1="-14" x2="52" y2="-14" stroke="#000000" stroke-width="1.5"/>
+      <text x="0" y="-24" font-size="13" font-weight="900" fill="#000000" text-anchor="middle">1.0</text>
+      <text x="0" y="6" font-size="10.5" font-weight="800" fill="#000000" text-anchor="middle">AUTENTIKASI &amp;</text>
+      <text x="0" y="22" font-size="10.5" font-weight="800" fill="#000000" text-anchor="middle">AKUN USER</text>
+    </g>
+
+    <!-- Proses 2.0 -->
+    <g transform="translate(180, 230)">
+      <circle cx="0" cy="0" r="54" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <line x1="-52" y1="-14" x2="52" y2="-14" stroke="#000000" stroke-width="1.5"/>
+      <text x="0" y="-24" font-size="13" font-weight="900" fill="#000000" text-anchor="middle">2.0</text>
+      <text x="0" y="6" font-size="10.5" font-weight="800" fill="#000000" text-anchor="middle">KATALOG KAMAR</text>
+      <text x="0" y="22" font-size="10.5" font-weight="800" fill="#000000" text-anchor="middle">&amp; BENTO 3D</text>
+    </g>
+
+    <!-- Proses 3.0 -->
+    <g transform="translate(180, 355)">
+      <circle cx="0" cy="0" r="54" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <line x1="-52" y1="-14" x2="52" y2="-14" stroke="#000000" stroke-width="1.5"/>
+      <text x="0" y="-24" font-size="13" font-weight="900" fill="#000000" text-anchor="middle">3.0</text>
+      <text x="0" y="6" font-size="10" font-weight="800" fill="#000000" text-anchor="middle">BOOKING LOCK &amp;</text>
+      <text x="0" y="22" font-size="10" font-weight="800" fill="#000000" text-anchor="middle">KONTRAK SEWA</text>
+    </g>
+
+    <!-- Proses 4.0 -->
+    <g transform="translate(180, 480)">
+      <circle cx="0" cy="0" r="54" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <line x1="-52" y1="-14" x2="52" y2="-14" stroke="#000000" stroke-width="1.5"/>
+      <text x="0" y="-24" font-size="13" font-weight="900" fill="#000000" text-anchor="middle">4.0</text>
+      <text x="0" y="6" font-size="10.5" font-weight="800" fill="#000000" text-anchor="middle">INVOICING SEWA</text>
+      <text x="0" y="22" font-size="10.5" font-weight="800" fill="#000000" text-anchor="middle">&amp; QRIS ASPI</text>
+    </g>
+
+    <!-- Proses 5.0 -->
+    <g transform="translate(180, 605)">
+      <circle cx="0" cy="0" r="54" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <line x1="-52" y1="-14" x2="52" y2="-14" stroke="#000000" stroke-width="1.5"/>
+      <text x="0" y="-24" font-size="13" font-weight="900" fill="#000000" text-anchor="middle">5.0</text>
+      <text x="0" y="6" font-size="10" font-weight="800" fill="#000000" text-anchor="middle">ORDER MITRA &amp;</text>
+      <text x="0" y="22" font-size="10" font-weight="800" fill="#000000" text-anchor="middle">SPLIT FEE OWNER</text>
+    </g>
+
+    <!-- Proses 6.0 -->
+    <g transform="translate(180, 730)">
+      <circle cx="0" cy="0" r="54" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+      <line x1="-52" y1="-14" x2="52" y2="-14" stroke="#000000" stroke-width="1.5"/>
+      <text x="0" y="-24" font-size="13" font-weight="900" fill="#000000" text-anchor="middle">6.0</text>
+      <text x="0" y="6" font-size="10" font-weight="800" fill="#000000" text-anchor="middle">PRESENSI GPS &amp;</text>
+      <text x="0" y="22" font-size="10" font-weight="800" fill="#000000" text-anchor="middle">PATROLI QR</text>
+    </g>
+
+    <!-- KOLOM TENGAH: 7 DATA STORE (STANDAR DUA GARIS PARALEL TERBUKA) -->
+
+    <!-- Store D1: Data Pengguna -->
+    <g transform="translate(450, 80)">
+      <line x1="0" y1="0" x2="440" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="50" x2="440" y2="50" stroke="#000000" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="50" stroke="#000000" stroke-width="1.5"/>
+      <text x="30" y="32" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">D1</text>
+      <text x="75" y="22" font-size="12" font-weight="800" fill="#000000">DATA PENGGUNA &amp; PROFIL HAK AKSES</text>
+      <text x="75" y="38" font-size="10" fill="#000000">id, nama, email, phone, role, password_hash, wallet_balance</text>
+    </g>
+
+    <!-- Store D2: Data Kost & Kamar -->
+    <g transform="translate(450, 185)">
+      <line x1="0" y1="0" x2="440" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="50" x2="440" y2="50" stroke="#000000" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="50" stroke="#000000" stroke-width="1.5"/>
+      <text x="30" y="32" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">D2</text>
+      <text x="75" y="22" font-size="12" font-weight="800" fill="#000000">DATA PROPERTI KOST &amp; UNIT KAMAR</text>
+      <text x="75" y="38" font-size="10" fill="#000000">kost_uid, owner_id, room_number, price, status, bento_spatial</text>
+    </g>
+
+    <!-- Store D3: Data Booking & Kontrak -->
+    <g transform="translate(450, 290)">
+      <line x1="0" y1="0" x2="440" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="50" x2="440" y2="50" stroke="#000000" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="50" stroke="#000000" stroke-width="1.5"/>
+      <text x="30" y="32" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">D3</text>
+      <text x="75" y="22" font-size="12" font-weight="800" fill="#000000">DATA BOOKING, SEWA &amp; KONTRAK DIGITAL</text>
+      <text x="75" y="38" font-size="10" fill="#000000">booking_id, room_id, user_id, lock_timer, contract_pdf_url</text>
+    </g>
+
+    <!-- Store D4: Data Invoicing & Tagihan -->
+    <g transform="translate(450, 395)">
+      <line x1="0" y1="0" x2="440" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="50" x2="440" y2="50" stroke="#000000" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="50" stroke="#000000" stroke-width="1.5"/>
+      <text x="30" y="32" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">D4</text>
+      <text x="75" y="22" font-size="12" font-weight="800" fill="#000000">DATA INVOICING, TAGIHAN &amp; QRIS</text>
+      <text x="75" y="38" font-size="10" fill="#000000">invoice_id, base_price, denda, total, status_bayar, qris_ref</text>
+    </g>
+
+    <!-- Store D5: Data Mitra, Menu & Orders -->
+    <g transform="translate(450, 500)">
+      <line x1="0" y1="0" x2="440" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="50" x2="440" y2="50" stroke="#000000" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="50" stroke="#000000" stroke-width="1.5"/>
+      <text x="30" y="32" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">D5</text>
+      <text x="75" y="22" font-size="12" font-weight="800" fill="#000000">DATA MITRA, MENU &amp; ORDER SPLIT</text>
+      <text x="75" y="38" font-size="10" fill="#000000">mitra_id, origin_owner_id, delivery_fee, flat_fee_500, ads_cut</text>
+    </g>
+
+    <!-- Store D6: Data Presensi, Patroli & Tugas -->
+    <g transform="translate(450, 605)">
+      <line x1="0" y1="0" x2="440" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="50" x2="440" y2="50" stroke="#000000" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="50" stroke="#000000" stroke-width="1.5"/>
+      <text x="30" y="32" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">D6</text>
+      <text x="75" y="22" font-size="12" font-weight="800" fill="#000000">DATA PRESENSI, PATROLI &amp; TUGAS STAF</text>
+      <text x="75" y="38" font-size="10" fill="#000000">attendance_id, mock_flag, qr_hash, checkpoint, foto_inspeksi</text>
+    </g>
+
+    <!-- Store D7: Buku Kas & Payout -->
+    <g transform="translate(450, 710)">
+      <line x1="0" y1="0" x2="440" y2="0" stroke="#000000" stroke-width="2"/>
+      <line x1="0" y1="50" x2="440" y2="50" stroke="#000000" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="50" stroke="#000000" stroke-width="1.5"/>
+      <text x="30" y="32" font-size="15" font-weight="900" fill="#000000" text-anchor="middle">D7</text>
+      <text x="75" y="22" font-size="12" font-weight="800" fill="#000000">BUKU KAS, MUTASI &amp; DISBURSEMENT PAYOUT</text>
+      <text x="75" y="38" font-size="10" fill="#000000">ledger_id, tipe_mutasi, nominal, flip_tripay_ref, status_payout</text>
+    </g>
+
+    <!-- ARROWS PROCESS TO STORES (READ & WRITE ALIRAN DATA DENGAN MARKER DUA ARAH) -->
+    <g stroke="#000000" stroke-width="1.4" fill="none">
+      <!-- 1.0 <-> D1 (Read User Data & Update User) -->
+      <path d="M 235 105 L 450 105" marker-start="url(#arrowBlackRev)" marker-end="url(#arrowBlack)"/>
+      
+      <!-- 2.0 <-> D2 (Read Rooms & Write Room Catalog) -->
+      <path d="M 235 230 L 450 210" marker-start="url(#arrowBlackRev)" marker-end="url(#arrowBlack)"/>
+      
+      <!-- 3.0 <-> D2 (Read Room Status) & D3 (Write Booking Contract) -->
+      <path d="M 235 345 L 340 345 L 450 225" marker-end="url(#arrowBlack)"/>
+      <path d="M 235 365 L 340 365 L 450 315" marker-end="url(#arrowBlack)"/>
+      
+      <!-- 4.0 <-> D3 (Read Booking) & D4 (Write Invoice) & D7 (Write Kas Masuk) -->
+      <path d="M 235 470 L 330 470 L 450 325" marker-start="url(#arrowBlackRev)"/>
+      <path d="M 235 480 L 450 420" marker-end="url(#arrowBlack)"/>
+      <path d="M 225 505 L 340 505 L 340 735 L 450 735" marker-end="url(#arrowBlack)"/>
+      
+      <!-- 5.0 <-> D5 (Read Menu / Write Order) & D7 (Write Split Fee & Payout) -->
+      <path d="M 235 605 L 450 525" marker-start="url(#arrowBlackRev)" marker-end="url(#arrowBlack)"/>
+      <path d="M 225 625 L 360 625 L 360 725 L 450 725" marker-end="url(#arrowBlack)"/>
+      
+      <!-- 6.0 <-> D6 (Read Shift / Write Attendance & Patrol Log) -->
+      <path d="M 235 730 L 450 630" marker-start="url(#arrowBlackRev)" marker-end="url(#arrowBlack)"/>
+    </g>
+
+    <!-- KOLOM KANAN: MATRIKS DETAIL ALIRAN DATA MASUK & KELUAR -->
+    <g transform="translate(940, 80)">
+      <rect width="820" height="715" fill="#FFFFFF" stroke="#000000" stroke-width="1.5"/>
+
+      <!-- Table Header -->
+      <rect x="0" y="0" width="820" height="32" fill="#000000"/>
+      <text x="14" y="21" font-size="11" font-weight="900" fill="#FFFFFF">ID</text>
+      <text x="60" y="21" font-size="11" font-weight="900" fill="#FFFFFF">NAMA PROSES</text>
+      <text x="280" y="21" font-size="11" font-weight="900" fill="#FFFFFF">INPUT (DARI)</text>
+      <text x="540" y="21" font-size="11" font-weight="900" fill="#FFFFFF">OUTPUT (MENUJU)</text>
+
+      <!-- Table Rows (Black and White Borders) -->
+      <!-- Row 1.0 -->
+      <g transform="translate(0, 32)">
+        <text x="14" y="24" font-size="11" font-weight="900" fill="#000000">1.0</text>
+        <text x="60" y="24" font-size="11" font-weight="700" fill="#000000">Autentikasi &amp; Akun User</text>
+        <text x="280" y="18" font-size="10" fill="#000000">• Kredensial User (E1-E5)</text>
+        <text x="280" y="32" font-size="10" fill="#000000">• Data User (D1)</text>
+        <text x="540" y="18" font-size="10" fill="#000000">• Token JWT, Profil User (E1-E5)</text>
+        <text x="540" y="32" font-size="10" fill="#000000">• Update Record User (D1)</text>
+        <line x1="0" y1="46" x2="820" y2="46" stroke="#000000" stroke-width="1"/>
+      </g>
+
+      <!-- Row 2.0 -->
+      <g transform="translate(0, 78)">
+        <text x="14" y="24" font-size="11" font-weight="900" fill="#000000">2.0</text>
+        <text x="60" y="24" font-size="11" font-weight="700" fill="#000000">Katalog Kamar &amp; Bento 3D</text>
+        <text x="280" y="18" font-size="10" fill="#000000">• Form Kamar (E3 Owner)</text>
+        <text x="280" y="32" font-size="10" fill="#000000">• Filter Kamar (E1 Pencari)</text>
+        <text x="540" y="18" font-size="10" fill="#000000">• Simpan Kamar (D2)</text>
+        <text x="540" y="32" font-size="10" fill="#000000">• Tampilan Bento 3D (E1 Pencari)</text>
+        <line x1="0" y1="46" x2="820" y2="46" stroke="#000000" stroke-width="1"/>
+      </g>
+
+      <!-- Row 3.0 -->
+      <g transform="translate(0, 124)">
+        <text x="14" y="24" font-size="11" font-weight="900" fill="#000000">3.0</text>
+        <text x="60" y="24" font-size="11" font-weight="700" fill="#000000">Booking Lock &amp; Kontrak</text>
+        <text x="280" y="18" font-size="10" fill="#000000">• Pengajuan Booking (E1)</text>
+        <text x="280" y="32" font-size="10" fill="#000000">• Status Kamar (D2)</text>
+        <text x="540" y="18" font-size="10" fill="#000000">• 15-Min Lock Status (D2)</text>
+        <text x="540" y="32" font-size="10" fill="#000000">• Surat Kontrak PDF (D3, E1)</text>
+        <line x1="0" y1="46" x2="820" y2="46" stroke="#000000" stroke-width="1"/>
+      </g>
+
+      <!-- Row 4.0 -->
+      <g transform="translate(0, 170)">
+        <text x="14" y="24" font-size="11" font-weight="900" fill="#000000">4.0</text>
+        <text x="60" y="24" font-size="11" font-weight="700" fill="#000000">Invoicing Sewa &amp; QRIS</text>
+        <text x="280" y="18" font-size="10" fill="#000000">• Jadwal Jatuh Tempo (D3)</text>
+        <text x="280" y="32" font-size="10" fill="#000000">• Callback Lunas (E6 PG)</text>
+        <text x="540" y="18" font-size="10" fill="#000000">• E-Bill &amp; Denda Harian (D4, E2, E7)</text>
+        <text x="540" y="32" font-size="10" fill="#000000">• Kas Masuk Sewa (D7)</text>
+        <line x1="0" y1="46" x2="820" y2="46" stroke="#000000" stroke-width="1"/>
+      </g>
+
+      <!-- Row 5.0 -->
+      <g transform="translate(0, 216)">
+        <text x="14" y="24" font-size="11" font-weight="900" fill="#000000">5.0</text>
+        <text x="60" y="24" font-size="11" font-weight="700" fill="#000000">Order Mitra &amp; Split Fee</text>
+        <text x="280" y="18" font-size="10" fill="#000000">• Cart &amp; Titik Antar (E2)</text>
+        <text x="280" y="32" font-size="10" fill="#000000">• Koordinat Mitra (D5)</text>
+        <text x="540" y="18" font-size="10" fill="#000000">• Order Baru Masuk (D5, E5)</text>
+        <text x="540" y="32" font-size="10" fill="#000000">• Split Rp 500, Ads Cut, Driver (D7)</text>
+        <line x1="0" y1="46" x2="820" y2="46" stroke="#000000" stroke-width="1"/>
+      </g>
+
+      <!-- Row 6.0 -->
+      <g transform="translate(0, 262)">
+        <text x="14" y="24" font-size="11" font-weight="900" fill="#000000">6.0</text>
+        <text x="60" y="24" font-size="11" font-weight="700" fill="#000000">Presensi GPS &amp; Patroli QR</text>
+        <text x="280" y="18" font-size="10" fill="#000000">• Geofence &amp; Selfie (E4)</text>
+        <text x="280" y="32" font-size="10" fill="#000000">• Scan QR Checkpoint (E4)</text>
+        <text x="540" y="18" font-size="10" fill="#000000">• Presensi Valid (D6)</text>
+        <text x="540" y="32" font-size="10" fill="#000000">• Log Ronda &amp; Task Selesai (D6, E3)</text>
+        <line x1="0" y1="46" x2="820" y2="46" stroke="#000000" stroke-width="1"/>
+      </g>
+
+      <!-- Technical Engineering Notes -->
+      <g transform="translate(20, 325)">
+        <rect width="780" height="360" fill="#FFFFFF" stroke="#000000" stroke-width="1.5"/>
+        <text x="20" y="28" font-size="13" font-weight="900" fill="#000000">KAIDAH &amp; ATURAN FORMAL DFD SISTEM KOSTKU (BUKU TEKS TEKNIK)</text>
+
+        <text x="20" y="58" font-size="11" font-weight="800" fill="#000000">1. Konvensi Penamaan &amp; Simbol Yourdon &amp; DeMarco:</text>
+        <text x="20" y="76" font-size="10.5" fill="#000000">• Entitas Luar (Terminator E1-E7) disimbolkan dengan Persegi Panjang (Rectangle).</text>
+        <text x="20" y="94" font-size="10.5" fill="#000000">• Proses (0 &amp; 1.0-6.0) disimbolkan dengan Lingkaran (Circle / Bubble) bergaris pemisah nomor proses.</text>
+        <text x="20" y="112" font-size="10.5" fill="#000000">• Penyimpanan Data (Data Store D1-D7) disimbolkan dengan Dua Garis Horizontal Terbuka (=).</text>
+        <text x="20" y="130" font-size="10.5" fill="#000000">• Aliran Data (Data Flow) disimbolkan dengan Panah Berarah (Arrow) disertai label nama data (noun phrase).</text>
+
+        <text x="20" y="158" font-size="11" font-weight="800" fill="#000000">2. Integritas Diagram Konteks &amp; Konservasi Aliran Data (Balancing Rule):</text>
+        <text x="20" y="176" font-size="10.5" fill="#000000">• Tidak ada Data Store pada Diagram Konteks (Level 0) karena hanya fokus pada batas sistem luar.</text>
+        <text x="20" y="194" font-size="10.5" fill="#000000">• Setiap aliran data dari entitas luar pada Level 0 terdistribusi konsisten ke sub-proses Level 1 (Balancing Rule).</text>
+        <text x="20" y="212" font-size="10.5" fill="#000000">• Menolak Black Hole (proses tanpa output), Miracle (proses tanpa input), dan Grey Hole (input tidak mencukupi).</text>
+
+        <text x="20" y="240" font-size="11" font-weight="800" fill="#000000">3. Logika Khusus Multi-Owner &amp; Tiered Delivery (Proses 5.0):</text>
+        <text x="20" y="258" font-size="10.5" fill="#000000">• Pemesanan mitra membaca koordinat toko dan kost untuk menentukan ongkir bertingkat:</text>
+        <text x="35" y="276" font-size="10.5" font-weight="700" fill="#000000">Jarak ≤ 2 km = Rp 2.000 | Jarak > 2 km = Rp 2.000 + (jarak - 2) * Rp 2.500/km.</text>
+        <text x="20" y="294" font-size="10.5" fill="#000000">• Flat platform fee Rp 500 disatukan transparan ke invoice checkout QRIS.</text>
+        <text x="20" y="312" font-size="10.5" fill="#000000">• Potongan Ads Cut owner otomatis dialirkan ke rekening wallet pemilik toko aslinya (origin_owner_id).</text>
+        <text x="20" y="330" font-size="10.5" fill="#000000">• Driver menerima 100% ongkir tanpa potongan komisi sepeser pun.</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer Etiket Standar Teknik -->
+  <g transform="translate(60, 1485)">
+    <text x="0" y="0" font-size="11" font-weight="700" fill="#000000">KEMENTERIAN PENDIDIKAN / REKAYASA PERANGKAT LUNAK · DIAGRAM ALIR DATA RESMI (MONOCHROME SPECIFICATION)</text>
+    <text x="1800" y="0" font-size="11" font-weight="700" fill="#000000" text-anchor="end">STATUS: FINAL VERIFIED · REVISI 2.0.0 (MONOCHROME TEXTBOOK EDITION)</text>
+  </g>
+</svg>

@@ -10,15 +10,16 @@ export default function FloorPlanModal({ isOpen, onClose, kost }) {
   if (!isOpen || !kost) return null;
 
   const room = kost.rooms?.[0] || {};
-  const dimensions = room.dimension || '3.5m x 4.0m';
+  const rawSize = room.size || room.dimension || '3.5m x 4.0m';
+  const dimensions = rawSize.includes('x') && !rawSize.includes('m') ? rawSize.replace('x', 'm x ') + 'm' : rawSize;
   const bedType = room.bedType || 'super_single';
   
-  // Extract furniture list from facilities
-  const facilities = (kost.facilities || []).map(f => f.toLowerCase());
+  // Extract furniture list from facilities or defaults
+  const rawFacilities = (kost.facilities || kost.features || ['AC', 'KM Dalam', 'WiFi', 'Meja Kerja', 'Lemari']).map(f => String(f).toLowerCase());
   const furnitures = ['wardrobe', 'desk', 'window'];
-  if (facilities.some(f => f.includes('ac'))) furnitures.push('ac');
-  if (facilities.some(f => f.includes('mandi') || f.includes('km'))) furnitures.push('bathroom');
-  if (facilities.some(f => f.includes('kulkas'))) furnitures.push('fridge');
+  if (rawFacilities.some(f => f.includes('ac'))) furnitures.push('ac');
+  if (rawFacilities.some(f => f.includes('mandi') || f.includes('km'))) furnitures.push('bathroom');
+  if (rawFacilities.some(f => f.includes('kulkas') || f.includes('fridge'))) furnitures.push('fridge');
 
   return (
     <div style={{
@@ -27,7 +28,7 @@ export default function FloorPlanModal({ isOpen, onClose, kost }) {
       background: 'rgba(15, 23, 42, 0.88)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      zIndex: 2000,
+      zIndex: 10000,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

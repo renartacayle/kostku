@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KostKu - Metode Pembayaran Resmi & Kebijakan Transaksi (TriPay Gateway)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen py-10 px-4 sm:px-6 lg:px-8 antialiased selection:bg-blue-600 selection:text-white">
+
+  <div class="max-w-4xl mx-auto space-y-8">
+    
+    <!-- Header -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-sm">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-6">
+        <div class="flex items-center gap-3">
+          <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg shadow-blue-500/20">
+            K
+          </div>
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white">KostKu Indonesia</h1>
+            <p class="text-xs sm:text-sm text-slate-400">Platform Digital Manajemen & Pemesanan Hunian Kost</p>
+          </div>
+        </div>
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Payment Gateway Resmi
+        </div>
+      </div>
+
+      <h2 class="text-xl font-bold text-white mb-3">Informasi Sistem Pembayaran & Kemitraan Gateway</h2>
+      <p class="text-slate-300 text-sm leading-relaxed mb-6">
+        Seluruh transaksi keuangan digital pada platform KostKu (pembayaran sewa kamar, deposit jaminan, dan tagihan utilitas) diproses secara terenkripsi dan aman melalui mitra gerbang pembayaran berlisensi resmi Bank Indonesia: <strong>PT TriPay Multi Transaksi (TriPay)</strong>.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
+        <div class="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/60">
+          <div class="font-bold text-white mb-1">Keamanan TLS 1.3 & 256-bit</div>
+          <p class="text-slate-400">Data sensitif perbankan dan nomor akun terlindungi enkripsi standar PCI-DSS.</p>
+        </div>
+        <div class="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/60">
+          <div class="font-bold text-white mb-1">Regulasi Bank Indonesia</div>
+          <p class="text-slate-400">Mematuhi standar QRIS ASPI EMVCo dan regulasi sistem pembayaran nasional.</p>
+        </div>
+        <div class="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/60">
+          <div class="font-bold text-white mb-1">Verifikasi Otomatis Instan</div>
+          <p class="text-slate-400">Tagihan otomatis berstatus lunas detik itu juga setelah transfer berhasil.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saluran Pembayaran Didukung -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
+      <h3 class="text-lg font-bold text-white border-b border-slate-800 pb-3">Kanal Pembayaran Resmi yang Tersedia</h3>
+      
+      <div class="space-y-4 text-sm text-slate-300">
+        <div class="p-4 bg-slate-800/40 rounded-2xl border border-slate-800">
+          <h4 class="font-bold text-white text-base mb-1">1. QRIS Dinamis Nasional</h4>
+          <p class="text-slate-400 text-xs mb-2">Dapat dipindai menggunakan seluruh aplikasi m-Banking dan dompet digital (E-Wallet) di Indonesia:</p>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">BCA Mobile</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">Livin' by Mandiri</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">BRImo</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">BNI Mobile</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">GoPay</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">OVO</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">DANA</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">ShopeePay</span>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-800/40 rounded-2xl border border-slate-800">
+          <h4 class="font-bold text-white text-base mb-1">2. Virtual Account Bank (VA 24 Jam)</h4>
+          <p class="text-slate-400 text-xs mb-2">Transfer via ATM, Internet Banking, atau Mobile Banking tanpa konfirmasi manual:</p>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">BCA Virtual Account</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">Mandiri Virtual Account</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">BNI Virtual Account</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">BRI Virtual Account</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">Permata Virtual Account</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">BSI (Bank Syariah Indonesia)</span>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-800/40 rounded-2xl border border-slate-800">
+          <h4 class="font-bold text-white text-base mb-1">3. Gerai Ritel Tunai</h4>
+          <p class="text-slate-400 text-xs mb-2">Pembayaran tunai di kasir gerai seluruh Indonesia:</p>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">Alfamart</span>
+            <span class="px-2.5 py-1 bg-slate-700/60 rounded-lg text-slate-200">Indomaret</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kebijakan Transaksi & Pembatalan -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-4 text-xs sm:text-sm text-slate-300">
+      <h3 class="text-lg font-bold text-white border-b border-slate-800 pb-3">Kebijakan Transaksi, Refund & Bantuan</h3>
+      <ul class="list-disc pl-5 space-y-2 text-slate-400 leading-relaxed">
+        <li>Setiap transaksi yang berhasil akan menerbitkan Bukti Pembayaran Digital resmi (Receipt) dengan nomor referensi unik TriPay.</li>
+        <li>Deposit kamar dikembalikan penuh saat masa sewa berakhir sesuai syarat & ketentuan inspeksi fasilitas kamar.</li>
+        <li>Jika terjadi kendala pembayaran atau anomali transaksi jaringan, silakan hubungi Customer Service KostKu resmi via email: <strong>support@riuph.me</strong> atau WhatsApp Resmi Pengelola Kost.</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-xs text-slate-500 py-4">
+      &copy; 2026 KostKu Indonesia &bull; All Rights Reserved &bull; Didukung oleh TriPay Payment Gateway
+    </div>
+
+  </div>
+
+</body>
+</html>

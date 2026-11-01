@@ -55,5 +55,32 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('/react/') || id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler') || id.includes('@remix-run')) {
+              return 'vendor-react';
+            }
+            if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('leaflet')) {
+              return 'vendor-maps';
+            }
+            if (id.includes('lucide-react') || id.includes('gsap') || id.includes('qrcode')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('firebase') || id.includes('@firebase')) {
+              return 'vendor-firebase';
+            }
+            return 'vendor-core';
+          }
+        }
+      }
+    }
   }
 })

@@ -10,6 +10,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { apiGetOwnerKosts } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 export default function PropertySwitcher({ 
   user, 
@@ -22,6 +23,8 @@ export default function PropertySwitcher({
   const [kosts, setKosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
+
+  const { isLight } = useTheme();
 
   const fetchKosts = async () => {
     if (!user?.id || (user?.role !== 'owner' && user?.role !== 'master')) return;
@@ -71,39 +74,41 @@ export default function PropertySwitcher({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '9px',
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
-          border: '1px solid rgba(59, 130, 246, 0.35)',
+          gap: '10px',
+          background: isLight 
+            ? '#ffffff' 
+            : 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          border: isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(59, 130, 246, 0.4)',
           borderRadius: '14px',
-          padding: '6px 12px 6px 10px',
+          padding: '7px 14px 7px 10px',
           cursor: 'pointer',
-          color: '#f8fafc',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+          color: 'var(--text-primary)',
+          boxShadow: isLight ? '0 2px 8px rgba(15, 23, 42, 0.06)' : '0 4px 14px rgba(0, 0, 0, 0.3)',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
         <div style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '8px',
-          background: '#2563eb',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
+          width: '32px',
+          height: '32px',
+          borderRadius: '10px',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          <Building2 size={16} color="white" />
+          <Building2 size={18} color="white" />
         </div>
 
-        <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+        <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{
               fontWeight: 800,
-              fontSize: '0.88rem',
-              color: 'white',
-              maxWidth: '180px',
+              fontSize: '0.94rem',
+              color: 'var(--text-primary)',
+              maxWidth: '280px',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
@@ -111,15 +116,15 @@ export default function PropertySwitcher({
               {currentKost.kostName}
             </span>
             <ChevronDown 
-              size={14} 
-              color="#93c5fd" 
+              size={15} 
+              color={isLight ? '#2563eb' : '#93c5fd'} 
               style={{ 
                 transform: isOpen ? 'rotate(180deg)' : 'none', 
                 transition: 'transform 0.2s' 
               }} 
             />
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
             {kosts.length > 1 ? `${kosts.length} Cabang • Ganti Kost` : '1 Cabang Aktif'}
           </span>
         </div>
@@ -132,10 +137,10 @@ export default function PropertySwitcher({
           top: 'calc(100% + 8px)',
           left: 0,
           width: '320px',
-          background: '#0f172a',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
+          background: isLight ? '#ffffff' : '#0f172a',
+          border: isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(255, 255, 255, 0.15)',
           borderRadius: '18px',
-          boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.15)',
+          boxShadow: isLight ? '0 12px 30px rgba(15, 23, 42, 0.12)' : '0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.15)',
           padding: '8px',
           zIndex: 1000,
           animation: 'fadeIn 0.15s ease-out',
@@ -147,13 +152,13 @@ export default function PropertySwitcher({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
             marginBottom: '6px'
           }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Daftar Properti Kost ({kosts.length})
             </span>
-            <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>
               Akun Owner
             </span>
           </div>

@@ -19,9 +19,12 @@ import {
   Pause, 
   Play
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function SpatialBentoShowcase() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // Active audience tab: 'customer' (default) vs 'owner'
   const [activeTab, setActiveTab] = useState('customer');
@@ -97,7 +100,7 @@ export default function SpatialBentoShowcase() {
       title: 'Sewa Langsung ke Pemilik Sah Tanpa Calo',
       description: 'Semua pemilik kost wajib lolos verifikasi identitas fisik. Uang muka (DP) kamu terlindungi dengan garansi uang kembali jika kamar tidak sesuai.',
       perks: [
-        '100% pemilik sah dan pengelola terverifikasi identitas KTP',
+        '100% pemilik sah dan pengelola terverifikasi identitas resmi',
         'Hubungi langsung via WhatsApp resmi tanpa perantara liar',
         'Bantuan mediasi customer support responsif 24 jam'
       ],
@@ -157,7 +160,7 @@ export default function SpatialBentoShowcase() {
       badge: '🔒 SCREENING PENYEWA AMAN',
       badgeColor: '#818CF8',
       badgeBg: 'rgba(129, 140, 248, 0.15)',
-      title: 'Penyewa Terverifikasi KTP, Kost Lebih Aman & Tertib',
+      title: 'Penyewa Terverifikasi Resmi, Kost Lebih Aman & Tertib',
       description: 'Hindari penyewa bermasalah atau fiktif. Setiap calon penghuni melalui proses validasi identitas resmi sehingga lingkungan kost Anda tetap aman dan kondusif.',
       perks: [
         'Penyimpanan arsip identitas penyewa terenkripsi aman',
@@ -221,29 +224,63 @@ export default function SpatialBentoShowcase() {
     setCurrentSlide(0);
   };
 
+  // Mobile Touch Swipe Navigation (Natural Thumb Flick Left/Right)
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isSwiping = useRef(false);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isSwiping.current = false;
+  };
+
+  const handleTouchMove = (e) => {
+    const diffX = touchStartX.current - e.touches[0].clientX;
+    const diffY = touchStartY.current - e.touches[0].clientY;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      isSwiping.current = true;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isSwiping.current) return;
+    const diffX = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diffX) > 35) {
+      if (diffX > 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+  };
+
   return (
     <div 
+      className="spatial-bento-container"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       style={{
         position: 'relative',
-        background: 'linear-gradient(145deg, #0d1527, #070d1a)',
+        background: isLight 
+          ? 'linear-gradient(145deg, #ffffff, #f8fafc)' 
+          : 'linear-gradient(145deg, #0d1527, #070d1a)',
         borderRadius: '28px',
-        border: '1px solid rgba(255, 255, 255, 0.09)',
+        border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.09)',
         padding: 'clamp(1.75rem, 4vw, 3rem) clamp(1rem, 3vw, 2.5rem)',
         fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: '#F8FAFC',
+        color: isLight ? '#0f172a' : '#F8FAFC',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7)'
+        boxShadow: isLight ? '0 10px 30px rgba(15, 23, 42, 0.06)' : '0 25px 60px -15px rgba(0, 0, 0, 0.7)'
       }}
     >
       {/* Subtle Specular Glow Backgrounds */}
       <div style={{
         position: 'absolute',
         top: '-15%',
-        right: '-10%',
-        width: '500px',
+        right: '0',
+        width: 'min(500px, 100%)',
         height: '500px',
         background: activeTab === 'customer' 
           ? 'radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%)'
@@ -258,7 +295,7 @@ export default function SpatialBentoShowcase() {
         {/* ═══════════════════════════════════════════════════════════════════
             TOP BAR: AUDIENCE SEGMENTED TAB SWITCHER (CUSTOMER VS OWNER)
             ═══════════════════════════════════════════════════════════════════ */}
-        <div style={{
+        <div className="spatial-bento-header-wrapper" style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -266,15 +303,15 @@ export default function SpatialBentoShowcase() {
           marginBottom: '2.5rem'
         }}>
           {/* Section Eyebrow Badge */}
-          <div style={{
+          <div className="spatial-bento-eyebrow" style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
             padding: '6px 16px',
-            background: 'rgba(37, 99, 235, 0.12)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
+            background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
+            border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(59, 130, 246, 0.3)',
             borderRadius: '100px',
-            color: '#60A5FA',
+            color: isLight ? '#1d4ed8' : '#60A5FA',
             fontSize: '0.78rem',
             fontWeight: 800,
             letterSpacing: '0.06em',
@@ -285,32 +322,33 @@ export default function SpatialBentoShowcase() {
             <span>SOLUSI TERLENGKAP KOSTKU</span>
           </div>
 
-          <h2 style={{
+          <h2 className="spatial-bento-h2" style={{
             fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)',
             fontWeight: 800,
             letterSpacing: '-0.03em',
             margin: '0 0 1.25rem 0',
-            color: '#FFFFFF'
+            color: isLight ? '#0f172a' : '#FFFFFF'
           }}>
             Fitur Cerdas untuk{' '}
-            <span style={{ color: activeTab === 'customer' ? '#38BDF8' : '#34D399' }}>
+            <span style={{ color: activeTab === 'customer' ? (isLight ? '#0284c7' : '#38BDF8') : (isLight ? '#059669' : '#34D399') }}>
               {activeTab === 'customer' ? 'Pencari Kost' : 'Pemilik Kost'}
             </span>
           </h2>
 
           {/* Interactive Toggle Switcher */}
-          <div style={{
+          <div className="spatial-bento-tabs-container" style={{
             display: 'inline-flex',
-            background: 'rgba(15, 23, 42, 0.85)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.85)',
+            border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '100px',
             padding: '5px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
+            boxShadow: isLight ? '0 2px 8px rgba(15, 23, 42, 0.05)' : '0 4px 20px rgba(0, 0, 0, 0.4)',
             gap: '4px'
           }}>
             {/* Tab Customer */}
             <button
               type="button"
+              className="spatial-bento-tab-btn"
               onClick={() => handleTabChange('customer')}
               style={{
                 display: 'inline-flex',
@@ -320,7 +358,7 @@ export default function SpatialBentoShowcase() {
                 borderRadius: '100px',
                 border: 'none',
                 background: activeTab === 'customer' ? '#2563EB' : 'transparent',
-                color: activeTab === 'customer' ? '#FFFFFF' : '#94A3B8',
+                color: activeTab === 'customer' ? '#FFFFFF' : (isLight ? '#475569' : '#94A3B8'),
                 fontSize: '0.86rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -335,6 +373,7 @@ export default function SpatialBentoShowcase() {
             {/* Tab Owner */}
             <button
               type="button"
+              className="spatial-bento-tab-btn"
               onClick={() => handleTabChange('owner')}
               style={{
                 display: 'inline-flex',
@@ -344,7 +383,7 @@ export default function SpatialBentoShowcase() {
                 borderRadius: '100px',
                 border: 'none',
                 background: activeTab === 'owner' ? '#059669' : 'transparent',
-                color: activeTab === 'owner' ? '#FFFFFF' : '#94A3B8',
+                color: activeTab === 'owner' ? '#FFFFFF' : (isLight ? '#475569' : '#94A3B8'),
                 fontSize: '0.86rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -359,27 +398,28 @@ export default function SpatialBentoShowcase() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            THE SINGLE INTERACTIVE SLIDE CAROUSEL CARD
+            THE SINGLE INTERACTIVE SLIDE CAROUSEL CARD (TOUCH SWIPE ENABLED)
             ═══════════════════════════════════════════════════════════════════ */}
-        <div style={{
-          background: '#131D33',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '24px',
-          overflow: 'hidden',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
-          position: 'relative',
-          transition: 'all 0.3s ease'
-        }}>
+        <div 
+          className="spatial-bento-card-shell"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            background: isLight ? '#ffffff' : '#131D33',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px',
+            overflow: 'hidden',
+            boxShadow: isLight ? '0 10px 30px rgba(15, 23, 42, 0.08)' : '0 20px 50px rgba(0, 0, 0, 0.5)',
+            position: 'relative',
+            transition: 'all 0.3s ease'
+          }}
+        >
           
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            alignItems: 'stretch',
-            minHeight: '440px'
-          }}>
+          <div className="spatial-bento-grid-card">
             
             {/* ── LEFT COLUMN: TITLE, BENEFITS, STATS, AND CTA ── */}
-            <div style={{
+            <div className="spatial-bento-content-col" style={{
               padding: 'clamp(1.5rem, 3.5vw, 2.75rem)',
               display: 'flex',
               flexDirection: 'column',
@@ -388,7 +428,7 @@ export default function SpatialBentoShowcase() {
             }}>
               <div>
                 {/* Category Pill Badge */}
-                <div style={{
+                <div className="spatial-bento-category-pill" style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -407,20 +447,20 @@ export default function SpatialBentoShowcase() {
                 </div>
 
                 {/* Main Headline */}
-                <h3 style={{
+                <h3 className="spatial-bento-title" style={{
                   margin: '0 0 1rem 0',
                   fontSize: 'clamp(1.4rem, 2.4vw, 1.85rem)',
                   fontWeight: 800,
                   lineHeight: 1.25,
-                  color: '#FFFFFF'
+                  color: isLight ? '#0f172a' : '#FFFFFF'
                 }}>
                   {currentItem.title}
                 </h3>
 
                 {/* Description */}
-                <p style={{
+                <p className="spatial-bento-desc" style={{
                   margin: '0 0 1.5rem 0',
-                  color: '#94A3B8',
+                  color: isLight ? '#475569' : '#94A3B8',
                   fontSize: 'clamp(0.9rem, 1.6vw, 0.98rem)',
                   lineHeight: 1.6
                 }}>
@@ -428,11 +468,15 @@ export default function SpatialBentoShowcase() {
                 </p>
 
                 {/* Perks Checklist */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '2rem' }}>
+                <div className="spatial-bento-perks" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '2rem' }}>
                   {currentItem.perks.map((perk, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                      <CheckCircle2 size={18} color={currentItem.badgeColor} style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span style={{ fontSize: '0.88rem', color: '#E2E8F0', lineHeight: 1.4, fontWeight: 500 }}>
+                    <div 
+                      key={idx} 
+                      className={`spatial-bento-perk-item ${idx >= 2 ? 'desktop-only' : ''}`}
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}
+                    >
+                      <CheckCircle2 size={18} color={currentItem.badgeColor} className="spatial-bento-check-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <span className="spatial-bento-perk-text" style={{ fontSize: '0.88rem', color: isLight ? '#1e293b' : '#E2E8F0', lineHeight: 1.4, fontWeight: 500 }}>
                         {perk}
                       </span>
                     </div>
@@ -441,17 +485,18 @@ export default function SpatialBentoShowcase() {
               </div>
 
               {/* Bottom Action & Stat Row */}
-              <div style={{
+              <div className="spatial-bento-action-row" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '14px',
                 paddingTop: '1.25rem',
-                borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+                borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'
               }}>
                 <Link
                   to={currentItem.ctaLink}
+                  className="spatial-bento-cta-btn"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -474,8 +519,8 @@ export default function SpatialBentoShowcase() {
                   <span>{currentItem.ctaText}</span>
                 </Link>
 
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{
+                <div className="spatial-bento-stat-block" style={{ textAlign: 'right' }}>
+                  <div className="spatial-bento-stat-num" style={{
                     fontSize: '1.6rem',
                     fontWeight: 800,
                     color: currentItem.badgeColor,
@@ -484,7 +529,7 @@ export default function SpatialBentoShowcase() {
                   }}>
                     {currentItem.statNumber}
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600, marginTop: '4px' }}>
+                  <div className="spatial-bento-stat-lbl" style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94A3B8', fontWeight: 600, marginTop: '4px' }}>
                     {currentItem.statLabel}
                   </div>
                 </div>
@@ -493,11 +538,11 @@ export default function SpatialBentoShowcase() {
             </div>
 
             {/* ── RIGHT COLUMN: HERO VISUAL WITH GLASS BADGE ── */}
-            <div style={{
+            <div className="spatial-bento-image-col" style={{
               position: 'relative',
               minHeight: '280px',
               overflow: 'hidden',
-              background: '#070D1A'
+              background: 'var(--bg-secondary)'
             }}>
               {/* Photo Background */}
               <img 
@@ -515,43 +560,45 @@ export default function SpatialBentoShowcase() {
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'linear-gradient(to right, #131D33 0%, rgba(19, 29, 51, 0.4) 30%, transparent 60%), linear-gradient(to top, #131D33 0%, transparent 40%)'
+                background: isLight 
+                  ? 'linear-gradient(to right, #ffffff 0%, rgba(255, 255, 255, 0.4) 30%, transparent 60%), linear-gradient(to top, #ffffff 0%, transparent 40%)'
+                  : 'linear-gradient(to right, #131D33 0%, rgba(19, 29, 51, 0.4) 30%, transparent 60%), linear-gradient(to top, #131D33 0%, transparent 40%)'
               }} />
 
               {/* Floating Glassmorphism Badge */}
-              <div style={{
+              <div className="spatial-bento-floating-badge" style={{
                 position: 'absolute',
                 top: '20px',
                 right: '20px',
-                background: 'rgba(15, 23, 42, 0.85)',
+                background: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 23, 42, 0.85)',
                 backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                border: isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(255, 255, 255, 0.15)',
                 borderRadius: '100px',
                 padding: '8px 16px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                color: '#FFFFFF',
+                color: isLight ? '#0f172a' : '#FFFFFF',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)'
+                boxShadow: isLight ? '0 8px 20px rgba(15, 23, 42, 0.12)' : '0 8px 24px rgba(0, 0, 0, 0.5)'
               }}>
                 <span style={{ fontSize: '1rem' }}>{currentItem.floatingIcon}</span>
                 <span>{currentItem.floatingBadge}</span>
               </div>
 
               {/* Bottom Quick Tag */}
-              <div style={{
+              <div className="spatial-bento-slide-tag" style={{
                 position: 'absolute',
                 bottom: '20px',
                 right: '20px',
-                background: 'rgba(15, 23, 42, 0.75)',
+                background: isLight ? 'rgba(255, 255, 255, 0.90)' : 'rgba(15, 23, 42, 0.75)',
                 backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                border: isLight ? '1px solid rgba(15, 23, 42, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '10px',
                 padding: '6px 12px',
                 fontSize: '0.72rem',
-                color: '#CBD5E1',
+                color: isLight ? '#334155' : '#CBD5E1',
                 fontWeight: 600
               }}>
                 Slide {currentSlide + 1} dari {slides.length}
@@ -563,10 +610,10 @@ export default function SpatialBentoShowcase() {
           {/* ═══════════════════════════════════════════════════════════════════
               CAROUSEL CONTROLS BAR: ARROWS & DOT PAGINATION WITH AUTOPLAY STATUS
               ═══════════════════════════════════════════════════════════════════ */}
-          <div style={{
+          <div className="spatial-bento-controls" style={{
             padding: '12px 24px',
-            background: 'rgba(11, 19, 43, 0.95)',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            background: isLight ? '#f8fafc' : 'var(--bg-card-hover)',
+            borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -576,12 +623,13 @@ export default function SpatialBentoShowcase() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
+                className="spatial-bento-pause-btn"
                 onClick={() => setIsPaused(!isPaused)}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '6px',
-                  color: isPaused ? '#FBBF24' : '#34D399',
+                  color: isPaused ? '#FBBF24' : (isLight ? '#059669' : '#34D399'),
                   width: '28px',
                   height: '28px',
                   display: 'flex',
@@ -592,29 +640,30 @@ export default function SpatialBentoShowcase() {
                 }}
                 title={isPaused ? 'Lanjutkan Auto-Scroll' : 'Jeda Auto-Scroll'}
               >
-                {isPaused ? <Play size={13} fill="#FBBF24" /> : <Pause size={13} fill="#34D399" />}
+                {isPaused ? <Play size={13} fill="#FBBF24" /> : <Pause size={13} fill={isLight ? '#059669' : '#34D399'} />}
               </button>
-              <span style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
+              <span className="desktop-only" style={{ fontSize: '0.74rem', color: isLight ? '#475569' : '#94A3B8' }}>
                 {isPaused ? 'Auto-scroll dijeda' : 'Auto-scroll tiap 5 detik (sorot untuk jeda)'}
               </span>
             </div>
 
             {/* Dots Pagination */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="spatial-bento-dots-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {slides.map((_, idx) => {
                 const active = currentSlide === idx;
                 return (
                   <button
                     key={idx}
                     type="button"
+                    className={`spatial-bento-dot ${active ? 'active' : ''}`}
                     onClick={() => setCurrentSlide(idx)}
                     style={{
                       height: '8px',
                       width: active ? '28px' : '8px',
                       borderRadius: '100px',
                       background: active 
-                        ? (activeTab === 'customer' ? '#38BDF8' : '#34D399')
-                        : 'rgba(255, 255, 255, 0.2)',
+                        ? (activeTab === 'customer' ? '#2563EB' : '#059669')
+                        : (isLight ? 'rgba(15, 23, 42, 0.15)' : 'rgba(255, 255, 255, 0.2)'),
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'all 0.25s ease',
@@ -630,15 +679,16 @@ export default function SpatialBentoShowcase() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
                 type="button"
+                className="spatial-bento-arrow-btn"
                 onClick={handlePrev}
                 aria-label="Slide Sebelumnya"
                 style={{
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: 'white',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                  color: isLight ? '#0f172a' : 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -652,15 +702,16 @@ export default function SpatialBentoShowcase() {
               </button>
               <button
                 type="button"
+                className="spatial-bento-arrow-btn"
                 onClick={handleNext}
                 aria-label="Slide Selanjutnya"
                 style={{
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: 'white',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                  color: isLight ? '#0f172a' : 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

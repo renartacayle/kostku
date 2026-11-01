@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1600, initial-scale=1.0">
+  <title>KostKu — All Pages Light Mode vs Dark Mode</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #060913;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 40px;
+      line-height: 1.5;
+    }
+
+    .header-banner {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 28px;
+      background: rgba(14, 23, 38, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+    }
+
+    .main-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sub-title {
+      color: #94a3b8;
+      font-size: 1rem;
+    }
+
+    /* Multi-Page Grid Showcase */
+    .master-split-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .column-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .column-header {
+      padding: 16px 24px;
+      border-radius: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .col-header-light {
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .col-header-dark {
+      background: #0e1726;
+      color: #f8fafc;
+      border: 1px solid rgba(37, 99, 235, 0.35);
+      box-shadow: 0 4px 20px rgba(2, 6, 23, 0.7);
+    }
+
+    .page-section-card {
+      border-radius: 22px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px;
+    }
+
+    /* LIGHT THEME TOKENS */
+    .theme-light {
+      background: #f1f5f9;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+    }
+
+    .theme-light .inner-card {
+      background: #ffffff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .theme-light .text-sec { color: #475569; }
+    .theme-light .text-mut { color: #64748b; }
+    .theme-light .cad-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+    }
+    .theme-light .cad-line { stroke: #1d4ed8; }
+    .theme-light .cad-text { fill: #1e293b; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+    /* DARK THEME TOKENS */
+    .theme-dark {
+      background: #080d1a;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .theme-dark .inner-card {
+      background: #0e1726;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      box-shadow: 0 4px 14px rgba(2, 6, 23, 0.4);
+    }
+
+    .theme-dark .text-sec { color: #94a3b8; }
+    .theme-dark .text-mut { color: #64748b; }
+    .theme-dark .cad-box {
+      background: #050811;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .theme-dark .cad-line { stroke: #3b82f6; }
+    .theme-dark .cad-text { fill: #93c5fd; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+    /* SHARED COMPONENT STYLES */
+    .page-badge-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Common Buttons & Pills */
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 9px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .pill-emerald {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #10b981;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .pill-amber {
+      background: rgba(217, 119, 6, 0.15);
+      border: 1px solid rgba(217, 119, 6, 0.35);
+      color: #f59e0b;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .pill-crimson {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #ef4444;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-banner">
+    <h1 class="main-title">KostKu All-Page Dual-Theme Engine</h1>
+    <p class="sub-title">Perbandingan visual seluruh arsitektur halaman KostKu dalam <strong>Light Mode</strong> (Siang / Pemilik) dan <strong>Dark Mode</strong> (Malam / Mahasiswa).</p>
+  </div>
+
+  <!-- MASTER SPLIT: LEFT LIGHT, RIGHT DARK -->
+  <div class="master-split-container">
+
+    <!-- ==========================================
+         LEFT COLUMN: LIGHT MODE
+         ========================================== -->
+    <div class="column-wrapper">
+      <div class="column-header col-header-light">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>☀️ LIGHT MODE</span>
+          <span style="font-size: 0.8rem; font-weight: normal; color: #475569;">(Data-Theme="Light")</span>
+        </div>
+        <span style="font-size: 0.75rem; background: #e2e8f0; color: #0f172a; padding: 4px 10px; border-radius: 8px;">Airy Slate & Crisp White</span>
+      </div>
+
+      <!-- PAGE 1: HOME & SEARCH (LIGHT) -->
+      <div class="page-section-card theme-light">
+        <div class="page-badge-label text-sec">
+          <span>📄 HALAMAN 01: BERANDA & MESIN PENCARI (`/` & `/search`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-weight: 800; font-size: 1.1rem; color: #0f172a;">Kost<span style="color: #2563eb;">Ku</span></div>
+            <div style="display: flex; gap: 6px;">
+              <span style="background: #e2e8f0; color: #334155; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">Radius &lt; 2 km</span>
+              <span style="background: #eff6ff; color: #1d4ed8; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700;">AC + K.Mandi</span>
+            </div>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #64748b; font-size: 0.82rem;">Cari sekitar Kampus UDINUS / Tembalang...</span>
+            <button class="btn-primary" style="padding: 5px 12px;">Cari</button>
+          </div>
+          <!-- Listing Card Preview -->
+          <div style="display: flex; gap: 12px; margin-top: 12px; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+            <div style="width: 70px; height: 50px; background: #cbd5e1; border-radius: 8px; background-image: url('https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=200&q=80'); background-size: cover;"></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; font-size: 0.88rem;">Kost Graha Kirana Dago</div>
+              <div class="mono-num text-sec" style="font-size: 0.75rem;">3.5 × 4.2 m • Rp 1.450.000/bln</div>
+            </div>
+            <span class="pill-emerald" style="align-self: center;">✓ e-KTP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: KOST DETAIL & CAD 2D (LIGHT) -->
+      <div class="page-section-card theme-light">
+        <div class="page-badge-label text-sec">
+          <span>📐 HALAMAN 02: DETAIL PROPERTI & DENAH CAD 2D (`/kost/:id`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-weight: 700; font-size: 0.95rem;">Denah Vektor Arsitektur Skala 1:50</div>
+            <span class="pill-amber">☀️ Hadap Timur (Sejuk Sore)</span>
+          </div>
+          <div class="cad-box" style="padding: 12px; border-radius: 10px; text-align: center;">
+            <svg width="100%" height="90" viewBox="0 0 320 90">
+              <rect x="20" y="10" width="280" height="70" fill="#ffffff" stroke="#94a3b8" stroke-width="2" />
+              <!-- Room partitions -->
+              <line x1="110" y1="10" x2="110" y2="80" stroke="#1d4ed8" stroke-width="2" />
+              <line x1="210" y1="10" x2="210" y2="80" stroke="#1d4ed8" stroke-width="2" />
+              <!-- Dimensions Text -->
+              <text x="50" y="48" class="cad-text">K. Mandi</text>
+              <text x="145" y="48" class="cad-text">Kamar Tidur</text>
+              <text x="235" y="48" class="cad-text">Balkon Timur</text>
+              <text x="135" y="70" class="cad-text" fill="#2563eb" font-weight="bold">3.5 × 4.2 m</text>
+            </svg>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <div class="mono-num" style="font-weight: 800; font-size: 1.1rem; color: #0f172a;">Rp 1.450.000 <span class="text-mut" style="font-size: 0.75rem; font-weight: normal;">/ bulan</span></div>
+            <button class="btn-primary">Ajukan Sewa</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 3: OWNER DASHBOARD & COCKPIT (LIGHT) -->
+      <div class="page-section-card theme-light">
+        <div class="page-badge-label text-sec">
+          <span>📊 HALAMAN 03: COCKPIT PEMILIK & PEMBUKUAN (`/dashboard` & `/keuangan`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <!-- 3 Stats Bento -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px;">
+              <div class="text-mut" style="font-size: 0.68rem;">Okupansi</div>
+              <div class="mono-num" style="font-weight: 800; font-size: 1.1rem; color: #16a34a;">92%</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px;">
+              <div class="text-mut" style="font-size: 0.68rem;">Kas Masuk</div>
+              <div class="mono-num" style="font-weight: 800; font-size: 0.92rem; color: #2563eb;">Rp 24.5 Jt</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px;">
+              <div class="text-mut" style="font-size: 0.68rem;">Komplain</div>
+              <div class="mono-num" style="font-weight: 800; font-size: 1.1rem; color: #dc2626;">1 Aktif</div>
+            </div>
+          </div>
+          <!-- Room Status Grid -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <div style="background: #dcfce7; border: 1px solid #86efac; color: #15803d; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">101 (Lunas)</div>
+            <div style="background: #dcfce7; border: 1px solid #86efac; color: #15803d; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">102 (Lunas)</div>
+            <div style="background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">103 (Tempo)</div>
+            <div style="background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">104 (Kosong)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: TENANT PORTAL & MITRA (LIGHT) -->
+      <div class="page-section-card theme-light">
+        <div class="page-badge-label text-sec">
+          <span>🔑 HALAMAN 04: PORTAL PENGHUNI & LAYANAN MITRA (`/dashboard` & `/mitra`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <!-- Smart Lock PIN Widget -->
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <div style="font-size: 0.7rem; color: #1e40af; font-weight: 700;">SMART LOCK GERBANG UTAMA</div>
+              <div class="mono-num" style="font-size: 1.3rem; font-weight: 800; color: #1d4ed8; letter-spacing: 0.1em;">849-210</div>
+            </div>
+            <button style="background: #ffffff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700;">Salin</button>
+          </div>
+          <!-- 3 Mitra Services -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+            <div style="background: #fff7ed; border: 1px solid #fed7aa; padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 16px;">🍲</div>
+              <div style="font-size: 0.72rem; font-weight: 700; color: #c2410c;">FnB Bu Sri</div>
+              <div class="mono-num" style="font-size: 0.65rem; color: #ea580c;">Rp 15.000</div>
+            </div>
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 16px;">💧</div>
+              <div style="font-size: 0.72rem; font-weight: 700; color: #0369a1;">Galon Aqua</div>
+              <div class="mono-num" style="font-size: 0.65rem; color: #0284c7;">Rp 18.000</div>
+            </div>
+            <div style="background: #faf5ff; border: 1px solid #e9d5ff; padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 16px;">🧺</div>
+              <div style="font-size: 0.72rem; font-weight: 700; color: #6b21a8;">Laundry 2 Hari</div>
+              <div class="mono-num" style="font-size: 0.65rem; color: #7c3aed;">Rp 7.000/kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ==========================================
+         RIGHT COLUMN: DARK MODE
+         ========================================== -->
+    <div class="column-wrapper">
+      <div class="column-header col-header-dark">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>🌙 DARK MODE</span>
+          <span style="font-size: 0.8rem; font-weight: normal; color: #60a5fa;">(Data-Theme="Dark")</span>
+        </div>
+        <span style="font-size: 0.75rem; background: #1e293b; color: #93c5fd; padding: 4px 10px; border-radius: 8px;">Twilight Void & Slate-Navy</span>
+      </div>
+
+      <!-- PAGE 1: HOME & SEARCH (DARK) -->
+      <div class="page-section-card theme-dark">
+        <div class="page-badge-label text-sec">
+          <span>📄 HALAMAN 01: BERANDA & MESIN PENCARI (`/` & `/search`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-weight: 800; font-size: 1.1rem; color: #f8fafc;">Kost<span style="color: #60a5fa;">Ku</span></div>
+            <div style="display: flex; gap: 6px;">
+              <span style="background: #1e293b; color: #94a3b8; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">Radius &lt; 2 km</span>
+              <span style="background: rgba(37, 99, 235, 0.2); color: #60a5fa; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700;">AC + K.Mandi</span>
+            </div>
+          </div>
+          <div style="background: rgba(8, 13, 26, 0.9); border: 1px solid rgba(59, 130, 246, 0.35); padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #94a3b8; font-size: 0.82rem;">Cari sekitar Kampus UDINUS / Tembalang...</span>
+            <button class="btn-primary" style="padding: 5px 12px;">Cari</button>
+          </div>
+          <!-- Listing Card Preview -->
+          <div style="display: flex; gap: 12px; margin-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 10px;">
+            <div style="width: 70px; height: 50px; background: #0b1324; border-radius: 8px; background-image: url('https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=200&q=80'); background-size: cover;"></div>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; font-size: 0.88rem; color: #f8fafc;">Kost Graha Kirana Dago</div>
+              <div class="mono-num text-sec" style="font-size: 0.75rem;">3.5 × 4.2 m • Rp 1.450.000/bln</div>
+            </div>
+            <span class="pill-emerald" style="align-self: center;">✓ e-KTP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: KOST DETAIL & CAD 2D (DARK) -->
+      <div class="page-section-card theme-dark">
+        <div class="page-badge-label text-sec">
+          <span>📐 HALAMAN 02: DETAIL PROPERTI & DENAH CAD 2D (`/kost/:id`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: #f8fafc;">Denah Vektor Arsitektur Skala 1:50</div>
+            <span class="pill-amber">☀️ Hadap Timur (Sejuk Sore)</span>
+          </div>
+          <div class="cad-box" style="padding: 12px; border-radius: 10px; text-align: center;">
+            <svg width="100%" height="90" viewBox="0 0 320 90">
+              <rect x="20" y="10" width="280" height="70" fill="#080d1a" stroke="#2563eb" stroke-width="1.5" />
+              <!-- Room partitions -->
+              <line x1="110" y1="10" x2="110" y2="80" stroke="#3b82f6" stroke-width="1.5" />
+              <line x1="210" y1="10" x2="210" y2="80" stroke="#3b82f6" stroke-width="1.5" />
+              <!-- Dimensions Text -->
+              <text x="50" y="48" class="cad-text">K. Mandi</text>
+              <text x="145" y="48" class="cad-text">Kamar Tidur</text>
+              <text x="235" y="48" class="cad-text">Balkon Timur</text>
+              <text x="135" y="70" class="cad-text" fill="#60a5fa" font-weight="bold">3.5 × 4.2 m</text>
+            </svg>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <div class="mono-num" style="font-weight: 800; font-size: 1.1rem; color: #f8fafc;">Rp 1.450.000 <span class="text-mut" style="font-size: 0.75rem; font-weight: normal;">/ bulan</span></div>
+            <button class="btn-primary">Ajukan Sewa</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 3: OWNER DASHBOARD & COCKPIT (DARK) -->
+      <div class="page-section-card theme-dark">
+        <div class="page-badge-label text-sec">
+          <span>📊 HALAMAN 03: COCKPIT PEMILIK & PEMBUKUAN (`/dashboard` & `/keuangan`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <!-- 3 Stats Bento -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;">
+            <div style="background: #131f37; border: 1px solid rgba(255, 255, 255, 0.06); padding: 8px; border-radius: 8px;">
+              <div class="text-mut" style="font-size: 0.68rem;">Okupansi</div>
+              <div class="mono-num" style="font-weight: 800; font-size: 1.1rem; color: #10b981;">92%</div>
+            </div>
+            <div style="background: #131f37; border: 1px solid rgba(255, 255, 255, 0.06); padding: 8px; border-radius: 8px;">
+              <div class="text-mut" style="font-size: 0.68rem;">Kas Masuk</div>
+              <div class="mono-num" style="font-weight: 800; font-size: 0.92rem; color: #60a5fa;">Rp 24.5 Jt</div>
+            </div>
+            <div style="background: #131f37; border: 1px solid rgba(255, 255, 255, 0.06); padding: 8px; border-radius: 8px;">
+              <div class="text-mut" style="font-size: 0.68rem;">Komplain</div>
+              <div class="mono-num" style="font-weight: 800; font-size: 1.1rem; color: #ef4444;">1 Aktif</div>
+            </div>
+          </div>
+          <!-- Room Status Grid -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #10b981; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">101 (Lunas)</div>
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #10b981; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">102 (Lunas)</div>
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">103 (Tempo)</div>
+            <div style="background: rgba(37, 99, 235, 0.15); border: 1px solid rgba(37, 99, 235, 0.35); color: #60a5fa; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 700;">104 (Kosong)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: TENANT PORTAL & MITRA (DARK) -->
+      <div class="page-section-card theme-dark">
+        <div class="page-badge-label text-sec">
+          <span>🔑 HALAMAN 04: PORTAL PENGHUNI & LAYANAN MITRA (`/dashboard` & `/mitra`)</span>
+        </div>
+        <div class="inner-card" style="padding: 16px; border-radius: 14px;">
+          <!-- Smart Lock PIN Widget -->
+          <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <div style="font-size: 0.7rem; color: #93c5fd; font-weight: 700;">SMART LOCK GERBANG UTAMA</div>
+              <div class="mono-num" style="font-size: 1.3rem; font-weight: 800; color: #60a5fa; letter-spacing: 0.1em;">849-210</div>
+            </div>
+            <button style="background: #131f37; border: 1px solid rgba(255, 255, 255, 0.1); color: #93c5fd; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700;">Salin</button>
+          </div>
+          <!-- 3 Mitra Services -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+            <div style="background: rgba(234, 88, 12, 0.08); border: 1px solid rgba(234, 88, 12, 0.3); padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 16px;">🍲</div>
+              <div style="font-size: 0.72rem; font-weight: 700; color: #fb923c;">FnB Bu Sri</div>
+              <div class="mono-num" style="font-size: 0.65rem; color: #fb923c;">Rp 15.000</div>
+            </div>
+            <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.3); padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 16px;">💧</div>
+              <div style="font-size: 0.72rem; font-weight: 700; color: #38bdf8;">Galon Aqua</div>
+              <div class="mono-num" style="font-size: 0.65rem; color: #38bdf8;">Rp 18.000</div>
+            </div>
+            <div style="background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.3); padding: 8px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 16px;">🧺</div>
+              <div style="font-size: 0.72rem; font-weight: 700; color: #a78bfa;">Laundry 2 Hari</div>
+              <div class="mono-num" style="font-size: 0.65rem; color: #a78bfa;">Rp 7.000/kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

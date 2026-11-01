@@ -19,12 +19,14 @@ import {
 } from 'lucide-react';
 import { apiCreateOwnerKost } from '../services/api';
 import AiRoomPlanSection from './AiRoomPlanSection';
+import { getCurrentPositionAsync } from '../utils/geoUtils';
+import { isValidBuildingPhoto, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
 
 const PRESET_IMAGES = [
-  { label: 'Modern Co-Living', url: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1000&q=80' },
-  { label: 'Griya Asri Tropis', url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1000&q=80' },
-  { label: 'Urban Loft Minimalis', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1000&q=80' },
-  { label: 'Boutique Residence', url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1000&q=80' }
+  { label: 'Modern Co-Living', url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Griya Asri Tropis', url: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Urban Minimalis', url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Boutique Residence', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=80' }
 ];
 
 export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded }) {
@@ -63,17 +65,13 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
     }
   };
 
-  const handleGetCoordinates = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const url = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
-          setGmapsUrl(url);
-        },
-        () => {
-          alert('Tidak dapat mendeteksi lokasi GPS otomatis. Silakan masukkan tautan Google Maps manual.');
-        }
-      );
+  const handleGetCoordinates = async () => {
+    try {
+      const pos = await getCurrentPositionAsync();
+      const url = `https://maps.google.com/?q=${pos.lat},${pos.lng}`;
+      setGmapsUrl(url);
+    } catch (_) {
+      alert('Tidak dapat mendeteksi lokasi GPS otomatis. Silakan masukkan tautan Google Maps manual.');
     }
   };
 
@@ -88,7 +86,10 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
     setError(null);
 
     try {
-      const effectiveImageFront = customImageFront || selectedImage;
+      const chosenFront = customImageFront || selectedImage;
+      const effectiveImageFront = isValidBuildingPhoto(chosenFront) ? chosenFront : DEFAULT_BUILDING_PHOTO;
+      const validRoomPhoto = isValidBuildingPhoto(roomPhoto) ? roomPhoto : '';
+
       const res = await apiCreateOwnerKost({
         ownerId: user.id,
         kostName: kostName.trim(),
@@ -99,7 +100,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
         defaultPrice: Number(defaultPrice) || 1500000,
         utilityScheme,
         imageFront: effectiveImageFront,
-        roomPhoto: roomPhoto || '',
+        roomPhoto: validRoomPhoto,
         floorPlan,
         description: description.trim()
       });

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   PenTool, 
@@ -159,33 +160,38 @@ const SignaturePadModal = ({
     year: 'numeric'
   });
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(5, 10, 20, 0.85)',
-      backdropFilter: 'blur(10px)',
+      inset: 0,
+      background: 'rgba(5, 10, 20, 0.88)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 9999,
-      padding: '1rem'
-    }} className="animate-fade-in">
+      zIndex: 999999,
+      padding: '1rem',
+      overflowY: 'auto'
+    }} 
+    className="animate-fade-in"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) onClose();
+    }}>
 
       <div style={{
         background: '#0d1527',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        border: '1px solid rgba(59, 130, 246, 0.4)',
         borderRadius: '24px',
         width: '100%',
         maxWidth: '620px',
-        maxHeight: '92vh',
+        maxHeight: 'min(90vh, 760px)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7)'
+        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(59, 130, 246, 0.2)',
+        margin: 'auto',
+        position: 'relative'
       }}>
 
         {/* Modal Header */}
@@ -489,8 +495,8 @@ const SignaturePadModal = ({
         </div>
 
       </div>
-
-    </div>
+    </div>,
+    document.body
   );
 };
 

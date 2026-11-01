@@ -85,7 +85,7 @@ export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKos
       background: 'rgba(15, 23, 42, 0.85)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      zIndex: 2000,
+      zIndex: 10000,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

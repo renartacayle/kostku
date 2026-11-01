@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1600, initial-scale=1.0">
+  <title>KostKu — Before vs After Color & Design Evolution</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #040711;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 40px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header-banner {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 30px;
+      background: rgba(14, 23, 38, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+    }
+
+    .badge-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(37, 99, 235, 0.15);
+      border: 1px solid rgba(37, 99, 235, 0.4);
+      color: #60a5fa;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .main-title {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sub-title {
+      color: #94a3b8;
+      font-size: 1.05rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Comparison Grid */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 48px;
+    }
+
+    .side-card {
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+    }
+
+    /* BEFORE SIDE (Generic AI Purple / SaaS Gradient) */
+    .side-before {
+      background: #090d16;
+      border-color: rgba(99, 102, 241, 0.25);
+    }
+
+    .side-header-before {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.15));
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .side-tag-before {
+      background: #a855f7;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    /* AFTER SIDE (Architectural Electric Blue + Indonesian Teak + Calibrated Palette) */
+    .side-after {
+      background: #080d1a;
+      border-color: rgba(37, 99, 235, 0.35);
+      position: relative;
+    }
+
+    .side-header-after {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(217, 119, 6, 0.15));
+      border-bottom: 1px solid rgba(37, 99, 235, 0.25);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .side-tag-after {
+      background: #2563eb;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+    }
+
+    .side-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* SECTION 1: NAVBAR PREVIEW */
+    .mock-navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      border-radius: 16px;
+    }
+
+    .nav-before {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .nav-after {
+      background: rgba(14, 23, 38, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+    }
+
+    .brand-icon-before {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+    }
+
+    .brand-icon-after {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 18px rgba(37, 99, 235, 0.4);
+    }
+
+    .nav-btn-before {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .nav-btn-after {
+      background: #2563eb;
+      color: white;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      padding: 8px 18px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+
+    /* SECTION 2: HERO & SEARCH COCKPIT */
+    .mock-hero {
+      padding: 24px;
+      border-radius: 20px;
+      position: relative;
+    }
+
+    .hero-before {
+      background: linear-gradient(180deg, #131b2e 0%, #090d16 100%);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .hero-after {
+      background: linear-gradient(180deg, #0e1726 0%, #080d1a 100%);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+
+    .hero-title-before {
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .hero-title-before span {
+      background: linear-gradient(135deg, #3b82f6, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-title-after {
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .hero-title-after span {
+      background: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .search-box-before {
+      display: flex;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      padding: 8px;
+      border-radius: 14px;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+    }
+
+    .search-box-after {
+      display: flex;
+      gap: 8px;
+      background: rgba(14, 23, 38, 0.85);
+      border: 1px solid rgba(37, 99, 235, 0.35);
+      padding: 8px;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px -5px rgba(2, 6, 23, 0.6);
+    }
+
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .search-btn-before {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+
+    .search-btn-after {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+
+    /* SECTION 3: KOST CARD PREVIEW */
+    .card-preview-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .label-block {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+
+    .kost-card {
+      border-radius: 18px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      min-height: 140px;
+    }
+
+    .card-before {
+      background: #172033;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.15);
+    }
+
+    .card-after {
+      background: #0e1726;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 25px -5px rgba(2, 6, 23, 0.5);
+    }
+
+    .card-thumb {
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .card-thumb-before {
+      background-color: #1e293b;
+      background-image: linear-gradient(rgba(99, 102, 241, 0.2), rgba(15, 23, 42, 0.8)), url('https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&q=80');
+    }
+
+    .card-thumb-after {
+      background-color: #0b1324;
+      background-image: linear-gradient(rgba(8, 13, 26, 0.1), rgba(8, 13, 26, 0.8)), url('https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&q=80');
+    }
+
+    .card-content {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card-name {
+      font-weight: 700;
+      font-size: 1.05rem;
+      line-height: 1.3;
+    }
+
+    .pill-before {
+      background: #a855f7;
+      color: white;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .pill-after-teak {
+      background: rgba(217, 119, 6, 0.15);
+      border: 1px solid rgba(217, 119, 6, 0.35);
+      color: #f59e0b;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .pill-after-emerald {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #10b981;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .card-price-before {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #a855f7;
+    }
+
+    .card-price-after {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #f8fafc;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .card-dim-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    /* SECTION 4: LOCAL SERVICES (MITRA FnB, GALON, LAUNDRY) */
+    .services-showcase {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .service-tile {
+      padding: 14px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Before: Everything Generic Purple/Blue */
+    .tile-before {
+      background: #0f172a;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      text-align: center;
+    }
+
+    .tile-before .icon-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #6366f1;
+      margin: 0 auto 4px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .tile-before .svc-tag {
+      font-size: 0.7rem;
+      color: #a855f7;
+      font-weight: 600;
+    }
+
+    /* After: Calibrated Semantics (FnB = Red/Orange, Galon = Aqua, Laundry = Lilac) */
+    .tile-after-fnb {
+      background: rgba(234, 88, 12, 0.08);
+      border: 1px solid rgba(234, 88, 12, 0.3);
+    }
+    .tile-after-fnb .icon-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(234, 88, 12, 0.2);
+      color: #fb923c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .tile-after-fnb .svc-tag {
+      font-size: 0.7rem;
+      color: #fb923c;
+      font-weight: 700;
+    }
+
+    .tile-after-galon {
+      background: rgba(2, 132, 199, 0.08);
+      border: 1px solid rgba(2, 132, 199, 0.3);
+    }
+    .tile-after-galon .icon-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(2, 132, 199, 0.2);
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .tile-after-galon .svc-tag {
+      font-size: 0.7rem;
+      color: #38bdf8;
+      font-weight: 700;
+    }
+
+    .tile-after-laundry {
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+    .tile-after-laundry .icon-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(124, 58, 237, 0.2);
+      color: #a78bfa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .tile-after-laundry .svc-tag {
+      font-size: 0.7rem;
+      color: #a78bfa;
+      font-weight: 700;
+    }
+
+    .svc-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .svc-desc {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+
+    /* PALETTE SWATCHES FOOTER */
+    .palette-summary {
+      background: #0e1726;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .swatches-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .swatch-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .swatch-circle {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .swatch-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .swatch-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .swatch-hex {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .takeaway-box {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-banner">
+    <div class="badge-header">
+      <span>📐 KostKu PropTech Ecosystem</span>
+    </div>
+    <h1 class="main-title">Evolusi Visual & Palet Warna KostKu</h1>
+    <p class="sub-title">Perbandingan langsung antara desain lama (*Generic AI Purple SaaS*) dengan sistem desain baru (*Architectural Warm-Modernist + Indonesian Local Sensory Palette*).</p>
+  </div>
+
+  <!-- COMPARISON GRID -->
+  <div class="comparison-grid">
+
+    <!-- BEFORE COLUMN -->
+    <div class="side-card side-before">
+      <div class="side-header-before">
+        <div>
+          <h2 style="font-size: 1.15rem; font-weight: 800;">DULU (Sebelum Overhaul)</h2>
+          <p style="font-size: 0.8rem; color: #94a3b8;">Template SaaS Umum & Gradien AI Ungu-Neon</p>
+        </div>
+        <span class="side-tag-before">❌ Generic AI Template</span>
+      </div>
+
+      <div class="side-body">
+        
+        <!-- Navbar Before -->
+        <div>
+          <div class="label-block" style="margin-bottom: 6px;">1. Navigasi & Identitas Brand</div>
+          <div class="mock-navbar nav-before">
+            <div class="nav-brand">
+              <div class="brand-icon-before">🏠</div>
+              <span>KostKu Web</span>
+            </div>
+            <button class="nav-btn-before">Masuk Akun</button>
+          </div>
+        </div>
+
+        <!-- Hero Before -->
+        <div>
+          <div class="label-block" style="margin-bottom: 6px;">2. Hero & Kotak Pencarian</div>
+          <div class="mock-hero hero-before">
+            <h3 class="hero-title-before">Cari Kost Nyaman <span>Bebas Ribet</span></h3>
+            <p style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 14px;">Platform sewa kost modern dengan pembayaran serba otomatis.</p>
+            <div class="search-box-before">
+              <input type="text" class="search-input" value="Cari sekitar Dinus / Tembalang..." readonly>
+              <button class="search-btn-before">Cari</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kost Card Before -->
+        <div class="card-preview-container">
+          <div class="label-block">3. Kartu Listing Properti</div>
+          <div class="kost-card card-before">
+            <div class="card-thumb card-thumb-before"></div>
+            <div class="card-content">
+              <div class="card-top">
+                <div>
+                  <div class="card-name">Kost Putri Graha Kirana</div>
+                  <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Tembalang, Semarang • ⭐ 4.8</div>
+                </div>
+                <span class="pill-before">Diskon 10%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
+                <div class="card-price-before">Rp 1.450.000<span style="font-size: 0.75rem; color: #94a3b8; font-weight: normal;">/bln</span></div>
+                <button style="background: rgba(99,102,241,0.2); color: #818cf8; border: 1px solid rgba(99,102,241,0.4); padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">Lihat</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Local Services Before (Mono-Purple) -->
+        <div>
+          <div class="label-block" style="margin-bottom: 6px;">4. Layanan Mitra Sekitar (Semua Kategori Seragam Ungu)</div>
+          <div class="services-showcase">
+            <div class="service-tile tile-before">
+              <div class="icon-circle">🍲</div>
+              <div class="svc-name">Warung Bu Sri</div>
+              <div class="svc-tag">Katering Makanan</div>
+              <div class="svc-desc">Semua tombol warna ungu standar.</div>
+            </div>
+            <div class="service-tile tile-before">
+              <div class="icon-circle">💧</div>
+              <div class="svc-name">Depot Tirta</div>
+              <div class="svc-tag">Isi Ulang Galon</div>
+              <div class="svc-desc">Tidak ada visual kesegaran air.</div>
+            </div>
+            <div class="service-tile tile-before">
+              <div class="icon-circle">🧺</div>
+              <div class="svc-name">Berkah Cuci</div>
+              <div class="svc-tag">Laundry Kiloan</div>
+              <div class="svc-desc">Tidak mencerminkan aroma wangi.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="takeaway-box" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); color: #fca5a5;">
+          <strong>Kekurangan Desain Dulu:</strong> Menggunakan gradien ungu-neon generik ala bot AI (`#6366f1` & `#a855f7`), tanpa pembeda emosional sensori lokal, angka proporsional berantakan, dan tidak memiliki palet kehangatan kayu Indonesia.
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- AFTER COLUMN -->
+    <div class="side-card side-after">
+      <div class="side-header-after">
+        <div>
+          <h2 style="font-size: 1.15rem; font-weight: 800; color: #f8fafc;">SEKARANG (Taste Skill & Indonesian Sensory)</h2>
+          <p style="font-size: 0.8rem; color: #60a5fa;">Architectural Blue-Hour + Indonesian Teak + Semantic Local Cues</p>
+        </div>
+        <span class="side-tag-after">✨ Architectural PropTech</span>
+      </div>
+
+      <div class="side-body">
+        
+        <!-- Navbar After -->
+        <div>
+          <div class="label-block" style="margin-bottom: 6px;">1. Navigasi & Identitas Brand</div>
+          <div class="mock-navbar nav-after">
+            <div class="nav-brand">
+              <div class="brand-icon-after">📐</div>
+              <span style="letter-spacing: -0.02em;">Kost<span style="color: #60a5fa;">Ku</span></span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-size: 0.75rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">GPS Aktif</span>
+              <button class="nav-btn-after">Masuk Akun</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero After -->
+        <div>
+          <div class="label-block" style="margin-bottom: 6px;">2. Hero & Kotak Pencarian</div>
+          <div class="mock-hero hero-after">
+            <h3 class="hero-title-after">Hunian Mahasiswa <span>Presisi Arsitektur</span></h3>
+            <p style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 14px;">Denah CAD 2D skala 1:50, orientasi matahari riil, dan verifikasi tunggal anti-bot.</p>
+            <div class="search-box-after">
+              <input type="text" class="search-input" value="Cari sekitar UDINUS, Undip, atau Dago..." readonly>
+              <button class="search-btn-after">Cari Kost</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kost Card After -->
+        <div class="card-preview-container">
+          <div class="label-block">3. Kartu Listing Properti (Bento Cad Presisi)</div>
+          <div class="kost-card card-after">
+            <div class="card-thumb card-thumb-after"></div>
+            <div class="card-content">
+              <div class="card-top">
+                <div>
+                  <div class="card-name">Kost Putri Graha Kirana</div>
+                  <div class="card-dim-tag" style="margin-top: 3px;">3.5 × 4.2 m • Jendela Timur • 0.4 km</div>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                  <span class="pill-after-emerald">✓ e-KTP Valid</span>
+                  <span class="pill-after-teak">Jati Asli</span>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px;">
+                <div>
+                  <span style="font-size: 0.65rem; text-transform: uppercase; color: #64748b; font-weight: 700;">Tarif Sewa</span>
+                  <div class="card-price-after">Rp 1.450.000<span style="font-size: 0.75rem; color: #94a3b8; font-weight: normal; font-family: 'Plus Jakarta Sans', sans-serif;">/bln</span></div>
+                </div>
+                <button style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; box-shadow: 0 2px 8px rgba(37,99,235,0.3);">Lihat Denah</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Local Services After (Calibrated Multi-Color) -->
+        <div>
+          <div class="label-block" style="margin-bottom: 6px;">4. Layanan Mitra Sekitar (Diferensiasi Sensori Lokal Nusantara)</div>
+          <div class="services-showcase">
+            <div class="service-tile tile-after-fnb">
+              <div class="icon-circle">🍲</div>
+              <div class="svc-name">Warung Bu Sri</div>
+              <div class="svc-tag">🔥 FnB / Selera Gurih</div>
+              <div class="svc-desc">Merah cabai & oranye merangsang nafsu makan.</div>
+            </div>
+            <div class="service-tile tile-after-galon">
+              <div class="icon-circle">💧</div>
+              <div class="svc-name">Depot Tirta</div>
+              <div class="svc-tag">❄️ Galon / Aqua Cyan</div>
+              <div class="svc-desc">Biru aqua mencerminkan air steril & segar.</div>
+            </div>
+            <div class="service-tile tile-after-laundry">
+              <div class="icon-circle">🧺</div>
+              <div class="svc-name">Berkah Cuci</div>
+              <div class="svc-tag">🌸 Laundry / Lilac</div>
+              <div class="svc-desc">Ungu lavender asosiasi wangi pelembut tahan lama.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="takeaway-box" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: #86efac;">
+          <strong>Keunggulan Desain Sekarang:</strong> Menggunakan Twilight Void (`#080D1A`), Electric Blue presisi (`#2563EB`), kehangatan kayu jati Teak (`#D97706`), angka tabular monospaced (`JetBrains Mono`), serta palet sensori khas Indonesia yang memicu keputusan beli penghuni.
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PALETTE SWATCHES SUMMARY -->
+  <div class="palette-summary">
+    <div>
+      <div class="swatches-header" style="color: #60a5fa;">
+        <span>📐 Core Architectural Tokens</span>
+      </div>
+      <div class="swatch-row">
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #080d1a;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">Twilight Void</span>
+            <span class="swatch-hex">#080D1A</span>
+          </div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #0e1726;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">Slate Navy Surface</span>
+            <span class="swatch-hex">#0E1726</span>
+          </div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #2563eb;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">Electric Blue (CTA)</span>
+            <span class="swatch-hex">#2563EB</span>
+          </div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #d97706;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">Indonesian Teak</span>
+            <span class="swatch-hex">#D97706</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="swatches-header" style="color: #fb923c;">
+        <span>🛍️ Local Indonesian Sensory Tokens</span>
+      </div>
+      <div class="swatch-row">
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #ea580c;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">FnB Savory Orange</span>
+            <span class="swatch-hex">#EA580C</span>
+          </div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #0284c7;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">Galon Pure Aqua</span>
+            <span class="swatch-hex">#0284C7</span>
+          </div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #7c3aed;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">Laundry Softener Lilac</span>
+            <span class="swatch-hex">#7C3AED</span>
+          </div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-circle" style="background: #10b981;"></div>
+          <div class="swatch-info">
+            <span class="swatch-name">Verified Emerald</span>
+            <span class="swatch-hex">#10B981</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

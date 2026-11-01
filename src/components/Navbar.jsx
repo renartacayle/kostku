@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Cloud, Download, Wifi, RefreshCw, User as UserIcon } from 'lucide-react';
-import { getCloudConfig, testApiConnection } from '../services/api';
+import { Home, Download, User as UserIcon, Sun, Moon, HelpCircle } from 'lucide-react';
 import PropertySwitcher from './PropertySwitcher';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar({ 
   user, 
@@ -12,75 +12,23 @@ export default function Navbar({
   onSwitchKost,
   onOpenAddKost
 }) {
-  const [connectionStatus, setConnectionStatus] = useState({ online: true, isCloud: false, latency: 20 });
-
-  const checkStatus = async () => {
-    const cfg = getCloudConfig();
-    const res = await testApiConnection();
-    setConnectionStatus({
-      online: res.ok,
-      isCloud: cfg.useCloud,
-      latency: res.latency || 0
-    });
-  };
-
-  useEffect(() => {
-    checkStatus();
-    const interval = setInterval(checkStatus, 30000); // Check every 30s
-    window.addEventListener('kostku_connection_changed', checkStatus);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('kostku_connection_changed', checkStatus);
-    };
-  }, []);
-
+  const { theme, toggleTheme, isLight } = useTheme();
   return (
     <header className="glass-nav" style={{
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      padding: '0.85rem 1.5rem',
+      padding: 'clamp(0.6rem, 2vw, 0.85rem) clamp(0.75rem, 3vw, 1.5rem)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: '1rem',
-      flexWrap: 'wrap'
+      gap: '0.6rem',
+      flexWrap: 'nowrap'
     }}>
       {/* Brand / Kost Title & Property Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            background: 'var(--accent-gradient)',
-            padding: '8px',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--shadow-glow)'
-          }}>
-            <Home size={20} color="white" />
-          </div>
-          <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: '1.25rem',
-              fontWeight: 800,
-              fontFamily: 'var(--font-display)',
-              background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              letterSpacing: '-0.02em'
-            }}>
-              {kostName || 'KostKu'}
-            </h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', lineHeight: 1 }}>
-              {user?.role === 'owner' ? 'Owner Portal' : user?.role === 'master' ? 'Admin Portal' : user?.role === 'staff' ? `Staf Lapangan (${user?.jobTitle || 'Penjaga'})` : 'Tenant App'}
-            </span>
-          </div>
-        </div>
-
-        {/* Property Switcher for Owners */}
-        {(user?.role === 'owner' || user?.role === 'master') && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'nowrap' }}>
+        {(user?.role === 'owner' || user?.role === 'master') ? (
+          /* For Owners/Admins: Only show the interactive PropertySwitcher dropdown, static name removed */
           <PropertySwitcher
             user={user}
             activeKostUid={user?.kostUid}
@@ -88,59 +36,148 @@ export default function Navbar({
             onSwitchKost={onSwitchKost}
             onOpenAddModal={onOpenAddKost}
           />
+        ) : (
+          /* For Tenants/Staff: Show default static property badge */
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+            <img 
+              src="/logo.png" 
+              alt="Logo KostKu" 
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                objectFit: 'contain',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
+              }} 
+            />
+            <div>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                fontFamily: 'var(--font-display)',
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.02em'
+              }}>
+                {kostName || 'KostKu'}
+              </h2>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', lineHeight: 1 }}>
+                {user?.role === 'staff' ? `Staf Lapangan (${user?.jobTitle || 'Penjaga'})` : 'Tenant App'}
+              </span>
+            </div>
+          </Link>
         )}
       </div>
 
-      {/* Right Action Items */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* Cloud Connection Badge */}
-        <button
-          onClick={onOpenCloudSync}
-          title="Klik untuk pengaturan Sinkronisasi Cloud Multi-Device"
-          style={{
+      {/* Right Action Items: Mode Indicator + Help & CS Button + Theme Toggle (Desktop & Mobile) + Mobile User Chips */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Mode Indicator: Demo Sandbox Only */}
+        {user && (user?.isDemo || user?.email?.endsWith('@kostku.id')) && (
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-full)',
-            padding: '6px 12px',
+            gap: '5px',
+            background: isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(245, 158, 11, 0.18)',
+            border: isLight ? '1px solid rgba(217, 119, 6, 0.35)' : '1px solid rgba(245, 158, 11, 0.35)',
+            borderRadius: '8px',
+            padding: '4px 7px',
+            fontSize: '0.72rem',
+            color: isLight ? '#92400e' : '#fbbf24',
+            fontWeight: 700,
+            whiteSpace: 'nowrap'
+          }}>
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isLight ? '#d97706' : '#fbbf24' }} />
+            <span>🧪 <span className="desktop-only">Mode </span>Demo</span>
+            <Link
+              to="/login"
+              title="Beralih ke Login Data Real"
+              className="desktop-only"
+              style={{
+                marginLeft: '2px',
+                padding: '2px 6px',
+                background: isLight ? 'rgba(217, 119, 6, 0.18)' : 'rgba(245, 158, 11, 0.22)',
+                borderRadius: '5px',
+                color: isLight ? '#78350f' : '#fef08a',
+                textDecoration: 'none',
+                fontSize: '0.68rem',
+                fontWeight: 800
+              }}
+            >
+              Real Login ↗
+            </Link>
+          </div>
+        )}
+        {/* Help & CS Quick Button */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('kostku:open-help'))}
+          type="button"
+          data-testid="navbar-help-cs-btn"
+          title="Pusat Bantuan, FAQ & Kontak CS (081228263200)"
+          style={{
+            background: 'rgba(16, 185, 129, 0.12)',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            borderRadius: '8px',
+            padding: '6px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#10b981',
             cursor: 'pointer',
-            color: 'var(--text-primary)',
-            fontSize: '0.8rem',
-            transition: 'all 0.2s'
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            transition: 'all 0.2s',
+            boxShadow: 'var(--shadow-sm)'
           }}
         >
-          <span className={`status-dot ${connectionStatus.online ? (connectionStatus.isCloud ? 'online' : 'local') : ''}`} 
-                style={{ background: !connectionStatus.online ? 'var(--accent-danger)' : undefined }} />
-          <span style={{ fontWeight: 600 }}>
-            {connectionStatus.online ? (connectionStatus.isCloud ? 'Cloud Online' : 'Database Lokal') : 'Offline'}
-          </span>
+          <HelpCircle size={16} color="#10b981" />
+          <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Bantuan & CS</span>
         </button>
 
-        {/* Install App Button */}
+        {/* Theme Toggle Button (Light Mode / Dark Mode) */}
         <button
-          onClick={onOpenInstall}
-          className="btn btn-secondary btn-sm"
-          title="Pasang aplikasi di HP atau Laptop"
-          style={{ gap: '6px' }}
+          onClick={toggleTheme}
+          type="button"
+          data-testid="navbar-theme-toggle"
+          title={isLight ? "Beralih ke Mode Gelap (Dark Mode)" : "Beralih ke Mode Terang (Light Mode)"}
+          style={{
+            background: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.07)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            padding: '6px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            transition: 'all 0.2s',
+            boxShadow: 'var(--shadow-sm)'
+          }}
         >
-          <Download size={15} color="var(--accent-primary)" />
-          <span className="desktop-only">Pasang Aplikasi</span>
+          {isLight ? (
+            <>
+              <Moon size={16} color="#2563eb" />
+              <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Mode Gelap</span>
+            </>
+          ) : (
+            <>
+              <Sun size={16} color="#f59e0b" />
+              <span className="desktop-only" style={{ fontSize: '0.74rem' }}>Mode Terang</span>
+            </>
+          )}
         </button>
 
-        {/* User Chip */}
+        {/* User Chip on Mobile - compact avatar without text overflow */}
         <Link 
           to="/pengaturan" 
           title="Buka Pengaturan Akun & Profil"
+          className="mobile-only-flex"
           style={{
             textDecoration: 'none',
             color: 'inherit',
-            display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            padding: '4px 10px 4px 6px',
+            padding: '2px',
             borderRadius: 'var(--radius-full)',
             border: '1px solid var(--border-color)',
             cursor: 'pointer',
@@ -153,8 +190,8 @@ export default function Navbar({
               alt={user.name || 'User'}
               referrerPolicy="no-referrer"
               style={{
-                width: '28px',
-                height: '28px',
+                width: '26px',
+                height: '26px',
                 borderRadius: '50%',
                 objectFit: 'cover',
                 border: '1.5px solid #4285F4'
@@ -162,21 +199,21 @@ export default function Navbar({
             />
           ) : (
             <div style={{
-              width: '28px',
-              height: '28px',
+              width: '26px',
+              height: '26px',
               borderRadius: '50%',
               background: 'var(--accent-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.8rem',
+              fontSize: '0.75rem',
               fontWeight: 700,
               color: 'white'
             }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={14} />}
+              {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={13} />}
             </div>
           )}
-          <span className="desktop-only" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+          <span className="desktop-only" style={{ fontSize: '0.8rem', fontWeight: 600, maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user?.name || 'User'}
           </span>
         </Link>

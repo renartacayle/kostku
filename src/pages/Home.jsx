@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
@@ -22,28 +22,62 @@ import {
   SlidersHorizontal,
   PlusCircle,
   Play,
+  Pause,
   Zap,
   LayoutGrid,
   Map as MapIcon,
   Ruler,
   GraduationCap,
-  Navigation
+  Navigation,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import SpatialBentoShowcase from '../components/SpatialBentoShowcase';
 import VideoScroll from '../components/VideoScroll';
 import InstallModal from '../components/InstallModal';
 import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
 import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
 import FloorPlanModal from '../components/FloorPlanModal';
-import CustomDropdown from '../components/CustomDropdown';
+import KostFilterModal from '../components/KostFilterModal';
+import Footer from '../components/Footer';
+import { TactileButton, HoldToConfirmButton, ScrambleText, ReceiptPrinter, KitchenShowcaseSection } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
+import { FACILITY_OPTIONS, checkFacilityMatch } from './SearchKost';
 import { 
   calculateDistanceKm, 
   formatDistance, 
   getGmapsDirectionsUrl, 
   getCurrentPositionAsync,
-  POPULAR_LANDMARKS
+  POPULAR_LANDMARKS,
+  getKostCoordinates
 } from '../utils/geoUtils';
+import { 
+  isValidBuildingPhoto, 
+  hasValidBuildingPhoto, 
+  getValidBuildingImages, 
+  DEFAULT_BUILDING_PHOTO 
+} from '../utils/imageUtils';
+
+export const CITY_BADGES = [
+  { id: 'all', name: 'Semua Kota', icon: '🌐' },
+  { id: 'Semarang', name: 'Semarang', icon: '☕' },
+  { id: 'Jakarta', name: 'Jakarta', icon: '🏙️' },
+  { id: 'Bandung', name: 'Bandung', icon: '🌲' },
+  { id: 'Yogyakarta', name: 'Yogyakarta', icon: '🏛️' },
+  { id: 'Surabaya', name: 'Surabaya', icon: '⚓' },
+  { id: 'Malang', name: 'Malang', icon: '🏔️' },
+  { id: 'Bali', name: 'Bali', icon: '🌴' },
+  { id: 'Tangerang', name: 'Tangerang', icon: '🏢' }
+];
+
+export const KOST_TYPES = [
+  { id: 'all', label: 'Semua Tipe' },
+  { id: 'Putri', label: '🌸 Khusus Putri' },
+  { id: 'Putra', label: '👔 Khusus Putra' },
+  { id: 'Campur', label: '🏡 Campur' },
+  { id: 'Pasutri', label: '👫 Boleh Pasutri' }
+];
 
 // ═══════════════════════════════════════════════════════════════════
 // 1. REVISED KOST CARD IMAGE SLIDER (DYNAMIC 4:3 ASPECT RATIO)
@@ -54,9 +88,7 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
   const touchStartY = useRef(0);
   const isSwiping = useRef(false);
 
-  const imgList = (images && images.length > 0) ? images : [
-    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80'
-  ];
+  const imgList = getValidBuildingImages(images, DEFAULT_BUILDING_PHOTO);
 
   const handlePrev = (e) => {
     e.preventDefault();
@@ -126,7 +158,7 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
         maxWidth: '100%',
         // DYNAMIC 4:3 ASPECT RATIO (Design Spec V2.0 Section 3)
         aspectRatio: '4 / 3',
-        background: '#0F172A',
+        background: 'var(--bg-secondary)',
         position: 'relative',
         overflow: 'hidden',
         userSelect: 'none',
@@ -188,18 +220,21 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
       )}
 
       {/* Floating Badges Over Image: Tipe Kategori & Status Kamar */}
-      <div style={{
-        position: 'absolute',
-        top: isPromoted ? '42px' : '12px',
-        left: '12px',
-        right: '12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        zIndex: 3,
-        pointerEvents: 'none',
-        transition: 'top 0.2s ease'
-      }}>
+      <div 
+        className="kost-slider-badges"
+        style={{
+          position: 'absolute',
+          top: isPromoted ? '42px' : '12px',
+          left: '12px',
+          right: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          zIndex: 3,
+          pointerEvents: 'none',
+          transition: 'top 0.2s ease'
+        }}
+      >
         {/* Tipe Kost Badge (Putri: #FEF3C7, Putra: #DBEAFE, Campur: #E0E7FF) */}
         <span style={{
           ...categoryBadgeStyle,
@@ -237,24 +272,6 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
           }} />
           {availableRoomsCount > 0 ? `Tersedia ${availableRoomsCount} Kamar` : 'Penuh'}
         </span>
-
-        {distanceKm != null && (
-          <span style={{
-            background: 'linear-gradient(135deg, #059669, #10b981)',
-            color: '#ffffff',
-            padding: '3px 9px',
-            borderRadius: '100px',
-            fontSize: '0.7rem',
-            fontWeight: 800,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '3px',
-            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
-          }}>
-            <MapPin size={10} />
-            <span>{formatDistance(distanceKm)}</span>
-          </span>
-        )}
       </div>
 
       {/* Navigation Arrows for desktop hover */}
@@ -272,9 +289,9 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: 'white',
+              background: 'var(--bg-glass)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -298,9 +315,9 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: 'white',
+              background: 'var(--bg-glass)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -350,18 +367,20 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
 // 2. MAIN HOME COMPONENT (SEARCH-FIRST MARKETPLACE ARCHITECTURE)
 // ═══════════════════════════════════════════════════════════════════
 export default function Home({ user }) {
+  const { theme, toggleTheme, isLight } = useTheme();
   const [kosts, setKosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
 
-  // Search-First multivariabel states
+  // Search & Filter Multivariable States
   const [searchLocation, setSearchLocation] = useState('');
-  const [selectedType, setSelectedType] = useState('Semua'); // 'Semua' | 'Putri' | 'Putra' | 'Campur'
-  const [selectedBudget, setSelectedBudget] = useState('Semua'); // 'Semua' | '1000000' | '1500000' | '2000000' | '3000000'
-  
-  // Quick Filter Chips multi-select state (default: ['Semua'])
-  const [selectedChips, setSelectedChips] = useState(['Semua']);
+  const [selectedCity, setSelectedCity] = useState('all');
+  const [selectedType, setSelectedType] = useState('all'); // 'all' | 'Putri' | 'Putra' | 'Campur' | 'Pasutri'
+  const [selectedPriceRange, setSelectedPriceRange] = useState('all'); // 'all' | 'under-1.5m' | '1.5m-2.5m' | 'over-2.5m'
+  const [selectedFacilities, setSelectedFacilities] = useState([]); // Array of facility IDs for multi-select
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
 
   // Geolocation & Distance State
   const [userLocation, setUserLocation] = useState(null); // { lat, lng, label, isGps: boolean }
@@ -374,16 +393,24 @@ export default function Home({ user }) {
     setLocatingError(null);
     try {
       const pos = await getCurrentPositionAsync();
+      const detectedCity = pos.city || null;
       setUserLocation({
         lat: pos.lat,
         lng: pos.lng,
-        label: 'Lokasi GPS Anda',
-        isGps: true
+        label: pos.label || (detectedCity ? `Lokasi Anda (${detectedCity})` : 'Lokasi GPS Anda'),
+        isGps: pos.isGps,
+        isIpFallback: pos.isIpFallback,
+        city: detectedCity
       });
-      setSearchLocation('Lokasi Saya (GPS)');
+      setSearchLocation(pos.label || (detectedCity ? `Lokasi Anda (~${detectedCity})` : 'Lokasi Terdekat'));
+      setMaxDistanceRadius('all');
+      setTimeout(() => {
+        const el = document.getElementById('search-results-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
     } catch (err) {
       console.warn('Geolocation error:', err);
-      setLocatingError(err.message || 'Gagal mendeteksi lokasi GPS Anda.');
+      setLocatingError('Mendeteksi lokasi otomatis terkendala. Silakan pilih patokan kampus.');
     } finally {
       setIsLocating(false);
     }
@@ -394,9 +421,15 @@ export default function Home({ user }) {
       lat: landmark.lat,
       lng: landmark.lng,
       label: landmark.name,
-      isGps: false
+      isGps: false,
+      city: landmark.city
     });
     setSearchLocation(landmark.name);
+    setMaxDistanceRadius('all');
+    setTimeout(() => {
+      const el = document.getElementById('search-results-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
   };
 
   const handleClearLocation = () => {
@@ -411,135 +444,34 @@ export default function Home({ user }) {
   const [calcSelectedKost, setCalcSelectedKost] = useState(null);
   const [previewFloorPlanKost, setPreviewFloorPlanKost] = useState(null);
 
-  // Fallback verified kosts if backend server is sleeping or offline
+  // ── 4x2 Koleksi Kost with User-Controlled Carousel (Auto-scroll OFF by default) ──
+  const [activeGridPage, setActiveGridPage] = useState(0);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
+  const [isGridHovered, setIsGridHovered] = useState(false);
+  const [autoScrollProgress, setAutoScrollProgress] = useState(0);
+
+  const gridTouchStartX = useRef(0);
+  const gridTouchStartY = useRef(0);
+  const isGridSwiping = useRef(false);
+
+  // Fallback verified real kost if backend server is sleeping or offline
   const FALLBACK_KOSTS = [
     {
-      uid: 'KOST-JKT-01',
-      kostName: 'Kost Taman Sukun Co-Living & Exclusive',
+      uid: 'KOST-OJN64X',
+      kostName: 'Kostku Residence Udinus',
       type: 'Campur',
-      city: 'Jakarta',
-      address: 'Jl. Taman Sukun Raya No. 42, Banyumanik / Tebet',
-      location: { lat: -6.2383, lng: 106.8532 },
-      rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Air Panas (Water Heater)', 'Kamar Luas'],
-      rules: ['Boleh Pasutri (Surat Nikah / KTP)', 'Akses 24 Jam'],
-      rooms: [{ id: 'R1', number: '101', price: 1500000, dimension: '4.0m x 4.0m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80'
-      ]
-    },
-    {
-      uid: 'KOST-BDG-02',
-      kostName: 'Kost Putri Griya Asri Dago',
-      type: 'Putri',
-      city: 'Bandung',
-      address: 'Jl. Dago Asri No. 18, Coblong, Bandung',
-      location: { lat: -6.8795, lng: 107.6186 },
-      rating: 4.8,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Token Mandiri', 'Kamar Luas'],
-      rules: ['Khusus Mahasiswi / Putri', 'Bebas Jam Malam'],
-      rooms: [{ id: 'R2', number: '202', price: 1350000, dimension: '3.5m x 4.0m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1540518614846-7ede433c4b69?w=1200&auto=format&fit=crop&q=80'
-      ]
-    },
-    {
-      uid: 'KOST-SMG-03',
-      kostName: 'Kost Cempaka Paviliun Tembalang (Dekat Undip & Udinus)',
-      type: 'Putra',
       city: 'Semarang',
-      address: 'Jl. Cempaka Raya No. 8, Tembalang, Semarang',
-      location: { lat: -7.0504, lng: 110.4385 },
-      rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Parkir Motor/Mobil', 'Air Panas'],
-      rules: ['Khusus Putra / Mahasiswa'],
-      rooms: [{ id: 'R3', number: '105', price: 950000, dimension: '3.5m x 4.0m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
-      ]
-    },
-    {
-      uid: 'KOST-TNG-04',
-      kostName: 'Kost Urban Loft BSD Smart Living',
-      type: 'Campur',
-      city: 'Tangerang',
-      address: 'Kawasan BSD Green Office Park, Tangerang',
-      location: { lat: -6.3015, lng: 106.6521 },
-      rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Token Mandiri', 'Kamar Luas (Mezzanine)'],
-      rules: ['Boleh Pasutri', 'Akses Kartu 24 Jam'],
-      rooms: [{ id: 'R4', number: '301', price: 1850000, dimension: '4.5m x 4.0m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&auto=format&fit=crop&q=80'
-      ]
-    },
-    {
-      uid: 'KOST-YOG-05',
-      kostName: 'Kost Java Residence Malioboro',
-      type: 'Campur',
-      city: 'Yogyakarta',
-      address: 'Jl. Sosrowijayan No. 25, Malioboro, Yogyakarta',
-      location: { lat: -7.7928, lng: 110.3658 },
-      rating: 4.8,
-      facilities: ['WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Air Panas'],
-      rules: ['Boleh Pasutri', 'Akses Kunci Sendiri'],
-      rooms: [{ id: 'R5', number: '102', price: 850000, dimension: '3.0m x 3.5m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1540518614846-7ede433c4b69?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
-      ]
-    },
-    {
-      uid: 'KOST-MLG-06',
-      kostName: 'Kost De Lavender Dinoyo Co-Living',
-      type: 'Putri',
-      city: 'Malang',
-      address: 'Jl. MT Haryono No. 55, Dinoyo, Malang',
-      location: { lat: -7.9526, lng: 112.6138 },
-      rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas (Water Heater)', 'Hewan Boleh', 'Kamar Luas'],
-      rules: ['Khusus Putri', 'Hewan Boleh'],
-      rooms: [{ id: 'R6', number: '204', price: 1200000, dimension: '3.5m x 4.0m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
-      ]
-    },
-    {
-      uid: 'KOST-SBY-07',
-      kostName: 'Kost Grand Surya Executive Rungkut',
-      type: 'Putra',
-      city: 'Surabaya',
-      address: 'Jl. Rungkut Madya No. 88, Surabaya',
-      location: { lat: -7.3312, lng: 112.7825 },
-      rating: 4.7,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Air Panas', 'Kamar Luas'],
-      rules: ['Khusus Putra'],
-      rooms: [{ id: 'R7', number: '103', price: 1400000, dimension: '3.5m x 4.0m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80'
-      ]
-    },
-    {
-      uid: 'KOST-DPS-08',
-      kostName: 'Kost Sunset Paradise Canggu',
-      type: 'Campur',
-      city: 'Bali',
-      address: 'Jl. Pantai Batu Bolong No. 12, Canggu, Bali',
-      location: { lat: -8.6500, lng: 115.1333 },
-      rating: 4.9,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Water Heater (Air Panas)', 'Hewan Boleh', 'Kamar Luas Suite'],
-      rules: ['Boleh Pasutri', 'Pet Friendly'],
-      rooms: [{ id: 'R8', number: '108', price: 2500000, dimension: '4.5m x 5.0m', status: 'available' }],
+      address: 'Jl. Imam Bonjol No. 207, Pendrikan Kidul, Semarang Tengah (Dekat Udinus)',
+      location: { lat: -6.9826, lng: 110.4091 },
+      rating: 5.0,
+      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil'],
+      rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
+      rooms: [{ id: 'ROOM-OJN-122', number: '122', price: 1500000, dimension: '3.5m x 4.0m', status: 'available' }],
       images: [
         'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80'
-      ]
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
+      ],
+      isDemo: false
     }
   ];
 
@@ -566,50 +498,48 @@ export default function Home({ user }) {
     fetchKosts();
   }, []);
 
-  // Quick chips definitions with user additions: Air Panas, Kamar Luas, Boleh Pasutri
-  const filterChips = [
-    { id: 'Semua', label: 'Semua' },
-    { id: 'Putri', label: '👩 Kost Putri' },
-    { id: 'Putra', label: '👨 Kost Putra' },
-    { id: 'Pasutri', label: '👫 Boleh Pasutri' },
-    { id: 'AC', label: '❄️ Ber-AC' },
-    { id: 'KMDalam', label: '🚿 KM Dalam' },
-    { id: 'AirPanas', label: '♨️ Air Panas' },
-    { id: 'KamarLuas', label: '📐 Kamar Luas' },
-    { id: 'Token', label: '⚡ Token Mandiri' },
-    { id: 'Pet', label: '🐾 Hewan Boleh' }
-  ];
-
-  // Handler for Multi-Select Chips
-  const handleToggleChip = (chipId) => {
-    if (chipId === 'Semua') {
-      setSelectedChips(['Semua']);
-      return;
-    }
-
-    setSelectedChips(prev => {
-      const withoutSemua = prev.filter(id => id !== 'Semua');
-      let next;
-      if (withoutSemua.includes(chipId)) {
-        next = withoutSemua.filter(id => id !== chipId);
+  // Handlers for Facility Multi-Select in Filter Modal
+  const handleToggleFacility = (facId) => {
+    setSelectedFacilities(prev => {
+      if (prev.includes(facId)) {
+        return prev.filter(id => id !== facId);
       } else {
-        next = [...withoutSemua, chipId];
+        return [...prev, facId];
       }
-      return next.length > 0 ? next : ['Semua'];
     });
   };
 
-  // Multivariable filter algorithm with multi-select chips support
+  const handleClearFacilities = () => {
+    setSelectedFacilities([]);
+  };
+
+  const getMinPrice = (k) => {
+    if (!k || !k.rooms || k.rooms.length === 0) return 0;
+    return Math.min(...k.rooms.map(r => Number(r.price) || 0));
+  };
+
+  // Multivariable filter algorithm with multi-select facilities & price range support
   const filtered = (kosts || []).filter(k => {
     if (!k) return false;
 
+    // Strict Rule: Kost WAJIB memiliki foto gedung asli (tidak boleh dummy pixel hijau / kosong)
+    if (!hasValidBuildingPhoto(k)) return false;
+
     // 0. Max distance radius filter (if userLocation is set)
-    if (userLocation && maxDistanceRadius !== 'all' && k.location?.lat && k.location?.lng) {
-      const dist = calculateDistanceKm(userLocation.lat, userLocation.lng, k.location.lat, k.location.lng);
+    if (userLocation && maxDistanceRadius !== 'all') {
+      const coords = getKostCoordinates(k);
+      const dist = coords ? calculateDistanceKm(userLocation.lat, userLocation.lng, coords.lat, coords.lng) : null;
       if (dist == null || dist > Number(maxDistanceRadius)) return false;
     }
 
-    // 1. Text Location / Campus Filter (only when userLocation GPS/landmark is NOT active)
+    // 1. City Filter
+    if (selectedCity && selectedCity !== 'all') {
+      const kCity = (k.city || '').toLowerCase();
+      const cTarget = selectedCity.toLowerCase();
+      if (!kCity.includes(cTarget)) return false;
+    }
+
+    // 2. Text Location / Campus Filter (only when userLocation GPS/landmark is NOT active)
     const locQuery = (searchLocation || '').trim().toLowerCase();
     if (locQuery && !userLocation) {
       const name = (k.kostName || '').toLowerCase();
@@ -620,93 +550,52 @@ export default function Home({ user }) {
       if (!matches) return false;
     }
 
-    // 2. Type Filter (Select Box)
-    if (selectedType !== 'Semua') {
+    // 3. Type Filter
+    if (selectedType && selectedType !== 'all') {
       const typeStr = (k.type || '').toLowerCase();
+      const rules = (k.rules || []).map(r => (typeof r === 'string' ? r.toLowerCase() : ''));
+      const facs = (k.facilities || []).map(f => (typeof f === 'string' ? f.toLowerCase() : ''));
+      const desc = (k.description || '').toLowerCase();
+      const name = (k.kostName || '').toLowerCase();
+
       if (selectedType === 'Putri' && !typeStr.includes('putri')) return false;
       if (selectedType === 'Putra' && !typeStr.includes('putra')) return false;
       if (selectedType === 'Campur' && (!typeStr.includes('campur') && !typeStr.includes('bebas'))) return false;
+      if (selectedType === 'Pasutri') {
+        const isPasutri = typeStr.includes('campur') ||
+                          typeStr.includes('bebas') ||
+                          typeStr.includes('pasutri') ||
+                          rules.some(r => r.includes('pasutri')) ||
+                          facs.some(f => f.includes('pasutri')) ||
+                          desc.includes('pasutri') ||
+                          name.includes('co-living') ||
+                          name.includes('exclusive');
+        if (!isPasutri) return false;
+      }
     }
 
-    // 3. Budget Filter (Max Price)
-    if (selectedBudget !== 'Semua') {
-      const maxPrice = Number(selectedBudget);
-      const minRoomPrice = k.rooms?.length > 0 ? Math.min(...k.rooms.map(r => r.price)) : 0;
-      if (minRoomPrice > maxPrice) return false;
+    // 4. Rentang Harga (selectedPriceRange)
+    if (selectedPriceRange && selectedPriceRange !== 'all') {
+      const minPrice = getMinPrice(k);
+      if (selectedPriceRange === 'under-1.5m' && minPrice >= 1500000) return false;
+      if (selectedPriceRange === '1.5m-2.5m' && (minPrice < 1500000 || minPrice > 2500000)) return false;
+      if (selectedPriceRange === 'over-2.5m' && minPrice <= 2500000) return false;
     }
 
-    // 4. Quick Chips Multi-Select Filter
-    if (!selectedChips.includes('Semua') && selectedChips.length > 0) {
-      const facilities = (k.facilities || []).map(f => f.toLowerCase());
-      const rules = (k.rules || []).map(r => r.toLowerCase());
-      const desc = (k.description || '').toLowerCase();
-      const name = (k.kostName || '').toLowerCase();
-      const typeStr = (k.type || '').toLowerCase();
-      const roomDim = (k.rooms?.[0]?.dimension || '').toLowerCase();
-
-      // Category / Gender filter: If multiple chosen (e.g. Putri + Pasutri), match ANY (OR)
-      const genderChips = selectedChips.filter(c => ['Putri', 'Putra', 'Pasutri'].includes(c));
-      if (genderChips.length > 0) {
-        const matchesGender = genderChips.some(gChip => {
-          if (gChip === 'Putri') return typeStr.includes('putri');
-          if (gChip === 'Putra') return typeStr.includes('putra');
-          if (gChip === 'Pasutri') {
-            return typeStr.includes('campur') ||
-                   typeStr.includes('bebas') ||
-                   typeStr.includes('pasutri') ||
-                   rules.some(r => r.includes('pasutri')) ||
-                   facilities.some(f => f.includes('pasutri')) ||
-                   desc.includes('pasutri') ||
-                   name.includes('co-living') ||
-                   name.includes('exclusive');
-          }
-          return false;
-        });
-        if (!matchesGender) return false;
-      }
-
-      // Feature & Facility filters: Must match ALL (AND)
-      const featureChips = selectedChips.filter(c => !['Semua', 'Putri', 'Putra', 'Pasutri'].includes(c));
-      for (const fChip of featureChips) {
-        if (fChip === 'AC') {
-          if (!facilities.some(f => f.includes('ac'))) return false;
-        } else if (fChip === 'KMDalam') {
-          if (!facilities.some(f => f.includes('mandi dalam') || f.includes('km dalam') || f.includes('km. dalam'))) return false;
-        } else if (fChip === 'AirPanas') {
-          const hasHotWater = facilities.some(f => f.includes('air panas') || f.includes('water heater') || f.includes('heater') || f.includes('bathtub')) ||
-                              desc.includes('air panas') || desc.includes('water heater');
-          if (!hasHotWater) return false;
-        } else if (fChip === 'KamarLuas') {
-          const dimMatch = roomDim.match(/([\d.]+)\s*[xX*]\s*([\d.]+)/);
-          const area = dimMatch ? parseFloat(dimMatch[1]) * parseFloat(dimMatch[2]) : 0;
-          const isLarge = area >= 12 ||
-                          facilities.some(f => f.includes('luas') || f.includes('suite') || f.includes('balkon')) ||
-                          desc.includes('luas') ||
-                          desc.includes('suite') ||
-                          name.includes('paviliun') ||
-                          name.includes('exclusive') ||
-                          name.includes('loft') ||
-                          name.includes('suite');
-          if (!isLarge) return false;
-        } else if (fChip === 'Token') {
-          if (!facilities.some(f => f.includes('token') || f.includes('listrik'))) return false;
-        } else if (fChip === 'Pet') {
-          const isPet = rules.some(r => r.includes('hewan') || r.includes('pet')) || 
-                        facilities.some(f => f.includes('hewan') || f.includes('pet')) ||
-                        desc.includes('pet friendly') ||
-                        desc.includes('hewan');
-          if (!isPet) return false;
-        }
-      }
+    // 5. Multi-select facilities filter (ALL chosen facilities must match)
+    if (selectedFacilities && selectedFacilities.length > 0) {
+      const matchesAll = selectedFacilities.every(facId => checkFacilityMatch(k, facId));
+      if (!matchesAll) return false;
     }
 
     return true;
   }).map(k => {
     let distanceKm = null;
-    if (userLocation && k.location?.lat && k.location?.lng) {
-      distanceKm = calculateDistanceKm(userLocation.lat, userLocation.lng, k.location.lat, k.location.lng);
+    const coords = getKostCoordinates(k);
+    if (userLocation && coords) {
+      distanceKm = calculateDistanceKm(userLocation.lat, userLocation.lng, coords.lat, coords.lng);
     }
-    return { ...k, distanceKm };
+    return { ...k, distanceKm, location: coords || k.location };
   }).sort((a, b) => {
     // SUNDUL KOST BOOST: Listing yang aktif dipromosikan SELALU tampil di posisi #1 teratas!
     const promoA = a.promoted?.active ? 1 : 0;
@@ -721,31 +610,120 @@ export default function Home({ user }) {
     return 0;
   });
 
-  // Split filtered into batch 1 (first 6 items) and batch 2 (rest items) for Bento insertion
-  const batch1 = filtered.slice(0, 6);
-  const batch2 = filtered.slice(6);
+  // ── 4x2 Koleksi Grid: 8 item per tampilan (4 kolom x 2 baris) ──
+  const ITEMS_PER_4X2_PAGE = 8;
+  const gridPages = useMemo(() => {
+    const pages = [];
+    for (let i = 0; i < filtered.length; i += ITEMS_PER_4X2_PAGE) {
+      pages.push(filtered.slice(i, i + ITEMS_PER_4X2_PAGE));
+    }
+    return pages.length > 0 ? pages : [[]];
+  }, [filtered]);
+
+  // Reset pagination saat filter pencarian berubah
+  useEffect(() => {
+    setActiveGridPage(0);
+    setAutoScrollProgress(0);
+  }, [searchLocation, selectedCity, selectedType, selectedPriceRange, selectedFacilities, maxDistanceRadius, userLocation]);
+
+  // Validasi indeks halaman aktif jika jumlah halaman berkurang
+  useEffect(() => {
+    if (activeGridPage >= gridPages.length) {
+      setActiveGridPage(0);
+      setAutoScrollProgress(0);
+    }
+  }, [gridPages.length, activeGridPage]);
+
+  // Auto-Scroll Interval Ticker (6 detik per transisi slide 4x2)
+  useEffect(() => {
+    if (!isAutoScrollEnabled || isGridHovered || gridPages.length <= 1) {
+      return;
+    }
+
+    const intervalTimeMs = 100;
+    const durationMs = 6000;
+    const step = (intervalTimeMs / durationMs) * 100;
+
+    const timer = setInterval(() => {
+      setAutoScrollProgress(prev => {
+        if (prev >= 100) {
+          setActiveGridPage(curr => (curr + 1) % gridPages.length);
+          return 0;
+        }
+        return prev + step;
+      });
+    }, intervalTimeMs);
+
+    return () => clearInterval(timer);
+  }, [isAutoScrollEnabled, isGridHovered, gridPages.length]);
+
+  const handleNextGridPage = () => {
+    if (gridPages.length <= 1) return;
+    setActiveGridPage(prev => (prev + 1) % gridPages.length);
+    setAutoScrollProgress(0);
+  };
+
+  const handlePrevGridPage = () => {
+    if (gridPages.length <= 1) return;
+    setActiveGridPage(prev => (prev > 0 ? prev - 1 : gridPages.length - 1));
+    setAutoScrollProgress(0);
+  };
+
+  const handleGridTouchStart = (e) => {
+    gridTouchStartX.current = e.touches[0].clientX;
+    gridTouchStartY.current = e.touches[0].clientY;
+    isGridSwiping.current = false;
+  };
+
+  const handleGridTouchMove = (e) => {
+    const diffX = gridTouchStartX.current - e.touches[0].clientX;
+    const diffY = gridTouchStartY.current - e.touches[0].clientY;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      isGridSwiping.current = true;
+    }
+  };
+
+  const handleGridTouchEnd = (e) => {
+    if (!isGridSwiping.current) return;
+    const diffX = gridTouchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        handleNextGridPage();
+      } else {
+        handlePrevGridPage();
+      }
+    }
+  };
 
   const resetAllFilters = () => {
     setSearchLocation('');
+    setSelectedCity('all');
+    setSelectedType('all');
+    setSelectedPriceRange('all');
+    setSelectedFacilities([]);
     setUserLocation(null);
     setMaxDistanceRadius('all');
-    setSelectedType('Semua');
-    setSelectedBudget('Semua');
-    setSelectedChips(['Semua']);
   };
 
-  const isFiltering = searchLocation !== '' || 
-                      userLocation !== null ||
-                      maxDistanceRadius !== 'all' ||
-                      selectedType !== 'Semua' || 
-                      selectedBudget !== 'Semua' || 
-                      (!selectedChips.includes('Semua') && selectedChips.length > 0);
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedCity !== 'all') count++;
+    if (selectedType !== 'all') count++;
+    if (selectedPriceRange !== 'all') count++;
+    if (selectedFacilities.length > 0) count += selectedFacilities.length;
+    if (userLocation) count++;
+    if (maxDistanceRadius !== 'all') count++;
+    return count;
+  }, [selectedCity, selectedType, selectedPriceRange, selectedFacilities, userLocation, maxDistanceRadius]);
+
+  const isFiltering = searchLocation !== '' || activeFilterCount > 0;
+
 
   return (
     <div style={{ 
-      background: '#0F172A', 
+      background: 'var(--bg-main)', 
       minHeight: '100vh',
-      color: '#F8FAFC',
+      color: 'var(--text-primary)',
       fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
       paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
       overflowX: 'clip',
@@ -767,38 +745,55 @@ export default function Home({ user }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'rgba(15, 23, 42, 0.92)',
+        background: 'var(--bg-glass)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+        borderBottom: '1px solid var(--border-color)'
       }}>
         {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            background: '#2563EB',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            width: '34px',
-            height: '34px',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 800,
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
-          }}>
-            K
-          </div>
-          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'white', letterSpacing: '-0.02em' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+          <img 
+            src="/logo.png" 
+            alt="Logo KostKu" 
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              objectFit: 'contain',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
+            }} 
+          />
+          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             KostKu
           </span>
-        </div>
+        </Link>
 
         {/* Action Links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* 1-Click Theme Toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            data-testid="landing-theme-toggle"
+            className="btn btn-secondary btn-sm"
+            title={isLight ? "Beralih ke Mode Gelap" : "Beralih ke Mode Terang"}
+            style={{
+              padding: '6px 10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            {isLight ? <Moon size={14} color="#f59e0b" /> : <Sun size={14} color="#f59e0b" />}
+            <span className="desktop-only" style={{ fontSize: '0.8rem' }}>
+              {isLight ? 'Gelap' : 'Terang'}
+            </span>
+          </button>
+
           <Link
             to="/search"
-            className="btn btn-secondary btn-sm"
+            className="btn btn-secondary btn-sm desktop-only"
             style={{ gap: '6px' }}
           >
             <Search size={14} color="#60a5fa" />
@@ -834,8 +829,8 @@ export default function Home({ user }) {
       <section style={{
         position: 'relative',
         padding: 'clamp(2.5rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem) clamp(2rem, 4vw, 3rem)',
-        background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'linear-gradient(180deg, var(--bg-main) 0%, var(--bg-primary) 100%)',
+        borderBottom: '1px solid var(--border-color)',
         overflow: 'hidden'
       }}>
         {/* Ambient Radial Accent */}
@@ -844,7 +839,7 @@ export default function Home({ user }) {
           top: '-20%',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '800px',
+          width: 'min(800px, 100%)',
           height: '400px',
           background: 'radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%)',
           pointerEvents: 'none',
@@ -853,453 +848,400 @@ export default function Home({ user }) {
 
         <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 1, textAlign: 'center' }}>
           
-          {/* Eyebrow Pill */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '6px 16px',
-            background: 'rgba(37, 99, 235, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.25)',
-            borderRadius: '100px',
-            color: '#60a5fa',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            marginBottom: '1.25rem'
-          }}>
-            <Sparkles size={14} />
-            <span>Direktori Pencarian Hunian Cepat & Terverifikasi</span>
-          </div>
-
           {/* Main Display Headline */}
           <h1 style={{
-            fontSize: 'clamp(2rem, 5vw, 3.4rem)',
+            fontSize: 'clamp(1.45rem, 4.2vw, 3.2rem)',
             fontWeight: 800,
-            lineHeight: 1.15,
+            lineHeight: 1.2,
             letterSpacing: '-0.03em',
-            margin: '0 0 1rem 0',
-            color: '#FFFFFF'
+            margin: '0 0 0.65rem 0',
+            color: 'var(--text-primary)'
           }}>
-            Cari & Temukan Kost Idaman <br className="desktop-only" />
-            <span style={{ color: '#38BDF8' }}>Tanpa Ribet, Cepat, dan Akurat</span>
+            Cari Kosan Nyaman Dekat Kampus <br className="desktop-only" />
+            <span style={{ color: 'var(--accent-primary)' }}>Bebas Calo, Foto Asli Tanpa Tipu-Tipu</span>
           </h1>
 
           <p style={{
-            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-            color: '#94A3B8',
-            maxWidth: '650px',
-            margin: '0 auto 2.5rem',
-            lineHeight: 1.6
+            fontSize: 'clamp(0.85rem, 2vw, 1.05rem)',
+            color: 'var(--text-secondary)',
+            maxWidth: '680px',
+            margin: '0 auto 1.5rem',
+            lineHeight: 1.5
           }}>
-            Langsung akses ratusan hunian mahasiswa dan profesional. Dilengkapi koordinat GPS fisik, simulasi biaya PLN transparan, dan foto kamar asli terverifikasi.
+            Temukan kamar kosan bersih dan terpercaya di Semarang & kota kampus ternama. Disurvei langsung ke lokasi, harga transparan tanpa biaya siluman, dan bisa langsung tanya pemilik via WhatsApp.
           </p>
 
-          {/* ── MULTIVARIABEL SEARCH COCKPIT (THE WIREFRAME FORM) ── */}
-          <div style={{
-            background: '#1E293B',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '24px',
-            padding: '12px',
-            boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '10px',
-            alignItems: 'center',
-            marginBottom: '1.5rem',
-            textAlign: 'left'
-          }}>
-            
-            {/* Field 1: Area / Nama Kampus / Kota */}
+          {/* ── STREAMLINED SEARCH BAR & POP-UP FILTER COCKPIT ── */}
+          <div 
+            className="home-search-cockpit"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '24px',
+              padding: '10px 12px',
+              boxShadow: 'var(--shadow-md)',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: activeFilterCount > 0 ? '0.85rem' : '2.25rem',
+              textAlign: 'left',
+              width: '100%',
+              maxWidth: '820px',
+              margin: activeFilterCount > 0 ? '0 auto 0.85rem' : '0 auto 2.25rem',
+              boxSizing: 'border-box'
+            }}
+          >
+            {/* Field: Search Input */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
               padding: '10px 14px',
-              background: 'rgba(15, 23, 42, 0.75)',
+              background: 'var(--bg-card-hover)',
               borderRadius: '16px',
-              border: userLocation ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
-              transition: 'all 0.2s ease'
+              border: userLocation ? '1px solid #10b981' : '1px solid var(--border-color)',
+              transition: 'all 0.2s ease',
+              flex: 1,
+              minWidth: 0
             }}>
-              <MapPin size={20} color={userLocation ? "#10b981" : "#60a5fa"} style={{ flexShrink: 0 }} />
+              <Search size={20} color={userLocation ? "#10b981" : "#60a5fa"} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: userLocation ? '#34d399' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {userLocation ? '📍 GPS / Hub Terkunci' : 'Lokasi / Kampus'}
+                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: userLocation ? '#10b981' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {userLocation ? '📍 Lokasi / GPS Terkunci' : 'Cari Kosan'}
                 </label>
                 <input
                   type="text"
-                  placeholder="Area / Kampus / Kota..."
+                  placeholder="Area, kampus, atau nama kost..."
                   value={searchLocation}
                   onChange={(e) => {
                     setSearchLocation(e.target.value);
                     if (userLocation && !e.target.value) setUserLocation(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const el = document.getElementById('search-results-section');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }
                   }}
                   style={{
                     width: '100%',
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    color: 'white',
-                    fontSize: '0.9rem',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.92rem',
                     fontWeight: 600,
                     padding: '2px 0 0 0'
                   }}
                 />
               </div>
 
-              {/* GPS Locate Button */}
-              <button
-                type="button"
-                onClick={handleGetGpsLocation}
-                disabled={isLocating}
-                style={{
-                  background: userLocation?.isGps ? 'rgba(16, 185, 129, 0.25)' : 'rgba(37, 99, 235, 0.15)',
-                  border: userLocation?.isGps ? '1px solid #10b981' : '1px solid rgba(59, 130, 246, 0.3)',
-                  color: userLocation?.isGps ? '#34d399' : '#60a5fa',
-                  borderRadius: '10px',
-                  padding: '6px 10px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: isLocating ? 'wait' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease'
-                }}
-                title="Gunakan Lokasi GPS Terkini Anda"
-              >
-                <Navigation size={12} className={isLocating ? 'animate-spin' : ''} />
-                <span>{isLocating ? 'GPS...' : (userLocation?.isGps ? 'GPS Aktif' : 'GPS Saya')}</span>
-              </button>
-
               {(searchLocation || userLocation) && (
                 <button
                   type="button"
                   onClick={handleClearLocation}
-                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
-                  title="Hapus lokasi"
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                  title="Hapus pencarian"
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
               )}
             </div>
 
-            {/* Field 2: Tipe (Putri / Putra / Bebas) - Custom Premium Dropdown */}
-            <CustomDropdown
-              label="Tipe Hunian"
-              icon={<Users size={20} color="#60a5fa" />}
-              value={selectedType}
-              onChange={(val) => setSelectedType(val)}
-              options={[
-                { value: 'Semua', label: 'Semua Tipe', icon: '🌐', subtitle: 'Putri, Putra, & Campur' },
-                { value: 'Putri', label: 'Kost Putri', icon: '👩', badge: 'Khusus Putri', badgeBg: 'rgba(245, 158, 11, 0.2)', badgeColor: '#FBBF24' },
-                { value: 'Putra', label: 'Kost Putra', icon: '👨', badge: 'Khusus Putra', badgeBg: 'rgba(37, 99, 235, 0.2)', badgeColor: '#60A5FA' },
-                { value: 'Campur', label: 'Bebas / Campur', icon: '👫', badge: 'Co-Living', badgeBg: 'rgba(99, 102, 241, 0.2)', badgeColor: '#A5B4FC' }
-              ]}
-            />
+            {/* Actions: Pop-up Filter Button & CTA */}
+            <div className="home-search-cockpit-actions">
+              {/* Filter Pop-Up Trigger Button */}
+              <button
+                type="button"
+                onClick={() => setIsFilterModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 18px',
+                  borderRadius: '16px',
+                  border: activeFilterCount > 0 
+                    ? '1px solid #2563eb' 
+                    : '1px solid var(--border-color)',
+                  background: activeFilterCount > 0 
+                    ? 'rgba(37, 99, 235, 0.15)' 
+                    : 'var(--bg-card-hover)',
+                  color: activeFilterCount > 0 ? '#3b82f6' : 'var(--text-primary)',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Buka Filter Pop-up"
+              >
+                <SlidersHorizontal size={18} color={activeFilterCount > 0 ? '#3b82f6' : 'currentColor'} />
+                <span>Filter</span>
+                {activeFilterCount > 0 && (
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    backgroundColor: '#2563eb',
+                    color: '#ffffff',
+                    padding: '2px 8px',
+                    borderRadius: '100px',
+                    lineHeight: 1
+                  }}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
-            {/* Field 3: Budget Maksimal - Custom Premium Dropdown */}
-            <CustomDropdown
-              label="Budget Maksimal"
-              icon={<DollarSign size={20} color="#60a5fa" />}
-              value={selectedBudget}
-              onChange={(val) => setSelectedBudget(val)}
-              options={[
-                { value: 'Semua', label: 'Semua Budget', icon: '🏷️', subtitle: 'Tanpa batas budget' },
-                { value: '1000000', label: '< Rp 1.000.000 /bln', icon: '💰', subtitle: 'Kamar hemat mahasiswa' },
-                { value: '1500000', label: '< Rp 1.500.000 /bln', icon: '💰', subtitle: 'Paling diminati' },
-                { value: '2000000', label: '< Rp 2.000.000 /bln', icon: '💰', subtitle: 'Fasilitas kamar lengkap' },
-                { value: '3000000', label: '< Rp 3.000.000 /bln', icon: '💎', subtitle: 'Co-Living eksklusif VIP' }
-              ]}
-            />
-
-            {/* Field 4: Primary Action Button (Cari Hunian) */}
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById('search-results-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              style={{
-                background: '#2563EB',
-                color: 'white',
-                border: 'none',
-                borderRadius: '16px',
-                padding: '14px 24px',
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)',
-                transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)'
-              }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            >
-              <Search size={18} />
-              <span>Cari Hunian</span>
-            </button>
+              {/* Primary Action Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('search-results-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '12px 22px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Search size={18} />
+                <span>Cari</span>
+              </button>
+            </div>
           </div>
 
-          {/* Active GPS / Landmark Banner with Radius Filter */}
-          {userLocation && (
+          {/* ── ACTIVE FILTER SUMMARY ROW (CLEAN & NON-INTRUSIVE) ── */}
+          {activeFilterCount > 0 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'center',
               flexWrap: 'wrap',
-              gap: '10px',
-              padding: '10px 16px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 78, 59, 0.2))',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              marginBottom: '1rem',
-              textAlign: 'left'
+              gap: '6px',
+              maxWidth: '820px',
+              margin: '0 auto 2rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.1rem' }}>📍</span>
-                <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#34d399' }}>
-                    Lokasi Terkunci: {userLocation.label}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                    Mengurutkan kost terdekat ke koordinat Anda ({userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)})
-                  </div>
-                </div>
-              </div>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700, marginRight: '4px' }}>
+                Filter Aktif:
+              </span>
 
-              {/* Radius Pills */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>Radius:</span>
-                {[
-                  { id: 'all', label: 'Semua Jarak' },
-                  { id: '2', label: '< 2 km' },
-                  { id: '5', label: '< 5 km' },
-                  { id: '10', label: '< 10 km' }
-                ].map((rad) => {
-                  const active = maxDistanceRadius === rad.id;
-                  return (
-                    <button
-                      key={rad.id}
-                      type="button"
-                      onClick={() => setMaxDistanceRadius(rad.id)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '8px',
-                        border: active ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
-                        background: active ? '#10b981' : 'rgba(15, 23, 42, 0.6)',
-                        color: active ? '#ffffff' : '#94a3b8',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      {rad.label}
-                    </button>
-                  );
-                })}
+              {selectedCity !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCity('all')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 10px',
+                    borderRadius: '100px',
+                    border: '1px solid rgba(37, 99, 235, 0.3)',
+                    background: 'rgba(37, 99, 235, 0.12)',
+                    color: 'var(--accent-primary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Hapus filter kota"
+                >
+                  <span>📍 {selectedCity}</span>
+                  <X size={12} />
+                </button>
+              )}
+
+              {selectedType !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedType('all')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 10px',
+                    borderRadius: '100px',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    background: 'rgba(139, 92, 246, 0.12)',
+                    color: '#a78bfa',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Hapus filter tipe"
+                >
+                  <span>{KOST_TYPES.find(t => t.id === selectedType)?.label || selectedType}</span>
+                  <X size={12} />
+                </button>
+              )}
+
+              {selectedPriceRange !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedPriceRange('all')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 10px',
+                    borderRadius: '100px',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    color: '#fbbf24',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Hapus filter harga"
+                >
+                  <span>💰 {selectedPriceRange === 'under-1.5m' ? '< 1.5 Jt' : selectedPriceRange === '1.5m-2.5m' ? '1.5 - 2.5 Jt' : '> 2.5 Jt'}</span>
+                  <X size={12} />
+                </button>
+              )}
+
+              {userLocation && (
                 <button
                   type="button"
                   onClick={handleClearLocation}
                   style={{
-                    padding: '4px 8px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    color: '#f87171',
-                    fontSize: '0.72rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 10px',
+                    borderRadius: '100px',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    color: '#34d399',
+                    fontSize: '0.75rem',
                     fontWeight: 700,
                     cursor: 'pointer'
                   }}
-                  title="Matikan filter jarak"
+                  title="Hapus patokan lokasi"
                 >
-                  ✕ Lepas GPS
+                  <span>📍 {userLocation.label} {maxDistanceRadius !== 'all' ? `(< ${maxDistanceRadius}km)` : ''}</span>
+                  <X size={12} />
                 </button>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* ── QUICK CAMPUS SHORTCUTS (COMMUTE FILTER) ── */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '8px',
-            marginBottom: '1rem'
-          }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <GraduationCap size={15} color="#60A5FA" /> Hub Kampus & Kota:
-            </span>
-            {POPULAR_LANDMARKS.slice(0, 6).map((landmark) => {
-              const active = userLocation?.label === landmark.name;
-              return (
-                <button
-                  key={landmark.id}
-                  type="button"
-                  onClick={() => {
-                    if (active) {
-                      handleClearLocation();
-                    } else {
-                      handleSelectLandmark(landmark);
-                    }
-                  }}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                    border: active ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
-                    background: active ? 'rgba(16, 185, 129, 0.2)' : 'rgba(15, 23, 42, 0.5)',
-                    color: active ? '#34d399' : '#94A3B8',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                  title={landmark.full}
-                >
-                  {landmark.name}
-                </button>
-              );
-            })}
-          </div>
+              {selectedFacilities.map(facId => {
+                const facObj = FACILITY_OPTIONS.find(f => f.id === facId);
+                return (
+                  <button
+                    key={facId}
+                    type="button"
+                    onClick={() => handleToggleFacility(facId)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 10px',
+                      borderRadius: '100px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                    title="Hapus filter fasilitas"
+                  >
+                    <span>{facObj?.label || facId}</span>
+                    <X size={12} />
+                  </button>
+                );
+              })}
 
-          {/* ── QUICK FILTER CHIPS / PILLS ROW (MULTI-SELECT ENABLED) ── */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '8px',
-            marginBottom: '2.5rem'
-          }}>
-            {filterChips.map(chip => {
-              const active = selectedChips.includes(chip.id);
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => handleToggleChip(chip.id)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '100px',
-                    border: active ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.1)',
-                    background: active ? '#2563EB' : 'rgba(15, 23, 42, 0.65)',
-                    color: active ? '#FFFFFF' : '#94A3B8',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)',
-                    boxShadow: active ? '0 4px 14px rgba(37, 99, 235, 0.45)' : 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  {active && chip.id !== 'Semua' && (
-                    <span style={{ fontSize: '0.75rem', fontWeight: 900 }}>✓</span>
-                  )}
-                  <span>{chip.label}</span>
-                </button>
-              );
-            })}
+              <button
+                type="button"
+                onClick={() => setIsFilterModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '100px',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  background: 'transparent',
+                  color: '#60a5fa',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <SlidersHorizontal size={12} />
+                <span>Ubah</span>
+              </button>
 
-            {isFiltering && (
               <button
                 type="button"
                 onClick={resetAllFilters}
                 style={{
-                  padding: '8px 14px',
-                  borderRadius: '100px',
-                  border: '1px dashed rgba(239, 68, 68, 0.4)',
-                  background: 'rgba(239, 68, 68, 0.1)',
+                  background: 'transparent',
+                  border: 'none',
                   color: '#f87171',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
+                  padding: '5px 8px'
                 }}
               >
-                ✕ Reset ({!selectedChips.includes('Semua') ? `${selectedChips.length} Filter` : 'Filter'})
+                ✕ Reset
               </button>
-            )}
-          </div>
+            </div>
+          )}
+
 
           {/* ═══════════════════════════════════════════════════════════════════
               SECTION 2: KEUNGGULAN UTAMA KOSTKU (Marketing Value Props)
               ═══════════════════════════════════════════════════════════════════ */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '14px',
-            textAlign: 'left'
-          }}>
+          <div className="hero-marketing-banners">
             {/* Card 1: VERIFIKASI ASLI 100% */}
-            <div style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              borderLeft: '4px solid #10B981',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
-            }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <div className="hero-marketing-banner-card" style={{ borderLeft: '4px solid #10B981' }} data-track="banner-asli">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 🛡️ VERIFIKASI FISIK & FOTO
               </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                100% <span style={{ color: '#34d399', fontSize: '1.25rem' }}>Asli</span>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                100% <span style={{ color: '#10b981', fontSize: '1.25rem' }}>Asli</span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 Disurvei langsung oleh tim KostKu, lengkap dengan titik GPS akurat & foto asli per kamar.
               </p>
             </div>
 
             {/* Card 2: BIAYA TRANSPARAN RP 0 */}
-            <div style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              borderLeft: '4px solid #2563EB',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
-            }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#60A5FA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <div className="hero-marketing-banner-card" style={{ borderLeft: '4px solid #2563EB' }} data-track="banner-rp0">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563EB', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 ⚡ BIAYA TRANSPARAN
               </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                Rp 0 <span style={{ color: '#60A5FA', fontSize: '1.1rem' }}>Biaya Admin</span>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Rp 0 <span style={{ color: '#2563EB', fontSize: '1.1rem' }}>Biaya Admin</span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 Bebas komisi perantara. Dilengkapi simulasi estimasi token listrik PLN yang transparan.
               </p>
             </div>
 
             {/* Card 3: KEPUASAN PENGHUNI */}
-            <div style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              borderLeft: '4px solid #F59E0B',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
-            }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#FBBF24', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <div className="hero-marketing-banner-card" style={{ borderLeft: '4px solid #F59E0B' }} data-track="banner-rating">
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#D97706', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 ⭐ KEPUASAN PENGHUNI
               </span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                4.9 <span style={{ color: '#FBBF24', fontSize: '1.2rem' }}>/ 5.0</span>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                4.9 <span style={{ color: '#D97706', fontSize: '1.2rem' }}>/ 5.0</span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 Pilihan favorit ribuan mahasiswa dan profesional muda di berbagai kota kampus ternama.
               </p>
             </div>
@@ -1315,7 +1257,7 @@ export default function Home({ user }) {
       <main id="search-results-section" style={{
         maxWidth: '1280px',
         margin: '0 auto',
-        padding: '2.5rem clamp(1rem, 3vw, 2rem)',
+        padding: 'clamp(1.25rem, 3vw, 2.5rem) clamp(0.65rem, 3vw, 2rem)',
         boxSizing: 'border-box'
       }}>
         
@@ -1333,7 +1275,7 @@ export default function Home({ user }) {
               margin: 0,
               fontSize: 'clamp(1.3rem, 3vw, 1.75rem)',
               fontWeight: 800,
-              color: 'white',
+              color: 'var(--text-primary)',
               letterSpacing: '-0.02em',
               display: 'flex',
               alignItems: 'center',
@@ -1343,16 +1285,16 @@ export default function Home({ user }) {
               <span style={{
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                background: 'rgba(37, 99, 235, 0.15)',
-                color: '#60a5fa',
+                background: 'rgba(37, 99, 235, 0.12)',
+                color: '#2563EB',
                 padding: '3px 10px',
                 borderRadius: '100px',
-                border: '1px solid rgba(37, 99, 235, 0.3)'
+                border: '1px solid rgba(37, 99, 235, 0.25)'
               }}>
                 {filtered.length} Hunian
               </span>
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94A3B8' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               Memindai poin krusial: Foto 4:3 → Status Kamar → 3 Fasilitas Esensial → Harga Tebal
             </p>
           </div>
@@ -1363,8 +1305,8 @@ export default function Home({ user }) {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
               borderRadius: '12px',
               padding: '3px'
             }}>
@@ -1375,7 +1317,7 @@ export default function Home({ user }) {
                   padding: '7px 14px',
                   borderRadius: '9px',
                   background: viewMode === 'grid' ? '#2563EB' : 'transparent',
-                  color: viewMode === 'grid' ? '#FFFFFF' : '#94A3B8',
+                  color: viewMode === 'grid' ? '#FFFFFF' : 'var(--text-secondary)',
                   border: 'none',
                   fontWeight: 700,
                   fontSize: '0.8rem',
@@ -1396,7 +1338,7 @@ export default function Home({ user }) {
                   padding: '7px 14px',
                   borderRadius: '9px',
                   background: viewMode === 'map' ? '#2563EB' : 'transparent',
-                  color: viewMode === 'map' ? '#FFFFFF' : '#94A3B8',
+                  color: viewMode === 'map' ? '#FFFFFF' : 'var(--text-secondary)',
                   border: 'none',
                   fontWeight: 700,
                   fontSize: '0.8rem',
@@ -1412,6 +1354,30 @@ export default function Home({ user }) {
               </button>
             </div>
 
+            {/* Filter Pop-up Modal Trigger in Toolbar */}
+            <button
+              type="button"
+              onClick={() => setIsFilterModalOpen(true)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '12px',
+                background: activeFilterCount > 0 ? 'rgba(37, 99, 235, 0.15)' : 'var(--bg-card)',
+                border: activeFilterCount > 0 ? '1px solid #2563eb' : '1px solid var(--border-color)',
+                color: activeFilterCount > 0 ? '#3b82f6' : 'var(--text-primary)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+              title="Buka Filter Pop-up"
+            >
+              <SlidersHorizontal size={14} color={activeFilterCount > 0 ? '#3b82f6' : 'currentColor'} />
+              <span>Filter {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
+            </button>
+
             {/* Utility Calculator Trigger */}
             <button
               type="button"
@@ -1424,7 +1390,7 @@ export default function Home({ user }) {
                 borderRadius: '12px',
                 background: 'rgba(234, 179, 8, 0.12)',
                 border: '1px solid rgba(234, 179, 8, 0.35)',
-                color: '#FBBF24',
+                color: '#D97706',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -1434,9 +1400,95 @@ export default function Home({ user }) {
                 transition: 'all 0.15s ease'
               }}
             >
-              <Zap size={14} fill="#FBBF24" />
+              <Zap size={14} fill="#D97706" />
               <span>Simulasi Listrik & Biaya</span>
             </button>
+
+            {/* Auto-Scroll Controls & 4x2 Page Navigation */}
+            {viewMode === 'grid' && gridPages.length > 1 && (
+              <div 
+                className="toolbar-carousel-controls"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '3px 8px',
+                  backdropFilter: 'blur(8px)'
+                }}
+              >
+                {/* Auto-Scroll Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsAutoScrollEnabled(!isAutoScrollEnabled)}
+                  title={isAutoScrollEnabled ? 'Klik untuk menjeda Auto-Scroll' : 'Klik untuk mengaktifkan Auto-Scroll'}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    background: isAutoScrollEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.12)',
+                    border: `1px solid ${isAutoScrollEnabled ? 'rgba(16, 185, 129, 0.35)' : 'rgba(148, 163, 184, 0.2)'}`,
+                    color: isAutoScrollEnabled ? '#34d399' : '#94a3b8',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {isAutoScrollEnabled ? <Pause size={13} /> : <Play size={13} fill="currentColor" />}
+                  <span>{isAutoScrollEnabled ? 'Auto-Scroll ON' : 'Auto-Scroll OFF'}</span>
+                </button>
+
+                {/* Prev Button */}
+                <button
+                  type="button"
+                  onClick={handlePrevGridPage}
+                  title="Halaman 4x2 Sebelumnya"
+                  style={{
+                    padding: '5px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ChevronLeft size={15} />
+                </button>
+
+                {/* Page indicator */}
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#e2e8f0', minWidth: '38px', textAlign: 'center' }}>
+                  {activeGridPage + 1}/{gridPages.length}
+                </span>
+
+                {/* Next Button */}
+                <button
+                  type="button"
+                  onClick={handleNextGridPage}
+                  title="Halaman 4x2 Berikutnya"
+                  style={{
+                    padding: '5px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1485,62 +1537,226 @@ export default function Home({ user }) {
           <div style={{
             textAlign: 'center',
             padding: '4rem 2rem',
-            background: '#1E293B',
+            background: 'var(--bg-card)',
             borderRadius: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            color: '#94A3B8'
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-secondary)'
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-            <h3 style={{ color: 'white', fontWeight: 800, margin: '0 0 0.5rem 0' }}>
+            <h3 style={{ color: 'var(--text-primary)', fontWeight: 800, margin: '0 0 0.5rem 0' }}>
               Tidak Menemukan Kost Sesuai Filter
             </h3>
             <p style={{ maxWidth: '460px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
               Coba sesuaikan kata kunci lokasi, ubah tipe kost, atau perbesar batas budget pencarian Anda.
             </p>
-            <button
-              type="button"
-              onClick={resetAllFilters}
-              className="btn btn-primary"
-            >
-              Reset Semua Filter
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsFilterModalOpen(true)}
+                className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <SlidersHorizontal size={16} />
+                <span>Ubah Pengaturan Filter</span>
+              </button>
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="btn"
+                style={{
+                  background: 'var(--bg-card-hover)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                Reset Semua Filter
+              </button>
+            </div>
           </div>
         ) : (
           <>
-            {/* ── BATCH 1: FIRST 6 KOST LISTINGS (Above Bento) ── */}
-            <div id="listing" className="kost-responsive-grid">
-              {batch1.map((kost, idx) => (
-                <KostCard 
-                  key={kost.uid || idx} 
-                  kost={kost} 
-                  userLocation={userLocation}
-                  onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
-                  onOpenCalculator={(k) => {
-                    setCalcSelectedKost(k);
-                    setShowCalculator(true);
+            {/* ── BATCH 1: KOLEKSI KOST 4x2 WITH AUTO-SCROLL CAROUSEL ── */}
+            <div id="listing" style={{ position: 'relative', width: '100%' }}>
+              {/* DESKTOP VIEW (>= 769px): 4x2 Auto-Scroll Carousel */}
+              <div className="desktop-koleksi-carousel" style={{ position: 'relative', width: '100%' }}>
+                {/* Countdown Progress Bar (Stories Style) */}
+                {gridPages.length > 1 && isAutoScrollEnabled && (
+                  <div style={{
+                    position: 'relative',
+                    height: '3px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    borderRadius: '100px',
+                    overflow: 'hidden',
+                    marginBottom: '1rem'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${autoScrollProgress}%`,
+                      background: isGridHovered ? '#F59E0B' : 'linear-gradient(90deg, #3B82F6, #10B981)',
+                      transition: isGridHovered ? 'none' : 'width 0.1s linear',
+                      borderRadius: '100px'
+                    }} />
+                  </div>
+                )}
+
+                {/* Hover Notice Indicator */}
+                {isGridHovered && isAutoScrollEnabled && gridPages.length > 1 && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    color: '#fcd34d',
+                    padding: '3px 12px',
+                    borderRadius: '100px',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    marginBottom: '0.85rem'
+                  }}>
+                    <span>⏸️</span>
+                    <span>Auto-scroll dijeda sementara saat kursor diarahkan ke kartu kost</span>
+                  </div>
+                )}
+
+                {/* 4x2 Sliding Viewport */}
+                <div 
+                  className="koleksi-slider-wrapper"
+                  onMouseEnter={() => setIsGridHovered(true)}
+                  onMouseLeave={() => setIsGridHovered(false)}
+                  onTouchStart={handleGridTouchStart}
+                  onTouchMove={handleGridTouchMove}
+                  onTouchEnd={handleGridTouchEnd}
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    width: '100%',
+                    borderRadius: '20px'
                   }}
-                />
-              ))}
+                >
+                  <div style={{
+                    display: 'flex',
+                    width: '100%',
+                    transform: `translate3d(-${activeGridPage * 100}%, 0, 0)`,
+                    transition: 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
+                    willChange: 'transform'
+                  }}>
+                    {gridPages.map((pageKostList, pIdx) => (
+                      <div 
+                        key={pIdx} 
+                        style={{
+                          flex: '0 0 100%',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        <div className="koleksi-grid-4x2">
+                          {pageKostList.map((kost, idx) => (
+                            <KostCard 
+                              key={kost.uid || `${pIdx}-${idx}`} 
+                              kost={kost} 
+                              userLocation={userLocation}
+                              onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
+                              onOpenCalculator={(k) => {
+                                setCalcSelectedKost(k);
+                                setShowCalculator(true);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Page Indicator Dots */}
+                {gridPages.length > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginTop: '1.5rem',
+                    marginBottom: '1rem'
+                  }}>
+                    {gridPages.map((_, pIdx) => (
+                      <button
+                        key={pIdx}
+                        type="button"
+                        onClick={() => {
+                          setActiveGridPage(pIdx);
+                          setAutoScrollProgress(0);
+                        }}
+                        style={{
+                          width: activeGridPage === pIdx ? '32px' : '8px',
+                          height: '8px',
+                          borderRadius: '100px',
+                          background: activeGridPage === pIdx ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          transition: 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)'
+                        }}
+                        aria-label={`Pindah ke slide 4x2 ke-${pIdx + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* MOBILE HP VIEW (<= 768px): 2 Kolom Vertikal Menurun ke Bawah */}
+              <div className="mobile-koleksi-grid" style={{ width: '100%' }}>
+                <div className="kost-responsive-grid">
+                  {filtered.map((kost, idx) => (
+                    <KostCard 
+                      key={`hp-2col-${kost.uid || idx}`} 
+                      kost={kost} 
+                      userLocation={userLocation}
+                      onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
+                      onOpenCalculator={(k) => {
+                        setCalcSelectedKost(k);
+                        setShowCalculator(true);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════
                 BENTO FEATURE GRID (4 KARTU: STANDAR NYAMAN & AMAN KOSTKU)
-                Placed seamlessly between batch 1 and batch 2
                 ═══════════════════════════════════════════════════════════════════ */}
-            <div style={{ margin: '4rem 0' }}>
+            <div className="spatial-bento-section-wrapper" style={{ margin: 'clamp(2rem, 5vw, 4rem) 0' }}>
               <SpatialBentoShowcase />
             </div>
 
-            {/* ── BATCH 2: REMAINING LISTINGS (Items 6 onwards) ── */}
-            {batch2.length > 0 && (
-              <div>
-                <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>
-                  Hunian Rekomendasi Lainnya ({batch2.length})
-                </h3>
+            {/* ── ALL LISTINGS: EXPANDED DIRECTORY (Below Bento, Desktop only) ── */}
+            {filtered.length > 8 && (
+              <div className="desktop-koleksi-carousel">
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>Katalog Lengkap Seluruh Hunian</span>
+                      <span style={{ fontSize: '0.8rem', color: '#60a5fa', background: 'rgba(37, 99, 235, 0.15)', padding: '2px 8px', borderRadius: '100px' }}>
+                        {filtered.length} Listing
+                      </span>
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                      Seluruh unit kost terverifikasi dalam satu daftar gulir penuh
+                    </p>
+                  </div>
+                </div>
                 <div className="kost-responsive-grid">
-                  {batch2.map((kost, idx) => (
+                  {filtered.map((kost, idx) => (
                     <KostCard 
-                      key={kost.uid || (idx + 6)} 
+                      key={`catalog-${kost.uid || idx}`} 
                       kost={kost} 
                       userLocation={userLocation}
                       onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
@@ -1556,7 +1772,13 @@ export default function Home({ user }) {
           </>
         )}
 
+        {/* ── THE KITCHEN TACTILE SUITE (Inspired by dqnamo Reel) ── */}
+        <KitchenShowcaseSection />
+
       </main>
+      
+      {/* Footer with static compliance pages for TriPay and legal verification */}
+      <Footer />
 
       {/* Floating Install PWA Modal */}
       {showInstall && <InstallModal onClose={() => setShowInstall(false)} />}
@@ -1578,6 +1800,37 @@ export default function Home({ user }) {
           kost={previewFloorPlanKost}
         />
       )}
+
+      {/* Full Feature Filter Pop-up Modal / Bottom Sheet */}
+      <KostFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        selectedCity={selectedCity}
+        setSelectedCity={setSelectedCity}
+        cityBadges={CITY_BADGES}
+        selectedType={selectedType}
+        setSelectedType={setSelectedType}
+        types={KOST_TYPES}
+        selectedPriceRange={selectedPriceRange}
+        setSelectedPriceRange={setSelectedPriceRange}
+        selectedFacilities={selectedFacilities}
+        handleToggleFacility={handleToggleFacility}
+        handleClearFacilities={handleClearFacilities}
+        facilityOptions={FACILITY_OPTIONS}
+        userLocation={userLocation}
+        handleGetGpsLocation={handleGetGpsLocation}
+        handleSelectLandmark={handleSelectLandmark}
+        handleClearLocation={handleClearLocation}
+        isLocating={isLocating}
+        locatingError={locatingError}
+        setLocatingError={setLocatingError}
+        popularLandmarks={POPULAR_LANDMARKS}
+        maxDistanceRadius={maxDistanceRadius}
+        setMaxDistanceRadius={setMaxDistanceRadius}
+        totalResults={filtered.length}
+        onResetAll={resetAllFilters}
+        activeFilterCount={activeFilterCount}
+      />
     </div>
   );
 }
@@ -1591,6 +1844,9 @@ export default function Home({ user }) {
 // ═══════════════════════════════════════════════════════════════════
 function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
   if (!kost) return null;
+
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const minPrice = kost.rooms?.length > 0 ? Math.min(...kost.rooms.map(r => r.price)) : 0;
   const availableRoomsCount = (kost.rooms || []).filter(r => r.status === 'available' || !r.status).length;
@@ -1612,6 +1868,12 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
   return (
     <Link
       to={`/kost/${kost.uid}`}
+      data-track="kost-card"
+      data-kost-id={kost.uid}
+      data-kost-name={kost.kostName}
+      data-kost-type={kost.type}
+      data-kost-campus={kost.city}
+      data-kost-price={minPrice}
       style={{
         textDecoration: 'none',
         color: 'inherit',
@@ -1623,14 +1885,14 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
       <div
         className="card"
         style={{
-          background: '#1E293B', // Dark Slate Surface (Design Spec V2.0)
-          border: kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-card)',
+          border: kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)',
           borderRadius: '20px',
           overflow: 'hidden',
           padding: 0,
           boxShadow: kost.promoted?.active
             ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
-            : '0 10px 25px -5px rgba(0, 0, 0, 0.4)',
+            : 'var(--shadow-md)',
           transition: 'all 0.25s cubic-bezier(0.2, 0, 0, 1)',
           cursor: 'pointer',
           width: '100%',
@@ -1640,15 +1902,15 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
           e.currentTarget.style.transform = 'translateY(-6px)';
           e.currentTarget.style.boxShadow = kost.promoted?.active
             ? '0 20px 40px -8px rgba(245, 158, 11, 0.35), 0 0 0 1px rgba(245, 158, 11, 0.5)'
-            : '0 18px 36px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(37, 99, 235, 0.3)';
-          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'rgba(37, 99, 235, 0.4)';
+            : 'var(--shadow-lg)';
+          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'var(--border-accent)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.boxShadow = kost.promoted?.active
             ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
-            : '0 10px 25px -5px rgba(0, 0, 0, 0.4)';
-          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'rgba(255, 255, 255, 0.08)';
+            : 'var(--shadow-md)';
+          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'var(--border-color)';
         }}
       >
         {/* Dynamic 4:3 Aspect Ratio Photo Slider */}
@@ -1663,7 +1925,18 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
         />
 
         {/* Card Body with strict information hierarchy: foto → status kamar → fasilitas → harga */}
-        <div style={{ padding: '1.15rem', width: '100%', boxSizing: 'border-box' }}>
+        <div 
+          className="kost-card-body"
+          style={{ 
+            padding: '1.15rem', 
+            width: '100%', 
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            justifyContent: 'space-between'
+          }}
+        >
           
           {kost.promoted?.active && (
             <div style={{
@@ -1691,18 +1964,23 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
             gap: '8px',
             marginBottom: '4px'
           }}>
-            <h3 style={{
-              margin: 0,
-              fontSize: '1.05rem',
-              fontWeight: 800,
-              color: '#FFFFFF',
-              lineHeight: 1.3,
-              flex: 1,
-              minWidth: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
+            <h3 
+              className="kost-card-title"
+              style={{
+                margin: 0,
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                color: isLight ? '#0f172a' : '#FFFFFF',
+                lineHeight: 1.3,
+                flex: 1,
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical'
+              }}
+            >
               {kost.kostName}
             </h3>
             <div style={{
@@ -1719,15 +1997,15 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
             </div>
           </div>
 
-          {/* Location & Room Dimension Line (High Contrast WCAG AA #94A3B8) */}
+          {/* Location & Room Dimension Line (High Contrast WCAG AA) */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '5px',
-            color: '#94A3B8',
+            color: isLight ? '#64748b' : '#94A3B8',
             fontSize: '0.82rem',
-            marginBottom: '1rem',
+            marginBottom: '0.75rem',
             minWidth: 0
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
@@ -1740,7 +2018,7 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
               }}>
                 {kost.address || kost.city || 'Semarang'}
                 {kost.distanceKm != null && (
-                  <strong style={{ color: '#34d399', marginLeft: '6px' }}>
+                  <strong style={{ color: isLight ? '#059669' : '#34d399', marginLeft: '6px' }}>
                     • {formatDistance(kost.distanceKm)}
                   </strong>
                 )}
@@ -1749,8 +2027,8 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
             <span style={{
               fontSize: '0.72rem',
               fontWeight: 700,
-              color: '#64748B',
-              background: 'rgba(255, 255, 255, 0.05)',
+              color: isLight ? '#475569' : '#64748B',
+              background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
               padding: '2px 6px',
               borderRadius: '6px',
               flexShrink: 0
@@ -1760,25 +2038,28 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
           </div>
 
           {/* Maksimal 3 Ikon Fasilitas Esensial (AC, KM Dalam, WiFi) as strictly required! */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: '1.1rem',
-            flexWrap: 'wrap'
-          }}>
+          <div 
+            className="kost-card-facilities"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '0.85rem',
+              flexWrap: 'wrap'
+            }}
+          >
             {hasAc && (
               <span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
                 padding: '3px 8px',
-                background: 'rgba(37, 99, 235, 0.12)',
-                color: '#93c5fd',
+                background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
+                color: isLight ? '#1d4ed8' : '#93c5fd',
                 borderRadius: '6px',
                 fontSize: '0.72rem',
                 fontWeight: 600,
-                border: '1px solid rgba(37, 99, 235, 0.25)'
+                border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(37, 99, 235, 0.25)'
               }}>
                 <Wind size={12} /> AC
               </span>
@@ -1789,12 +2070,12 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                 alignItems: 'center',
                 gap: '4px',
                 padding: '3px 8px',
-                background: 'rgba(37, 99, 235, 0.12)',
-                color: '#93c5fd',
+                background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
+                color: isLight ? '#1d4ed8' : '#93c5fd',
                 borderRadius: '6px',
                 fontSize: '0.72rem',
                 fontWeight: 600,
-                border: '1px solid rgba(37, 99, 235, 0.25)'
+                border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(37, 99, 235, 0.25)'
               }}>
                 <Bath size={12} /> KM Dalam
               </span>
@@ -1805,12 +2086,12 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                 alignItems: 'center',
                 gap: '4px',
                 padding: '3px 8px',
-                background: 'rgba(37, 99, 235, 0.12)',
-                color: '#93c5fd',
+                background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
+                color: isLight ? '#1d4ed8' : '#93c5fd',
                 borderRadius: '6px',
                 fontSize: '0.72rem',
                 fontWeight: 600,
-                border: '1px solid rgba(37, 99, 235, 0.25)'
+                border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(37, 99, 235, 0.25)'
               }}>
                 <Wifi size={12} /> WiFi
               </span>
@@ -1818,8 +2099,8 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
             {!hasAc && !hasKmDalam && !hasWifi && (
               <span style={{
                 padding: '3px 8px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                color: '#94a3b8',
+                background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
+                color: isLight ? '#475569' : '#94a3b8',
                 borderRadius: '6px',
                 fontSize: '0.72rem'
               }}>
@@ -1829,18 +2110,78 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
           </div>
 
           {/* Pricing Row & Tactical Quick Action Buttons */}
-          <div style={{
-            paddingTop: '0.85rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap'
-          }}>
-            {/* Quick Action Tools */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div 
+            className="kost-card-footer"
+            style={{
+              paddingTop: '0.85rem',
+              borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}
+          >
+            {/* Row 1: Price on Left, WhatsApp CTA on Right */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+              <div className="kost-card-price-container">
+                {hasActiveDiscount && (
+                  <div style={{ marginBottom: '2px' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      background: isLight ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.15)',
+                      border: isLight ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(52, 211, 153, 0.3)',
+                      color: isLight ? '#059669' : '#34d399',
+                      fontSize: '0.68rem',
+                      fontWeight: 700
+                    }}>
+                      🏷️ {kost.discount.type === 'percent' ? `Diskon ${kost.discount.value}%` : `Hemat ${Math.round(kost.discount.value / 1000)}rb`}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <span 
+                    className="kost-price-text"
+                    style={{
+                      fontSize: '1.2rem',
+                      fontWeight: 900,
+                      color: isLight ? '#0f766e' : '#38BDF8',
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      letterSpacing: '-0.02em'
+                    }}
+                  >
+                    Rp {minPrice.toLocaleString('id-ID')}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94A3B8', fontWeight: 600 }}>
+                    {' '}/bln
+                  </span>
+                </div>
+              </div>
 
+              {/* Chat WhatsApp Direct Action with TactileButton from The Kitchen */}
+              <a
+                href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo, saya tertarik dengan kamar di ${kost.kostName}. Apakah masih ada kamar kosong?`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                style={{ textDecoration: 'none' }}
+                title="Tanya langsung ke pemilik via WhatsApp"
+              >
+                <TactileButton variant="whatsapp" size="sm" icon={<span style={{ fontSize: '13px' }}>💬</span>}>
+                  Tanya Pemilik
+                </TactileButton>
+              </a>
+            </div>
+
+            {/* Row 2: Secondary Quick Utility Tools (Listrik & Maps) */}
+            <div 
+              className="kost-card-action-tools"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}
+            >
               <button
                 type="button"
                 onClick={(e) => {
@@ -1851,10 +2192,10 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                 style={{
                   padding: '4px 8px',
                   borderRadius: '6px',
-                  background: 'rgba(234, 179, 8, 0.12)',
-                  border: '1px solid rgba(234, 179, 8, 0.25)',
-                  color: '#fbbf24',
-                  fontSize: '0.72rem',
+                  background: isLight ? 'rgba(234, 179, 8, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+                  border: isLight ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid rgba(234, 179, 8, 0.25)',
+                  color: isLight ? '#b45309' : '#fbbf24',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
@@ -1864,6 +2205,31 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                 title="Simulasi Estimasi Token Listrik"
               >
                 <Zap size={11} /> Listrik
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenFloorPlan?.(kost);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: isLight ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)',
+                  border: isLight ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)',
+                  color: isLight ? '#2563eb' : '#60a5fa',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Lihat Denah 2D Arsitektur Kamar"
+              >
+                📐 Denah 2D
               </button>
 
               {kost.location?.lat && kost.location?.lng && (
@@ -1883,10 +2249,10 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                   style={{
                     padding: '4px 8px',
                     borderRadius: '6px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    color: '#34d399',
-                    fontSize: '0.72rem',
+                    background: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.15)',
+                    border: isLight ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.3)',
+                    color: isLight ? '#059669' : '#34d399',
+                    fontSize: '0.7rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'inline-flex',
@@ -1898,40 +2264,6 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
                   <Navigation size={11} /> 🗺️ Rute
                 </button>
               )}
-            </div>
-
-            {/* Price Tag */}
-            <div style={{ textAlign: 'right' }}>
-              {hasActiveDiscount && (
-                <div style={{ marginBottom: '2px' }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    padding: '1px 6px',
-                    borderRadius: '4px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid rgba(52, 211, 153, 0.3)',
-                    color: '#34d399',
-                    fontSize: '0.68rem',
-                    fontWeight: 700
-                  }}>
-                    🏷️ {kost.discount.type === 'percent' ? `Diskon ${kost.discount.value}%` : `Hemat ${Math.round(kost.discount.value / 1000)}rb`}
-                  </span>
-                </div>
-              )}
-              <span style={{
-                fontSize: '1.15rem',
-                fontWeight: 800,
-                color: '#38BDF8',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontVariantNumeric: 'tabular-nums'
-              }}>
-                Rp {minPrice.toLocaleString('id-ID')}
-              </span>
-              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 500 }}>
-                {' '}/bln
-              </span>
             </div>
           </div>
 

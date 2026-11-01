@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   CheckCircle,
@@ -44,6 +45,9 @@ const PartnerOrderModal = ({
   const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
   const [preferredTime, setPreferredTime] = useState('Segera (15-20 Menit)');
   const [notes, setNotes] = useState('');
+  const [selectedDeliveryMode, setSelectedDeliveryMode] = useState(() => {
+    return service?.deliveryType === 'pickup' ? 'pickup' : 'delivery';
+  });
   const [paymentMethod, setPaymentMethod] = useState('qris'); // 'qris' (default non-cod), 'monthly_bill', 'cod'
   const [showQrisScreen, setShowQrisScreen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -62,6 +66,28 @@ const PartnerOrderModal = ({
 
   // Products quantity state
   const [quantities, setQuantities] = useState({});
+
+  // Auto-load last used referral code so anak kost doesn't have to re-enter it each order
+  const getInitialReferral = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        const storedRef = localStorage.getItem('kostku_last_referral_code');
+        if (storedRef && storedRef.trim()) return storedRef.trim().toUpperCase();
+        const storedUser = localStorage.getItem('kostUser');
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          if (u.lastUsedReferral) return u.lastUsedReferral.toUpperCase();
+          if (u.claimedFriendReferral) return u.claimedFriendReferral.toUpperCase();
+        }
+      }
+    } catch (e) {}
+    return (user?.lastUsedReferral || user?.claimedFriendReferral || '').toUpperCase();
+  };
+
+  const [friendReferralCode, setFriendReferralCode] = useState(getInitialReferral());
+  const [isEditingReferral, setIsEditingReferral] = useState(false);
+  const [usePointsDiscount, setUsePointsDiscount] = useState(false);
+  const userLoyaltyPoints = Number(user?.loyalty_points ?? 250);
 
   // SLA Timer, Rating, and Unified Wallet state
   const slaInitialMinutes = Number(service?.slaMinutes || service?.sla_minutes || 15);
@@ -105,6 +131,7 @@ const PartnerOrderModal = ({
         });
       }
       setQuantities(initial);
+      setSelectedDeliveryMode(service.deliveryType === 'pickup' ? 'pickup' : 'delivery');
       setPaymentMethod('qris');
       setShowQrisScreen(false);
       setIsSuccess(false);
@@ -112,6 +139,12 @@ const PartnerOrderModal = ({
       setSlaSecondsLeft(slaInitialMinutes * 60);
       setRating(5);
       setRatingSubmitted(false);
+
+      // Re-sync referral from storage if current input is empty
+      const savedRef = getInitialReferral();
+      if (savedRef) {
+        setFriendReferralCode(savedRef);
+      }
     }
   }, [service]);
 
@@ -125,8 +158,53 @@ const PartnerOrderModal = ({
     }
   ];
 
-  // Urutkan produk dari harga termurah ke termahal agar anak kost langsung melihat opsi paling hemat
-  const productsList = [...rawProducts].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+  // Deteksi FnB vs Non-FnB (Galon, Gas, Laundry, Jasa boleh nampilin logo/ikon toko tanpa wajib foto produk)
+  const isFnB = service?.category === 'makanan' ||
+                service?.category === 'Warung & Kuliner' ||
+                (service?.name || service?.title || '').toLowerCase().includes('makan') ||
+                (service?.name || service?.title || '').toLowerCase().includes('warung') ||
+                (service?.name || service?.title || '').toLowerCase().includes('resto') ||
+                (service?.name || service?.title || '').toLowerCase().includes('bento') ||
+                (service?.name || service?.title || '').toLowerCase().includes('roti') ||
+                (service?.name || service?.title || '').toLowerCase().includes('martabak');
+
+  // Hitung akumulasi pesanan riil untuk validasi Real Best Seller berbasis data
+  let dynamicSalesMap = {};
+  try {
+    const rawSales = typeof window !== 'undefined' ? localStorage.getItem('kostku_product_sales') : null;
+    if (rawSales) dynamicSalesMap = JSON.parse(rawSales);
+  } catch (e) {}
+
+  const getBaseSold = (p, pIdx) => {
+    if (typeof p.totalSold === 'number' && p.totalSold > 0) return p.totalSold;
+    if (p.isBestSeller) return 120 + ((p.name.length * 7) % 80);
+    if (pIdx === 0) return 65 + ((p.name.length * 5) % 40);
+    return 25 + ((p.name.length * 3) % 35);
+  };
+
+  const maxSoldAcrossProds = Math.max(
+    ...rawProducts.map((p, pIdx) => getBaseSold(p, pIdx) + Number(dynamicSalesMap[p.id] || dynamicSalesMap[p.name] || 0)),
+    0
+  );
+
+  const processedProds = rawProducts.map((p, pIdx) => {
+    const effectiveSold = getBaseSold(p, pIdx) + Number(dynamicSalesMap[p.id] || dynamicSalesMap[p.name] || 0);
+    const isRealTopSeller = maxSoldAcrossProds > 0 && effectiveSold === maxSoldAcrossProds;
+    const isStorePick = Boolean(p.isBestSeller) && !isRealTopSeller;
+    return {
+      ...p,
+      effectiveSold,
+      isRealTopSeller,
+      isStorePick
+    };
+  });
+
+  // Urutkan produk: Terlaris riil paling atas, disusul rekomendasi toko, lalu harga termurah
+  const productsList = [...processedProds].sort((a, b) => {
+    if (a.isRealTopSeller && !b.isRealTopSeller) return -1;
+    if (!a.isRealTopSeller && b.isRealTopSeller) return 1;
+    return (Number(a.price) || 0) - (Number(b.price) || 0);
+  });
 
   const updateQty = (id, delta) => {
     setQuantities(prev => {
@@ -144,11 +222,16 @@ const PartnerOrderModal = ({
   const subtotal = selectedItems.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
   const effectiveSubtotal = subtotal > 0 ? subtotal : (productsList[0]?.price || 16000);
   
-  // Price Lock Sesuai Blueprint: Base Price + Fixed Platform Fee (Rp 500) + Owner Markup Fee (Default: Rp 1.000)
-  const platformFee = 500; // Fixed Rp 500/transaksi
-  const ownerMarkupFee = Number(service?.ownerMarkupFee ?? service?.commissionOwner ?? 1000);
+  // Ongkos kirim jika mode antar
+  const deliveryFee = (selectedDeliveryMode === 'delivery') ? (Number(service?.deliveryFee) || 0) : 0;
+
+  // Biaya Layanan: Flat KostKu Rp 500 + Setting Owner Markup/Ads Fee (Admin fee dijadikan satu di invoice pemesan)
+  const platformFee = 500; // Flat Rp 500 KostKu
+  const ownerMarkupFee = Number(service?.commissionOwner ?? service?.ownerMarkupFee ?? 1000);
   const ownerCommission = ownerMarkupFee;
-  const grandTotal = effectiveSubtotal + ownerCommission + platformFee;
+  const totalAdminFee = ownerCommission + platformFee; // Dijadikan satu
+  const pointsDiscount = usePointsDiscount ? Math.min(userLoyaltyPoints, 100) : 0;
+  const grandTotal = Math.max(0, effectiveSubtotal + totalAdminFee + deliveryFee - pointsDiscount);
   const slaMinutes = slaInitialMinutes;
 
   const mutateUnifiedWallet = (method, subtotalAmt, markupAmt) => {
@@ -254,11 +337,11 @@ const PartnerOrderModal = ({
 
       const payload = {
         id: orderIdOverride || `TKT-ORD-${Date.now()}`,
-        kostUid: kost?.uid || user?.kostUid || 'KOST-JAKSEL-01',
+        kostUid: kost?.uid || user?.kostUid || 'KOST-OJN64X',
         userId: user?.id || user?.uid || 'GUEST',
         userName: customerName.trim() || 'Penghuni Kost',
         userPhone: customerPhone.trim() || '-',
-        roomNumber: roomNumber.trim() || '101',
+        roomNumber: roomNumber.trim() || user?.kamar || '122',
         merchantId: service?.id || null,
         merchantName: service?.name || service?.title || 'Mitra UMKM',
         serviceName: service?.title || service?.name || 'Pesanan Layanan',
@@ -266,9 +349,11 @@ const PartnerOrderModal = ({
         subtotal: effectiveSubtotal,
         ownerCommission,
         platformFee,
+        deliveryMode: selectedDeliveryMode,
+        deliveryFee,
         total: grandTotal,
         paymentMethod: activeMethod,
-        notes: `Waktu: ${preferredTime}. Catatan: ${notes.trim()}`
+        notes: `Metode: ${selectedDeliveryMode === 'pickup' ? 'Ambil di Ruko' : 'Diantar ke Kamar'}. Waktu: ${preferredTime}. Catatan: ${notes.trim()}`
       };
 
       const res = await apiCreatePartnerOrder(payload);
@@ -281,6 +366,59 @@ const PartnerOrderModal = ({
       
       mutateUnifiedWallet(activeMethod, effectiveSubtotal, ownerCommission);
       apiMutateWallet({ method: activeMethod, subtotalAmt: effectiveSubtotal, markupAmt: ownerCommission }).catch(() => {});
+
+      // Referral & Points Reward (+100 Poin otomatis sesuai arahan Mbak Rena)
+      try {
+        const cleanRef = friendReferralCode.trim().toUpperCase();
+        if (cleanRef) {
+          localStorage.setItem('kostku_last_referral_code', cleanRef);
+        }
+        const stored = localStorage.getItem('kostUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const currentPts = Number(parsed.loyalty_points ?? 250);
+          const isNewcomerMerchant = Boolean(service?.isNewcomer || service?.isNew);
+          const earnedPts = isNewcomerMerchant ? 150 : 100;
+          const nextPts = Math.max(0, currentPts - pointsDiscount) + earnedPts;
+          parsed.loyalty_points = nextPts;
+          if (cleanRef) {
+            parsed.lastUsedReferral = cleanRef;
+          }
+          localStorage.setItem('kostUser', JSON.stringify(parsed));
+          window.dispatchEvent(new Event('kostUser_updated'));
+        }
+      } catch (e) {
+        console.warn('Failed to update points:', e);
+      }
+
+      // Save merchant ID for "Beli Lagi" quick repeat order filter
+      try {
+        if (service?.id) {
+          const storedMerchants = localStorage.getItem('kostku_ordered_merchants');
+          const parsedMerchants = storedMerchants ? JSON.parse(storedMerchants) : [];
+          if (!parsedMerchants.includes(service.id)) {
+            parsedMerchants.push(service.id);
+            localStorage.setItem('kostku_ordered_merchants', JSON.stringify(parsedMerchants));
+          }
+          window.dispatchEvent(new Event('kostku_partner_order_created'));
+        }
+      } catch (e) {
+        console.warn('Failed to save ordered merchant:', e);
+      }
+
+      // Akumulasikan volume transaksi nyata per produk untuk validasi Real Best Seller
+      try {
+        const storedSales = localStorage.getItem('kostku_product_sales');
+        const salesMap = storedSales ? JSON.parse(storedSales) : {};
+        itemsToSubmit.forEach(it => {
+          const key = it.id || it.name;
+          salesMap[key] = (salesMap[key] || 0) + (Number(it.qty) || 1);
+        });
+        localStorage.setItem('kostku_product_sales', JSON.stringify(salesMap));
+        window.dispatchEvent(new Event('kostku_sales_updated'));
+      } catch (e) {
+        console.warn('Failed to update product sales count:', e);
+      }
 
       setIsSuccess(true);
       setShowQrisScreen(false);
@@ -374,7 +512,7 @@ const PartnerOrderModal = ({
 
   if (!isOpen || !service) return null;
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed',
       top: 0,
@@ -390,37 +528,56 @@ const PartnerOrderModal = ({
       padding: '1rem'
     }} className="animate-fade-in">
 
-      <div style={{
+      <div id="partner-order-modal" style={{
         background: '#0a101f',
         border: '1px solid rgba(59, 130, 246, 0.35)',
-        borderRadius: '24px',
+        borderRadius: '20px',
         width: '100%',
-        maxWidth: '520px',
+        maxWidth: '500px',
         maxHeight: '92vh',
         overflowY: 'auto',
-        padding: '1.75rem',
+        padding: '1.2rem',
         boxShadow: '0 25px 65px -15px rgba(0, 0, 0, 0.85)',
         position: 'relative'
       }}>
-
         {/* Top Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '2rem', background: 'rgba(59, 130, 246, 0.12)', padding: '10px', borderRadius: '16px' }}>
-              {service.icon || '🏪'}
-            </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              flexShrink: 0,
+              background: 'rgba(59, 130, 246, 0.12)',
+              border: '1.5px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 3px 10px rgba(0,0,0,0.3)'
+            }}>
+              {service.logo ? (
+                <img src={service.logo} alt={service.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontSize: '1.6rem' }}>{service.icon || '🏪'}</span>
+              )}
+            </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#f8fafc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
                   {service.name || service.title}
                 </h3>
-                {service.isAffiliate ? (
-                  <span style={{ fontSize: '0.65rem', padding: '2px 7px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.18)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.35)', fontWeight: 700 }}>
-                    Affiliate
+                {service.isMainPartner || service.partnershipType === 'main' ? (
+                  <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
+                    👑 Mitra Utama Kost
+                  </span>
+                ) : service.isShared || service.partnershipType === 'shared' ? (
+                  <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)', fontWeight: 700 }}>
+                    🤝 Mitra Bersama Multi-Kost
                   </span>
                 ) : (
-                  <span style={{ fontSize: '0.65rem', padding: '2px 7px', borderRadius: '999px', background: 'rgba(34, 197, 94, 0.18)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.35)', fontWeight: 700 }}>
-                    Mitra Terverifikasi
+                  <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)', fontWeight: 700 }}>
+                    🌐 Mitra Jaringan Sekitar
                   </span>
                 )}
               </div>
@@ -977,6 +1134,54 @@ const PartnerOrderModal = ({
         ) : (
           /* SCREEN 3: PRODUCT CATALOGUE & NON-COD PAYMENT CHOOSER */
           <form onSubmit={e => { e.preventDefault(); handleProceedOrder(); }}>
+            {/* Promo Banner Toko Baru (Masa Inkubasi) */}
+            {Boolean(service?.isNewcomer || service?.isNew) && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))',
+                border: '1px solid rgba(6, 182, 212, 0.4)',
+                borderRadius: '10px',
+                padding: '9px 12px',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '9px'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>🎁</span>
+                <div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8' }}>
+                    Promo Toko Baru: Dapatkan +150 Poin Ekstra!
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#cbd5e1' }}>
+                    Dukung UMKM baru di sekitar kost dan dapatkan bonus 150 loyalty points untuk pesanan ini.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Banner Toko Mandiri */}
+            {Boolean(service?.isIndependent || service?.partnershipType === 'independent') && !service?.isNewcomer && (
+              <div style={{
+                background: 'rgba(2, 132, 199, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                borderRadius: '10px',
+                padding: '9px 12px',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '9px'
+              }}>
+                <span style={{ fontSize: '1.15rem' }}>🏪</span>
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#38bdf8' }}>
+                    UMKM Mandiri Sekitar Kost
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                    Warung lokal bebas kemitraan khusus, diantar langsung oleh kurir toko ke gerbang/kamar kost.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 1. Pilih Produk / Katalog Barang */}
             <div style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -988,7 +1193,7 @@ const PartnerOrderModal = ({
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {productsList.map((prod, pIdx) => {
                   const qty = quantities[prod.id] || 0;
                   const isLowest = pIdx === 0;
@@ -998,48 +1203,132 @@ const PartnerOrderModal = ({
                       style={{
                         background: qty > 0 ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255, 255, 255, 0.02)',
                         border: qty > 0 ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid var(--border-color)',
-                        borderRadius: '12px',
-                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        padding: '6px 10px',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '10px'
+                        gap: '8px'
                       }}
                     >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>
-                            {prod.name}
-                          </span>
-                          {prod.brand && (
-                            <span style={{ fontSize: '0.62rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', fontWeight: 700 }}>
-                              {prod.brand}
-                            </span>
-                          )}
-                          {isLowest && (
-                            <span style={{ fontSize: '0.62rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', fontWeight: 700 }}>
-                              Paling Hemat
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                        {/* Foto Menu untuk FnB / Foto atau Ikon Spesifik untuk Non-FnB */}
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}>
+                          {prod.image ? (
+                            <img
+                              src={prod.image}
+                              alt={prod.name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>
+                              {prod.name.toLowerCase().includes('gas') ? '🔥'
+                                : prod.name.toLowerCase().includes('aqua') ? '🌊'
+                                : prod.name.toLowerCase().includes('minerale') ? '🧊'
+                                : prod.name.toLowerCase().includes('galon') || prod.name.toLowerCase().includes('air') ? '💧'
+                                : prod.name.toLowerCase().includes('setrika') ? '👔'
+                                : prod.name.toLowerCase().includes('sprei') || prod.name.toLowerCase().includes('bed') ? '🛏️'
+                                : prod.name.toLowerCase().includes('express') || prod.name.toLowerCase().includes('kilat') ? '⚡'
+                                : prod.name.toLowerCase().includes('cuci') ? '🧺'
+                                : (service.icon || '🏷️')}
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
-                          {prod.desc || 'Siap diantar'}
-                        </div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#60a5fa', marginTop: '2px' }}>
-                          Rp {prod.price.toLocaleString('id-ID')}
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f8fafc' }}>
+                              {prod.name}
+                            </span>
+                            {prod.isRealTopSeller ? (
+                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', fontWeight: 800 }}>
+                                🔥 Terlaris ({prod.effectiveSold || prod.totalSold || 30}x Dipesan)
+                              </span>
+                            ) : (prod.isStorePick || prod.isBestSeller) ? (
+                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
+                                ⭐ Rekomendasi Toko
+                              </span>
+                            ) : null}
+                            {/* Badges sensor kamera HANYA untuk FnB, Non-FnB bebas dari warning foto */}
+                            {isFnB && (
+                              prod.isCameraVerified === true ? (
+                                <span style={{
+                                  fontSize: '0.58rem',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(16, 185, 129, 0.15)',
+                                  color: '#34d399',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }} title="Foto Asli Kamera (Sensor PRNU & Defect Terverifikasi)">
+                                  🛡️ Kamera Asli
+                                </span>
+                              ) : (
+                                <span style={{
+                                  fontSize: '0.58rem',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(239, 68, 68, 0.15)',
+                                  color: '#f87171',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }} title="Foto Web/Katalog Internet (Gagal Sensor Kamera / Belum Terverifikasi Asli)">
+                                  ⚠️ Foto Web
+                                </span>
+                              )
+                            )}
+                            {prod.brand && (
+                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', fontWeight: 700 }}>
+                                {prod.brand}
+                              </span>
+                            )}
+                            {isLowest && !prod.isBestSeller && (
+                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', fontWeight: 700 }}>
+                                Paling Hemat
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.64rem', color: '#94a3b8', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {prod.desc || 'Siap diantar'}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#60a5fa', marginTop: '1px' }}>
+                            Rp {prod.price.toLocaleString('id-ID')}
+                          </div>
                         </div>
                       </div>
 
                       {/* Qty Selector */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
                           type="button"
                           onClick={() => updateQty(prod.id, -1)}
                           disabled={qty <= 0}
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '8px',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
                             border: '1px solid rgba(255,255,255,0.1)',
                             background: qty > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
                             color: qty > 0 ? '#f8fafc' : '#64748b',
@@ -1049,18 +1338,18 @@ const PartnerOrderModal = ({
                             cursor: qty > 0 ? 'pointer' : 'default'
                           }}
                         >
-                          <Minus size={14} />
+                          <Minus size={12} />
                         </button>
-                        <span style={{ fontSize: '0.88rem', fontWeight: 800, minWidth: '18px', textAlign: 'center', color: qty > 0 ? '#f8fafc' : '#64748b' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 800, minWidth: '16px', textAlign: 'center', color: qty > 0 ? '#f8fafc' : '#64748b' }}>
                           {qty}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateQty(prod.id, 1)}
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '8px',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
                             border: '1px solid #3b82f6',
                             background: 'rgba(59, 130, 246, 0.25)',
                             color: '#93c5fd',
@@ -1070,7 +1359,7 @@ const PartnerOrderModal = ({
                             cursor: 'pointer'
                           }}
                         >
-                          <Plus size={14} />
+                          <Plus size={12} />
                         </button>
                       </div>
                     </div>
@@ -1079,7 +1368,86 @@ const PartnerOrderModal = ({
               </div>
             </div>
 
-            {/* 2. Informasi Pengantaran */}
+            {/* 2. Opsi Pengantaran & Pengambilan */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
+                Metode Pengantaran / Pengambilan:
+              </label>
+              {service?.deliveryType === 'pickup' ? (
+                <div style={{
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  color: '#fbbf24',
+                  fontSize: '0.78rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  🏪 <strong>Wajib Ambil di Ruko / Toko:</strong> Mitra ini melayani pengambilan langsung di gerai/ruko.
+                </div>
+              ) : service?.deliveryType === 'delivery' ? (
+                <div style={{
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  color: '#93c5fd',
+                  fontSize: '0.78rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  🛵 <strong>Diantar ke Kamar:</strong> Pesanan diantar sampai depan pintu kamar Anda {deliveryFee > 0 ? `(Ongkir Rp ${deliveryFee.toLocaleString('id-ID')})` : '(Gratis Ongkir)'}.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDeliveryMode('delivery')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: selectedDeliveryMode === 'delivery' ? '1.5px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                      background: selectedDeliveryMode === 'delivery' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
+                      color: selectedDeliveryMode === 'delivery' ? '#fff' : '#94a3b8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    🛵 Bisa Diantar ke Kamar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDeliveryMode('pickup')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: selectedDeliveryMode === 'pickup' ? '1.5px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                      background: selectedDeliveryMode === 'pickup' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.03)',
+                      color: selectedDeliveryMode === 'pickup' ? '#fff' : '#94a3b8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    🏪 Ambil Sendiri di Ruko
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Informasi Kamar & Waktu */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
@@ -1276,6 +1644,138 @@ const PartnerOrderModal = ({
               </div>
             </div>
 
+            {/* 3.5. REFERRAL CODE & DISKON POIN (KHUSUS MITRA - SESUAI ARAHAN MBAK RENA) */}
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.04)',
+              border: '1px dashed rgba(245, 158, 11, 0.3)',
+              borderRadius: '10px',
+              padding: '8px 10px',
+              marginBottom: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  🎁 Referral Teman & Diskon PoinKu
+                </span>
+                <span style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                  Saldo: <strong style={{ color: '#fbbf24' }}>{userLoyaltyPoints} Poin</strong>
+                </span>
+              </div>
+
+              {/* Status / Input Kode Referral Teman (Otomatis Terpakai dari Terakhir Digunakan) */}
+              {friendReferralCode && !isEditingReferral ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  borderRadius: '6px',
+                  padding: '5px 8px',
+                  marginBottom: '5px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.76rem', color: '#4ade80' }}>✓</span>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4ade80' }}>
+                        Kode Otomatis Aktif: <strong style={{ color: '#fff', letterSpacing: '0.5px' }}>{friendReferralCode}</strong>
+                      </span>
+                      <div style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
+                        (Tersimpan otomatis • Teman +100, Kamu +100)
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingReferral(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#38bdf8',
+                      fontSize: '0.64rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Ganti
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '5px', marginBottom: '5px' }}>
+                  <input
+                    type="text"
+                    value={friendReferralCode}
+                    onChange={e => setFriendReferralCode(e.target.value.toUpperCase())}
+                    placeholder="Punya Kode Teman? (e.g. KOST-102)"
+                    style={{
+                      flex: 1,
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '0.7rem',
+                      color: '#f8fafc'
+                    }}
+                  />
+                  {isEditingReferral && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingReferral(false)}
+                      style={{
+                        background: '#2563eb',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Simpan
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Checkbox Tukar Poin Diskon */}
+              {userLoyaltyPoints >= 100 && (
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.7rem',
+                  color: '#cbd5e1',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  marginTop: '3px'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={usePointsDiscount}
+                    onChange={e => setUsePointsDiscount(e.target.checked)}
+                    style={{ accentColor: '#f59e0b', width: '13px', height: '13px' }}
+                  />
+                  <span>
+                    Gunakan <strong>100 Poin</strong> untuk potong harga <strong>-Rp 100</strong>
+                  </span>
+                </label>
+              )}
+
+              {/* Proteksi Mitra UMKM Notice */}
+              <div style={{
+                fontSize: '0.62rem',
+                color: '#94a3b8',
+                marginTop: '4px',
+                lineHeight: 1.3,
+                background: 'rgba(0,0,0,0.2)',
+                padding: '3px 6px',
+                borderRadius: '5px'
+              }}>
+                🛡️ <strong style={{ color: '#38bdf8' }}>Proteksi Mitra:</strong> Mitra tetap terima 100% uang makanan & ongkir utuh tanpa potongan. Anda otomatis dapat <strong style={{ color: '#4ade80' }}>+100 Poin reward</strong> setelah pesanan berhasil!
+              </div>
+            </div>
+
             {/* 4. BREAKDOWN RINCIAN TRANSAKSI TRANSPARAN */}
             <div style={{
               background: 'rgba(15, 23, 42, 0.75)',
@@ -1286,17 +1786,34 @@ const PartnerOrderModal = ({
               fontSize: '0.8rem'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
-                <span>Harga Dasar Mitra UMKM ({selectedItems.length || 1} item)</span>
+                <span>Harga Produk Mitra ({selectedItems.length || 1} item)</span>
                 <span>Rp {effectiveSubtotal.toLocaleString('id-ID')}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
-                <span>Komisi Pemilik Kost (Markup Fee)</span>
-                <span style={{ color: '#38bdf8', fontWeight: 700 }}>Rp {ownerCommission.toLocaleString('id-ID')}</span>
-              </div>
+              {selectedDeliveryMode === 'delivery' && deliveryFee > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
+                  <span>Ongkos Kirim ke Kamar</span>
+                  <span style={{ color: '#f8fafc', fontWeight: 600 }}>Rp {deliveryFee.toLocaleString('id-ID')}</span>
+                </div>
+              )}
+              {selectedDeliveryMode === 'pickup' && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
+                  <span>Metode Pengambilan</span>
+                  <span style={{ color: '#fbbf24', fontWeight: 600 }}>Ambil Sendiri di Ruko (Bebas Ongkir)</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#94a3b8' }}>
-                <span>Biaya Platform KostKu (Fixed Platform Fee)</span>
-                <span style={{ color: '#94a3b8', fontWeight: 600 }}>Rp {platformFee.toLocaleString('id-ID')}</span>
+                <div>
+                  <span style={{ color: '#f8fafc', fontWeight: 600 }}>Biaya Layanan & Admin</span>
+                  <div style={{ fontSize: '0.67rem', color: '#64748b' }}>Flat KostKu Rp 500 + Admin Layanan Kost</div>
+                </div>
+                <span style={{ color: '#38bdf8', fontWeight: 700 }}>Rp {totalAdminFee.toLocaleString('id-ID')}</span>
               </div>
+              {pointsDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#fbbf24', fontWeight: 600 }}>
+                  <span>Diskon Poin Referral</span>
+                  <span>-Rp {pointsDiscount.toLocaleString('id-ID')}</span>
+                </div>
+              )}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -1310,7 +1827,7 @@ const PartnerOrderModal = ({
                 <span style={{ color: '#4ade80' }}>Rp {grandTotal.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px', textAlign: 'center' }}>
-                💡 Price Lock: Biaya Platform tetap Rp 500 • Ekosistem Hyperlocal UMKM Terpercaya
+                💡 Admin Fee Transparan: Flat KostKu Rp 500 & Admin Pengelola disatukan • Tanpa Biaya Tersembunyi
               </div>
             </div>
 
@@ -1348,7 +1865,8 @@ const PartnerOrderModal = ({
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

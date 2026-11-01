@@ -39,6 +39,9 @@ import {
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
 import KostRatingReviewSection from '../components/KostRatingReviewSection';
 import InAppChatModal from '../components/InAppChatModal';
+import { getValidBuildingImages, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
+import Footer from '../components/Footer';
+import { useTheme } from '../context/ThemeContext';
 
 // Interactive SVG 2D Room Blueprint Component
 const RoomBlueprintSvg = ({ dimensions = "4.0m x 4.5m", area = "18 m²", kostName = "Kamar Kost", roomNumber = "101", roomType = "Exclusive" }) => {
@@ -168,6 +171,7 @@ const RoomBlueprintSvg = ({ dimensions = "4.0m x 4.5m", area = "18 m²", kostNam
 export default function KostDetail({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isLight } = useTheme();
 
   const [kost, setKost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -237,11 +241,7 @@ export default function KostDetail({ user }) {
       alert(`Kamar ${selectedRoom} saat ini sedang terisi/dihuni. Silakan pilih nomor kamar lain yang masih Siap Huni.`);
       return;
     }
-    if (user) {
-      if (user.name && !tenantName) setTenantName(user.name);
-      if (user.phone && !phone) setPhone(user.phone);
-    }
-    setShowApplyModal(true);
+    navigate(`/checkout?kostId=${kost.uid}&room=${selectedRoom}&duration=${rentalDuration}`);
   };
 
   const submitApplication = async (e) => {
@@ -355,9 +355,7 @@ export default function KostDetail({ user }) {
     );
   }
 
-  const images = (kost.images && kost.images.length > 0) ? kost.images : [
-    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80"
-  ];
+  const images = getValidBuildingImages(kost.images, DEFAULT_BUILDING_PHOTO);
   const activeImage = images[activePhotoIndex] || images[0];
   const roomsList = kost.rooms || [];
   const selectedRoomObj = roomsList.find(r => r.number === selectedRoom) || roomsList[0];
@@ -403,16 +401,22 @@ export default function KostDetail({ user }) {
 
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: '#f8fafc', paddingBottom: 'clamp(90px, 14vh, 150px)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', paddingBottom: 'clamp(90px, 14vh, 150px)' }}>
       
       {/* Top Back Navigation */}
-      <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '1.25rem 1.25rem 0.5rem' }}>
+      <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '1rem clamp(0.75rem, 3vw, 1.25rem) 0.5rem' }}>
         <button 
-          onClick={() => navigate(-1)} 
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/search');
+            }
+          }} 
           style={{ 
-            background: 'rgba(255, 255, 255, 0.05)', 
-            border: '1px solid rgba(255, 255, 255, 0.1)', 
-            color: '#cbd5e1', 
+            background: 'var(--bg-card)', 
+            border: '1px solid var(--border-color)', 
+            color: 'var(--text-primary)', 
             display: 'inline-flex', 
             alignItems: 'center', 
             gap: '8px', 
@@ -428,7 +432,7 @@ export default function KostDetail({ user }) {
         </button>
       </div>
 
-      <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '1rem 1.25rem' }}>
+      <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0.5rem clamp(0.75rem, 3vw, 1.25rem)' }}>
         <div className="kost-detail-grid">
           
           {/* ══════════════════════════════════════
@@ -527,9 +531,9 @@ export default function KostDetail({ user }) {
                       gap: '5px',
                       padding: '4px 10px',
                       borderRadius: '8px',
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      color: '#93c5fd',
+                      background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.15)',
+                      border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)',
+                      color: isLight ? '#1d4ed8' : '#93c5fd',
                       fontSize: '0.78rem',
                       fontWeight: 600,
                       textDecoration: 'none'
@@ -546,7 +550,7 @@ export default function KostDetail({ user }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              borderBottom: '1px solid var(--border-color)',
               paddingBottom: '10px'
             }}>
               <div
@@ -587,6 +591,10 @@ export default function KostDetail({ user }) {
                   <img 
                     src={activeImage} 
                     alt={kost.kostName}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = DEFAULT_BUILDING_PHOTO;
+                    }}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.3s ease' }}
                   />
                   <div style={{
@@ -658,10 +666,10 @@ export default function KostDetail({ user }) {
             <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     🛏️ Pilih Kamar Idaman Anda ({roomsList.length} Kamar)
                   </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                     Pilih unit kamar yang ingin Anda sewa untuk melihat rincian harga akurat
                   </span>
                 </div>
@@ -683,9 +691,15 @@ export default function KostDetail({ user }) {
                         padding: '0.85rem',
                         borderRadius: '16px',
                         cursor: 'pointer',
-                        background: isSelected ? 'rgba(59, 130, 246, 0.18)' : 'rgba(255, 255, 255, 0.03)',
-                        border: isSelected ? '2px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
-                        boxShadow: isSelected ? '0 0 20px rgba(59, 130, 246, 0.3)' : 'none',
+                        background: isSelected 
+                          ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.18)') 
+                          : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.03)'),
+                        border: isSelected 
+                          ? '2px solid #2563eb' 
+                          : (isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(255, 255, 255, 0.08)'),
+                        boxShadow: isSelected 
+                          ? (isLight ? '0 4px 16px rgba(37, 99, 235, 0.18)' : '0 0 20px rgba(59, 130, 246, 0.3)') 
+                          : (isLight ? '0 2px 6px rgba(15, 23, 42, 0.04)' : 'none'),
                         transition: 'all 0.2s',
                         display: 'flex',
                         flexDirection: 'column',
@@ -699,7 +713,7 @@ export default function KostDetail({ user }) {
                         borderRadius: '10px',
                         overflow: 'hidden',
                         position: 'relative',
-                        background: '#0f172a'
+                        background: isLight ? '#e2e8f0' : '#0f172a'
                       }}>
                         <img 
                           src={roomPhotoSrc} 
@@ -716,7 +730,7 @@ export default function KostDetail({ user }) {
                           borderRadius: '6px',
                           fontSize: '0.68rem',
                           fontWeight: 700,
-                          color: isSelected ? '#60a5fa' : '#38bdf8',
+                          color: '#38bdf8',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px'
@@ -746,30 +760,32 @@ export default function KostDetail({ user }) {
                       {/* Room Info */}
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                          <strong style={{ fontSize: '1.05rem', color: isSelected ? '#93c5fd' : 'white' }}>
+                          <strong style={{ fontSize: '1.05rem', color: isSelected ? (isLight ? '#1d4ed8' : '#93c5fd') : 'var(--text-primary)' }}>
                             Kamar {r.number}
                           </strong>
                           <span style={{
                             fontSize: '0.68rem',
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            background: r.status === 'occupied' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                            color: r.status === 'occupied' ? '#f87171' : '#6ee7b7',
+                            background: r.status === 'occupied' 
+                              ? (isLight ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.15)') 
+                              : (isLight ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.15)'),
+                            color: r.status === 'occupied' ? (isLight ? '#dc2626' : '#f87171') : (isLight ? '#16a34a' : '#6ee7b7'),
                             fontWeight: 700
                           }}>
                             {r.status === 'occupied' ? 'Terisi' : 'Siap Huni'}
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
                           Ukuran {r.size || '4.0 x 4.5m'} • Kapasitas {r.capacity || 1} org
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px' }}>
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Sewa Bulanan:</span>
-                        <strong style={{ fontSize: '1.05rem', color: '#60a5fa' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Sewa Bulanan:</span>
+                        <strong style={{ fontSize: '1.05rem', color: isLight ? '#1d4ed8' : '#60a5fa' }}>
                           Rp {(Number(r.price) || baseMonthlyPrice).toLocaleString('id-ID')}
-                          <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 'normal' }}> /bln</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}> /bln</span>
                         </strong>
                       </div>
                     </div>
@@ -781,23 +797,23 @@ export default function KostDetail({ user }) {
               {selectedRoomObj && (
                 <div style={{
                   marginTop: '1.25rem',
-                  background: 'rgba(30, 41, 59, 0.6)',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.6)',
+                  border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.4)',
                   borderRadius: '16px',
                   padding: '1.25rem',
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                   gap: '16px',
                   alignItems: 'center',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)'
+                  boxShadow: isLight ? '0 4px 20px rgba(15, 23, 42, 0.08)' : '0 8px 24px rgba(0, 0, 0, 0.35)'
                 }}>
                   <div style={{
                     height: '210px',
                     borderRadius: '12px',
                     overflow: 'hidden',
-                    background: '#0f172a',
+                    background: isLight ? '#e2e8f0' : '#0f172a',
                     position: 'relative',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    border: '1px solid var(--border-color)'
                   }}>
                     <img
                       src={selectedRoomObj.roomPhoto || selectedRoomObj.photo || (kost.images && kost.images[0]) || 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=600&auto=format&fit=crop&q=80'}
@@ -829,22 +845,22 @@ export default function KostDetail({ user }) {
                       <span className="badge badge-primary" style={{ fontSize: '0.76rem', padding: '3px 10px' }}>
                         Unit Terpilih: Kamar {selectedRoomObj.number}
                       </span>
-                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: isLight ? '#16a34a' : '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Check size={13} /> Terverifikasi Asli
                       </span>
                     </div>
-                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                       Kamar {selectedRoomObj.number} - Siap Dihuni
                     </h4>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                       Setiap unit difoto secara individual. Luas {selectedRoomObj.size || '4.0 x 4.5m'}, kapasitas {selectedRoomObj.capacity || 1} orang, dengan pencahayaan dan ventilasi terawat.
                     </p>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Tarif Sewa:</span>
-                      <strong style={{ fontSize: '1.35rem', color: '#60a5fa' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Tarif Sewa:</span>
+                      <strong style={{ fontSize: '1.35rem', color: isLight ? '#1d4ed8' : '#60a5fa' }}>
                         Rp {(Number(selectedRoomObj.price) || baseMonthlyPrice).toLocaleString('id-ID')}
                       </strong>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/bulan</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>/bulan</span>
                     </div>
 
                     {/* Utilitas & Ketentuan Listrik/Air Kamar Ini */}
@@ -852,14 +868,14 @@ export default function KostDetail({ user }) {
                       marginTop: '14px',
                       padding: '12px',
                       borderRadius: '12px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--border-color)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '8px'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           ⚡ Ketentuan Listrik & Air
                         </span>
                         <span style={{
@@ -868,11 +884,11 @@ export default function KostDetail({ user }) {
                           borderRadius: '6px',
                           fontWeight: 700,
                           background: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
-                            ? 'rgba(245, 158, 11, 0.15)'
-                            : 'rgba(59, 130, 246, 0.15)',
+                            ? (isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(245, 158, 11, 0.15)')
+                            : (isLight ? 'rgba(37, 99, 235, 0.10)' : 'rgba(59, 130, 246, 0.15)'),
                           color: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
-                            ? '#fbbf24'
-                            : '#60a5fa'
+                            ? (isLight ? '#b45309' : '#fbbf24')
+                            : (isLight ? '#1d4ed8' : '#60a5fa')
                         }}>
                           {kost.utilityScheme === 'electric_mandiri' ? '⚡ Token Listrik Mandiri' :
                            kost.utilityScheme === 'water_mandiri' ? '💧 Air Mandiri' :
@@ -882,11 +898,11 @@ export default function KostDetail({ user }) {
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', fontSize: '0.8rem' }}>
                         {/* Listrik Status */}
-                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontWeight: 700, fontSize: '0.78rem' }}>
+                        <div style={{ background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : 'none', padding: '8px 10px', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700, fontSize: '0.78rem' }}>
                             <Zap size={14} /> Listrik: {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? 'Token Mandiri' : 'Dikelola Kost'}
                           </div>
-                          <span style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginTop: '2px' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
                             {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
                               ? 'Isi token PLN prabayar sendiri per kamar sesuai pemakaian.'
                               : (kost.electricityRate && Number(kost.electricityRate) > 0)
@@ -894,12 +910,12 @@ export default function KostDetail({ user }) {
                                 : 'Sudah termasuk dalam biaya sewa bulanan.'}
                           </span>
                           {selectedRoomObj.plnMeterNo && (
-                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(251, 191, 36, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
-                              <span style={{ fontSize: '0.7rem', color: '#fef08a' }}>No. Meter: <strong>{selectedRoomObj.plnMeterNo}</strong></span>
+                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isLight ? 'rgba(217, 119, 6, 0.08)' : 'rgba(251, 191, 36, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                              <span style={{ fontSize: '0.7rem', color: isLight ? '#92400e' : '#fef08a' }}>No. Meter: <strong>{selectedRoomObj.plnMeterNo}</strong></span>
                               <button
                                 type="button"
                                 onClick={() => handleCopyText(selectedRoomObj.plnMeterNo, 'pln')}
-                                style={{ background: 'transparent', border: 'none', color: '#fbbf24', cursor: 'pointer', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                style={{ background: 'transparent', border: 'none', color: isLight ? '#b45309' : '#fbbf24', cursor: 'pointer', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}
                               >
                                 {copiedMeter === 'pln' ? <Check size={11} /> : <Copy size={11} />}
                                 {copiedMeter === 'pln' ? 'Tersalin' : 'Salin'}
@@ -909,11 +925,11 @@ export default function KostDetail({ user }) {
                         </div>
 
                         {/* Air Status */}
-                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontWeight: 700, fontSize: '0.78rem' }}>
+                        <div style={{ background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : 'none', padding: '8px 10px', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700, fontSize: '0.78rem' }}>
                             <Droplet size={14} /> Air Bersih: {(kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri') ? 'Mandiri' : 'Dari Kost'}
                           </div>
-                          <span style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginTop: '2px' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
                             {(kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri')
                               ? 'Biaya air ditanggung mandiri per unit.'
                               : (kost.waterRate && Number(kost.waterRate) > 0)
@@ -921,12 +937,12 @@ export default function KostDetail({ user }) {
                                 : 'Air bersih gratis/sudah termasuk fasilitas kost.'}
                           </span>
                           {selectedRoomObj.pdamMeterNo && (
-                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(56, 189, 248, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
-                              <span style={{ fontSize: '0.7rem', color: '#7dd3fc' }}>No. PDAM: <strong>{selectedRoomObj.pdamMeterNo}</strong></span>
+                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isLight ? 'rgba(2, 132, 199, 0.08)' : 'rgba(56, 189, 248, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                              <span style={{ fontSize: '0.7rem', color: isLight ? '#0369a1' : '#7dd3fc' }}>No. PDAM: <strong>{selectedRoomObj.pdamMeterNo}</strong></span>
                               <button
                                 type="button"
                                 onClick={() => handleCopyText(selectedRoomObj.pdamMeterNo, 'pdam')}
-                                style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                style={{ background: 'transparent', border: 'none', color: isLight ? '#0284c7' : '#38bdf8', cursor: 'pointer', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '3px' }}
                               >
                                 {copiedMeter === 'pdam' ? <Check size={11} /> : <Copy size={11} />}
                                 {copiedMeter === 'pdam' ? 'Tersalin' : 'Salin'}
@@ -1030,19 +1046,19 @@ export default function KostDetail({ user }) {
             }}>
               
               {/* Selected Room Header */}
-              <div style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+              <div style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
                   Unit Pilihan Anda
                 </span>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: 'white' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     Kamar {selectedRoom || '-'}
                   </h3>
                   <span style={{
                     padding: '3px 10px',
                     borderRadius: '8px',
-                    background: 'rgba(59, 130, 246, 0.2)',
-                    color: '#93c5fd',
+                    background: isLight ? 'rgba(37, 99, 235, 0.12)' : 'rgba(59, 130, 246, 0.2)',
+                    color: isLight ? '#1d4ed8' : '#93c5fd',
                     fontSize: '0.75rem',
                     fontWeight: 700
                   }}>
@@ -1057,15 +1073,17 @@ export default function KostDetail({ user }) {
                   marginBottom: '1.25rem',
                   padding: '10px 14px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
-                  border: '1px solid rgba(52, 211, 153, 0.4)',
+                  background: isLight 
+                    ? 'linear-gradient(135deg, rgba(22, 163, 74, 0.10) 0%, rgba(37, 99, 235, 0.10) 100%)' 
+                    : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
+                  border: isLight ? '1px solid rgba(22, 163, 74, 0.3)' : '1px solid rgba(52, 211, 153, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px'
                 }}>
                   <div style={{
                     background: '#10b981',
-                    color: '#000',
+                    color: '#fff',
                     padding: '6px',
                     borderRadius: '8px',
                     display: 'flex',
@@ -1075,10 +1093,10 @@ export default function KostDetail({ user }) {
                     <Tag size={16} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#34d399' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#16a34a' : '#34d399' }}>
                       {ownerDiscount?.label || 'Program Promo Spesial Pemilik Kost'}
                     </div>
-                    <div style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
                       Diskon {ownerDiscount?.type === 'percent' ? `${ownerDiscount.value}%` : `Rp ${Number(ownerDiscount.value).toLocaleString('id-ID')}`} ({ownerDiscount?.durationMonths === 'all' ? 'sepanjang masa sewa' : `${ownerDiscount?.durationMonths} bulan pertama`})
                       {ownerDiscount?.validUntil ? ` • s.d ${new Date(ownerDiscount.validUntil).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` : ''}
                     </div>
@@ -1088,7 +1106,7 @@ export default function KostDetail({ user }) {
 
               {/* Rental Duration Selector */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
                   Pilih Jangka Waktu Sewa:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -1117,9 +1135,15 @@ export default function KostDetail({ user }) {
                         style={{
                           padding: '10px 8px',
                           borderRadius: '12px',
-                          border: rentalDuration === d.dur ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
-                          background: rentalDuration === d.dur ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.03)',
-                          color: rentalDuration === d.dur ? 'white' : '#94a3b8',
+                          border: rentalDuration === d.dur 
+                            ? '1.5px solid #2563eb' 
+                            : (isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(255, 255, 255, 0.08)'),
+                          background: rentalDuration === d.dur 
+                            ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.25)') 
+                            : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
+                          color: rentalDuration === d.dur 
+                            ? (isLight ? '#1d4ed8' : 'white') 
+                            : 'var(--text-secondary)',
                           cursor: 'pointer',
                           textAlign: 'center',
                           transition: 'all 0.15s'
@@ -1127,11 +1151,11 @@ export default function KostDetail({ user }) {
                       >
                         <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{d.label}</div>
                         {promoTag ? (
-                          <div style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700, marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.68rem', color: isLight ? '#16a34a' : '#34d399', fontWeight: 700, marginTop: '2px' }}>
                             🏷️ {promoTag}
                           </div>
                         ) : (
-                          <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>Harga Normal</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>Harga Normal</div>
                         )}
                       </button>
                     );
@@ -1141,42 +1165,42 @@ export default function KostDetail({ user }) {
 
               {/* Transparent Cost Breakdown */}
               <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '14px',
                 padding: '12px 14px',
                 marginBottom: '1.25rem'
               }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
                   Rincian Biaya Transparan:
                 </span>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.84rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#cbd5e1' }}>Sewa Pokok ({rentalDuration} Bulan):</span>
-                    <span style={{ color: 'white' }}>Rp {rawRent.toLocaleString('id-ID')}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Sewa Pokok ({rentalDuration} Bulan):</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Rp {rawRent.toLocaleString('id-ID')}</span>
                   </div>
 
                   {discountAmount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#34d399' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#16a34a' : '#34d399' }}>
                       <span>Potongan Promo ({ownerDiscount?.label || 'Diskon'} - {discountedMonths} Bln):</span>
                       <span>- Rp {discountAmount.toLocaleString('id-ID')}</span>
                     </div>
                   )}
 
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#cbd5e1' }}>Deposit Jaminan (Refundable):</span>
-                    <span style={{ color: 'white' }}>Rp {depositAmount.toLocaleString('id-ID')}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Deposit Jaminan (Refundable):</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Rp {depositAmount.toLocaleString('id-ID')}</span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#38bdf8' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#0284c7' : '#38bdf8' }}>
                     <span>Biaya Layanan & Admin:</span>
                     <span style={{ fontWeight: 700, fontSize: '0.78rem' }}>Rp 0 (Manual) / Rp 2.000 (QRIS/VA)</span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                     <span>⚡ Listrik Kamar:</span>
-                    <span style={{ color: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? '#fbbf24' : '#e2e8f0' }}>
+                    <span style={{ color: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? (isLight ? '#b45309' : '#fbbf24') : 'var(--text-primary)' }}>
                       {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
                         ? 'Token Mandiri (Penghuni)'
                         : (kost.electricityRate && Number(kost.electricityRate) > 0)
@@ -1185,9 +1209,9 @@ export default function KostDetail({ user }) {
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                     <span>💧 Air Bersih:</span>
-                    <span style={{ color: (kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri') ? '#38bdf8' : '#e2e8f0' }}>
+                    <span style={{ color: (kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri') ? (isLight ? '#0284c7' : '#38bdf8') : 'var(--text-primary)' }}>
                       {(kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri')
                         ? 'Mandiri (Penghuni)'
                         : (kost.waterRate && Number(kost.waterRate) > 0)
@@ -1197,15 +1221,15 @@ export default function KostDetail({ user }) {
                   </div>
 
                   <div style={{
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderTop: '1px solid var(--border-color)',
                     marginTop: '6px',
                     paddingTop: '8px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'baseline'
                   }}>
-                    <strong style={{ fontSize: '0.92rem', color: 'white' }}>Total Pembayaran Awal:</strong>
-                    <strong style={{ fontSize: '1.25rem', color: '#60a5fa' }}>
+                    <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)' }}>Total Pembayaran Awal:</strong>
+                    <strong style={{ fontSize: '1.25rem', color: isLight ? '#1d4ed8' : '#60a5fa' }}>
                       Rp {totalFirstPayment.toLocaleString('id-ID')}
                     </strong>
                   </div>
@@ -1242,7 +1266,7 @@ export default function KostDetail({ user }) {
                   <span>
                     {selectedRoomObj?.status === 'occupied' 
                       ? `Kamar ${selectedRoom} Sedang Terisi` 
-                      : `Ajukan Sewa Kamar ${selectedRoom}`}
+                      : `Sewa & Checkout Kamar ${selectedRoom}`}
                   </span>
                 </button>
 
@@ -1257,9 +1281,9 @@ export default function KostDetail({ user }) {
                     width: '100%',
                     padding: '12px',
                     borderRadius: '14px',
-                    border: '1px solid rgba(59, 130, 246, 0.4)',
-                    background: 'rgba(59, 130, 246, 0.12)',
-                    color: '#60a5fa',
+                    border: isLight ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid rgba(59, 130, 246, 0.4)',
+                    background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.12)',
+                    color: isLight ? '#1d4ed8' : '#60a5fa',
                     fontWeight: 700,
                     fontSize: '0.88rem',
                     cursor: 'pointer',
@@ -1288,20 +1312,51 @@ export default function KostDetail({ user }) {
 
       {/* Floating Bottom Booking Bar for Mobile */}
       <div className="mobile-bottom-booking-bar">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/search');
+            }
+          }}
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: '#cbd5e1',
+            borderRadius: '12px',
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            fontSize: '0.84rem',
+            fontWeight: 700,
+            whiteSpace: 'nowrap'
+          }}
+          title="Kembali ke daftar kost"
+        >
+          <ArrowLeft size={16} />
+          <span>Kembali</span>
+        </button>
+
         <div>
           <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Kamar {selectedRoom} ({rentalDuration} Bln)</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#60a5fa' }}>
+            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#60a5fa' }}>
               Rp {totalFirstPayment.toLocaleString('id-ID')}
             </span>
           </div>
         </div>
+
         <button
           type="button"
           onClick={handleApplyClick}
           disabled={selectedRoomObj?.status === 'occupied'}
           style={{
-            padding: '10px 22px',
+            padding: '10px 18px',
             borderRadius: '12px',
             border: 'none',
             background: selectedRoomObj?.status === 'occupied'
@@ -1309,15 +1364,16 @@ export default function KostDetail({ user }) {
               : 'linear-gradient(135deg, #2563eb, #3b82f6)',
             color: selectedRoomObj?.status === 'occupied' ? '#94a3b8' : 'white',
             fontWeight: 800,
-            fontSize: '0.9rem',
+            fontSize: '0.88rem',
             cursor: selectedRoomObj?.status === 'occupied' ? 'not-allowed' : 'pointer',
             boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            whiteSpace: 'nowrap'
           }}
         >
-          <span>{selectedRoomObj?.status === 'occupied' ? 'Kamar Terisi' : 'Ajukan Sewa'}</span>
+          <span>{selectedRoomObj?.status === 'occupied' ? 'Kamar Terisi' : 'Sewa & Checkout'}</span>
         </button>
       </div>
 
@@ -1330,19 +1386,19 @@ export default function KostDetail({ user }) {
           background: 'rgba(0, 0, 0, 0.85)', 
           backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', 
-          zIndex: 9999, padding: '1rem' 
+          zIndex: 10000, padding: '1rem' 
         }}>
           <div className="card glass-panel animate-fade-in" style={{
-            width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.35)'
+            width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.35)', position: 'relative'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>Pengajuan Sewa Kamar</h3>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Lengkapi data diri untuk reservasi unit</span>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>Pengajuan Sewa Kamar</h3>
+                <span style={{ fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>Lengkapi data diri untuk reservasi unit</span>
               </div>
               <button 
                 onClick={() => setShowApplyModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
@@ -1350,8 +1406,8 @@ export default function KostDetail({ user }) {
 
             {/* Selected unit summary banner */}
             <div style={{
-              background: 'rgba(59, 130, 246, 0.12)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
+              background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.12)',
+              border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(59, 130, 246, 0.25)',
               borderRadius: '12px',
               padding: '10px 14px',
               marginBottom: '1.25rem',
@@ -1360,25 +1416,25 @@ export default function KostDetail({ user }) {
               alignItems: 'center'
             }}>
               <div>
-                <strong style={{ display: 'block', fontSize: '0.92rem', color: 'white' }}>
+                <strong style={{ display: 'block', fontSize: '0.92rem', color: isLight ? '#0f172a' : 'white' }}>
                   {kost.kostName}
                 </strong>
-                <span style={{ fontSize: '0.78rem', color: '#93c5fd' }}>
+                <span style={{ fontSize: '0.78rem', color: isLight ? '#2563eb' : '#93c5fd' }}>
                   Kamar {selectedRoom} • Durasi: {rentalDuration} Bulan
                 </span>
               </div>
-              <strong style={{ fontSize: '1.05rem', color: '#60a5fa' }}>
+              <strong style={{ fontSize: '1.05rem', color: isLight ? '#1d4ed8' : '#60a5fa' }}>
                 Rp {totalFirstPayment.toLocaleString('id-ID')}
               </strong>
             </div>
 
             <form onSubmit={submitApplication} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Nama Lengkap Penyewa:</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '6px' }}>Nama Lengkap Penyewa:</label>
                 <input 
                   type="text"
                   required
-                  placeholder="Nama sesuai KTP"
+                  placeholder="Nama Lengkap Anda"
                   value={tenantName}
                   onChange={e => setTenantName(e.target.value)}
                   className="input-field"
@@ -1386,18 +1442,17 @@ export default function KostDetail({ user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Nomor WhatsApp Aktif *:</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '6px' }}>Nomor WhatsApp Aktif *:</label>
                 <div style={{ position: 'relative' }}>
-                  <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Phone size={16} color={isLight ? '#94a3b8' : '#94a3b8'} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
                     type="tel"
                     required
                     placeholder="Contoh: 08123456789"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    style={{
-                      width: '100%', padding: '12px 12px 12px 38px', borderRadius: '12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)', color: 'white', fontSize: '0.9rem', boxSizing: 'border-box'
-                    }}
+                    className="input-field"
+                    style={{ paddingLeft: '38px' }}
                   />
                 </div>
               </div>
@@ -1500,6 +1555,11 @@ export default function KostDetail({ user }) {
         initialMessage={chatInitialText}
         user={user}
       />
+
+      {/* Footer Legal & Compliance */}
+      <div style={{ marginTop: '4rem' }}>
+        <Footer />
+      </div>
     </div>
   );
 }

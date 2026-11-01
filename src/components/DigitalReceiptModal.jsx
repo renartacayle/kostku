@@ -13,6 +13,7 @@ import {
   Check
 } from 'lucide-react';
 import QRCode from 'qrcode';
+import ReceiptPrinter from './kitchen/ReceiptPrinter';
 import { apiGetPaymentReceipt, apiSendReceiptEmail } from '../services/api';
 
 function angkaTerbilang(angka) {
@@ -39,6 +40,7 @@ function angkaTerbilang(angka) {
 const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
   const [receiptData, setReceiptData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [receiptFormat, setReceiptFormat] = useState('thermal'); // 'thermal' (The Kitchen) | 'a4'
   const [emailInput, setEmailInput] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState(false);
@@ -223,12 +225,12 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
           {/* Modal Toolbar (No Print) */}
           <div className="no-print" style={{
             padding: '1rem 1.5rem',
-            background: '#090e1a',
-            color: 'white',
+            background: 'var(--bg-card)',
+            color: 'var(--text-primary)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+            borderBottom: '1px solid var(--border-color)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
@@ -244,7 +246,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                 <FileText size={18} color="#38bdf8" />
               </div>
               <div>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'white' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   Kuitansi Resmi Pembayaran Sewa
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
@@ -257,6 +259,50 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Format Switcher (Thermal The Kitchen vs A4) */}
+              <div style={{
+                display: 'flex',
+                background: 'rgba(255, 255, 255, 0.08)',
+                padding: '3px',
+                borderRadius: '8px',
+                gap: '3px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setReceiptFormat('thermal')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: receiptFormat === 'thermal' ? '#059669' : 'transparent',
+                    color: receiptFormat === 'thermal' ? '#ffffff' : '#94a3b8',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  🧾 Struk Termal Taktil
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReceiptFormat('a4')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: receiptFormat === 'a4' ? '#059669' : 'transparent',
+                    color: receiptFormat === 'a4' ? '#ffffff' : '#94a3b8',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  📄 Dokumen A4
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={handlePrint}
@@ -370,8 +416,30 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
           </div>
 
           {/* Printable Receipt Body Container */}
-          <div style={{ overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
+          <div style={{ overflowY: 'auto', flex: 1, background: receiptFormat === 'thermal' ? '#f1f5f9' : '#f8fafc' }}>
+            {receiptFormat === 'thermal' && (
+              <div className="no-print" style={{ padding: '2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <ReceiptPrinter
+                  receipt={{
+                    receiptNumber: receiptNum,
+                    date: `${formattedDate}, ${formattedTime}`,
+                    kostName: receiptData?.kostName || inv?.kostName || 'Kostku Residence',
+                    roomNumber: inv?.roomNumber ? `Kamar ${inv.roomNumber}` : (inv?.roomName || 'Unit Kamar'),
+                    tenantName: inv?.tenantName || inv?.userName || 'Penghuni Terdaftar',
+                    period: inv?.period || inv?.description || '1 Bulan',
+                    rentAmount: Number(inv?.amount || totalAmount || 1500000),
+                    electricityDeposit: Number(inv?.electricityFee || 0),
+                    adminFee: 0,
+                    totalAmount: totalAmount,
+                    paymentMethod: receiptData?.paymentMethod || inv?.paymentMethod || 'QRIS Realtime'
+                  }}
+                  autoPrint={true}
+                />
+              </div>
+            )}
+
             <div className="printable-receipt-card" style={{
+              display: receiptFormat === 'thermal' ? 'none' : 'block',
               background: '#ffffff',
               padding: '2.25rem 2.5rem',
               color: '#0f172a',

@@ -7,14 +7,22 @@ import {
   Settings, 
   LogOut, 
   Home, 
-  Cloud, 
   Download,
   AlertCircle,
-  Search
+  Search,
+  User as UserIcon,
+  UserCheck,
+  Store,
+  Sun,
+  Moon,
+  Sparkles
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync }) {
   const location = useLocation();
+  const { theme, toggleTheme, isLight } = useTheme();
+  const isDemoSession = Boolean(user?.isDemo || user?.email?.endsWith('@kostku.id'));
 
   const menuItems = [
     { path: '/', name: 'Halaman Utama', icon: <Home size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
@@ -23,7 +31,8 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
     { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/keuangan', name: user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan & Laporan', icon: <DollarSign size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/pengaturan', name: user?.role === 'staff' ? 'Profil Staf' : 'Pengaturan', icon: <Settings size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
+    { path: '/mitra', name: user?.role === 'mitra' ? 'Portal Toko & Menu' : 'Mitra & Toko Sekitar', icon: <Store size={20} />, roles: ['owner', 'master', 'staff', 'mitra'] },
+    { path: '/karyawan', name: 'Pengaturan Karyawan', icon: <UserCheck size={20} />, roles: ['owner', 'master'] }
   ];
 
   const allowedMenus = menuItems.filter(item => item.roles.includes(user?.role));
@@ -31,7 +40,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
   return (
     <aside style={{
       width: '270px',
-      background: 'rgba(15, 23, 42, 0.95)',
+      background: 'var(--bg-glass)',
       backdropFilter: 'blur(20px)',
       borderRight: '1px solid var(--border-color)',
       padding: '1.75rem 1.25rem',
@@ -43,25 +52,25 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
       flexShrink: 0
     }}>
       {/* Brand Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2.5rem', paddingLeft: '0.5rem' }}>
-        <div style={{
-          background: 'var(--accent-gradient)',
-          padding: '10px',
-          borderRadius: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: 'var(--shadow-glow)'
-        }}>
-          <Home size={22} color="white" />
-        </div>
+      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2.5rem', paddingLeft: '0.5rem', textDecoration: 'none' }}>
+        <img 
+          src="/logo.png" 
+          alt="Logo KostKu" 
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            objectFit: 'contain',
+            boxShadow: 'var(--shadow-glow)'
+          }} 
+        />
         <div>
           <h2 style={{
             margin: 0,
             fontSize: '1.35rem',
             fontWeight: 800,
             fontFamily: 'var(--font-display)',
-            background: 'linear-gradient(135deg, #ffffff 0%, #94a3b8 100%)',
+            background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             letterSpacing: '-0.02em'
@@ -72,12 +81,13 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
             Pro Edition v2.0
           </span>
         </div>
-      </div>
+      </Link>
 
       {/* Navigation List */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
         {allowedMenus.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || 
+            (item.path === '/karyawan' && (location.pathname === '/karyawan' || (location.pathname === '/pengaturan' && location.search.includes('tab=karyawan'))));
           return (
             <Link
               key={item.path}
@@ -112,82 +122,190 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
         })}
       </nav>
 
-      {/* Cloud & Multi-Device Action Card */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '1rem',
-        marginBottom: '1rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
-            Multi-Device Sync
-          </span>
-          <span className="status-dot online" />
-        </div>
-        <button
-          onClick={onOpenCloudSync}
-          style={{
-            width: '100%',
-            background: 'rgba(59, 130, 246, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.25)',
-            color: '#93c5fd',
-            borderRadius: '10px',
-            padding: '8px 10px',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'all 0.2s'
-          }}
-        >
-          <Cloud size={14} /> Atur Database Cloud
-        </button>
-      </div>
-
-      {/* User Card & Logout */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.04)',
-        padding: '1rem',
-        borderRadius: '16px',
-        border: '1px solid var(--border-color)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'var(--accent-gradient)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            color: 'white',
-            fontSize: '0.95rem'
-          }}>
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+      {/* Environment Mode Status Pill (Only visible in Demo Sandbox) */}
+      {isDemoSession && (
+        <div style={{
+          marginBottom: '12px',
+          padding: '8px 12px',
+          borderRadius: '12px',
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#f59e0b',
+              boxShadow: '0 0 6px #f59e0b'
+            }} />
+            <span style={{
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              color: '#f59e0b'
+            }}>
+              Sandbox Demo
+            </span>
           </div>
-          <div style={{ overflow: 'hidden' }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {user?.name}
+          <Link
+            to="/login"
+            title="Masuk ke Akun Real"
+            style={{
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              padding: '3px 8px',
+              borderRadius: '6px',
+              background: 'rgba(245, 158, 11, 0.2)',
+              color: '#fbbf24',
+              textDecoration: 'none'
+            }}
+          >
+            Ke Real ↗
+          </Link>
+        </div>
+      )}
+
+      {/* User Card, Setting & Logout (Bawah Kiri) */}
+      <div style={{
+        marginTop: 'auto',
+        background: 'rgba(255, 255, 255, 0.04)',
+        padding: '0.85rem 1rem',
+        borderRadius: '16px',
+        border: '1px solid var(--border-color)',
+        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)'
+      }}>
+        {/* User Info & PFP */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+          {user?.picture ? (
+            <img 
+              src={user.picture} 
+              alt={user.name || 'User'}
+              referrerPolicy="no-referrer"
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '12px',
+                objectFit: 'cover',
+                border: '1.5px solid rgba(59, 130, 246, 0.6)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                flexShrink: 0
+              }}
+            />
+          ) : (
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
+              background: 'var(--accent-gradient)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              color: 'white',
+              fontSize: '0.95rem',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+              flexShrink: 0
+            }}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={16} />}
+            </div>
+          )}
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              {user?.name || 'Pengguna'}
             </p>
-            <span style={{ fontSize: '0.75rem', color: user?.role === 'staff' ? '#34d399' : 'var(--text-secondary)', textTransform: 'capitalize' }}>
-              {user?.role === 'staff' ? `Staf (${user?.jobTitle || 'Penjaga'})` : `${user?.role} Account`}
+            <span style={{ fontSize: '0.72rem', color: user?.role === 'staff' ? '#34d399' : user?.role === 'mitra' ? '#f59e0b' : 'var(--text-secondary)', textTransform: 'capitalize' }}>
+              {user?.role === 'staff' ? `Staf (${user?.jobTitle || 'Penjaga'})` : user?.role === 'mitra' ? 'Mitra UMKM Sekitar' : `${user?.role || 'User'} Account`}
             </span>
           </div>
         </div>
 
+        {/* Theme Switcher in Sidebar */}
         <button
-          onClick={onLogout}
-          className="btn btn-danger btn-sm"
-          style={{ width: '100%', padding: '8px', borderRadius: '10px', gap: '6px' }}
+          onClick={toggleTheme}
+          type="button"
+          data-testid="sidebar-theme-toggle"
+          title={isLight ? "Beralih ke Mode Gelap" : "Beralih ke Mode Terang"}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            borderRadius: '10px',
+            marginBottom: '8px',
+            gap: '8px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
         >
-          <LogOut size={15} /> Keluar
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isLight ? <Sun size={15} color="#d97706" /> : <Moon size={15} color="#60a5fa" />}
+            <span>{isLight ? 'Mode Terang' : 'Mode Gelap'}</span>
+          </div>
+          <span style={{
+            fontSize: '0.65rem',
+            padding: '2px 7px',
+            borderRadius: '6px',
+            background: isLight ? '#e2e8f0' : 'rgba(255,255,255,0.1)',
+            color: 'var(--text-secondary)',
+            fontWeight: 800
+          }}>
+            {isLight ? 'Light' : 'Dark'}
+          </span>
         </button>
+
+        {/* Setting User & Keluar Action Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <Link
+            to="/pengaturan"
+            className="btn btn-secondary btn-sm"
+            title="Buka Pengaturan Akun & Profil"
+            style={{
+              padding: '7px 8px',
+              borderRadius: '10px',
+              gap: '5px',
+              textDecoration: 'none',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Settings size={14} color="#93c5fd" /> Setting
+          </Link>
+
+          <button
+            onClick={onLogout}
+            className="btn btn-danger btn-sm"
+            title="Keluar dari Akun"
+            style={{
+              padding: '7px 8px',
+              borderRadius: '10px',
+              gap: '5px',
+              fontSize: '0.78rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <LogOut size={14} /> Keluar
+          </button>
+        </div>
       </div>
     </aside>
   );

@@ -223,25 +223,25 @@ export default function InstallModal({ isOpen, onClose }) {
               </div>
 
               <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <a
-                  href="/downloads/KostKu-Android.apk"
-                  download="KostKu.apk"
-                  className="btn btn-primary"
+                <div
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    fontSize: '0.85rem',
-                    textDecoration: 'none',
+                    fontSize: '0.82rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    borderRadius: '10px'
+                    borderRadius: '10px',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    color: '#34d399',
+                    fontWeight: 600
                   }}
                 >
-                  <Download size={16} />
-                  <span>Unduh File APK Android Langsung (.apk)</span>
-                </a>
+                  <Check size={16} />
+                  <span>PWA Resmi Aktif — Pasang Langsung ke Layar Utama HP</span>
+                </div>
               </div>
             </div>
           )}
@@ -283,26 +283,25 @@ export default function InstallModal({ isOpen, onClose }) {
               </div>
 
               <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <a
-                  href="https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary"
+                <div
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    fontSize: '0.85rem',
-                    textDecoration: 'none',
+                    fontSize: '0.82rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    borderRadius: '10px'
+                    borderRadius: '10px',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    color: '#60a5fa',
+                    fontWeight: 600
                   }}
                 >
-                  <Download size={16} />
-                  <span>Unduh Installer Windows Standalone (.exe 207MB - Google Drive)</span>
-                </a>
+                  <Check size={16} />
+                  <span>Aplikasi Web Progresif (PWA) Desktop Mandiri</span>
+                </div>
               </div>
             </div>
           )}

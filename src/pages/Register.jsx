@@ -27,31 +27,38 @@ import {
   Smartphone,
   KeyRound,
   Send,
-  X
+  X,
+  Store
 } from 'lucide-react';
 import { apiRegister, apiSendOtp, apiVerifyOtp, apiGoogleAuth, apiCheckEmail } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
+import { DEFAULT_GOOGLE_CLIENT_ID } from '../config/version';
 import AiRoomPlanSection from '../components/AiRoomPlanSection';
 import CloudflareTurnstile from '../components/CloudflareTurnstile';
+import { getCurrentPositionAsync } from '../utils/geoUtils';
 
 const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
-  // Role: 'user' (Anak Kost) | 'owner' (Pemilik Kost)
+  // Role: 'user' (Anak Kost) | 'owner' (Pemilik Kost) | 'mitra' (Mitra UMKM Sekitar)
   const [role, setRole] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      return params.get('role') === 'owner' ? 'owner' : 'user';
+      const r = params.get('role');
+      return (r === 'owner' || r === 'mitra') ? r : 'user';
     } catch (e) {
       return 'user';
     }
   });
 
-  // Sinkronisasi otomatis URL param ?role=owner atau ?role=user
+  // Sinkronisasi otomatis URL param ?role=owner | ?role=user | ?role=mitra
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const roleParam = params.get('role');
-    if (roleParam === 'owner' || roleParam === 'user') {
+    if (roleParam === 'owner' || roleParam === 'user' || roleParam === 'mitra') {
       setRole(roleParam);
     }
   }, [location.search]);
@@ -66,6 +73,7 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [agreedTerms, setAgreedTerms] = useState(false);
 
   // 4-Pilar Anti-Bot: Cloudflare Turnstile, OTP WhatsApp/Gmail, Google Sign-In, & Honeypot
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -78,6 +86,7 @@ const Register = () => {
   const [googleName, setGoogleName] = useState('');
   const [googleKostName, setGoogleKostName] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const registerGoogleBtnRef = useRef(null);
 
   // Verifikasi OTP (WhatsApp / Gmail)
   const [otpChannel, setOtpChannel] = useState('whatsapp'); // 'whatsapp' | 'email'
@@ -110,6 +119,14 @@ const Register = () => {
     mode: 'ai'
   });
 
+  // Khusus Mitra UMKM (Toko / Layanan Sekitar Kost)
+  const [storeName, setStoreName] = useState('');
+  const [storeCategory, setStoreCategory] = useState('Warung Makan & Minuman');
+  const [deliveryType, setDeliveryType] = useState('both'); // 'both' | 'delivery' | 'pickup'
+  const [deliveryFee, setDeliveryFee] = useState('2000');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [openingHours, setOpeningHours] = useState('08:00 - 22:00 WIB');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -123,22 +140,14 @@ const Register = () => {
     }
   };
 
-  const getLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLat(position.coords.latitude);
-          setLng(position.coords.longitude);
-        },
-        () => {
-          setLat(-6.2088);
-          setLng(106.8456);
-          alert('Lokasi otomatis diset ke koordinat Jakarta untuk pengujian.');
-        }
-      );
-    } else {
-      setLat(-6.2088);
-      setLng(106.8456);
+  const getLocation = async () => {
+    try {
+      const pos = await getCurrentPositionAsync();
+      setLat(pos.lat);
+      setLng(pos.lng);
+    } catch (_) {
+      setLat(-6.9826);
+      setLng(110.4091);
     }
   };
 
@@ -160,6 +169,12 @@ const Register = () => {
     setError('');
     setOtpError('');
 
+    // 0. Wajib Setujui Syarat & Ketentuan serta Kebijakan Privasi
+    if (!agreedTerms) {
+      setError('Anda wajib mencentang persetujuan Syarat & Ketentuan serta Kebijakan Privasi KostKu untuk membuat akun.');
+      return false;
+    }
+
     // 1. Jebakan Honeypot Anti-Bot (Jika terisi, otomatis ditolak karena merupakan bot)
     if (honeypot.trim() || honeypotCompany.trim()) {
       setError('Aktivitas otomatis (bot) terdeteksi dan diblokir.');
@@ -168,7 +183,7 @@ const Register = () => {
 
     // 2. Simpan & Validasi Nama Lengkap
     if (!name.trim()) {
-      setError(role === 'owner' ? 'Nama pemilik / pengelola kost wajib diisi.' : 'Nama lengkap wajib diisi.');
+      setError(role === 'owner' ? 'Nama pemilik / pengelola kost wajib diisi.' : role === 'mitra' ? 'Nama pemilik / penanggung jawab toko wajib diisi.' : 'Nama lengkap wajib diisi.');
       return false;
     }
 
@@ -199,6 +214,18 @@ const Register = () => {
       }
       if (!imageFront) {
         setError('Foto tampak depan kost wajib diunggah.');
+        return false;
+      }
+    }
+
+    // 4b. Validasi khusus Mitra UMKM - Data Toko & Layanan
+    if (role === 'mitra') {
+      if (!storeName.trim()) {
+        setError('Nama toko / usaha mitra wajib diisi.');
+        return false;
+      }
+      if (!storeAddress.trim()) {
+        setError('Alamat ruko / lokasi toko mitra wajib diisi.');
         return false;
       }
     }
@@ -333,6 +360,15 @@ const Register = () => {
           roomPhoto: roomPhoto || '',
           floorPlan,
           utilityScheme
+        } : {}),
+        ...(role === 'mitra' ? {
+          storeName: storeName.trim(),
+          category: storeCategory,
+          deliveryType,
+          deliveryFee: Number(deliveryFee) || 0,
+          address: storeAddress.trim(),
+          openingHours: openingHours.trim(),
+          kostUid: 'KOST-OJN64X'
         } : {})
       };
 
@@ -341,6 +377,8 @@ const Register = () => {
       setMessage(
         role === 'owner' 
           ? 'Registrasi Pemilik Kost Berhasil! Kost aktif dan siap menerima calon penghuni.' 
+          : role === 'mitra'
+          ? 'Registrasi Mitra UMKM Berhasil! Akun toko Anda aktif dan siap kelola menu & pesanan.'
           : 'Pendaftaran Berhasil! Akun siap digunakan untuk mencari kost impian.'
       );
       setTimeout(() => navigate('/login'), 2200);
@@ -351,7 +389,140 @@ const Register = () => {
     }
   };
 
-  // Google 1-Click Quick Register / Login
+  // Handle callback when Google OAuth returns real JWT credential (from One Tap or renderButton)
+  const handleGoogleCredentialResponse = async (response) => {
+    if (!response?.credential) return;
+
+    try {
+      setGoogleLoading(true);
+      setError('');
+
+      const data = await apiGoogleAuth({
+        credential: response.credential,
+        role: role
+      });
+
+      if (data.user) {
+        localStorage.setItem('kostUser', JSON.stringify(data.user));
+        if (data.kostName) localStorage.setItem('kostName', data.kostName);
+        setShowGoogleModal(false);
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (err) {
+      setError(err.message || 'Gagal mendaftar dengan akun Google resmi.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // Trigger Native Google Popup (Direct accounts.google.com UI)
+  const triggerGoogleOAuthPopup = (targetRole = role) => {
+    setError('');
+    const activeCid = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+
+    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2 && activeCid) {
+      try {
+        setGoogleLoading(true);
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: activeCid,
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse.error) {
+              console.error('Google OAuth error:', tokenResponse);
+              setGoogleLoading(false);
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                setError(`Google Sign-In: ${tokenResponse.error_description || tokenResponse.error}`);
+              }
+              return;
+            }
+
+            try {
+              const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+              });
+              if (!userRes.ok) throw new Error('Gagal memverifikasi profil Google');
+              const profile = await userRes.json();
+
+              const data = await apiGoogleAuth({
+                email: profile.email,
+                name: profile.name,
+                picture: profile.picture,
+                googleId: profile.sub,
+                role: targetRole || role,
+                kostName: (targetRole || role) === 'owner' ? `Kost ${profile.name}` : undefined
+              });
+
+              if (data.user) {
+                localStorage.setItem('kostUser', JSON.stringify(data.user));
+                if (data.kostName) localStorage.setItem('kostName', data.kostName);
+                setShowGoogleModal(false);
+                navigate('/dashboard', { replace: true });
+              }
+            } catch (err) {
+              setError(err.message || 'Gagal mendaftar dengan akun Google.');
+            } finally {
+              setGoogleLoading(false);
+            }
+          }
+        });
+
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn('Gagal memicu Google OAuth2 Popup, fallback ke modal:', err);
+        setGoogleLoading(false);
+      }
+    }
+
+    setShowGoogleModal(true);
+  };
+
+  // Initialize official Google Identity Services (GSI) on Register page
+  useEffect(() => {
+    const activeCid = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+    if (!activeCid || typeof window === 'undefined') return;
+
+    const setupGsi = () => {
+      if (!window.google?.accounts?.id) return;
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: activeCid,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+
+        if (registerGoogleBtnRef.current) {
+          registerGoogleBtnRef.current.innerHTML = '';
+          window.google.accounts.id.renderButton(registerGoogleBtnRef.current, {
+            theme: 'outline',
+            size: 'large',
+            text: 'signup_with',
+            shape: 'pill',
+            width: 320,
+            logo_alignment: 'left'
+          });
+        }
+      } catch (err) {
+        console.warn('Inisialisasi Google Identity Register gagal:', err);
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      setupGsi();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(interval);
+          setupGsi();
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [role, showGoogleModal]);
+
+  // Google 1-Click Quick Register / Login (In-App Fallback)
   const handleGoogleQuickSignup = async (e) => {
     if (e) e.preventDefault();
     if (!googleEmail || !googleEmail.includes('@')) {
@@ -385,6 +556,7 @@ const Register = () => {
 
   // Kondisi Tombol Lanjut ke OTP Aktif
   const isSubmitDisabled = () => {
+    if (!agreedTerms) return true;
     if (otpSending) return true;
     if (!name.trim()) return true;
     if (password.length < 6 || password !== confirmPassword) return true;
@@ -392,6 +564,9 @@ const Register = () => {
     if (otpChannel === 'email' && (!email || !email.includes('@'))) return true;
     if (role === 'owner') {
       if (!kostName.trim() || !address.trim() || !email.trim() || !imageFront) return true;
+    }
+    if (role === 'mitra') {
+      if (!storeName.trim() || !storeAddress.trim()) return true;
     }
     return false;
   };
@@ -408,24 +583,82 @@ const Register = () => {
       <div className="card glass-panel animate-fade-in" style={{
         maxWidth: '560px',
         width: '100%',
-        padding: '2.5rem 2rem',
+        padding: '2rem 2rem 2.5rem',
         border: '1px solid var(--border-light)',
         boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
         borderRadius: '24px'
       }}>
         
+        {/* Top Back & Cancel Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+              color: isLight ? '#1e293b' : '#cbd5e1',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.color = isLight ? '#0f172a' : '#ffffff';
+              e.currentTarget.style.background = isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)';
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.color = isLight ? '#1e293b' : '#cbd5e1';
+              e.currentTarget.style.background = isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)';
+            }}
+            title="Kembali ke halaman sebelumnya"
+          >
+            <ArrowLeft size={15} />
+            <span>Kembali</span>
+          </button>
+
+          <Link
+            to="/"
+            style={{
+              fontSize: '0.8rem',
+              color: isLight ? '#64748b' : '#94a3b8',
+              textDecoration: 'none',
+              fontWeight: 500,
+              transition: 'color 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.color = isLight ? '#0f172a' : '#f1f5f9'}
+            onMouseOut={e => e.currentTarget.style.color = isLight ? '#64748b' : '#94a3b8'}
+            title="Batalkan registrasi dan kembali ke beranda"
+          >
+            Batal
+          </Link>
+        </div>
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{
-            display: 'inline-flex',
-            background: role === 'owner' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'var(--accent-gradient)',
-            padding: '14px',
-            borderRadius: '20px',
-            marginBottom: '1rem',
-            boxShadow: 'var(--shadow-glow)'
-          }}>
-            {role === 'owner' ? <Building size={36} color="white" /> : <ShieldCheck size={36} color="white" />}
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="Logo KostKu" 
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 20,
+              objectFit: 'contain',
+              marginBottom: '1rem',
+              boxShadow: 'var(--shadow-glow)'
+            }} 
+          />
           <h1 style={{ margin: '0 0 6px 0', fontSize: '1.8rem', fontWeight: 800 }}>
             {role === 'owner' ? 'Pasang & Kelola Kost' : 'Daftar Akun KostKu'}
           </h1>
@@ -452,15 +685,19 @@ const Register = () => {
           color: 'var(--text-secondary)',
           lineHeight: 1.5
         }}>
-          <Sparkles size={18} color={role === 'owner' ? '#34d399' : '#60a5fa'} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <Sparkles size={18} color={role === 'owner' ? '#34d399' : role === 'mitra' ? '#f59e0b' : '#60a5fa'} style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
             {role === 'owner' ? (
               <>
-                <strong style={{ color: '#6ee7b7' }}>⚡ Registrasi Cepat & Praktis:</strong> Cukup isi nama, nomor kontak WhatsApp, dan informasi kost Anda untuk langsung menayangkan kamar.
+                <strong style={{ color: isLight ? '#047857' : '#6ee7b7' }}>⚡ Registrasi Cepat & Praktis:</strong> Cukup isi nama, nomor kontak WhatsApp, dan informasi kost Anda untuk langsung menayangkan kamar.
+              </>
+            ) : role === 'mitra' ? (
+              <>
+                <strong style={{ color: isLight ? '#b45309' : '#fcd34d' }}>🏪 Portal Khusus Mitra UMKM:</strong> Daftarkan toko/warung/laundry Anda, setting menu & harga, tentukan opsi pengantaran (antar ke kamar vs ambil di ruko), serta kelola pesanan masuk.
               </>
             ) : (
               <>
-                <strong style={{ color: '#93c5fd' }}>🛡️ Proteksi Keamanan 4-Pilar Anti-Bot:</strong> Cloudflare Turnstile (tanpa captcha gambar ribet), Verifikasi OTP WhatsApp, Google Sign-In, & Honeypot Trap menjamin keamanan akun nyata.
+                <strong style={{ color: isLight ? '#1d4ed8' : '#93c5fd' }}>🛡️ Proteksi Keamanan 4-Pilar Anti-Bot:</strong> Cloudflare Turnstile (tanpa captcha gambar ribet), Verifikasi OTP WhatsApp, Google Sign-In, & Honeypot Trap menjamin keamanan akun nyata.
               </>
             )}
           </div>
@@ -471,103 +708,100 @@ const Register = () => {
           <>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
               gap: '8px',
-              background: 'rgba(255, 255, 255, 0.04)',
+              background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.04)',
               padding: '4px',
               borderRadius: '14px',
               marginBottom: '1.5rem',
-              border: '1px solid var(--border-color)'
+              border: isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)'
             }}>
               <button
                 type="button"
                 onClick={() => setRole('user')}
                 style={{
-                  padding: '10px 14px',
+                  padding: '10px 10px',
                   border: 'none',
                   borderRadius: '10px',
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.84rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
+                  gap: '6px',
                   background: role === 'user' ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'transparent',
-                  color: role === 'user' ? '#ffffff' : 'var(--text-secondary)',
+                  color: role === 'user' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
                   transition: 'all 0.2s'
                 }}
               >
-                <User size={16} /> Pencari / Anak Kost
+                <User size={15} /> Anak Kost
               </button>
               
               <button
                 type="button"
                 onClick={() => setRole('owner')}
                 style={{
-                  padding: '10px 14px',
+                  padding: '10px 10px',
                   border: 'none',
                   borderRadius: '10px',
                   fontWeight: 700,
-                  fontSize: '0.88rem',
+                  fontSize: '0.84rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
+                  gap: '6px',
                   background: role === 'owner' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
-                  color: role === 'owner' ? '#ffffff' : 'var(--text-secondary)',
+                  color: role === 'owner' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
                   transition: 'all 0.2s'
                 }}
               >
-                <Building size={16} /> Pemilik Kost (Pasang Kost)
+                <Building size={15} /> Pemilik Kost
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRole('mitra')}
+                style={{
+                  padding: '10px 10px',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  background: role === 'mitra' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'transparent',
+                  color: role === 'mitra' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Store size={15} /> Mitra / Toko
               </button>
             </div>
 
             {/* ═════════════════════════════════════════════════════
-                PILIHAN 1: DAFTAR 1-KLIK DENGAN GOOGLE (INSTAN)
+                PILIHAN 1: DAFTAR RESMI DENGAN GOOGLE (100% REAL)
                 ═════════════════════════════════════════════════════ */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <button 
-                type="button"
-                onClick={() => {
-                  setError('');
-                  setShowGoogleModal(true);
-                }}
+            <div style={{ marginBottom: '1.5rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {/* Official Google GSI Rendered Button (Single Real Button) */}
+              <div 
+                ref={registerGoogleBtnRef} 
                 style={{ 
-                  width: '100%',
-                  padding: '12px 18px',
-                  background: '#ffffff',
-                  color: '#3c4043',
-                  borderRadius: '14px',
-                  border: '1px solid #dadce0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f8fafd';
-                  e.currentTarget.style.borderColor = '#4285F4';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                  e.currentTarget.style.borderColor = '#dadce0';
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span>Daftar Cepat 1-Klik dengan Google</span>
-              </button>
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  width: '100%', 
+                  minHeight: '44px'
+                }} 
+              />
+              <div style={{ textAlign: 'center', marginTop: '6px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#60a5fa' }}>
+                  ✦ Registrasi resmi Google: 1-klik terverifikasi otomatis
+                </span>
+              </div>
             </div>
 
             {/* Separator */}
@@ -979,6 +1213,148 @@ const Register = () => {
             )}
 
             {/* ═════════════════════════════════════════════════════
+                SECTION 2 (KHUSUS MITRA): DATA TOKO, MENU & LAYANAN ANTAR
+                ═════════════════════════════════════════════════════ */}
+            {role === 'mitra' && (
+              <div>
+                <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Store size={16} color="#f59e0b" /> 2. Informasi Toko & Layanan Mitra
+                </h4>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Nama Toko / Usaha UMKM <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={storeName} 
+                      onChange={e => setStoreName(e.target.value)} 
+                      placeholder="Contoh: Warung Makan Bu Siti / Melati Laundry" 
+                      className="input-field" 
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Kategori Usaha <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <select
+                        value={storeCategory}
+                        onChange={e => setStoreCategory(e.target.value)}
+                        className="input-field"
+                        style={{ width: '100%', padding: '9px 10px', fontSize: '0.82rem' }}
+                      >
+                        <option value="Warung Makan & Minuman">🍱 Warung Makan & Minuman</option>
+                        <option value="Laundry & Cuci Kiloan">🧺 Laundry & Cuci Kiloan</option>
+                        <option value="Depot Air Galon & Gas LPG">💧 Depot Air Galon & Gas LPG</option>
+                        <option value="Minimarket & Sembako">🏪 Minimarket & Sembako</option>
+                        <option value="Fotokopi & Percetakan ATK">🖨️ Fotokopi & ATK</option>
+                        <option value="Servis Elektronik & AC">❄️ Servis AC & Elektronik</option>
+                        <option value="Lainnya">✨ Layanan Sekitar Lainnya</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Jam Operasional
+                      </label>
+                      <input 
+                        type="text" 
+                        value={openingHours} 
+                        onChange={e => setOpeningHours(e.target.value)} 
+                        placeholder="Contoh: 08:00 - 22:00 WIB" 
+                        className="input-field" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Opsi Pengantaran: Bisa Diantar vs Harus Ambil di Ruko */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Opsi Pengantaran Pesanan ke Anak Kost:
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { id: 'both', label: 'Bisa Diantar Maupun Ambil di Ruko (Direkomendasikan)', desc: 'Penghuni kost bisa memilih pesanan diantar ke kamar atau ambil langsung di ruko Anda.' },
+                        { id: 'delivery', label: 'Hanya Bisa Diantar ke Kamar Kost', desc: 'Pesanan selalu diantar langsung sampai ke depan pintu kamar penghuni.' },
+                        { id: 'pickup', label: 'Harus Ambil Sendiri di Ruko / Toko', desc: 'Penghuni kost harus datang langsung ke ruko / toko Anda untuk mengambil pesanan.' }
+                      ].map(opt => (
+                        <div
+                          key={opt.id}
+                          onClick={() => setDeliveryType(opt.id)}
+                          style={{
+                            padding: '9px 12px',
+                            borderRadius: '10px',
+                            border: deliveryType === opt.id ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: deliveryType === opt.id ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px'
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="regDeliveryType"
+                            checked={deliveryType === opt.id}
+                            onChange={() => setDeliveryType(opt.id)}
+                            style={{ accentColor: '#f59e0b', marginTop: '2px' }}
+                          />
+                          <div>
+                            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: deliveryType === opt.id ? '#fbbf24' : '#f8fafc' }}>
+                              {opt.label}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                              {opt.desc}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Ongkir / Biaya Antar */}
+                  {deliveryType !== 'pickup' && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Biaya Pengantaran / Ongkir Flat (Rp):
+                      </label>
+                      <input 
+                        type="number" 
+                        value={deliveryFee} 
+                        onChange={e => setDeliveryFee(e.target.value)} 
+                        placeholder="Contoh: 2000 (Isi 0 jika gratis)" 
+                        className="input-field" 
+                      />
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                        * Tarif flat ongkir pengantaran sampai depan kamar kost (Isi 0 untuk gratis ongkir).
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Alamat Ruko / Toko */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Alamat Ruko / Lokasi Toko <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <textarea 
+                      required 
+                      rows={2}
+                      value={storeAddress} 
+                      onChange={e => setStoreAddress(e.target.value)} 
+                      placeholder="Contoh: Jl. Cisitu Lama No. 8 (Sebelah Gapura Kost Griya Asri)" 
+                      className="input-field" 
+                      style={{ resize: 'vertical' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ═════════════════════════════════════════════════════
                 PILAR 1: CLOUDFLARE TURNSTILE (INVISIBLE / SEAMLESS)
                 ═════════════════════════════════════════════════════ */}
             <CloudflareTurnstile 
@@ -986,33 +1362,117 @@ const Register = () => {
               action="register"
             />
 
-            {/* Tombol Lanjut ke OTP */}
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
-              disabled={isSubmitDisabled()} 
-              style={{ 
-                padding: '13px', 
-                fontSize: '0.96rem', 
-                marginTop: '0.5rem', 
-                borderRadius: '12px',
-                fontWeight: 700,
-                gap: '8px',
-                justifyContent: 'center',
-                width: '100%',
-                background: role === 'owner' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : undefined
+            {/* ═════════════════════════════════════════════════════
+                KLAUSUL HUKUM: PERSETUJUAN SYARAT & KETENTUAN (CLICKWRAP)
+                ═════════════════════════════════════════════════════ */}
+            <div 
+              style={{
+                marginTop: '1.25rem',
+                marginBottom: '1rem',
+                padding: '12px 14px',
+                borderRadius: '14px',
+                background: agreedTerms ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                border: agreedTerms ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: agreedTerms ? '0 0 15px rgba(16, 185, 129, 0.15)' : 'none'
               }}
+              onClick={() => setAgreedTerms(!agreedTerms)}
             >
-              {otpSending ? (
-                <>
-                  <RefreshCw size={16} className="animate-spin" /> Mengirim OTP ke {otpChannel === 'whatsapp' ? 'WhatsApp' : 'Gmail'}...
-                </>
-              ) : (
-                <>
-                  Lanjut ke Verifikasi OTP ({otpChannel === 'whatsapp' ? 'WhatsApp' : 'Gmail'}) <ArrowRight size={16}/>
-                </>
-              )}
-            </button>
+              <input 
+                type="checkbox" 
+                id="agreeTermsCheckbox"
+                checked={agreedTerms}
+                onChange={(e) => setAgreedTerms(e.target.checked)}
+                style={{
+                  marginTop: '3px',
+                  width: '18px',
+                  height: '18px',
+                  accentColor: '#2563eb',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              />
+              <label 
+                htmlFor="agreeTermsCheckbox" 
+                style={{ 
+                  fontSize: '0.8rem', 
+                  color: '#cbd5e1', 
+                  lineHeight: 1.55, 
+                  cursor: 'pointer', 
+                  margin: 0,
+                  userSelect: 'none'
+                }}
+              >
+                Saya menyatakan telah membaca, memahami, dan menyetujui seluruh{' '}
+                <Link 
+                  to="/syarat-ketentuan" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}
+                >
+                  Syarat & Ketentuan Layanan
+                </Link>
+                {' '}serta{' '}
+                <Link 
+                  to="/kebijakan-privasi" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: '#60a5fa', fontWeight: 800, textDecoration: 'underline' }}
+                >
+                  Kebijakan Privasi
+                </Link>
+                {' '}KostKu, termasuk batasan tanggung jawab hukum platform dan pelepasan tuntutan. <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+            </div>
+
+            {/* Tombol Aksi: Batal / Lanjut ke OTP */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    navigate(-1);
+                  } else {
+                    navigate('/');
+                  }
+                }}
+                className="btn btn-secondary"
+                style={{ flex: 1, padding: '13px', fontSize: '0.92rem', borderRadius: '12px' }}
+              >
+                Batal
+              </button>
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={isSubmitDisabled()} 
+                style={{ 
+                  flex: 2,
+                  padding: '13px', 
+                  fontSize: '0.95rem', 
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  gap: '8px',
+                  justifyContent: 'center',
+                  background: role === 'owner' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : role === 'mitra' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : undefined
+                }}
+              >
+                {otpSending ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" /> Mengirim OTP...
+                  </>
+                ) : (
+                  <>
+                    Lanjut ke OTP ({otpChannel === 'whatsapp' ? 'WA' : 'Gmail'}) <ArrowRight size={16}/>
+                  </>
+                )}
+              </button>
+            </div>
           </form>
         </>
       )}
@@ -1319,6 +1779,30 @@ const Register = () => {
                 )}
               </button>
             </div>
+
+            {/* Cancel Entire Registration Escape Hatch */}
+            <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Batalkan proses pendaftaran akun? Anda akan kembali ke beranda.')) {
+                    navigate('/');
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+                onMouseOver={e => e.currentTarget.style.color = '#cbd5e1'}
+                onMouseOut={e => e.currentTarget.style.color = '#94a3b8'}
+              >
+                Batalkan Pendaftaran & Kembali ke Beranda
+              </button>
+            </div>
           </form>
         </div>
       )}
@@ -1371,125 +1855,37 @@ const Register = () => {
         {/* Footer Link */}
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           Sudah memiliki akun terdaftar?{' '}
-          <Link to="/login" style={{ color: '#60a5fa', fontWeight: 700, textDecoration: 'none' }}>
+          <Link to="/login" style={{ color: isLight ? '#2563eb' : '#60a5fa', fontWeight: 700, textDecoration: 'none' }}>
             Masuk di sini
           </Link>
         </div>
 
-      </div>
-
-      {/* ═════════════════════════════════════════════════════
-          MODAL: DAFTAR CEPAT 1-KLIK DENGAN GOOGLE
-          ═════════════════════════════════════════════════════ */}
-      {showGoogleModal && (
+        {/* Legal Footer Links */}
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(6px)',
+          marginTop: '1.25rem',
+          textAlign: 'center',
+          fontSize: '0.78rem',
+          color: isLight ? '#475569' : '#64748b',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem'
+          flexWrap: 'wrap',
+          gap: '12px'
         }}>
-          <div className="card glass-panel animate-scale-up" style={{
-            maxWidth: '460px',
-            width: '100%',
-            padding: '2rem',
-            borderRadius: '20px',
-            border: '1px solid var(--border-light)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Daftar Akun Google</h3>
-              </div>
-              <button 
-                onClick={() => setShowGoogleModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-              Masukkan alamat email Google Anda. Akun Anda akan dibuat dan diverifikasi instan tanpa perlu password atau foto KTP.
-            </p>
-
-            <form onSubmit={handleGoogleQuickSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Email Google / Gmail <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input 
-                  type="email" 
-                  required
-                  value={googleEmail}
-                  onChange={e => setGoogleEmail(e.target.value)}
-                  placeholder="nama.anda@gmail.com"
-                  className="input-field"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Nama Lengkap Anda
-                </label>
-                <input 
-                  type="text" 
-                  value={googleName}
-                  onChange={e => setGoogleName(e.target.value)}
-                  placeholder="Misal: Budi Santoso"
-                  className="input-field"
-                />
-              </div>
-
-              {role === 'owner' && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    Nama Kost Anda (Opsional)
-                  </label>
-                  <input 
-                    type="text" 
-                    value={googleKostName}
-                    onChange={e => setGoogleKostName(e.target.value)}
-                    placeholder="Misal: Kost Griya Sukun"
-                    className="input-field"
-                  />
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '8px', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowGoogleModal(false)}
-                  className="btn btn-secondary"
-                  style={{ flex: 1 }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={googleLoading || !googleEmail.includes('@')}
-                  className="btn btn-primary"
-                  style={{ flex: 1.5, gap: '6px' }}
-                >
-                  {googleLoading ? <RefreshCw size={15} className="animate-spin" /> : <Check size={15} />}
-                  <span>Daftar Sekarang</span>
-                </button>
-              </div>
-            </form>
-          </div>
+          <Link to="/syarat-ketentuan" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
+            📜 Syarat & Ketentuan
+          </Link>
+          <span>•</span>
+          <Link to="/kebijakan-privasi" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
+            🛡️ Kebijakan Privasi
+          </Link>
+          <span>•</span>
+          <Link to="/tentang-kami" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
+            🏢 Tentang Kami
+          </Link>
         </div>
-      )}
 
+      </div>
     </div>
   );
 };

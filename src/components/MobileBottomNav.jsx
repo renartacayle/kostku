@@ -5,8 +5,15 @@ import { Home, Search, Building, Settings, User } from 'lucide-react';
 export default function MobileBottomNav({ user }) {
   const location = useLocation();
 
-  // If on login or register, hide bottom nav to keep authentication clean
-  if (location.pathname === '/login' || location.pathname === '/register') {
+  // If on login, register, checkout, or kost detail page, hide bottom nav
+  // (KostDetail has its own dedicated mobile bottom booking bar; Checkout has its own summary bar)
+  if (
+    location.pathname === '/login' || 
+    location.pathname === '/register' || 
+    location.pathname === '/checkout' || 
+    location.pathname === '/bayar' || 
+    location.pathname.startsWith('/kost/')
+  ) {
     return null;
   }
 
@@ -31,20 +38,20 @@ export default function MobileBottomNav({ user }) {
       path: '/search',
       label: 'Cari Kost',
       icon: <Search size={20} />,
-      isActive: location.pathname === '/search' || location.pathname.startsWith('/kost/')
+      isActive: location.pathname === '/search'
     },
     {
       id: 'kost',
-      path: user ? '/dashboard' : '/login',
-      label: isOwner ? 'My Kost' : isStaff ? 'Tugas Staf' : 'Kost Saya',
+      path: user?.role === 'mitra' ? '/mitra' : (user ? '/dashboard' : '/login'),
+      label: user?.role === 'mitra' ? 'Toko Saya' : (isOwner ? 'My Kost' : isStaff ? 'Tugas Staf' : 'Kost Saya'),
       icon: <Building size={20} />,
-      badge: isOwner ? 'Owner' : isStaff ? 'Staf' : null,
-      isActive: ['/dashboard', '/penghuni', '/keuangan', '/laporan', '/komplain'].includes(location.pathname)
+      badge: user?.role === 'mitra' ? 'Mitra' : (isOwner ? 'Owner' : isStaff ? 'Staf' : null),
+      isActive: ['/dashboard', '/penghuni', '/keuangan', '/laporan', '/komplain', '/karyawan', '/mitra'].includes(location.pathname)
     },
     {
       id: 'settings',
       path: user ? '/pengaturan' : '/login',
-      label: 'Pengaturan',
+      label: 'Setting',
       icon: user?.picture ? (
         <img 
           src={user.picture} 
@@ -54,7 +61,7 @@ export default function MobileBottomNav({ user }) {
       ) : (
         <Settings size={20} />
       ),
-      isActive: location.pathname === '/pengaturan'
+      isActive: location.pathname === '/pengaturan' || location.pathname === '/setting'
     }
   ];
 
@@ -64,14 +71,14 @@ export default function MobileBottomNav({ user }) {
       bottom: 0,
       left: 0,
       right: 0,
-      zIndex: 9000,
-      background: 'rgba(10, 15, 29, 0.95)',
+      zIndex: 800,
+      background: 'var(--bg-glass)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+      borderTop: '1px solid var(--border-color)',
       paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
       paddingTop: '6px',
-      boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.6)'
+      boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.15)'
     }}>
       <div style={{
         display: 'flex',
@@ -96,7 +103,7 @@ export default function MobileBottomNav({ user }) {
                 padding: '6px 14px',
                 borderRadius: '16px',
                 textDecoration: 'none',
-                color: active ? '#ffffff' : '#94a3b8',
+                color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
                 minWidth: '64px',

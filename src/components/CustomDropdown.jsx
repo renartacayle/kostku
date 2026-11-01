@@ -59,16 +59,17 @@ export default function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        className="custom-dropdown-trigger"
         style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           padding: '10px 14px',
-          background: isOpen ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.75)',
+          background: isOpen ? 'var(--bg-card-hover)' : 'var(--bg-card)',
           borderRadius: '16px',
-          border: isOpen ? '1px solid #3B82F6' : '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: isOpen ? '0 0 0 3px rgba(59, 130, 246, 0.25), 0 8px 20px rgba(0,0,0,0.4)' : 'none',
+          border: isOpen ? '1px solid #3B82F6' : '1px solid var(--border-color)',
+          boxShadow: isOpen ? '0 0 0 3px rgba(59, 130, 246, 0.25), var(--shadow-md)' : 'none',
           cursor: 'pointer',
           textAlign: 'left',
           transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)',
@@ -77,14 +78,14 @@ export default function CustomDropdown({
         }}
         onMouseEnter={(e) => {
           if (!isOpen) {
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-            e.currentTarget.style.background = 'rgba(30, 41, 59, 0.85)';
+            e.currentTarget.style.borderColor = 'var(--border-light)';
+            e.currentTarget.style.background = 'var(--bg-card-hover)';
           }
         }}
         onMouseLeave={(e) => {
           if (!isOpen) {
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-            e.currentTarget.style.background = 'rgba(15, 23, 42, 0.75)';
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+            e.currentTarget.style.background = 'var(--bg-card)';
           }
         }}
       >
@@ -118,7 +119,7 @@ export default function CustomDropdown({
             </span>
           )}
           <div style={{
-            color: '#FFFFFF',
+            color: 'var(--text-primary)',
             fontSize: '0.9rem',
             fontWeight: 700,
             whiteSpace: 'nowrap',
@@ -135,7 +136,7 @@ export default function CustomDropdown({
 
         {/* Trailing Chevron Icon with animated rotation */}
         <div style={{
-          color: isOpen ? '#60A5FA' : '#94A3B8',
+          color: isOpen ? '#60A5FA' : 'var(--text-muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -149,22 +150,25 @@ export default function CustomDropdown({
 
       {/* ── Floating Popover Menu ── */}
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          left: 0,
-          right: 0,
-          background: '#1E293B',
-          borderRadius: '16px',
-          border: '1px solid rgba(59, 130, 246, 0.35)',
-          boxShadow: '0 16px 36px rgba(0, 0, 0, 0.7), 0 0 20px rgba(37, 99, 235, 0.2)',
-          zIndex: 999,
-          padding: '6px',
-          overflow: 'hidden',
-          animation: 'dropdownFadeIn 0.15s cubic-bezier(0.2, 0, 0, 1)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)'
-        }}>
+        <div 
+          className="custom-dropdown-popover"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            right: 0,
+            background: 'var(--bg-card)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 999,
+            padding: '6px',
+            overflow: 'hidden',
+            animation: 'dropdownFadeIn 0.15s cubic-bezier(0.2, 0, 0, 1)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)'
+          }}
+        >
           <div style={{
             maxHeight: '260px',
             overflowY: 'auto',
@@ -188,8 +192,8 @@ export default function CustomDropdown({
                     padding: '9px 12px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: isSelected ? 'rgba(37, 99, 235, 0.2)' : 'transparent',
-                    color: isSelected ? '#60A5FA' : '#E2E8F0',
+                    background: isSelected ? 'rgba(37, 99, 235, 0.15)' : 'transparent',
+                    color: isSelected ? '#2563EB' : 'var(--text-primary)',
                     fontSize: '0.85rem',
                     fontWeight: isSelected ? 800 : 600,
                     cursor: 'pointer',
@@ -201,14 +205,14 @@ export default function CustomDropdown({
                   }}
                   onMouseEnter={(e) => {
                     if (!isSelected) {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                      e.currentTarget.style.color = '#FFFFFF';
+                      e.currentTarget.style.background = 'var(--bg-hover)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected) {
                       e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#E2E8F0';
+                      e.currentTarget.style.color = 'var(--text-primary)';
                     }
                   }}
                 >

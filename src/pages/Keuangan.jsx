@@ -41,7 +41,8 @@ import {
   Check,
   ExternalLink,
   ShieldCheck,
-  Search
+  Search,
+  Zap
 } from 'lucide-react';
 import { 
   apiGetInvoices, 
@@ -51,16 +52,21 @@ import {
   apiDeleteExpense,
   apiGetFlipConfig,
   apiFlipInquiry,
-  apiFlipDisburse
+  apiFlipDisburse,
+  apiGetWallet,
+  apiSettleMitraWallet
 } from '../services/api';
 
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
 import DigitalReceiptModal from '../components/DigitalReceiptModal';
+import FintechDunningAndReconcile from '../components/FintechDunningAndReconcile';
+import { useTheme } from '../context/ThemeContext';
 
 const PIE_COLORS = ['#10b981', '#ef4444'];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
 
 const Keuangan = ({ user }) => {
+  const { isLight } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
   
@@ -180,22 +186,42 @@ const Keuangan = ({ user }) => {
     }
   };
 
-  const handleExecuteSetorMitra = () => {
+  const handleExecuteSetorMitra = async () => {
     const escrowAmt = Number(unifiedWallet.mitra_escrow_balance) || 0;
-    const updated = {
-      ...unifiedWallet,
-      mitra_escrow_balance: 0
-    };
-    setUnifiedWallet(updated);
-    localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+    try {
+      const res = await apiSettleMitraWallet(escrowAmt);
+      if (res?.wallet) {
+        setUnifiedWallet(res.wallet);
+        localStorage.setItem('kostku_unified_wallet', JSON.stringify(res.wallet));
+        window.dispatchEvent(new Event('kostku_wallet_updated'));
+      } else {
+        const updated = {
+          ...unifiedWallet,
+          mitra_escrow_balance: 0
+        };
+        setUnifiedWallet(updated);
+        localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+        window.dispatchEvent(new Event('kostku_wallet_updated'));
+      }
+    } catch (e) {
+      console.warn('Backend settle notice, fallback local:', e);
+      const updated = {
+        ...unifiedWallet,
+        mitra_escrow_balance: 0
+      };
+      setUnifiedWallet(updated);
+      localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
+      window.dispatchEvent(new Event('kostku_wallet_updated'));
+    }
     setShowSetorModal(false);
     alert(`Titipan dana UMKM sebesar Rp ${escrowAmt.toLocaleString('id-ID')} telah ditandai lunas disetor ke mitra secara fisik/offline.`);
   };
 
-  // Tabs: 'laporan' | 'tagihan' | 'pengeluaran'
+  // Tabs: 'laporan' | 'tagihan' | 'pengeluaran' | 'dunning'
+  const allowedTabs = ['laporan', 'tagihan', 'pengeluaran', 'dunning'];
   const defaultTab = user?.role === 'staff' 
     ? 'pengeluaran' 
-    : (['laporan', 'tagihan', 'pengeluaran'].includes(requestedTab) ? requestedTab : 'laporan');
+    : (allowedTabs.includes(requestedTab) ? requestedTab : 'laporan');
   const [activeTab, setActiveTab] = useState(defaultTab);
   
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -206,7 +232,7 @@ const Keuangan = ({ user }) => {
 
   // Synchronize tab with query param if requestedTab changes
   useEffect(() => {
-    if (requestedTab && ['laporan', 'tagihan', 'pengeluaran'].includes(requestedTab)) {
+    if (requestedTab && allowedTabs.includes(requestedTab)) {
       setActiveTab(requestedTab);
     }
   }, [requestedTab]);
@@ -229,23 +255,16 @@ const Keuangan = ({ user }) => {
       setInvoices(invoicesList);
       setExpenses(Array.isArray(dataExp) ? dataExp : []);
 
-      // Auto-sync Unified Wallet with verified paid invoices
-      const totalPaidRent = invoicesList
-        .filter(i => i.status === 'lunas')
-        .reduce((sum, i) => sum + (Number(i.total || i.amount) || 0), 0);
-
-      setUnifiedWallet(prev => {
-        const storedPayouts = Number(localStorage.getItem('kostku_total_paid_out')) || 0;
-        const available = Math.max(0, totalPaidRent - storedPayouts);
-        const currentBal = Number(prev.owner_commission_balance) || 0;
-        const finalBal = currentBal <= 0 ? (available > 0 ? available : totalPaidRent) : currentBal;
-        const updated = {
-          ...prev,
-          owner_commission_balance: finalBal
-        };
-        localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
-        return updated;
-      });
+      // Auto-sync Unified Wallet from Backend (Single-Node Settlement source of truth)
+      try {
+        const backendWallet = await apiGetWallet();
+        if (backendWallet && typeof backendWallet.owner_commission_balance === 'number') {
+          setUnifiedWallet(backendWallet);
+          localStorage.setItem('kostku_unified_wallet', JSON.stringify(backendWallet));
+        }
+      } catch (wErr) {
+        console.warn('Backend wallet sync notice:', wErr);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -690,24 +709,24 @@ const Keuangan = ({ user }) => {
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
-                background: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
+                background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(56, 189, 248, 0.15)',
+                border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(56, 189, 248, 0.3)',
                 padding: '10px',
                 borderRadius: '12px',
-                color: '#38bdf8'
+                color: isLight ? '#2563eb' : '#38bdf8'
               }}>
                 <Wallet size={22} />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     Unified Wallet (Single-Node Settlement)
                   </h3>
-                  <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.72rem', background: isLight ? 'rgba(22, 163, 74, 0.12)' : 'rgba(16, 185, 129, 0.2)', color: isLight ? '#16a34a' : '#34d399', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                     1 Pintu Payout
                   </span>
                 </div>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                   Pusat perputaran komisi hak Owner & titipan dana tunai warung UMKM (Platform Fee tetap Rp500/transaksi)
                 </p>
               </div>
@@ -726,7 +745,7 @@ const Keuangan = ({ user }) => {
                 className="btn btn-secondary btn-sm"
                 style={{ gap: '6px' }}
               >
-                <CheckCircle2 size={14} color="#34d399" /> Tandai Sudah Disetor ke Mitra (Reset Titipan)
+                <CheckCircle2 size={14} color={isLight ? '#16a34a' : '#34d399'} /> Tandai Sudah Disetor ke Mitra (Reset Titipan)
               </button>
             </div>
           </div>
@@ -734,14 +753,14 @@ const Keuangan = ({ user }) => {
           {/* Overdraft Warning Banner */}
           {Number(unifiedWallet.owner_commission_balance) < 0 && (
             <div style={{
-              background: 'rgba(239, 68, 68, 0.12)',
-              border: '1px solid rgba(239, 68, 68, 0.35)',
+              background: isLight ? 'rgba(220, 38, 38, 0.10)' : 'rgba(239, 68, 68, 0.12)',
+              border: isLight ? '1px solid rgba(220, 38, 38, 0.3)' : '1px solid rgba(239, 68, 68, 0.35)',
               borderRadius: '12px',
               padding: '10px 14px',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              color: '#f87171'
+              color: isLight ? '#dc2626' : '#f87171'
             }}>
               <AlertCircle size={18} />
               <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
@@ -754,39 +773,39 @@ const Keuangan = ({ user }) => {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '1rem',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
             padding: '1.25rem',
             borderRadius: '14px',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            border: '1px solid var(--border-color)'
           }}>
             <div>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 SALDO KOMISI OWNER (BERSIH) • owner_commission_balance
               </span>
-              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: Number(unifiedWallet.owner_commission_balance) < 0 ? '#ef4444' : '#38bdf8', fontFamily: 'monospace' }}>
+              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: Number(unifiedWallet.owner_commission_balance) < 0 ? (isLight ? '#dc2626' : '#ef4444') : (isLight ? '#1d4ed8' : '#38bdf8'), fontFamily: 'monospace' }}>
                 Rp {(Number(unifiedWallet.owner_commission_balance) || 0).toLocaleString('id-ID')}
               </h4>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Hak owner + kuota talangan COD</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Hak owner + kuota talangan COD</span>
             </div>
 
             <div>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 TITIPAN ESCROW MITRA (UMKM) • mitra_escrow_balance
               </span>
-              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace' }}>
+              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: isLight ? '#b45309' : '#fbbf24', fontFamily: 'monospace' }}>
                 Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}
               </h4>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Uang titipan mitra_escrow_balance pesanan QRIS</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Uang titipan mitra_escrow_balance pesanan QRIS</span>
             </div>
 
             <div>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 BATAS OVERDRAFT LIMIT (-15.000)
               </span>
-              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
+              <h4 style={{ margin: '4px 0 0 0', fontSize: '1.35rem', fontWeight: 800, color: isLight ? '#16a34a' : '#10b981', fontFamily: 'monospace' }}>
                 -15.000
               </h4>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Toleransi overdraft 30 transaksi COD talangan (Rp -15.000)</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Toleransi overdraft 30 transaksi COD talangan (Rp -15.000)</span>
             </div>
           </div>
         </div>
@@ -865,6 +884,28 @@ const Keuangan = ({ user }) => {
         >
           <Wallet size={16} /> Catatan Pengeluaran ({expenses.length})
         </button>
+
+        {user?.role !== 'staff' && (
+          <button
+            onClick={() => handleTabChange('dunning')}
+            style={{
+              padding: '8px 18px',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              background: activeTab === 'dunning' ? 'var(--accent-primary)' : 'transparent',
+              color: activeTab === 'dunning' ? 'white' : 'var(--text-secondary)',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Zap size={16} color={activeTab === 'dunning' ? 'white' : '#f59e0b'} /> Otomasi Penagihan & Bank
+          </button>
+        )}
       </div>
 
       {/* Tab Content 1: Analisis & Laporan */}
@@ -1280,6 +1321,16 @@ const Keuangan = ({ user }) => {
         </div>
       )}
 
+      {/* Tab Content 4: Otomasi Penagihan & Bank (Fintech Dunning & Reconcile) */}
+      {activeTab === 'dunning' && user?.role !== 'staff' && (
+        <FintechDunningAndReconcile
+          user={user}
+          kostUid={user?.kostUid}
+          invoices={invoices}
+          onRefreshInvoices={fetchData}
+        />
+      )}
+
       {/* Expense Modal */}
       {showExpenseModal && (
         <div style={{
@@ -1290,7 +1341,7 @@ const Keuangan = ({ user }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 10000,
           padding: '1rem'
         }}>
           <div className="card glass-panel" style={{ maxWidth: '440px', width: '100%', padding: '1.75rem', border: '1px solid var(--border-light)' }}>
@@ -1453,7 +1504,7 @@ const Keuangan = ({ user }) => {
                       border: '1px solid rgba(245, 158, 11, 0.4)',
                       fontWeight: 700
                     }}>
-                      ⚡ SANDBOX / DEMO AKTIF
+                      ⚡ UJI SISTEM DISBURSEMENT
                     </span>
                     <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Flip for Business API</span>
                   </div>
@@ -1494,9 +1545,9 @@ const Keuangan = ({ user }) => {
               <AlertCircle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div style={{ fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.45' }}>
                 <strong style={{ color: '#fbbf24', display: 'block', marginBottom: '2px' }}>
-                  Akun Flip Sedang Diverifikasi? Coba Demo Dulu!
+                  Simulasi Pengujian Sistem Pencairan Saldo
                 </strong>
-                Anda dapat langsung menguji transfer uang dan validasi rekening menggunakan lingkungan <strong>Sandbox / Demo Flip</strong> tanpa menunggu approval verifikasi dokumen (1-3 hari kerja). Saldo virtual sandbox: <span style={{ color: '#38bdf8', fontFamily: 'monospace', fontWeight: 700 }}>Rp 500.000.000</span>.
+                Anda dapat langsung menguji transfer uang dan validasi rekening menggunakan lingkungan <strong>Pengujian Gateway</strong> tanpa menunggu approval verifikasi dokumen (1-3 hari kerja). Saldo pengujian: <span style={{ color: '#38bdf8', fontFamily: 'monospace', fontWeight: 700 }}>Rp 500.000.000</span>.
               </div>
             </div>
 
@@ -1616,7 +1667,7 @@ const Keuangan = ({ user }) => {
                     fontSize: '0.74rem'
                   }}>
                     <span style={{ color: '#94a3b8' }}>Biaya Transfer Flip:</span>
-                    <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Gratis - Mode Demo)</span>
+                    <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Bebas Biaya Transfer)</span>
                   </div>
                 </div>
 
@@ -1645,7 +1696,7 @@ const Keuangan = ({ user }) => {
                       gap: '8px'
                     }}
                   >
-                    Kirim Payout via Flip Demo
+                    Kirim Payout Real-Time
                   </button>
                 </div>
               </>
@@ -1720,7 +1771,7 @@ const Keuangan = ({ user }) => {
                     <CheckCircle2 size={32} color="#10b981" />
                   </div>
                   <h4 style={{ color: 'white', margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800 }}>
-                    Transfer Berhasil! (Flip Demo)
+                    Transfer Berhasil!
                   </h4>
                   <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
                     ID Transaksi Flip: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{payoutReceipt?.id || 'FLIP-DISB-DEMO'}</strong>

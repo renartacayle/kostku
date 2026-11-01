@@ -1,9 +1,11 @@
-const CACHE_NAME = 'kostku-cache-v123';
+const CACHE_NAME = 'kostku-cache-v139';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/favicon.png',
+  '/favicon.ico',
+  '/favicon-48x48.png',
+  '/favicon-96x96.png',
   '/icon-192.png',
   '/icon-512.png',
   '/apple-touch-icon.png'
@@ -49,7 +51,6 @@ self.addEventListener('fetch', (event) => {
     event.request.method !== 'GET' ||
     url.pathname.startsWith('/api') ||
     url.pathname.startsWith('/downloads') ||
-    url.pathname.startsWith('/apk') ||
     url.pathname.startsWith('/download') ||
     url.pathname.startsWith('/unduh')
   ) {

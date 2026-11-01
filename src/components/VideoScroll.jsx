@@ -487,7 +487,7 @@ export default function VideoScroll() {
                     gap: '6px'
                   }}
                 >
-                  <span>Jelajahi Demo</span>
+                  <span>Jelajahi Kamar</span>
                   <ChevronDown size={16} />
                 </button>
               </div>
@@ -709,7 +709,7 @@ export default function VideoScroll() {
                 marginBottom: '1rem',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
               }}>
-                <Star size={13} fill="#facc15" /> 10 PILIHAN DEMO KOST TERVERIFIKASI
+                <Star size={13} fill="#facc15" /> KOST TERVERIFIKASI & STRATEGIS
               </div>
 
               <h2 style={{

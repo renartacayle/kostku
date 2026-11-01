@@ -10,14 +10,13 @@ import {
   ArrowRight, 
   RefreshCw,
   Sparkles,
-  CreditCard
+  Mail
 } from 'lucide-react';
 import { apiRecoverAccount } from '../services/api';
 
 const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
-  const [step, setStep] = useState(1); // 1 = Check NIK & Name, 2 = Set New Password
-  const [nik, setNik] = useState('');
-  const [name, setName] = useState('');
+  const [step, setStep] = useState(1); // 1 = Check Identifier (Email / Name), 2 = Set New Password
+  const [identifier, setIdentifier] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
@@ -28,21 +27,10 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
 
   if (!isOpen) return null;
 
-  const handleNikChange = (e) => {
-    // Only allow numbers and limit to 16 digits
-    const val = e.target.value.replace(/\D/g, '').slice(0, 16);
-    setNik(val);
-    if (error) setError('');
-  };
-
   const handleVerifyIdentity = async (e) => {
     e.preventDefault();
-    if (nik.length !== 16) {
-      setError('NIK wajib 16 digit angka sesuai KTP Anda.');
-      return;
-    }
-    if (!name.trim()) {
-      setError('Nama lengkap sesuai KTP wajib diisi.');
+    if (!identifier.trim()) {
+      setError('Email, nama akun, atau nomor WhatsApp wajib diisi.');
       return;
     }
 
@@ -51,18 +39,17 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
 
     try {
       const res = await apiRecoverAccount({
-        nik: nik.trim(),
-        name: name.trim()
+        identifier: identifier.trim()
       });
 
       if (res.success && res.matchedUser) {
         setMatchedUser(res.matchedUser);
         setStep(2);
       } else {
-        setError(res.error || 'Verifikasi NIK gagal.');
+        setError(res.error || 'Akun tidak ditemukan.');
       }
     } catch (err) {
-      setError(err.message || 'Gagal memverifikasi NIK. Periksa kembali NIK dan Nama Anda.');
+      setError(err.message || 'Akun dengan data tersebut tidak ditemukan. Periksa kembali email atau nama Anda.');
     } finally {
       setLoading(false);
     }
@@ -84,8 +71,7 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
 
     try {
       const res = await apiRecoverAccount({
-        nik: nik.trim(),
-        name: name.trim(),
+        identifier: identifier.trim(),
         newPassword
       });
 
@@ -107,8 +93,7 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
 
   const handleClose = () => {
     setStep(1);
-    setNik('');
-    setName('');
+    setIdentifier('');
     setNewPassword('');
     setConfirmPassword('');
     setMatchedUser(null);
@@ -183,12 +168,12 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
             <ShieldCheck size={28} />
           </div>
           <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.35rem', fontWeight: 800 }}>
-            {step === 1 ? 'Pulihkan Akun dengan NIK' : 'Buat Password Baru'}
+            {step === 1 ? 'Pulihkan Akun KostKu' : 'Buat Password Baru'}
           </h2>
           <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             {step === 1 
-              ? 'Verifikasi kepemilikan akun Anda secara aman menggunakan data NIK & Nama KTP resmi.'
-              : 'Identitas KTP Anda berhasil dicocokkan! Masukkan password baru untuk akun Anda.'}
+              ? 'Masukkan Email, Nama Lengkap, atau No. WhatsApp yang terdaftar untuk mencari akun Anda.'
+              : 'Akun Anda berhasil ditemukan! Masukkan password baru untuk akun Anda.'}
           </p>
         </div>
 
@@ -230,48 +215,22 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
           </div>
         )}
 
-        {/* STEP 1: Input NIK & Nama Sesuai KTP */}
+        {/* STEP 1: Input Email / Nama Akun */}
         {step === 1 && (
           <form onSubmit={handleVerifyIdentity} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Nomor Induk Kependudukan (NIK)
-                </label>
-                <span style={{ fontSize: '0.75rem', color: nik.length === 16 ? '#4ade80' : 'var(--text-muted)' }}>
-                  {nik.length} / 16 digit
-                </span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={nik}
-                  onChange={handleNikChange}
-                  placeholder="Contoh: 3301012304990001"
-                  className="input-field"
-                  style={{
-                    paddingLeft: '38px',
-                    fontFamily: 'monospace',
-                    letterSpacing: '1px',
-                    fontSize: '0.95rem'
-                  }}
-                  required
-                />
-                <CreditCard size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-              </div>
-            </div>
-
-            <div>
               <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
-                Nama Lengkap Sesuai KTP
+                Email atau Nama Lengkap Akun
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Masukkan nama persis seperti di KTP"
+                  value={identifier}
+                  onChange={e => {
+                    setIdentifier(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="nama@email.com atau nama akun Anda"
                   className="input-field"
                   style={{ paddingLeft: '38px' }}
                   required
@@ -293,13 +252,13 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
             }}>
               <Sparkles size={16} color="#60a5fa" style={{ flexShrink: 0, marginTop: '2px' }} />
               <span>
-                <strong>Keamanan 1 KTP = 1 Akun:</strong> Sistem hanya memulihkan akun yang terdaftar dengan NIK dan Nama yang cocok persis.
+                <strong>Pemulihan Cepat & Aman:</strong> Sistem akan mencocokkan akun Anda berdasarkan email, nama akun, atau kontak terdaftar tanpa birokrasi.
               </span>
             </div>
 
             <button
               type="submit"
-              disabled={loading || nik.length !== 16 || !name.trim()}
+              disabled={loading || !identifier.trim()}
               className="btn btn-primary"
               style={{
                 width: '100%',
@@ -314,11 +273,11 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
             >
               {loading ? (
                 <>
-                  <RefreshCw size={16} className="animate-spin" /> Memeriksa Data KTP...
+                  <RefreshCw size={16} className="animate-spin" /> Memeriksa Akun...
                 </>
               ) : (
                 <>
-                  Verifikasi Identitas NIK <ArrowRight size={16} />
+                  Cari Akun Saya <ArrowRight size={16} />
                 </>
               )}
             </button>
@@ -360,7 +319,7 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
                   </span>
                 </div>
                 <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Email Terdaftar: <strong>{matchedUser.email}</strong>
+                  Email: <strong>{matchedUser.email || '-'}</strong>
                 </p>
               </div>
             </div>
@@ -440,7 +399,7 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
                 textAlign: 'center'
               }}
             >
-              ← Kembali ke input NIK
+              ← Kembali ke pencarian akun
             </button>
           </form>
         )}

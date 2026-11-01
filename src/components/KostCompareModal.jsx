@@ -1,8 +1,13 @@
 import React from 'react';
 import { X, Check, Star, ShieldCheck, MapPin, ArrowRight, Bed, DollarSign, Ruler } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
+import { getValidBuildingImages, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
 
 export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   if (!isOpen || kosts.length === 0) return null;
 
   const formatRupiah = (val) => new Intl.NumberFormat('id-ID', {
@@ -21,9 +26,9 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0, 0, 0, 0.85)',
+      background: 'rgba(0, 0, 0, 0.75)',
       backdropFilter: 'blur(10px)',
-      zIndex: 2000,
+      zIndex: 10000,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -31,15 +36,17 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
       animation: 'fadeIn 0.2s ease-out'
     }}>
       <div style={{
-        background: '#0f172a',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        background: isLight ? '#ffffff' : '#0f172a',
+        border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(59, 130, 246, 0.3)',
         borderRadius: '24px',
         maxWidth: '960px',
         width: '100%',
         maxHeight: '90vh',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(59, 130, 246, 0.2)',
+        boxShadow: isLight
+          ? '0 25px 60px rgba(0, 0, 0, 0.15)'
+          : '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(59, 130, 246, 0.2)',
         overflow: 'hidden'
       }}>
         {/* Modal Header */}
@@ -48,13 +55,13 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'white' }}>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
               ⚖️ Bandingkan Pilihan Kost ({kosts.length} Kost)
             </h3>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
               Bandingkan harga, fasilitas, dan tata ruang untuk menentukan pilihan terbaik
             </span>
           </div>
@@ -62,7 +69,7 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
+              background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
               border: 'none',
               borderRadius: '50%',
               width: '34px',
@@ -70,7 +77,7 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
               cursor: 'pointer'
             }}
           >
@@ -87,21 +94,29 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
           }}>
             {kosts.map((k) => {
               const minPrice = getMinPrice(k);
-              const mainImg = k.images && k.images.length > 0 ? k.images[0] : null;
+              const mainImg = getValidBuildingImages(k.images, DEFAULT_BUILDING_PHOTO)[0];
 
               return (
                 <div key={k.uid} style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: '16px',
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column'
                 }}>
                   {/* Photo Thumbnail */}
-                  <div style={{ position: 'relative', height: '140px', background: '#1e293b' }}>
+                  <div style={{ position: 'relative', height: '140px', background: isLight ? '#e2e8f0' : '#1e293b' }}>
                     {mainImg ? (
-                      <img src={mainImg} alt={k.kostName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img 
+                        src={mainImg} 
+                        alt={k.kostName} 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DEFAULT_BUILDING_PHOTO;
+                        }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
                     ) : null}
                     <span style={{
                       position: 'absolute',
@@ -120,57 +135,63 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
 
                   <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'space-between' }}>
                     <div>
-                      <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: 'white' }}>
+                      <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                         {k.kostName}
                       </h4>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <MapPin size={12} color="#60a5fa" />
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MapPin size={12} color="#0284c7" />
                         <span>{k.city || 'Kota'}</span>
                       </p>
                     </div>
 
                     {/* Price Block */}
-                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#93c5fd' }}>Mulai dari</span>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#60a5fa' }}>
+                    <div style={{
+                      background: isLight ? 'rgba(37, 99, 235, 0.06)' : 'rgba(59, 130, 246, 0.1)',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: isLight ? '1px solid rgba(37, 99, 235, 0.15)' : '1px solid rgba(59, 130, 246, 0.2)'
+                    }}>
+                      <span style={{ fontSize: '0.7rem', color: isLight ? '#2563eb' : '#93c5fd', fontWeight: 600 }}>Mulai dari</span>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#1d4ed8' : '#60a5fa' }}>
                         {formatRupiah(minPrice)}
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 'normal' }}> / bln</span>
+                        <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 'normal' }}> / bln</span>
                       </div>
                     </div>
 
                     {/* Specifications List */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
-                        <span style={{ color: '#94a3b8' }}>Ukuran Kamar:</span>
-                        <strong style={{ color: '#e2e8f0' }}>{k.layoutInfo?.roomDimensions || '4.0m x 4.5m'}</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                        <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Ukuran Kamar:</span>
+                        <strong style={{ color: isLight ? '#1e293b' : '#e2e8f0' }}>{k.layoutInfo?.roomDimensions || '4.0m x 4.5m'}</strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
-                        <span style={{ color: '#94a3b8' }}>Kamar Mandi:</span>
-                        <strong style={{ color: '#e2e8f0' }}>{k.layoutInfo?.bathroomType || 'Dalam'}</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                        <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Kamar Mandi:</span>
+                        <strong style={{ color: isLight ? '#1e293b' : '#e2e8f0' }}>{k.layoutInfo?.bathroomType || 'Dalam'}</strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
-                        <span style={{ color: '#94a3b8' }}>Total Kamar:</span>
-                        <strong style={{ color: '#e2e8f0' }}>{k.rooms?.length || 0} Kamar</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                        <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Total Kamar:</span>
+                        <strong style={{ color: isLight ? '#1e293b' : '#e2e8f0' }}>{k.rooms?.length || 0} Kamar</strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
-                        <span style={{ color: '#94a3b8' }}>Rating:</span>
-                        <strong style={{ color: '#facc15', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <Star size={12} fill="#facc15" /> {k.rating || 4.9}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                        <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Rating:</span>
+                        <strong style={{ color: isLight ? '#d97706' : '#facc15', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Star size={12} fill={isLight ? '#d97706' : '#facc15'} /> {k.rating || 4.9}
                         </strong>
                       </div>
                     </div>
 
                     {/* Facilities Chips */}
                     <div>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Fasilitas Utama:</span>
+                      <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginBottom: '4px' }}>Fasilitas Utama:</span>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                         {(k.facilities || ['AC', 'WiFi', 'KM Dalam']).slice(0, 4).map((f, i) => (
                           <span key={i} style={{
                             fontSize: '0.68rem',
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            color: '#cbd5e1'
+                            background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.05)',
+                            color: isLight ? '#334155' : '#cbd5e1',
+                            fontWeight: 500
                           }}>
                             ✓ {f}
                           </span>
@@ -200,6 +221,29 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
               );
             })}
           </div>
+        </div>
+
+        {/* Modal Footer with Cancel / Close Button */}
+        <div style={{
+          padding: '0.85rem 1.5rem',
+          borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
+          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span style={{ fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+            💡 Klik "Pilih Kost Ini" untuk melihat rincian kamar & fasilitas lengkap
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-secondary"
+            style={{ padding: '8px 18px', fontSize: '0.84rem', cursor: 'pointer' }}
+          >
+            Tutup / Batal
+          </button>
         </div>
       </div>
     </div>

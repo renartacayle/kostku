@@ -37,7 +37,9 @@ import {
   Copy,
   MapPin,
   Store,
-  QrCode
+  QrCode,
+  Megaphone,
+  ShoppingBag
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
@@ -49,7 +51,6 @@ import {
   apiGetInvoices,
   apiGetApplications,
   apiGetOwnerKosts,
-  apiGetUtilityInquiry,
   apiPromoteKost,
   apiGetMessages,
   apiSendMessage,
@@ -64,11 +65,16 @@ import StaffManagementCard from '../components/StaffManagementCard';
 import InAppChatModal from '../components/InAppChatModal';
 import PartnerOrderModal from '../components/PartnerOrderModal';
 import SundulCheckoutModal from '../components/SundulCheckoutModal';
+import CommunityBulletinBoard from '../components/CommunityBulletinBoard';
+import PrelovedMarketplace from '../components/PrelovedMarketplace';
+import GuestRegistrationModal from '../components/GuestRegistrationModal';
 
 const OwnerDashboard = ({ user }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl === 'pengaturan' ? 'pengaturan' : 'overview');
+  const [activeTab, setActiveTab] = useState(['pengaturan', 'komunitas'].includes(tabFromUrl) ? tabFromUrl : 'overview');
+  const [showGuestModal, setShowGuestModal] = useState(false);
+  const [communityTab, setCommunityTab] = useState('bulletin'); // 'bulletin' | 'preloved'
 
   const [activities, setActivities] = useState([]);
   const [settings, setSettings] = useState({ 
@@ -137,14 +143,6 @@ const OwnerDashboard = ({ user }) => {
   const [newRoom, setNewRoom] = useState({ number: '', price: '', size: '3x4m', capacity: 1, roomPhoto: '', plnMeterNo: '', pdamMeterNo: '' });
   const [bulkConfig, setBulkConfig] = useState({ prefix: '', count: '', startNumber: '', price: '', size: '3x4m', capacity: 1, roomPhoto: '' });
   const [showBulkModal, setShowBulkModal] = useState(false);
-
-  // Utility PLN & PDAM Inquiry Simulator States
-  const [utilityModalOpen, setUtilityModalOpen] = useState(false);
-  const [utilityInquiryType, setUtilityInquiryType] = useState('pln'); // 'pln' or 'pdam'
-  const [utilityMeterQuery, setUtilityMeterQuery] = useState('');
-  const [utilityInquiryLoading, setUtilityInquiryLoading] = useState(false);
-  const [utilityInquiryResult, setUtilityInquiryResult] = useState(null);
-  const [utilityInquiryError, setUtilityInquiryError] = useState(null);
 
   // In-App Chat & Partner Order states for Owner
   const [selectedPartnerService, setSelectedPartnerService] = useState(null);
@@ -231,26 +229,6 @@ const OwnerDashboard = ({ user }) => {
     }
   };
 
-  const handleCheckUtilityMeter = async (typeOverride, numberOverride) => {
-    const typeToUse = typeOverride || utilityInquiryType;
-    const numToUse = numberOverride || utilityMeterQuery;
-    if (!numToUse || numToUse.trim().length < 5) {
-      setUtilityInquiryError('Masukkan nomor meter / ID pelanggan yang valid (minimal 6 digit)');
-      return;
-    }
-    setUtilityInquiryLoading(true);
-    setUtilityInquiryError(null);
-    setUtilityInquiryResult(null);
-    try {
-      const res = await apiGetUtilityInquiry(typeToUse, numToUse.trim());
-      setUtilityInquiryResult(res);
-    } catch (err) {
-      setUtilityInquiryError(err.message || 'Gagal memeriksa ID pelanggan utilitas');
-    } finally {
-      setUtilityInquiryLoading(false);
-    }
-  };
-
   const handleBulkPhotoUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -267,15 +245,15 @@ const OwnerDashboard = ({ user }) => {
   };
 
   useEffect(() => {
-    if (tabFromUrl === 'pengaturan' || tabFromUrl === 'overview') {
+    if (['pengaturan', 'overview', 'komunitas'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [tabFromUrl]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === 'pengaturan') {
-      setSearchParams({ tab: 'pengaturan' });
+    if (tab === 'pengaturan' || tab === 'komunitas') {
+      setSearchParams({ tab });
     } else {
       setSearchParams({});
     }
@@ -629,14 +607,14 @@ const OwnerDashboard = ({ user }) => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>
-              {activeTab === 'pengaturan' ? 'Pengaturan Kost' : 'My Kost (Overview)'}
+              {activeTab === 'pengaturan' ? 'Pengaturan Kost' : (activeTab === 'komunitas' ? 'Mading & Komunitas Kost' : 'My Kost (Overview)')}
             </h1>
             <span className="badge badge-primary">
               <Sparkles size={12} /> Live Sync
             </span>
           </div>
           <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Kode Kost: <strong style={{ color: 'white' }}>{targetKostUid || '-'}</strong> • {totalKamar} Unit Kamar • Okupansi: <strong style={{ color: 'var(--accent-success)' }}>{occupancyRate}%</strong>
+            Kode Kost: <strong style={{ color: 'var(--text-primary)' }}>{targetKostUid || '-'}</strong> • {totalKamar} Unit Kamar • Okupansi: <strong style={{ color: 'var(--accent-success)' }}>{occupancyRate}%</strong>
           </p>
         </div>
 
@@ -650,6 +628,18 @@ const OwnerDashboard = ({ user }) => {
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
+          <button
+            type="button"
+            onClick={() => setShowGuestModal(true)}
+            className="btn btn-secondary btn-sm"
+            style={{ borderRadius: '10px', gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+            title="Pantau & kelola buku tamu menginap digital"
+          >
+            <Users size={14} /> Buku Tamu Inap
+          </button>
+          <Link to="/keuangan?tab=dunning" className="btn btn-secondary btn-sm" style={{ borderRadius: '10px', gap: '6px', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' }} title="Otomasi penagihan sewa WA & rekonsiliasi bank mutasi">
+            <Zap size={14} /> Dunning & Mutasi
+          </Link>
           <Link to="/penghuni" className="btn btn-primary btn-sm" style={{ borderRadius: '10px', gap: '6px' }}>
             <Plus size={14} /> Penghuni Baru
           </Link>
@@ -662,7 +652,7 @@ const OwnerDashboard = ({ user }) => {
       {/* Main Tab Navigation: Modern Segmented Control */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         gap: '8px',
         background: 'rgba(15, 23, 42, 0.7)',
         padding: '6px',
@@ -684,13 +674,37 @@ const OwnerDashboard = ({ user }) => {
             fontWeight: 700,
             fontSize: '0.92rem',
             background: activeTab === 'overview' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent',
-            color: activeTab === 'overview' ? '#ffffff' : '#94a3b8',
+            color: activeTab === 'overview' ? '#ffffff' : 'var(--text-secondary)',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'overview' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none'
           }}
         >
           <LayoutDashboard size={18} />
           <span>Ringkasan & Ketersediaan</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('komunitas')}
+          style={{
+            padding: '11px 16px',
+            borderRadius: '12px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            background: activeTab === 'komunitas' ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'transparent',
+            color: activeTab === 'komunitas' ? '#0f172a' : 'var(--text-secondary)',
+            transition: 'all 0.2s ease',
+            boxShadow: activeTab === 'komunitas' ? '0 4px 12px rgba(56, 189, 248, 0.4)' : 'none'
+          }}
+        >
+          <Megaphone size={18} />
+          <span>Mading & Komunitas Kost</span>
         </button>
 
         <button
@@ -708,7 +722,7 @@ const OwnerDashboard = ({ user }) => {
             fontWeight: 700,
             fontSize: '0.92rem',
             background: activeTab === 'pengaturan' ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'transparent',
-            color: activeTab === 'pengaturan' ? '#ffffff' : '#94a3b8',
+            color: activeTab === 'pengaturan' ? '#ffffff' : 'var(--text-secondary)',
             transition: 'all 0.2s ease',
             boxShadow: activeTab === 'pengaturan' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none'
           }}
@@ -717,8 +731,8 @@ const OwnerDashboard = ({ user }) => {
           <span>Pengaturan Kost & Kamar</span>
           <span style={{
             fontSize: '0.72rem',
-            background: activeTab === 'pengaturan' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
-            color: 'white',
+            background: activeTab === 'pengaturan' ? 'rgba(255,255,255,0.25)' : 'rgba(100, 116, 139, 0.15)',
+            color: activeTab === 'pengaturan' ? '#ffffff' : 'var(--text-secondary)',
             padding: '2px 8px',
             borderRadius: '10px',
             fontWeight: 700
@@ -808,6 +822,96 @@ const OwnerDashboard = ({ user }) => {
               >
                 Tinjau Pengajuan <ArrowUpRight size={18} />
               </Link>
+            </div>
+          )}
+
+          {/* Onboarding Banner untuk Kost Baru Buka (0 Penghuni / Kosong) */}
+          {tenants.length === 0 && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(14, 165, 233, 0.1) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              boxShadow: '0 4px 20px rgba(16, 185, 129, 0.1)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.25)',
+                  color: '#34d399',
+                  padding: '0.75rem',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Sparkles size={24} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      🌱 Kost Baru Buka — Siap Terima Penghuni Pertama!
+                    </h4>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(16, 185, 129, 0.25)',
+                      color: 'var(--accent-success)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)'
+                    }}>
+                      100% Kosong (Fresh Onboarding)
+                    </span>
+                  </div>
+                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Properti ini baru dibuka dan belum ada isinya. Seluruh {totalKamar} kamar berstatus bersih & siap huni. Mulai dengan mendaftarkan anak kost pertama, sesuaikan fasilitas kamar, atau bagikan profil kost ke pencari sewa.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <Link 
+                  to="/penghuni"
+                  className="btn btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 1.1rem',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    fontSize: '0.86rem'
+                  }}
+                >
+                  <Plus size={16} /> + Tambah Penghuni Pertama
+                </Link>
+                <Link 
+                  to={`/kost/${targetKostUid}`}
+                  target="_blank"
+                  className="btn btn-secondary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.86rem',
+                    color: '#38bdf8'
+                  }}
+                >
+                  <ExternalLink size={15} /> Lihat Halaman Publik
+                </Link>
+              </div>
             </div>
           )}
 
@@ -930,7 +1034,14 @@ const OwnerDashboard = ({ user }) => {
                 <span className="stat-title" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                   {incomeThisMonth > 0 ? 'PEMASUKAN BULAN INI' : 'EST. PEMASUKAN'}
                 </span>
-                <h2 className="stat-value" style={{ margin: '2px 0 0 0', fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-success)', whiteSpace: 'nowrap' }}>
+                <h2 className="stat-value" style={{ 
+                  margin: '2px 0 0 0', 
+                  fontSize: 'clamp(1rem, 1.7vw, 1.25rem)', 
+                  fontWeight: 800, 
+                  color: 'var(--accent-success)', 
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '-0.03em'
+                }}>
                   {formatRupiah(displayIncome)}
                 </h2>
               </div>
@@ -1232,7 +1343,105 @@ const OwnerDashboard = ({ user }) => {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          TAB 2: PENGATURAN KOST & KAMAR (EMBEDDED IN OVERVIEW)
+          TAB 2: MADING & KOMUNITAS KOST (PAKET 5)
+          ══════════════════════════════════════════════════════════ */}
+      {activeTab === 'komunitas' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Quick Hub Action Banner */}
+          <div className="card glass-panel" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+            background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%)',
+            border: '1px solid rgba(56, 189, 248, 0.35)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #0284c7, #38bdf8)', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex' }}>
+                <Megaphone size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'white', fontWeight: 800 }}>
+                  Pusat Komunitas & Mading Kost
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                  Publikasikan pengumuman operasional resmi, pantau tamu menginap, serta pantau pasar preloved antar penghuni
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowGuestModal(true)}
+              className="btn btn-primary"
+              style={{ gap: '8px', padding: '10px 18px', background: '#0284c7', borderColor: '#0284c7', fontWeight: 700 }}
+            >
+              <Users size={16} /> Buka Buku Tamu Menginap Digital
+            </button>
+          </div>
+
+          {/* Subtabs: Mading vs Preloved */}
+          <div style={{
+            display: 'flex',
+            background: 'rgba(255, 255, 255, 0.05)',
+            padding: '4px',
+            borderRadius: '12px',
+            width: 'fit-content',
+            gap: '4px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setCommunityTab('bulletin')}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                background: communityTab === 'bulletin' ? '#0284c7' : 'transparent',
+                color: communityTab === 'bulletin' ? 'white' : '#94a3b8',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Megaphone size={16} /> Mading Digital Pengumuman
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommunityTab('preloved')}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                background: communityTab === 'preloved' ? '#059669' : 'transparent',
+                color: communityTab === 'preloved' ? 'white' : '#94a3b8',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <ShoppingBag size={16} /> Pasar Preloved Anak Kost
+            </button>
+          </div>
+
+          {communityTab === 'bulletin' && (
+            <CommunityBulletinBoard user={user} kostUid={targetKostUid} />
+          )}
+
+          {communityTab === 'preloved' && (
+            <PrelovedMarketplace user={user} kostUid={targetKostUid} />
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          TAB 3: PENGATURAN KOST & KAMAR (EMBEDDED IN OVERVIEW)
           ══════════════════════════════════════════════════════════ */}
       {activeTab === 'pengaturan' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -1293,20 +1502,6 @@ const OwnerDashboard = ({ user }) => {
                   </span>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setUtilityMeterQuery('');
-                  setUtilityInquiryResult(null);
-                  setUtilityInquiryError(null);
-                  setUtilityModalOpen(true);
-                }}
-                className="btn btn-secondary btn-sm"
-                style={{ gap: '6px', fontSize: '0.8rem' }}
-              >
-                🔍 Cek ID Pelanggan PLN / PDAM
-              </button>
             </div>
 
             {/* Pilihan 3 Skema Utilitas Utama */}
@@ -2932,7 +3127,7 @@ const OwnerDashboard = ({ user }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999,
+            zIndex: 10000,
             padding: '1rem',
             overflowY: 'auto'
           }}
@@ -3139,49 +3334,19 @@ const OwnerDashboard = ({ user }) => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.76rem' }}>
                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px' }}>
                   <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem' }}>Meter PLN:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
+                  <div style={{ marginTop: '2px' }}>
                     <strong style={{ color: selectedRoomDetail.room?.plnMeterNo ? '#fef08a' : '#94a3b8' }}>
                       {selectedRoomDetail.room?.plnMeterNo || 'Belum diisi'}
                     </strong>
-                    {selectedRoomDetail.room?.plnMeterNo && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUtilityInquiryType('pln');
-                          setUtilityMeterQuery(selectedRoomDetail.room.plnMeterNo);
-                          setUtilityModalOpen(true);
-                          handleCheckUtilityMeter('pln', selectedRoomDetail.room.plnMeterNo);
-                        }}
-                        style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '0 2px' }}
-                        title="Cek Token PLN"
-                      >
-                        <Search size={12} />
-                      </button>
-                    )}
                   </div>
                 </div>
 
                 <div style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px' }}>
                   <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem' }}>ID PDAM:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
+                  <div style={{ marginTop: '2px' }}>
                     <strong style={{ color: selectedRoomDetail.room?.pdamMeterNo ? '#7dd3fc' : '#94a3b8' }}>
                       {selectedRoomDetail.room?.pdamMeterNo || 'Belum diisi'}
                     </strong>
-                    {selectedRoomDetail.room?.pdamMeterNo && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUtilityInquiryType('pdam');
-                          setUtilityMeterQuery(selectedRoomDetail.room.pdamMeterNo);
-                          setUtilityModalOpen(true);
-                          handleCheckUtilityMeter('pdam', selectedRoomDetail.room.pdamMeterNo);
-                        }}
-                        style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '0 2px' }}
-                        title="Cek Tagihan PDAM"
-                      >
-                        <Search size={12} />
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -3230,11 +3395,6 @@ const OwnerDashboard = ({ user }) => {
                         <div>
                           <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {occ.name}
-                            {occ.verifiedKtp && (
-                              <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '1px 5px', borderRadius: '4px' }}>
-                                KTP OK
-                              </span>
-                            )}
                           </div>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>
                             {occ.email || occ.phone || 'Penghuni aktif'}
@@ -3315,7 +3475,7 @@ const OwnerDashboard = ({ user }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 10000,
           padding: '1rem',
           overflowY: 'auto'
         }}>
@@ -3452,344 +3612,6 @@ const OwnerDashboard = ({ user }) => {
             </form>
           </div>
         </div>
-      )}
-
-      {/* UTILITY METER INQUIRY MODAL (PLN & PDAM) */}
-      {utilityModalOpen && typeof document !== 'undefined' && createPortal(
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: '1rem',
-          overflowY: 'auto'
-        }}>
-          <div style={{
-            maxWidth: '520px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '1.5rem',
-            background: '#0f172a',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '18px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9)',
-            position: 'relative'
-          }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: utilityInquiryType === 'pln' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(56, 189, 248, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {utilityInquiryType === 'pln' ? <Zap size={18} color="#fbbf24" /> : <Droplet size={18} color="#38bdf8" />}
-                  </div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#f8fafc' }}>
-                    Inquiry & Cek Meter Utilitas
-                  </h3>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Validasi nomor meteran, daya terdaftar, status pelanggan, dan pembelian token
-                </p>
-              </div>
-              <button 
-                onClick={() => setUtilityModalOpen(false)} 
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Type Switcher */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '6px',
-              background: 'rgba(0,0,0,0.3)',
-              padding: '4px',
-              borderRadius: '10px',
-              marginBottom: '1.25rem'
-            }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setUtilityInquiryType('pln');
-                  setUtilityInquiryResult(null);
-                  setUtilityInquiryError(null);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: utilityInquiryType === 'pln' ? '#f59e0b' : 'transparent',
-                  color: utilityInquiryType === 'pln' ? '#000' : 'var(--text-secondary)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Zap size={14} /> PLN (Token / Tagihan)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setUtilityInquiryType('pdam');
-                  setUtilityInquiryResult(null);
-                  setUtilityInquiryError(null);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: utilityInquiryType === 'pdam' ? '#0284c7' : 'transparent',
-                  color: utilityInquiryType === 'pdam' ? '#fff' : 'var(--text-secondary)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Droplet size={14} /> PDAM (Air Minum)
-              </button>
-            </div>
-
-            {/* Input & Search Form */}
-            <form onSubmit={(e) => { e.preventDefault(); handleCheckUtilityMeter(); }} style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                {utilityInquiryType === 'pln' ? 'Nomor Meter PLN / ID Pelanggan (11-12 digit):' : 'Nomor Pelanggan PDAM:'}
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder={utilityInquiryType === 'pln' ? 'Contoh: 14285930219' : 'Contoh: 0029412'}
-                  value={utilityMeterQuery}
-                  onChange={(e) => setUtilityMeterQuery(e.target.value)}
-                  className="input-field"
-                  style={{ flex: 1 }}
-                />
-                <button
-                  type="submit"
-                  disabled={utilityInquiryLoading}
-                  className="btn btn-primary"
-                  style={{ gap: '6px', padding: '0 16px', flexShrink: 0 }}
-                >
-                  {utilityInquiryLoading ? (
-                    <RefreshCw size={14} className="spin-animation" />
-                  ) : (
-                    <Search size={14} />
-                  )}
-                  {utilityInquiryLoading ? 'Cek...' : 'Cek ID'}
-                </button>
-              </div>
-
-              {/* Sample Shortcuts */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                <span>Contoh Cepat:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const sample = utilityInquiryType === 'pln' ? '14285930219' : '0029412';
-                    setUtilityMeterQuery(sample);
-                    handleCheckUtilityMeter(utilityInquiryType, sample);
-                  }}
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid var(--border-light)',
-                    color: '#38bdf8',
-                    borderRadius: '4px',
-                    padding: '2px 6px',
-                    cursor: 'pointer',
-                    fontSize: '0.72rem'
-                  }}
-                >
-                  {utilityInquiryType === 'pln' ? '14285930219 (Kamar A01)' : '0029412 (PDAM)'}
-                </button>
-              </div>
-            </form>
-
-            {/* Error Message */}
-            {utilityInquiryError && (
-              <div style={{
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                marginBottom: '1rem',
-                color: '#f87171',
-                fontSize: '0.8rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                <span>{utilityInquiryError}</span>
-              </div>
-            )}
-
-            {/* Inquiry Result Card */}
-            {utilityInquiryResult && (
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                borderRadius: '12px',
-                padding: '14px',
-                marginBottom: '1.25rem'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle size={15} color="#34d399" />
-                    <strong style={{ fontSize: '0.85rem', color: '#f8fafc' }}>
-                      {utilityInquiryResult.type === 'pln' ? 'Data Meteran PLN Ditemukan' : 'Data Pelanggan PDAM Ditemukan'}
-                    </strong>
-                  </div>
-                  <span style={{
-                    fontSize: '0.68rem',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: '#34d399',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontWeight: 600
-                  }}>
-                    {utilityInquiryResult.status || 'Aktif'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Nama Pelanggan:</span>
-                    <strong style={{ color: '#ffffff' }}>{utilityInquiryResult.name || utilityInquiryResult.subscriberName || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Nomor ID / Meter:</span>
-                    <strong style={{ color: '#38bdf8' }}>{utilityInquiryResult.customerId || utilityInquiryResult.idNumber || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Tarif / Daya:</span>
-                    <strong style={{ color: '#fbbf24' }}>{utilityInquiryResult.tariff || utilityInquiryResult.tariffPower || utilityInquiryResult.category || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Tipe Layanan / Wilayah:</span>
-                    <span style={{ color: '#e2e8f0' }}>{utilityInquiryResult.meterType || utilityInquiryResult.region || utilityInquiryResult.unitName || utilityInquiryResult.city || '-'}</span>
-                  </div>
-                </div>
-
-                {/* Direct Purchase & Payment Links */}
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed var(--border-light)' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    🔗 Shortcut Pembelian Token & Pembayaran:
-                  </span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {utilityInquiryResult.type === 'pln' ? (
-                      <>
-                        <a
-                          href="https://web.pln.co.id/"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', gap: '4px' }}
-                        >
-                          <ExternalLink size={12} /> Portal PLN
-                        </a>
-                        <a
-                          href="https://www.tokopedia.com/top-up/token-listrik/"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', gap: '4px' }}
-                        >
-                          <ExternalLink size={12} /> Beli di Tokopedia
-                        </a>
-                        <a
-                          href="https://shopee.co.id/m/pulsa-tagihan-dan-hiburan"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', gap: '4px' }}
-                        >
-                          <ExternalLink size={12} /> Beli di Shopee
-                        </a>
-                      </>
-                    ) : (
-                      <>
-                        <a
-                          href="https://www.tokopedia.com/tagihan/pdam/"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', gap: '4px' }}
-                        >
-                          <ExternalLink size={12} /> Bayar via Tokopedia
-                        </a>
-                        <a
-                          href="https://shopee.co.id/m/pulsa-tagihan-dan-hiburan"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', gap: '4px' }}
-                        >
-                          <ExternalLink size={12} /> Bayar via Shopee
-                        </a>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* B2B API Explanation Card */}
-            <div style={{
-              background: 'rgba(59, 130, 246, 0.08)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
-              borderRadius: '12px',
-              padding: '12px',
-              fontSize: '0.75rem',
-              color: '#93c5fd',
-              lineHeight: 1.5
-            }}>
-              <div style={{ fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Sparkles size={14} color="#60a5fa" /> Seputar Integrasi API PLN & PDAM Resmi
-              </div>
-              <p style={{ margin: '0 0 6px 0', color: '#cbd5e1' }}>
-                PLN dan PDAM tidak menyediakan Open API publik gratis. Di industri perbankan & fintech Indonesia, integrasi live PLN dan PDAM dilakukan melalui <strong>Aggregator B2B PPOB</strong> (seperti Ayoconnect, Digiflazz, atau Alterra Bills).
-              </p>
-              <p style={{ margin: 0, color: '#94a3b8' }}>
-                KostKu telah menyiapkan endpoint simulator & format data kamar standar. Jika Anda memiliki akun B2B PPOB, kredensial API Key dapat langsung dihubungkan untuk auto-inquiry dan topup otomatis.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setUtilityModalOpen(false)}
-                style={{ padding: '8px 18px', fontSize: '0.85rem' }}
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
       )}
 
       {/* MODAL TAMBAH MITRA PRIBADI KOST (HYPERLOCAL & AFFILIATE) */}
@@ -4075,18 +3897,26 @@ const OwnerDashboard = ({ user }) => {
         }}
       />
 
+      {/* Guest Registration Modal */}
+      <GuestRegistrationModal
+        isOpen={showGuestModal}
+        onClose={() => setShowGuestModal(false)}
+        user={user}
+        kostUid={targetKostUid}
+      />
+
     </div>
   );
 };
 
 const Dashboard = ({ user }) => {
-  // If role is tenant, show UserDashboard
-  if (user?.role === 'user') {
+  // If role is tenant / penghuni, show UserDashboard
+  if (user?.role === 'user' || user?.role === 'penghuni' || user?.role === 'tenant') {
     return <UserDashboard user={user} />;
   }
 
   // If role is staff / penjaga kost, show StaffDashboard
-  if (user?.role === 'staff') {
+  if (user?.role === 'staff' || user?.role === 'karyawan') {
     return <StaffDashboard user={user} />;
   }
 
