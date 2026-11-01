@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   User, 
@@ -14,7 +14,11 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Palette
+  Palette,
+  Camera,
+  Trash2,
+  RefreshCw,
+  Upload
 } from 'lucide-react';
 import { apiUpdateProfile } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -29,11 +33,24 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
   const [profileName, setProfileName] = useState(user?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const [profilePhone, setProfilePhone] = useState(user?.phone || '');
+  const [profilePicture, setProfilePicture] = useState(user?.picture || '');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null);
+
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.name || '');
+      setProfileEmail(user.email || '');
+      setProfilePhone(user.phone || '');
+      setProfilePicture(user.picture || '');
+    }
+  }, [user]);
 
   useEffect(() => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
@@ -44,6 +61,105 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setSearchParams({ tab });
+  };
+
+  // Helper to compress and downscale profile photo before sending
+  const compressImage = (file, maxWidth = 400, maxHeight = 400, quality = 0.85) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  const handlePhotoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setProfileMsg({ type: 'error', text: 'Format file tidak didukung. Harap pilih file gambar (JPG, PNG, atau WebP).' });
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setProfileMsg(null);
+    try {
+      const compressedDataUrl = await compressImage(file, 400, 400, 0.85);
+      setProfilePicture(compressedDataUrl);
+
+      // Save directly to backend
+      if (user?.id) {
+        const res = await apiUpdateProfile({
+          id: user.id,
+          picture: compressedDataUrl
+        });
+        if (res?.user) {
+          if (onUpdateUser) onUpdateUser(res.user);
+          localStorage.setItem('kostUser', JSON.stringify(res.user));
+          window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: res.user }));
+          setProfileMsg({ type: 'success', text: 'Foto profil berhasil diperbarui & disinkronkan ke seluruh halaman!' });
+          setTimeout(() => setProfileMsg(null), 3500);
+        }
+      }
+    } catch (err) {
+      console.error('Error uploading profile picture:', err);
+      setProfileMsg({ type: 'error', text: 'Gagal memproses foto profil: ' + (err.message || 'Error tidak diketahui') });
+    } finally {
+      setUploadingPhoto(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!user?.id) return;
+    setUploadingPhoto(true);
+    setProfileMsg(null);
+    try {
+      const res = await apiUpdateProfile({
+        id: user.id,
+        picture: ''
+      });
+      if (res?.user) {
+        setProfilePicture('');
+        if (onUpdateUser) onUpdateUser(res.user);
+        localStorage.setItem('kostUser', JSON.stringify(res.user));
+        window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: res.user }));
+        setProfileMsg({ type: 'success', text: 'Foto profil dihapus (kembali ke avatar inisial).' });
+        setTimeout(() => setProfileMsg(null), 3500);
+      }
+    } catch (err) {
+      console.error('Error removing profile picture:', err);
+      setProfileMsg({ type: 'error', text: 'Gagal menghapus foto profil' });
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleSaveProfile = async (e) => {
@@ -68,11 +184,14 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         name: profileName,
         email: profileEmail,
         phone: profilePhone,
+        picture: profilePicture,
         currentPassword: currentPassword || undefined,
         newPassword: newPassword || undefined
       });
       if (res.user) {
         if (onUpdateUser) onUpdateUser(res.user);
+        localStorage.setItem('kostUser', JSON.stringify(res.user));
+        window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: res.user }));
         setProfileMsg({ type: 'success', text: 'Profil pengguna berhasil diperbarui!' });
         setCurrentPassword('');
         setNewPassword('');
@@ -244,42 +363,108 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
             </div>
           </div>
 
-          {/* Profile Avatar Header */}
+          {/* Profile Avatar Header with Interactive Photo Upload */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '16px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            padding: '16px',
+            gap: '18px',
+            background: isLight ? 'var(--card-bg)' : 'rgba(255, 255, 255, 0.02)',
+            padding: '20px',
             borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            border: '1px solid var(--border-color)',
+            flexWrap: 'wrap'
           }}>
-            {user?.picture ? (
-              <img 
-                src={user.picture} 
-                alt={user.name} 
-                style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid #3b82f6', objectFit: 'cover' }}
+            {/* Avatar with Camera Trigger Overlay */}
+            <div style={{ position: 'relative', width: '76px', height: '76px', flexShrink: 0 }}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/png, image/jpeg, image/webp, image/gif"
+                onChange={handlePhotoFileChange}
+                style={{ display: 'none' }}
               />
-            ) : (
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                background: '#2563eb',
-                border: '2px solid rgba(255, 255, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.6rem',
-                fontWeight: 800,
-                color: 'white',
-                boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)'
-              }}>
-                {(user?.name || 'K').charAt(0).toUpperCase()}
-              </div>
-            )}
+              
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                title="Klik untuk memilih foto profil baru"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  border: '3px solid #3b82f6',
+                  boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--accent-gradient)'
+                }}
+              >
+                {profilePicture ? (
+                  <img 
+                    src={profilePicture} 
+                    alt={user?.name || 'User'} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <div style={{
+                    fontSize: '1.8rem',
+                    fontWeight: 800,
+                    color: 'white'
+                  }}>
+                    {(user?.name || 'K').charAt(0).toUpperCase()}
+                  </div>
+                )}
 
-            <div style={{ flex: 1 }}>
+                {/* Loading Spinner Overlay */}
+                {uploadingPhoto && (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(0, 0, 0, 0.65)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white'
+                  }}>
+                    <RefreshCw size={24} className="animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              {/* Floating Camera Button Badge */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                title="Ganti Foto Profil"
+                style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  right: '-2px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: '#2563eb',
+                  border: '2px solid var(--bg-main)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  transition: 'transform 0.2s',
+                  padding: 0
+                }}
+              >
+                <Camera size={14} />
+              </button>
+            </div>
+
+            {/* User Info & Quick Photo Actions */}
+            <div style={{ flex: 1, minWidth: '220px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   {user?.name || 'Pengguna'}
@@ -288,14 +473,47 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                   {user?.role === 'owner' ? '👑 Pemilik Kost' : user?.role === 'staff' ? `👷 Staf (${user?.jobTitle || 'Penjaga'})` : '🏠 Anak Kost'}
                 </span>
               </div>
+              
               <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
                 {user?.email || 'Email belum diatur'}
               </span>
               {user?.kostUid && (
-                <span style={{ fontSize: '0.75rem', color: '#93c5fd', display: 'block', marginTop: '4px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#93c5fd', display: 'block', marginTop: '2px' }}>
                   ID Kost Aktif: <strong>{user.kostUid}</strong>
                 </span>
               )}
+
+              {/* Action Buttons to Upload / Remove */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem', padding: '6px 12px', gap: '6px' }}
+                >
+                  <Camera size={13} color="#3b82f6" />
+                  <span>{profilePicture ? 'Ganti Foto' : 'Pilih Foto Profil'}</span>
+                </button>
+
+                {profilePicture && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    disabled={uploadingPhoto}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.78rem', padding: '6px 10px', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)', gap: '6px' }}
+                    title="Hapus foto profil dan gunakan avatar inisial"
+                  >
+                    <Trash2 size={13} />
+                    <span>Hapus</span>
+                  </button>
+                )}
+
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  Otomatis tersimpan & tampil di semua halaman
+                </span>
+              </div>
             </div>
           </div>
 

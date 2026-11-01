@@ -366,22 +366,38 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                   onClick={() => onSelectStaff && onSelectStaff(staff)}
                   style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', minWidth: '240px', flex: 1 }}
                 >
-                  <div style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '12px',
-                    background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    color: 'white',
-                    fontSize: '1.1rem',
-                    flexShrink: 0,
-                    boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.4)' : 'none'
-                  }}>
-                    {staff.name ? staff.name.charAt(0).toUpperCase() : 'S'}
-                  </div>
+                  {staff.picture ? (
+                    <img 
+                      src={staff.picture} 
+                      alt={staff.name || 'Staff'} 
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        objectFit: 'cover',
+                        border: isSelected ? '2px solid #3b82f6' : '1.5px solid var(--border-color)',
+                        flexShrink: 0,
+                        boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.4)' : 'none'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      color: 'white',
+                      fontSize: '1.1rem',
+                      flexShrink: 0,
+                      boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.4)' : 'none'
+                    }}>
+                      {staff.name ? staff.name.charAt(0).toUpperCase() : 'S'}
+                    </div>
+                  )}
 
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>

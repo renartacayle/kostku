@@ -189,6 +189,18 @@ function App() {
 
   const activeUser = user || getStoredUser();
 
+  // Listen for user profile updates across all pages (PFP, name, phone, etc.)
+  useEffect(() => {
+    const handleUserUpdated = (e) => {
+      if (e.detail) {
+        setUser(e.detail);
+        localStorage.setItem('kostUser', JSON.stringify(e.detail));
+      }
+    };
+    window.addEventListener('kostku_user_updated', handleUserUpdated);
+    return () => window.removeEventListener('kostku_user_updated', handleUserUpdated);
+  }, []);
+
   const handleLogin = (userData, customKostName) => {
     localStorage.setItem('kostUser', JSON.stringify(userData));
     setUser(userData);

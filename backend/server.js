@@ -2029,6 +2029,15 @@ app.put('/api/user/profile', (req, res) => {
   if (phone !== undefined) user.phone = phone.trim();
   if (picture !== undefined) user.picture = picture;
 
+  // Also sync picture and name to staff collection if user has staff records
+  if (Array.isArray(db.staff)) {
+    const staffMember = db.staff.find(s => String(s.id) === String(id) || (user.email && s.email === user.email));
+    if (staffMember) {
+      if (name && name.trim()) staffMember.name = name.trim();
+      if (picture !== undefined) staffMember.picture = picture;
+    }
+  }
+
   writeDB(db);
 
   const safe = { ...user };

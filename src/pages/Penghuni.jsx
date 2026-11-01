@@ -456,21 +456,37 @@ const Penghuni = ({ user }) => {
                     }}>
                       {/* Left: Avatar & Info */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '220px' }}>
-                        <div style={{
-                          width: '46px',
-                          height: '46px',
-                          borderRadius: '14px',
-                          background: 'var(--accent-gradient)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 800,
-                          fontSize: '1.2rem',
-                          flexShrink: 0
-                        }}>
-                          {t.name ? t.name.charAt(0).toUpperCase() : 'P'}
-                        </div>
+                        {t.picture ? (
+                          <img 
+                            src={t.picture} 
+                            alt={t.name || 'Tenant'} 
+                            style={{
+                              width: '46px',
+                              height: '46px',
+                              borderRadius: '14px',
+                              objectFit: 'cover',
+                              border: '1.5px solid rgba(59, 130, 246, 0.6)',
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                              flexShrink: 0
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '46px',
+                            height: '46px',
+                            borderRadius: '14px',
+                            background: 'var(--accent-gradient)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 800,
+                            fontSize: '1.2rem',
+                            flexShrink: 0
+                          }}>
+                            {t.name ? t.name.charAt(0).toUpperCase() : 'P'}
+                          </div>
+                        )}
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>{t.name}</h3>

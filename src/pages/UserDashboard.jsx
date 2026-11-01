@@ -608,6 +608,22 @@ const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }
 
 const UserDashboard = ({ user }) => {
   const [currentUser, setCurrentUser] = useState(user);
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handleUserUpdate = (e) => {
+      if (e.detail) {
+        setCurrentUser(e.detail);
+      }
+    };
+    window.addEventListener('kostku_user_updated', handleUserUpdate);
+    return () => window.removeEventListener('kostku_user_updated', handleUserUpdate);
+  }, []);
   const [activeApplication, setActiveApplication] = useState(null);
   const [kostName, setKostName] = useState('');
   const [syncingProfile, setSyncingProfile] = useState(false);
@@ -1139,14 +1155,57 @@ const UserDashboard = ({ user }) => {
             alignItems: 'center',
             gap: '1rem'
           }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Halo, {currentUser.name} 👋</h1>
-                <span className="badge badge-primary">Penghuni Aktif</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+              <Link 
+                to="/pengaturan" 
+                title="Buka Pengaturan & Ubah Foto Profil"
+                style={{
+                  display: 'block',
+                  flexShrink: 0,
+                  textDecoration: 'none'
+                }}
+              >
+                {currentUser?.picture ? (
+                  <img 
+                    src={currentUser.picture} 
+                    alt={currentUser.name} 
+                    style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '2.5px solid var(--accent-primary)',
+                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                      display: 'block'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '50%',
+                    background: 'var(--accent-gradient)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 800,
+                    fontSize: '1.4rem',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)'
+                  }}>
+                    {(currentUser?.name || 'A').charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </Link>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Halo, {currentUser.name} 👋</h1>
+                  <span className="badge badge-primary">Penghuni Aktif</span>
+                </div>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {kostName && <><strong style={{ color: 'var(--accent-primary)' }}>{kostName}</strong> • </>}Kamar: <strong style={{ color: 'var(--text-primary)' }}>{currentUser.kamar}</strong> • Cuci Sprei: <strong style={{ color: 'var(--accent-success)' }}>{currentUser.bedsheets || 0}x</strong> • Poin: <strong style={{ color: 'var(--accent-warning)' }}>{currentUser?.loyalty_points || 250} Poin</strong>
+                </p>
               </div>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {kostName && <><strong style={{ color: 'var(--accent-primary)' }}>{kostName}</strong> • </>}Kamar: <strong style={{ color: 'var(--text-primary)' }}>{currentUser.kamar}</strong> • Cuci Sprei: <strong style={{ color: 'var(--accent-success)' }}>{currentUser.bedsheets || 0}x</strong> • Poin: <strong style={{ color: 'var(--accent-warning)' }}>{currentUser?.loyalty_points || 250} Poin</strong>
-              </p>
             </div>
 
             {/* Quick Service Action Buttons */}

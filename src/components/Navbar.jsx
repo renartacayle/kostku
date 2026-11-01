@@ -164,10 +164,10 @@ export default function Navbar({
           )}
         </button>
 
-        {/* Pengaturan / Profil Link (Clean Template Icon - Shopee Style) */}
+        {/* Pengaturan / Profil Link (Clean Template Icon or User PFP) */}
         <Link 
           to="/pengaturan" 
-          title="Buka Pengaturan Akun & Profil"
+          title={`Buka Pengaturan Akun & Profil (${user?.name || 'User'})`}
           style={{
             width: '32px',
             height: '32px',
@@ -175,16 +175,25 @@ export default function Navbar({
             alignItems: 'center',
             justifyContent: 'center',
             background: isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.07)',
-            border: '1px solid var(--border-color)',
+            border: user?.picture ? '1.5px solid #3b82f6' : '1px solid var(--border-color)',
             borderRadius: '10px',
             color: isLight ? '#1e293b' : '#f8fafc',
             cursor: 'pointer',
             textDecoration: 'none',
             transition: 'all 0.2s',
+            overflow: 'hidden',
             flexShrink: 0
           }}
         >
-          <Settings size={17} strokeWidth={1.8} />
+          {user?.picture ? (
+            <img 
+              src={user.picture} 
+              alt={user.name || 'User'} 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <Settings size={17} strokeWidth={1.8} />
+          )}
         </Link>
       </div>
     </header>
