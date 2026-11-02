@@ -782,10 +782,16 @@ const SmartLockAndTokenModal = ({
                   <span>Nominal Token PLN:</span>
                   <span style={{ color: isLight ? '#0f172a' : 'white', fontWeight: 600 }}>{formatRupiah(nominal)}</span>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px' }}>
+                  <span>Biaya Admin Biller PLN:</span>
+                  <span style={{ color: '#16a34a', fontWeight: 700, background: 'rgba(22, 163, 74, 0.12)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.72rem' }}>
+                    Rp 0 (Bebas Admin)
+                  </span>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '8px' }}>
-                  <span>Biaya Layanan Payment Gateway:</span>
+                  <span>Biaya Layanan Payment Gateway ({paymentMethod}):</span>
                   <span style={{ color: paymentMethod === 'QRIS' ? '#16a34a' : (isLight ? '#0f172a' : 'white'), fontWeight: 600 }}>
-                    {paymentMethod === 'QRIS' ? 'Gratis (Rp 0)' : 'Rp 2.000'}
+                    {paymentMethod === 'QRIS' ? 'Gratis (Rp 0)' : '+Rp 2.000'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 800, color: '#d97706', borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255, 255, 255, 0.1)', paddingTop: '8px' }}>

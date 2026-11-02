@@ -907,16 +907,42 @@ const PdamPaymentModal = ({
                     </div>
                   </div>
 
-                  {/* Total Tagihan */}
+                  {/* Ringkasan Rincian Biaya Transparan */}
                   <div style={{
                     marginTop: '12px',
+                    borderTop: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255,255,255,0.1)',
+                    paddingTop: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    fontSize: '0.78rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8' }}>
+                      <span>Biaya Pemakaian Air:</span>
+                      <span style={{ color: isLight ? '#0f172a' : 'white', fontWeight: 600 }}>{formatRupiah(inquiryResult.billAmount)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8' }}>
+                      <span>Biaya Admin Biller Loket PDAM:</span>
+                      <span style={{ color: isLight ? '#0f172a' : 'white', fontWeight: 600 }}>{formatRupiah(inquiryResult.adminFee || 2500)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8' }}>
+                      <span>Biaya Layanan Payment Gateway ({paymentMethod}):</span>
+                      <span style={{ color: paymentMethod === 'QRIS' ? '#10b981' : (isLight ? '#0f172a' : 'white'), fontWeight: 600 }}>
+                        {paymentMethod === 'QRIS' ? 'Gratis (Rp 0)' : '+Rp 2.000'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Total Tagihan */}
+                  <div style={{
+                    marginTop: '8px',
                     borderTop: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)',
                     paddingTop: '8px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <span style={{ fontSize: '0.85rem', color: isLight ? '#475569' : '#94a3b8' }}>Total Tagihan Lunas:</span>
+                    <span style={{ fontSize: '0.85rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: 700 }}>Total Tagihan Lunas:</span>
                     <strong style={{ fontSize: '1.15rem', color: isLight ? '#0284c7' : '#38bdf8' }}>
                       {formatRupiah(inquiryResult.totalAmount + (paymentMethod === 'QRIS' ? 0 : 2000))}
                     </strong>
