@@ -30,7 +30,8 @@ import {
   GraduationCap,
   Navigation,
   Sun,
-  Moon
+  Moon,
+  Ban
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SpatialBentoShowcase from '../components/SpatialBentoShowcase';
@@ -121,6 +122,7 @@ export const MARKETING_BANNERS = [
 // 1. REVISED KOST CARD IMAGE SLIDER (DYNAMIC 4:3 ASPECT RATIO)
 // ═══════════════════════════════════════════════════════════════════
 function KostCardImageSlider({ images, kostName, type, availableRoomsCount, distanceKm, isPromoted, promotedBadge }) {
+  const isFull = availableRoomsCount === 0;
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -225,12 +227,61 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                display: 'block'
+                display: 'block',
+                filter: isFull ? 'grayscale(50%) brightness(0.65)' : 'none',
+                transition: 'filter 0.3s'
               }}
             />
           </div>
         ))}
       </div>
+
+      {/* Overlay Full State */}
+      {isFull && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.62)',
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 4,
+          padding: '1.25rem',
+          textAlign: 'center',
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+            color: '#ffffff',
+            padding: '7px 16px',
+            borderRadius: '12px',
+            fontWeight: 900,
+            fontSize: '0.92rem',
+            letterSpacing: '0.04em',
+            boxShadow: '0 4px 18px rgba(185, 28, 28, 0.6)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            textTransform: 'uppercase',
+            border: '1px solid rgba(255, 255, 255, 0.25)'
+          }}>
+            <Ban size={16} strokeWidth={2.5} />
+            <span>Kamar Penuh</span>
+          </div>
+          <span style={{
+            color: '#f8fafc',
+            fontSize: '0.76rem',
+            marginTop: '6px',
+            fontWeight: 700,
+            textShadow: '0 2px 6px rgba(0, 0, 0, 0.9)'
+          }}>
+            Semua unit saat ini sudah terisi
+          </span>
+        </div>
+      )}
 
       {/* Golden Boost / Sundul Kost Badge */}
       {isPromoted && (
@@ -1990,6 +2041,7 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
 
   const minPrice = kost.rooms?.length > 0 ? Math.min(...kost.rooms.map(r => r.price)) : 0;
   const availableRoomsCount = (kost.rooms || []).filter(r => r.status === 'available' || !r.status).length;
+  const isFull = (kost.rooms && kost.rooms.length > 0 && availableRoomsCount === 0) || kost.status === 'full' || kost.isFull;
   const roomDimension = kost.rooms?.[0]?.dimension || '3.5×4.0 m²';
 
   // Extract exactly the 3 essential facilities requested by spec
@@ -2006,53 +2058,85 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
   );
 
   return (
-    <Link
-      to={`/kost/${kost.uid}`}
-      data-track="kost-card"
-      data-kost-id={kost.uid}
-      data-kost-name={kost.kostName}
-      data-kost-type={kost.type}
-      data-kost-campus={kost.city}
-      data-kost-price={minPrice}
+    <div
+      onClick={(e) => {
+        if (isFull) {
+          e.preventDefault();
+          e.stopPropagation();
+          alert(`Maaf, seluruh kamar di ${kost.kostName} saat ini sedang terisi penuh.`);
+        }
+      }}
       style={{
-        textDecoration: 'none',
-        color: 'inherit',
         display: 'block',
         minWidth: 0,
-        maxWidth: '100%'
+        maxWidth: '100%',
+        cursor: isFull ? 'not-allowed' : 'pointer'
       }}
     >
-      <div
-        className="card"
+      <Link
+        to={isFull ? '#' : `/kost/${kost.uid}`}
+        onClick={(e) => {
+          if (isFull) {
+            e.preventDefault();
+            e.stopPropagation();
+            alert(`Maaf, seluruh kamar di ${kost.kostName} saat ini sedang terisi penuh.`);
+          }
+        }}
+        data-track="kost-card"
+        data-kost-id={kost.uid}
+        data-kost-name={kost.kostName}
+        data-kost-type={kost.type}
+        data-kost-campus={kost.city}
+        data-kost-price={minPrice}
         style={{
-          background: 'var(--bg-card)',
-          border: kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)',
-          borderRadius: '20px',
-          overflow: 'hidden',
-          padding: 0,
-          boxShadow: kost.promoted?.active
-            ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
-            : 'var(--shadow-md)',
-          transition: 'all 0.25s cubic-bezier(0.2, 0, 0, 1)',
-          cursor: 'pointer',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-6px)';
-          e.currentTarget.style.boxShadow = kost.promoted?.active
-            ? '0 20px 40px -8px rgba(245, 158, 11, 0.35), 0 0 0 1px rgba(245, 158, 11, 0.5)'
-            : 'var(--shadow-lg)';
-          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'var(--border-accent)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = kost.promoted?.active
-            ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
-            : 'var(--shadow-md)';
-          e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'var(--border-color)';
+          textDecoration: 'none',
+          color: 'inherit',
+          display: 'block',
+          minWidth: 0,
+          maxWidth: '100%',
+          pointerEvents: isFull ? 'none' : 'auto'
         }}
       >
+        <div
+          className="card"
+          style={{
+            background: 'var(--bg-card)',
+            border: isFull 
+              ? '1.5px solid rgba(239, 68, 68, 0.45)' 
+              : (kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)'),
+            borderRadius: '20px',
+            overflow: 'hidden',
+            padding: 0,
+            boxShadow: isFull 
+              ? '0 4px 14px rgba(0, 0, 0, 0.08)' 
+              : (kost.promoted?.active
+                ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
+                : 'var(--shadow-md)'),
+            transition: 'all 0.25s cubic-bezier(0.2, 0, 0, 1)',
+            cursor: isFull ? 'not-allowed' : 'pointer',
+            width: '100%',
+            boxSizing: 'border-box',
+            opacity: isFull ? 0.92 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isFull) {
+              e.currentTarget.style.transform = 'translateY(-6px)';
+              e.currentTarget.style.boxShadow = kost.promoted?.active
+                ? '0 20px 40px -8px rgba(245, 158, 11, 0.35), 0 0 0 1px rgba(245, 158, 11, 0.5)'
+                : 'var(--shadow-lg)';
+              e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'var(--border-accent)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isFull) {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = kost.promoted?.active
+                ? '0 12px 32px -5px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)'
+                : 'var(--shadow-md)';
+              e.currentTarget.style.borderColor = kost.promoted?.active ? '#f59e0b' : 'var(--border-color)';
+            }
+          }}
+        >
         {/* Dynamic 4:3 Aspect Ratio Photo Slider */}
         <KostCardImageSlider
           images={kost.images}
@@ -2415,5 +2499,6 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
         </div>
       </div>
     </Link>
+  </div>
   );
 }

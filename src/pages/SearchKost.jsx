@@ -25,7 +25,8 @@ import {
   Heart,
   Scale,
   Flame,
-  Check
+  Check,
+  Ban
 } from 'lucide-react';
 import { apiGetPublicKosts } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -971,6 +972,10 @@ export default function SearchKost({ user }) {
             {filteredKosts.map((kost) => {
               const minPrice = getMinPrice(kost);
               const roomCount = kost.rooms?.length || 0;
+              const availableRooms = (kost.rooms || []).filter(r => r.status === 'available' || !r.status);
+              const availableRoomsCount = availableRooms.length;
+              const isFull = (kost.rooms && kost.rooms.length > 0 && availableRoomsCount === 0) || kost.status === 'full' || kost.isFull;
+
               const images = getValidBuildingImages(kost.images, DEFAULT_BUILDING_PHOTO);
               const curImgIdx = cardPhotoIndex[kost.uid] || 0;
               const activeImg = images[curImgIdx % images.length];
@@ -987,16 +992,29 @@ export default function SearchKost({ user }) {
                   key={kost.uid} 
                   id={`kost-card-${kost.uid}`}
                   className="kost-card-container animate-fade-in"
-                  onClick={() => navigate(`/kost/${kost.uid}`)}
+                  onClick={(e) => {
+                    if (isFull) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      alert(`Maaf, seluruh kamar di ${kost.kostName} saat ini sedang terisi penuh.`);
+                      return;
+                    }
+                    navigate(`/kost/${kost.uid}`);
+                  }}
                   style={{
                     position: 'relative',
-                    cursor: 'pointer',
-                    border: isHighlighted
-                      ? '2.5px solid #f59e0b'
-                      : (isCompared ? '1.5px solid #3b82f6' : (kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)')),
-                    boxShadow: isHighlighted
-                      ? '0 0 30px rgba(245, 158, 11, 0.5), 0 10px 25px rgba(0, 0, 0, 0.5)'
-                      : (isCompared ? '0 0 20px rgba(59, 130, 246, 0.25)' : (kost.promoted?.active ? '0 8px 24px rgba(245, 158, 11, 0.25)' : undefined)),
+                    cursor: isFull ? 'not-allowed' : 'pointer',
+                    opacity: isFull ? 0.92 : 1,
+                    border: isFull 
+                      ? '1.5px solid rgba(239, 68, 68, 0.45)' 
+                      : (isHighlighted
+                        ? '2.5px solid #f59e0b'
+                        : (isCompared ? '1.5px solid #3b82f6' : (kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)'))),
+                    boxShadow: isFull
+                      ? '0 4px 14px rgba(0, 0, 0, 0.08)'
+                      : (isHighlighted
+                        ? '0 0 30px rgba(245, 158, 11, 0.5), 0 10px 25px rgba(0, 0, 0, 0.5)'
+                        : (isCompared ? '0 0 20px rgba(59, 130, 246, 0.25)' : (kost.promoted?.active ? '0 8px 24px rgba(245, 158, 11, 0.25)' : undefined))),
                     transform: isHighlighted ? 'scale(1.01)' : undefined,
                     transition: 'all 0.3s ease'
                   }}
@@ -1031,7 +1049,58 @@ export default function SearchKost({ user }) {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = DEFAULT_BUILDING_PHOTO;
                       }}
+                      style={{
+                        filter: isFull ? 'grayscale(50%) brightness(0.65)' : 'none',
+                        transition: 'filter 0.3s'
+                      }}
                     />
+
+                    {/* Overlay Kamar Penuh */}
+                    {isFull && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(15, 23, 42, 0.62)',
+                        backdropFilter: 'blur(3px)',
+                        WebkitBackdropFilter: 'blur(3px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 4,
+                        padding: '1rem',
+                        textAlign: 'center',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{
+                          background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                          color: '#ffffff',
+                          padding: '6px 14px',
+                          borderRadius: '10px',
+                          fontWeight: 900,
+                          fontSize: '0.85rem',
+                          letterSpacing: '0.04em',
+                          boxShadow: '0 4px 16px rgba(185, 28, 28, 0.6)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          textTransform: 'uppercase',
+                          border: '1px solid rgba(255, 255, 255, 0.25)'
+                        }}>
+                          <Ban size={15} strokeWidth={2.5} />
+                          <span>Kamar Penuh</span>
+                        </div>
+                        <span style={{
+                          color: '#f8fafc',
+                          fontSize: '0.72rem',
+                          marginTop: '5px',
+                          fontWeight: 700,
+                          textShadow: '0 2px 6px rgba(0, 0, 0, 0.9)'
+                        }}>
+                          Semua unit saat ini sudah terisi
+                        </span>
+                      </div>
+                    )}
 
                     {/* Left & Right Image Controls on Hover */}
                     {images.length > 1 && (
@@ -1394,35 +1463,61 @@ export default function SearchKost({ user }) {
                         </a>
 
                         {/* Main Detail Button */}
-                        <button
-                          type="button" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/kost/${kost.uid}`);
-                          }}
-                          style={{
-                            flex: 1,
-                            minWidth: '130px',
-                            border: 'none',
-                            textDecoration: 'none',
-                            padding: '10px 14px',
-                            borderRadius: '12px',
-                            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                            color: 'white',
-                            fontWeight: 800,
-                            fontSize: '0.86rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
-                            transition: 'opacity 0.2s'
-                          }}
-                        >
-                          <span>Pilih & Booking</span>
-                          <ChevronRight size={15} />
-                        </button>
+                        {isFull ? (
+                          <button
+                            type="button" 
+                            disabled
+                            style={{
+                              flex: 1,
+                              minWidth: '130px',
+                              border: 'none',
+                              padding: '10px 14px',
+                              borderRadius: '12px',
+                              background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)',
+                              color: isLight ? '#94a3b8' : '#64748b',
+                              fontWeight: 800,
+                              fontSize: '0.86rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              cursor: 'not-allowed'
+                            }}
+                          >
+                            <Ban size={15} />
+                            <span>Kamar Penuh</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/kost/${kost.uid}`);
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: '130px',
+                              border: 'none',
+                              textDecoration: 'none',
+                              padding: '10px 14px',
+                              borderRadius: '12px',
+                              background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                              color: 'white',
+                              fontWeight: 800,
+                              fontSize: '0.86rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              cursor: 'pointer',
+                              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+                              transition: 'opacity 0.2s'
+                            }}
+                          >
+                            <span>Pilih & Booking</span>
+                            <ChevronRight size={15} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
