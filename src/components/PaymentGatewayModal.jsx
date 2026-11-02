@@ -4,8 +4,6 @@ import {
   CheckCircle, 
   CreditCard, 
   QrCode, 
-  Building2, 
-  Wallet, 
   Copy, 
   Check, 
   Clock, 
@@ -29,9 +27,6 @@ const PaymentGatewayModal = ({
   onOpenReceipt 
 }) => {
   const { isLight } = useTheme();
-  const [activeTab, setActiveTab] = useState('qris'); // 'qris' | 'va' | 'ewallet'
-  const [selectedBank, setSelectedBank] = useState('BCA');
-  const [selectedWallet, setSelectedWallet] = useState('GOPAY');
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 mins
   const [isProcessing, setIsProcessing] = useState(false);
@@ -87,10 +82,10 @@ const PaymentGatewayModal = ({
     if (isOpen && invoice) {
       initTransaction();
     }
-  }, [isOpen, invoice, activeTab, selectedBank]);
+  }, [isOpen, invoice]);
 
   const baseRentAmount = Number(invoice?.total || invoice?.amount || 0);
-  const convenienceFee = 2000;
+  const convenienceFee = 0;
   const totalWithFee = baseRentAmount + convenienceFee;
 
   const initTransaction = async () => {
@@ -103,36 +98,34 @@ const PaymentGatewayModal = ({
         amount: totalWithFee,
         customerName: user?.name || invoice?.userName || 'Penghuni Kost',
         roomNumber: invoice?.kamar || user?.kamar || '-',
-        paymentMethod: activeTab === 'va' ? `VA ${selectedBank}` : activeTab === 'ewallet' ? selectedWallet : 'QRIS'
+        paymentMethod: 'QRIS'
       });
       setTransaction(trx);
 
-      if (activeTab === 'qris') {
-        setQrisLoading(true);
-        try {
-          const qrisRes = await apiChargeQris({
-            orderId: trx.orderId,
-            amount: totalWithFee,
-            customerName: user?.name || invoice?.userName || 'Penghuni Kost',
-            roomNumber: invoice?.kamar || user?.kamar || '-',
-            merchantName: `KOSTKU SEWA KMR ${invoice?.kamar || user?.kamar || '-'}`,
-            invoiceId: invoice?.id
-          });
-          if (qrisRes?.qrCodeUrl) {
-            setQrisDataUrl(qrisRes.qrCodeUrl);
-          } else {
-            throw new Error('No QR Code Url');
-          }
-        } catch (e) {
-          const fallback = await generateQrisDataUrl({
-            amount: totalWithFee,
-            orderId: trx.orderId,
-            merchantName: `KOSTKU SEWA KMR ${invoice?.kamar || user?.kamar || '-'}`
-          });
-          setQrisDataUrl(fallback.dataUrl);
-        } finally {
-          setQrisLoading(false);
+      setQrisLoading(true);
+      try {
+        const qrisRes = await apiChargeQris({
+          orderId: trx.orderId,
+          amount: totalWithFee,
+          customerName: user?.name || invoice?.userName || 'Penghuni Kost',
+          roomNumber: invoice?.kamar || user?.kamar || '-',
+          merchantName: `KOSTKU SEWA KMR ${invoice?.kamar || user?.kamar || '-'}`,
+          invoiceId: invoice?.id
+        });
+        if (qrisRes?.qrCodeUrl) {
+          setQrisDataUrl(qrisRes.qrCodeUrl);
+        } else {
+          throw new Error('No QR Code Url');
         }
+      } catch (e) {
+        const fallback = await generateQrisDataUrl({
+          amount: totalWithFee,
+          orderId: trx.orderId,
+          merchantName: `KOSTKU SEWA KMR ${invoice?.kamar || user?.kamar || '-'}`
+        });
+        setQrisDataUrl(fallback.dataUrl);
+      } finally {
+        setQrisLoading(false);
       }
     } catch (err) {
       console.error('Error creating payment transaction:', err);
@@ -152,8 +145,6 @@ const PaymentGatewayModal = ({
     const s = secs % 60;
     return `${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
-
-  const vaNumber = transaction?.vaNumber || `89888${String(user?.id || 102938).slice(-4)}${invoice.id || 12}`;
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -420,7 +411,7 @@ const PaymentGatewayModal = ({
                   <div style={{ marginTop: '4px', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1' }}>
                     <span>Sewa: {formatRupiah(baseRentAmount)} (100% ke Pemilik)</span>
                     <span style={{ margin: '0 6px', color: isLight ? '#94a3b8' : '#64748b' }}>•</span>
-                    <span style={{ color: isLight ? '#0369a1' : '#38bdf8', fontWeight: 600 }}>Biaya Sistem & WA Bot: {formatRupiah(convenienceFee)}</span>
+                    <span style={{ color: isLight ? '#059669' : '#34d399', fontWeight: 600 }}>Biaya Admin: Bebas Biaya Admin (QRIS)</span>
                   </div>
                   <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '2px' }}>
                     Sewa Kamar {invoice.kamar || user?.kamar} • Order ID: {transaction?.orderId || `ORD-${invoice.id}`}
@@ -443,316 +434,96 @@ const PaymentGatewayModal = ({
                 </div>
               </div>
 
-              {/* Payment Method Selector Tabs */}
+              {/* QRIS Channel Header Badge */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 gap: '8px',
                 marginBottom: '1.25rem',
-                background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.6)',
-                padding: '5px',
+                background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.15)',
+                padding: '10px 16px',
                 borderRadius: '14px',
-                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
+                border: isLight ? '1px solid rgba(37, 99, 235, 0.2)' : '1px solid rgba(59, 130, 246, 0.3)',
+                color: isLight ? '#1d4ed8' : '#93c5fd',
+                fontSize: '0.84rem',
+                fontWeight: 800
               }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('qris')}
-                  style={{
-                    padding: '8px 4px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: activeTab === 'qris' 
-                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' 
-                      : (isLight ? '#ffffff' : 'transparent'),
-                    color: activeTab === 'qris' 
-                      ? 'white' 
-                      : (isLight ? '#475569' : '#94a3b8'),
-                    boxShadow: activeTab === 'qris' 
-                      ? '0 4px 12px rgba(37, 99, 235, 0.25)' 
-                      : (isLight ? '0 1px 2px rgba(0, 0, 0, 0.04)' : 'none'),
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <QrCode size={16} />
-                  <span>QRIS Instan</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('va')}
-                  style={{
-                    padding: '8px 4px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: activeTab === 'va' 
-                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' 
-                      : (isLight ? '#ffffff' : 'transparent'),
-                    color: activeTab === 'va' 
-                      ? 'white' 
-                      : (isLight ? '#475569' : '#94a3b8'),
-                    boxShadow: activeTab === 'va' 
-                      ? '0 4px 12px rgba(37, 99, 235, 0.25)' 
-                      : (isLight ? '0 1px 2px rgba(0, 0, 0, 0.04)' : 'none'),
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Building2 size={16} />
-                  <span>Virtual Account</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('ewallet')}
-                  style={{
-                    padding: '8px 4px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: activeTab === 'ewallet' 
-                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' 
-                      : (isLight ? '#ffffff' : 'transparent'),
-                    color: activeTab === 'ewallet' 
-                      ? 'white' 
-                      : (isLight ? '#475569' : '#94a3b8'),
-                    boxShadow: activeTab === 'ewallet' 
-                      ? '0 4px 12px rgba(37, 99, 235, 0.25)' 
-                      : (isLight ? '0 1px 2px rgba(0, 0, 0, 0.04)' : 'none'),
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Wallet size={16} />
-                  <span>E-Wallet</span>
-                </button>
+                <QrCode size={18} color="#2563eb" />
+                <span>QRIS Dinamis Nasional (Scan Semua Bank & E-Wallet)</span>
               </div>
 
-              {/* Tab 1: QRIS */}
-              {activeTab === 'qris' && (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{
-                    background: '#ffffff',
-                    borderRadius: '18px',
-                    padding: '1.25rem',
-                    display: 'inline-block',
-                    margin: '0 auto 1rem auto',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
-                    border: '4px solid #f1f5f9',
-                    maxWidth: '280px',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}>
-                    {/* Header QRIS */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#dc2626', letterSpacing: '1px' }}>QRIS</span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#475569' }}>BANK INDONESIA / ASPI</span>
-                    </div>
-
-                    {/* QR Code Dynamic Scannable Image */}
-                    <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {qrisLoading ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
-                          <RefreshCw size={24} className="animate-spin" color="#2563eb" />
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Membuat QRIS Dinamis...</span>
-                        </div>
-                      ) : qrisDataUrl ? (
-                        <img
-                          src={qrisDataUrl}
-                          alt="QRIS Dinamis Tagihan Sewa"
-                          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                        />
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                          <RefreshCw size={24} className="animate-spin" color="#2563eb" />
-                          <span style={{ fontSize: '0.68rem', color: '#0f172a' }}>Menghubungkan ke Gateway...</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ marginTop: '8px', borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', fontWeight: 600 }}>NMID: ID1029384758920</span>
-                      <span style={{ fontSize: '0.74rem', color: '#0f172a', fontWeight: 800 }}>KostKu Managed Properties</span>
-                    </div>
+              {/* QRIS Direct Screen */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '1.25rem',
+                  display: 'inline-block',
+                  margin: '0 auto 1rem auto',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+                  border: '4px solid #f1f5f9',
+                  maxWidth: '280px',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  {/* Header QRIS */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#dc2626', letterSpacing: '1px' }}>QRIS</span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#475569' }}>BANK INDONESIA / ASPI</span>
                   </div>
 
+                  {/* QR Code Dynamic Scannable Image */}
+                  <div style={{ position: 'relative', width: '200px', height: '200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {qrisLoading ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
+                        <RefreshCw size={24} className="animate-spin" color="#2563eb" />
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Membuat QRIS Dinamis...</span>
+                      </div>
+                    ) : qrisDataUrl ? (
+                      <img
+                        src={qrisDataUrl}
+                        alt="QRIS Dinamis Tagihan Sewa"
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                      />
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                        <RefreshCw size={24} className="animate-spin" color="#2563eb" />
+                        <span style={{ fontSize: '0.68rem', color: '#0f172a' }}>Menghubungkan ke Gateway...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: '8px', borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', fontWeight: 600 }}>NMID: ID1029384758920</span>
+                    <span style={{ fontSize: '0.74rem', color: '#0f172a', fontWeight: 800 }}>KostKu Managed Properties</span>
+                  </div>
+                </div>
+
+                <div style={{
+                  margin: '0 auto 1rem auto',
+                  maxWidth: '420px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
                   <div style={{
-                    margin: '0 auto 1rem auto',
-                    maxWidth: '420px',
+                    background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.08)',
+                    border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.25)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    fontSize: '0.78rem',
+                    color: isLight ? '#1e40af' : '#93c5fd',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
+                    alignItems: 'center',
+                    gap: '8px',
+                    textAlign: 'left'
                   }}>
-                    <div style={{
-                      background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.08)',
-                      border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.25)',
-                      borderRadius: '12px',
-                      padding: '10px 14px',
-                      fontSize: '0.78rem',
-                      color: isLight ? '#1e40af' : '#93c5fd',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      textAlign: 'left'
-                    }}>
-                      <RefreshCw size={15} className="animate-spin" style={{ flexShrink: 0 }} />
-                      <span>Diproses aman melalui TriPay Payment Gateway resmi. Sistem otomatis memverifikasi transaksi Anda.</span>
-                    </div>
+                    <RefreshCw size={15} className="animate-spin" style={{ flexShrink: 0 }} />
+                    <span>Diproses aman melalui TriPay Payment Gateway resmi. Buka BCA, Mandiri, BRI, BNI, GoPay, OVO, atau DANA untuk scan QR Code di atas.</span>
                   </div>
                 </div>
-              )}
-
-              {/* Tab 2: Virtual Account */}
-              {activeTab === 'va' && (
-                <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '1rem' }}>
-                    {['BCA', 'MANDIRI', 'BRI', 'BNI'].map(bank => (
-                      <button
-                        key={bank}
-                        type="button"
-                        onClick={() => setSelectedBank(bank)}
-                        style={{
-                          padding: '8px 4px',
-                          borderRadius: '10px',
-                          border: selectedBank === bank 
-                            ? '1.5px solid #2563eb' 
-                            : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'),
-                          background: selectedBank === bank 
-                            ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)') 
-                            : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)'),
-                          color: selectedBank === bank 
-                            ? (isLight ? '#1d4ed8' : '#60a5fa') 
-                            : (isLight ? '#64748b' : '#94a3b8'),
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {bank}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div style={{
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    borderRadius: '14px',
-                    padding: '1.25rem',
-                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
-                    marginBottom: '1rem'
-                  }}>
-                    <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>NOMOR VIRTUAL ACCOUNT {selectedBank}</span>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginTop: '6px',
-                      background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.3)',
-                      border: isLight ? '1px solid #cbd5e1' : 'none',
-                      padding: '10px 14px',
-                      borderRadius: '10px'
-                    }}>
-                      <strong style={{ fontSize: '1.25rem', color: isLight ? '#0284c7' : '#38bdf8', letterSpacing: '1px' }}>
-                        {vaNumber}
-                      </strong>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(vaNumber)}
-                        style={{
-                          background: copied ? '#22c55e' : (isLight ? '#2563eb' : 'rgba(59, 130, 246, 0.3)'),
-                          border: 'none',
-                          color: 'white',
-                          borderRadius: '8px',
-                          padding: '6px 10px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                        {copied ? 'Tersalin' : 'Salin'}
-                      </button>
-                    </div>
-
-                    <div style={{ marginTop: '12px', fontSize: '0.76rem', color: isLight ? '#475569' : '#94a3b8', lineHeight: '1.4' }}>
-                      <p style={{ margin: '0 0 4px 0' }}>• Buka m-Banking {selectedBank} &gt; Pilih Bayar &gt; Virtual Account</p>
-                      <p style={{ margin: '0 0 4px 0' }}>• Masukkan nomor VA di atas</p>
-                      <p style={{ margin: 0 }}>• Nominal otomatis sesuai tagihan ({formatRupiah(totalWithFee)})</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 3: E-Wallet */}
-              {activeTab === 'ewallet' && (
-                <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '1rem' }}>
-                    {['GOPAY', 'OVO', 'SHOPEEPAY'].map(w => (
-                      <button
-                        key={w}
-                        type="button"
-                        onClick={() => setSelectedWallet(w)}
-                        style={{
-                          padding: '10px 4px',
-                          borderRadius: '10px',
-                          border: selectedWallet === w 
-                            ? '1.5px solid #2563eb' 
-                            : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'),
-                          background: selectedWallet === w 
-                            ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)') 
-                            : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)'),
-                          color: selectedWallet === w 
-                            ? (isLight ? '#1d4ed8' : '#60a5fa') 
-                            : (isLight ? '#64748b' : '#94a3b8'),
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {w}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div style={{
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    borderRadius: '14px',
-                    padding: '1.25rem',
-                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
-                    marginBottom: '1rem',
-                    textAlign: 'center'
-                  }}>
-                    <p style={{ fontSize: '0.85rem', color: isLight ? '#334155' : '#e2e8f0', margin: '0 0 10px 0' }}>
-                      Nomor Handphone Terdaftar:
-                    </p>
-                    <strong style={{ fontSize: '1.15rem', color: isLight ? '#0284c7' : '#38bdf8' }}>
-                      {user?.phone || '0812-3456-7890'}
-                    </strong>
-                    <p style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', margin: '10px 0 0 0' }}>
-                      Notifikasi konfirmasi pembayaran akan dikirimkan otomatis ke aplikasi {selectedWallet} Anda.
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
 
               {/* Real Production Verification Bar */}
               {checkNotice && (

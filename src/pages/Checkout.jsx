@@ -7,9 +7,6 @@ import {
   Building,
   CreditCard,
   QrCode,
-  Building2,
-  Wallet,
-  Store,
   Clock,
   Copy,
   Check,
@@ -40,12 +37,12 @@ import Footer from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
 import UnpaidNoticeModal from '../components/UnpaidNoticeModal';
 
-// Payment Channel Options
+// Payment Channel Options - Khusus QRIS Dinamis Nasional
 const PAYMENT_CATEGORIES = [
   {
     id: 'qris',
-    title: 'QRIS Dinamis (Rekomendasi)',
-    subtitle: 'BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay',
+    title: 'QRIS Dinamis (Khusus Pembayaran Instan)',
+    subtitle: 'BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay & Seluruh m-Banking',
     icon: QrCode,
     badge: 'Bebas Biaya Admin',
     badgeColor: '#10b981',
@@ -53,52 +50,10 @@ const PAYMENT_CATEGORIES = [
       {
         id: 'QRIS',
         name: 'QRIS Dinamis Nasional',
-        desc: 'Scan dari seluruh m-Banking & e-Wallet di Indonesia',
+        desc: 'Scan dari seluruh m-Banking & e-Wallet di Indonesia tanpa biaya admin',
         fee: 0,
         logoText: 'QRIS'
       }
-    ]
-  },
-  {
-    id: 'va',
-    title: 'Virtual Account (Transfer Otomatis)',
-    subtitle: 'Konfirmasi otomatis 24 jam tanpa kirim bukti transfer manual',
-    icon: Building2,
-    badge: 'Otomatis 24 Jam',
-    badgeColor: '#3b82f6',
-    methods: [
-      { id: 'VA BCA', name: 'BCA Virtual Account', bank: 'BCA', fee: 2000, logoText: 'BCA' },
-      { id: 'VA MANDIRI', name: 'Mandiri Virtual Account', bank: 'MANDIRI', fee: 2000, logoText: 'MANDIRI' },
-      { id: 'VA BNI', name: 'BNI Virtual Account', bank: 'BNI', fee: 2000, logoText: 'BNI' },
-      { id: 'VA BRI', name: 'BRI Virtual Account (BRIVA)', bank: 'BRI', fee: 2000, logoText: 'BRI' },
-      { id: 'VA PERMATA', name: 'Permata Virtual Account', bank: 'PERMATA', fee: 2000, logoText: 'PERMATA' },
-      { id: 'VA CIMB', name: 'CIMB Niaga Virtual Account', bank: 'CIMB', fee: 2000, logoText: 'CIMB' }
-    ]
-  },
-  {
-    id: 'ewallet',
-    title: 'E-Wallet Instan',
-    subtitle: 'Pembayaran instan langsung dari aplikasi e-Wallet favorit',
-    icon: Wallet,
-    badge: 'Instan',
-    badgeColor: '#f59e0b',
-    methods: [
-      { id: 'GOPAY', name: 'GoPay', fee: 1500, logoText: 'GoPay' },
-      { id: 'OVO', name: 'OVO', fee: 1500, logoText: 'OVO' },
-      { id: 'DANA', name: 'DANA', fee: 1500, logoText: 'DANA' },
-      { id: 'SHOPEEPAY', name: 'ShopeePay', fee: 1500, logoText: 'ShopeePay' }
-    ]
-  },
-  {
-    id: 'retail',
-    title: 'Gerai Retail (Minimarket)',
-    subtitle: 'Bayar tunai di kasir gerai terdekat dengan menunjukkan kode bayar',
-    icon: Store,
-    badge: 'Bayar di Kasir',
-    badgeColor: '#8b5cf6',
-    methods: [
-      { id: 'INDOMARET', name: 'Indomaret / Ceriamart', fee: 2500, logoText: 'Indomaret' },
-      { id: 'ALFAMART', name: 'Alfamart / Alfamidi / Dan+Dan', fee: 2500, logoText: 'Alfamart' }
     ]
   }
 ];
@@ -145,7 +100,6 @@ export default function Checkout({ user }) {
   const [qrisLoading, setQrisLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [settledReceipt, setSettledReceipt] = useState(null);
-  const [activeVaTab, setActiveVaTab] = useState('mbanking'); // 'atm' | 'mbanking' | 'ibanking'
   const [showUnpaidModal, setShowUnpaidModal] = useState(false);
   const [unpaidErrorMsg, setUnpaidErrorMsg] = useState('');
 
@@ -1353,161 +1307,6 @@ export default function Checkout({ user }) {
 
                   <p style={{ fontSize: '0.82rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5, margin: '0 auto 1.25rem', maxWidth: '420px' }}>
                     Buka aplikasi <strong>BCA Mobile, Livin' Mandiri, BRImo, BNI, GoPay, OVO, atau DANA</strong>, lalu scan QR Code di atas. Tagihan akan terverifikasi secara otomatis.
-                  </p>
-                </div>
-              )}
-
-              {/* ── Sub-view B: VIRTUAL ACCOUNT ───────────────────────── */}
-              {currentMethod.category === 'va' && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{
-                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
-                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '16px',
-                    padding: '1.25rem',
-                    marginBottom: '1rem'
-                  }}>
-                    <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginBottom: '4px' }}>
-                      Nomor Virtual Account ({currentMethod.name}):
-                    </span>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: isLight ? '#f1f5f9' : '#1e293b',
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(59, 130, 246, 0.3)'
-                    }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: isLight ? '#0284c7' : '#38bdf8', letterSpacing: '1px', fontFamily: 'monospace' }}>
-                        {transaction.vaNumber || '1288808123456789'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(transaction.vaNumber || '1288808123456789', 'va')}
-                        style={{
-                          background: copiedText === 'va' ? '#10b981' : (isLight ? '#e0f2fe' : 'rgba(59, 130, 246, 0.2)'),
-                          border: 'none',
-                          color: copiedText === 'va' ? 'white' : (isLight ? '#0284c7' : 'white'),
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700
-                        }}
-                      >
-                        {copiedText === 'va' ? <Check size={14} /> : <Copy size={14} />}
-                        <span>{copiedText === 'va' ? 'Tersalin' : 'Salin'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* VA Step Instructions */}
-                  <div style={{
-                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
-                    borderRadius: '14px',
-                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
-                    padding: '12px 14px'
-                  }}>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveVaTab('mbanking')}
-                        style={{
-                          background: activeVaTab === 'mbanking' ? (isLight ? '#e0f2fe' : 'rgba(59, 130, 246, 0.25)') : 'transparent',
-                          color: activeVaTab === 'mbanking' ? (isLight ? '#0284c7' : '#38bdf8') : (isLight ? '#64748b' : '#94a3b8'),
-                          border: 'none',
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Mobile Banking
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveVaTab('atm')}
-                        style={{
-                          background: activeVaTab === 'atm' ? (isLight ? '#e0f2fe' : 'rgba(59, 130, 246, 0.25)') : 'transparent',
-                          color: activeVaTab === 'atm' ? (isLight ? '#0284c7' : '#38bdf8') : (isLight ? '#64748b' : '#94a3b8'),
-                          border: 'none',
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ATM
-                      </button>
-                    </div>
-
-                    <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.6 }}>
-                      <li>Buka aplikasi Mobile Banking pilihan Anda (misal BCA / Mandiri / BNI / BRI).</li>
-                      <li>Pilih menu <strong>Transfer</strong> &gt; <strong>Virtual Account</strong>.</li>
-                      <li>Masukkan Nomor VA <strong>{transaction.vaNumber || '1288808123456789'}</strong>.</li>
-                      <li>Pastikan nama merchant tertera <strong>KostKu</strong> dengan nominal <strong>Rp {grandTotal.toLocaleString('id-ID')}</strong>.</li>
-                      <li>Konfirmasi PIN transaksi Anda. Pembayaran otomatis diverifikasi dalam hitungan detik.</li>
-                    </ol>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Sub-view C: E-WALLET & RETAIL ──────────────────────── */}
-              {(currentMethod.category === 'ewallet' || currentMethod.category === 'retail') && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{
-                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
-                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '16px',
-                    padding: '1.25rem',
-                    marginBottom: '1rem'
-                  }}>
-                    <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginBottom: '4px' }}>
-                      Kode Pembayaran ({currentMethod.name}):
-                    </span>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: isLight ? '#fffbeb' : '#1e293b',
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)'
-                    }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: isLight ? '#b45309' : '#f59e0b', letterSpacing: '1px', fontFamily: 'monospace' }}>
-                        {transaction.paymentCode || `KST-${Math.floor(10000000 + Math.random() * 90000000)}`}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(transaction.paymentCode || 'KST-88192049', 'code')}
-                        style={{
-                          background: copiedText === 'code' ? '#10b981' : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
-                          border: 'none',
-                          color: copiedText === 'code' ? 'white' : (isLight ? '#b45309' : 'white'),
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700
-                        }}
-                      >
-                        {copiedText === 'code' ? <Check size={14} /> : <Copy size={14} />}
-                        <span>{copiedText === 'code' ? 'Tersalin' : 'Salin'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <p style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
-                    Tunjukkan kode pembayaran di atas ke kasir <strong>{currentMethod.name}</strong> atau masukkan di menu pembayaran aplikasi. Pembayaran akan tersinkronisasi otomatis ke akun KostKu Anda.
                   </p>
                 </div>
               )}

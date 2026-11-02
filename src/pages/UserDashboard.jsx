@@ -1485,7 +1485,7 @@ const UserDashboard = ({ user }) => {
                         boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)'
                       }}
                     >
-                      <CreditCard size={16} /> Bayar Sekarang (QRIS & Virtual Account)
+                      <CreditCard size={16} /> Bayar Sekarang (QRIS Instan)
                     </button>
 
                     <button 
