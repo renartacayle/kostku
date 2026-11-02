@@ -25,6 +25,7 @@ import AutoUpdateModal from './components/AutoUpdateModal';
 import AddPropertyModal from './components/AddPropertyModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import CustomerServiceFloatingButton from './components/CustomerServiceFloatingButton';
+import GooeyToast from './components/GooeyToast';
 import RouteMetadataManager from './components/RouteMetadataManager';
 import { apiSwitchOwnerKost } from './services/api';
 
@@ -251,8 +252,8 @@ function App() {
       <ErrorBoundary>
         <Suspense fallback={<PageLoadingFallback />}>
           <Routes>
-          {/* Public Landing & Marketplace */}
-          <Route path="/" element={<Home user={activeUser} />} />
+            {/* Public Landing & Marketplace */}
+            <Route path="/" element={<Home user={activeUser} />} />
           <Route path="/search" element={<SearchKost user={activeUser} />} />
           <Route path="/cari-kost" element={<SearchKost user={activeUser} />} />
           <Route path="/cari" element={<Navigate to="/search" replace />} />
@@ -395,6 +396,9 @@ function App() {
         </Routes>
       </Suspense>
     </ErrorBoundary>
+
+      {/* Global Gooey Drop Notification System */}
+      <GooeyToast />
 
       {/* Global Customer Service & FAQ Floating Button */}
       <CustomerServiceFloatingButton />

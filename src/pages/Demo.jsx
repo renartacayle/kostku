@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { apiLogin } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { KitchenShowcaseSection } from '../components/kitchen';
 
 const DEMO_ACCOUNTS = [
   {
@@ -531,6 +532,9 @@ export default function Demo({ onLogin }) {
             </Link>
           </div>
         </div>
+
+        {/* Interactive Micro-Interactions & Motion Labs Showcase */}
+        <KitchenShowcaseSection />
       </div>
     </div>
   );

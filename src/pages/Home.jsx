@@ -42,7 +42,7 @@ import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
 import FloorPlanModal from '../components/FloorPlanModal';
 import KostFilterModal from '../components/KostFilterModal';
 import Footer from '../components/Footer';
-import { TactileButton } from '../components/kitchen';
+import { TactileButton, KitchenShowcaseSection } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
 import { FACILITY_OPTIONS, checkFacilityMatch } from './SearchKost';
 import { 
@@ -1965,6 +1965,9 @@ export default function Home({ user }) {
             )}
           </>
         )}
+
+        {/* KostKu Micro-Interactions & Motion Labs Showcase */}
+        <KitchenShowcaseSection />
 
       </main>
       
