@@ -82,8 +82,11 @@ export function generateEMVCoQris({
  * Generates high-res base64 Data URL for the dynamic QRIS
  */
 export async function generateQrisDataUrl(params) {
+  const rawPayload = (typeof params === 'string') 
+    ? params 
+    : (params?.qrString || generateEMVCoQris(params));
+
   try {
-    const rawPayload = generateEMVCoQris(params);
     const dataUrl = await QRCode.toDataURL(rawPayload, {
       margin: 1,
       width: 320,
@@ -101,7 +104,6 @@ export async function generateQrisDataUrl(params) {
     };
   } catch (err) {
     // Online API fallback
-    const rawPayload = generateEMVCoQris(params);
     const fallbackUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=${encodeURIComponent(rawPayload)}`;
     return {
       success: true,

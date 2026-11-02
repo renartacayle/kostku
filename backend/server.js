@@ -6814,6 +6814,33 @@ app.post('/api/electricity/order', async (req, res) => {
     vaNumber = `${bankPrefixes[bankKey]}${userSeed}${randSuffix}`;
   }
 
+  let qrString = tripayData?.qrString || null;
+  let qrCodeUrl = tripayData?.qrUrl || null;
+
+  if (!qrString) {
+    qrString = generateEMVCoQris({
+      merchantName: `PLN TOKEN KMR ${roomNumber || '-'}`,
+      amount: totalAmount,
+      orderId
+    });
+  }
+
+  if (!qrCodeUrl && qrString) {
+    try {
+      qrCodeUrl = await QRCode.toDataURL(qrString, {
+        margin: 1,
+        width: 320,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'M'
+      });
+    } catch (e) {
+      qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=${encodeURIComponent(qrString)}`;
+    }
+  }
+
   const transaction = {
     id: Date.now(),
     orderId,
@@ -6834,8 +6861,8 @@ app.post('/api/electricity/order', async (req, res) => {
     paymentCode,
     tripayReference: tripayData?.reference || null,
     tripayCheckoutUrl: tripayData?.checkoutUrl || null,
-    qrString: tripayData?.qrString || null,
-    qrCodeUrl: tripayData?.qrUrl || null,
+    qrString,
+    qrCodeUrl,
     instructions: tripayData?.instructions || [],
     status: 'pending',
     electricityToken: null,
@@ -7183,6 +7210,33 @@ app.post('/api/pdam/order', async (req, res) => {
     vaNumber = `${bankPrefixes[bankKey]}${userSeed}${randSuffix}`;
   }
 
+  let qrString = tripayData?.qrString || null;
+  let qrCodeUrl = tripayData?.qrUrl || null;
+
+  if (!qrString) {
+    qrString = generateEMVCoQris({
+      merchantName: `PDAM AIR KMR ${roomNumber || '-'}`,
+      amount: totalAmount,
+      orderId
+    });
+  }
+
+  if (!qrCodeUrl && qrString) {
+    try {
+      qrCodeUrl = await QRCode.toDataURL(qrString, {
+        margin: 1,
+        width: 320,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'M'
+      });
+    } catch (e) {
+      qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=${encodeURIComponent(qrString)}`;
+    }
+  }
+
   const transaction = {
     id: Date.now(),
     orderId,
@@ -7207,8 +7261,8 @@ app.post('/api/pdam/order', async (req, res) => {
     paymentCode,
     tripayReference: tripayData?.reference || null,
     tripayCheckoutUrl: tripayData?.checkoutUrl || null,
-    qrString: tripayData?.qrString || null,
-    qrCodeUrl: tripayData?.qrUrl || null,
+    qrString,
+    qrCodeUrl,
     instructions: tripayData?.instructions || [],
     status: 'pending',
     billerRef: null,

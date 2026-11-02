@@ -225,7 +225,7 @@ const PdamPaymentModal = ({
         setTimeLeft(900);
 
         if (trx.paymentMethod === 'QRIS') {
-          if (trx.qrCodeUrl) {
+          if (trx.qrCodeUrl && typeof trx.qrCodeUrl === 'string' && (trx.qrCodeUrl.startsWith('data:') || trx.qrCodeUrl.startsWith('http'))) {
             setQrisImage(trx.qrCodeUrl);
           } else {
             const fallbackQr = await generateQrisDataUrl({
@@ -234,7 +234,8 @@ const PdamPaymentModal = ({
               merchantName: 'KOSTKU PDAM WATER BILL',
               qrString: trx.qrString
             });
-            setQrisImage(fallbackQr);
+            const validUrl = typeof fallbackQr === 'string' ? fallbackQr : (fallbackQr?.dataUrl || '');
+            setQrisImage(validUrl);
           }
         }
 
@@ -995,6 +996,21 @@ const PdamPaymentModal = ({
                       <img 
                         src={qrisImage} 
                         alt="QRIS TriPay" 
+                        onError={async (e) => {
+                          try {
+                            const localRes = await generateQrisDataUrl({
+                              amount: activeOrder?.amount || (inquiryResult?.totalAmount || 0) + 500,
+                              orderId: activeOrder?.orderId,
+                              merchantName: 'KOSTKU PDAM WATER BILL',
+                              qrString: activeOrder?.qrString
+                            });
+                            if (localRes?.dataUrl && e.target.src !== localRes.dataUrl) {
+                              e.target.src = localRes.dataUrl;
+                            }
+                          } catch (err) {
+                            console.error('QR image fallback error:', err);
+                          }
+                        }}
                         style={{ width: '220px', height: '220px', margin: '0 auto', display: 'block', borderRadius: '12px' }} 
                       />
                     ) : (

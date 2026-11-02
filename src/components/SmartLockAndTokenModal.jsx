@@ -189,7 +189,7 @@ const SmartLockAndTokenModal = ({
 
         // Generate QRIS Data URL if method is QRIS
         if (trx.paymentMethod === 'QRIS') {
-          if (trx.qrCodeUrl) {
+          if (trx.qrCodeUrl && typeof trx.qrCodeUrl === 'string' && (trx.qrCodeUrl.startsWith('data:') || trx.qrCodeUrl.startsWith('http'))) {
             setQrisImage(trx.qrCodeUrl);
           } else {
             const fallbackQr = await generateQrisDataUrl({
@@ -198,7 +198,8 @@ const SmartLockAndTokenModal = ({
               merchantName: 'KOSTKU TRIPAY MERCHANT',
               qrString: trx.qrString
             });
-            setQrisImage(fallbackQr);
+            const validUrl = typeof fallbackQr === 'string' ? fallbackQr : (fallbackQr?.dataUrl || '');
+            setQrisImage(validUrl);
           }
         }
 
@@ -844,6 +845,21 @@ const SmartLockAndTokenModal = ({
                       <img 
                         src={qrisImage} 
                         alt="QRIS TriPay" 
+                        onError={async (e) => {
+                          try {
+                            const localRes = await generateQrisDataUrl({
+                              amount: activeOrder?.amount || nominal + 500,
+                              orderId: activeOrder?.orderId,
+                              merchantName: 'KOSTKU TRIPAY MERCHANT',
+                              qrString: activeOrder?.qrString
+                            });
+                            if (localRes?.dataUrl && e.target.src !== localRes.dataUrl) {
+                              e.target.src = localRes.dataUrl;
+                            }
+                          } catch (err) {
+                            console.error('QR image fallback error:', err);
+                          }
+                        }}
                         style={{ width: '220px', height: '220px', margin: '0 auto', display: 'block', borderRadius: '12px' }} 
                       />
                     ) : (
