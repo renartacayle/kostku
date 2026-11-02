@@ -1737,7 +1737,7 @@ export default function Checkout({ user }) {
       <UnpaidNoticeModal
         isOpen={showUnpaidModal}
         onClose={() => setShowUnpaidModal(false)}
-        onRetry={handleVerifyPayment}
+        onRetry={handleVerifyOrSimulate}
         isRetrying={isVerifying}
         amount={grandTotal}
         orderId={transaction?.orderId || ''}

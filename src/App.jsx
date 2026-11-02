@@ -25,7 +25,6 @@ import AutoUpdateModal from './components/AutoUpdateModal';
 import AddPropertyModal from './components/AddPropertyModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import CustomerServiceFloatingButton from './components/CustomerServiceFloatingButton';
-import GooeyToast from './components/GooeyToast';
 import RouteMetadataManager from './components/RouteMetadataManager';
 import { apiSwitchOwnerKost } from './services/api';
 
@@ -396,9 +395,6 @@ function App() {
         </Routes>
       </Suspense>
     </ErrorBoundary>
-
-      {/* Global Gooey Drop Notification System */}
-      <GooeyToast />
 
       {/* Global Customer Service & FAQ Floating Button */}
       <CustomerServiceFloatingButton />

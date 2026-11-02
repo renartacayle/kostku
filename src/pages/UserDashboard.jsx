@@ -850,6 +850,12 @@ const UserDashboard = ({ user }) => {
   }, []);
 
   useEffect(() => {
+    const handleOpenPayment = () => setShowPaymentModal(true);
+    window.addEventListener('kostku:open-payment', handleOpenPayment);
+    return () => window.removeEventListener('kostku:open-payment', handleOpenPayment);
+  }, []);
+
+  useEffect(() => {
     const handleResize = () => {
       setIsMobileScreen(window.innerWidth < 768);
     };

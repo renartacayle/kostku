@@ -3,22 +3,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, 
   MessageCircle, 
-  Search, 
   CreditCard, 
-  AlertCircle, 
-  Sparkles,
-  HelpCircle,
-  X
+  AlertCircle 
 } from 'lucide-react';
 import CustomerServiceModal from './CustomerServiceModal';
-import { showGooeyToast } from './GooeyToast';
 
 /**
- * FabFanMenu - Inspired by Instagram Reel (ui_motion_prompts: Menu Part 1 — Option 3 "FAB Fan")
- * "The + turns into x as five buttons shoot up and fan out on an arc."
+ * FabFanMenu - Refined 3-Action Arc Radial Menu
+ * Options:
+ * 1. Bantuan CS (Straight Up - 90°)
+ * 2. Bayar Sewa (Diagonal Up-Left - 135°) -> directly triggers payment modal on /dashboard or navigates to /checkout
+ * 3. Lapor Tiket (Straight Left - 180°)
  *
- * Arc distribution: 5 buttons fanning out on a 90-degree radial quadrant arc (90° up to 180° left)
- * with staggered spring physics (cubic-bezier overshoot) and interactive tooltips.
+ * "Cari Kost" and "Gooey Drop" have been cleanly removed per user request.
  */
 export default function FabFanMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,15 +43,15 @@ export default function FabFanMenu() {
     return null;
   }
 
-  // 5 Arc action items with math coordinates
-  const radius = 108; // pixels distance from FAB center
+  // 3 Essential Radial Actions across 90-degree quadrant arc
+  const radius = 96; // pixels distance from FAB center
   const arcItems = [
     {
       id: 'cs',
       label: 'Bantuan CS',
       color: '#10b981',
       gradient: 'linear-gradient(135deg, #10b981, #059669)',
-      icon: <MessageCircle size={18} color="#ffffff" />,
+      icon: <MessageCircle size={19} color="#ffffff" />,
       angle: 90, // Straight Up
       onClick: () => {
         setIsOpen(false);
@@ -62,27 +59,20 @@ export default function FabFanMenu() {
       }
     },
     {
-      id: 'search',
-      label: 'Cari Kost',
-      color: '#38bdf8',
-      gradient: 'linear-gradient(135deg, #0284c7, #0369a1)',
-      icon: <Search size={18} color="#ffffff" />,
-      angle: 112.5,
-      onClick: () => {
-        setIsOpen(false);
-        navigate('/search');
-      }
-    },
-    {
       id: 'pay',
       label: 'Bayar Sewa',
       color: '#f59e0b',
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-      icon: <CreditCard size={18} color="#ffffff" />,
+      icon: <CreditCard size={19} color="#ffffff" />,
       angle: 135, // Diagonal Up-Left
       onClick: () => {
         setIsOpen(false);
-        navigate('/checkout');
+        if (location.pathname === '/dashboard') {
+          // Open tenant payment modal immediately on dashboard
+          window.dispatchEvent(new CustomEvent('kostku:open-payment'));
+        } else {
+          navigate('/checkout');
+        }
       }
     },
     {
@@ -90,28 +80,11 @@ export default function FabFanMenu() {
       label: 'Lapor Tiket',
       color: '#ef4444',
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)',
-      icon: <AlertCircle size={18} color="#ffffff" />,
-      angle: 157.5,
-      onClick: () => {
-        setIsOpen(false);
-        navigate('/komplain');
-      }
-    },
-    {
-      id: 'gooey',
-      label: 'Gooey Drop',
-      color: '#8b5cf6',
-      gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-      icon: <Sparkles size={18} color="#ffffff" />,
+      icon: <AlertCircle size={19} color="#ffffff" />,
       angle: 180, // Straight Left
       onClick: () => {
         setIsOpen(false);
-        showGooeyToast({
-          type: 'success',
-          title: 'Gooey Drop Aktif! 💧',
-          message: 'Notifikasi meleleh dan mekar dengan fisika viskositas dinamis.',
-          duration: 4000
-        });
+        navigate('/komplain');
       }
     }
   ];
@@ -151,8 +124,6 @@ export default function FabFanMenu() {
           
           {/* Arc Action Buttons (Shoot up and fan out) */}
           {arcItems.map((item, index) => {
-            // Convert polar to cartesian coordinates:
-            // Angle in radians: angle * PI / 180
             const rad = (item.angle * Math.PI) / 180;
             const x = Math.round(radius * Math.cos(rad));
             const y = Math.round(-radius * Math.sin(rad)); // inverted because Y goes down in CSS
@@ -170,7 +141,7 @@ export default function FabFanMenu() {
                     ? `translate(${x}px, ${y}px) scale(1)`
                     : 'translate(0px, 0px) scale(0)',
                   opacity: isOpen ? 1 : 0,
-                  transition: `transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 38}ms, opacity 0.25s ease ${index * 38}ms`,
+                  transition: `transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 45}ms, opacity 0.22s ease ${index * 45}ms`,
                   zIndex: 9991,
                   display: 'flex',
                   alignItems: 'center',
@@ -183,21 +154,21 @@ export default function FabFanMenu() {
                     position: 'absolute',
                     right: '52px',
                     whiteSpace: 'nowrap',
-                    background: 'rgba(15, 23, 42, 0.92)',
+                    background: 'rgba(15, 23, 42, 0.94)',
                     backdropFilter: 'blur(10px)',
                     WebkitBackdropFilter: 'blur(10px)',
                     color: '#ffffff',
-                    fontSize: '0.72rem',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     letterSpacing: '0.02em',
-                    padding: '3px 10px',
+                    padding: '4px 12px',
                     borderRadius: '9999px',
                     border: '1px solid rgba(255, 255, 255, 0.16)',
-                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.4)',
                     pointerEvents: 'none',
                     opacity: isOpen ? 1 : 0,
                     transform: isOpen ? 'translateX(0)' : 'translateX(10px)',
-                    transition: `opacity 0.2s ease ${index * 38 + 120}ms, transform 0.25s ease ${index * 38 + 120}ms`
+                    transition: `opacity 0.2s ease ${index * 45 + 100}ms, transform 0.25s ease ${index * 45 + 100}ms`
                   }}
                 >
                   {item.label}
@@ -213,7 +184,7 @@ export default function FabFanMenu() {
                     height: '44px',
                     borderRadius: '50%',
                     background: item.gradient,
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
+                    border: '2px solid rgba(255, 255, 255, 0.35)',
                     boxShadow: `0 8px 20px rgba(0, 0, 0, 0.35), 0 0 14px ${item.color}55`,
                     display: 'flex',
                     alignItems: 'center',

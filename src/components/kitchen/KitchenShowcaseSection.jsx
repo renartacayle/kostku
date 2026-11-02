@@ -26,16 +26,14 @@ import CopyFeedbackButton from './CopyFeedbackButton';
 import ShineSweepButton from './ShineSweepButton';
 import ScrambleText from './ScrambleText';
 import ReceiptPrinter from './ReceiptPrinter';
-import { showGooeyToast } from '../GooeyToast';
 
 /**
  * KitchenShowcaseSection - Inspired by UI Motion Prompts & The Kitchen
  * Features:
- * 1. Gooey Drop (Liquid toast drop, squish & melt)
- * 2. Floating Notch (Tab bar with hopping ball riding a curved notch)
- * 3. FAB Fan (Arc radial menu fanning 5 buttons as + turns into x)
- * 4. Button Part 2 (Paper Plane, Slide to Confirm, Confetti Burst, Copy Feedback, Shine Sweep)
- * 5. Physical Thermal Receipt Printer & Tactile 3D Buttons
+ * 1. Floating Notch (Tab bar with hopping ball riding a curved notch)
+ * 2. FAB Fan (Arc radial menu fanning 3 essential action buttons as + turns into x)
+ * 3. Button Part 2 (Paper Plane, Slide to Confirm, Confetti Burst, Copy Feedback, Shine Sweep)
+ * 4. Physical Thermal Receipt Printer & Tactile 3D Buttons
  */
 export default function KitchenShowcaseSection() {
   const [demoState, setDemoState] = useState({
@@ -121,7 +119,7 @@ export default function KitchenShowcaseSection() {
           marginBottom: '0.75rem'
         }}>
           <Sparkles size={14} />
-          <span>KostKu Motion Labs (Inspired by UI Motion Prompts)</span>
+          <span>KostKu Motion Labs</span>
         </div>
 
         <h2 style={{
@@ -134,7 +132,7 @@ export default function KitchenShowcaseSection() {
         }}>
           Micro-Interactions yang Hidup & Taktil: <br />
           <span style={{ color: 'var(--accent-primary, #2563eb)' }}>
-            Gooey Drop, Floating Notch, FAB Fan & Tactile Buttons
+            Floating Notch, FAB Fan & Tactile Buttons
           </span>
         </h2>
 
@@ -144,153 +142,18 @@ export default function KitchenShowcaseSection() {
           lineHeight: 1.6,
           margin: 0
         }}>
-          Setiap sentuhan di KostKu memiliki bobot fisik, kelenturan fluida, dan umpan balik yang memuaskan. Mulai dari notifikasi tetesan cairan (*gooey drop*), tab bar dengan bola melompat (*floating notch*), arc menu memancar (*FAB fan*), hingga tombol interaktif beranimasi.
+          Setiap sentuhan di KostKu memiliki bobot fisik, kelenturan dinamis, dan umpan balik yang memuaskan. Mulai dari tab bar dengan bola melompat (*floating notch*), arc menu memancar (*FAB fan*), hingga tombol interaktif beranimasi.
         </p>
       </div>
 
-      {/* SECTION 1: GOOEY DROP NOTIFICATION TEST BENCH */}
-      <div style={{
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '22px',
-        padding: '1.75rem 1.5rem',
-        marginBottom: '2rem',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>💧</span>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                1. Gooey Drop Notifications (Uji Langsung Tetesan Fluida)
-              </h3>
-            </div>
-            <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              Tetesan cairan jatuh dari notch atas, menepuk dengan squish elastis, lalu meleleh mekar menjadi kartu notifikasi.
-            </p>
-          </div>
-        </div>
-
-        {/* Trigger Buttons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              showGooeyToast({
-                type: 'success',
-                title: 'Pembayaran Sewa Diterima! 💳',
-                message: 'QRIS Dinamis Rp 1.500.000 lunas otomatis terverifikasi sistem.',
-                duration: 4500
-              });
-            }}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.2) 100%)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#10b981',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>💧</span> Drop Sukses (Bayar QRIS)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              showGooeyToast({
-                type: 'info',
-                title: 'Paket Tiba di Loker Pintar! 📦',
-                message: 'Kurir J&T memasukkan paket ke Loker #04. Kode OTP Anda: 7294.',
-                duration: 4500
-              });
-            }}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.2) 100%)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>💧</span> Drop Info (Loker Paket)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              showGooeyToast({
-                type: 'warning',
-                title: 'Pengingat Jatuh Tempo Sewa ⚠️',
-                message: 'Sewa Kamar 204 tersisa 3 hari lagi (Jatuh tempo: 5 Nov 2026).',
-                duration: 4500
-              });
-            }}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.2) 100%)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              color: '#f59e0b',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>💧</span> Drop Warning (Jatuh Tempo)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              showGooeyToast({
-                type: 'promo',
-                title: 'Promo Spesial Awal Bulan ✨',
-                message: 'Dapatkan cashback laundry kilat 20% khusus pemesanan warung mitra hari ini.',
-                duration: 4500
-              });
-            }}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(126, 34, 206, 0.2) 100%)',
-              border: '1px solid rgba(168, 85, 247, 0.4)',
-              color: '#c084fc',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>💧</span> Drop Promo (Cashback)
-          </button>
-        </div>
-      </div>
-
-      {/* SECTION 2: GRID OF FLOATING NOTCH & FAB FAN */}
+      {/* SECTION 1: GRID OF FLOATING NOTCH & FAB FAN */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
         gap: '2rem',
         marginBottom: '2rem'
       }}>
-        {/* Card 2A: Interactive Floating Notch Tab Bar Simulator */}
+        {/* Card 1A: Interactive Floating Notch Tab Bar Simulator */}
         <div style={{
           background: 'var(--bg-primary)',
           border: '1px solid var(--border-color)',
@@ -303,7 +166,7 @@ export default function KitchenShowcaseSection() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             <Compass size={20} color="#2563eb" />
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              2. Floating Notch Tab Bar
+              1. Floating Notch Tab Bar
             </h3>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.5rem' }}>
@@ -415,7 +278,7 @@ export default function KitchenShowcaseSection() {
           </div>
         </div>
 
-        {/* Card 2B: Interactive FAB Fan Menu Simulator */}
+        {/* Card 1B: Interactive FAB Fan Menu Simulator */}
         <div style={{
           background: 'var(--bg-primary)',
           border: '1px solid var(--border-color)',
@@ -428,11 +291,11 @@ export default function KitchenShowcaseSection() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             <Plus size={20} color="#10b981" />
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              3. FAB Fan (Menu Arc Radial)
+              2. FAB Fan (3 Aksi Cepat)
             </h3>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-            Ikon `+` berputar 135° menjadi `×` secara elastis, sementara 5 tombol menu memancar (*fanning out*) membentuk busur kuadran 90° dengan pegas stagger. Uji coba tombol di bawah:
+            Ikon `+` berputar 135° menjadi `×` secara elastis, memancarkan 3 tombol aksi (*Bantuan CS, Bayar Sewa, Lapor Tiket*) membentuk busur kuadran 90° dengan pegas stagger. Uji coba tombol di bawah:
           </p>
 
           {/* Interactive FAB Fan Demo Box */}
@@ -449,13 +312,11 @@ export default function KitchenShowcaseSection() {
             overflow: 'hidden',
             marginTop: 'auto'
           }}>
-            {/* 5 Fanned Buttons in Arc */}
+            {/* 3 Fanned Buttons in Arc */}
             {[
               { label: 'Bantuan CS', color: '#10b981', angle: 90, icon: '💬' },
-              { label: 'Cari Kost', color: '#0284c7', angle: 112.5, icon: '🔍' },
-              { label: 'Bayar QRIS', color: '#f59e0b', angle: 135, icon: '💳' },
-              { label: 'Lapor Tiket', color: '#ef4444', angle: 157.5, icon: '📢' },
-              { label: 'Gooey Drop', color: '#8b5cf6', angle: 180, icon: '💧' }
+              { label: 'Bayar Sewa', color: '#f59e0b', angle: 135, icon: '💳' },
+              { label: 'Lapor Tiket', color: '#ef4444', angle: 180, icon: '📢' }
             ].map((item, i) => {
               const rad = (item.angle * Math.PI) / 180;
               const x = Math.round(90 * Math.cos(rad));
@@ -468,21 +329,21 @@ export default function KitchenShowcaseSection() {
                     position: 'absolute',
                     bottom: '26px',
                     right: '26px',
-                    width: '36px',
-                    height: '36px',
+                    width: '38px',
+                    height: '38px',
                     borderRadius: '50%',
                     background: item.color,
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '14px',
+                    fontSize: '15px',
                     boxShadow: `0 4px 14px ${item.color}66`,
                     transform: isFanOpen
                       ? `translate(${x}px, ${y}px) scale(1)`
                       : 'translate(0px, 0px) scale(0)',
                     opacity: isFanOpen ? 1 : 0,
-                    transition: `transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 30}ms, opacity 0.2s ease ${i * 30}ms`,
+                    transition: `transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 40}ms, opacity 0.2s ease ${i * 40}ms`,
                     zIndex: 2
                   }}
                   title={item.label}
@@ -526,7 +387,7 @@ export default function KitchenShowcaseSection() {
         </div>
       </div>
 
-      {/* SECTION 3: BUTTON PART 2 INTERACTION SUITE */}
+      {/* SECTION 2: BUTTON PART 2 INTERACTION SUITE */}
       <div style={{
         background: 'var(--bg-primary)',
         border: '1px solid var(--border-color)',
@@ -539,7 +400,7 @@ export default function KitchenShowcaseSection() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.2rem' }}>🔘</span>
             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              4. Button Part 2 Suite (Tombol yang Melakukan Sesuatu Pasca-Ketukan)
+              3. Button Part 2 Suite (Tombol Pasca-Ketukan)
             </h3>
           </div>
           <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
@@ -552,38 +413,17 @@ export default function KitchenShowcaseSection() {
           <PaperPlaneButton
             label="Kirim Komplain"
             sentLabel="Terkirim! ✓"
-            onSend={() => {
-              showGooeyToast({
-                type: 'info',
-                title: 'Tiket Dikirim ✈️',
-                message: 'Laporan perbaikan fasilitas berhasil diteruskan ke teknisi kost.'
-              });
-            }}
           />
 
           {/* Slide to Confirm Button */}
           <SlideToConfirmButton
             label="Geser Konfirmasi Sewa"
             confirmedLabel="Sewa Terkonfirmasi! ✓"
-            onConfirm={() => {
-              showGooeyToast({
-                type: 'success',
-                title: 'Konfirmasi Sukses! 🎉',
-                message: 'Kamar berhasil diamankan. Kuitansi digital diterbitkan.'
-              });
-            }}
           />
 
           {/* Confetti Burst Button */}
           <ConfettiBurstButton
             label="Rayakan Lunas 🎉"
-            onClick={() => {
-              showGooeyToast({
-                type: 'promo',
-                title: 'Transaksi Sukses! 🥳',
-                message: 'Terima kasih telah melunasi sewa tepat waktu.'
-              });
-            }}
           />
 
           {/* Copy Feedback Button */}
@@ -596,18 +436,11 @@ export default function KitchenShowcaseSection() {
           {/* Shine Sweep Button */}
           <ShineSweepButton
             label="Upgrade Juragan Pro ✨"
-            onClick={() => {
-              showGooeyToast({
-                type: 'warning',
-                title: 'Fitur Juragan Pro 👑',
-                message: 'Multi-cabang, laporan Flip otomatis, & prioritas sundul kost.'
-              });
-            }}
           />
         </div>
       </div>
 
-      {/* SECTION 4: PHYSICAL RECEIPT PRINTER & TACTILE BUTTONS */}
+      {/* SECTION 3: PHYSICAL RECEIPT PRINTER & TACTILE BUTTONS */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
