@@ -38,6 +38,7 @@ import {
 import { generateQrisDataUrl } from '../utils/qrisEngine';
 import Footer from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
+import UnpaidNoticeModal from '../components/UnpaidNoticeModal';
 
 // Payment Channel Options
 const PAYMENT_CATEGORIES = [
@@ -145,6 +146,8 @@ export default function Checkout({ user }) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [settledReceipt, setSettledReceipt] = useState(null);
   const [activeVaTab, setActiveVaTab] = useState('mbanking'); // 'atm' | 'mbanking' | 'ibanking'
+  const [showUnpaidModal, setShowUnpaidModal] = useState(false);
+  const [unpaidErrorMsg, setUnpaidErrorMsg] = useState('');
 
   // Load Kosts
   useEffect(() => {
@@ -365,7 +368,8 @@ export default function Checkout({ user }) {
         setStep('success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        alert(res?.message || 'Pembayaran belum terdeteksi masuk dari gateway.');
+        setUnpaidErrorMsg(res?.message || 'Sistem belum menerima konfirmasi pembayaran dari gateway. Mohon tunggu 5–15 detik lalu klik Cek Ulang.');
+        setShowUnpaidModal(true);
       }
     } catch (err) {
       console.error('Verify error:', err);
@@ -1728,6 +1732,19 @@ export default function Checkout({ user }) {
         )}
 
       </main>
+
+      {/* Unpaid Notice Modal */}
+      <UnpaidNoticeModal
+        isOpen={showUnpaidModal}
+        onClose={() => setShowUnpaidModal(false)}
+        onRetry={handleVerifyPayment}
+        isRetrying={isVerifying}
+        amount={grandTotal}
+        orderId={transaction?.orderId || ''}
+        paymentMethod={transaction?.paymentMethod || selectedMethodId || 'QRIS'}
+        serviceName={`Sewa Kost - ${selectedKost?.name || 'Kamar Kost'}`}
+        message={unpaidErrorMsg || 'Sistem belum menerima konfirmasi pembayaran dari gateway. Jika Anda baru saja melakukan transfer atau scan di aplikasi perbankan/e-wallet, mohon tunggu 5–15 detik agar mutasi berhasil tercatat.'}
+      />
 
       {/* Footer Standar */}
       <Footer />

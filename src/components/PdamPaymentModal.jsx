@@ -31,6 +31,7 @@ import {
 } from '../services/api';
 import { generateQrisDataUrl } from '../utils/qrisEngine';
 import { useTheme } from '../context/ThemeContext';
+import UnpaidNoticeModal from './UnpaidNoticeModal';
 
 const PAYMENT_METHODS = [
   { id: 'QRIS', name: 'QRIS Realtime (Semua E-Wallet & Bank)', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, DANA', fee: 500, badge: 'Rp 500' }
@@ -69,6 +70,8 @@ const PdamPaymentModal = ({
   const [qrisImage, setQrisImage] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [showUnpaidModal, setShowUnpaidModal] = useState(false);
+  const [unpaidErrorMsg, setUnpaidErrorMsg] = useState(null);
   const [timeLeft, setTimeLeft] = useState(900); // 15 mins in sec
 
   // Success State
@@ -292,10 +295,12 @@ const PdamPaymentModal = ({
   const handleManualCheck = async () => {
     if (!activeOrder?.orderId) return;
     setCheckingPayment(true);
+    setUnpaidErrorMsg(null);
     try {
       const res = await apiVerifyPayment({ orderId: activeOrder.orderId });
       if (res?.success && (res.status === 'settlement' || res.isPaid)) {
         clearInterval(pollingRef.current);
+        setShowUnpaidModal(false);
         setSettledData({
           operatorName: res.operatorName || selectedOperator.name,
           customerNumber: res.pdamCustomerNumber || customerNumber,
@@ -308,10 +313,11 @@ const PdamPaymentModal = ({
         });
         setStep('success');
       } else {
-        alert('Pembayaran belum terdeteksi masuk dari gateway TriPay. Silakan selesaikan pembayaran terlebih dahulu.');
+        setShowUnpaidModal(true);
       }
     } catch (err) {
-      alert(err.message || 'Gagal memeriksa status pembayaran');
+      setUnpaidErrorMsg(err.message || 'Gagal memeriksa status pembayaran');
+      setShowUnpaidModal(true);
     } finally {
       setCheckingPayment(false);
     }
@@ -1252,6 +1258,18 @@ const PdamPaymentModal = ({
           )}
         </div>
       </div>
+
+      <UnpaidNoticeModal
+        isOpen={showUnpaidModal}
+        onClose={() => setShowUnpaidModal(false)}
+        onRetry={handleManualCheck}
+        isRetrying={checkingPayment}
+        amount={activeOrder?.amount || (inquiryResult?.totalAmount || 0) + 500}
+        orderId={activeOrder?.orderId}
+        paymentMethod="QRIS Realtime (TriPay)"
+        serviceName={`Tagihan Air PDAM (${selectedOperator?.name || 'PDAM'})`}
+        message={unpaidErrorMsg || 'Sistem belum menerima konfirmasi pembayaran dari QRIS. Jika Anda baru saja melakukan transfer atau scan di aplikasi perbankan/e-wallet, mohon tunggu 5–15 detik agar mutasi berhasil diverifikasi oleh gateway.'}
+      />
     </div>,
     document.body
   );

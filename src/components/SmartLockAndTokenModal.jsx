@@ -28,6 +28,7 @@ import {
 } from '../services/api';
 import { generateQrisDataUrl } from '../utils/qrisEngine';
 import { useTheme } from '../context/ThemeContext';
+import UnpaidNoticeModal from './UnpaidNoticeModal';
 
 const NOMINAL_OPTIONS = [
   { value: 20000, label: 'Rp 20.000', kwh: 13.8 },
@@ -73,6 +74,8 @@ const SmartLockAndTokenModal = ({
   const [qrisImage, setQrisImage] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [showUnpaidModal, setShowUnpaidModal] = useState(false);
+  const [unpaidErrorMsg, setUnpaidErrorMsg] = useState(null);
   const [timeLeft, setTimeLeft] = useState(900); // 15 mins in sec
 
   // Success Token State
@@ -252,10 +255,12 @@ const SmartLockAndTokenModal = ({
   const handleManualCheck = async () => {
     if (!activeOrder?.orderId) return;
     setCheckingPayment(true);
+    setUnpaidErrorMsg(null);
     try {
       const res = await apiVerifyPayment({ orderId: activeOrder.orderId });
       if (res?.success && (res.status === 'settlement' || res.isPaid)) {
         clearInterval(pollingRef.current);
+        setShowUnpaidModal(false);
         setSettledData({
           token: res.electricityToken || res.transaction?.electricityToken,
           kwhAdded: res.kwhAdded || Math.round((nominal / 1444.7) * 10) / 10,
@@ -267,10 +272,11 @@ const SmartLockAndTokenModal = ({
         });
         setStep('success');
       } else {
-        alert('Pembayaran belum terdeteksi masuk dari gateway TriPay. Silakan selesaikan pembayaran terlebih dahulu.');
+        setShowUnpaidModal(true);
       }
     } catch (err) {
-      alert(err.message || 'Gagal memeriksa status pembayaran');
+      setUnpaidErrorMsg(err.message || 'Gagal memeriksa status pembayaran');
+      setShowUnpaidModal(true);
     } finally {
       setCheckingPayment(false);
     }
@@ -1135,6 +1141,18 @@ const SmartLockAndTokenModal = ({
           )}
         </div>
       </div>
+
+      <UnpaidNoticeModal
+        isOpen={showUnpaidModal}
+        onClose={() => setShowUnpaidModal(false)}
+        onRetry={handleManualCheck}
+        isRetrying={checkingPayment}
+        amount={activeOrder?.amount || nominal + 500}
+        orderId={activeOrder?.orderId}
+        paymentMethod="QRIS Realtime (TriPay)"
+        serviceName="Token Listrik PLN"
+        message={unpaidErrorMsg || 'Sistem belum menerima konfirmasi pembayaran dari QRIS. Jika Anda baru saja melakukan transfer atau scan di aplikasi perbankan/e-wallet, mohon tunggu 5–15 detik agar mutasi berhasil diverifikasi oleh gateway.'}
+      />
     </div>,
     document.body
   );
