@@ -1235,11 +1235,11 @@ export default function Checkout({ user }) {
         {step === 'payment' && transaction && (
           <div style={{ maxWidth: '640px', margin: '0 auto' }}>
             <div style={{
-              background: '#0d1527',
-              border: '1px solid rgba(59, 130, 246, 0.35)',
+              background: isLight ? '#ffffff' : '#0d1527',
+              border: isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(59, 130, 246, 0.35)',
               borderRadius: '24px',
               padding: '2rem',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.2)',
+              boxShadow: isLight ? '0 25px 60px rgba(0, 0, 0, 0.1), 0 0 35px rgba(59, 130, 246, 0.08)' : '0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.2)',
               position: 'relative'
             }}>
               
@@ -1249,7 +1249,7 @@ export default function Checkout({ user }) {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 paddingBottom: '1rem',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                 marginBottom: '1.5rem'
               }}>
                 <div>
@@ -1259,20 +1259,20 @@ export default function Checkout({ user }) {
                       Menunggu Pembayaran
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                     Order ID: <strong>{transaction.orderId}</strong>
                   </span>
                 </div>
 
                 <div style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: isLight ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.12)',
+                  border: isLight ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
                   padding: '6px 12px',
                   borderRadius: '10px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  color: '#f87171',
+                  color: isLight ? '#dc2626' : '#f87171',
                   fontWeight: 800,
                   fontSize: '0.85rem'
                 }}>
@@ -1283,8 +1283,8 @@ export default function Checkout({ user }) {
 
               {/* Total Tagihan Box */}
               <div style={{
-                background: 'rgba(59, 130, 246, 0.12)',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
+                background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.12)',
+                border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.25)',
                 borderRadius: '16px',
                 padding: '14px 18px',
                 display: 'flex',
@@ -1293,14 +1293,14 @@ export default function Checkout({ user }) {
                 marginBottom: '1.5rem'
               }}>
                 <div>
-                  <span style={{ fontSize: '0.74rem', color: '#93c5fd', display: 'block' }}>Total Tagihan:</span>
-                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff' }}>
+                  <span style={{ fontSize: '0.74rem', color: isLight ? '#1e40af' : '#93c5fd', display: 'block', fontWeight: 600 }}>Total Tagihan:</span>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: isLight ? '#1d4ed8' : '#ffffff' }}>
                     Rp {grandTotal.toLocaleString('id-ID')}
                   </span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>Kamar {selectedRoomNumber}</span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#60a5fa' }}>{selectedKost?.kostName}</span>
+                  <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Kamar {selectedRoomNumber}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#2563eb' : '#60a5fa' }}>{selectedKost?.kostName}</span>
                 </div>
               </div>
 
@@ -1347,7 +1347,7 @@ export default function Checkout({ user }) {
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, margin: '0 auto 1.25rem', maxWidth: '420px' }}>
+                  <p style={{ fontSize: '0.82rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5, margin: '0 auto 1.25rem', maxWidth: '420px' }}>
                     Buka aplikasi <strong>BCA Mobile, Livin' Mandiri, BRImo, BNI, GoPay, OVO, atau DANA</strong>, lalu scan QR Code di atas. Tagihan akan terverifikasi secara otomatis.
                   </p>
                 </div>
@@ -1357,34 +1357,34 @@ export default function Checkout({ user }) {
               {currentMethod.category === 'va' && (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                     borderRadius: '16px',
                     padding: '1.25rem',
                     marginBottom: '1rem'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginBottom: '4px' }}>
                       Nomor Virtual Account ({currentMethod.name}):
                     </span>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      background: '#1e293b',
+                      background: isLight ? '#f1f5f9' : '#1e293b',
                       padding: '12px 14px',
                       borderRadius: '12px',
-                      border: '1px solid rgba(59, 130, 246, 0.3)'
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(59, 130, 246, 0.3)'
                     }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#38bdf8', letterSpacing: '1px', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: isLight ? '#0284c7' : '#38bdf8', letterSpacing: '1px', fontFamily: 'monospace' }}>
                         {transaction.vaNumber || '1288808123456789'}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleCopy(transaction.vaNumber || '1288808123456789', 'va')}
                         style={{
-                          background: copiedText === 'va' ? '#10b981' : 'rgba(59, 130, 246, 0.2)',
+                          background: copiedText === 'va' ? '#10b981' : (isLight ? '#e0f2fe' : 'rgba(59, 130, 246, 0.2)'),
                           border: 'none',
-                          color: 'white',
+                          color: copiedText === 'va' ? 'white' : (isLight ? '#0284c7' : 'white'),
                           padding: '6px 12px',
                           borderRadius: '8px',
                           cursor: 'pointer',
@@ -1403,18 +1403,18 @@ export default function Checkout({ user }) {
 
                   {/* VA Step Instructions */}
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
                     borderRadius: '14px',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
                     padding: '12px 14px'
                   }}>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
                       <button
                         type="button"
                         onClick={() => setActiveVaTab('mbanking')}
                         style={{
-                          background: activeVaTab === 'mbanking' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
-                          color: activeVaTab === 'mbanking' ? '#38bdf8' : '#94a3b8',
+                          background: activeVaTab === 'mbanking' ? (isLight ? '#e0f2fe' : 'rgba(59, 130, 246, 0.25)') : 'transparent',
+                          color: activeVaTab === 'mbanking' ? (isLight ? '#0284c7' : '#38bdf8') : (isLight ? '#64748b' : '#94a3b8'),
                           border: 'none',
                           padding: '4px 10px',
                           borderRadius: '6px',
@@ -1429,8 +1429,8 @@ export default function Checkout({ user }) {
                         type="button"
                         onClick={() => setActiveVaTab('atm')}
                         style={{
-                          background: activeVaTab === 'atm' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
-                          color: activeVaTab === 'atm' ? '#38bdf8' : '#94a3b8',
+                          background: activeVaTab === 'atm' ? (isLight ? '#e0f2fe' : 'rgba(59, 130, 246, 0.25)') : 'transparent',
+                          color: activeVaTab === 'atm' ? (isLight ? '#0284c7' : '#38bdf8') : (isLight ? '#64748b' : '#94a3b8'),
                           border: 'none',
                           padding: '4px 10px',
                           borderRadius: '6px',
@@ -1443,7 +1443,7 @@ export default function Checkout({ user }) {
                       </button>
                     </div>
 
-                    <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#cbd5e1', lineHeight: 1.6 }}>
+                    <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.6 }}>
                       <li>Buka aplikasi Mobile Banking pilihan Anda (misal BCA / Mandiri / BNI / BRI).</li>
                       <li>Pilih menu <strong>Transfer</strong> &gt; <strong>Virtual Account</strong>.</li>
                       <li>Masukkan Nomor VA <strong>{transaction.vaNumber || '1288808123456789'}</strong>.</li>
@@ -1458,34 +1458,34 @@ export default function Checkout({ user }) {
               {(currentMethod.category === 'ewallet' || currentMethod.category === 'retail') && (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                     borderRadius: '16px',
                     padding: '1.25rem',
                     marginBottom: '1rem'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginBottom: '4px' }}>
                       Kode Pembayaran ({currentMethod.name}):
                     </span>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      background: '#1e293b',
+                      background: isLight ? '#fffbeb' : '#1e293b',
                       padding: '12px 14px',
                       borderRadius: '12px',
-                      border: '1px solid rgba(245, 158, 11, 0.3)'
+                      border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)'
                     }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b', letterSpacing: '1px', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: isLight ? '#b45309' : '#f59e0b', letterSpacing: '1px', fontFamily: 'monospace' }}>
                         {transaction.paymentCode || `KST-${Math.floor(10000000 + Math.random() * 90000000)}`}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleCopy(transaction.paymentCode || 'KST-88192049', 'code')}
                         style={{
-                          background: copiedText === 'code' ? '#10b981' : 'rgba(245, 158, 11, 0.2)',
+                          background: copiedText === 'code' ? '#10b981' : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
                           border: 'none',
-                          color: 'white',
+                          color: copiedText === 'code' ? 'white' : (isLight ? '#b45309' : 'white'),
                           padding: '6px 12px',
                           borderRadius: '8px',
                           cursor: 'pointer',
@@ -1502,7 +1502,7 @@ export default function Checkout({ user }) {
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
                     Tunjukkan kode pembayaran di atas ke kasir <strong>{currentMethod.name}</strong> atau masukkan di menu pembayaran aplikasi. Pembayaran akan tersinkronisasi otomatis ke akun KostKu Anda.
                   </p>
                 </div>
@@ -1545,7 +1545,7 @@ export default function Checkout({ user }) {
                 </button>
 
                 <div style={{ textAlign: 'center', marginTop: '6px' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                     💡 Verifikasi gateway berjalan otomatis di latar belakang setiap 3.5 detik.
                   </span>
                 </div>
@@ -1561,11 +1561,11 @@ export default function Checkout({ user }) {
         {step === 'success' && settledReceipt && (
           <div style={{ maxWidth: '580px', margin: '0 auto' }}>
             <div style={{
-              background: '#0d1527',
+              background: isLight ? '#ffffff' : '#0d1527',
               border: '1.5px solid #10b981',
               borderRadius: '24px',
               padding: '2.5rem 2rem',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(16, 185, 129, 0.25)',
+              boxShadow: isLight ? '0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 30px rgba(16, 185, 129, 0.15)' : '0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(16, 185, 129, 0.25)',
               textAlign: 'center'
             }}>
               
@@ -1585,10 +1585,10 @@ export default function Checkout({ user }) {
                 <CheckCircle2 size={42} />
               </div>
 
-              <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#ffffff', margin: '0 0 6px 0' }}>
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: isLight ? '#0f172a' : '#ffffff', margin: '0 0 6px 0' }}>
                 Pembayaran Berhasil! 🎉
               </h2>
-              <p style={{ fontSize: '0.86rem', color: '#94a3b8', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.86rem', color: isLight ? '#64748b' : '#94a3b8', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
                 Transaksi sewa kamar telah diverifikasi lunas melalui Payment Gateway resmi. Unit kamar Anda telah siap ditempati.
               </p>
 
@@ -1672,9 +1672,9 @@ export default function Checkout({ user }) {
                     width: '100%',
                     padding: '12px',
                     borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    color: 'white',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.2)',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.08)',
+                    color: isLight ? '#1e293b' : 'white',
                     fontWeight: 700,
                     fontSize: '0.88rem',
                     cursor: 'pointer',
@@ -1713,7 +1713,7 @@ export default function Checkout({ user }) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#94a3b8',
+                    color: isLight ? '#64748b' : '#94a3b8',
                     fontSize: '0.82rem',
                     cursor: 'pointer',
                     marginTop: '4px'

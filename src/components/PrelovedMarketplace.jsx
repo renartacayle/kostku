@@ -20,6 +20,7 @@ import {
   apiUpdatePrelovedStatus, 
   apiDeletePrelovedItem 
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const CATEGORIES = [
   { id: 'semua', label: 'Semua Kategori' },
@@ -39,6 +40,7 @@ const PRESET_IMAGES = [
 ];
 
 export default function PrelovedMarketplace({ user, kostUid }) {
+  const { isLight } = useTheme();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('semua');
@@ -513,7 +515,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
@@ -522,26 +524,26 @@ export default function PrelovedMarketplace({ user, kostUid }) {
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
-            background: '#0a101f',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
+            background: isLight ? '#ffffff' : '#0a101f',
+            border: isLight ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)',
             borderRadius: '20px',
             width: '100%',
             maxWidth: '500px',
             padding: '1.75rem',
-            boxShadow: '0 25px 65px rgba(0, 0, 0, 0.85)',
+            boxShadow: isLight ? '0 25px 65px rgba(0, 0, 0, 0.15)' : '0 25px 65px rgba(0, 0, 0, 0.85)',
             maxHeight: '92vh',
             overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <ShoppingBag size={20} color="#10b981" />
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                   Pasang Iklan Barang Preloved
                 </h3>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
@@ -549,7 +551,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
 
             <form onSubmit={handleAddItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Nama Barang:
                 </label>
                 <input
@@ -565,7 +567,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Harga (Rp):
                   </label>
                   <input
@@ -580,7 +582,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Kondisi Barang:
                   </label>
                   <select
@@ -598,7 +600,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Kategori:
                   </label>
                   <select
@@ -616,7 +618,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Nomor Kamar Penjual:
                   </label>
                   <input
@@ -632,7 +634,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Nomor WhatsApp Penjual (Untuk Chat Transaksi):
                 </label>
                 <input
@@ -648,10 +650,10 @@ export default function PrelovedMarketplace({ user, kostUid }) {
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+                  <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: 600 }}>
                     Link Foto Barang:
                   </label>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Pilih preset atau masukkan link URL</span>
+                  <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#64748b' }}>Pilih preset atau masukkan link URL</span>
                 </div>
                 <input
                   type="url"
@@ -670,9 +672,9 @@ export default function PrelovedMarketplace({ user, kostUid }) {
                       type="button"
                       onClick={() => setNewImageUrl(preset.url)}
                       style={{
-                        background: newImageUrl === preset.url ? '#10b981' : 'rgba(255, 255, 255, 0.05)',
-                        color: newImageUrl === preset.url ? '#0f172a' : '#cbd5e1',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        background: newImageUrl === preset.url ? '#10b981' : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)'),
+                        color: newImageUrl === preset.url ? '#ffffff' : (isLight ? '#334155' : '#cbd5e1'),
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
                         padding: '3px 8px',
                         borderRadius: '6px',
                         fontSize: '0.7rem',
@@ -687,7 +689,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Deskripsi & Alasan Dijual:
                 </label>
                 <textarea

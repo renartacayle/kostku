@@ -20,7 +20,11 @@ import {
   RefreshCw,
   Upload,
   CheckCircle2,
-  X
+  X,
+  Home,
+  Building,
+  Store,
+  UserCheck
 } from 'lucide-react';
 import { apiUpdateProfile } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -36,6 +40,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const [profilePhone, setProfilePhone] = useState(user?.phone || '');
   const [profilePicture, setProfilePicture] = useState(user?.picture || '');
+  const [profileRole, setProfileRole] = useState(user?.role || 'user');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -52,6 +57,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
       setProfileEmail(user.email || '');
       setProfilePhone(user.phone || '');
       setProfilePicture(user.picture || '');
+      setProfileRole(user.role || 'user');
     }
   }, [user]);
 
@@ -221,6 +227,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         email: profileEmail,
         phone: profilePhone,
         picture: profilePicture,
+        role: profileRole,
         currentPassword: currentPassword || undefined,
         newPassword: newPassword || undefined
       });
@@ -275,7 +282,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>
-              Setting Owner
+              Pengaturan Akun
             </h1>
             <span style={{
               background: isLight ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.15)',
@@ -286,7 +293,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
               borderRadius: '8px',
               border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)'
             }}>
-              {user?.role === 'owner' ? 'Owner Portal' : user?.role === 'master' ? 'Admin Portal' : 'User Setting'}
+              {user?.role === 'owner' ? '👑 Mode Pemilik Kost' : user?.role === 'mitra' ? '🏪 Mode Mitra UMKM' : user?.role === 'staff' ? '👷 Mode Staf Kost' : '🏠 Mode Anak Kost'}
             </span>
           </div>
           <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -579,8 +586,8 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                 <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   {user?.name || 'Pengguna'}
                 </h2>
-                <span className={`badge ${user?.role === 'owner' ? 'badge-primary' : user?.role === 'staff' ? 'badge-warning' : 'badge-success'}`}>
-                  {user?.role === 'owner' ? '👑 Pemilik Kost' : user?.role === 'staff' ? `👷 Staf (${user?.jobTitle || 'Penjaga'})` : '🏠 Anak Kost'}
+                <span className={`badge ${user?.role === 'owner' ? 'badge-primary' : user?.role === 'mitra' ? 'badge-warning' : user?.role === 'staff' ? 'badge-warning' : 'badge-success'}`}>
+                  {user?.role === 'owner' ? '👑 Pemilik Kost' : user?.role === 'mitra' ? '🏪 Mitra UMKM' : user?.role === 'staff' ? `👷 Staf (${user?.jobTitle || 'Penjaga'})` : '🏠 Anak Kost'}
                 </span>
               </div>
               
@@ -671,18 +678,193 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Peran Akun
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={user?.role === 'owner' ? 'Pemilik Kost (Owner)' : user?.role === 'staff' ? `Staf Lapangan (${user?.jobTitle || 'Penjaga Kost'})` : 'Penghuni Kost (Tenant)'}
-                  className="input-field"
-                  style={{ opacity: 0.7, cursor: 'not-allowed' }}
-                />
+            </div>
+
+            {/* Pilihan Peran / Mode Akun */}
+            <div style={{
+              marginTop: '0.5rem',
+              paddingTop: '1.25rem',
+              borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Shield size={17} color="#3b82f6" />
+                    <span>Pilihan Peran &amp; Mode Akun</span>
+                  </h4>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Pilih peran Anda di KostKu. Mode peran ini dapat diubah kapan saja sesuai kebutuhan.
+                  </p>
+                </div>
+                {profileRole !== user?.role && (
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: '8px',
+                    background: 'rgba(234, 179, 8, 0.15)',
+                    color: '#eab308',
+                    border: '1px solid rgba(234, 179, 8, 0.35)'
+                  }}>
+                    ⚠️ Jangan lupa klik Simpan Perubahan di bawah
+                  </span>
+                )}
               </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '10px',
+                marginTop: '10px'
+              }}>
+                {[
+                  {
+                    id: 'user',
+                    title: 'Anak Kost / Penyewa',
+                    tag: 'Default',
+                    icon: <Home size={19} color="#3b82f6" />,
+                    badgeColor: '#3b82f6',
+                    desc: 'Cari & sewa kamar kost, bayar sewa via QRIS/Transfer, token PLN & PDAM, pesan galon/laundry, serta mading komunitas.'
+                  },
+                  {
+                    id: 'owner',
+                    title: 'Pemilik Kost (Owner)',
+                    tag: 'Pengelola',
+                    icon: <Building size={19} color="#10b981" />,
+                    badgeColor: '#10b981',
+                    desc: 'Kelola unit kamar, atur tarif & fasilitas, daftarkan properti baru di My Kost, terima calon penghuni, dan rekap keuangan.'
+                  },
+                  {
+                    id: 'mitra',
+                    title: 'Mitra UMKM Sekitar',
+                    tag: 'Pedagang',
+                    icon: <Store size={19} color="#f59e0b" />,
+                    badgeColor: '#f59e0b',
+                    desc: 'Daftarkan toko warung makan, laundry kiloan, atau depot galon. Atur menu & produk, serta kelola pesanan masuk anak kost.'
+                  },
+                  {
+                    id: 'staff',
+                    title: 'Karyawan / Staf Kost',
+                    tag: 'Operasional',
+                    icon: <UserCheck size={19} color="#8b5cf6" />,
+                    badgeColor: '#8b5cf6',
+                    desc: 'Akses tugas harian, checklist kebersihan kamar, input meteran listrik/air, dan koordinasi komplain perbaikan fasilitas.'
+                  }
+                ].map(opt => {
+                  const isSelected = profileRole === opt.id;
+                  const isCurrent = user?.role === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => setProfileRole(opt.id)}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '16px',
+                        border: isSelected 
+                          ? `2px solid ${opt.badgeColor}` 
+                          : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
+                        background: isSelected 
+                          ? (isLight ? `${opt.badgeColor}12` : `${opt.badgeColor}20`)
+                          : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'),
+                        cursor: 'pointer',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        boxShadow: isSelected 
+                          ? (isLight ? `0 4px 14px ${opt.badgeColor}25` : `0 4px 16px ${opt.badgeColor}30`)
+                          : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '10px',
+                            background: `${opt.badgeColor}20`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            {opt.icon}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.92rem', color: isSelected ? (isLight ? '#0f172a' : '#ffffff') : 'var(--text-primary)' }}>
+                              {opt.title}
+                            </div>
+                            <div style={{ display: 'flex', gap: '5px', marginTop: '2px' }}>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '6px',
+                                background: `${opt.badgeColor}20`,
+                                color: opt.badgeColor
+                              }}>
+                                {opt.tag}
+                              </span>
+                              {isCurrent && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                  padding: '1px 6px',
+                                  borderRadius: '6px',
+                                  background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)',
+                                  color: 'var(--text-secondary)'
+                                }}>
+                                  Aktif Saat Ini
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          border: isSelected ? `6px solid ${opt.badgeColor}` : (isLight ? '2px solid #94a3b8' : '2px solid rgba(255, 255, 255, 0.3)'),
+                          background: isSelected ? (isLight ? '#ffffff' : '#0f172a') : 'transparent',
+                          flexShrink: 0,
+                          transition: 'all 0.15s ease'
+                        }} />
+                      </div>
+
+                      <p style={{
+                        margin: 0,
+                        fontSize: '0.78rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: 1.45
+                      }}>
+                        {opt.desc}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {profileRole === 'owner' && !user?.kostUid && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+                  border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(16, 185, 129, 0.3)',
+                  color: isLight ? '#15803d' : '#6ee7b7',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <Sparkles size={16} style={{ flexShrink: 0 }} />
+                  <span>
+                    <strong>Tips Pemilik Kost:</strong> Setelah menyimpan profil ini sebagai Owner, buka tab <strong>My Kost</strong> untuk mendaftarkan properti kost pertama Anda dengan mengklik tombol <em>"Buat Kost Sekarang"</em>.
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Password Section */}

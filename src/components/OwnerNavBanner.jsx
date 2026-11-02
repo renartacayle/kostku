@@ -18,6 +18,7 @@ import GuestRegistrationModal from './GuestRegistrationModal';
 
 export default function OwnerNavBanner({
   user,
+  activeKostUid,
   activeNav: propActiveNav,
   onTabChange,
   totalUnits: propTotalUnits,
@@ -37,7 +38,7 @@ export default function OwnerNavBanner({
     activeComplaints: propActiveComplaints ?? 0
   });
 
-  const targetKostUid = user?.kostUid || localStorage.getItem('kostUid') || '';
+  const targetKostUid = activeKostUid !== undefined ? activeKostUid : (user?.kostUid || localStorage.getItem('kostUid') || '');
 
   // Determine active nav key
   let currentNav = propActiveNav;
@@ -144,10 +145,18 @@ export default function OwnerNavBanner({
               </span>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Kode: <strong style={{ color: 'var(--text-primary)' }}>{targetKostUid || '-'}</strong>
-              {stats.totalUnits > 0 && <> • {stats.totalUnits} Unit</>}
-              {stats.occupancyRate !== undefined && (
-                <> • Okupansi: <strong style={{ color: 'var(--accent-success)' }}>{stats.occupancyRate}%</strong></>
+              {targetKostUid ? (
+                <>
+                  Kode: <strong style={{ color: 'var(--text-primary)' }}>{targetKostUid}</strong>
+                  {stats.totalUnits > 0 && <> • {stats.totalUnits} Unit</>}
+                  {stats.occupancyRate !== undefined && (
+                    <> • Okupansi: <strong style={{ color: 'var(--accent-success)' }}>{stats.occupancyRate}%</strong></>
+                  )}
+                </>
+              ) : (
+                <>
+                  Status: <strong style={{ color: isLight ? '#2563eb' : '#60a5fa' }}>Belum Ada Kost Terdaftar</strong> • Silakan buat properti kost pertama Anda
+                </>
               )}
             </p>
           </div>

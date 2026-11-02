@@ -16,6 +16,7 @@ import {
   RefreshCw 
 } from 'lucide-react';
 import { apiGetBulletinPosts, apiCreateBulletinPost, apiDeleteBulletinPost } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const CATEGORY_MAP = {
   semua: { label: 'Semua Info', icon: Megaphone, color: '#38bdf8' },
@@ -26,6 +27,7 @@ const CATEGORY_MAP = {
 };
 
 export default function CommunityBulletinBoard({ user, kostUid, isCompact = false }) {
+  const { isLight } = useTheme();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('semua');
@@ -419,7 +421,7 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
@@ -428,26 +430,26 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
-            background: '#0a101f',
-            border: '1px solid rgba(56, 189, 248, 0.35)',
+            background: isLight ? '#ffffff' : '#0a101f',
+            border: isLight ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(56, 189, 248, 0.35)',
             borderRadius: '20px',
             width: '100%',
             maxWidth: '480px',
             padding: '1.75rem',
-            boxShadow: '0 25px 65px rgba(0, 0, 0, 0.85)',
+            boxShadow: isLight ? '0 25px 65px rgba(0, 0, 0, 0.15)' : '0 25px 65px rgba(0, 0, 0, 0.85)',
             maxHeight: '90vh',
             overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Megaphone size={20} color="#38bdf8" />
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                   Buat Pengumuman Mading Baru
                 </h3>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
@@ -455,7 +457,7 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
 
             <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Kategori Pengumuman:
                 </label>
                 <select
@@ -472,7 +474,7 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Judul Pengumuman:
                 </label>
                 <input
@@ -487,7 +489,7 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Isi Pengumuman Lengkap:
                 </label>
                 <textarea
@@ -502,15 +504,15 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
               </div>
 
               <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '12px',
                 padding: '12px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px'
               }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: isLight ? '#334155' : '#cbd5e1' }}>
                   <input
                     type="checkbox"
                     checked={isPinned}
@@ -520,7 +522,7 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
                   <span>📌 <strong>Sematkan di Paling Atas (Pinned Post)</strong></span>
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: '#f87171' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: isLight ? '#dc2626' : '#f87171' }}>
                   <input
                     type="checkbox"
                     checked={isUrgent}

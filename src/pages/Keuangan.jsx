@@ -1482,7 +1482,7 @@ const Keuangan = ({ user }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 10, 20, 0.88)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
           backdropFilter: 'blur(12px)',
           display: 'flex',
           alignItems: 'center',
@@ -1491,13 +1491,13 @@ const Keuangan = ({ user }) => {
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
-            background: '#0a101f',
-            border: '1px solid rgba(56, 189, 248, 0.35)',
+            background: isLight ? '#ffffff' : '#0a101f',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.35)',
             borderRadius: '24px',
             width: '100%',
             maxWidth: '520px',
             padding: '1.75rem',
-            boxShadow: '0 25px 70px -15px rgba(0, 0, 0, 0.9)',
+            boxShadow: isLight ? '0 20px 40px rgba(0, 0, 0, 0.1)' : '0 25px 70px -15px rgba(0, 0, 0, 0.9)',
             maxHeight: '92vh',
             overflowY: 'auto'
           }}>
@@ -1508,16 +1508,16 @@ const Keuangan = ({ user }) => {
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  background: 'rgba(56, 189, 248, 0.15)',
+                  background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1px solid rgba(56, 189, 248, 0.3)'
+                  border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.3)'
                 }}>
-                  <Wallet size={20} color="#38bdf8" />
+                  <Wallet size={20} color="#0284c7" />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                     Pencairan Dana (Flip Payout)
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
@@ -1525,14 +1525,14 @@ const Keuangan = ({ user }) => {
                       fontSize: '0.68rem',
                       padding: '2px 8px',
                       borderRadius: '999px',
-                      background: 'rgba(245, 158, 11, 0.18)',
-                      color: '#f59e0b',
-                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.18)',
+                      color: isLight ? '#b45309' : '#f59e0b',
+                      border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.4)',
                       fontWeight: 700
                     }}>
                       ⚡ UJI SISTEM DISBURSEMENT
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Flip for Business API</span>
+                    <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#64748b' }}>Flip for Business API</span>
                   </div>
                 </div>
               </div>
@@ -1542,9 +1542,9 @@ const Keuangan = ({ user }) => {
                   setPayoutStep('form');
                 }}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#94a3b8',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: isLight ? '#64748b' : '#94a3b8',
                   cursor: 'pointer',
                   borderRadius: '8px',
                   width: '32px',
@@ -1560,8 +1560,8 @@ const Keuangan = ({ user }) => {
 
             {/* Sandbox Notice Banner */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
+              background: isLight ? '#fffbeb' : 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%)',
+              border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
               borderRadius: '14px',
               padding: '12px 14px',
               marginBottom: '1.25rem',
@@ -1569,11 +1569,11 @@ const Keuangan = ({ user }) => {
               gap: '10px'
             }}>
               <AlertCircle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.45' }}>
-                <strong style={{ color: '#fbbf24', display: 'block', marginBottom: '2px' }}>
+              <div style={{ fontSize: '0.76rem', color: isLight ? '#92400e' : '#cbd5e1', lineHeight: '1.45' }}>
+                <strong style={{ color: isLight ? '#b45309' : '#fbbf24', display: 'block', marginBottom: '2px' }}>
                   Simulasi Pengujian Sistem Pencairan Saldo
                 </strong>
-                Anda dapat langsung menguji transfer uang dan validasi rekening menggunakan lingkungan <strong>Pengujian Gateway</strong> tanpa menunggu approval verifikasi dokumen (1-3 hari kerja). Saldo pengujian: <span style={{ color: '#38bdf8', fontFamily: 'monospace', fontWeight: 700 }}>Rp 500.000.000</span>.
+                Anda dapat langsung menguji transfer uang dan validasi rekening menggunakan lingkungan <strong>Pengujian Gateway</strong> tanpa menunggu approval verifikasi dokumen (1-3 hari kerja). Saldo pengujian: <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontFamily: 'monospace', fontWeight: 700 }}>Rp 500.000.000</span>.
               </div>
             </div>
 
@@ -1581,22 +1581,22 @@ const Keuangan = ({ user }) => {
             {payoutStep === 'form' && (
               <>
                 <div style={{
-                  background: 'rgba(56, 189, 248, 0.08)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  background: isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.08)',
+                  border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.25)',
                   borderRadius: '14px',
                   padding: '14px',
                   marginBottom: '1.25rem'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Total Dana Ditarik (Owner + Mitra):</span>
-                    <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>Total Dana Ditarik (Owner + Mitra):</span>
+                    <span style={{ fontSize: '0.7rem', color: isLight ? '#15803d' : '#10b981', background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                       Single-Node Payout
                     </span>
                   </div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#38bdf8', marginTop: '4px', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: isLight ? '#0284c7' : '#38bdf8', marginTop: '4px', fontFamily: 'monospace' }}>
                     Rp {((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)).toLocaleString('id-ID')}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: isLight ? '#64748b' : '#64748b', marginTop: '6px', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', paddingTop: '6px' }}>
                     <span>Komisi Owner: Rp {(Number(unifiedWallet.owner_commission_balance) || 0).toLocaleString('id-ID')}</span>
                     <span>Escrow Mitra: Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}</span>
                   </div>
@@ -1895,7 +1895,7 @@ const Keuangan = ({ user }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(10px)',
           display: 'flex',
           alignItems: 'center',
@@ -1904,41 +1904,41 @@ const Keuangan = ({ user }) => {
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
-            background: '#0a101f',
-            border: '1px solid rgba(34, 197, 94, 0.35)',
+            background: isLight ? '#ffffff' : '#0a101f',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(34, 197, 94, 0.35)',
             borderRadius: '20px',
             width: '100%',
             maxWidth: '440px',
             padding: '1.5rem',
-            boxShadow: '0 25px 65px -15px rgba(0, 0, 0, 0.85)'
+            boxShadow: isLight ? '0 20px 40px rgba(0, 0, 0, 0.1)' : '0 25px 65px -15px rgba(0, 0, 0, 0.85)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <CheckCircle2 size={20} color="#22c55e" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                   Konfirmasi Setor Titipan Mitra
                 </h3>
               </div>
               <button
                 onClick={() => setShowSetorModal(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
             </div>
 
             <div style={{
-              background: 'rgba(34, 197, 94, 0.08)',
-              border: '1px solid rgba(34, 197, 94, 0.25)',
+              background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.08)',
+              border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.25)',
               borderRadius: '12px',
               padding: '12px',
               marginBottom: '1.25rem'
             }}>
-              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Total Titipan Escrow Mitra:</span>
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#4ade80', marginTop: '2px', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Total Titipan Escrow Mitra:</span>
+              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isLight ? '#15803d' : '#4ade80', marginTop: '2px', fontFamily: 'monospace' }}>
                 Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}
               </div>
-              <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
+              <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', lineHeight: 1.4 }}>
                 Konfirmasi bahwa uang titipan pesanan QRIS ini telah Anda serahkan secara fisik (tunai/transfer langsung) kepada warung mitra sekitar kost.
               </p>
             </div>

@@ -21,6 +21,7 @@ import { apiCreateOwnerKost } from '../services/api';
 import AiRoomPlanSection from './AiRoomPlanSection';
 import { getCurrentPositionAsync } from '../utils/geoUtils';
 import { isValidBuildingPhoto, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
+import { useTheme } from '../context/ThemeContext';
 
 const PRESET_IMAGES = [
   { label: 'Modern Co-Living', url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80' },
@@ -30,6 +31,7 @@ const PRESET_IMAGES = [
 ];
 
 export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded }) {
+  const { isLight } = useTheme();
   const [kostName, setKostName] = useState('');
   const [address, setAddress] = useState('');
   const [gmapsUrl, setGmapsUrl] = useState('');
@@ -130,24 +132,24 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
       padding: '1rem'
     }}>
       <div style={{
-        background: '#111827',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
+        background: isLight ? '#ffffff' : '#111827',
+        border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.15)',
         borderRadius: '24px',
         width: '100%',
         maxWidth: '560px',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
-        color: '#f8fafc'
+        boxShadow: isLight ? '0 20px 50px -10px rgba(0, 0, 0, 0.2)' : '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+        color: isLight ? '#0f172a' : '#f8fafc'
       }}>
         {/* Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'rgba(37, 99, 235, 0.08)'
+          background: isLight ? 'rgba(37, 99, 235, 0.05)' : 'rgba(37, 99, 235, 0.08)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
@@ -167,7 +169,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
                 Tambah Properti Kost Baru
               </h3>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Kelola banyak cabang kost dalam satu akun pemilik
               </p>
             </div>
@@ -176,9 +178,9 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
             type="button"
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
+              background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
               border: 'none',
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
               width: '32px',
               height: '32px',
               borderRadius: '50%',
@@ -392,8 +394,12 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
                   style={{
                     padding: '10px 12px',
                     borderRadius: '12px',
-                    border: utilityScheme === opt.id ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.08)',
-                    background: utilityScheme === opt.id ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    border: utilityScheme === opt.id 
+                      ? '1.5px solid #3b82f6' 
+                      : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'),
+                    background: utilityScheme === opt.id 
+                      ? (isLight ? 'rgba(59, 130, 246, 0.08)' : 'rgba(59, 130, 246, 0.15)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -403,10 +409,10 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
                 >
                   <div style={{ marginTop: '2px' }}>{opt.icon}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 700, color: utilityScheme === opt.id ? '#93c5fd' : '#f8fafc' }}>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 700, color: utilityScheme === opt.id ? (isLight ? '#1d4ed8' : '#93c5fd') : (isLight ? '#0f172a' : '#f8fafc') }}>
                       {opt.title}
                     </div>
-                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>
                       {opt.desc}
                     </div>
                   </div>
@@ -487,10 +493,12 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
                       borderRadius: '12px',
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      border: selectedImage === img.url ? '2px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.1)',
+                      border: selectedImage === img.url 
+                        ? '2px solid #3b82f6' 
+                        : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
                       position: 'relative',
                       aspectRatio: '4/3',
-                      background: '#1e293b'
+                      background: isLight ? '#f1f5f9' : '#1e293b'
                     }}
                   >
                     <img src={img.url} alt={img.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -517,7 +525,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
           </div>
 
           {/* AI Floor Plan & Room Photo Section */}
-          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1rem', marginTop: '0.25rem' }}>
+          <div style={{ borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1rem', marginTop: '0.25rem' }}>
             <AiRoomPlanSection
               roomPhoto={roomPhoto}
               onRoomPhotoChange={setRoomPhoto}

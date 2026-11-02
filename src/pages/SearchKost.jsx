@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
   MapPin, 
@@ -45,8 +45,11 @@ import {
   isValidBuildingPhoto, 
   hasValidBuildingPhoto, 
   getValidBuildingImages, 
-  DEFAULT_BUILDING_PHOTO 
+  DEFAULT_BUILDING_PHOTO,
+  optimizeImageUrl
 } from '../utils/imageUtils';
+import { useDebounce } from '../hooks/useDebounce';
+import KostCardSkeleton from '../components/KostCardSkeleton';
 
 export const FACILITY_OPTIONS = [
   { id: 'AC', label: '❄️ AC' },
@@ -126,6 +129,7 @@ export const checkFacilityMatch = (kost, facId) => {
 };
 
 export default function SearchKost({ user }) {
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [searchParams] = useSearchParams();
@@ -140,6 +144,7 @@ export default function SearchKost({ user }) {
   const [kosts, setKosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(initialSearch);
+  const debouncedSearch = useDebounce(search, 250);
   const [selectedCity, setSelectedCity] = useState(initialCity);
   const [selectedType, setSelectedType] = useState(initialType); // 'all' | 'Putri' | 'Putra' | 'Campur' | 'Pasutri'
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
@@ -347,86 +352,93 @@ export default function SearchKost({ user }) {
     return prices.length > 0 ? Math.min(...prices) : 1000000;
   };
 
-  // Filtering logic
-  const filteredKosts = kosts.filter(k => {
-    // Strict Rule: Kost WAJIB memiliki foto gedung asli (tidak boleh dummy pixel hijau / kosong)
-    if (!hasValidBuildingPhoto(k)) return false;
+  // Performance Optimized: useMemo + useDebounce
+  // Item #4: Debounce search inputs
+  // Item #26: Prevent unnecessary re-renders
+  const filteredKosts = useMemo(() => {
+    const q = (debouncedSearch || '').toLowerCase().trim();
+    const cityLower = selectedCity.toLowerCase();
 
-    if (showWishlistOnly && !wishlist.includes(k.uid)) return false;
+    return kosts.filter(k => {
+      // Strict Rule: Kost WAJIB memiliki foto gedung asli (tidak boleh dummy pixel hijau / kosong)
+      if (!hasValidBuildingPhoto(k)) return false;
 
-    const matchesSearch = 
-      (k.kostName || '').toLowerCase().includes(search.toLowerCase()) ||
-      (k.address || '').toLowerCase().includes(search.toLowerCase()) ||
-      (k.city || '').toLowerCase().includes(search.toLowerCase()) ||
-      (k.description || '').toLowerCase().includes(search.toLowerCase());
+      if (showWishlistOnly && !wishlist.includes(k.uid)) return false;
 
-    const matchesCity = 
-      selectedCity === 'all' || 
-      (k.city || '').toLowerCase() === selectedCity.toLowerCase() ||
-      (k.address || '').toLowerCase().includes(selectedCity.toLowerCase());
+      const matchesSearch = !q ||
+        (k.kostName || '').toLowerCase().includes(q) ||
+        (k.address || '').toLowerCase().includes(q) ||
+        (k.city || '').toLowerCase().includes(q) ||
+        (k.description || '').toLowerCase().includes(q);
 
-    let matchesType = true;
-    if (selectedType !== 'all') {
-      const typeStr = (k.type || '').toLowerCase();
-      const rules = (k.rules || []).map(r => (typeof r === 'string' ? r.toLowerCase() : ''));
-      const desc = (k.description || '').toLowerCase();
-      const name = (k.kostName || '').toLowerCase();
-      const facs = (k.facilities || []).map(f => (typeof f === 'string' ? f.toLowerCase() : ''));
+      const matchesCity = 
+        selectedCity === 'all' || 
+        (k.city || '').toLowerCase() === cityLower ||
+        (k.address || '').toLowerCase().includes(cityLower);
 
-      if (selectedType === 'Putri') {
-        matchesType = typeStr.includes('putri');
-      } else if (selectedType === 'Putra') {
-        matchesType = typeStr.includes('putra');
-      } else if (selectedType === 'Campur') {
-        matchesType = typeStr.includes('campur') || typeStr.includes('bebas');
-      } else if (selectedType === 'Pasutri') {
-        matchesType = typeStr.includes('campur') ||
-                      typeStr.includes('bebas') ||
-                      typeStr.includes('pasutri') ||
-                      rules.some(r => r.includes('pasutri')) ||
-                      facs.some(f => f.includes('pasutri')) ||
-                      desc.includes('pasutri') ||
-                      name.includes('co-living') ||
-                      name.includes('exclusive');
+      let matchesType = true;
+      if (selectedType !== 'all') {
+        const typeStr = (k.type || '').toLowerCase();
+        const rules = (k.rules || []).map(r => (typeof r === 'string' ? r.toLowerCase() : ''));
+        const desc = (k.description || '').toLowerCase();
+        const name = (k.kostName || '').toLowerCase();
+        const facs = (k.facilities || []).map(f => (typeof f === 'string' ? f.toLowerCase() : ''));
+
+        if (selectedType === 'Putri') {
+          matchesType = typeStr.includes('putri');
+        } else if (selectedType === 'Putra') {
+          matchesType = typeStr.includes('putra');
+        } else if (selectedType === 'Campur') {
+          matchesType = typeStr.includes('campur') || typeStr.includes('bebas');
+        } else if (selectedType === 'Pasutri') {
+          matchesType = typeStr.includes('campur') ||
+                        typeStr.includes('bebas') ||
+                        typeStr.includes('pasutri') ||
+                        rules.some(r => r.includes('pasutri')) ||
+                        facs.some(f => f.includes('pasutri')) ||
+                        desc.includes('pasutri') ||
+                        name.includes('co-living') ||
+                        name.includes('exclusive');
+        }
       }
-    }
 
-    const minPrice = getMinPrice(k);
-    let matchesPrice = true;
-    if (selectedPriceRange === 'under-1.5m') matchesPrice = minPrice < 1500000;
-    else if (selectedPriceRange === '1.5m-2.5m') matchesPrice = minPrice >= 1500000 && minPrice <= 2500000;
-    else if (selectedPriceRange === 'over-2.5m') matchesPrice = minPrice > 2500000;
+      const minPrice = getMinPrice(k);
+      let matchesPrice = true;
+      if (selectedPriceRange === 'under-1.5m') matchesPrice = minPrice < 1500000;
+      else if (selectedPriceRange === '1.5m-2.5m') matchesPrice = minPrice >= 1500000 && minPrice <= 2500000;
+      else if (selectedPriceRange === 'over-2.5m') matchesPrice = minPrice > 2500000;
 
-    // Multi-select facilities filter (ALL chosen facilities must match)
-    const matchesFacilities = selectedFacilities.length === 0 || 
-      selectedFacilities.every(facId => checkFacilityMatch(k, facId));
+      // Multi-select facilities filter (ALL chosen facilities must match)
+      const matchesFacilities = selectedFacilities.length === 0 || 
+        selectedFacilities.every(facId => checkFacilityMatch(k, facId));
 
-    // Max distance radius filter (if userLocation is set)
-    if (userLocation && maxDistanceRadius !== 'all') {
-      const coords = getKostCoordinates(k);
-      const dist = coords ? calculateDistanceKm(userLocation.lat, userLocation.lng, coords.lat, coords.lng) : null;
-      if (dist == null || dist > Number(maxDistanceRadius)) return false;
-    }
+      // Max distance radius filter (if userLocation is set)
+      if (userLocation && maxDistanceRadius !== 'all') {
+        const coords = getKostCoordinates(k);
+        const dist = coords ? calculateDistanceKm(userLocation.lat, userLocation.lng, coords.lat, coords.lng) : null;
+        if (dist == null || dist > Number(maxDistanceRadius)) return false;
+      }
 
-    return matchesSearch && matchesCity && matchesType && matchesPrice && matchesFacilities;
-  }).sort((a, b) => {
-    // SUNDUL KOST BOOST: Promoted listing SELALU di posisi #1 teratas pada semua filter sortir!
-    const promoA = a.promoted?.active ? 1 : 0;
-    const promoB = b.promoted?.active ? 1 : 0;
-    if (promoB !== promoA) return promoB - promoA;
+      return matchesSearch && matchesCity && matchesType && matchesPrice && matchesFacilities;
+    }).sort((a, b) => {
+      // SUNDUL KOST BOOST: Promoted listing SELALU di posisi #1 teratas pada semua filter sortir!
+      const promoA = a.promoted?.active ? 1 : 0;
+      const promoB = b.promoted?.active ? 1 : 0;
+      if (promoB !== promoA) return promoB - promoA;
 
-    if (sortBy === 'nearest' && userLocation) {
-      const coordsA = getKostCoordinates(a);
-      const coordsB = getKostCoordinates(b);
-      const distA = coordsA ? (calculateDistanceKm(userLocation.lat, userLocation.lng, coordsA.lat, coordsA.lng) ?? 999999) : 999999;
-      const distB = coordsB ? (calculateDistanceKm(userLocation.lat, userLocation.lng, coordsB.lat, coordsB.lng) ?? 999999) : 999999;
-      return distA - distB;
-    }
-    if (sortBy === 'lowest') return getMinPrice(a) - getMinPrice(b);
-    if (sortBy === 'highest') return getMinPrice(b) - getMinPrice(a);
-    if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
-    return 0;
-  });
+      if (sortBy === 'nearest' && userLocation) {
+        const coordsA = getKostCoordinates(a);
+        const coordsB = getKostCoordinates(b);
+        const distA = coordsA ? (calculateDistanceKm(userLocation.lat, userLocation.lng, coordsA.lat, coordsA.lng) ?? 999999) : 999999;
+        const distB = coordsB ? (calculateDistanceKm(userLocation.lat, userLocation.lng, coordsB.lat, coordsB.lng) ?? 999999) : 999999;
+        return distA - distB;
+      }
+      if (sortBy === 'lowest') return getMinPrice(a) - getMinPrice(b);
+      if (sortBy === 'highest') return getMinPrice(b) - getMinPrice(a);
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      return 0;
+    });
+  }, [kosts, debouncedSearch, selectedCity, selectedType, selectedPriceRange, selectedFacilities, sortBy, showWishlistOnly, wishlist, userLocation, maxDistanceRadius]);
 
   const cityBadges = [
     { id: 'all', name: 'Semua Kota', icon: '🌐' },
@@ -923,19 +935,9 @@ export default function SearchKost({ user }) {
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* Item #1: Skeleton Loading Screens (No Layout Shift & Instant Perception) */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
-            <div className="animate-spin" style={{
-              width: '42px',
-              height: '42px',
-              border: '3px solid rgba(59, 130, 246, 0.2)',
-              borderTopColor: '#3b82f6',
-              borderRadius: '50%',
-              margin: '0 auto 16px'
-            }} />
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>Memuat pilihan kost terbaik...</p>
-          </div>
+          <KostCardSkeleton count={8} viewMode="grid" />
         ) : filteredKosts.length === 0 ? (
           <div className="card glass-panel" style={{
             textAlign: 'center',
@@ -985,8 +987,10 @@ export default function SearchKost({ user }) {
                   key={kost.uid} 
                   id={`kost-card-${kost.uid}`}
                   className="kost-card-container animate-fade-in"
+                  onClick={() => navigate(`/kost/${kost.uid}`)}
                   style={{
                     position: 'relative',
+                    cursor: 'pointer',
                     border: isHighlighted
                       ? '2.5px solid #f59e0b'
                       : (isCompared ? '1.5px solid #3b82f6' : (kost.promoted?.active ? '1.5px solid #f59e0b' : '1px solid var(--border-color)')),
@@ -1018,10 +1022,11 @@ export default function SearchKost({ user }) {
                   {/* Card Image Area with In-Card Slider */}
                   <div className="kost-card-image-wrapper">
                     <img 
-                      src={activeImg} 
+                      src={optimizeImageUrl(activeImg, { width: 640, quality: 80, format: 'webp' })} 
                       alt={kost.kostName}
                       className="kost-card-image"
                       loading="lazy"
+                      decoding="async"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = DEFAULT_BUILDING_PHOTO;
@@ -1367,6 +1372,7 @@ export default function SearchKost({ user }) {
                           href={getGmapsDirectionsUrl(coords?.lat, coords?.lng, userLocation?.lat, userLocation?.lng)}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           style={{
                             padding: '9px 12px',
                             borderRadius: '12px',
@@ -1388,11 +1394,16 @@ export default function SearchKost({ user }) {
                         </a>
 
                         {/* Main Detail Button */}
-                        <Link 
-                          to={`/kost/${kost.uid}`}
+                        <button
+                          type="button" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/kost/${kost.uid}`);
+                          }}
                           style={{
                             flex: 1,
                             minWidth: '130px',
+                            border: 'none',
                             textDecoration: 'none',
                             padding: '10px 14px',
                             borderRadius: '12px',
@@ -1404,13 +1415,14 @@ export default function SearchKost({ user }) {
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '6px',
+                            cursor: 'pointer',
                             boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                             transition: 'opacity 0.2s'
                           }}
                         >
                           <span>Pilih & Booking</span>
                           <ChevronRight size={15} />
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>

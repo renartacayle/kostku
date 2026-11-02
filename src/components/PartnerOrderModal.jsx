@@ -32,6 +32,7 @@ import {
   apiMutateWallet
 } from '../services/api';
 import { generateQrisDataUrl, getGatewayConfig, saveGatewayConfig } from '../utils/qrisEngine';
+import { useTheme } from '../context/ThemeContext';
 
 const PartnerOrderModal = ({
   isOpen,
@@ -40,6 +41,7 @@ const PartnerOrderModal = ({
   user = null,
   kost = null
 }) => {
+  const { isLight } = useTheme();
   const [roomNumber, setRoomNumber] = useState(user?.kamar || '101');
   const [customerName, setCustomerName] = useState(user?.name || '');
   const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
@@ -519,7 +521,7 @@ const PartnerOrderModal = ({
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(5, 10, 20, 0.88)',
+      background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
       backdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
@@ -529,15 +531,15 @@ const PartnerOrderModal = ({
     }} className="animate-fade-in">
 
       <div id="partner-order-modal" style={{
-        background: '#0a101f',
-        border: '1px solid rgba(59, 130, 246, 0.35)',
+        background: isLight ? '#ffffff' : '#0a101f',
+        border: isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(59, 130, 246, 0.35)',
         borderRadius: '20px',
         width: '100%',
         maxWidth: '500px',
         maxHeight: '92vh',
         overflowY: 'auto',
         padding: '1.2rem',
-        boxShadow: '0 25px 65px -15px rgba(0, 0, 0, 0.85)',
+        boxShadow: isLight ? '0 25px 65px -15px rgba(15, 23, 42, 0.25)' : '0 25px 65px -15px rgba(0, 0, 0, 0.85)',
         position: 'relative'
       }}>
         {/* Top Header */}
@@ -549,12 +551,12 @@ const PartnerOrderModal = ({
               borderRadius: '12px',
               overflow: 'hidden',
               flexShrink: 0,
-              background: 'rgba(59, 130, 246, 0.12)',
-              border: '1.5px solid rgba(255, 255, 255, 0.12)',
+              background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.12)',
+              border: isLight ? '1.5px solid rgba(15, 23, 42, 0.1)' : '1.5px solid rgba(255, 255, 255, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 3px 10px rgba(0,0,0,0.3)'
+              boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.06)' : '0 3px 10px rgba(0,0,0,0.3)'
             }}>
               {service.logo ? (
                 <img src={service.logo} alt={service.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -564,32 +566,39 @@ const PartnerOrderModal = ({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                   {service.name || service.title}
                 </h3>
                 {service.isMainPartner || service.partnershipType === 'main' ? (
-                  <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
+                  <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: isLight ? '#b45309' : '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
                     👑 Mitra Utama Kost
                   </span>
                 ) : service.isShared || service.partnershipType === 'shared' ? (
-                  <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(34, 197, 94, 0.2)', color: isLight ? '#15803d' : '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)', fontWeight: 700 }}>
                     🤝 Mitra Bersama Multi-Kost
                   </span>
                 ) : (
-                  <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.2)', color: isLight ? '#1d4ed8' : '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)', fontWeight: 700 }}>
                     🌐 Mitra Jaringan Sekitar
                   </span>
                 )}
               </div>
-              <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MapPin size={12} color="#60a5fa" />
+              <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={12} color="#3b82f6" />
                 {service.address || `${service.distanceKm || 0.2} km dari kost`} • Antar ke Pintu Kamar
               </p>
             </div>
           </div>
           <button
             onClick={handleResetAndClose}
-            style={{ background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: '#94a3b8', cursor: 'pointer', borderRadius: '50%', padding: '6px' }}
+            style={{ 
+              background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)', 
+              border: isLight ? '1px solid #e2e8f0' : 'none', 
+              color: isLight ? '#475569' : '#94a3b8', 
+              cursor: 'pointer', 
+              borderRadius: '50%', 
+              padding: '6px' 
+            }}
           >
             <X size={18} />
           </button>
@@ -625,8 +634,8 @@ const PartnerOrderModal = ({
             </p>
 
             <div style={{
-              background: 'rgba(15, 23, 42, 0.9)',
-              border: '1px solid rgba(34, 197, 94, 0.35)',
+              background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.9)',
+              border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.35)',
               borderRadius: '16px',
               padding: '1.25rem',
               textAlign: 'left',
@@ -634,31 +643,31 @@ const PartnerOrderModal = ({
               fontSize: '0.82rem'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#94a3b8' }}>Nomor Tiket:</span>
-                <span style={{ color: '#f8fafc', fontWeight: 700, fontFamily: 'monospace' }}>{orderResult?.id}</span>
+                <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Nomor Tiket:</span>
+                <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 700, fontFamily: 'monospace' }}>{orderResult?.id}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#94a3b8' }}>Tujuan Pengantaran:</span>
-                <span style={{ color: '#38bdf8', fontWeight: 700 }}>Kamar {roomNumber} ({customerName})</span>
+                <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Tujuan Pengantaran:</span>
+                <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Kamar {roomNumber} ({customerName})</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#94a3b8' }}>Metode Pembayaran:</span>
+                <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Metode Pembayaran:</span>
                 <span style={{
-                  color: paymentMethod === 'qris' ? '#22c55e' : paymentMethod === 'monthly_bill' ? '#60a5fa' : '#facc15',
+                  color: paymentMethod === 'qris' ? (isLight ? '#15803d' : '#22c55e') : paymentMethod === 'monthly_bill' ? (isLight ? '#2563eb' : '#60a5fa') : (isLight ? '#b45309' : '#facc15'),
                   fontWeight: 700
                 }}>
                   {paymentMethod === 'qris' ? '🟢 Lunas (QRIS Non-Tunai)' : paymentMethod === 'monthly_bill' ? '🔵 Masuk Tagihan Sewa' : '⚪ Tunai COD'}
                 </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-                <span style={{ color: '#94a3b8' }}>Total Tagihan:</span>
-                <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '0.95rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', borderTop: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px' }}>
+                <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Total Tagihan:</span>
+                <span style={{ color: isLight ? '#15803d' : '#4ade80', fontWeight: 800, fontSize: '0.95rem' }}>
                   Rp {(orderResult?.total || grandTotal).toLocaleString('id-ID')}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#94a3b8' }}>Estimasi Sampai:</span>
-                <span style={{ color: '#facc15', fontWeight: 700 }}>
+                <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Estimasi Sampai:</span>
+                <span style={{ color: isLight ? '#b45309' : '#facc15', fontWeight: 700 }}>
                   {service.name?.toLowerCase().includes('galon') || service.title?.toLowerCase().includes('galon') ? '15 - 20 Menit' : 'Sesuai Jadwal'}
                 </span>
               </div>
@@ -666,8 +675,12 @@ const PartnerOrderModal = ({
 
             {/* SLA Real-Time Countdown Timer */}
             <div style={{
-              background: slaSecondsLeft > 0 ? 'rgba(56, 189, 248, 0.1)' : 'rgba(239, 68, 68, 0.15)',
-              border: `1px solid ${slaSecondsLeft > 0 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(239, 68, 68, 0.4)'}`,
+              background: slaSecondsLeft > 0 
+                ? (isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.1)') 
+                : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)'),
+              border: `1px solid ${slaSecondsLeft > 0 
+                ? (isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.35)') 
+                : (isLight ? '#fecaca' : 'rgba(239, 68, 68, 0.4)')}`,
               borderRadius: '16px',
               padding: '1rem',
               textAlign: 'left',
@@ -675,8 +688,8 @@ const PartnerOrderModal = ({
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Clock size={16} color={slaSecondsLeft > 0 ? '#38bdf8' : '#ef4444'} />
-                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <Clock size={16} color={slaSecondsLeft > 0 ? (isLight ? '#0284c7' : '#38bdf8') : '#ef4444'} />
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                     SLA Pengantaran Mitra
                   </span>
                 </div>
@@ -684,12 +697,12 @@ const PartnerOrderModal = ({
                   fontSize: '1.15rem',
                   fontWeight: 900,
                   fontFamily: 'monospace',
-                  color: slaSecondsLeft > 0 ? '#38bdf8' : '#ef4444'
+                  color: slaSecondsLeft > 0 ? (isLight ? '#0284c7' : '#38bdf8') : '#ef4444'
                 }}>
                   {formatSlaCountdown(slaSecondsLeft)}
                 </span>
               </div>
-              <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: '#94a3b8' }}>
+              <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 {slaSecondsLeft > 0
                   ? `Batas waktu SLA (${slaMinutes} menit) untuk kurir mitra mengantarkan barang sampai di pintu Kamar ${roomNumber}.`
                   : '⚠️ Batas waktu SLA telah lewat! Garansi pembatalan pesanan otomatis (cancelled_timeout) & refund dana siap diklaim.'}
@@ -724,20 +737,20 @@ const PartnerOrderModal = ({
                 <Phone size={16} />
                 <span>Kirim Notifikasi via WhatsApp (wa.me)</span>
               </a>
-              <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+              <span style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', display: 'block', marginTop: '4px' }}>
                 Format otomatis memuat nomor kamar, nama pemesan, dan batas SLA pengantaran.
               </span>
             </div>
 
             {/* Rating Mitra UMKM */}
             <div style={{
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '14px',
               padding: '12px',
               marginBottom: '1.25rem'
             }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', marginBottom: '8px' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc', marginBottom: '8px' }}>
                 Beri Rating Layanan Mitra:
               </div>
               {ratingSubmitted ? (
@@ -843,24 +856,33 @@ const PartnerOrderModal = ({
             {/* Gateway Configuration Drawer (Toggleable) */}
             {showGatewayConfig && (
               <div style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid rgba(59, 130, 246, 0.4)',
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.95)',
+                border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(59, 130, 246, 0.4)',
                 borderRadius: '14px',
                 padding: '12px',
                 marginBottom: '12px',
                 textAlign: 'left',
-                fontSize: '0.75rem'
+                fontSize: '0.75rem',
+                boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.06)' : 'none'
               }}>
-                <div style={{ fontWeight: 800, color: '#38bdf8', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ fontWeight: 800, color: isLight ? '#0284c7' : '#38bdf8', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
                   <span>⚙️ Konfigurasi Gateway Pembayaran:</span>
-                  <button onClick={() => setShowGatewayConfig(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+                  <button onClick={() => setShowGatewayConfig(false)} style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}>✕</button>
                 </div>
                 <div style={{ marginBottom: '8px' }}>
-                  <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.68rem', marginBottom: '3px' }}>Mode Gateway:</label>
+                  <label style={{ display: 'block', color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.68rem', marginBottom: '3px' }}>Mode Gateway:</label>
                   <select
                     value={gwConfig.provider || 'aspi_emvco_dynamic'}
                     onChange={e => setGwConfig(prev => ({ ...prev, provider: e.target.value, isSandbox: e.target.value === 'midtrans_sandbox', isProduction: e.target.value === 'midtrans_production' }))}
-                    style={{ width: '100%', padding: '6px 8px', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: '#f8fafc', fontSize: '0.72rem' }}
+                    style={{ 
+                      width: '100%', 
+                      padding: '6px 8px', 
+                      background: isLight ? '#ffffff' : '#0f172a', 
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid #334155', 
+                      borderRadius: '6px', 
+                      color: isLight ? '#0f172a' : '#f8fafc', 
+                      fontSize: '0.72rem' 
+                    }}
                   >
                     <option value="aspi_emvco_dynamic">🟢 Bank Indonesia ASPI Dynamic QRIS EMVCo (Rekomendasi - Terkunci Nominal Pas)</option>
                     <option value="midtrans_sandbox">🟡 Midtrans Core API (Sandbox Mode)</option>
@@ -868,13 +890,22 @@ const PartnerOrderModal = ({
                   </select>
                 </div>
                 <div style={{ marginBottom: '8px' }}>
-                  <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.68rem', marginBottom: '3px' }}>Midtrans Server Key (Kosongkan jika pakai ASPI):</label>
+                  <label style={{ display: 'block', color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.68rem', marginBottom: '3px' }}>Midtrans Server Key (Kosongkan jika pakai ASPI):</label>
                   <input
                     type="password"
                     placeholder="Contoh: Mid-server-xxxxxxxx atau SB-Mid-server-xxxx"
                     value={gwConfig.serverKey || ''}
                     onChange={e => setGwConfig(prev => ({ ...prev, serverKey: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: '#f8fafc', fontSize: '0.72rem', boxSizing: 'border-box' }}
+                    style={{ 
+                      width: '100%', 
+                      padding: '6px 8px', 
+                      background: isLight ? '#ffffff' : '#0f172a', 
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid #334155', 
+                      borderRadius: '6px', 
+                      color: isLight ? '#0f172a' : '#f8fafc', 
+                      fontSize: '0.72rem', 
+                      boxSizing: 'border-box' 
+                    }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1185,10 +1216,10 @@ const PartnerOrderModal = ({
             {/* 1. Pilih Produk / Katalog Barang */}
             <div style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc' }}>
                   Pilih Produk & Jumlah:
                 </label>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Katalog Resmi Merchant
                 </span>
               </div>
@@ -1201,8 +1232,12 @@ const PartnerOrderModal = ({
                     <div
                       key={prod.id}
                       style={{
-                        background: qty > 0 ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                        border: qty > 0 ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid var(--border-color)',
+                        background: qty > 0 
+                          ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.08)') 
+                          : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'),
+                        border: qty > 0 
+                          ? (isLight ? '1.5px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.4)') 
+                          : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
                         borderRadius: '10px',
                         padding: '6px 10px',
                         display: 'flex',
@@ -1219,12 +1254,12 @@ const PartnerOrderModal = ({
                           borderRadius: '8px',
                           overflow: 'hidden',
                           flexShrink: 0,
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
+                          border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                          boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.06)' : '0 2px 4px rgba(0,0,0,0.2)'
                         }}>
                           {prod.image ? (
                             <img
@@ -1253,7 +1288,7 @@ const PartnerOrderModal = ({
 
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f8fafc' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc' }}>
                               {prod.name}
                             </span>
                             {prod.isRealTopSeller ? (
@@ -1261,7 +1296,7 @@ const PartnerOrderModal = ({
                                 🔥 Terlaris ({prod.effectiveSold || prod.totalSold || 30}x Dipesan)
                               </span>
                             ) : (prod.isStorePick || prod.isBestSeller) ? (
-                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
+                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: isLight ? '#b45309' : '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
                                 ⭐ Rekomendasi Toko
                               </span>
                             ) : null}
@@ -1273,7 +1308,7 @@ const PartnerOrderModal = ({
                                   padding: '1px 5px',
                                   borderRadius: '4px',
                                   background: 'rgba(16, 185, 129, 0.15)',
-                                  color: '#34d399',
+                                  color: isLight ? '#15803d' : '#34d399',
                                   border: '1px solid rgba(16, 185, 129, 0.3)',
                                   fontWeight: 700,
                                   display: 'inline-flex',
@@ -1300,20 +1335,20 @@ const PartnerOrderModal = ({
                               )
                             )}
                             {prod.brand && (
-                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', fontWeight: 700 }}>
+                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: isLight ? '#1d4ed8' : '#93c5fd', fontWeight: 700 }}>
                                 {prod.brand}
                               </span>
                             )}
                             {isLowest && !prod.isBestSeller && (
-                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', fontWeight: 700 }}>
+                              <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.15)', color: isLight ? '#15803d' : '#4ade80', fontWeight: 700 }}>
                                 Paling Hemat
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: '0.64rem', color: '#94a3b8', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '0.64rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {prod.desc || 'Siap diantar'}
                           </div>
-                          <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#60a5fa', marginTop: '1px' }}>
+                          <div style={{ fontSize: '0.76rem', fontWeight: 800, color: isLight ? '#1d4ed8' : '#60a5fa', marginTop: '1px' }}>
                             Rp {prod.price.toLocaleString('id-ID')}
                           </div>
                         </div>
@@ -1329,9 +1364,11 @@ const PartnerOrderModal = ({
                             width: '24px',
                             height: '24px',
                             borderRadius: '6px',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            background: qty > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-                            color: qty > 0 ? '#f8fafc' : '#64748b',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)',
+                            background: qty > 0 
+                              ? (isLight ? '#e2e8f0' : 'rgba(255,255,255,0.06)') 
+                              : (isLight ? '#f1f5f9' : 'rgba(255,255,255,0.02)'),
+                            color: qty > 0 ? (isLight ? '#0f172a' : '#f8fafc') : (isLight ? '#94a3b8' : '#64748b'),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1340,7 +1377,7 @@ const PartnerOrderModal = ({
                         >
                           <Minus size={12} />
                         </button>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 800, minWidth: '16px', textAlign: 'center', color: qty > 0 ? '#f8fafc' : '#64748b' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 800, minWidth: '16px', textAlign: 'center', color: qty > 0 ? (isLight ? '#0f172a' : '#f8fafc') : (isLight ? '#94a3b8' : '#64748b') }}>
                           {qty}
                         </span>
                         <button
@@ -1350,9 +1387,9 @@ const PartnerOrderModal = ({
                             width: '24px',
                             height: '24px',
                             borderRadius: '6px',
-                            border: '1px solid #3b82f6',
-                            background: 'rgba(59, 130, 246, 0.25)',
-                            color: '#93c5fd',
+                            border: isLight ? '1px solid #93c5fd' : '1px solid #3b82f6',
+                            background: isLight ? '#dbeafe' : 'rgba(59, 130, 246, 0.25)',
+                            color: isLight ? '#1d4ed8' : '#93c5fd',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1370,16 +1407,16 @@ const PartnerOrderModal = ({
 
             {/* 2. Opsi Pengantaran & Pengambilan */}
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
                 Metode Pengantaran / Pengambilan:
               </label>
               {service?.deliveryType === 'pickup' ? (
                 <div style={{
                   padding: '9px 12px',
                   borderRadius: '10px',
-                  background: 'rgba(245, 158, 11, 0.1)',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                  color: '#fbbf24',
+                  background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)',
+                  border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
+                  color: isLight ? '#b45309' : '#fbbf24',
                   fontSize: '0.78rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -1391,9 +1428,9 @@ const PartnerOrderModal = ({
                 <div style={{
                   padding: '9px 12px',
                   borderRadius: '10px',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
-                  color: '#93c5fd',
+                  background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.1)',
+                  border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.3)',
+                  color: isLight ? '#1d4ed8' : '#93c5fd',
                   fontSize: '0.78rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -1409,9 +1446,15 @@ const PartnerOrderModal = ({
                     style={{
                       padding: '8px 10px',
                       borderRadius: '10px',
-                      border: selectedDeliveryMode === 'delivery' ? '1.5px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                      background: selectedDeliveryMode === 'delivery' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
-                      color: selectedDeliveryMode === 'delivery' ? '#fff' : '#94a3b8',
+                      border: selectedDeliveryMode === 'delivery' 
+                        ? '1.5px solid #2563eb' 
+                        : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                      background: selectedDeliveryMode === 'delivery' 
+                        ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)') 
+                        : (isLight ? '#ffffff' : 'rgba(255,255,255,0.03)'),
+                      color: selectedDeliveryMode === 'delivery' 
+                        ? (isLight ? '#1d4ed8' : '#fff') 
+                        : (isLight ? '#475569' : '#94a3b8'),
                       fontSize: '0.78rem',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -1429,9 +1472,15 @@ const PartnerOrderModal = ({
                     style={{
                       padding: '8px 10px',
                       borderRadius: '10px',
-                      border: selectedDeliveryMode === 'pickup' ? '1.5px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-                      background: selectedDeliveryMode === 'pickup' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.03)',
-                      color: selectedDeliveryMode === 'pickup' ? '#fff' : '#94a3b8',
+                      border: selectedDeliveryMode === 'pickup' 
+                        ? '1.5px solid #d97706' 
+                        : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                      background: selectedDeliveryMode === 'pickup' 
+                        ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.2)') 
+                        : (isLight ? '#ffffff' : 'rgba(255,255,255,0.03)'),
+                      color: selectedDeliveryMode === 'pickup' 
+                        ? (isLight ? '#b45309' : '#fff') 
+                        : (isLight ? '#475569' : '#94a3b8'),
                       fontSize: '0.78rem',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -1450,7 +1499,7 @@ const PartnerOrderModal = ({
             {/* 3. Informasi Kamar & Waktu */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Nomor Kamar:
                 </label>
                 <input
@@ -1465,7 +1514,7 @@ const PartnerOrderModal = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Waktu Pengantaran:
                 </label>
                 <select
@@ -1485,7 +1534,7 @@ const PartnerOrderModal = ({
 
             {/* Catatan Khusus */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+              <label style={{ display: 'block', fontSize: '0.76rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                 Catatan Tambahan (Opsional):
               </label>
               <input
@@ -1501,10 +1550,10 @@ const PartnerOrderModal = ({
             {/* 3. METODE PEMBAYARAN: UTAMAKAN NON-COD */}
             <div style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc' }}>
                   Metode Pembayaran (Utamakan Non-Tunai):
                 </label>
-                <span style={{ fontSize: '0.68rem', color: '#22c55e', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.68rem', color: isLight ? '#15803d' : '#22c55e', fontWeight: 700 }}>
                   Bebas Ribet Kembalian
                 </span>
               </div>
@@ -1515,8 +1564,12 @@ const PartnerOrderModal = ({
                   onClick={() => setPaymentMethod('qris')}
                   style={{
                     cursor: 'pointer',
-                    background: paymentMethod === 'qris' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                    border: paymentMethod === 'qris' ? '1.5px solid #22c55e' : '1px solid var(--border-color)',
+                    background: paymentMethod === 'qris' 
+                      ? (isLight ? '#ecfdf5' : 'rgba(34, 197, 94, 0.12)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'),
+                    border: paymentMethod === 'qris' 
+                      ? (isLight ? '1.5px solid #16a34a' : '1.5px solid #22c55e') 
+                      : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
                     borderRadius: '12px',
                     padding: '10px 12px',
                     display: 'flex',
@@ -1531,7 +1584,7 @@ const PartnerOrderModal = ({
                       height: '32px',
                       borderRadius: '8px',
                       background: 'rgba(34, 197, 94, 0.2)',
-                      color: '#4ade80',
+                      color: isLight ? '#15803d' : '#4ade80',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
@@ -1540,14 +1593,14 @@ const PartnerOrderModal = ({
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc' }}>
                           QRIS Instan (Semua E-Wallet & Bank)
                         </span>
                         <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: '4px', background: '#22c55e', color: '#0f172a', fontWeight: 800 }}>
                           REKOMENDASI
                         </span>
                       </div>
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                         Scan via BCA, GoPay, OVO, ShopeePay, Dana. Tanpa uang kembalian.
                       </span>
                     </div>
@@ -1566,8 +1619,12 @@ const PartnerOrderModal = ({
                   onClick={() => setPaymentMethod('monthly_bill')}
                   style={{
                     cursor: 'pointer',
-                    background: paymentMethod === 'monthly_bill' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                    border: paymentMethod === 'monthly_bill' ? '1.5px solid #3b82f6' : '1px solid var(--border-color)',
+                    background: paymentMethod === 'monthly_bill' 
+                      ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.12)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'),
+                    border: paymentMethod === 'monthly_bill' 
+                      ? (isLight ? '1.5px solid #2563eb' : '1.5px solid #3b82f6') 
+                      : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
                     borderRadius: '12px',
                     padding: '10px 12px',
                     display: 'flex',
@@ -1582,7 +1639,7 @@ const PartnerOrderModal = ({
                       height: '32px',
                       borderRadius: '8px',
                       background: 'rgba(59, 130, 246, 0.2)',
-                      color: '#60a5fa',
+                      color: isLight ? '#1d4ed8' : '#60a5fa',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
@@ -1590,10 +1647,10 @@ const PartnerOrderModal = ({
                       <Receipt size={18} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#f8fafc', display: 'block' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc', display: 'block' }}>
                         Titip ke Tagihan Sewa Bulan Depan
                       </span>
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                         Praktis, langsung digabung ke invoice sewa kamar tanpa keluar uang sekarang.
                       </span>
                     </div>
@@ -1612,23 +1669,27 @@ const PartnerOrderModal = ({
                   onClick={() => setPaymentMethod('cod')}
                   style={{
                     cursor: 'pointer',
-                    background: paymentMethod === 'cod' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255, 255, 255, 0.01)',
-                    border: paymentMethod === 'cod' ? '1.5px solid rgba(245, 158, 11, 0.6)' : '1px solid var(--border-color)',
+                    background: paymentMethod === 'cod' 
+                      ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.08)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.01)'),
+                    border: paymentMethod === 'cod' 
+                      ? (isLight ? '1.5px solid #d97706' : '1.5px solid rgba(245, 158, 11, 0.6)') 
+                      : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
                     borderRadius: '12px',
                     padding: '8px 12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    opacity: 0.85
+                    opacity: 0.9
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '1rem' }}>💵</span>
                     <div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#e2e8f0', display: 'block' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isLight ? '#0f172a' : '#e2e8f0', display: 'block' }}>
                         Bayar Tunai saat Diantar (COD)
                       </span>
-                      <span style={{ fontSize: '0.68rem', color: '#fbbf24' }}>
+                      <span style={{ fontSize: '0.68rem', color: isLight ? '#b45309' : '#fbbf24' }}>
                         Harap siapkan uang pas saat kurir tiba di kamar.
                       </span>
                     </div>
@@ -1646,18 +1707,18 @@ const PartnerOrderModal = ({
 
             {/* 3.5. REFERRAL CODE & DISKON POIN (KHUSUS MITRA - SESUAI ARAHAN MBAK RENA) */}
             <div style={{
-              background: 'rgba(245, 158, 11, 0.04)',
-              border: '1px dashed rgba(245, 158, 11, 0.3)',
+              background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.04)',
+              border: isLight ? '1px dashed #f59e0b' : '1px dashed rgba(245, 158, 11, 0.3)',
               borderRadius: '10px',
               padding: '8px 10px',
               marginBottom: '0.85rem'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: isLight ? '#b45309' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   🎁 Referral Teman & Diskon PoinKu
                 </span>
-                <span style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
-                  Saldo: <strong style={{ color: '#fbbf24' }}>{userLoyaltyPoints} Poin</strong>
+                <span style={{ fontSize: '0.66rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  Saldo: <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>{userLoyaltyPoints} Poin</strong>
                 </span>
               </div>
 
@@ -1667,19 +1728,19 @@ const PartnerOrderModal = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  background: 'rgba(34, 197, 94, 0.1)',
-                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  background: isLight ? '#ecfdf5' : 'rgba(34, 197, 94, 0.1)',
+                  border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)',
                   borderRadius: '6px',
                   padding: '5px 8px',
                   marginBottom: '5px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.76rem', color: '#4ade80' }}>✓</span>
+                    <span style={{ fontSize: '0.76rem', color: '#16a34a' }}>✓</span>
                     <div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4ade80' }}>
-                        Kode Otomatis Aktif: <strong style={{ color: '#fff', letterSpacing: '0.5px' }}>{friendReferralCode}</strong>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: isLight ? '#15803d' : '#4ade80' }}>
+                        Kode Otomatis Aktif: <strong style={{ color: isLight ? '#0f172a' : '#fff', letterSpacing: '0.5px' }}>{friendReferralCode}</strong>
                       </span>
-                      <div style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '0.58rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                         (Tersimpan otomatis • Teman +100, Kamu +100)
                       </div>
                     </div>
@@ -1690,7 +1751,7 @@ const PartnerOrderModal = ({
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#38bdf8',
+                      color: isLight ? '#0284c7' : '#38bdf8',
                       fontSize: '0.64rem',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -1709,12 +1770,12 @@ const PartnerOrderModal = ({
                     placeholder="Punya Kode Teman? (e.g. KOST-102)"
                     style={{
                       flex: 1,
-                      background: 'rgba(0, 0, 0, 0.35)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.35)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: '6px',
                       padding: '4px 8px',
                       fontSize: '0.7rem',
-                      color: '#f8fafc'
+                      color: isLight ? '#0f172a' : '#f8fafc'
                     }}
                   />
                   {isEditingReferral && (
@@ -1745,7 +1806,7 @@ const PartnerOrderModal = ({
                   alignItems: 'center',
                   gap: '6px',
                   fontSize: '0.7rem',
-                  color: '#cbd5e1',
+                  color: isLight ? '#334155' : '#cbd5e1',
                   cursor: 'pointer',
                   userSelect: 'none',
                   marginTop: '3px'
@@ -1765,51 +1826,51 @@ const PartnerOrderModal = ({
               {/* Proteksi Mitra UMKM Notice */}
               <div style={{
                 fontSize: '0.62rem',
-                color: '#94a3b8',
+                color: isLight ? '#475569' : '#94a3b8',
                 marginTop: '4px',
                 lineHeight: 1.3,
-                background: 'rgba(0,0,0,0.2)',
-                padding: '3px 6px',
+                background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.2)',
+                padding: '4px 8px',
                 borderRadius: '5px'
               }}>
-                🛡️ <strong style={{ color: '#38bdf8' }}>Proteksi Mitra:</strong> Mitra tetap terima 100% uang makanan & ongkir utuh tanpa potongan. Anda otomatis dapat <strong style={{ color: '#4ade80' }}>+100 Poin reward</strong> setelah pesanan berhasil!
+                🛡️ <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>Proteksi Mitra:</strong> Mitra tetap terima 100% uang makanan & ongkir utuh tanpa potongan. Anda otomatis dapat <strong style={{ color: isLight ? '#15803d' : '#4ade80' }}>+100 Poin reward</strong> setelah pesanan berhasil!
               </div>
             </div>
 
             {/* 4. BREAKDOWN RINCIAN TRANSAKSI TRANSPARAN */}
             <div style={{
-              background: 'rgba(15, 23, 42, 0.75)',
-              border: '1px solid var(--border-color)',
+              background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.75)',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)',
               borderRadius: '14px',
               padding: '12px 14px',
               marginBottom: '1.25rem',
               fontSize: '0.8rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: isLight ? '#64748b' : '#94a3b8' }}>
                 <span>Harga Produk Mitra ({selectedItems.length || 1} item)</span>
-                <span>Rp {effectiveSubtotal.toLocaleString('id-ID')}</span>
+                <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>Rp {effectiveSubtotal.toLocaleString('id-ID')}</span>
               </div>
               {selectedDeliveryMode === 'delivery' && deliveryFee > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: isLight ? '#64748b' : '#94a3b8' }}>
                   <span>Ongkos Kirim ke Kamar</span>
-                  <span style={{ color: '#f8fafc', fontWeight: 600 }}>Rp {deliveryFee.toLocaleString('id-ID')}</span>
+                  <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>Rp {deliveryFee.toLocaleString('id-ID')}</span>
                 </div>
               )}
               {selectedDeliveryMode === 'pickup' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: isLight ? '#64748b' : '#94a3b8' }}>
                   <span>Metode Pengambilan</span>
-                  <span style={{ color: '#fbbf24', fontWeight: 600 }}>Ambil Sendiri di Ruko (Bebas Ongkir)</span>
+                  <span style={{ color: isLight ? '#b45309' : '#fbbf24', fontWeight: 600 }}>Ambil Sendiri di Ruko (Bebas Ongkir)</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#94a3b8' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: isLight ? '#64748b' : '#94a3b8' }}>
                 <div>
-                  <span style={{ color: '#f8fafc', fontWeight: 600 }}>Biaya Layanan & Admin</span>
-                  <div style={{ fontSize: '0.67rem', color: '#64748b' }}>Flat KostKu Rp 500 + Admin Layanan Kost</div>
+                  <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>Biaya Layanan & Admin</span>
+                  <div style={{ fontSize: '0.67rem', color: isLight ? '#94a3b8' : '#64748b' }}>Flat KostKu Rp 500 + Admin Layanan Kost</div>
                 </div>
-                <span style={{ color: '#38bdf8', fontWeight: 700 }}>Rp {totalAdminFee.toLocaleString('id-ID')}</span>
+                <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Rp {totalAdminFee.toLocaleString('id-ID')}</span>
               </div>
               {pointsDiscount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#fbbf24', fontWeight: 600 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 600 }}>
                   <span>Diskon Poin Referral</span>
                   <span>-Rp {pointsDiscount.toLocaleString('id-ID')}</span>
                 </div>
@@ -1817,16 +1878,16 @@ const PartnerOrderModal = ({
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
+                borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
                 paddingTop: '8px',
                 fontWeight: 800,
                 fontSize: '0.92rem',
-                color: '#f8fafc'
+                color: isLight ? '#0f172a' : '#f8fafc'
               }}>
                 <span>Total Pembayaran Tenant:</span>
-                <span style={{ color: '#4ade80' }}>Rp {grandTotal.toLocaleString('id-ID')}</span>
+                <span style={{ color: isLight ? '#15803d' : '#4ade80' }}>Rp {grandTotal.toLocaleString('id-ID')}</span>
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '6px', textAlign: 'center' }}>
                 💡 Admin Fee Transparan: Flat KostKu Rp 500 & Admin Pengelola disatukan • Tanpa Biaya Tersembunyi
               </div>
             </div>

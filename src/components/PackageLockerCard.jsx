@@ -13,8 +13,10 @@ import {
   X
 } from 'lucide-react';
 import { apiGetPackages, apiCreatePackage, apiPickupPackage } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const PackageLockerCard = ({ user, isStaff = false }) => {
+  const { isLight } = useTheme();
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -301,7 +303,7 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
@@ -311,21 +313,21 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
         }} className="animate-fade-in">
           
           <div style={{
-            background: '#0d1527',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
+            background: isLight ? '#ffffff' : '#0d1527',
+            border: isLight ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(245, 158, 11, 0.3)',
             borderRadius: '20px',
             width: '100%',
             maxWidth: '480px',
             padding: '1.5rem',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
+            boxShadow: isLight ? '0 20px 50px rgba(0,0,0,0.1)' : '0 20px 50px rgba(0,0,0,0.6)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Package size={20} color="#f59e0b" /> Catat Paket Kurir Masuk
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
@@ -333,7 +335,7 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
 
             <form onSubmit={handleCreatePackage} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Nama Penghuni / Penerima *</label>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '4px' }}>Nama Penghuni / Penerima *</label>
                 <input
                   type="text"
                   placeholder="Contoh: Budi Santoso"
@@ -346,7 +348,7 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Nomor Kamar *</label>
+                  <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '4px' }}>Nomor Kamar *</label>
                   <input
                     type="text"
                     placeholder="Contoh: 102 atau A-05"
@@ -358,7 +360,7 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Ekspedisi / Kurir</label>
+                  <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '4px' }}>Ekspedisi / Kurir</label>
                   <select
                     value={courier}
                     onChange={e => setCourier(e.target.value)}
@@ -377,7 +379,7 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>No. Resi (Opsional)</label>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '4px' }}>No. Resi (Opsional)</label>
                 <input
                   type="text"
                   placeholder="Contoh: SPXID029384820"
@@ -388,7 +390,7 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Keterangan / Lokasi Simpan</label>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '4px' }}>Keterangan / Lokasi Simpan</label>
                 <input
                   type="text"
                   placeholder="Contoh: Paket kardus besar di rak B bawah meja"

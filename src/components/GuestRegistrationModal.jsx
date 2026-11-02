@@ -20,9 +20,10 @@ import {
   apiCreateGuestLog, 
   apiCheckoutGuestLog 
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid }) {
-  if (!isOpen) return null;
+  const { isLight } = useTheme();
 
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'register' | 'history'
   const [guests, setGuests] = useState([]);
@@ -115,12 +116,15 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
   const activeGuests = guests.filter(g => g.status === 'aktif');
   const pastGuests = guests.filter(g => g.status === 'selesai' || g.status === 'checkout');
 
+  if (!isOpen) return null;
+
   return createPortal(
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(5, 10, 20, 0.88)',
+      background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
       backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -128,13 +132,13 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
       padding: '1rem'
     }} className="animate-fade-in">
       <div style={{
-        background: '#0a101f',
-        border: '1px solid rgba(56, 189, 248, 0.35)',
+        background: isLight ? '#ffffff' : '#0a101f',
+        border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.35)',
         borderRadius: '24px',
         width: '100%',
         maxWidth: '620px',
         padding: '1.75rem',
-        boxShadow: '0 25px 70px -15px rgba(0, 0, 0, 0.9)',
+        boxShadow: isLight ? '0 25px 60px -15px rgba(15, 23, 42, 0.15)' : '0 25px 70px -15px rgba(0, 0, 0, 0.9)',
         maxHeight: '92vh',
         overflowY: 'auto',
         display: 'flex',
@@ -157,10 +161,10 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               <Users size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                 Buku Tamu Menginap Digital (Overnight Pass)
               </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+              <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Pencatatan resmi izin tamu menginap sesuai tata tertib keamanan & ketertiban kost
               </p>
             </div>
@@ -168,9 +172,9 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
+              background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+              color: isLight ? '#475569' : '#94a3b8',
               cursor: 'pointer',
               borderRadius: '8px',
               padding: '6px',
@@ -184,7 +188,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
         {/* Navigation Tabs */}
         <div style={{
           display: 'flex',
-          background: 'rgba(255, 255, 255, 0.05)',
+          background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
           padding: '4px',
           borderRadius: '12px',
           gap: '4px'
@@ -196,8 +200,8 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               padding: '8px 12px',
               borderRadius: '8px',
               border: 'none',
-              background: activeTab === 'active' ? '#38bdf8' : 'transparent',
-              color: activeTab === 'active' ? '#0f172a' : '#94a3b8',
+              background: activeTab === 'active' ? '#0284c7' : 'transparent',
+              color: activeTab === 'active' ? '#ffffff' : (isLight ? '#64748b' : '#94a3b8'),
               fontWeight: 700,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -219,7 +223,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               borderRadius: '8px',
               border: 'none',
               background: activeTab === 'register' ? '#10b981' : 'transparent',
-              color: activeTab === 'register' ? '#0f172a' : '#94a3b8',
+              color: activeTab === 'register' ? '#ffffff' : (isLight ? '#64748b' : '#94a3b8'),
               fontWeight: 700,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -240,8 +244,8 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               padding: '8px 12px',
               borderRadius: '8px',
               border: 'none',
-              background: activeTab === 'history' ? '#64748b' : 'transparent',
-              color: activeTab === 'history' ? 'white' : '#94a3b8',
+              background: activeTab === 'history' ? (isLight ? '#cbd5e1' : '#64748b') : 'transparent',
+              color: activeTab === 'history' ? (isLight ? '#0f172a' : 'white') : (isLight ? '#64748b' : '#94a3b8'),
               fontWeight: 700,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -260,22 +264,22 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
         {activeTab === 'active' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+              <div style={{ textAlign: 'center', padding: '2rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
                 <span>Memuat data tamu...</span>
               </div>
             ) : activeGuests.length === 0 ? (
               <div style={{
-                background: 'rgba(15, 23, 42, 0.6)',
-                border: '1px dashed rgba(255, 255, 255, 0.1)',
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)',
+                border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.1)',
                 borderRadius: '16px',
                 padding: '2.5rem 1rem',
                 textAlign: 'center',
-                color: '#64748b'
+                color: isLight ? '#64748b' : '#64748b'
               }}>
                 <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                <h5 style={{ color: '#cbd5e1', margin: '0 0 4px', fontSize: '0.95rem' }}>Tidak Ada Tamu Menginap Saat Ini</h5>
-                <p style={{ margin: '0 0 1rem', fontSize: '0.8rem' }}>Semua kamar saat ini bersih dari tamu menginap yang tercatat.</p>
+                <h5 style={{ color: isLight ? '#1e293b' : '#cbd5e1', margin: '0 0 4px', fontSize: '0.95rem' }}>Tidak Ada Tamu Menginap Saat Ini</h5>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>Semua kamar saat ini bersih dari tamu menginap yang tercatat.</p>
                 <button
                   onClick={() => setActiveTab('register')}
                   className="btn btn-primary btn-sm"
@@ -290,8 +294,8 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                   <div
                     key={g.id}
                     style={{
-                      background: 'rgba(15, 23, 42, 0.85)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.85)',
+                      border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.3)',
                       borderRadius: '16px',
                       padding: '14px',
                       display: 'flex',
@@ -302,12 +306,12 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'white' }}>
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                             {g.guestName}
                           </h4>
                           <span style={{
-                            background: 'rgba(16, 185, 129, 0.2)',
-                            color: '#34d399',
+                            background: isLight ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.2)',
+                            color: isLight ? '#059669' : '#34d399',
                             border: '1px solid rgba(16, 185, 129, 0.4)',
                             fontSize: '0.68rem',
                             fontWeight: 800,
@@ -317,14 +321,14 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                             AKTIF MENGINAP
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
-                          Hubungan: <strong style={{ color: '#cbd5e1' }}>{g.relationship || 'Teman / Keluarga'}</strong> • Kamar: <strong style={{ color: '#38bdf8' }}>{g.roomNumber}</strong> ({g.tenantName})
+                        <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px', display: 'block' }}>
+                          Hubungan: <strong style={{ color: isLight ? '#1e293b' : '#cbd5e1' }}>{g.relationship || 'Teman / Keluarga'}</strong> • Kamar: <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>{g.roomNumber}</strong> ({g.tenantName})
                         </span>
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>Biaya Inap</span>
-                        <strong style={{ fontSize: '0.9rem', color: '#34d399', fontFamily: 'monospace' }}>
+                        <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#64748b', display: 'block' }}>Biaya Inap</span>
+                        <strong style={{ fontSize: '0.9rem', color: isLight ? '#059669' : '#34d399', fontFamily: 'monospace' }}>
                           Rp {(g.totalFee || 0).toLocaleString('id-ID')}
                         </strong>
                       </div>
@@ -334,23 +338,24 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
                       gap: '8px',
-                      background: 'rgba(255, 255, 255, 0.03)',
+                      background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.03)',
+                      border: isLight ? '1px solid #e2e8f0' : 'none',
                       padding: '8px 12px',
                       borderRadius: '10px',
                       fontSize: '0.75rem',
-                      color: '#cbd5e1'
+                      color: isLight ? '#334155' : '#cbd5e1'
                     }}>
                       <div>
-                        <span style={{ color: '#64748b', display: 'block' }}>Mulai Inap:</span>
-                        <strong>{g.startDate} ({g.durationDays} malam)</strong>
+                        <span style={{ color: isLight ? '#64748b' : '#64748b', display: 'block' }}>Mulai Inap:</span>
+                        <strong style={{ color: isLight ? '#0f172a' : '#ffffff' }}>{g.startDate} ({g.durationDays} malam)</strong>
                       </div>
                       <div>
-                        <span style={{ color: '#64748b', display: 'block' }}>No HP Tamu:</span>
-                        <strong>{g.guestPhone}</strong>
+                        <span style={{ color: isLight ? '#64748b' : '#64748b', display: 'block' }}>No HP Tamu:</span>
+                        <strong style={{ color: isLight ? '#0f172a' : '#ffffff' }}>{g.guestPhone}</strong>
                       </div>
                       <div>
-                        <span style={{ color: '#64748b', display: 'block' }}>Plat Kendaraan:</span>
-                        <strong>{g.vehiclePlate || '-'}</strong>
+                        <span style={{ color: isLight ? '#64748b' : '#64748b', display: 'block' }}>Plat Kendaraan:</span>
+                        <strong style={{ color: isLight ? '#0f172a' : '#ffffff' }}>{g.vehiclePlate || '-'}</strong>
                       </div>
                     </div>
 
@@ -358,7 +363,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                       <button
                         onClick={() => handleCheckoutGuest(g.id, g.guestName)}
                         className="btn btn-secondary btn-sm"
-                        style={{ fontSize: '0.76rem', gap: '6px', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                        style={{ fontSize: '0.76rem', gap: '6px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
                       >
                         <LogOut size={13} /> Tandai Selesai / Check-out Tamu
                       </button>
@@ -374,23 +379,23 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
         {activeTab === 'register' && (
           <form onSubmit={handleRegisterGuest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{
-              background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
+              background: isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.08)',
+              border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.25)',
               borderRadius: '12px',
               padding: '12px',
               display: 'flex',
               gap: '10px',
               alignItems: 'center'
             }}>
-              <ShieldCheck size={20} color="#38bdf8" style={{ flexShrink: 0 }} />
-              <div style={{ fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.4' }}>
-                <strong>Ketentuan Inap Tamu Kost:</strong> Tamu wajib didaftarkan sebelum jam 21.00 WIB. Biaya inap kebersihan & air: <span style={{ color: '#38bdf8', fontWeight: 700 }}>Rp 25.000 / malam</span>.
+              <ShieldCheck size={20} color={isLight ? '#0284c7' : '#38bdf8'} style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.76rem', color: isLight ? '#0f172a' : '#cbd5e1', lineHeight: '1.4' }}>
+                <strong>Ketentuan Inap Tamu Kost:</strong> Tamu wajib didaftarkan sebelum jam 21.00 WIB. Biaya inap kebersihan & air: <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Rp 25.000 / malam</span>.
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Nama Lengkap Tamu:
                 </label>
                 <input
@@ -405,7 +410,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Nomor HP / WA Tamu:
                 </label>
                 <input
@@ -422,7 +427,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Hubungan dengan Penghuni:
                 </label>
                 <select
@@ -440,7 +445,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Kamar Penghuni yang Dituju:
                 </label>
                 <input
@@ -457,7 +462,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Tanggal Mulai Menginap:
                 </label>
                 <input
@@ -471,7 +476,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                   Lama Menginap:
                 </label>
                 <select
@@ -491,7 +496,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                 Plat Nomor Kendaraan Tamu (Bila Membawa Motor/Mobil):
               </label>
               <input
@@ -505,7 +510,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                 Catatan Tambahan (Opsional):
               </label>
               <input
@@ -519,8 +524,8 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
             </div>
 
             <div style={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
+              background: isLight ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.1)',
+              border: isLight ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.25)',
               borderRadius: '12px',
               padding: '12px',
               display: 'flex',
@@ -528,10 +533,10 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
               alignItems: 'center'
             }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Total Biaya Inap Tambahan:</span>
-                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{durationDays} malam x Rp 25.000</span>
+                <span style={{ fontSize: '0.75rem', color: isLight ? '#475569' : '#94a3b8', display: 'block' }}>Total Biaya Inap Tambahan:</span>
+                <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#64748b' }}>{durationDays} malam x Rp 25.000</span>
               </div>
-              <strong style={{ fontSize: '1.25rem', color: '#34d399', fontFamily: 'monospace' }}>
+              <strong style={{ fontSize: '1.25rem', color: isLight ? '#059669' : '#34d399', fontFamily: 'monospace' }}>
                 Rp {(durationDays * OVERNIGHT_RATE_PER_NIGHT).toLocaleString('id-ID')}
               </strong>
             </div>
@@ -561,7 +566,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
         {activeTab === 'history' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {pastGuests.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+              <div style={{ textAlign: 'center', padding: '2rem', color: isLight ? '#64748b' : '#64748b' }}>
                 Belum ada riwayat tamu terdahulu.
               </div>
             ) : (
@@ -569,8 +574,8 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                 <div
                   key={g.id}
                   style={{
-                    background: 'rgba(15, 23, 42, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.5)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
                     borderRadius: '12px',
                     padding: '12px',
                     display: 'flex',
@@ -580,14 +585,14 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                   }}
                 >
                   <div>
-                    <strong style={{ color: 'white', display: 'block' }}>{g.guestName}</strong>
-                    <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>
+                    <strong style={{ color: isLight ? '#0f172a' : 'white', display: 'block' }}>{g.guestName}</strong>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.74rem' }}>
                       Kamar {g.roomNumber} ({g.tenantName}) • {g.startDate} ({g.durationDays} malam)
                     </span>
                   </div>
                   <span style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#94a3b8',
+                    background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.05)',
+                    color: isLight ? '#475569' : '#94a3b8',
                     padding: '3px 8px',
                     borderRadius: '6px',
                     fontSize: '0.7rem'

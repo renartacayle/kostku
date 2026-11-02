@@ -15,6 +15,7 @@ import {
 import QRCode from 'qrcode';
 import ReceiptPrinter from './kitchen/ReceiptPrinter';
 import { apiGetPaymentReceipt, apiSendReceiptEmail } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 function angkaTerbilang(angka) {
   const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
@@ -38,6 +39,7 @@ function angkaTerbilang(angka) {
 }
 
 const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
+  const { isLight } = useTheme();
   const [receiptData, setReceiptData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [receiptFormat, setReceiptFormat] = useState('thermal'); // 'thermal' (The Kitchen) | 'a4'
@@ -199,7 +201,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(5, 10, 20, 0.88)',
+        background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
         backdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
@@ -218,19 +220,21 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
           maxHeight: '94vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 25px 75px -15px rgba(0, 0, 0, 0.8)',
+          boxShadow: isLight 
+            ? '0 25px 75px -15px rgba(0, 0, 0, 0.15)' 
+            : '0 25px 75px -15px rgba(0, 0, 0, 0.8)',
           overflow: 'hidden'
         }}>
 
           {/* Modal Toolbar (No Print) */}
           <div className="no-print" style={{
             padding: '1rem 1.5rem',
-            background: 'var(--bg-card)',
+            background: isLight ? '#f8fafc' : 'var(--bg-card)',
             color: 'var(--text-primary)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: '1px solid var(--border-color)'
+            borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
@@ -246,14 +250,14 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                 <FileText size={18} color="#38bdf8" />
               </div>
               <div>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                   Kuitansi Resmi Pembayaran Sewa
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                   <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
                     <CheckCircle2 size={12} /> TERVERIFIKASI SISTEM
                   </span>
-                  <span style={{ color: '#475569', fontSize: '0.68rem' }}>• Format Cetak A4</span>
+                  <span style={{ color: isLight ? '#64748b' : '#475569', fontSize: '0.68rem' }}>• Format Cetak A4</span>
                 </div>
               </div>
             </div>
@@ -262,7 +266,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
               {/* Format Switcher (Thermal The Kitchen vs A4) */}
               <div style={{
                 display: 'flex',
-                background: 'rgba(255, 255, 255, 0.08)',
+                background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)',
                 padding: '3px',
                 borderRadius: '8px',
                 gap: '3px'

@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const QRCode = require('qrcode');
 const nodemailer = require('nodemailer');
 const { AsyncLocalStorage } = require('async_hooks');
@@ -143,6 +144,54 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
+
+// ── PERFORMANCE MIDDLEWARE (App-Performance Toolkit) ──
+// Item #18: Response-Time Telemetry & Slow Request Tracer
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  res.on('finish', () => {
+    const diff = process.hrtime(start);
+    const timeMs = (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
+    if (!res.headersSent) {
+      try { res.setHeader('X-Response-Time', `${timeMs}ms`); } catch (_) {}
+    }
+    if (timeMs > 400 && req.url.startsWith('/api')) {
+      console.warn(`⚡ [SLOW QUERY WARNING] ${req.method} ${req.url} took ${timeMs}ms`);
+    }
+  });
+  next();
+});
+
+// Item #9: Native Gzip Compression Middleware (zero external dependency)
+app.use((req, res, next) => {
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  if (!acceptEncoding.includes('gzip')) return next();
+  const originalSend = res.send;
+  res.send = function(body) {
+    if (res.headersSent || !body) return originalSend.call(this, body);
+    const contentType = res.getHeader('Content-Type') || '';
+    const isCompressible = typeof body === 'string' || Buffer.isBuffer(body);
+    const shouldCompress = isCompressible && (
+      contentType.includes('json') || 
+      contentType.includes('text') || 
+      contentType.includes('javascript') || 
+      contentType.includes('xml')
+    );
+    if (shouldCompress && Buffer.byteLength(body) > 1024) {
+      res.removeHeader('Content-Length');
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Vary', 'Accept-Encoding');
+      zlib.gzip(Buffer.from(body), (err, compressed) => {
+        if (err) return originalSend.call(res, body);
+        res.setHeader('Content-Length', compressed.length);
+        originalSend.call(res, compressed);
+      });
+    } else {
+      originalSend.call(this, body);
+    }
+  };
+  next();
+});
 
 // Helper: Determine whether incoming HTTP request targets sandbox demo or live production
 const isDemoRequest = (req) => {
@@ -2010,7 +2059,7 @@ app.get('/api/owner/portfolio', (req, res) => {
 
 // Endpoint: Update User Profile (User Setting)
 app.put('/api/user/profile', (req, res) => {
-  const { id, name, email, phone, currentPassword, newPassword, picture } = req.body;
+  const { id, name, email, phone, currentPassword, newPassword, picture, role } = req.body;
   const db = getDB();
 
   const user = db.users.find(u => String(u.id) === String(id));
@@ -2028,6 +2077,9 @@ app.put('/api/user/profile', (req, res) => {
   if (email && email.includes('@')) user.email = email.trim().toLowerCase();
   if (phone !== undefined) user.phone = phone.trim();
   if (picture !== undefined) user.picture = picture;
+  if (role && ['user', 'owner', 'mitra', 'staff'].includes(role)) {
+    user.role = role;
+  }
 
   // Also sync picture and name to staff collection if user has staff records
   if (Array.isArray(db.staff)) {
@@ -7462,12 +7514,23 @@ app.post('/api/restore', verifySuperAdmin, (req, res) => {
   res.json({ message: 'Database berhasil dipulihkan secara aman', count: sanitizedDB.users.length });
 });
 
-// Serve built SPA static files if dist folder exists
+// Serve built SPA static files if dist folder exists (Item #27: Browser caching for static files)
 const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    maxAge: '1y',
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
   app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       return res.sendFile(path.join(distPath, 'index.html'));
     }
     next();

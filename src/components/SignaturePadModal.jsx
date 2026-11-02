@@ -14,6 +14,7 @@ import {
   Printer
 } from 'lucide-react';
 import { apiSignContract } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const SignaturePadModal = ({ 
   isOpen, 
@@ -23,6 +24,7 @@ const SignaturePadModal = ({
   existingContract = null,
   onSignedSuccess 
 }) => {
+  const { isLight } = useTheme();
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -164,7 +166,7 @@ const SignaturePadModal = ({
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(5, 10, 20, 0.88)',
+      background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       display: 'flex',
@@ -180,8 +182,8 @@ const SignaturePadModal = ({
     }}>
 
       <div style={{
-        background: '#0d1527',
-        border: '1px solid rgba(59, 130, 246, 0.4)',
+        background: isLight ? '#ffffff' : '#0d1527',
+        border: isLight ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(59, 130, 246, 0.4)',
         borderRadius: '24px',
         width: '100%',
         maxWidth: '620px',
@@ -189,7 +191,9 @@ const SignaturePadModal = ({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(59, 130, 246, 0.2)',
+        boxShadow: isLight 
+          ? '0 25px 60px -15px rgba(0, 0, 0, 0.15), 0 0 35px rgba(59, 130, 246, 0.1)' 
+          : '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(59, 130, 246, 0.2)',
         margin: 'auto',
         position: 'relative'
       }}>
@@ -197,11 +201,13 @@ const SignaturePadModal = ({
         {/* Modal Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'linear-gradient(90deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%)'
+          background: isLight 
+            ? 'linear-gradient(90deg, #f8fafc 0%, #ffffff 100%)' 
+            : 'linear-gradient(90deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
@@ -217,10 +223,10 @@ const SignaturePadModal = ({
               <FileCheck size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                 Tanda Tangan Kontrak Digital
               </h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Surat Perjanjian Sewa Kamar Resmi (E-Signature)
               </p>
             </div>
@@ -230,9 +236,9 @@ const SignaturePadModal = ({
             <button
               onClick={() => setActiveView(activeView === 'sign' ? 'preview_contract' : 'sign')}
               style={{
-                background: 'rgba(59, 130, 246, 0.2)',
-                border: '1px solid rgba(59, 130, 246, 0.4)',
-                color: '#60a5fa',
+                background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)',
+                border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.4)',
+                color: isLight ? '#1d4ed8' : '#60a5fa',
                 padding: '6px 10px',
                 borderRadius: '8px',
                 fontSize: '0.75rem',
@@ -248,10 +254,10 @@ const SignaturePadModal = ({
             <button 
               onClick={onClose}
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
+                background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)',
                 border: 'none',
                 borderRadius: '10px',
-                color: '#94a3b8',
+                color: isLight ? '#64748b' : '#94a3b8',
                 cursor: 'pointer',
                 padding: '8px'
               }}
@@ -327,21 +333,21 @@ const SignaturePadModal = ({
             <div>
               {/* Tenant Badge */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.7)',
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
                 padding: '10px 14px',
                 borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: '1rem'
               }}>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Penandatangan:</span>
-                  <strong style={{ fontSize: '0.92rem', color: 'white', display: 'block' }}>{user?.name}</strong>
+                  <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>Penandatangan:</span>
+                  <strong style={{ fontSize: '0.92rem', color: isLight ? '#0f172a' : 'white', display: 'block' }}>{user?.name}</strong>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Unit Kamar:</span>
+                  <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>Unit Kamar:</span>
                   <span className="badge badge-primary">{user?.kamar || 'Semua Unit'}</span>
                 </div>
               </div>
@@ -354,7 +360,7 @@ const SignaturePadModal = ({
                 marginBottom: '8px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Warna Tinta:</span>
+                  <span style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>Warna Tinta:</span>
                   <button
                     type="button"
                     onClick={() => setPenColor('#1e3a8a')}
@@ -458,7 +464,7 @@ const SignaturePadModal = ({
                 marginTop: '1.25rem',
                 cursor: 'pointer',
                 fontSize: '0.8rem',
-                color: '#cbd5e1'
+                color: isLight ? '#334155' : '#cbd5e1'
               }}>
                 <input
                   type="checkbox"

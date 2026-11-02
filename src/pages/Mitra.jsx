@@ -2145,7 +2145,7 @@ export default function Mitra({ user }) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 10, 20, 0.88)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
           backdropFilter: 'blur(10px)',
           display: 'flex',
           alignItems: 'center',
@@ -2154,15 +2154,15 @@ export default function Mitra({ user }) {
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
-            background: '#0f172a',
-            border: '1.5px solid rgba(245, 158, 11, 0.45)',
+            background: isLight ? '#ffffff' : '#0f172a',
+            border: isLight ? '1.5px solid #fde68a' : '1.5px solid rgba(245, 158, 11, 0.45)',
             borderRadius: '24px',
             width: '100%',
             maxWidth: '520px',
             maxHeight: '94vh',
             overflowY: 'auto',
             padding: '1.5rem',
-            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.85)',
+            boxShadow: isLight ? '0 20px 40px rgba(0, 0, 0, 0.1)' : '0 25px 60px -15px rgba(0, 0, 0, 0.85)',
             position: 'relative'
           }}>
             {/* Modal Header */}
@@ -2170,11 +2170,11 @@ export default function Mitra({ user }) {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShoppingBag size={20} color="#f59e0b" />
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                     Tambah Menu / Layanan Baru
                   </h3>
                 </div>
-                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Wajib foto asli kamera HP dengan sensor fingerprint scanner terverifikasi.
                 </p>
               </div>
@@ -2489,12 +2489,12 @@ export default function Mitra({ user }) {
                 {(newMenuItem.image || imageDetectorState.activePreview || imageDetectorState.isScanning) && (
                   <div style={{
                     position: 'relative',
-                    background: '#090d16',
+                    background: isLight ? '#f8fafc' : '#090d16',
                     border: imageDetectorState.result?.verdict === 'REAL_CAMERA'
                       ? '1.5px solid #10b981'
                       : imageDetectorState.result?.verdict === 'AI_GENERATED'
                       ? '1.5px solid #ef4444'
-                      : '1px solid rgba(59, 130, 246, 0.4)',
+                      : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(59, 130, 246, 0.4)'),
                     borderRadius: '12px',
                     overflow: 'hidden',
                     display: 'flex',
@@ -2779,7 +2779,7 @@ export default function Mitra({ user }) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
@@ -2788,24 +2788,24 @@ export default function Mitra({ user }) {
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
-            background: '#0f172a',
-            border: '1px solid rgba(59, 130, 246, 0.4)',
+            background: isLight ? '#ffffff' : '#0f172a',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(59, 130, 246, 0.4)',
             borderRadius: '20px',
             width: '100%',
             maxWidth: '520px',
             maxHeight: '90vh',
             overflowY: 'auto',
             padding: '1.75rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+            boxShadow: isLight ? '0 20px 40px rgba(0, 0, 0, 0.1)' : '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Store size={22} color="#38bdf8" />
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                   Daftarkan Mitra / Toko Baru
                 </h3>
               </div>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>

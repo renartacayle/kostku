@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
@@ -311,7 +312,7 @@ export default function KostDetail({ user }) {
 
   if (!kost) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'white', padding: '3rem 1.5rem', textAlign: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: isLight ? '#0f172a' : 'white', padding: '3rem 1.5rem', textAlign: 'center' }}>
         <h2>Kost tidak ditemukan</h2>
         <p style={{ color: 'var(--text-secondary)' }}>Mungkin tautan sudah kedaluwarsa atau kost telah dinonaktifkan.</p>
         <button onClick={() => navigate('/search')} className="btn btn-primary" style={{ marginTop: '1rem' }}>
@@ -323,8 +324,8 @@ export default function KostDetail({ user }) {
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-        <div className="card glass-panel" style={{ textAlign: 'center', maxWidth: '480px', padding: '3.5rem 2rem', borderRadius: '24px', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: isLight ? '#0f172a' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <div className="card glass-panel" style={{ textAlign: 'center', maxWidth: '480px', padding: '3.5rem 2rem', borderRadius: '24px', border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(16, 185, 129, 0.35)', background: isLight ? '#ffffff' : undefined }}>
           <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#4ade80' }}>
             <CheckCircle2 size={44} />
           </div>
@@ -496,8 +497,8 @@ export default function KostDetail({ user }) {
                   style={{ textDecoration: 'none', cursor: 'pointer' }}
                 >
                   <span style={{
-                    background: 'rgba(250, 204, 21, 0.15)',
-                    color: '#facc15',
+                    background: isLight ? 'rgba(245, 158, 11, 0.15)' : 'rgba(250, 204, 21, 0.15)',
+                    color: isLight ? '#b45309' : '#facc15',
                     padding: '4px 10px',
                     borderRadius: '20px',
                     fontSize: '0.78rem',
@@ -506,7 +507,7 @@ export default function KostDetail({ user }) {
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    <Star size={13} fill="#facc15" /> {kost.rating || 4.9} ({kost.reviewCount || 40} Ulasan)
+                    <Star size={13} fill={isLight ? '#b45309' : '#facc15'} color={isLight ? '#b45309' : '#facc15'} /> {kost.rating || 4.9} ({kost.reviewCount || 40} Ulasan)
                   </span>
                 </a>
               </div>
@@ -584,8 +585,8 @@ export default function KostDetail({ user }) {
                   height: 'clamp(260px, 45vw, 420px)',
                   borderRadius: '20px',
                   overflow: 'hidden',
-                  background: '#0f172a',
-                  boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
+                  background: isLight ? '#f1f5f9' : '#0f172a',
+                  boxShadow: isLight ? '0 8px 24px rgba(15, 23, 42, 0.08)' : '0 12px 30px rgba(0,0,0,0.4)',
                   marginBottom: '12px'
                 }}>
                   <img 
@@ -1270,7 +1271,37 @@ export default function KostDetail({ user }) {
                   </span>
                 </button>
 
-                {/* Direct In-App Chat Consultation (Eliminates External WhatsApp Spam) */}
+                {/* 1. Direct WhatsApp Action to Property Owner */}
+                <a
+                  href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo Pemilik ${kost.kostName}, saya tertarik ingin menyewa Kamar ${selectedRoom || ''} seharga Rp ${(selectedRoomObj ? Number(selectedRoomObj.price) : baseMonthlyPrice).toLocaleString('id-ID')}/bln di KostKu. Apakah unit ini masih tersedia untuk survei lokasi?`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '14px',
+                    border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.4)',
+                    background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.12)',
+                    color: isLight ? '#15803d' : '#4ade80',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    textDecoration: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s',
+                    boxShadow: isLight ? '0 2px 8px rgba(22, 163, 74, 0.08)' : 'none'
+                  }}
+                  title="Tanya langsung ke pemilik kos via WhatsApp"
+                >
+                  <span style={{ fontSize: '16px' }}>💬</span>
+                  <span>Tanya Pemilik via WhatsApp</span>
+                </a>
+
+                {/* 2. Direct In-App Chat Consultation */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1279,13 +1310,13 @@ export default function KostDetail({ user }) {
                   }}
                   style={{
                     width: '100%',
-                    padding: '12px',
+                    padding: '11px',
                     borderRadius: '14px',
-                    border: isLight ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid rgba(59, 130, 246, 0.4)',
-                    background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.12)',
+                    border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)',
+                    background: isLight ? 'rgba(37, 99, 235, 0.06)' : 'rgba(59, 130, 246, 0.10)',
                     color: isLight ? '#1d4ed8' : '#60a5fa',
                     fontWeight: 700,
-                    fontSize: '0.88rem',
+                    fontSize: '0.84rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1295,8 +1326,8 @@ export default function KostDetail({ user }) {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <MessageCircle size={16} />
-                  <span>💬 Tanya Pemilik via Chat Langsung</span>
+                  <MessageCircle size={15} />
+                  <span>Atau Chat Langsung di Aplikasi</span>
                 </button>
               </div>
 
@@ -1322,30 +1353,57 @@ export default function KostDetail({ user }) {
             }
           }}
           style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            color: '#cbd5e1',
+            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+            color: isLight ? '#334155' : '#cbd5e1',
             borderRadius: '12px',
-            padding: '10px 14px',
+            padding: '9px 12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px',
+            gap: '5px',
             cursor: 'pointer',
-            fontSize: '0.84rem',
+            fontSize: '0.82rem',
             fontWeight: 700,
             whiteSpace: 'nowrap'
           }}
           title="Kembali ke daftar kost"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={15} />
           <span>Kembali</span>
         </button>
 
+        {/* Quick WhatsApp Action on Mobile */}
+        <a
+          href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo Pemilik ${kost.kostName}, saya tertarik Kamar ${selectedRoom || ''}. Apakah bisa tanya info via WhatsApp?`)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.18)',
+            border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.4)',
+            color: isLight ? '#15803d' : '#4ade80',
+            borderRadius: '12px',
+            padding: '9px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            cursor: 'pointer',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            textDecoration: 'none'
+          }}
+          title="Tanya Pemilik via WhatsApp"
+        >
+          <span style={{ fontSize: '13px' }}>💬</span>
+          <span>Tanya WA</span>
+        </a>
+
         <div>
-          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Kamar {selectedRoom} ({rentalDuration} Bln)</div>
+          <div style={{ fontSize: '0.70rem', color: isLight ? '#64748b' : '#94a3b8' }}>Kamar {selectedRoom} ({rentalDuration} Bln)</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#60a5fa' }}>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#1d4ed8' : '#60a5fa' }}>
               Rp {totalFirstPayment.toLocaleString('id-ID')}
             </span>
           </div>
@@ -1356,7 +1414,7 @@ export default function KostDetail({ user }) {
           onClick={handleApplyClick}
           disabled={selectedRoomObj?.status === 'occupied'}
           style={{
-            padding: '10px 18px',
+            padding: '9px 16px',
             borderRadius: '12px',
             border: 'none',
             background: selectedRoomObj?.status === 'occupied'
@@ -1364,12 +1422,12 @@ export default function KostDetail({ user }) {
               : 'linear-gradient(135deg, #2563eb, #3b82f6)',
             color: selectedRoomObj?.status === 'occupied' ? '#94a3b8' : 'white',
             fontWeight: 800,
-            fontSize: '0.88rem',
+            fontSize: '0.84rem',
             cursor: selectedRoomObj?.status === 'occupied' ? 'not-allowed' : 'pointer',
             boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             whiteSpace: 'nowrap'
           }}
         >
@@ -1380,16 +1438,21 @@ export default function KostDetail({ user }) {
       {/* ══════════════════════════════════════
           MODAL: APPLY / BOOKING DIALOG (DETAILED)
           ══════════════════════════════════════ */}
-      {showApplyModal && (
+      {showApplyModal && typeof document !== 'undefined' && createPortal(
         <div style={{ 
           position: 'fixed', inset: 0, 
-          background: 'rgba(0, 0, 0, 0.85)', 
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0, 0, 0, 0.85)', 
           backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', 
           zIndex: 10000, padding: '1rem' 
         }}>
-          <div className="card glass-panel animate-fade-in" style={{
-            width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.35)', position: 'relative'
+          <div className="card animate-fade-in" style={{
+            width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', borderRadius: '24px', 
+            background: isLight ? '#ffffff' : '#0d1527',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(59, 130, 246, 0.35)', 
+            boxShadow: isLight ? '0 25px 60px -15px rgba(15, 23, 42, 0.2)' : '0 25px 60px -15px rgba(0, 0, 0, 0.8)',
+            position: 'relative'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
@@ -1398,7 +1461,17 @@ export default function KostDetail({ user }) {
               </div>
               <button 
                 onClick={() => setShowApplyModal(false)}
-                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
+                style={{ 
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)', 
+                  border: isLight ? '1px solid #e2e8f0' : 'none', 
+                  borderRadius: '10px',
+                  color: isLight ? '#475569' : '#94a3b8', 
+                  cursor: 'pointer',
+                  padding: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
                 <X size={20} />
               </button>
@@ -1430,7 +1503,7 @@ export default function KostDetail({ user }) {
 
             <form onSubmit={submitApplication} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '6px' }}>Nama Lengkap Penyewa:</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#334155' : '#94a3b8', marginBottom: '6px' }}>Nama Lengkap Penyewa:</label>
                 <input 
                   type="text"
                   required
@@ -1442,9 +1515,9 @@ export default function KostDetail({ user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '6px' }}>Nomor WhatsApp Aktif *:</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#334155' : '#94a3b8', marginBottom: '6px' }}>Nomor WhatsApp Aktif *:</label>
                 <div style={{ position: 'relative' }}>
-                  <Phone size={16} color={isLight ? '#94a3b8' : '#94a3b8'} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Phone size={16} color={isLight ? '#64748b' : '#94a3b8'} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
                     type="tel"
                     required
@@ -1459,7 +1532,7 @@ export default function KostDetail({ user }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Rencana Mulai Sewa:</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#334155' : '#94a3b8', marginBottom: '6px' }}>Rencana Mulai Sewa:</label>
                   <input 
                     type="date"
                     required
@@ -1470,22 +1543,22 @@ export default function KostDetail({ user }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Status Penyewa:</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#334155' : '#94a3b8', marginBottom: '6px' }}>Status Penyewa:</label>
                   <select
                     value={tenantJob}
                     onChange={e => setTenantJob(e.target.value)}
                     className="input-field"
                   >
-                    <option value="Mahasiswa" style={{ background: '#0f172a' }}>Mahasiswa</option>
-                    <option value="Karyawan Swasta" style={{ background: '#0f172a' }}>Karyawan</option>
-                    <option value="PNS / BUMN" style={{ background: '#0f172a' }}>PNS / BUMN</option>
-                    <option value="Freelancer / WFH" style={{ background: '#0f172a' }}>Freelancer / WFH</option>
+                    <option value="Mahasiswa" style={{ background: isLight ? '#ffffff' : '#0f172a', color: isLight ? '#0f172a' : '#f8fafc' }}>Mahasiswa</option>
+                    <option value="Karyawan Swasta" style={{ background: isLight ? '#ffffff' : '#0f172a', color: isLight ? '#0f172a' : '#f8fafc' }}>Karyawan</option>
+                    <option value="PNS / BUMN" style={{ background: isLight ? '#ffffff' : '#0f172a', color: isLight ? '#0f172a' : '#f8fafc' }}>PNS / BUMN</option>
+                    <option value="Freelancer / WFH" style={{ background: isLight ? '#ffffff' : '#0f172a', color: isLight ? '#0f172a' : '#f8fafc' }}>Freelancer / WFH</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Catatan Tambahan (Opsional):</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: isLight ? '#334155' : '#94a3b8', marginBottom: '6px' }}>Catatan Tambahan (Opsional):</label>
                 <textarea
                   placeholder="Misal: Bawa sepeda motor, minta disiapkan seprai baru, perkiraan jam kedatangan..."
                   value={notes}
@@ -1500,7 +1573,12 @@ export default function KostDetail({ user }) {
                   type="button"
                   onClick={() => setShowApplyModal(false)}
                   className="btn btn-secondary"
-                  style={{ flex: 1 }}
+                  style={{ 
+                    flex: 1, 
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)', 
+                    color: isLight ? '#475569' : '#cbd5e1', 
+                    border: isLight ? '1px solid #cbd5e1' : 'none' 
+                  }}
                 >
                   Batal
                 </button>
@@ -1515,15 +1593,17 @@ export default function KostDetail({ user }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* MODAL: FULL IMAGE / BLUEPRINT ZOOM */}
-      {showZoomModal && (
+      {showZoomModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0, 0, 0, 0.92)',
+          background: isLight ? 'rgba(15, 23, 42, 0.75)' : 'rgba(0, 0, 0, 0.92)',
           backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 10000, padding: '1rem'
         }}>
@@ -1531,7 +1611,8 @@ export default function KostDetail({ user }) {
             onClick={() => setShowZoomModal(false)}
             style={{
               position: 'absolute', top: '20px', right: '20px',
-              background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white',
+              background: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)', 
+              border: 'none', color: 'white',
               width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}
@@ -1543,7 +1624,8 @@ export default function KostDetail({ user }) {
             alt="Zoomed View" 
             style={{ maxWidth: '95%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px' }} 
           />
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* IN-APP DIRECT CHAT MODAL (0% FAKE WA SPAM) */}

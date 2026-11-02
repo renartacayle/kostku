@@ -12,6 +12,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { apiCreateInspection } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const RoomInspectionModal = ({ 
   isOpen, 
@@ -20,6 +21,7 @@ const RoomInspectionModal = ({
   kostUid,
   onInspectionSaved 
 }) => {
+  const { isLight } = useTheme();
   const [type, setType] = useState('check_out'); // 'check_in' | 'check_out'
   const [depositAmount, setDepositAmount] = useState(500000);
   
@@ -101,7 +103,7 @@ const RoomInspectionModal = ({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(5, 10, 20, 0.88)',
+        background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         display: 'flex',
@@ -117,8 +119,8 @@ const RoomInspectionModal = ({
       }}
     >
       <div style={{
-        background: '#0d1527',
-        border: '1px solid rgba(59, 130, 246, 0.4)',
+        background: isLight ? '#ffffff' : '#0d1527',
+        border: isLight ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(59, 130, 246, 0.4)',
         borderRadius: '24px',
         width: '100%',
         maxWidth: '640px',
@@ -126,7 +128,9 @@ const RoomInspectionModal = ({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(59, 130, 246, 0.2)',
+        boxShadow: isLight 
+          ? '0 25px 60px -15px rgba(0, 0, 0, 0.15), 0 0 35px rgba(59, 130, 246, 0.1)' 
+          : '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(59, 130, 246, 0.2)',
         margin: 'auto',
         position: 'relative'
       }}>
@@ -134,11 +138,13 @@ const RoomInspectionModal = ({
         {/* Modal Header (Fixed at top) */}
         <div style={{
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'linear-gradient(90deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          background: isLight 
+            ? 'linear-gradient(90deg, #f8fafc 0%, #ffffff 100%)' 
+            : 'linear-gradient(90deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
           flexShrink: 0
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -157,10 +163,10 @@ const RoomInspectionModal = ({
               <ClipboardCheck size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                 Inspeksi Kondisi Kamar & Deposit
               </h3>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Kamar {tenant.kamar} • Penghuni: {tenant.name}
               </p>
             </div>
@@ -170,10 +176,10 @@ const RoomInspectionModal = ({
             type="button"
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
               borderRadius: '10px',
-              color: '#cbd5e1',
+              color: isLight ? '#475569' : '#cbd5e1',
               cursor: 'pointer',
               padding: '8px',
               display: 'flex',
@@ -196,10 +202,10 @@ const RoomInspectionModal = ({
             gridTemplateColumns: '1fr 1fr',
             gap: '8px',
             marginBottom: '1.25rem',
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.6)',
             padding: '4px',
             borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
           }}>
             <button
               type="button"
@@ -209,7 +215,7 @@ const RoomInspectionModal = ({
                 borderRadius: '8px',
                 border: 'none',
                 background: type === 'check_out' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'transparent',
-                color: type === 'check_out' ? 'white' : '#94a3b8',
+                color: type === 'check_out' ? 'white' : (isLight ? '#64748b' : '#94a3b8'),
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
@@ -226,7 +232,7 @@ const RoomInspectionModal = ({
                 borderRadius: '8px',
                 border: 'none',
                 background: type === 'check_in' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'transparent',
-                color: type === 'check_in' ? 'white' : '#94a3b8',
+                color: type === 'check_in' ? 'white' : (isLight ? '#64748b' : '#94a3b8'),
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
@@ -239,8 +245,10 @@ const RoomInspectionModal = ({
 
           {/* Deposit & Balance Card */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(15, 23, 42, 0.7) 100%)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
+            background: isLight 
+              ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' 
+              : 'linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(15, 23, 42, 0.7) 100%)',
+            border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.3)',
             borderRadius: '16px',
             padding: '1.25rem',
             marginBottom: '1.25rem',
@@ -250,31 +258,31 @@ const RoomInspectionModal = ({
             textAlign: 'center'
           }}>
             <div>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>UANG DEPOSIT</span>
-              <strong style={{ fontSize: '1.05rem', color: '#f8fafc' }}>{formatRupiah(depositAmount)}</strong>
+              <span style={{ fontSize: '0.72rem', color: isLight ? '#1e40af' : '#94a3b8', display: 'block', fontWeight: 600 }}>UANG DEPOSIT</span>
+              <strong style={{ fontSize: '1.05rem', color: isLight ? '#0f172a' : '#f8fafc' }}>{formatRupiah(depositAmount)}</strong>
             </div>
             <div>
-              <span style={{ fontSize: '0.72rem', color: '#f87171', display: 'block' }}>POTONGAN KERUSAKAN</span>
-              <strong style={{ fontSize: '1.05rem', color: '#f87171' }}>-{formatRupiah(totalDamageCost)}</strong>
+              <span style={{ fontSize: '0.72rem', color: isLight ? '#dc2626' : '#f87171', display: 'block', fontWeight: 600 }}>POTONGAN KERUSAKAN</span>
+              <strong style={{ fontSize: '1.05rem', color: isLight ? '#dc2626' : '#f87171' }}>-{formatRupiah(totalDamageCost)}</strong>
             </div>
             <div>
-              <span style={{ fontSize: '0.72rem', color: '#4ade80', display: 'block' }}>SISA REFUND DEPOSIT</span>
-              <strong style={{ fontSize: '1.15rem', color: '#4ade80' }}>{formatRupiah(finalRefund)}</strong>
+              <span style={{ fontSize: '0.72rem', color: isLight ? '#15803d' : '#4ade80', display: 'block', fontWeight: 600 }}>SISA REFUND DEPOSIT</span>
+              <strong style={{ fontSize: '1.15rem', color: isLight ? '#15803d' : '#4ade80' }}>{formatRupiah(finalRefund)}</strong>
             </div>
           </div>
 
           {/* Checklist Items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.25rem' }}>
-            <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>CHECKLIST KONDISI FASILITAS:</span>
+            <span style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: 700 }}>CHECKLIST KONDISI FASILITAS:</span>
             
             {items.map(item => (
               <div
                 key={item.id}
                 style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
+                  background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
                   borderRadius: '12px',
                   padding: '10px 14px',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -283,8 +291,8 @@ const RoomInspectionModal = ({
                 }}
               >
                 <div>
-                  <strong style={{ fontSize: '0.85rem', color: 'white', display: 'block' }}>{item.label}</strong>
-                  <span style={{ fontSize: '0.72rem', color: item.status === 'good' ? '#4ade80' : item.status === 'minor' ? '#f59e0b' : '#f87171' }}>
+                  <strong style={{ fontSize: '0.85rem', color: isLight ? '#0f172a' : 'white', display: 'block' }}>{item.label}</strong>
+                  <span style={{ fontSize: '0.72rem', color: item.status === 'good' ? (isLight ? '#16a34a' : '#4ade80') : item.status === 'minor' ? (isLight ? '#d97706' : '#f59e0b') : (isLight ? '#dc2626' : '#f87171') }}>
                     {item.status === 'good' ? '✓ Kondisi Baik / Bersih' : item.status === 'minor' ? '⚠ Kotor / Perlu Dibenahi' : '✗ Rusak / Hilang'}
                   </span>
                 </div>
@@ -295,7 +303,14 @@ const RoomInspectionModal = ({
                     value={item.status}
                     onChange={e => handleStatusChange(item.id, e.target.value, e.target.value === 'minor' ? 50000 : e.target.value === 'damaged' ? 150000 : 0)}
                     className="input-field"
-                    style={{ padding: '6px 10px', fontSize: '0.78rem', width: 'auto', background: '#0f172a', color: 'white' }}
+                    style={{ 
+                      padding: '6px 10px', 
+                      fontSize: '0.78rem', 
+                      width: 'auto', 
+                      background: isLight ? '#ffffff' : '#0f172a', 
+                      color: isLight ? '#0f172a' : 'white',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid #334155'
+                    }}
                   >
                     <option value="good">Kondisi Baik</option>
                     <option value="minor">Perlu Bersih (Kotor)</option>
@@ -305,7 +320,7 @@ const RoomInspectionModal = ({
                   {/* Damage Cost Input */}
                   {item.status !== 'good' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Denda: Rp</span>
+                      <span style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>Denda: Rp</span>
                       <input
                         type="number"
                         value={item.cost}
@@ -322,7 +337,7 @@ const RoomInspectionModal = ({
 
           {/* Notes */}
           <div style={{ marginBottom: '0.5rem' }}>
-            <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '6px' }}>
               Catatan Khusus Inspeksi / Bukti Serah Terima:
             </label>
             <textarea
@@ -339,8 +354,8 @@ const RoomInspectionModal = ({
         {/* Modal Footer (Always visible at bottom) */}
         <div style={{
           padding: '1rem 1.5rem',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(15, 23, 42, 0.95)',
+          borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
+          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.95)',
           display: 'flex',
           gap: '10px',
           flexShrink: 0

@@ -30,8 +30,10 @@ import {
   apiResolveComplaintWithProof
 } from '../services/api';
 import OwnerNavBanner from '../components/OwnerNavBanner';
+import { useTheme } from '../context/ThemeContext';
 
 const Komplain = ({ user }) => {
+  const { isLight } = useTheme();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'diproses', 'selesai'
@@ -588,7 +590,7 @@ const Komplain = ({ user }) => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           zIndex: 999999,
           display: 'flex',
@@ -597,25 +599,25 @@ const Komplain = ({ user }) => {
           padding: '1rem'
         }}>
           <div style={{
-            background: '#090e1a',
-            border: '1px solid rgba(59, 130, 246, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(59, 130, 246, 0.4)',
             borderRadius: '18px',
             padding: '1.5rem',
             maxWidth: '480px',
             width: '100%',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+            boxShadow: isLight ? '0 20px 40px rgba(0,0,0,0.1)' : '0 25px 60px rgba(0,0,0,0.9)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>Disposisi Tugas Komplain</h3>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white' }}>Disposisi Tugas Komplain</h3>
+                <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                   Kamar {assignModalComplaint.kamar} • {assignModalComplaint.userName}
                 </span>
               </div>
               <button 
                 type="button"
                 onClick={() => setAssignModalComplaint(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
@@ -623,11 +625,11 @@ const Komplain = ({ user }) => {
 
             <form onSubmit={handleSaveAssignment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#334155' : '#e2e8f0', marginBottom: '6px' }}>
                   Pilih Staf Lapangan / Teknisi:
                 </label>
                 {staffList.length === 0 ? (
-                  <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', fontSize: '0.78rem', color: '#f87171' }}>
+                  <div style={{ padding: '10px', background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.1)', border: isLight ? '1px solid #fca5a5' : '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', fontSize: '0.78rem', color: isLight ? '#b91c1c' : '#f87171' }}>
                     Belum ada akun karyawan yang terdaftar. Tambahkan karyawan terlebih dahulu di menu <strong>Karyawan</strong>.
                   </div>
                 ) : (
@@ -649,7 +651,7 @@ const Komplain = ({ user }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#334155' : '#e2e8f0', marginBottom: '6px' }}>
                   Kategori Tugas / Keahlian:
                 </label>
                 <select
@@ -667,7 +669,7 @@ const Komplain = ({ user }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#334155' : '#e2e8f0', marginBottom: '6px' }}>
                   Tanggal Pengerjaan Target:
                 </label>
                 <input
@@ -681,7 +683,7 @@ const Komplain = ({ user }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#334155' : '#e2e8f0', marginBottom: '6px' }}>
                   Catatan Instruksi untuk Staf:
                 </label>
                 <textarea
@@ -724,7 +726,7 @@ const Komplain = ({ user }) => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           zIndex: 999999,
           display: 'flex',
@@ -733,27 +735,27 @@ const Komplain = ({ user }) => {
           padding: '1rem'
         }}>
           <div style={{
-            background: '#090e1a',
-            border: '1px solid rgba(16, 185, 129, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(16, 185, 129, 0.4)',
             borderRadius: '18px',
             padding: '1.5rem',
             maxWidth: '500px',
             width: '100%',
             maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+            boxShadow: isLight ? '0 20px 40px rgba(0,0,0,0.1)' : '0 25px 60px rgba(0,0,0,0.9)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>Upload Foto Bukti Perbaikan</h3>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white' }}>Upload Foto Bukti Perbaikan</h3>
+                <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                   Kamar {resolveModalComplaint.kamar} • "{resolveModalComplaint.text}"
                 </span>
               </div>
               <button 
                 type="button"
                 onClick={() => setResolveModalComplaint(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
@@ -761,7 +763,7 @@ const Komplain = ({ user }) => {
 
             <form onSubmit={handleSaveResolution} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#334155' : '#e2e8f0', marginBottom: '6px' }}>
                   Foto Hasil Pengerjaan Selesai (After-Repair Photo):
                 </label>
                 
@@ -802,16 +804,16 @@ const Komplain = ({ user }) => {
                     justifyContent: 'center',
                     gap: '8px',
                     padding: '2rem 1rem',
-                    border: '2px dashed rgba(16, 185, 129, 0.4)',
+                    border: isLight ? '2px dashed #10b981' : '2px dashed rgba(16, 185, 129, 0.4)',
                     borderRadius: '12px',
-                    background: 'rgba(16, 185, 129, 0.04)',
+                    background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.04)',
                     cursor: 'pointer'
                   }}>
-                    <Camera size={28} color="#34d399" />
-                    <span style={{ fontSize: '0.85rem', color: '#f8fafc', fontWeight: 600 }}>
+                    <Camera size={28} color="#10b981" />
+                    <span style={{ fontSize: '0.85rem', color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>
                       Ambil Foto / Upload Bukti Selesai
                     </span>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : 'var(--text-muted)' }}>
                       Mendukung kamera HP atau galeri foto
                     </span>
                     <input 
@@ -826,7 +828,7 @@ const Komplain = ({ user }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#334155' : '#e2e8f0', marginBottom: '6px' }}>
                   Catatan Hasil Pengerjaan untuk Penghuni:
                 </label>
                 <textarea
@@ -841,12 +843,12 @@ const Komplain = ({ user }) => {
               </div>
 
               <div style={{
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
+                background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.08)',
+                border: isLight ? '1px solid #a7f3d0' : '1px solid rgba(16, 185, 129, 0.25)',
                 borderRadius: '10px',
                 padding: '10px 12px',
                 fontSize: '0.75rem',
-                color: '#6ee7b7'
+                color: isLight ? '#065f46' : '#6ee7b7'
               }}>
                 ✨ Foto ini otomatis tersimpan di kalender kerja harian staf dan langsung muncul di dashboard anak kost agar mereka dapat memberikan ulasan & tip apresiasi.
               </div>
@@ -881,7 +883,7 @@ const Komplain = ({ user }) => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.92)',
+          background: isLight ? 'rgba(15, 23, 42, 0.65)' : 'rgba(5, 10, 20, 0.92)',
           backdropFilter: 'blur(10px)',
           zIndex: 999999,
           display: 'flex',
@@ -891,8 +893,8 @@ const Komplain = ({ user }) => {
         }}>
           <div style={{
             position: 'relative',
-            background: '#090e1a',
-            border: '1px solid rgba(56, 189, 248, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.4)',
             borderRadius: '20px',
             padding: '1.25rem',
             maxWidth: '650px',
@@ -900,20 +902,20 @@ const Komplain = ({ user }) => {
             maxHeight: '90vh',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.9)'
+            boxShadow: isLight ? '0 20px 40px rgba(0,0,0,0.15)' : '0 20px 60px rgba(0,0,0,0.9)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div>
-                <h4 style={{ margin: 0, color: 'white', fontSize: '1.05rem' }}>{activePhoto.title}</h4>
-                <p style={{ margin: '2px 0 0 0', color: '#94a3b8', fontSize: '0.8rem' }}>"{activePhoto.text}"</p>
+                <h4 style={{ margin: 0, color: isLight ? '#0f172a' : 'white', fontSize: '1.05rem' }}>{activePhoto.title}</h4>
+                <p style={{ margin: '2px 0 0 0', color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.8rem' }}>"{activePhoto.text}"</p>
               </div>
               <button
                 type="button"
                 onClick={() => setActivePhoto(null)}
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
+                  background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.1)',
                   border: 'none',
-                  color: 'white',
+                  color: isLight ? '#0f172a' : 'white',
                   borderRadius: '50%',
                   width: '32px',
                   height: '32px',
@@ -927,7 +929,7 @@ const Komplain = ({ user }) => {
               </button>
             </div>
 
-            <div style={{ flex: 1, overflow: 'hidden', textAlign: 'center', borderRadius: '12px', background: '#030712' }}>
+            <div style={{ flex: 1, overflow: 'hidden', textAlign: 'center', borderRadius: '12px', background: isLight ? '#f8fafc' : '#030712' }}>
               <img 
                 src={activePhoto.url} 
                 alt="Foto Kerusakan Penuh" 

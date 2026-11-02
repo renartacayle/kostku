@@ -6,12 +6,9 @@ import {
   Lock, 
   ArrowRight, 
   ArrowLeft,
-  Building, 
   CheckCircle, 
   Check,
   Mail, 
-  MapPin, 
-  Camera, 
   Sparkles,
   ShieldCheck,
   Phone,
@@ -21,21 +18,16 @@ import {
   EyeOff,
   UserCheck,
   ExternalLink,
-  Zap,
-  Droplet,
   MessageSquare,
   Smartphone,
   KeyRound,
   Send,
-  X,
-  Store
+  X
 } from 'lucide-react';
 import { apiRegister, apiSendOtp, apiVerifyOtp, apiGoogleAuth, apiCheckEmail } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { DEFAULT_GOOGLE_CLIENT_ID } from '../config/version';
-import AiRoomPlanSection from '../components/AiRoomPlanSection';
 import CloudflareTurnstile from '../components/CloudflareTurnstile';
-import { getCurrentPositionAsync } from '../utils/geoUtils';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -43,25 +35,8 @@ const Register = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // Role: 'user' (Anak Kost) | 'owner' (Pemilik Kost) | 'mitra' (Mitra UMKM Sekitar)
-  const [role, setRole] = useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const r = params.get('role');
-      return (r === 'owner' || r === 'mitra') ? r : 'user';
-    } catch (e) {
-      return 'user';
-    }
-  });
-
-  // Sinkronisasi otomatis URL param ?role=owner | ?role=user | ?role=mitra
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const roleParam = params.get('role');
-    if (roleParam === 'owner' || roleParam === 'user' || roleParam === 'mitra') {
-      setRole(roleParam);
-    }
-  }, [location.search]);
+  // Role default is 'user' (Anak Kost / Pencari Sewa)
+  const role = 'user';
   
   // Step Workflow: 'form' | 'otp' | 'success'
   const [step, setStep] = useState('form');
@@ -84,7 +59,6 @@ const Register = () => {
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
-  const [googleKostName, setGoogleKostName] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
   const registerGoogleBtnRef = useRef(null);
 
@@ -101,55 +75,9 @@ const Register = () => {
   const [otpError, setOtpError] = useState('');
   const [otpSuccess, setOtpSuccess] = useState('');
 
-  // Khusus Pemilik Kost (Owner) - Data Properti Kost
-  const [kostName, setKostName] = useState('');
-  const [address, setAddress] = useState('');
-  const [gmapsUrl, setGmapsUrl] = useState('');
-  const [description, setDescription] = useState('');
-  const [utilityScheme, setUtilityScheme] = useState('all_kost');
-  const [lat, setLat] = useState(null);
-  const [lng, setLng] = useState(null);
-  const [imageFront, setImageFront] = useState(null);
-  const [roomPhoto, setRoomPhoto] = useState('');
-  const [floorPlan, setFloorPlan] = useState({
-    dimensions: '3.0m x 4.0m',
-    bedType: 'super_single',
-    furnitures: ['wardrobe', 'desk', 'bathroom', 'ac', 'window'],
-    generated: true,
-    mode: 'ai'
-  });
-
-  // Khusus Mitra UMKM (Toko / Layanan Sekitar Kost)
-  const [storeName, setStoreName] = useState('');
-  const [storeCategory, setStoreCategory] = useState('Warung Makan & Minuman');
-  const [deliveryType, setDeliveryType] = useState('both'); // 'both' | 'delivery' | 'pickup'
-  const [deliveryFee, setDeliveryFee] = useState('2000');
-  const [storeAddress, setStoreAddress] = useState('');
-  const [openingHours, setOpeningHours] = useState('08:00 - 22:00 WIB');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-
-  const handleImageFrontChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImageFront(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const getLocation = async () => {
-    try {
-      const pos = await getCurrentPositionAsync();
-      setLat(pos.lat);
-      setLng(pos.lng);
-    } catch (_) {
-      setLat(-6.9826);
-      setLng(110.4091);
-    }
-  };
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -187,7 +115,7 @@ const Register = () => {
 
     // 2. Simpan & Validasi Nama Lengkap
     if (!name.trim()) {
-      setError(role === 'owner' ? 'Nama pemilik / pengelola kost wajib diisi.' : role === 'mitra' ? 'Nama pemilik / penanggung jawab toko wajib diisi.' : 'Nama lengkap wajib diisi.');
+      setError('Nama lengkap wajib diisi.');
       return false;
     }
 
@@ -202,39 +130,7 @@ const Register = () => {
       return false;
     }
 
-    // 4. Validasi khusus Owner (Pasang Kost) - Data Properti
-    if (role === 'owner') {
-      if (!kostName.trim()) {
-        setError('Nama properti kost wajib diisi.');
-        return false;
-      }
-      if (!address.trim()) {
-        setError('Alamat lengkap kost wajib diisi.');
-        return false;
-      }
-      if (!email.trim() || !email.includes('@')) {
-        setError('Alamat email aktif pemilik kost wajib diisi.');
-        return false;
-      }
-      if (!imageFront) {
-        setError('Foto tampak depan kost wajib diunggah.');
-        return false;
-      }
-    }
-
-    // 4b. Validasi khusus Mitra UMKM - Data Toko & Layanan
-    if (role === 'mitra') {
-      if (!storeName.trim()) {
-        setError('Nama toko / usaha mitra wajib diisi.');
-        return false;
-      }
-      if (!storeAddress.trim()) {
-        setError('Alamat ruko / lokasi toko mitra wajib diisi.');
-        return false;
-      }
-    }
-
-    // 5. Validasi target kontak sesuai saluran OTP
+    // 4. Validasi target kontak sesuai saluran OTP
     const target = channelToUse === 'email' ? email.trim() : phone.trim();
     if (channelToUse === 'whatsapp' && (!phone || phone.trim().length < 8)) {
       setError('Nomor WhatsApp wajib diisi (minimal 9 digit) untuk menerima kode OTP verifikasi akun.');
@@ -337,12 +233,9 @@ const Register = () => {
       const effectiveToken = verifyRes.verifiedToken || 'TOKEN_OTP_VALID';
       setVerifiedToken(effectiveToken);
 
-      // 2. Finalisasi pendaftaran akun
-      const effectiveLat = lat || -6.2088;
-      const effectiveLng = lng || 106.8456;
-
+      // 2. Finalisasi pendaftaran akun (default role: user / anak kost)
       const payload = {
-        role,
+        role: 'user',
         name: name.trim(), // Nama lengkap tersimpan resmi
         email: email.trim(),
         phone: phone.trim(),
@@ -352,39 +245,12 @@ const Register = () => {
         otpTarget: target,
         verifiedToken: effectiveToken,
         turnstileToken: turnstileToken || 'cf-fallback-token',
-        website: honeypot, // Honeypot trap
-        ...(role === 'owner' ? {
-          kostName: kostName.trim() || 'Kost Baru',
-          address: address.trim(),
-          description: description.trim(),
-          lat: effectiveLat,
-          lng: effectiveLng,
-          gmapsUrl: gmapsUrl.trim() || (address.trim() ? `https://maps.google.com/?q=${encodeURIComponent(address.trim())}` : `https://maps.google.com/?q=${effectiveLat},${effectiveLng}`),
-          imageFront,
-          roomPhoto: roomPhoto || '',
-          floorPlan,
-          utilityScheme
-        } : {}),
-        ...(role === 'mitra' ? {
-          storeName: storeName.trim(),
-          category: storeCategory,
-          deliveryType,
-          deliveryFee: Number(deliveryFee) || 0,
-          address: storeAddress.trim(),
-          openingHours: openingHours.trim(),
-          kostUid: 'KOST-OJN64X'
-        } : {})
+        website: honeypot // Honeypot trap
       };
 
       const regRes = await apiRegister(payload);
       setStep('success');
-      setMessage(
-        role === 'owner' 
-          ? 'Registrasi Pemilik Kost Berhasil! Kost aktif dan siap menerima calon penghuni.' 
-          : role === 'mitra'
-          ? 'Registrasi Mitra UMKM Berhasil! Akun toko Anda aktif dan siap kelola menu & pesanan.'
-          : 'Pendaftaran Berhasil! Akun siap digunakan untuk mencari kost impian.'
-      );
+      setMessage('Pendaftaran Berhasil! Akun Anda aktif dan siap digunakan.');
       setTimeout(() => navigate('/login'), 2200);
     } catch (err) {
       setOtpError(err.message || 'Verifikasi OTP gagal. Silakan periksa kembali kode Anda.');
@@ -403,7 +269,7 @@ const Register = () => {
 
       const data = await apiGoogleAuth({
         credential: response.credential,
-        role: role
+        role: 'user'
       });
 
       if (data.user) {
@@ -420,7 +286,7 @@ const Register = () => {
   };
 
   // Trigger Native Google Popup (Direct accounts.google.com UI)
-  const triggerGoogleOAuthPopup = (targetRole = role) => {
+  const triggerGoogleOAuthPopup = () => {
     setError('');
     const activeCid = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
 
@@ -452,8 +318,7 @@ const Register = () => {
                 name: profile.name,
                 picture: profile.picture,
                 googleId: profile.sub,
-                role: targetRole || role,
-                kostName: (targetRole || role) === 'owner' ? `Kost ${profile.name}` : undefined
+                role: 'user'
               });
 
               if (data.user) {
@@ -524,7 +389,7 @@ const Register = () => {
       }, 200);
       return () => clearInterval(interval);
     }
-  }, [role, showGoogleModal]);
+  }, [showGoogleModal]);
 
   // Google 1-Click Quick Register / Login (In-App Fallback)
   const handleGoogleQuickSignup = async (e) => {
@@ -541,8 +406,7 @@ const Register = () => {
       const data = await apiGoogleAuth({
         email: googleEmail.trim().toLowerCase(),
         name: effectiveName,
-        role: role,
-        kostName: role === 'owner' ? (googleKostName.trim() || `Kost ${effectiveName}`) : undefined
+        role: 'user'
       });
 
       if (data.user) {
@@ -565,12 +429,6 @@ const Register = () => {
     if (password.length < 6 || password !== confirmPassword) return true;
     if (otpChannel === 'whatsapp' && (!phone || phone.trim().length < 8)) return true;
     if (otpChannel === 'email' && (!email || !email.includes('@'))) return true;
-    if (role === 'owner') {
-      if (!kostName.trim() || !address.trim() || !email.trim() || !imageFront) return true;
-    }
-    if (role === 'mitra') {
-      if (!storeName.trim() || !storeAddress.trim()) return true;
-    }
     return false;
   };
 
@@ -663,21 +521,17 @@ const Register = () => {
             }} 
           />
           <h1 style={{ margin: '0 0 6px 0', fontSize: '1.8rem', fontWeight: 800 }}>
-            {role === 'owner' ? 'Pasang & Kelola Kost' : 'Daftar Akun KostKu'}
+            Daftar Akun KostKu
           </h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.88rem' }}>
-            {role === 'owner' 
-              ? 'Daftarkan properti kost Anda dan kelola penghuni dengan mudah dan cepat.'
-              : 'Verifikasi instan via WhatsApp OTP & Cloudflare Turnstile (Anti-Bot Tanpa Captcha).'}
+            Verifikasi instan via WhatsApp OTP &amp; Cloudflare Turnstile (Anti-Bot Tanpa Captcha).
           </p>
         </div>
 
         {/* 4-Pilar Anti-Bot Trust Badge */}
         <div style={{
-          background: role === 'owner'
-            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)'
-            : 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
-          border: role === 'owner' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
           borderRadius: '14px',
           padding: '12px 14px',
           marginBottom: '1.5rem',
@@ -688,103 +542,14 @@ const Register = () => {
           color: 'var(--text-secondary)',
           lineHeight: 1.5
         }}>
-          <Sparkles size={18} color={role === 'owner' ? '#34d399' : role === 'mitra' ? '#f59e0b' : '#60a5fa'} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <Sparkles size={18} color="#60a5fa" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
-            {role === 'owner' ? (
-              <>
-                <strong style={{ color: isLight ? '#047857' : '#6ee7b7' }}>⚡ Registrasi Cepat & Praktis:</strong> Cukup isi nama, nomor kontak WhatsApp, dan informasi kost Anda untuk langsung menayangkan kamar.
-              </>
-            ) : role === 'mitra' ? (
-              <>
-                <strong style={{ color: isLight ? '#b45309' : '#fcd34d' }}>🏪 Portal Khusus Mitra UMKM:</strong> Daftarkan toko/warung/laundry Anda, setting menu & harga, tentukan opsi pengantaran (antar ke kamar vs ambil di ruko), serta kelola pesanan masuk.
-              </>
-            ) : (
-              <>
-                <strong style={{ color: isLight ? '#1d4ed8' : '#93c5fd' }}>🛡️ Proteksi Keamanan 4-Pilar Anti-Bot:</strong> Cloudflare Turnstile (tanpa captcha gambar ribet), Verifikasi OTP WhatsApp, Google Sign-In, & Honeypot Trap menjamin keamanan akun nyata.
-              </>
-            )}
+            <strong style={{ color: isLight ? '#1d4ed8' : '#93c5fd' }}>🛡️ Pendaftaran Akun Terproteksi:</strong> Cloudflare Turnstile, Verifikasi OTP WhatsApp, Google Sign-In, &amp; Honeypot Trap menjamin keamanan akun nyata. Mode peran (Pemilik Kost, Mitra UMKM, atau Staf) dapat disesuaikan di menu Pengaturan setelah masuk.
           </div>
         </div>
 
-        {/* Role Selector Tabs (Only in step 'form') */}
         {step === 'form' && (
           <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-              gap: '8px',
-              background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.04)',
-              padding: '4px',
-              borderRadius: '14px',
-              marginBottom: '1.5rem',
-              border: isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)'
-            }}>
-              <button
-                type="button"
-                onClick={() => setRole('user')}
-                style={{
-                  padding: '10px 10px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.84rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  background: role === 'user' ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' : 'transparent',
-                  color: role === 'user' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-                  transition: 'all 0.2s'
-                }}
-              >
-                <User size={15} /> Anak Kost
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setRole('owner')}
-                style={{
-                  padding: '10px 10px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.84rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  background: role === 'owner' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
-                  color: role === 'owner' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Building size={15} /> Pemilik Kost
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRole('mitra')}
-                style={{
-                  padding: '10px 10px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.84rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  background: role === 'mitra' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'transparent',
-                  color: role === 'mitra' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Store size={15} /> Mitra / Toko
-              </button>
-            </div>
 
             {/* ═════════════════════════════════════════════════════
                 PILIHAN 1: DAFTAR RESMI DENGAN GOOGLE (100% REAL)
@@ -867,23 +632,23 @@ const Register = () => {
                 SECTION 1: DATA AKUN & KONTAK RESMI (NAMA LENGKAP TERSIMPAN)
                 ═════════════════════════════════════════════════════ */}
             <div>
-              <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <User size={16} color={role === 'owner' ? '#34d399' : '#60a5fa'} /> 
-                {role === 'owner' ? '1. Data Pemilik & Akun Pengelola' : '1. Data Akun & Kontak'}
+              <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <User size={16} color="#60a5fa" /> 
+                Data Akun &amp; Kontak
               </h4>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                 {/* Nama Lengkap Pengguna */}
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    {role === 'owner' ? 'Nama Pemilik / Pengelola Kost' : 'Nama Lengkap'} <span style={{ color: '#ef4444' }}>*</span>
+                    Nama Lengkap <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input 
                     type="text" 
                     required 
                     value={name} 
                     onChange={e => setName(e.target.value)} 
-                    placeholder={role === 'owner' ? 'Contoh: Haji Slamet Riyadi / Ibu Ratna' : 'Contoh: Budi Santoso'} 
+                    placeholder="Contoh: Budi Santoso" 
                     className="input-field" 
                   />
                 </div>
@@ -892,11 +657,10 @@ const Register = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Email {role === 'owner' ? <span style={{ color: '#ef4444' }}>*</span> : '(Opsional)'}
+                      Email (Opsional)
                     </label>
                     <input 
                       type="email" 
-                      required={role === 'owner'}
                       value={email} 
                       onChange={e => setEmail(e.target.value)} 
                       placeholder="nama@email.com" 
@@ -1054,313 +818,6 @@ const Register = () => {
             </div>
 
             {/* ═════════════════════════════════════════════════════
-                SECTION 2 (KHUSUS OWNER): INFORMASI PROPERTI KOST (PASANG KOST)
-                ═════════════════════════════════════════════════════ */}
-            {role === 'owner' && (
-              <div>
-                <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Building size={16} color="#34d399" /> 2. Informasi Properti Kost
-                </h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Nama Kost <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={kostName} 
-                      onChange={e => setKostName(e.target.value)} 
-                      placeholder="Misal: Kost Griya Sukun Co-Living" 
-                      className="input-field" 
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Alamat Lengkap <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <textarea 
-                      required 
-                      value={address} 
-                      onChange={e => setAddress(e.target.value)} 
-                      placeholder="Jalan, RT/RW, Kelurahan, Kecamatan, Kota" 
-                      rows={2} 
-                      className="input-field" 
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Lokasi Google Maps & Titik GPS
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                      <input 
-                        type="text" 
-                        value={gmapsUrl} 
-                        onChange={e => setGmapsUrl(e.target.value)} 
-                        placeholder="Tautan Google Maps / Share Pin (atau klik Deteksi GPS)" 
-                        className="input-field" 
-                        style={{ flex: 1 }}
-                      />
-                      <button type="button" onClick={getLocation} className="btn btn-secondary btn-sm" style={{ gap: '6px', whiteSpace: 'nowrap' }}>
-                        <MapPin size={15} color="var(--accent-primary)" /> {lat ? 'GPS Tersimpan' : 'Deteksi GPS'}
-                      </button>
-                    </div>
-                    {lat && (
-                      <div style={{ fontSize: '0.75rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <CheckCircle size={14} /> Koordinat GPS berhasil dikunci: {lat.toFixed(5)}, {lng.toFixed(5)}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Foto Tampak Depan Kost (Wajib) <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleImageFrontChange} 
-                      required={!imageFront} 
-                      style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem' }} 
-                    />
-                    {imageFront && (
-                      <img 
-                        src={imageFront} 
-                        alt="Preview Depan" 
-                        style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '10px', marginTop: '8px', border: '1px solid var(--border-color)' }} 
-                      />
-                    )}
-                  </div>
-
-                  {/* Skema Tagihan Listrik & Air (Utilitas) */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Skema Tagihan Listrik & Air <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                      {[
-                        {
-                          id: 'all_kost',
-                          icon: <span style={{ display: 'flex', gap: '2px' }}><Zap size={14} color="#eab308" /><Droplet size={14} color="#38bdf8" /></span>,
-                          title: 'Air & Listrik dari Kost (Dikelola Kost)',
-                          desc: 'Disediakan & ditagih oleh pihak kost (sudah include atau meteran kost).'
-                        },
-                        {
-                          id: 'electric_mandiri',
-                          icon: <Zap size={15} color="#eab308" />,
-                          title: 'Listrik Mandiri (Token PLN per Kamar)',
-                          desc: 'Penghuni beli token listrik PLN sendiri per kamar. Air dari pihak kost.'
-                        },
-                        {
-                          id: 'water_mandiri',
-                          icon: <Droplet size={15} color="#38bdf8" />,
-                          title: 'Air Mandiri (PDAM/Sumur Mandiri)',
-                          desc: 'Penghuni bayar meteran air sendiri. Listrik disediakan dari kost.'
-                        },
-                        {
-                          id: 'all_mandiri',
-                          icon: <span style={{ display: 'flex', gap: '2px' }}><Zap size={14} color="#eab308" /><Droplet size={14} color="#38bdf8" /></span>,
-                          title: 'Listrik & Air Keduanya Mandiri',
-                          desc: 'Penghuni bayar token PLN & air sendiri. Kost hanya tagih sewa kamar.'
-                        }
-                      ].map(opt => (
-                        <div
-                          key={opt.id}
-                          onClick={() => setUtilityScheme(opt.id)}
-                          style={{
-                            padding: '9px 12px',
-                            borderRadius: '10px',
-                            border: utilityScheme === opt.id ? '1.5px solid #10b981' : '1px solid rgba(255, 255, 255, 0.08)',
-                            background: utilityScheme === opt.id ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '8px',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          <div style={{ marginTop: '2px' }}>{opt.icon}</div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: utilityScheme === opt.id ? '#6ee7b7' : '#f8fafc' }}>
-                              {opt.title}
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
-                              {opt.desc}
-                            </div>
-                          </div>
-                          <input
-                            type="radio"
-                            name="regUtilityScheme"
-                            checked={utilityScheme === opt.id}
-                            onChange={() => setUtilityScheme(opt.id)}
-                            style={{ accentColor: '#10b981', marginTop: '2px' }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Denah Kamar Otomatis / Manual dengan AI */}
-                  <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '0.75rem' }}>
-                    <AiRoomPlanSection
-                      roomPhoto={roomPhoto}
-                      onRoomPhotoChange={setRoomPhoto}
-                      floorPlan={floorPlan}
-                      onChangeFloorPlan={setFloorPlan}
-                      roomNumber="101"
-                      kostName={kostName || 'Kost Baru'}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ═════════════════════════════════════════════════════
-                SECTION 2 (KHUSUS MITRA): DATA TOKO, MENU & LAYANAN ANTAR
-                ═════════════════════════════════════════════════════ */}
-            {role === 'mitra' && (
-              <div>
-                <h4 style={{ margin: '0 0 0.75rem 0', color: 'white', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Store size={16} color="#f59e0b" /> 2. Informasi Toko & Layanan Mitra
-                </h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Nama Toko / Usaha UMKM <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={storeName} 
-                      onChange={e => setStoreName(e.target.value)} 
-                      placeholder="Contoh: Warung Makan Bu Siti / Melati Laundry" 
-                      className="input-field" 
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Kategori Usaha <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <select
-                        value={storeCategory}
-                        onChange={e => setStoreCategory(e.target.value)}
-                        className="input-field"
-                        style={{ width: '100%', padding: '9px 10px', fontSize: '0.82rem' }}
-                      >
-                        <option value="Warung Makan & Minuman">🍱 Warung Makan & Minuman</option>
-                        <option value="Laundry & Cuci Kiloan">🧺 Laundry & Cuci Kiloan</option>
-                        <option value="Depot Air Galon & Gas LPG">💧 Depot Air Galon & Gas LPG</option>
-                        <option value="Minimarket & Sembako">🏪 Minimarket & Sembako</option>
-                        <option value="Fotokopi & Percetakan ATK">🖨️ Fotokopi & ATK</option>
-                        <option value="Servis Elektronik & AC">❄️ Servis AC & Elektronik</option>
-                        <option value="Lainnya">✨ Layanan Sekitar Lainnya</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Jam Operasional
-                      </label>
-                      <input 
-                        type="text" 
-                        value={openingHours} 
-                        onChange={e => setOpeningHours(e.target.value)} 
-                        placeholder="Contoh: 08:00 - 22:00 WIB" 
-                        className="input-field" 
-                      />
-                    </div>
-                  </div>
-
-                  {/* Opsi Pengantaran: Bisa Diantar vs Harus Ambil di Ruko */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Opsi Pengantaran Pesanan ke Anak Kost:
-                    </label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {[
-                        { id: 'both', label: 'Bisa Diantar Maupun Ambil di Ruko (Direkomendasikan)', desc: 'Penghuni kost bisa memilih pesanan diantar ke kamar atau ambil langsung di ruko Anda.' },
-                        { id: 'delivery', label: 'Hanya Bisa Diantar ke Kamar Kost', desc: 'Pesanan selalu diantar langsung sampai ke depan pintu kamar penghuni.' },
-                        { id: 'pickup', label: 'Harus Ambil Sendiri di Ruko / Toko', desc: 'Penghuni kost harus datang langsung ke ruko / toko Anda untuk mengambil pesanan.' }
-                      ].map(opt => (
-                        <div
-                          key={opt.id}
-                          onClick={() => setDeliveryType(opt.id)}
-                          style={{
-                            padding: '9px 12px',
-                            borderRadius: '10px',
-                            border: deliveryType === opt.id ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
-                            background: deliveryType === opt.id ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '8px'
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="regDeliveryType"
-                            checked={deliveryType === opt.id}
-                            onChange={() => setDeliveryType(opt.id)}
-                            style={{ accentColor: '#f59e0b', marginTop: '2px' }}
-                          />
-                          <div>
-                            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: deliveryType === opt.id ? '#fbbf24' : '#f8fafc' }}>
-                              {opt.label}
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
-                              {opt.desc}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Ongkir / Biaya Antar */}
-                  {deliveryType !== 'pickup' && (
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Biaya Pengantaran / Ongkir Flat (Rp):
-                      </label>
-                      <input 
-                        type="number" 
-                        value={deliveryFee} 
-                        onChange={e => setDeliveryFee(e.target.value)} 
-                        placeholder="Contoh: 2000 (Isi 0 jika gratis)" 
-                        className="input-field" 
-                      />
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
-                        * Tarif flat ongkir pengantaran sampai depan kamar kost (Isi 0 untuk gratis ongkir).
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Alamat Ruko / Toko */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Alamat Ruko / Lokasi Toko <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <textarea 
-                      required 
-                      rows={2}
-                      value={storeAddress} 
-                      onChange={e => setStoreAddress(e.target.value)} 
-                      placeholder="Contoh: Jl. Cisitu Lama No. 8 (Sebelah Gapura Kost Griya Asri)" 
-                      className="input-field" 
-                      style={{ resize: 'vertical' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ═════════════════════════════════════════════════════
                 PILAR 1: CLOUDFLARE TURNSTILE (INVISIBLE / SEAMLESS)
                 ═════════════════════════════════════════════════════ */}
             <CloudflareTurnstile 
@@ -1485,8 +942,7 @@ const Register = () => {
                   borderRadius: '12px',
                   fontWeight: 700,
                   gap: '8px',
-                  justifyContent: 'center',
-                  background: role === 'owner' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : role === 'mitra' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : undefined
+                  justifyContent: 'center'
                 }}
               >
                 {otpSending ? (
@@ -1791,8 +1247,8 @@ const Register = () => {
                   fontSize: '0.92rem',
                   fontWeight: 700,
                   gap: '8px',
-                  background: role === 'owner' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
-                  boxShadow: role === 'owner' ? '0 4px 18px rgba(16, 185, 129, 0.4)' : '0 4px 18px rgba(37, 99, 235, 0.4)'
+                  background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
+                  boxShadow: '0 4px 18px rgba(37, 99, 235, 0.4)'
                 }}
               >
                 {otpVerifying ? (
@@ -1852,8 +1308,8 @@ const Register = () => {
           }}>
             <CheckCircle size={40} color="white" />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 8px 0', color: '#f8fafc' }}>
-            {role === 'owner' ? 'Kost Berhasil Didaftarkan!' : 'Pendaftaran Berhasil!'}
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 8px 0', color: isLight ? '#0f172a' : '#f8fafc' }}>
+            Pendaftaran Berhasil!
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '0.88rem', maxWidth: '420px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
             Nomor kontak Anda telah terverifikasi resmi via <strong>{otpChannel === 'whatsapp' ? 'WhatsApp' : 'Gmail'}</strong> dan dilindungi oleh <strong>Cloudflare Turnstile</strong>.

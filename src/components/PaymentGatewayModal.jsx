@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { apiCreatePaymentTransaction, apiVerifyPayment, apiGetPaymentStatus, apiChargeQris, apiSimulateQrisScan } from '../services/api';
 import { generateQrisDataUrl } from '../utils/qrisEngine';
+import { useTheme } from '../context/ThemeContext';
 
 const PaymentGatewayModal = ({ 
   isOpen, 
@@ -27,6 +28,7 @@ const PaymentGatewayModal = ({
   onPaymentSuccess,
   onOpenReceipt 
 }) => {
+  const { isLight } = useTheme();
   const [activeTab, setActiveTab] = useState('qris'); // 'qris' | 'va' | 'ewallet'
   const [selectedBank, setSelectedBank] = useState('BCA');
   const [selectedWallet, setSelectedWallet] = useState('GOPAY');
@@ -226,7 +228,7 @@ const PaymentGatewayModal = ({
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(5, 10, 20, 0.85)',
+      background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
       backdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
@@ -236,8 +238,8 @@ const PaymentGatewayModal = ({
     }} className="animate-fade-in">
       
       <div style={{
-        background: '#0d1527',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        background: isLight ? '#ffffff' : '#0d1527',
+        border: isLight ? '1px solid rgba(15, 23, 42, 0.12)' : '1px solid rgba(59, 130, 246, 0.3)',
         borderRadius: '24px',
         width: '100%',
         maxWidth: '540px',
@@ -246,16 +248,20 @@ const PaymentGatewayModal = ({
         flexDirection: 'column',
         overflow: 'hidden',
         position: 'relative',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.2)'
+        boxShadow: isLight
+          ? '0 25px 60px -15px rgba(0, 0, 0, 0.15), 0 0 30px rgba(37, 99, 235, 0.08)'
+          : '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.2)'
       }}>
         {/* Modal Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'linear-gradient(90deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%)'
+          background: isLight 
+            ? 'linear-gradient(90deg, #f8fafc 0%, #ffffff 100%)' 
+            : 'linear-gradient(90deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
@@ -273,13 +279,13 @@ const PaymentGatewayModal = ({
               <CreditCard size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Payment Gateway KostKu
                 <span style={{
                   fontSize: '0.65rem',
-                  background: 'rgba(245, 158, 11, 0.2)',
-                  color: '#f59e0b',
-                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
+                  color: isLight ? '#b45309' : '#f59e0b',
+                  border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.4)',
                   padding: '2px 8px',
                   borderRadius: '6px',
                   fontWeight: 800
@@ -287,7 +293,7 @@ const PaymentGatewayModal = ({
                   ⚡ SANDBOX / TEST MODE
                 </span>
               </h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Simulasi Pembayaran Otomatis Real-time & Verifikasi Instan
               </p>
             </div>
@@ -295,10 +301,10 @@ const PaymentGatewayModal = ({
           <button 
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: 'none',
+              background: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
+              border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : 'none',
               borderRadius: '10px',
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
               cursor: 'pointer',
               padding: '8px',
               display: 'flex',
@@ -320,9 +326,9 @@ const PaymentGatewayModal = ({
                 width: '76px',
                 height: '76px',
                 borderRadius: '50%',
-                background: 'rgba(34, 197, 94, 0.15)',
+                background: isLight ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.15)',
                 border: '2px solid #22c55e',
-                color: '#22c55e',
+                color: '#16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -330,43 +336,43 @@ const PaymentGatewayModal = ({
               }}>
                 <CheckCircle size={44} />
               </div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#22c55e', margin: '0 0 6px 0' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: isLight ? '#16a34a' : '#22c55e', margin: '0 0 6px 0' }}>
                 Pembayaran Berhasil!
               </h2>
-              <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1.25rem 0' }}>
+              <p style={{ color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.85rem', margin: '0 0 1.25rem 0' }}>
                 Tagihan sewa telah terverifikasi lunas secara otomatis tanpa perlu konfirmasi manual.
               </p>
 
               <div style={{
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.3)',
                 borderRadius: '16px',
                 padding: '1.25rem',
                 textAlign: 'left',
                 marginBottom: '1.5rem'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#94a3b8' }}>No. Kuitansi:</span>
-                  <span style={{ color: '#f8fafc', fontWeight: 700 }}>{receiptNumber}</span>
+                  <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>No. Kuitansi:</span>
+                  <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 700 }}>{receiptNumber}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#94a3b8' }}>Kamar:</span>
-                  <span style={{ color: '#f8fafc', fontWeight: 700 }}>{invoice.kamar || user?.kamar}</span>
+                  <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Kamar:</span>
+                  <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 700 }}>{invoice.kamar || user?.kamar}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#94a3b8' }}>Sewa Pokok (100% ke Pemilik):</span>
-                  <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{formatRupiah(baseRentAmount)}</span>
+                  <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Sewa Pokok (100% ke Pemilik):</span>
+                  <span style={{ color: isLight ? '#334155' : '#cbd5e1', fontWeight: 600 }}>{formatRupiah(baseRentAmount)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#94a3b8' }}>Layanan Gateway & WA Otomatis:</span>
-                  <span style={{ color: '#38bdf8', fontWeight: 600 }}>{formatRupiah(convenienceFee)}</span>
+                  <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Layanan Gateway & WA Otomatis:</span>
+                  <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 600 }}>{formatRupiah(convenienceFee)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#94a3b8' }}>Total Dibayar:</span>
-                  <span style={{ color: '#22c55e', fontWeight: 800, fontSize: '1.05rem' }}>{formatRupiah(totalWithFee)}</span>
+                  <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Total Dibayar:</span>
+                  <span style={{ color: isLight ? '#16a34a' : '#22c55e', fontWeight: 800, fontSize: '1.05rem' }}>{formatRupiah(totalWithFee)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#94a3b8' }}>Status:</span>
+                  <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Status:</span>
                   <span className="badge badge-success" style={{ fontWeight: 800 }}>LUNAS (AUTO-SETTLED)</span>
                 </div>
               </div>
@@ -395,8 +401,10 @@ const PaymentGatewayModal = ({
             <>
               {/* Order Summary Strip */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
+                background: isLight 
+                  ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' 
+                  : 'linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)',
+                border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.25)',
                 borderRadius: '16px',
                 padding: '1rem 1.25rem',
                 marginBottom: '1.25rem',
@@ -405,28 +413,28 @@ const PaymentGatewayModal = ({
                 alignItems: 'center'
               }}>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>TOTAL PEMBAYARAN OTOMATIS</span>
-                  <strong style={{ fontSize: '1.35rem', color: '#60a5fa', fontWeight: 900 }}>
+                  <span style={{ fontSize: '0.72rem', color: isLight ? '#1e40af' : '#94a3b8', display: 'block', fontWeight: 700 }}>TOTAL PEMBAYARAN OTOMATIS</span>
+                  <strong style={{ fontSize: '1.35rem', color: isLight ? '#1d4ed8' : '#60a5fa', fontWeight: 900 }}>
                     {formatRupiah(totalWithFee)}
                   </strong>
-                  <div style={{ marginTop: '4px', fontSize: '0.72rem', color: '#cbd5e1' }}>
+                  <div style={{ marginTop: '4px', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1' }}>
                     <span>Sewa: {formatRupiah(baseRentAmount)} (100% ke Pemilik)</span>
-                    <span style={{ margin: '0 6px', color: '#64748b' }}>•</span>
-                    <span style={{ color: '#38bdf8', fontWeight: 600 }}>Biaya Sistem & WA Bot: {formatRupiah(convenienceFee)}</span>
+                    <span style={{ margin: '0 6px', color: isLight ? '#94a3b8' : '#64748b' }}>•</span>
+                    <span style={{ color: isLight ? '#0369a1' : '#38bdf8', fontWeight: 600 }}>Biaya Sistem & WA Bot: {formatRupiah(convenienceFee)}</span>
                   </div>
-                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
+                  <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '2px' }}>
                     Sewa Kamar {invoice.kamar || user?.kamar} • Order ID: {transaction?.orderId || `ORD-${invoice.id}`}
                   </span>
                 </div>
                 <div style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: isLight ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
+                  border: isLight ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
                   padding: '6px 12px',
                   borderRadius: '10px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  color: '#f87171',
+                  color: isLight ? '#dc2626' : '#f87171',
                   fontSize: '0.78rem',
                   fontWeight: 700
                 }}>
@@ -441,10 +449,10 @@ const PaymentGatewayModal = ({
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '8px',
                 marginBottom: '1.25rem',
-                background: 'rgba(15, 23, 42, 0.6)',
+                background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.6)',
                 padding: '5px',
                 borderRadius: '14px',
-                border: '1px solid rgba(255, 255, 255, 0.05)'
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
               }}>
                 <button
                   type="button"
@@ -453,8 +461,15 @@ const PaymentGatewayModal = ({
                     padding: '8px 4px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: activeTab === 'qris' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'transparent',
-                    color: activeTab === 'qris' ? 'white' : '#94a3b8',
+                    background: activeTab === 'qris' 
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' 
+                      : (isLight ? '#ffffff' : 'transparent'),
+                    color: activeTab === 'qris' 
+                      ? 'white' 
+                      : (isLight ? '#475569' : '#94a3b8'),
+                    boxShadow: activeTab === 'qris' 
+                      ? '0 4px 12px rgba(37, 99, 235, 0.25)' 
+                      : (isLight ? '0 1px 2px rgba(0, 0, 0, 0.04)' : 'none'),
                     cursor: 'pointer',
                     fontWeight: 700,
                     fontSize: '0.8rem',
@@ -476,8 +491,15 @@ const PaymentGatewayModal = ({
                     padding: '8px 4px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: activeTab === 'va' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'transparent',
-                    color: activeTab === 'va' ? 'white' : '#94a3b8',
+                    background: activeTab === 'va' 
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' 
+                      : (isLight ? '#ffffff' : 'transparent'),
+                    color: activeTab === 'va' 
+                      ? 'white' 
+                      : (isLight ? '#475569' : '#94a3b8'),
+                    boxShadow: activeTab === 'va' 
+                      ? '0 4px 12px rgba(37, 99, 235, 0.25)' 
+                      : (isLight ? '0 1px 2px rgba(0, 0, 0, 0.04)' : 'none'),
                     cursor: 'pointer',
                     fontWeight: 700,
                     fontSize: '0.8rem',
@@ -499,8 +521,15 @@ const PaymentGatewayModal = ({
                     padding: '8px 4px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: activeTab === 'ewallet' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'transparent',
-                    color: activeTab === 'ewallet' ? 'white' : '#94a3b8',
+                    background: activeTab === 'ewallet' 
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' 
+                      : (isLight ? '#ffffff' : 'transparent'),
+                    color: activeTab === 'ewallet' 
+                      ? 'white' 
+                      : (isLight ? '#475569' : '#94a3b8'),
+                    boxShadow: activeTab === 'ewallet' 
+                      ? '0 4px 12px rgba(37, 99, 235, 0.25)' 
+                      : (isLight ? '0 1px 2px rgba(0, 0, 0, 0.04)' : 'none'),
                     cursor: 'pointer',
                     fontWeight: 700,
                     fontSize: '0.8rem',
@@ -572,12 +601,12 @@ const PaymentGatewayModal = ({
                     gap: '8px'
                   }}>
                     <div style={{
-                      background: 'rgba(59, 130, 246, 0.08)',
-                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.08)',
+                      border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.25)',
                       borderRadius: '12px',
                       padding: '10px 14px',
                       fontSize: '0.78rem',
-                      color: '#93c5fd',
+                      color: isLight ? '#1e40af' : '#93c5fd',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
@@ -602,9 +631,15 @@ const PaymentGatewayModal = ({
                         style={{
                           padding: '8px 4px',
                           borderRadius: '10px',
-                          border: selectedBank === bank ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.1)',
-                          background: selectedBank === bank ? 'rgba(59, 130, 246, 0.2)' : 'rgba(15, 23, 42, 0.6)',
-                          color: selectedBank === bank ? '#60a5fa' : '#94a3b8',
+                          border: selectedBank === bank 
+                            ? '1.5px solid #2563eb' 
+                            : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'),
+                          background: selectedBank === bank 
+                            ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)') 
+                            : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)'),
+                          color: selectedBank === bank 
+                            ? (isLight ? '#1d4ed8' : '#60a5fa') 
+                            : (isLight ? '#64748b' : '#94a3b8'),
                           fontWeight: 800,
                           fontSize: '0.8rem',
                           cursor: 'pointer'
@@ -616,30 +651,31 @@ const PaymentGatewayModal = ({
                   </div>
 
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.8)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
                     borderRadius: '14px',
                     padding: '1.25rem',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                     marginBottom: '1rem'
                   }}>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>NOMOR VIRTUAL ACCOUNT {selectedBank}</span>
+                    <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>NOMOR VIRTUAL ACCOUNT {selectedBank}</span>
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       marginTop: '6px',
-                      background: 'rgba(0, 0, 0, 0.3)',
+                      background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.3)',
+                      border: isLight ? '1px solid #cbd5e1' : 'none',
                       padding: '10px 14px',
                       borderRadius: '10px'
                     }}>
-                      <strong style={{ fontSize: '1.25rem', color: '#38bdf8', letterSpacing: '1px' }}>
+                      <strong style={{ fontSize: '1.25rem', color: isLight ? '#0284c7' : '#38bdf8', letterSpacing: '1px' }}>
                         {vaNumber}
                       </strong>
                       <button
                         type="button"
                         onClick={() => handleCopy(vaNumber)}
                         style={{
-                          background: copied ? '#22c55e' : 'rgba(59, 130, 246, 0.3)',
+                          background: copied ? '#22c55e' : (isLight ? '#2563eb' : 'rgba(59, 130, 246, 0.3)'),
                           border: 'none',
                           color: 'white',
                           borderRadius: '8px',
@@ -657,7 +693,7 @@ const PaymentGatewayModal = ({
                       </button>
                     </div>
 
-                    <div style={{ marginTop: '12px', fontSize: '0.76rem', color: '#94a3b8', lineHeight: '1.4' }}>
+                    <div style={{ marginTop: '12px', fontSize: '0.76rem', color: isLight ? '#475569' : '#94a3b8', lineHeight: '1.4' }}>
                       <p style={{ margin: '0 0 4px 0' }}>• Buka m-Banking {selectedBank} &gt; Pilih Bayar &gt; Virtual Account</p>
                       <p style={{ margin: '0 0 4px 0' }}>• Masukkan nomor VA di atas</p>
                       <p style={{ margin: 0 }}>• Nominal otomatis sesuai tagihan ({formatRupiah(totalWithFee)})</p>
@@ -678,9 +714,15 @@ const PaymentGatewayModal = ({
                         style={{
                           padding: '10px 4px',
                           borderRadius: '10px',
-                          border: selectedWallet === w ? '1.5px solid #3b82f6' : '1px solid rgba(255, 255, 255, 0.1)',
-                          background: selectedWallet === w ? 'rgba(59, 130, 246, 0.2)' : 'rgba(15, 23, 42, 0.6)',
-                          color: selectedWallet === w ? '#60a5fa' : '#94a3b8',
+                          border: selectedWallet === w 
+                            ? '1.5px solid #2563eb' 
+                            : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'),
+                          background: selectedWallet === w 
+                            ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)') 
+                            : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)'),
+                          color: selectedWallet === w 
+                            ? (isLight ? '#1d4ed8' : '#60a5fa') 
+                            : (isLight ? '#64748b' : '#94a3b8'),
                           fontWeight: 800,
                           fontSize: '0.8rem',
                           cursor: 'pointer'
@@ -692,20 +734,20 @@ const PaymentGatewayModal = ({
                   </div>
 
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.8)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
                     borderRadius: '14px',
                     padding: '1.25rem',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                     marginBottom: '1rem',
                     textAlign: 'center'
                   }}>
-                    <p style={{ fontSize: '0.85rem', color: '#e2e8f0', margin: '0 0 10px 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: isLight ? '#334155' : '#e2e8f0', margin: '0 0 10px 0' }}>
                       Nomor Handphone Terdaftar:
                     </p>
-                    <strong style={{ fontSize: '1.15rem', color: '#38bdf8' }}>
+                    <strong style={{ fontSize: '1.15rem', color: isLight ? '#0284c7' : '#38bdf8' }}>
                       {user?.phone || '0812-3456-7890'}
                     </strong>
-                    <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '10px 0 0 0' }}>
+                    <p style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', margin: '10px 0 0 0' }}>
                       Notifikasi konfirmasi pembayaran akan dikirimkan otomatis ke aplikasi {selectedWallet} Anda.
                     </p>
                   </div>
@@ -715,13 +757,19 @@ const PaymentGatewayModal = ({
               {/* Real Production Verification Bar */}
               {checkNotice && (
                 <div style={{
-                  background: checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                  border: `1px solid ${checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                  background: checkNotice.type === 'pending' 
+                    ? (isLight ? '#fefce8' : 'rgba(234, 179, 8, 0.12)') 
+                    : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.12)'),
+                  border: `1px solid ${checkNotice.type === 'pending' 
+                    ? (isLight ? '#fef08a' : 'rgba(234, 179, 8, 0.35)') 
+                    : (isLight ? '#fecaca' : 'rgba(239, 68, 68, 0.35)')}`,
                   borderRadius: '12px',
                   padding: '10px 14px',
                   marginBottom: '0.85rem',
                   fontSize: '0.78rem',
-                  color: checkNotice.type === 'pending' ? '#fde047' : '#fca5a5',
+                  color: checkNotice.type === 'pending' 
+                    ? (isLight ? '#854d0e' : '#fde047') 
+                    : (isLight ? '#b91c1c' : '#fca5a5'),
                   textAlign: 'left'
                 }}>
                   <div style={{ fontWeight: 600 }}>{checkNotice.message}</div>
@@ -751,9 +799,9 @@ const PaymentGatewayModal = ({
                         style={{
                           padding: '5px 10px',
                           fontSize: '0.72rem',
-                          background: 'rgba(255,255,255,0.08)',
-                          color: '#e2e8f0',
-                          border: '1px solid rgba(255,255,255,0.2)',
+                          background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.08)',
+                          color: isLight ? '#334155' : '#e2e8f0',
+                          border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)',
                           borderRadius: '6px',
                           fontWeight: 600,
                           cursor: 'pointer'
@@ -767,8 +815,8 @@ const PaymentGatewayModal = ({
               )}
 
               <div style={{
-                background: 'rgba(34, 197, 94, 0.08)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
+                background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.08)',
+                border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.3)',
                 borderRadius: '14px',
                 padding: '12px 14px',
                 marginBottom: '1rem',
@@ -778,7 +826,7 @@ const PaymentGatewayModal = ({
                 gap: '12px'
               }}>
                 <div style={{ textAlign: 'left' }}>
-                  <span style={{ fontSize: '0.74rem', color: '#86efac', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.74rem', color: isLight ? '#15803d' : '#86efac', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{
                       width: '8px',
                       height: '8px',
@@ -789,7 +837,7 @@ const PaymentGatewayModal = ({
                     }} />
                     Verifikasi Otomatis Real-Time Aktif
                   </span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: isLight ? '#475569' : '#cbd5e1' }}>
                     Sudah transfer? Klik tombol untuk verifikasi mutasi rekening instan.
                   </p>
                 </div>

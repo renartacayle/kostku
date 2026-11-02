@@ -27,6 +27,7 @@ import {
   apiTopUpElectricity 
 } from '../services/api';
 import { generateQrisDataUrl } from '../utils/qrisEngine';
+import { useTheme } from '../context/ThemeContext';
 
 const NOMINAL_OPTIONS = [
   { value: 20000, label: 'Rp 20.000', kwh: 13.8 },
@@ -50,6 +51,9 @@ const SmartLockAndTokenModal = ({
   user, 
   roomNumber = '101' 
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const [activeTab, setActiveTab] = useState('buy'); // 'buy' | 'history'
   
   // Step state: 'form' | 'payment' | 'success'
@@ -86,38 +90,24 @@ const SmartLockAndTokenModal = ({
 
   const pollingRef = useRef(null);
 
-  // Load history when tab is clicked
-  useEffect(() => {
-    if (isOpen && activeTab === 'history') {
-      fetchHistory();
-    }
-  }, [isOpen, activeTab]);
-
-  // Polling payment status when in 'payment' step
-  useEffect(() => {
-    if (step === 'payment' && activeOrder?.orderId) {
-      pollingRef.current = setInterval(() => {
-        checkStatusSilently(activeOrder.orderId);
-      }, 3500);
-
-      const timer = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
+  const handleInquiry = async (customMeter = null) => {
+    const targetMeter = customMeter || meterNumber;
+    if (!targetMeter || targetMeter.length < 8) return;
+    setInquiryLoading(true);
+    try {
+      const res = await apiInquiryPln(targetMeter);
+      if (res?.success) {
+        setInquiryData({
+          subscriberName: res.subscriberName || 'RENA / KOST BAROKAH',
+          segmentPower: res.segmentPower || 'R1M / 900 VA'
         });
-      }, 1000);
-
-      return () => {
-        clearInterval(pollingRef.current);
-        clearInterval(timer);
-      };
+      }
+    } catch (err) {
+      console.warn('Inquiry notice:', err.message);
+    } finally {
+      setInquiryLoading(false);
     }
-  }, [step, activeOrder]);
-
-  if (!isOpen) return null;
+  };
 
   const fetchHistory = async () => {
     setHistoryLoading(true);
@@ -138,34 +128,47 @@ const SmartLockAndTokenModal = ({
     }
   };
 
+  // Load history when tab is clicked
+  useEffect(() => {
+    if (isOpen && activeTab === 'history') {
+      fetchHistory();
+    }
+  }, [isOpen, activeTab]);
+
   // Auto-inquiry on meter change
   useEffect(() => {
+    if (!isOpen) return;
     if (meterNumber && meterNumber.length >= 8) {
       const timer = setTimeout(() => {
         handleInquiry(meterNumber);
       }, 450);
       return () => clearTimeout(timer);
     }
-  }, [meterNumber]);
+  }, [isOpen, meterNumber]);
 
-  const handleInquiry = async (customMeter = null) => {
-    const targetMeter = customMeter || meterNumber;
-    if (!targetMeter || targetMeter.length < 8) return;
-    setInquiryLoading(true);
-    try {
-      const res = await apiInquiryPln(targetMeter);
-      if (res?.success) {
-        setInquiryData({
-          subscriberName: res.subscriberName || 'RENA / KOST BAROKAH',
-          segmentPower: res.segmentPower || 'R1M / 900 VA'
-        });
-      }
-    } catch (err) {
-      console.warn('Inquiry notice:', err.message);
-    } finally {
-      setInquiryLoading(false);
-    }
-  };
+  // Polling payment status when in 'payment' step
+  useEffect(() => {
+    if (!isOpen || step !== 'payment' || !activeOrder?.orderId) return;
+
+    pollingRef.current = setInterval(() => {
+      checkStatusSilently(activeOrder.orderId);
+    }, 3500);
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(pollingRef.current);
+      clearInterval(timer);
+    };
+  }, [isOpen, step, activeOrder]);
 
   const handleProceedPayment = async () => {
     setLoadingOrder(true);
@@ -314,12 +317,14 @@ const SmartLockAndTokenModal = ({
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  if (!isOpen) return null;
+
   return createPortal(
     <div 
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(5, 10, 20, 0.88)',
+        background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
         display: 'flex',
@@ -336,8 +341,8 @@ const SmartLockAndTokenModal = ({
     >
       <div 
         style={{
-          background: '#0d1527',
-          border: '1px solid rgba(245, 158, 11, 0.35)',
+          background: isLight ? '#ffffff' : '#0d1527',
+          border: isLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.35)',
           borderRadius: '24px',
           width: '100%',
           maxWidth: '520px',
@@ -345,7 +350,9 @@ const SmartLockAndTokenModal = ({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 45px rgba(245, 158, 11, 0.2)',
+          boxShadow: isLight 
+            ? '0 25px 60px -15px rgba(15, 23, 42, 0.15), 0 0 35px rgba(245, 158, 11, 0.1)' 
+            : '0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 45px rgba(245, 158, 11, 0.2)',
           margin: 'auto',
           position: 'relative'
         }}
@@ -353,11 +360,13 @@ const SmartLockAndTokenModal = ({
         {/* Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: isLight ? '1px solid #fef3c7' : '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'linear-gradient(90deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%)'
+          background: isLight 
+            ? 'linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%)' 
+            : 'linear-gradient(90deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -375,22 +384,22 @@ const SmartLockAndTokenModal = ({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                   Token Listrik PLN
                 </h3>
                 <span style={{
                   fontSize: '0.65rem',
                   fontWeight: 800,
-                  color: '#fbbf24',
-                  background: 'rgba(245, 158, 11, 0.15)',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  color: isLight ? '#b45309' : '#fbbf24',
+                  background: isLight ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  border: isLight ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(245, 158, 11, 0.3)',
                   padding: '2px 6px',
                   borderRadius: '6px'
                 }}>
                   TriPay T53543
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#475569' : '#94a3b8' }}>
                 Isi Ulang Mandiri Kamar {user?.kamar || roomNumber} (Resmi PLN Biller)
               </p>
             </div>
@@ -399,10 +408,10 @@ const SmartLockAndTokenModal = ({
           <button 
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
+              background: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.08)',
               border: 'none',
               borderRadius: '10px',
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
               cursor: 'pointer',
               padding: '8px',
               display: 'flex',
@@ -418,8 +427,8 @@ const SmartLockAndTokenModal = ({
         {/* Tab Switcher */}
         <div style={{
           display: 'flex',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(15, 23, 42, 0.5)'
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
+          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.5)'
         }}>
           <button
             type="button"
@@ -428,9 +437,9 @@ const SmartLockAndTokenModal = ({
               flex: 1,
               padding: '11px',
               border: 'none',
-              borderBottom: activeTab === 'buy' ? '2.5px solid #f59e0b' : '2.5px solid transparent',
+              borderBottom: activeTab === 'buy' ? '2.5px solid #d97706' : '2.5px solid transparent',
               background: 'none',
-              color: activeTab === 'buy' ? '#fbbf24' : '#94a3b8',
+              color: activeTab === 'buy' ? '#d97706' : (isLight ? '#64748b' : '#94a3b8'),
               fontWeight: activeTab === 'buy' ? 800 : 600,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -450,9 +459,9 @@ const SmartLockAndTokenModal = ({
               flex: 1,
               padding: '11px',
               border: 'none',
-              borderBottom: activeTab === 'history' ? '2.5px solid #f59e0b' : '2.5px solid transparent',
+              borderBottom: activeTab === 'history' ? '2.5px solid #d97706' : '2.5px solid transparent',
               background: 'none',
-              color: activeTab === 'history' ? '#fbbf24' : '#94a3b8',
+              color: activeTab === 'history' ? '#d97706' : (isLight ? '#64748b' : '#94a3b8'),
               fontWeight: activeTab === 'history' ? 800 : 600,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -467,12 +476,12 @@ const SmartLockAndTokenModal = ({
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: isLight ? '#ffffff' : 'transparent' }}>
           {activeTab === 'history' ? (
             /* TAB 2: RIWAYAT TOKEN */
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: 700 }}>
                   Daftar Token Kamar {user?.kamar || roomNumber}:
                 </span>
                 <button
@@ -480,9 +489,9 @@ const SmartLockAndTokenModal = ({
                   onClick={fetchHistory}
                   disabled={historyLoading}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#cbd5e1',
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: isLight ? '#1e293b' : '#cbd5e1',
                     borderRadius: '8px',
                     padding: '4px 10px',
                     fontSize: '0.72rem',
@@ -497,15 +506,15 @@ const SmartLockAndTokenModal = ({
               </div>
 
               {historyLoading ? (
-                <div style={{ textAlign: 'center', padding: '3rem 0', color: '#94a3b8' }}>
+                <div style={{ textAlign: 'center', padding: '3rem 0', color: isLight ? '#64748b' : '#94a3b8' }}>
                   <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
                   <p style={{ margin: 0, fontSize: '0.82rem' }}>Memuat riwayat transaksi token...</p>
                 </div>
               ) : historyList.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '16px', border: '1px dashed rgba(255, 255, 255, 0.1)' }}>
-                  <Zap size={32} color="#64748b" style={{ margin: '0 auto 10px' }} />
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 700 }}>Belum Ada Riwayat Token</p>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>Token listrik PLN yang dibeli akan otomatis tersimpan rapi di sini.</p>
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.4)', borderRadius: '16px', border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.1)' }}>
+                  <Zap size={32} color="#f59e0b" style={{ margin: '0 auto 10px' }} />
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: isLight ? '#0f172a' : '#cbd5e1', fontWeight: 700 }}>Belum Ada Riwayat Token</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>Token listrik PLN yang dibeli akan otomatis tersimpan rapi di sini.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -513,18 +522,18 @@ const SmartLockAndTokenModal = ({
                     <div
                       key={item.id}
                       style={{
-                        background: 'rgba(15, 23, 42, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
+                        border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                         borderRadius: '14px',
                         padding: '1rem'
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <div>
-                          <strong style={{ fontSize: '0.88rem', color: '#fbbf24', display: 'block' }}>
+                          <strong style={{ fontSize: '0.88rem', color: '#d97706', display: 'block' }}>
                             {formatRupiah(item.plnNominal || item.amount)} (+{item.kwhAdded || item.kwhEstimated || 0} kWh)
                           </strong>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                             {new Date(item.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                           </span>
                         </div>
@@ -534,7 +543,7 @@ const SmartLockAndTokenModal = ({
                           padding: '3px 8px',
                           borderRadius: '6px',
                           background: item.status === 'settlement' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                          color: item.status === 'settlement' ? '#4ade80' : '#fbbf24'
+                          color: item.status === 'settlement' ? '#16a34a' : '#d97706'
                         }}>
                           {item.status === 'settlement' ? '✓ Lunas' : 'Menunggu Bayar'}
                         </span>
@@ -542,26 +551,26 @@ const SmartLockAndTokenModal = ({
 
                       {item.electricityToken && (
                         <div style={{
-                          background: '#070d19',
-                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          background: isLight ? '#fffbeb' : '#070d19',
+                          border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.25)',
                           borderRadius: '8px',
                           padding: '8px 10px',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center'
                         }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '1px' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.88rem', fontWeight: 800, color: isLight ? '#92400e' : '#f8fafc', letterSpacing: '1px' }}>
                             {item.electricityToken}
                           </span>
                           <button
                             type="button"
                             onClick={() => handleCopy(item.electricityToken, 'token')}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              border: 'none',
+                              background: isLight ? '#fef3c7' : 'rgba(255, 255, 255, 0.08)',
+                              border: isLight ? '1px solid #fde68a' : 'none',
                               borderRadius: '6px',
                               padding: '4px 8px',
-                              color: '#cbd5e1',
+                              color: isLight ? '#92400e' : '#cbd5e1',
                               fontSize: '0.7rem',
                               cursor: 'pointer',
                               display: 'flex',
@@ -583,7 +592,7 @@ const SmartLockAndTokenModal = ({
             <div>
               {/* Info Meteran PLN Input */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                   Nomor Meter PLN / ID Pelanggan (11–12 Digit):
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -594,11 +603,11 @@ const SmartLockAndTokenModal = ({
                     placeholder="Contoh: 14120938472"
                     style={{
                       flex: 1,
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                       borderRadius: '12px',
                       padding: '10px 14px',
-                      color: 'white',
+                      color: isLight ? '#0f172a' : 'white',
                       fontFamily: 'monospace',
                       fontSize: '0.95rem',
                       letterSpacing: '1px'
@@ -609,11 +618,11 @@ const SmartLockAndTokenModal = ({
                     onClick={() => handleInquiry()}
                     disabled={inquiryLoading || !meterNumber}
                     style={{
-                      background: 'rgba(245, 158, 11, 0.18)',
-                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.18)',
+                      border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.4)',
                       borderRadius: '12px',
                       padding: '0 14px',
-                      color: '#fbbf24',
+                      color: isLight ? '#b45309' : '#fbbf24',
                       fontWeight: 700,
                       fontSize: '0.78rem',
                       cursor: 'pointer',
@@ -626,7 +635,7 @@ const SmartLockAndTokenModal = ({
 
                 {/* Helper info on custom meter */}
                 <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                     💡 Otomatis untuk Kamar {user?.kamar || roomNumber}. Bisa diubah bebas ke meteran lain.
                   </span>
                   {meterNumber !== defaultMeter && (
@@ -639,7 +648,7 @@ const SmartLockAndTokenModal = ({
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#60a5fa',
+                        color: '#2563eb',
                         fontSize: '0.7rem',
                         cursor: 'pointer',
                         padding: 0,
@@ -654,8 +663,8 @@ const SmartLockAndTokenModal = ({
                 {/* Pelanggan Box */}
                 <div style={{
                   marginTop: '8px',
-                  background: 'rgba(245, 158, 11, 0.06)',
-                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.06)',
+                  border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.2)',
                   borderRadius: '12px',
                   padding: '10px 12px',
                   display: 'flex',
@@ -663,19 +672,19 @@ const SmartLockAndTokenModal = ({
                   alignItems: 'center'
                 }}>
                   <div>
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block' }}>NAMA PELANGGAN PLN</span>
-                    <strong style={{ fontSize: '0.82rem', color: '#f8fafc' }}>{inquiryData.subscriberName}</strong>
+                    <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>NAMA PELANGGAN PLN</span>
+                    <strong style={{ fontSize: '0.82rem', color: isLight ? '#0f172a' : '#f8fafc' }}>{inquiryData.subscriberName}</strong>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block' }}>TARIF / DAYA</span>
-                    <strong style={{ fontSize: '0.82rem', color: '#fbbf24' }}>{inquiryData.segmentPower}</strong>
+                    <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>TARIF / DAYA</span>
+                    <strong style={{ fontSize: '0.82rem', color: '#d97706' }}>{inquiryData.segmentPower}</strong>
                   </div>
                 </div>
               </div>
 
               {/* Grid Pilihan Nominal */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
                   Pilih Nominal Isi Ulang:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
@@ -687,9 +696,15 @@ const SmartLockAndTokenModal = ({
                       style={{
                         padding: '12px 6px',
                         borderRadius: '12px',
-                        border: nominal === opt.value ? '2px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
-                        background: nominal === opt.value ? 'rgba(245, 158, 11, 0.22)' : 'rgba(15, 23, 42, 0.65)',
-                        color: nominal === opt.value ? '#fbbf24' : '#cbd5e1',
+                        border: nominal === opt.value 
+                          ? '2px solid #d97706' 
+                          : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'),
+                        background: nominal === opt.value 
+                          ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.22)') 
+                          : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.65)'),
+                        color: nominal === opt.value 
+                          ? (isLight ? '#92400e' : '#fbbf24') 
+                          : (isLight ? '#0f172a' : '#cbd5e1'),
                         fontWeight: 800,
                         fontSize: '0.84rem',
                         cursor: 'pointer',
@@ -698,7 +713,7 @@ const SmartLockAndTokenModal = ({
                       }}
                     >
                       {opt.label}
-                      <span style={{ display: 'block', fontSize: '0.68rem', color: nominal === opt.value ? '#fde68a' : '#94a3b8', marginTop: '3px' }}>
+                      <span style={{ display: 'block', fontSize: '0.68rem', color: nominal === opt.value ? (isLight ? '#b45309' : '#fde68a') : (isLight ? '#64748b' : '#94a3b8'), marginTop: '3px' }}>
                         ~{opt.kwh} kWh
                       </span>
                     </button>
@@ -708,7 +723,7 @@ const SmartLockAndTokenModal = ({
 
               {/* Pilihan Metode Pembayaran TriPay */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
                   Metode Pembayaran (TriPay Payment Gateway):
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -719,8 +734,12 @@ const SmartLockAndTokenModal = ({
                       style={{
                         padding: '10px 14px',
                         borderRadius: '12px',
-                        border: paymentMethod === m.id ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
-                        background: paymentMethod === m.id ? 'rgba(245, 158, 11, 0.12)' : 'rgba(15, 23, 42, 0.5)',
+                        border: paymentMethod === m.id 
+                          ? '1.5px solid #d97706' 
+                          : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'),
+                        background: paymentMethod === m.id 
+                          ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)') 
+                          : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.5)'),
                         cursor: 'pointer',
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -729,19 +748,19 @@ const SmartLockAndTokenModal = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {m.id === 'QRIS' ? <QrCode size={18} color="#10b981" /> : <Building2 size={18} color="#3b82f6" />}
+                        {m.id === 'QRIS' ? <QrCode size={18} color="#16a34a" /> : <Building2 size={18} color="#2563eb" />}
                         <div>
-                          <strong style={{ fontSize: '0.82rem', color: 'white', display: 'block' }}>{m.name}</strong>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{m.desc}</span>
+                          <strong style={{ fontSize: '0.82rem', color: isLight ? '#0f172a' : 'white', display: 'block' }}>{m.name}</strong>
+                          <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>{m.desc}</span>
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         {m.fee === 0 ? (
-                          <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, background: 'rgba(16, 185, 129, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700, background: 'rgba(22, 163, 74, 0.12)', padding: '2px 6px', borderRadius: '4px' }}>
                             Bebas Biaya
                           </span>
                         ) : (
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                             +Rp {m.fee.toLocaleString('id-ID')}
                           </span>
                         )}
@@ -753,23 +772,23 @@ const SmartLockAndTokenModal = ({
 
               {/* Ringkasan Total */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '14px',
                 padding: '12px 14px',
                 marginBottom: '1.25rem'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px' }}>
                   <span>Nominal Token PLN:</span>
-                  <span style={{ color: 'white', fontWeight: 600 }}>{formatRupiah(nominal)}</span>
+                  <span style={{ color: isLight ? '#0f172a' : 'white', fontWeight: 600 }}>{formatRupiah(nominal)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '8px' }}>
                   <span>Biaya Layanan Payment Gateway:</span>
-                  <span style={{ color: paymentMethod === 'QRIS' ? '#10b981' : 'white', fontWeight: 600 }}>
+                  <span style={{ color: paymentMethod === 'QRIS' ? '#16a34a' : (isLight ? '#0f172a' : 'white'), fontWeight: 600 }}>
                     {paymentMethod === 'QRIS' ? 'Gratis (Rp 0)' : 'Rp 2.000'}
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 800, color: '#fbbf24', borderTop: '1px dashed rgba(255, 255, 255, 0.1)', paddingTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 800, color: '#d97706', borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255, 255, 255, 0.1)', paddingTop: '8px' }}>
                   <span>Total Pembayaran:</span>
                   <span>{formatRupiah(nominal + (paymentMethod === 'QRIS' ? 0 : 2000))}</span>
                 </div>
@@ -799,7 +818,7 @@ const SmartLockAndTokenModal = ({
           ) : step === 'payment' ? (
             /* TAB 1 - STEP 2: MENUNGGU PEMBAYARAN */
             <div style={{ textAlign: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#fbbf24', fontSize: '0.8rem', fontWeight: 700, marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#d97706', fontSize: '0.8rem', fontWeight: 700, marginBottom: '10px' }}>
                 <Clock size={16} /> Batas Waktu Pembayaran: {formatTimer(timeLeft)}
               </div>
 
@@ -810,7 +829,8 @@ const SmartLockAndTokenModal = ({
                 padding: '1.25rem',
                 margin: '0 auto 1.25rem',
                 maxWidth: '340px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                boxShadow: isLight ? '0 10px 25px rgba(15, 23, 42, 0.12)' : '0 10px 25px rgba(0,0,0,0.5)',
+                border: isLight ? '1px solid #e2e8f0' : 'none'
               }}>
                 {activeOrder?.paymentMethod === 'QRIS' ? (
                   <div>
@@ -887,7 +907,7 @@ const SmartLockAndTokenModal = ({
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
-                      color: '#60a5fa',
+                      color: '#2563eb',
                       fontSize: '0.78rem',
                       textDecoration: 'none'
                     }}
@@ -903,11 +923,11 @@ const SmartLockAndTokenModal = ({
                   type="button"
                   onClick={() => setStep('form')}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '12px',
                     padding: '10px 14px',
-                    color: '#cbd5e1',
+                    color: isLight ? '#1e293b' : '#cbd5e1',
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -944,7 +964,7 @@ const SmartLockAndTokenModal = ({
                 </button>
               </div>
 
-              <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Sistem mendeteksi pembayaran secara real-time. Token 20 digit akan otomatis muncul begitu transaksi lunas.
               </p>
             </div>
@@ -957,7 +977,7 @@ const SmartLockAndTokenModal = ({
                 borderRadius: '50%',
                 background: 'rgba(34, 197, 94, 0.18)',
                 border: '2px solid #22c55e',
-                color: '#4ade80',
+                color: '#16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -966,34 +986,34 @@ const SmartLockAndTokenModal = ({
                 <CheckCircle2 size={32} />
               </div>
 
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4ade80', display: 'block', letterSpacing: '1px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', display: 'block', letterSpacing: '1px' }}>
                 ✓ PEMBAYARAN LUNAS (TRIPAY PPOB)
               </span>
-              <h3 style={{ margin: '4px 0 12px', fontSize: '1.2rem', color: 'white', fontWeight: 900 }}>
+              <h3 style={{ margin: '4px 0 12px', fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white', fontWeight: 900 }}>
                 Token Listrik Berhasil Diterbitkan!
               </h3>
 
               {/* 20 Digit Monospace Box */}
               <div style={{
-                background: '#070d19',
-                border: '2px solid rgba(245, 158, 11, 0.5)',
+                background: isLight ? '#fffbeb' : '#070d19',
+                border: isLight ? '2px solid #f59e0b' : '2px solid rgba(245, 158, 11, 0.5)',
                 borderRadius: '18px',
                 padding: '1.25rem',
                 marginBottom: '1.25rem',
-                boxShadow: '0 0 30px rgba(245, 158, 11, 0.2)'
+                boxShadow: isLight ? '0 10px 25px rgba(245, 158, 11, 0.15)' : '0 0 30px rgba(245, 158, 11, 0.2)'
               }}>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.7rem', color: isLight ? '#92400e' : '#94a3b8', display: 'block', fontWeight: 700 }}>
                   MASUKKAN 20 DIGIT KE METERAN PLN:
                 </span>
                 
                 <strong style={{
                   fontSize: '1.45rem',
-                  color: '#fbbf24',
+                  color: isLight ? '#b45309' : '#fbbf24',
                   display: 'block',
                   letterSpacing: '2.5px',
                   margin: '10px 0',
                   fontFamily: 'monospace',
-                  textShadow: '0 0 12px rgba(251, 191, 36, 0.4)'
+                  textShadow: isLight ? 'none' : '0 0 12px rgba(251, 191, 36, 0.4)'
                 }}>
                   {settledData?.token}
                 </strong>
@@ -1002,11 +1022,11 @@ const SmartLockAndTokenModal = ({
                   type="button"
                   onClick={() => handleCopy(settledData?.token, 'token')}
                   style={{
-                    background: copiedToken ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                    border: copiedToken ? '1px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.15)',
+                    background: copiedToken ? 'rgba(34, 197, 94, 0.2)' : (isLight ? '#fef3c7' : 'rgba(255, 255, 255, 0.1)'),
+                    border: copiedToken ? '1px solid #22c55e' : (isLight ? '1px solid #fde68a' : '1px solid rgba(255, 255, 255, 0.15)'),
                     borderRadius: '10px',
                     padding: '8px 18px',
-                    color: copiedToken ? '#4ade80' : 'white',
+                    color: copiedToken ? '#16a34a' : (isLight ? '#92400e' : 'white'),
                     fontWeight: 700,
                     fontSize: '0.8rem',
                     cursor: 'pointer',
@@ -1022,29 +1042,29 @@ const SmartLockAndTokenModal = ({
 
               {/* Rincian Transaksi */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '14px',
                 padding: '12px 14px',
                 textAlign: 'left',
                 fontSize: '0.78rem',
                 marginBottom: '1.25rem'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px' }}>
                   <span>No. Meter / IDPEL:</span>
-                  <strong style={{ color: 'white', fontFamily: 'monospace' }}>{settledData?.meterNumber}</strong>
+                  <strong style={{ color: isLight ? '#0f172a' : 'white', fontFamily: 'monospace' }}>{settledData?.meterNumber}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px' }}>
                   <span>Nama Pelanggan:</span>
-                  <strong style={{ color: 'white' }}>{settledData?.subscriberName}</strong>
+                  <strong style={{ color: isLight ? '#0f172a' : 'white' }}>{settledData?.subscriberName}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8', marginBottom: '4px' }}>
                   <span>Tambahan Daya:</span>
-                  <strong style={{ color: '#4ade80' }}>+{settledData?.kwhAdded} kWh</strong>
+                  <strong style={{ color: '#16a34a' }}>+{settledData?.kwhAdded} kWh</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', borderTop: '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '6px', marginTop: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8', borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '6px', marginTop: '6px' }}>
                   <span>Nomor Resi / Referensi:</span>
-                  <span style={{ fontFamily: 'monospace', color: '#fbbf24' }}>{settledData?.receiptNumber}</span>
+                  <span style={{ fontFamily: 'monospace', color: '#d97706' }}>{settledData?.receiptNumber}</span>
                 </div>
               </div>
 
@@ -1059,7 +1079,7 @@ const SmartLockAndTokenModal = ({
                     border: '1px solid rgba(34, 197, 94, 0.4)',
                     borderRadius: '12px',
                     padding: '10px',
-                    color: '#4ade80',
+                    color: '#16a34a',
                     fontSize: '0.82rem',
                     fontWeight: 800,
                     cursor: 'pointer',

@@ -69,6 +69,7 @@ import CommunityBulletinBoard from '../components/CommunityBulletinBoard';
 import PrelovedMarketplace from '../components/PrelovedMarketplace';
 import GuestRegistrationModal from '../components/GuestRegistrationModal';
 import OwnerNavBanner from '../components/OwnerNavBanner';
+import AddPropertyModal from '../components/AddPropertyModal';
 import { useTheme } from '../context/ThemeContext';
 
 const OwnerDashboard = ({ user }) => {
@@ -113,22 +114,44 @@ const OwnerDashboard = ({ user }) => {
   const [roomFilter, setRoomFilter] = useState('all'); // 'all', 'empty', 'occupied'
   const [selectedRoomDetail, setSelectedRoomDetail] = useState(null);
 
-  // Active Kost UID Resolver
-  const [currentKostUid, setCurrentKostUid] = useState(user?.kostUid || localStorage.getItem('kostUid') || '');
+  // Active Kost UID Resolver & Multi-Property State
+  const [ownerKosts, setOwnerKosts] = useState([]);
+  const [checkingKosts, setCheckingKosts] = useState(true);
+  const [showAddKostModal, setShowAddKostModal] = useState(false);
+  const [currentKostUid, setCurrentKostUid] = useState(() => {
+    return user?.kostUid || '';
+  });
 
   useEffect(() => {
-    if (user?.kostUid) {
-      setCurrentKostUid(user.kostUid);
-    } else if (user?.id) {
+    let isMounted = true;
+    if (user?.id) {
+      setCheckingKosts(true);
       apiGetOwnerKosts(user.id).then(kosts => {
-        if (Array.isArray(kosts) && kosts.length > 0) {
-          const first = kosts[0].uid;
-          setCurrentKostUid(first);
-          localStorage.setItem('kostUid', first);
+        if (!isMounted) return;
+        const list = Array.isArray(kosts) ? kosts : [];
+        setOwnerKosts(list);
+        if (list.length > 0) {
+          const savedUid = localStorage.getItem('kostUid');
+          const matched = list.find(k => k.uid === currentKostUid || k.uid === user?.kostUid || k.uid === savedUid) || list[0];
+          setCurrentKostUid(matched.uid);
+          localStorage.setItem('kostUid', matched.uid);
+          if (matched.kostName) localStorage.setItem('kostName', matched.kostName);
+        } else {
+          // Owner baru tanpa properti kost: kosongkan dan hapus residual demo
+          setCurrentKostUid('');
+          localStorage.removeItem('kostUid');
+          localStorage.removeItem('kostName');
         }
-      }).catch(() => {});
+        setCheckingKosts(false);
+      }).catch((err) => {
+        console.error('Failed to load owner kosts:', err);
+        if (isMounted) setCheckingKosts(false);
+      });
+    } else {
+      setCheckingKosts(false);
     }
-  }, [user?.kostUid, user?.id]);
+    return () => { isMounted = false; };
+  }, [user?.id, user?.kostUid]);
 
   useEffect(() => {
     const handlePropertySwitch = (e) => {
@@ -136,9 +159,40 @@ const OwnerDashboard = ({ user }) => {
         setCurrentKostUid(e.detail.kostUid);
       }
     };
+    const handleOpenAdd = () => {
+      setShowAddKostModal(true);
+    };
     window.addEventListener('kostku_property_switched', handlePropertySwitch);
-    return () => window.removeEventListener('kostku_property_switched', handlePropertySwitch);
+    window.addEventListener('kostku_open_add_kost', handleOpenAdd);
+    return () => {
+      window.removeEventListener('kostku_property_switched', handlePropertySwitch);
+      window.removeEventListener('kostku_open_add_kost', handleOpenAdd);
+    };
   }, []);
+
+  const handleKostCreated = (newKost) => {
+    if (!newKost) return;
+    setOwnerKosts(prev => [newKost, ...prev.filter(k => k.uid !== newKost.uid)]);
+    setCurrentKostUid(newKost.uid);
+    localStorage.setItem('kostUid', newKost.uid);
+    if (newKost.kostName) localStorage.setItem('kostName', newKost.kostName);
+
+    try {
+      const savedUser = localStorage.getItem('kostUser');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        parsed.kostUid = newKost.uid;
+        parsed.kostName = newKost.kostName;
+        localStorage.setItem('kostUser', JSON.stringify(parsed));
+      }
+    } catch (_) {}
+
+    window.dispatchEvent(new CustomEvent('kostku_property_switched', {
+      detail: { kostUid: newKost.uid, kostName: newKost.kostName }
+    }));
+    window.dispatchEvent(new CustomEvent('kostku_user_updated'));
+    setShowAddKostModal(false);
+  };
 
   // Settings State in Overview
   const [savingSettings, setSavingSettings] = useState(false);
@@ -263,10 +317,36 @@ const OwnerDashboard = ({ user }) => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
-  const targetKostUid = currentKostUid || user?.kostUid;
+  const targetKostUid = (!checkingKosts && ownerKosts.length === 0) 
+    ? '' 
+    : (currentKostUid || (ownerKosts.length > 0 ? ownerKosts[0].uid : ''));
 
   const loadData = async () => {
-    if (!targetKostUid) return;
+    if (!targetKostUid) {
+      setLoading(false);
+      setActivities([]);
+      setInboxMessages([]);
+      setOwnerMerchants([]);
+      setMerchantSummary(null);
+      setSettings({
+        rooms: [],
+        employees: [],
+        bedsheetCount: 0,
+        utilityScheme: 'all_kost',
+        waterRate: 0,
+        electricityRate: 0,
+        depositAmount: 0,
+        discount: { enabled: false, type: 'percent', value: 10, durationMonths: '1', validUntil: '', label: 'Promo Spesial' },
+        promoted: { active: false, plan: '7d', badgeText: '🔥 Rekomendasi Utama', expiresAt: '' },
+        waBotQuota: 25,
+        isPro: false
+      });
+      setTenants([]);
+      setActiveComplaints(0);
+      setInvoices([]);
+      setPendingApplications([]);
+      return;
+    }
     setLoading(true);
     try {
       const [acts, sets, usrs, comps, invs, apps, msgs, merchs, merchSum] = await Promise.all([
@@ -598,13 +678,14 @@ const OwnerDashboard = ({ user }) => {
       {/* Persistent Shopee-style Owner Navigation Banner */}
       <OwnerNavBanner
         user={user}
+        activeKostUid={targetKostUid}
         activeNav={activeTab === 'pengaturan' ? 'pengaturan' : (activeTab === 'komunitas' ? 'mading' : 'overview')}
         onTabChange={handleTabChange}
-        totalUnits={totalKamar}
-        occupancyRate={occupancyRate}
-        activeComplaints={activeComplaints}
+        totalUnits={targetKostUid ? totalKamar : 0}
+        occupancyRate={targetKostUid ? occupancyRate : 0}
+        activeComplaints={targetKostUid ? activeComplaints : 0}
         onRefresh={loadData}
-        loading={loading}
+        loading={loading || checkingKosts}
       />
 
       {/* Global Feedback Banner for Settings */}
@@ -628,10 +709,152 @@ const OwnerDashboard = ({ user }) => {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          TAB 1: RINGKASAN & HUNIAN (OVERVIEW)
+          TAB 1: RINGKASAN & HUNIAN (MY KOST OVERVIEW / EMPTY STATE)
           ══════════════════════════════════════════════════════════ */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        (!checkingKosts && (!targetKostUid || ownerKosts.length === 0)) ? (
+          <div className="glass-panel" style={{
+            background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+            border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '24px',
+            padding: 'clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 2.5rem)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.75rem',
+            boxShadow: isLight ? 'var(--shadow-md)' : '0 20px 40px rgba(0,0,0,0.3)',
+            maxWidth: '820px',
+            margin: '0 auto',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            {/* Hero Icon */}
+            <div style={{
+              width: '88px',
+              height: '88px',
+              borderRadius: '24px',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 12px 30px rgba(37, 99, 235, 0.35)',
+              color: '#ffffff',
+              position: 'relative'
+            }}>
+              <Home size={44} />
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                background: '#22c55e',
+                color: '#fff',
+                borderRadius: '50%',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(34, 197, 94, 0.4)',
+                border: '2px solid white'
+              }}>
+                <Plus size={16} strokeWidth={3} />
+              </div>
+            </div>
+
+            {/* Title & Copy */}
+            <div style={{ maxWidth: '580px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.15)',
+                color: isLight ? '#2563eb' : '#93c5fd',
+                padding: '4px 12px',
+                borderRadius: '100px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                marginBottom: '10px'
+              }}>
+                <Sparkles size={13} /> Akun Pemilik Kost (Owner) Aktif
+              </div>
+              <h2 style={{
+                fontSize: 'clamp(1.4rem, 3.5vw, 1.85rem)',
+                fontWeight: 800,
+                margin: '0 0 0.6rem 0',
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.02em'
+              }}>
+                Belum Ada Properti Kost Terdaftar
+              </h2>
+              <p style={{
+                margin: 0,
+                fontSize: '0.92rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.6
+              }}>
+                Tab <strong>My Kost</strong> Anda saat ini masih kosong karena properti kost belum didaftarkan. Klik tombol di bawah untuk menginput data cabang kost, menentukan jumlah kamar, foto sampul, utilitas listrik/air, dan langsung aktifkan manajemen kost Anda.
+              </p>
+            </div>
+
+            {/* Main Action Button */}
+            <button
+              type="button"
+              onClick={() => setShowAddKostModal(true)}
+              className="btn btn-primary"
+              style={{
+                padding: '0.95rem 2.25rem',
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                borderRadius: '16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 10px 25px rgba(37, 99, 235, 0.4)',
+                cursor: 'pointer',
+                transition: 'all 0.2s transform'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+            >
+              <Plus size={20} strokeWidth={2.5} />
+              <span>➕ Buat Kost Sekarang</span>
+            </button>
+
+            {/* Feature Cards Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+              gap: '12px',
+              width: '100%',
+              marginTop: '0.5rem',
+              textAlign: 'left'
+            }}>
+              {[
+                { icon: '🏢', title: 'Unit Kamar Otomatis', desc: 'Generate kamar awal dengan tarif & denah visual AI.' },
+                { icon: '⚡', title: 'Skema Utilitas Fleksibel', desc: 'Atur token PLN mandiri atau air PDAM kelolaan.' },
+                { icon: '💰', title: 'Rekap Keuangan Realtime', desc: 'Catat sewa masuk, pengeluaran & cetak invoice otomatis.' },
+                { icon: '🔍', title: 'Tayang di Cari Kost', desc: 'Terima calon penyewa langsung via aplikasi tanpa perantara.' }
+              ].map((feat, idx) => (
+                <div key={idx} style={{
+                  padding: '14px',
+                  borderRadius: '14px',
+                  background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)'
+                }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>{feat.icon}</div>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}>
+                    {feat.title}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    {feat.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Notification Banner for Pending Applications */}
           {pendingApplications.length > 0 && (
@@ -1214,13 +1437,59 @@ const OwnerDashboard = ({ user }) => {
           </div>
 
         </div>
+        )
       )}
 
       {/* ══════════════════════════════════════════════════════════
           TAB 2: MADING & KOMUNITAS KOST (PAKET 5)
           ══════════════════════════════════════════════════════════ */}
       {activeTab === 'komunitas' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        (!checkingKosts && (!targetKostUid || ownerKosts.length === 0)) ? (
+          <div className="glass-panel" style={{
+            background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+            border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '24px',
+            padding: '3rem 1.5rem',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.25rem',
+            maxWidth: '650px',
+            margin: '0 auto'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '18px',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              boxShadow: '0 8px 20px rgba(2, 132, 199, 0.3)'
+            }}>
+              <Megaphone size={32} />
+            </div>
+            <div>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Mading & Komunitas Kost Belum Aktif
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Fitur mading pengumuman, buku tamu digital, dan pasar preloved penghuni akan aktif secara otomatis setelah Anda membuat properti kost.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddKostModal(true)}
+              className="btn btn-primary"
+              style={{ padding: '0.8rem 1.8rem', borderRadius: '14px', gap: '8px', fontWeight: 700 }}
+            >
+              <Plus size={18} /> Buat Kost Sekarang
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Quick Hub Action Banner */}
           <div className="card glass-panel" style={{
             display: 'flex',
@@ -1312,13 +1581,59 @@ const OwnerDashboard = ({ user }) => {
             <PrelovedMarketplace user={user} kostUid={targetKostUid} />
           )}
         </div>
+        )
       )}
 
       {/* ══════════════════════════════════════════════════════════
           TAB 3: PENGATURAN KOST & KAMAR (EMBEDDED IN OVERVIEW)
           ══════════════════════════════════════════════════════════ */}
       {activeTab === 'pengaturan' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        (!checkingKosts && (!targetKostUid || ownerKosts.length === 0)) ? (
+          <div className="glass-panel" style={{
+            background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+            border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '24px',
+            padding: '3rem 1.5rem',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.25rem',
+            maxWidth: '650px',
+            margin: '0 auto'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '18px',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)'
+            }}>
+              <Home size={32} />
+            </div>
+            <div>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Belum Ada Unit Kost untuk Diatur
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Pengaturan unit kamar, tarif sewa, skema utilitas listrik & air, serta promosi kost akan tersedia setelah Anda membuat properti kost.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddKostModal(true)}
+              className="btn btn-primary"
+              style={{ padding: '0.8rem 1.8rem', borderRadius: '14px', gap: '8px', fontWeight: 700 }}
+            >
+              <Plus size={18} /> Buat Kost Sekarang
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Header Action Card */}
           <div className="card glass-panel" style={{
@@ -2996,6 +3311,7 @@ const OwnerDashboard = ({ user }) => {
           {/* SECTION 3: KELOLA AKUN LOGIN STAF & PENJAGA KOST */}
           <StaffManagementCard user={user} />
         </div>
+        )
       )}
 
       {/* ROOM DETAIL & OCCUPANT MODAL */}
@@ -3519,7 +3835,7 @@ const OwnerDashboard = ({ user }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
@@ -3528,24 +3844,24 @@ const OwnerDashboard = ({ user }) => {
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
-            background: '#0d1527',
-            border: '1px solid rgba(59, 130, 246, 0.4)',
+            background: isLight ? '#ffffff' : '#0d1527',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(59, 130, 246, 0.4)',
             borderRadius: '20px',
             width: '100%',
             maxWidth: '500px',
             maxHeight: '90vh',
             overflowY: 'auto',
             padding: '1.5rem',
-            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8)'
+            boxShadow: isLight ? '0 20px 40px rgba(0, 0, 0, 0.1)' : '0 25px 60px -15px rgba(0, 0, 0, 0.8)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '1.5rem' }}>🏪</span>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                     Tambah Toko / Mitra Pribadi Kost
                   </h3>
-                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                     Daftarkan toko langganan sekitar kost untuk penghuni & dapatkan komisi
                   </span>
                 </div>
@@ -3553,7 +3869,7 @@ const OwnerDashboard = ({ user }) => {
               <button
                 type="button"
                 onClick={() => setShowAddMerchantModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
@@ -3561,7 +3877,7 @@ const OwnerDashboard = ({ user }) => {
 
             <form onSubmit={handleAddMerchantSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
                   Nama Toko / Mitra:
                 </label>
                 <input
@@ -3577,7 +3893,7 @@ const OwnerDashboard = ({ user }) => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
                     Kategori:
                   </label>
                   <select
@@ -3600,7 +3916,7 @@ const OwnerDashboard = ({ user }) => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
                     Estimasi Jarak GPS (km):
                   </label>
                   <input
@@ -3617,7 +3933,7 @@ const OwnerDashboard = ({ user }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
                   No. WhatsApp Toko (Sah):
                 </label>
                 <input
@@ -3631,7 +3947,7 @@ const OwnerDashboard = ({ user }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#e2e8f0', marginBottom: '4px', fontWeight: 600 }}>
                   Foto / URL QRIS Toko Asli (Opsional):
                 </label>
                 <input
@@ -3642,14 +3958,14 @@ const OwnerDashboard = ({ user }) => {
                   className="input-field"
                   style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
                 />
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '3px' }}>
                   💡 Jika diisi gambar QRIS rekening toko (BCA/GoPay/dll), anak kost akan men-scan kode asli tersebut.
                 </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#38bdf8', marginBottom: '4px', fontWeight: 700 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#0284c7' : '#38bdf8', marginBottom: '4px', fontWeight: 700 }}>
                     Komisi Pemilik (Maks. Rp 500):
                   </label>
                   <input
@@ -3661,37 +3977,37 @@ const OwnerDashboard = ({ user }) => {
                     value={newMerchantForm.commissionOwner}
                     onChange={e => setNewMerchantForm(prev => ({ ...prev, commissionOwner: Math.min(500, Number(e.target.value)) }))}
                     className="input-field"
-                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem', borderColor: isLight ? '#93c5fd' : 'rgba(56, 189, 248, 0.4)' }}
                   />
-                  <span style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                  <span style={{ fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '3px' }}>
                     💡 Cukup Rp 100 - Rp 500 perak
                   </span>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Biaya Admin KostKu:
                   </label>
                   <div style={{
                     padding: '8px 10px',
                     borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid var(--border-color)',
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)',
                     fontSize: '0.82rem',
-                    color: '#94a3b8',
+                    color: isLight ? '#334155' : '#94a3b8',
                     fontWeight: 700
                   }}>
                     Rp 200 / order
                   </div>
-                  <span style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                  <span style={{ fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '3px' }}>
                     ⚡ Biaya platform non-COD
                   </span>
                 </div>
               </div>
 
               {/* Produk Pertama */}
-              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f8fafc', display: 'block', marginBottom: '6px' }}>
+              <div style={{ background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)', padding: '10px', borderRadius: '10px', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc', display: 'block', marginBottom: '6px' }}>
                   Katalog Produk Pertama Toko:
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px', marginBottom: '6px' }}>
@@ -3728,12 +4044,12 @@ const OwnerDashboard = ({ user }) => {
 
               {/* Notice Non-COD Priority */}
               <div style={{
-                background: 'rgba(34, 197, 94, 0.08)',
-                border: '1px solid rgba(34, 197, 94, 0.25)',
+                background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.08)',
+                border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.25)',
                 borderRadius: '8px',
                 padding: '8px 10px',
                 fontSize: '0.72rem',
-                color: '#4ade80'
+                color: isLight ? '#15803d' : '#4ade80'
               }}>
                 💳 <strong>Sistem Non-Tunai Otomatis:</strong> Pesanan anak kost akan otomatis diproses via QRIS Instan atau digabung ke tagihan bulanan kamar. Komisi Anda langsung bertambah di sistem.
               </div>
@@ -3800,6 +4116,14 @@ const OwnerDashboard = ({ user }) => {
         onClose={() => setShowGuestModal(false)}
         user={user}
         kostUid={targetKostUid}
+      />
+
+      {/* Add / Create Property Modal */}
+      <AddPropertyModal
+        isOpen={showAddKostModal}
+        onClose={() => setShowAddKostModal(false)}
+        user={user}
+        onKostAdded={handleKostCreated}
       />
 
     </div>

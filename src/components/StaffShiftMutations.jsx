@@ -30,8 +30,10 @@ import {
   apiPickupPackage,
   apiGetOwnerStaff
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 export default function StaffShiftMutations({ staff, user }) {
+  const { isLight } = useTheme();
   const [mutations, setMutations] = useState([]);
   const [packages, setPackages] = useState([]);
   const [colleagueStaff, setColleagueStaff] = useState([]);
@@ -485,7 +487,7 @@ export default function StaffShiftMutations({ staff, user }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           zIndex: 999999,
           display: 'flex',
@@ -494,27 +496,27 @@ export default function StaffShiftMutations({ staff, user }) {
           padding: '1rem'
         }}>
           <div style={{
-            background: '#090e1a',
-            border: '1px solid rgba(59, 130, 246, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid rgba(59, 130, 246, 0.4)',
             borderRadius: '18px',
             padding: '1.5rem',
             maxWidth: '500px',
             width: '100%',
             maxHeight: '92vh',
             overflowY: 'auto',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.95)'
+            boxShadow: isLight ? '0 25px 60px rgba(0,0,0,0.15)' : '0 25px 60px rgba(0,0,0,0.95)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>Laporan Buku Mutasi Shift</h3>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white' }}>Laporan Buku Mutasi Shift</h3>
+                <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                   Penjaga: {staff.name}
                 </span>
               </div>
               <button 
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
@@ -522,7 +524,7 @@ export default function StaffShiftMutations({ staff, user }) {
 
             <form onSubmit={handleCreateMutation} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Pilih Waktu Shift:
                 </label>
                 <select
@@ -540,7 +542,7 @@ export default function StaffShiftMutations({ staff, user }) {
 
               {/* Checklist Gedung */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Pemeriksaan Fasilitas Gedung:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -556,12 +558,13 @@ export default function StaffShiftMutations({ staff, user }) {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        background: 'rgba(255,255,255,0.03)',
+                        background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                        border: isLight ? '1px solid #e2e8f0' : 'none',
                         padding: '8px 10px',
                         borderRadius: '8px',
                         cursor: 'pointer',
                         fontSize: '0.76rem',
-                        color: checklist[chk.key] ? '#f8fafc' : '#94a3b8'
+                        color: checklist[chk.key] ? (isLight ? '#0f172a' : '#f8fafc') : (isLight ? '#64748b' : '#94a3b8')
                       }}
                     >
                       <input
@@ -576,7 +579,7 @@ export default function StaffShiftMutations({ staff, user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Catatan Operasional Shift:
                 </label>
                 <textarea
@@ -591,7 +594,7 @@ export default function StaffShiftMutations({ staff, user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#fbbf24', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#b45309' : '#fbbf24', marginBottom: '6px' }}>
                   Catatan Tamu Luar Menginap (Jika Ada):
                 </label>
                 <textarea
@@ -605,7 +608,7 @@ export default function StaffShiftMutations({ staff, user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#f87171', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#b91c1c' : '#f87171', marginBottom: '6px' }}>
                   Kendala Fasilitas / Insiden Darurat (Jika Ada):
                 </label>
                 <textarea
@@ -648,7 +651,7 @@ export default function StaffShiftMutations({ staff, user }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           zIndex: 999999,
           display: 'flex',
@@ -657,25 +660,25 @@ export default function StaffShiftMutations({ staff, user }) {
           padding: '1rem'
         }}>
           <div style={{
-            background: '#090e1a',
-            border: '1px solid rgba(16, 185, 129, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(16, 185, 129, 0.4)',
             borderRadius: '18px',
             padding: '1.5rem',
             maxWidth: '460px',
             width: '100%',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.95)'
+            boxShadow: isLight ? '0 25px 60px rgba(0,0,0,0.15)' : '0 25px 60px rgba(0,0,0,0.95)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'white' }}>Serah-Terima Shift Kerja</h3>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: isLight ? '#0f172a' : 'white' }}>Serah-Terima Shift Kerja</h3>
+                <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                   Dari: {handoverModalMutation.staffName} (Shift {handoverModalMutation.shift})
                 </span>
               </div>
               <button 
                 type="button"
                 onClick={() => setHandoverModalMutation(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
@@ -683,7 +686,7 @@ export default function StaffShiftMutations({ staff, user }) {
 
             <form onSubmit={handleHandoverSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Serahkan Tugas ke Staf:
                 </label>
                 {colleagueStaff.length > 0 ? (
@@ -714,7 +717,7 @@ export default function StaffShiftMutations({ staff, user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Pesan Titipan Serah-Terima:
                 </label>
                 <textarea

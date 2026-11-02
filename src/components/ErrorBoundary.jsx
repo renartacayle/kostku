@@ -27,35 +27,42 @@ export class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const isLight = typeof window !== 'undefined' && (
+        localStorage.getItem('kostku_theme') === 'light' || 
+        document.documentElement.getAttribute('data-theme') === 'light'
+      );
+
       return (
         <div style={{
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #090e1a 0%, #0d1527 100%)',
-          color: '#f8fafc',
+          background: isLight ? '#f1f5f9' : 'linear-gradient(135deg, #090e1a 0%, #0d1527 100%)',
+          color: isLight ? '#0f172a' : '#f8fafc',
           padding: '1.5rem',
           fontFamily: "'Inter', sans-serif"
         }}>
           <div style={{
             maxWidth: '520px',
             width: '100%',
-            background: 'rgba(15, 23, 42, 0.85)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
+            border: isLight ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: '20px',
             padding: '2rem',
             textAlign: 'center',
-            boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.15)',
+            boxShadow: isLight 
+              ? '0 20px 40px -10px rgba(15, 23, 42, 0.1), 0 0 25px rgba(239, 68, 68, 0.08)' 
+              : '0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.15)',
             backdropFilter: 'blur(12px)'
           }}>
             <div style={{
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '2px solid rgba(239, 68, 68, 0.4)',
-              color: '#f87171',
+              background: isLight ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
+              border: isLight ? '2px solid rgba(239, 68, 68, 0.3)' : '2px solid rgba(239, 68, 68, 0.4)',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -64,21 +71,21 @@ export class ErrorBoundary extends React.Component {
               <AlertTriangle size={32} />
             </div>
 
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 8px 0', color: '#f87171' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 8px 0', color: '#ef4444' }}>
               Terjadi Kendala Memuat Tampilan
             </h2>
-            <p style={{ fontSize: '0.88rem', color: '#94a3b8', lineHeight: 1.6, margin: '0 0 1.5rem 0' }}>
+            <p style={{ fontSize: '0.88rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.6, margin: '0 0 1.5rem 0' }}>
               Aplikasi mendeteksi adanya kendala saat merender komponen. Tenang, data akun dan properti Anda tetap aman.
             </p>
 
             {this.state.error && (
               <div style={{
-                background: 'rgba(0, 0, 0, 0.3)',
+                background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.3)',
                 padding: '10px 14px',
                 borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                 fontSize: '0.75rem',
-                color: '#cbd5e1',
+                color: isLight ? '#b91c1c' : '#cbd5e1',
                 textAlign: 'left',
                 overflowX: 'auto',
                 fontFamily: 'monospace',
@@ -121,9 +128,9 @@ export class ErrorBoundary extends React.Component {
                   gap: '8px',
                   padding: '12px 18px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: '#e2e8f0',
+                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  color: isLight ? '#1e293b' : '#e2e8f0',
                   fontWeight: 700,
                   fontSize: '0.88rem',
                   cursor: 'pointer'

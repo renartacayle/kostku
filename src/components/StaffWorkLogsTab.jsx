@@ -23,6 +23,7 @@ import {
   apiDeleteWorkLog, 
   apiGetOwnerStaff 
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const WORK_CATEGORIES = [
   { id: 'Kebersihan', label: '🧹 Kebersihan & Sapu/Pel', color: '#10b981' },
@@ -34,6 +35,7 @@ const WORK_CATEGORIES = [
 ];
 
 export default function StaffWorkLogsTab({ user, currentKostUid }) {
+  const { isLight } = useTheme();
   const [logsList, setLogsList] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -341,7 +343,7 @@ export default function StaffWorkLogsTab({ user, currentKostUid }) {
                     position: 'relative',
                     height: '210px',
                     width: '100%',
-                    background: '#090d16',
+                    background: isLight ? '#f1f5f9' : '#090d16',
                     cursor: 'pointer',
                     overflow: 'hidden'
                   }}
@@ -476,7 +478,7 @@ export default function StaffWorkLogsTab({ user, currentKostUid }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.8)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0,0,0,0.8)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           overflowY: 'auto',

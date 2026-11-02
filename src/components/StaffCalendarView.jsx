@@ -38,6 +38,7 @@ import {
   apiGetStaffTasks,
   apiResolveComplaintWithProof
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const DAYS_HEADER = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const MONTH_NAMES = [
@@ -55,6 +56,7 @@ const WORK_CATEGORIES = [
 ];
 
 export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
+  const { isLight } = useTheme();
   const [activeSubTab, setActiveSubTab] = useState('calendar'); // 'calendar' | 'handover' | 'payroll' | 'ratings'
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [attendanceData, setAttendanceData] = useState([]);
@@ -937,7 +939,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0,0,0,0.85)',
           backdropFilter: 'blur(10px)',
           display: 'flex',
           overflowY: 'auto',
@@ -1151,7 +1153,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                         }}>
                           <div 
                             onClick={() => setFullscreenPhoto(task.photo)}
-                            style={{ height: '140px', background: '#090d16', cursor: 'pointer', position: 'relative' }}
+                            style={{ height: '140px', background: isLight ? '#f1f5f9' : '#090d16', cursor: 'pointer', position: 'relative' }}
                             title="Klik untuk memperbesar foto tugas"
                           >
                             <img 
@@ -1355,7 +1357,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.8)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0,0,0,0.8)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           overflowY: 'auto',
@@ -1448,7 +1450,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.8)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0,0,0,0.8)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           overflowY: 'auto',
@@ -1617,7 +1619,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0,0,0,0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           overflowY: 'auto',

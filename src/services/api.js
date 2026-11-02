@@ -67,11 +67,52 @@ export const testApiConnection = async (targetUrl = null) => {
   }
 };
 
-// Generic fetch wrapper with timeout & error handling
+// ── Performance Optimization: In-flight Deduplication & Short-lived Read Cache ──
+// Item #3: Prevent duplicate API calls
+// Item #12: Set timeouts for external / internal API calls
+const inFlightGetRequests = new Map();
+const apiReadCache = new Map();
+const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
+
+// Helper to clear read cache on mutations
+export const invalidateApiCache = (prefix = '') => {
+  if (!prefix) {
+    apiReadCache.clear();
+  } else {
+    for (const key of apiReadCache.keys()) {
+      if (key.includes(prefix)) {
+        apiReadCache.delete(key);
+      }
+    }
+  }
+};
+
+// Generic fetch wrapper with timeout, deduplication & error handling
 async function request(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
   const base = getApiBaseUrl();
   const url = `${base}${endpoint}`;
-  
+  const isGet = method === 'GET';
+
+  // Invalidate read cache on write operations
+  if (!isGet) {
+    invalidateApiCache();
+  }
+
+  // Check TTL cache for GET requests if caching enabled
+  const cacheTtlMs = options.cacheTtlMs || (endpoint.startsWith('/public/kosts') ? 15000 : 0);
+  if (isGet && cacheTtlMs > 0) {
+    const cached = apiReadCache.get(url);
+    if (cached && (Date.now() - cached.timestamp < cacheTtlMs)) {
+      return cached.data;
+    }
+  }
+
+  // Item #3: Prevent duplicate API calls - Deduplicate concurrent identical in-flight GET requests
+  if (isGet && inFlightGetRequests.has(url)) {
+    return inFlightGetRequests.get(url);
+  }
+
   let isDemoSession = false;
   try {
     if (typeof window !== 'undefined') {
@@ -95,20 +136,51 @@ async function request(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
-  try {
-    const response = await fetch(url, { ...options, headers });
-    
-    // Handle non-JSON or error status
-    const data = await response.json().catch(() => ({}));
-    
-    if (!response.ok) {
-      throw new Error(data.error || data.message || `HTTP Error ${response.status}`);
+  // Item #12: Request Timeout Controller
+  const timeoutMs = options.timeoutMs || DEFAULT_REQUEST_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort(new Error(`Request timeout (${timeoutMs}ms) exceeded`));
+  }, timeoutMs);
+
+  const fetchPromise = (async () => {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        signal: options.signal || controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      // Handle non-JSON or error status
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `HTTP Error ${response.status}`);
+      }
+
+      // Store in memory cache if eligible
+      if (isGet && cacheTtlMs > 0) {
+        apiReadCache.set(url, { timestamp: Date.now(), data });
+      }
+
+      return data;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error(`[API Error ${endpoint}]:`, err);
+      throw err;
+    } finally {
+      if (isGet) {
+        inFlightGetRequests.delete(url);
+      }
     }
-    return data;
-  } catch (err) {
-    console.error(`[API Error ${endpoint}]:`, err);
-    throw err;
+  })();
+
+  if (isGet) {
+    inFlightGetRequests.set(url, fetchPromise);
   }
+
+  return fetchPromise;
 }
 
 // ── Auth Endpoints ──────────────────────────────────────────

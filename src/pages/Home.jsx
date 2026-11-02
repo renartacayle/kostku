@@ -56,8 +56,10 @@ import {
   isValidBuildingPhoto, 
   hasValidBuildingPhoto, 
   getValidBuildingImages, 
-  DEFAULT_BUILDING_PHOTO 
+  DEFAULT_BUILDING_PHOTO,
+  optimizeImageUrl
 } from '../utils/imageUtils';
+import KostCardSkeleton from '../components/KostCardSkeleton';
 
 export const CITY_BADGES = [
   { id: 'all', name: 'Semua Kota', icon: '🌐' },
@@ -1669,6 +1671,10 @@ export default function Home({ user }) {
               selectedCity={searchLocation || (filtered[0]?.city || 'Semarang')} 
               userLocation={userLocation}
             />
+          </div>
+        ) : loading ? (
+          <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.25rem' }}>
+            <KostCardSkeleton count={8} viewMode="grid" />
           </div>
         ) : filtered.length === 0 ? (
           <div style={{

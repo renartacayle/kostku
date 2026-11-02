@@ -27,6 +27,7 @@ import {
   apiGenerateStaffPayroll, 
   apiGetStaffPayrolls 
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const MONTH_OPTIONS = [
   { val: '2026-10', label: 'Oktober 2026' },
@@ -36,6 +37,7 @@ const MONTH_OPTIONS = [
 ];
 
 export default function StaffPayrollAndKasbon({ staff, user }) {
+  const { isLight } = useTheme();
   const [selectedMonth, setSelectedMonth] = useState('2026-10');
   const [payrollCalculation, setPayrollCalculation] = useState(null);
   const [kasbonList, setKasbonList] = useState([]);
@@ -559,7 +561,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           zIndex: 999999,
           display: 'flex',
@@ -568,17 +570,17 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
           padding: '1rem'
         }}>
           <div style={{
-            background: '#090e1a',
-            border: '1px solid rgba(245, 158, 11, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
             borderRadius: '18px',
             padding: '1.5rem',
             maxWidth: '440px',
             width: '100%',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.95)'
+            boxShadow: isLight ? '0 25px 60px rgba(0,0,0,0.15)' : '0 25px 60px rgba(0,0,0,0.95)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'white' }}>Pencatatan Kasbon Staf</h3>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: isLight ? '#0f172a' : 'white' }}>Pencatatan Kasbon Staf</h3>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                   Karyawan: {staff.name}
                 </span>
@@ -586,7 +588,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
               <button 
                 type="button"
                 onClick={() => setShowKasbonModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
@@ -594,7 +596,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
 
             <form onSubmit={handleCreateKasbon} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Nominal Kasbon (Rp):
                 </label>
                 <input
@@ -609,7 +611,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Bulan Pemotongan Gaji:
                 </label>
                 <select
@@ -625,7 +627,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#475569' : '#e2e8f0', marginBottom: '6px' }}>
                   Alasan / Keterangan Kasbon:
                 </label>
                 <textarea
@@ -669,7 +671,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.88)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
           backdropFilter: 'blur(10px)',
           zIndex: 999999,
           display: 'flex',
@@ -678,31 +680,31 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
           padding: '1rem'
         }}>
           <div style={{
-            background: '#090e1a',
-            border: '1px solid rgba(16, 185, 129, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(16, 185, 129, 0.4)',
             borderRadius: '20px',
             padding: '1.75rem',
             maxWidth: '520px',
             width: '100%',
             maxHeight: '92vh',
             overflowY: 'auto',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.95)'
+            boxShadow: isLight ? '0 25px 60px rgba(0,0,0,0.15)' : '0 25px 60px rgba(0,0,0,0.95)'
           }}>
             {/* Kop Slip Gaji */}
-            <div style={{ borderBottom: '2px solid rgba(16, 185, 129, 0.3)', paddingBottom: '14px', marginBottom: '16px' }}>
+            <div style={{ borderBottom: isLight ? '2px solid #a7f3d0' : '2px solid rgba(16, 185, 129, 0.3)', paddingBottom: '14px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#34d399', letterSpacing: '-0.5px' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#059669', letterSpacing: '-0.5px' }}>
                     KOSTKU PAYROLL
                   </h2>
-                  <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                     Sistem Slip Gaji Resmi Staf Hunian
                   </span>
                 </div>
                 <button 
                   type="button"
                   onClick={() => setViewingSlip(null)}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
                 >
                   <X size={20} />
                 </button>
@@ -713,57 +715,59 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem', marginBottom: '14px' }}>
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Nomor Slip:</span>
-                <strong style={{ color: '#38bdf8' }}>{viewingSlip.slipNumber}</strong>
+                <strong style={{ color: '#0284c7' }}>{viewingSlip.slipNumber}</strong>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Periode:</span>
-                <strong style={{ color: '#ffffff' }}>{viewingSlip.month}</strong>
+                <strong style={{ color: isLight ? '#0f172a' : '#ffffff' }}>{viewingSlip.month}</strong>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Nama Karyawan:</span>
-                <strong style={{ color: '#ffffff' }}>{viewingSlip.staffName}</strong>
+                <strong style={{ color: isLight ? '#0f172a' : '#ffffff' }}>{viewingSlip.staffName}</strong>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Jabatan:</span>
-                <span style={{ color: '#e2e8f0' }}>{viewingSlip.jobTitle || 'Penjaga Kost'}</span>
+                <span style={{ color: isLight ? '#334155' : '#e2e8f0' }}>{viewingSlip.jobTitle || 'Penjaga Kost'}</span>
               </div>
             </div>
 
             {/* Earnings Breakdown */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
-              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#34d399', marginBottom: '6px' }}>
+            <div style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#059669', marginBottom: '6px' }}>
                 [+] PENERIMAAN
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
-                <span style={{ color: '#e2e8f0' }}>Gaji Pokok:</span>
-                <strong style={{ color: 'white' }}>Rp {Number(viewingSlip.baseSalary).toLocaleString('id-ID')}</strong>
+                <span style={{ color: isLight ? '#334155' : '#e2e8f0' }}>Gaji Pokok:</span>
+                <strong style={{ color: isLight ? '#0f172a' : 'white' }}>Rp {Number(viewingSlip.baseSalary).toLocaleString('id-ID')}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
-                <span style={{ color: '#e2e8f0' }}>Bonus & Insentif:</span>
-                <strong style={{ color: '#38bdf8' }}>Rp {Number(viewingSlip.totalBonus).toLocaleString('id-ID')}</strong>
+                <span style={{ color: isLight ? '#334155' : '#e2e8f0' }}>Bonus & Insentif:</span>
+                <strong style={{ color: '#0284c7' }}>Rp {Number(viewingSlip.totalBonus).toLocaleString('id-ID')}</strong>
               </div>
               {viewingSlip.bonusDetails && (
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic', marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8', fontStyle: 'italic', marginBottom: '4px' }}>
                   ↳ {viewingSlip.bonusDetails}
                 </div>
               )}
             </div>
 
             {/* Deductions Breakdown */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f87171', marginBottom: '6px' }}>
+            <div style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)', borderRadius: '10px', padding: '12px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#dc2626', marginBottom: '6px' }}>
                 [-] POTONGAN
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                <span style={{ color: '#e2e8f0' }}>Potongan Cicilan Kasbon:</span>
-                <strong style={{ color: '#f87171' }}>Rp {Number(viewingSlip.kasbonDeduction).toLocaleString('id-ID')}</strong>
+                <span style={{ color: isLight ? '#334155' : '#e2e8f0' }}>Potongan Cicilan Kasbon:</span>
+                <strong style={{ color: '#dc2626' }}>Rp {Number(viewingSlip.kasbonDeduction).toLocaleString('id-ID')}</strong>
               </div>
             </div>
 
             {/* Total Take Home Pay */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.3) 100%)',
-              border: '1.5px solid rgba(16, 185, 129, 0.5)',
+              background: isLight 
+                ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)' 
+                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.3) 100%)',
+              border: isLight ? '1.5px solid #6ee7b7' : '1.5px solid rgba(16, 185, 129, 0.5)',
               borderRadius: '12px',
               padding: '14px',
               display: 'flex',
@@ -772,14 +776,14 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
               marginBottom: '16px'
             }}>
               <div>
-                <span style={{ fontSize: '0.76rem', color: '#a7f3d0', fontWeight: 700, display: 'block' }}>
+                <span style={{ fontSize: '0.76rem', color: isLight ? '#065f46' : '#a7f3d0', fontWeight: 700, display: 'block' }}>
                   GAJI BERSIH (TAKE HOME PAY)
                 </span>
-                <span style={{ fontSize: '0.72rem', color: '#e2e8f0' }}>
+                <span style={{ fontSize: '0.72rem', color: isLight ? '#047857' : '#e2e8f0' }}>
                   Status: Lunas & Ditransfer
                 </span>
               </div>
-              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#34d399' }}>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: isLight ? '#047857' : '#34d399' }}>
                 Rp {Number(viewingSlip.netSalary).toLocaleString('id-ID')}
               </div>
             </div>

@@ -30,6 +30,7 @@ import {
   apiPayPdamDirect 
 } from '../services/api';
 import { generateQrisDataUrl } from '../utils/qrisEngine';
+import { useTheme } from '../context/ThemeContext';
 
 const PAYMENT_METHODS = [
   { id: 'QRIS', name: 'QRIS Dinamis', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA', fee: 0, badge: 'Bebas Admin' },
@@ -45,6 +46,9 @@ const PdamPaymentModal = ({
   user, 
   roomNumber = '101' 
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const [activeTab, setActiveTab] = useState('pay'); // 'pay' | 'history'
   const [step, setStep] = useState('form'); // 'form' | 'payment' | 'success'
 
@@ -119,8 +123,6 @@ const PdamPaymentModal = ({
       };
     }
   }, [step, activeOrder]);
-
-  if (!isOpen) return null;
 
   const loadOperators = async () => {
     try {
@@ -358,12 +360,14 @@ const PdamPaymentModal = ({
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  if (!isOpen) return null;
+
   return createPortal(
     <div 
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(5, 10, 20, 0.88)',
+        background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
         display: 'flex',
@@ -380,8 +384,8 @@ const PdamPaymentModal = ({
     >
       <div 
         style={{
-          background: '#0a1324',
-          border: '1px solid rgba(56, 189, 248, 0.35)',
+          background: isLight ? '#ffffff' : '#0a1324',
+          border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.35)',
           borderRadius: '24px',
           width: '100%',
           maxWidth: '540px',
@@ -389,7 +393,9 @@ const PdamPaymentModal = ({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 45px rgba(56, 189, 248, 0.2)',
+          boxShadow: isLight 
+            ? '0 25px 60px -15px rgba(15, 23, 42, 0.15), 0 0 35px rgba(2, 132, 199, 0.1)' 
+            : '0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 45px rgba(56, 189, 248, 0.2)',
           margin: 'auto',
           position: 'relative'
         }}
@@ -397,11 +403,13 @@ const PdamPaymentModal = ({
         {/* Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: 'linear-gradient(90deg, rgba(14, 116, 144, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)'
+          background: isLight 
+            ? 'linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%)' 
+            : 'linear-gradient(90deg, rgba(14, 116, 144, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -419,22 +427,22 @@ const PdamPaymentModal = ({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                   Tagihan Air PDAM
                 </h3>
                 <span style={{
                   fontSize: '0.65rem',
                   fontWeight: 800,
-                  color: '#38bdf8',
-                  background: 'rgba(56, 189, 248, 0.15)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  color: isLight ? '#0284c7' : '#38bdf8',
+                  background: isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(56, 189, 248, 0.15)',
+                  border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.3)',
                   padding: '2px 6px',
                   borderRadius: '6px'
                 }}>
                   TriPay T53543
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Cek & Bayar Tagihan Air Kamar {user?.kamar || roomNumber} (Resmi Biller PDAM)
               </p>
             </div>
@@ -443,10 +451,10 @@ const PdamPaymentModal = ({
           <button 
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
+              background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)',
               border: 'none',
               borderRadius: '10px',
-              color: '#94a3b8',
+              color: isLight ? '#475569' : '#94a3b8',
               cursor: 'pointer',
               padding: '8px',
               display: 'flex',
@@ -461,8 +469,8 @@ const PdamPaymentModal = ({
         {/* Tab Switcher */}
         <div style={{
           display: 'flex',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(15, 23, 42, 0.5)'
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
+          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.5)'
         }}>
           <button
             type="button"
@@ -471,9 +479,13 @@ const PdamPaymentModal = ({
               flex: 1,
               padding: '11px',
               border: 'none',
-              borderBottom: activeTab === 'pay' ? '2.5px solid #38bdf8' : '2.5px solid transparent',
+              borderBottom: activeTab === 'pay' 
+                ? (isLight ? '2.5px solid #0284c7' : '2.5px solid #38bdf8') 
+                : '2.5px solid transparent',
               background: 'none',
-              color: activeTab === 'pay' ? '#38bdf8' : '#94a3b8',
+              color: activeTab === 'pay' 
+                ? (isLight ? '#0284c7' : '#38bdf8') 
+                : (isLight ? '#64748b' : '#94a3b8'),
               fontWeight: activeTab === 'pay' ? 800 : 600,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -493,9 +505,13 @@ const PdamPaymentModal = ({
               flex: 1,
               padding: '11px',
               border: 'none',
-              borderBottom: activeTab === 'history' ? '2.5px solid #38bdf8' : '2.5px solid transparent',
+              borderBottom: activeTab === 'history' 
+                ? (isLight ? '2.5px solid #0284c7' : '2.5px solid #38bdf8') 
+                : '2.5px solid transparent',
               background: 'none',
-              color: activeTab === 'history' ? '#38bdf8' : '#94a3b8',
+              color: activeTab === 'history' 
+                ? (isLight ? '#0284c7' : '#38bdf8') 
+                : (isLight ? '#64748b' : '#94a3b8'),
               fontWeight: activeTab === 'history' ? 800 : 600,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -515,7 +531,7 @@ const PdamPaymentModal = ({
             /* TAB 2: RIWAYAT PDAM */
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: 700 }}>
                   Riwayat Pembayaran Air Kamar {user?.kamar || roomNumber}:
                 </span>
                 <button
@@ -523,9 +539,9 @@ const PdamPaymentModal = ({
                   onClick={loadHistory}
                   disabled={historyLoading}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#cbd5e1',
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: isLight ? '#334155' : '#cbd5e1',
                     borderRadius: '8px',
                     padding: '4px 10px',
                     fontSize: '0.72rem',
@@ -540,15 +556,15 @@ const PdamPaymentModal = ({
               </div>
 
               {historyLoading ? (
-                <div style={{ textAlign: 'center', padding: '3rem 0', color: '#94a3b8' }}>
+                <div style={{ textAlign: 'center', padding: '3rem 0', color: isLight ? '#64748b' : '#94a3b8' }}>
                   <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
                   <p style={{ margin: 0, fontSize: '0.82rem' }}>Memuat riwayat transaksi PDAM...</p>
                 </div>
               ) : historyList.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '16px', border: '1px dashed rgba(255, 255, 255, 0.1)' }}>
-                  <Droplets size={32} color="#64748b" style={{ margin: '0 auto 10px' }} />
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 700 }}>Belum Ada Riwayat PDAM</p>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>Bukti lunas tagihan PDAM yang dibayar via TriPay akan otomatis tersimpan di sini.</p>
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.4)', borderRadius: '16px', border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.1)' }}>
+                  <Droplets size={32} color={isLight ? '#94a3b8' : '#64748b'} style={{ margin: '0 auto 10px' }} />
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: isLight ? '#1e293b' : '#cbd5e1', fontWeight: 700 }}>Belum Ada Riwayat PDAM</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>Bukti lunas tagihan PDAM yang dibayar via TriPay akan otomatis tersimpan di sini.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -556,18 +572,18 @@ const PdamPaymentModal = ({
                     <div
                       key={item.id}
                       style={{
-                        background: 'rgba(15, 23, 42, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
+                        border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                         borderRadius: '14px',
                         padding: '1rem'
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <div>
-                          <strong style={{ fontSize: '0.88rem', color: '#38bdf8', display: 'block' }}>
+                          <strong style={{ fontSize: '0.88rem', color: isLight ? '#0284c7' : '#38bdf8', display: 'block' }}>
                             {formatRupiah(item.amount)} ({item.billingPeriod || 'Periode Berjalan'})
                           </strong>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                             {item.operatorName} • {new Date(item.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                           </span>
                         </div>
@@ -577,24 +593,24 @@ const PdamPaymentModal = ({
                           padding: '3px 8px',
                           borderRadius: '6px',
                           background: item.status === 'settlement' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                          color: item.status === 'settlement' ? '#4ade80' : '#fbbf24'
+                          color: item.status === 'settlement' ? '#16a34a' : (isLight ? '#b45309' : '#fbbf24')
                         }}>
                           {item.status === 'settlement' ? '✓ Lunas' : 'Menunggu Bayar'}
                         </span>
                       </div>
 
                       <div style={{
-                        background: '#070f1e',
-                        border: '1px solid rgba(56, 189, 248, 0.2)',
+                        background: isLight ? '#ffffff' : '#070f1e',
+                        border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.2)',
                         borderRadius: '8px',
                         padding: '8px 10px',
                         fontSize: '0.72rem',
-                        color: '#cbd5e1',
+                        color: isLight ? '#475569' : '#cbd5e1',
                         display: 'flex',
                         justifyContent: 'space-between'
                       }}>
-                        <span>No. Resi: <strong style={{ color: 'white', fontFamily: 'monospace' }}>{item.receiptNumber || item.pdamReceipt || '-'}</strong></span>
-                        <span>Ref Biller: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{item.billerRef || '-'}</strong></span>
+                        <span>No. Resi: <strong style={{ color: isLight ? '#0f172a' : 'white', fontFamily: 'monospace' }}>{item.receiptNumber || item.pdamReceipt || '-'}</strong></span>
+                        <span>Ref Biller: <strong style={{ color: isLight ? '#0284c7' : '#38bdf8', fontFamily: 'monospace' }}>{item.billerRef || '-'}</strong></span>
                       </div>
                     </div>
                   ))}
@@ -606,7 +622,7 @@ const PdamPaymentModal = ({
             <div>
               {/* Pilihan Wilayah PDAM (HANYA YANG SUPPORT) */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                   Pilih Wilayah / Biller PDAM Resmi (Tersedia 30+ Kota):
                 </label>
                 
@@ -617,11 +633,11 @@ const PdamPaymentModal = ({
                     style={{
                       width: '100%',
                       textAlign: 'left',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
                       borderRadius: '12px',
                       padding: '10px 14px',
-                      color: 'white',
+                      color: isLight ? '#0f172a' : 'white',
                       fontSize: '0.85rem',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -630,12 +646,12 @@ const PdamPaymentModal = ({
                     }}
                   >
                     <div>
-                      <strong style={{ color: '#38bdf8' }}>{selectedOperator.name}</strong>
-                      <span style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8' }}>
+                      <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>{selectedOperator.name}</strong>
+                      <span style={{ display: 'block', fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                         Wilayah: {selectedOperator.region} {selectedOperator.city ? `• ${selectedOperator.city}` : ''}
                       </span>
                     </div>
-                    <ChevronDown size={18} color="#94a3b8" />
+                    <ChevronDown size={18} color={isLight ? '#64748b' : '#94a3b8'} />
                   </button>
 
                   {/* Dropdown Menu */}
@@ -645,18 +661,18 @@ const PdamPaymentModal = ({
                       top: '105%',
                       left: 0,
                       right: 0,
-                      background: '#0d192e',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: isLight ? '#ffffff' : '#0d192e',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
                       borderRadius: '12px',
                       zIndex: 10,
                       maxHeight: '220px',
                       overflowY: 'auto',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+                      boxShadow: isLight ? '0 10px 30px rgba(0,0,0,0.1)' : '0 10px 30px rgba(0,0,0,0.8)'
                     }}>
                       {/* Search box inside dropdown */}
-                      <div style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#0d192e' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(15, 23, 42, 0.9)', padding: '6px 10px', borderRadius: '8px' }}>
-                          <Search size={14} color="#94a3b8" />
+                      <div style={{ padding: '8px', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: isLight ? '#ffffff' : '#0d192e' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.9)', padding: '6px 10px', borderRadius: '8px' }}>
+                          <Search size={14} color={isLight ? '#64748b' : '#94a3b8'} />
                           <input
                             type="text"
                             value={searchQuery}
@@ -665,7 +681,7 @@ const PdamPaymentModal = ({
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: 'white',
+                              color: isLight ? '#0f172a' : 'white',
                               fontSize: '0.75rem',
                               outline: 'none',
                               width: '100%'
@@ -675,7 +691,7 @@ const PdamPaymentModal = ({
                       </div>
 
                       {filteredOperators.length === 0 ? (
-                        <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.75rem', color: '#f87171' }}>
+                        <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.75rem', color: '#ef4444' }}>
                           <AlertTriangle size={16} style={{ margin: '0 auto 4px', display: 'block' }} />
                           Wilayah PDAM "{searchQuery}" belum didukung oleh koneksi online resmi.
                         </div>
@@ -691,15 +707,15 @@ const PdamPaymentModal = ({
                             }}
                             style={{
                               padding: '10px 14px',
-                              borderBottom: '1px solid rgba(255,255,255,0.05)',
+                              borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.05)',
                               cursor: 'pointer',
-                              background: selectedOperatorId === op.id ? 'rgba(56, 189, 248, 0.15)' : 'none',
-                              color: selectedOperatorId === op.id ? '#38bdf8' : '#e2e8f0',
+                              background: selectedOperatorId === op.id ? (isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)') : 'none',
+                              color: selectedOperatorId === op.id ? (isLight ? '#0284c7' : '#38bdf8') : (isLight ? '#1e293b' : '#e2e8f0'),
                               fontSize: '0.8rem'
                             }}
                           >
                             <strong>{op.name}</strong>
-                            <span style={{ display: 'block', fontSize: '0.68rem', color: '#94a3b8' }}>
+                            <span style={{ display: 'block', fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                               {op.region} {op.city ? `• ${op.city}` : ''}
                             </span>
                           </div>
@@ -712,7 +728,7 @@ const PdamPaymentModal = ({
 
               {/* Input Nomor Sambungan PDAM */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                   Nomor Sambungan / ID Pelanggan PDAM:
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -727,11 +743,11 @@ const PdamPaymentModal = ({
                     placeholder="Contoh: 01029384 atau PDAM-SMG-701"
                     style={{
                       flex: 1,
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                       borderRadius: '12px',
                       padding: '10px 14px',
-                      color: 'white',
+                      color: isLight ? '#0f172a' : 'white',
                       fontFamily: 'monospace',
                       fontSize: '0.95rem',
                       letterSpacing: '1px'
@@ -742,11 +758,11 @@ const PdamPaymentModal = ({
                     onClick={handleInquiry}
                     disabled={inquiryLoading || !customerNumber}
                     style={{
-                      background: 'rgba(56, 189, 248, 0.18)',
-                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                      background: isLight ? 'rgba(2, 132, 199, 0.12)' : 'rgba(56, 189, 248, 0.18)',
+                      border: isLight ? '1px solid rgba(2, 132, 199, 0.4)' : '1px solid rgba(56, 189, 248, 0.4)',
                       borderRadius: '12px',
                       padding: '0 16px',
-                      color: '#38bdf8',
+                      color: isLight ? '#0284c7' : '#38bdf8',
                       fontWeight: 700,
                       fontSize: '0.8rem',
                       cursor: 'pointer',
@@ -758,7 +774,7 @@ const PdamPaymentModal = ({
                 </div>
 
                 <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                     💡 Otomatis untuk Kamar {user?.kamar || roomNumber}. Anda bebas mengubah nomor rekening air lainnya.
                   </span>
                   {customerNumber !== defaultPdamNo && (
@@ -772,7 +788,7 @@ const PdamPaymentModal = ({
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#38bdf8',
+                        color: isLight ? '#0284c7' : '#38bdf8',
                         fontSize: '0.7rem',
                         cursor: 'pointer',
                         padding: 0,
@@ -788,8 +804,8 @@ const PdamPaymentModal = ({
               {/* PERINGATAN JIKA TIDAK SUPPORT ATAU ERROR */}
               {unsupportedWarning && (
                 <div style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  background: isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                  border: isLight ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(239, 68, 68, 0.35)',
                   borderRadius: '14px',
                   padding: '12px 14px',
                   marginBottom: '1.25rem',
@@ -797,12 +813,12 @@ const PdamPaymentModal = ({
                   alignItems: 'flex-start',
                   gap: '10px'
                 }}>
-                  <AlertCircle size={20} color="#f87171" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <AlertCircle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
-                    <strong style={{ fontSize: '0.82rem', color: '#f87171', display: 'block', marginBottom: '2px' }}>
+                    <strong style={{ fontSize: '0.82rem', color: '#ef4444', display: 'block', marginBottom: '2px' }}>
                       Peringatan Biller PDAM
                     </strong>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#fca5a5', lineHeight: 1.45 }}>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#b91c1c' : '#fca5a5', lineHeight: 1.45 }}>
                       {unsupportedWarning}
                     </p>
                   </div>
@@ -812,22 +828,22 @@ const PdamPaymentModal = ({
               {/* HASIL INQUIRY TAGIHAN */}
               {inquiryResult && (
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.85)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  background: isLight ? '#f0f9ff' : 'rgba(15, 23, 42, 0.85)',
+                  border: isLight ? '1px solid rgba(2, 132, 199, 0.3)' : '1px solid rgba(56, 189, 248, 0.3)',
                   borderRadius: '16px',
                   padding: '1.25rem',
                   marginBottom: '1.25rem'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: isLight ? '1px solid rgba(2, 132, 199, 0.15)' : '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
                     <div>
-                      <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block' }}>NAMA PELANGGAN RESMI</span>
-                      <strong style={{ fontSize: '0.9rem', color: 'white' }}>{inquiryResult.subscriberName}</strong>
+                      <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>NAMA PELANGGAN RESMI</span>
+                      <strong style={{ fontSize: '0.9rem', color: isLight ? '#0f172a' : 'white' }}>{inquiryResult.subscriberName}</strong>
                     </div>
                     <span style={{
                       fontSize: '0.68rem',
                       fontWeight: 800,
-                      background: 'rgba(245, 158, 11, 0.15)',
-                      color: '#fbbf24',
+                      background: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.15)',
+                      color: isLight ? '#b45309' : '#fbbf24',
                       padding: '3px 8px',
                       borderRadius: '6px'
                     }}>
@@ -837,26 +853,26 @@ const PdamPaymentModal = ({
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', fontSize: '0.75rem', marginBottom: '10px' }}>
                     <div>
-                      <span style={{ color: '#94a3b8', display: 'block' }}>Periode Tagihan:</span>
-                      <strong style={{ color: '#cbd5e1' }}>{inquiryResult.billingPeriod}</strong>
+                      <span style={{ color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Periode Tagihan:</span>
+                      <strong style={{ color: isLight ? '#1e293b' : '#cbd5e1' }}>{inquiryResult.billingPeriod}</strong>
                     </div>
                     <div>
-                      <span style={{ color: '#94a3b8', display: 'block' }}>Pemakaian Kubikasi:</span>
-                      <strong style={{ color: '#38bdf8' }}>{inquiryResult.usageM3} m³ ({inquiryResult.meterStart} - {inquiryResult.meterEnd})</strong>
+                      <span style={{ color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Pemakaian Kubikasi:</span>
+                      <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>{inquiryResult.usageM3} m³ ({inquiryResult.meterStart} - {inquiryResult.meterEnd})</strong>
                     </div>
                     <div>
-                      <span style={{ color: '#94a3b8', display: 'block' }}>Biaya Pemakaian Air:</span>
-                      <strong style={{ color: '#cbd5e1' }}>{formatRupiah(inquiryResult.billAmount)}</strong>
+                      <span style={{ color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Biaya Pemakaian Air:</span>
+                      <strong style={{ color: isLight ? '#1e293b' : '#cbd5e1' }}>{formatRupiah(inquiryResult.billAmount)}</strong>
                     </div>
                     <div>
-                      <span style={{ color: '#94a3b8', display: 'block' }}>Biaya Admin Biller:</span>
-                      <strong style={{ color: '#cbd5e1' }}>{formatRupiah(inquiryResult.adminFee)}</strong>
+                      <span style={{ color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Biaya Admin Biller:</span>
+                      <strong style={{ color: isLight ? '#1e293b' : '#cbd5e1' }}>{formatRupiah(inquiryResult.adminFee)}</strong>
                     </div>
                   </div>
 
                   {/* Pilihan Metode Bayar */}
-                  <div style={{ marginTop: '12px', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '10px' }}>
-                    <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
+                  <div style={{ marginTop: '12px', borderTop: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255,255,255,0.1)', paddingTop: '10px' }}>
+                    <label style={{ fontSize: '0.75rem', color: isLight ? '#475569' : '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 700 }}>
                       Metode Pembayaran (TriPay Payment Gateway):
                     </label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -867,8 +883,12 @@ const PdamPaymentModal = ({
                           style={{
                             padding: '8px 12px',
                             borderRadius: '10px',
-                            border: paymentMethod === m.id ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                            background: paymentMethod === m.id ? 'rgba(56, 189, 248, 0.12)' : 'rgba(15, 23, 42, 0.5)',
+                            border: paymentMethod === m.id 
+                              ? (isLight ? '1.5px solid #0284c7' : '1.5px solid #38bdf8') 
+                              : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'),
+                            background: paymentMethod === m.id 
+                              ? (isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.12)') 
+                              : (isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.5)'),
                             cursor: 'pointer',
                             display: 'flex',
                             justifyContent: 'space-between',
@@ -876,10 +896,10 @@ const PdamPaymentModal = ({
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {m.id === 'QRIS' ? <QrCode size={16} color="#10b981" /> : <Building2 size={16} color="#38bdf8" />}
-                            <span style={{ fontSize: '0.78rem', color: 'white', fontWeight: 700 }}>{m.name}</span>
+                            {m.id === 'QRIS' ? <QrCode size={16} color="#10b981" /> : <Building2 size={16} color={isLight ? '#0284c7' : '#38bdf8'} />}
+                            <span style={{ fontSize: '0.78rem', color: isLight ? '#0f172a' : 'white', fontWeight: 700 }}>{m.name}</span>
                           </div>
-                          <span style={{ fontSize: '0.7rem', color: m.fee === 0 ? '#10b981' : '#94a3b8', fontWeight: m.fee === 0 ? 800 : 400 }}>
+                          <span style={{ fontSize: '0.7rem', color: m.fee === 0 ? '#10b981' : (isLight ? '#64748b' : '#94a3b8'), fontWeight: m.fee === 0 ? 800 : 400 }}>
                             {m.fee === 0 ? 'Bebas Admin' : `+Rp ${m.fee.toLocaleString('id-ID')}`}
                           </span>
                         </div>
@@ -890,14 +910,14 @@ const PdamPaymentModal = ({
                   {/* Total Tagihan */}
                   <div style={{
                     marginTop: '12px',
-                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                    borderTop: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)',
                     paddingTop: '8px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total Tagihan Lunas:</span>
-                    <strong style={{ fontSize: '1.15rem', color: '#38bdf8' }}>
+                    <span style={{ fontSize: '0.85rem', color: isLight ? '#475569' : '#94a3b8' }}>Total Tagihan Lunas:</span>
+                    <strong style={{ fontSize: '1.15rem', color: isLight ? '#0284c7' : '#38bdf8' }}>
                       {formatRupiah(inquiryResult.totalAmount + (paymentMethod === 'QRIS' ? 0 : 2000))}
                     </strong>
                   </div>
@@ -929,7 +949,7 @@ const PdamPaymentModal = ({
           ) : step === 'payment' ? (
             /* TAB 1 - STEP 2: MENUNGGU PEMBAYARAN */
             <div style={{ textAlign: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#38bdf8', fontSize: '0.8rem', fontWeight: 700, marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: isLight ? '#0284c7' : '#38bdf8', fontSize: '0.8rem', fontWeight: 700, marginBottom: '10px' }}>
                 <Clock size={16} /> Batas Waktu Pembayaran: {formatTimer(timeLeft)}
               </div>
 
@@ -940,7 +960,8 @@ const PdamPaymentModal = ({
                 padding: '1.25rem',
                 margin: '0 auto 1.25rem',
                 maxWidth: '340px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                border: isLight ? '1px solid #e2e8f0' : 'none',
+                boxShadow: isLight ? '0 10px 25px rgba(0,0,0,0.08)' : '0 10px 25px rgba(0,0,0,0.5)'
               }}>
                 {activeOrder?.paymentMethod === 'QRIS' ? (
                   <div>
@@ -1017,7 +1038,7 @@ const PdamPaymentModal = ({
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
-                      color: '#38bdf8',
+                      color: isLight ? '#0284c7' : '#38bdf8',
                       fontSize: '0.78rem',
                       textDecoration: 'none'
                     }}
@@ -1033,11 +1054,11 @@ const PdamPaymentModal = ({
                   type="button"
                   onClick={() => setStep('form')}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '12px',
                     padding: '10px 14px',
-                    color: '#cbd5e1',
+                    color: isLight ? '#334155' : '#cbd5e1',
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1074,7 +1095,7 @@ const PdamPaymentModal = ({
                 </button>
               </div>
 
-              <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8' }}>
+              <p style={{ margin: 0, fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 Begitu pembayaran lunas, server PDAM daerah akan langsung menandai tagihan Anda lunas dan menerbitkan resi sah.
               </p>
             </div>
@@ -1087,7 +1108,7 @@ const PdamPaymentModal = ({
                 borderRadius: '50%',
                 background: 'rgba(34, 197, 94, 0.18)',
                 border: '2px solid #22c55e',
-                color: '#4ade80',
+                color: '#16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1096,50 +1117,50 @@ const PdamPaymentModal = ({
                 <CheckCircle2 size={32} />
               </div>
 
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4ade80', display: 'block', letterSpacing: '1px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', display: 'block', letterSpacing: '1px' }}>
                 ✓ TAGIHAN AIR PDAM LUNAS TERVERIFIKASI
               </span>
-              <h3 style={{ margin: '4px 0 12px', fontSize: '1.2rem', color: 'white', fontWeight: 900 }}>
+              <h3 style={{ margin: '4px 0 12px', fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white', fontWeight: 900 }}>
                 Pembayaran Berhasil!
               </h3>
 
               {/* Rincian Resi PDAM */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.75)',
-                border: '1.5px solid rgba(56, 189, 248, 0.4)',
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.75)',
+                border: isLight ? '1.5px solid rgba(2, 132, 199, 0.35)' : '1.5px solid rgba(56, 189, 248, 0.4)',
                 borderRadius: '16px',
                 padding: '1.25rem',
                 textAlign: 'left',
                 fontSize: '0.78rem',
                 marginBottom: '1.25rem'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '6px' }}>
                   <span>Biller PDAM:</span>
-                  <strong style={{ color: 'white' }}>{settledData?.operatorName}</strong>
+                  <strong style={{ color: isLight ? '#0f172a' : 'white' }}>{settledData?.operatorName}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '6px' }}>
                   <span>No. Sambungan:</span>
-                  <strong style={{ color: 'white', fontFamily: 'monospace' }}>{settledData?.customerNumber}</strong>
+                  <strong style={{ color: isLight ? '#0f172a' : 'white', fontFamily: 'monospace' }}>{settledData?.customerNumber}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '6px' }}>
                   <span>Nama Pelanggan:</span>
-                  <strong style={{ color: '#38bdf8' }}>{settledData?.subscriberName}</strong>
+                  <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>{settledData?.subscriberName}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '6px' }}>
                   <span>Periode / Kubikasi:</span>
-                  <strong style={{ color: 'white' }}>{settledData?.billingPeriod} ({settledData?.usageM3} m³)</strong>
+                  <strong style={{ color: isLight ? '#0f172a' : 'white' }}>{settledData?.billingPeriod} ({settledData?.usageM3} m³)</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '6px' }}>
                   <span>Total Tagihan:</span>
-                  <strong style={{ color: '#4ade80' }}>{formatRupiah(settledData?.totalAmount)}</strong>
+                  <strong style={{ color: '#16a34a' }}>{formatRupiah(settledData?.totalAmount)}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', borderTop: '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '6px', marginTop: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#64748b' : '#94a3b8', borderTop: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '6px', marginTop: '6px' }}>
                   <span>Ref Biller:</span>
-                  <span style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{settledData?.billerRef}</span>
+                  <span style={{ fontFamily: 'monospace', color: isLight ? '#0284c7' : '#38bdf8' }}>{settledData?.billerRef}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginTop: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
                   <span>Nomor Resi Resmi:</span>
-                  <span style={{ fontFamily: 'monospace', color: 'white' }}>{settledData?.receiptNumber}</span>
+                  <span style={{ fontFamily: 'monospace', color: isLight ? '#0f172a' : 'white' }}>{settledData?.receiptNumber}</span>
                 </div>
               </div>
 
@@ -1150,11 +1171,11 @@ const PdamPaymentModal = ({
                   onClick={handleShareWhatsApp}
                   style={{
                     flex: 1,
-                    background: 'rgba(34, 197, 94, 0.15)',
-                    border: '1px solid rgba(34, 197, 94, 0.4)',
+                    background: isLight ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.15)',
+                    border: isLight ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid rgba(34, 197, 94, 0.4)',
                     borderRadius: '12px',
                     padding: '10px',
-                    color: '#4ade80',
+                    color: isLight ? '#15803d' : '#4ade80',
                     fontSize: '0.82rem',
                     fontWeight: 800,
                     cursor: 'pointer',

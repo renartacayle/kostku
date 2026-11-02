@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Upload, 
   MessageSquare, 
@@ -45,6 +45,7 @@ import {
   apiGetPartnerOrders,
   apiSubmitComplaintRating
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
 import DigitalReceiptModal from '../components/DigitalReceiptModal';
@@ -61,6 +62,40 @@ import SmartLockAndApplianceCard from '../components/SmartLockAndApplianceCard';
 
 // ── MITRA GRID CARD (2-KOLOM MOBILE DENGAN CYCLING FOTO / LOGO NON-FNB) ──────────
 const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }) => {
+  const { isLight } = useTheme();
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      {
+        threshold: 0.05,
+        rootMargin: '0px 0px -25px 0px'
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [item.id]);
+
+  const cols = isMobileScreen ? 2 : 4;
+  const colIndex = idx % cols;
+  const delayMs = colIndex * 70;
+
   const isFnB = (item.category || '').toLowerCase().includes('makan') || 
                 (item.category || '').toLowerCase().includes('kuliner') || 
                 (item.category || '').toLowerCase().includes('warung') || 
@@ -154,28 +189,41 @@ const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }
 
   return (
     <div
+      ref={cardRef}
       onClick={() => onSelect(item)}
       style={{
-        background: isMain ? 'rgba(245, 158, 11, 0.035)' : 'rgba(255, 255, 255, 0.025)',
-        border: isMain ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)',
+        background: isLight 
+          ? (isMain ? 'rgba(245, 158, 11, 0.08)' : '#ffffff') 
+          : (isMain ? 'rgba(245, 158, 11, 0.035)' : 'rgba(255, 255, 255, 0.025)'),
+        border: isMain 
+          ? (isLight ? '1.5px solid #f59e0b' : '1.5px solid rgba(245, 158, 11, 0.4)') 
+          : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
         borderRadius: '12px',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        position: 'relative'
+        position: 'relative',
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
+        transition: `opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1) ${delayMs}ms, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) ${delayMs}ms, border-color 0.2s ease, box-shadow 0.2s ease`,
+        willChange: 'opacity, transform',
+        boxShadow: isLight ? '0 2px 8px rgba(0, 0, 0, 0.04)' : 'none'
       }}
       onMouseEnter={e => {
         e.currentTarget.style.borderColor = isMain ? '#f59e0b' : '#3b82f6';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = isMain ? '0 6px 16px rgba(245, 158, 11, 0.15)' : '0 6px 16px rgba(59, 130, 246, 0.12)';
+        if (isVisible) e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = isLight 
+          ? (isMain ? '0 10px 20px rgba(245, 158, 11, 0.18)' : '0 10px 20px rgba(0, 0, 0, 0.08)') 
+          : (isMain ? '0 6px 16px rgba(245, 158, 11, 0.15)' : '0 6px 16px rgba(59, 130, 246, 0.12)');
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = isMain ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-color)';
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = isMain 
+          ? (isLight ? '#f59e0b' : 'rgba(245, 158, 11, 0.4)') 
+          : (isLight ? '#e2e8f0' : 'var(--border-color)');
+        if (isVisible) e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = isLight ? '0 2px 8px rgba(0, 0, 0, 0.04)' : 'none';
       }}
     >
       {/* ── PHOTO CONTAINER (FULL BLEED COVER / BRAND LOGO EMBLEM) ── */}
@@ -535,7 +583,7 @@ const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }
             <div style={{
               fontSize: isMobileScreen ? '0.78rem' : '0.86rem',
               fontWeight: 800,
-              color: '#f8fafc',
+              color: isLight ? '#0f172a' : '#f8fafc',
               lineHeight: 1.15,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -547,7 +595,7 @@ const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }
           </div>
 
           {/* Rating & Jarak */}
-          <div style={{ fontSize: isMobileScreen ? '0.58rem' : '0.64rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px' }}>
+          <div style={{ fontSize: isMobileScreen ? '0.58rem' : '0.64rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px' }}>
             <span>⭐ 4.8</span>
             <span>•</span>
             <span>📍 {item.distanceKm || 0.2} km</span>
@@ -561,16 +609,16 @@ const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }
           alignItems: 'flex-end',
           marginTop: '3px',
           paddingTop: '3px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+          borderTop: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255, 255, 255, 0.06)'
         }}>
           <div>
-            <div style={{ fontSize: isMobileScreen ? '0.52rem' : '0.58rem', color: '#94a3b8', lineHeight: 1 }}>
+            <div style={{ fontSize: isMobileScreen ? '0.52rem' : '0.58rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1 }}>
               Mulai dari:
             </div>
             <div style={{
               fontSize: isMobileScreen ? '0.82rem' : '0.92rem',
               fontWeight: 900,
-              color: '#4ade80',
+              color: isLight ? '#15803d' : '#4ade80',
               marginTop: '1px'
             }}>
               Rp {(cheapestProd?.price || 16000).toLocaleString('id-ID')}
@@ -607,6 +655,7 @@ const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }
 };
 
 const UserDashboard = ({ user }) => {
+  const { theme, isLight } = useTheme();
   const [currentUser, setCurrentUser] = useState(user);
 
   useEffect(() => {
@@ -2304,9 +2353,9 @@ const UserDashboard = ({ user }) => {
                         paddingBottom: '8px',
                         fontSize: '0.82rem',
                         borderRadius: '8px',
-                        background: 'rgba(15, 23, 42, 0.6)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: '#f8fafc'
+                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.6)',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                        color: isLight ? '#0f172a' : '#f8fafc'
                       }}
                     />
                     {partnerSearch && (
@@ -2338,8 +2387,10 @@ const UserDashboard = ({ user }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%)',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    background: isLight 
+                      ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' 
+                      : 'linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                    border: isLight ? '1px solid rgba(2, 132, 199, 0.3)' : '1px solid rgba(56, 189, 248, 0.3)',
                     borderRadius: '8px',
                     padding: isMobileScreen ? '7px 9px' : '8px 12px',
                     marginBottom: '10px',
@@ -2348,8 +2399,8 @@ const UserDashboard = ({ user }) => {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '220px' }}>
                       <span style={{ fontSize: '1.05rem' }}>💡</span>
-                      <div style={{ fontSize: '0.67rem', color: '#cbd5e1', lineHeight: 1.25 }}>
-                        <strong style={{ color: '#38bdf8' }}>Punya usaha atau warung langganan?</strong> UMKM sekitar bebas jualan tanpa wajib kontrak kost!
+                      <div style={{ fontSize: '0.67rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.25 }}>
+                        <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>Punya usaha atau warung langganan?</strong> UMKM sekitar bebas jualan tanpa wajib kontrak kost!
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '5px' }}>
@@ -2357,9 +2408,9 @@ const UserDashboard = ({ user }) => {
                         type="button"
                         onClick={() => { setShowSuggestMerchantModal(true); setSuggestNotice(null); }}
                         style={{
-                          background: 'rgba(56, 189, 248, 0.15)',
-                          border: '1px solid #38bdf8',
-                          color: '#38bdf8',
+                          background: isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(56, 189, 248, 0.15)',
+                          border: isLight ? '1px solid #0284c7' : '1px solid #38bdf8',
+                          color: isLight ? '#0284c7' : '#38bdf8',
                           borderRadius: '6px',
                           padding: '3px 8px',
                           fontSize: '0.64rem',
@@ -2419,11 +2470,19 @@ const UserDashboard = ({ user }) => {
                             style={{
                               background: isSelected
                                 ? (isBeliLagi ? 'linear-gradient(135deg, #7e22ce, #9333ea)' : isMandiri ? 'linear-gradient(135deg, #0891b2, #0284c7)' : '#2563eb')
-                                : (isBeliLagi ? 'rgba(147, 51, 234, 0.12)' : isMandiri ? 'rgba(6, 182, 212, 0.12)' : 'rgba(255, 255, 255, 0.04)'),
+                                : (isBeliLagi 
+                                    ? (isLight ? 'rgba(147, 51, 234, 0.08)' : 'rgba(147, 51, 234, 0.12)') 
+                                    : isMandiri 
+                                    ? (isLight ? 'rgba(6, 182, 212, 0.08)' : 'rgba(6, 182, 212, 0.12)') 
+                                    : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)')),
                               border: isSelected
                                 ? (isBeliLagi ? '1px solid #c084fc' : isMandiri ? '1px solid #38bdf8' : '1px solid #3b82f6')
-                                : (isBeliLagi ? '1px solid rgba(168, 85, 247, 0.35)' : isMandiri ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid var(--border-color)'),
-                              color: isSelected ? '#ffffff' : (isBeliLagi ? '#d8b4fe' : isMandiri ? '#7dd3fc' : '#cbd5e1'),
+                                : (isBeliLagi 
+                                    ? '1px solid rgba(168, 85, 247, 0.35)' 
+                                    : isMandiri 
+                                    ? '1px solid rgba(56, 189, 248, 0.35)' 
+                                    : (isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)')),
+                              color: isSelected ? '#ffffff' : (isBeliLagi ? (isLight ? '#7e22ce' : '#d8b4fe') : isMandiri ? (isLight ? '#0284c7' : '#7dd3fc') : (isLight ? '#334155' : '#cbd5e1')),
                               borderRadius: '6px',
                               padding: '3px 8px',
                               fontSize: '0.68rem',
@@ -2451,9 +2510,11 @@ const UserDashboard = ({ user }) => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
-                          background: pinMainPartner ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255, 255, 255, 0.04)',
-                          border: pinMainPartner ? '1.5px solid #f59e0b' : '1px solid var(--border-color)',
-                          color: pinMainPartner ? '#fbbf24' : '#94a3b8',
+                          background: pinMainPartner 
+                            ? (isLight ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.18)') 
+                            : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.04)'),
+                          border: pinMainPartner ? '1.5px solid #f59e0b' : (isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)'),
+                          color: pinMainPartner ? (isLight ? '#b45309' : '#fbbf24') : (isLight ? '#64748b' : '#94a3b8'),
                           padding: '2px 8px',
                           borderRadius: '6px',
                           fontSize: '0.66rem',
@@ -2467,8 +2528,8 @@ const UserDashboard = ({ user }) => {
                           fontSize: '0.6rem',
                           padding: '1px 5px',
                           borderRadius: '4px',
-                          background: pinMainPartner ? '#f59e0b' : 'rgba(255,255,255,0.1)',
-                          color: pinMainPartner ? '#000' : '#94a3b8',
+                          background: pinMainPartner ? '#f59e0b' : (isLight ? '#e2e8f0' : 'rgba(255,255,255,0.1)'),
+                          color: pinMainPartner ? '#000' : (isLight ? '#475569' : '#94a3b8'),
                           fontWeight: 900
                         }}>
                           {pinMainPartner ? 'ON' : 'OFF'}
@@ -2476,14 +2537,14 @@ const UserDashboard = ({ user }) => {
                       </button>
 
                       {/* Sorting Buttons */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(255,255,255,0.03)', padding: '2px 5px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                        <span style={{ fontSize: '0.64rem', color: '#94a3b8', marginRight: '2px' }}>Urut:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)', padding: '2px 5px', borderRadius: '6px', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)' }}>
+                        <span style={{ fontSize: '0.64rem', color: isLight ? '#64748b' : '#94a3b8', marginRight: '2px' }}>Urut:</span>
                         <button
                           type="button"
                           onClick={() => setPartnerSort('cheapest')}
                           style={{
                             background: partnerSort === 'cheapest' ? 'rgba(34, 197, 94, 0.25)' : 'transparent',
-                            color: partnerSort === 'cheapest' ? '#4ade80' : '#94a3b8',
+                            color: partnerSort === 'cheapest' ? (isLight ? '#15803d' : '#4ade80') : (isLight ? '#64748b' : '#94a3b8'),
                             border: partnerSort === 'cheapest' ? '1px solid #22c55e' : 'none',
                             borderRadius: '4px',
                             padding: '1px 6px',
@@ -2499,7 +2560,7 @@ const UserDashboard = ({ user }) => {
                           onClick={() => setPartnerSort('highest')}
                           style={{
                             background: partnerSort === 'highest' ? 'rgba(236, 72, 153, 0.25)' : 'transparent',
-                            color: partnerSort === 'highest' ? '#f472b6' : '#94a3b8',
+                            color: partnerSort === 'highest' ? (isLight ? '#be185d' : '#f472b6') : (isLight ? '#64748b' : '#94a3b8'),
                             border: partnerSort === 'highest' ? '1px solid #ec4899' : 'none',
                             borderRadius: '4px',
                             padding: '1px 6px',
@@ -2515,7 +2576,7 @@ const UserDashboard = ({ user }) => {
                           onClick={() => setPartnerSort('distance')}
                           style={{
                             background: partnerSort === 'distance' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
-                            color: partnerSort === 'distance' ? '#60a5fa' : '#94a3b8',
+                            color: partnerSort === 'distance' ? (isLight ? '#1d4ed8' : '#60a5fa') : (isLight ? '#64748b' : '#94a3b8'),
                             border: partnerSort === 'distance' ? '1px solid #3b82f6' : 'none',
                             borderRadius: '4px',
                             padding: '1px 6px',
@@ -2533,7 +2594,7 @@ const UserDashboard = ({ user }) => {
                   {/* Brand Selector Pills (Khusus Galon jika kategori galon aktif) */}
                   {partnerCategory === 'galon' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 600 }}>Merek Galon:</span>
+                      <span style={{ fontSize: '0.66rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: 600 }}>Merek Galon:</span>
                       {[
                         { id: 'all', label: 'Semua Merek' },
                         { id: 'Vit', label: 'Vit (Rp 16rb - Hemat)' },
@@ -2545,9 +2606,13 @@ const UserDashboard = ({ user }) => {
                           type="button"
                           onClick={() => setPartnerBrand(b.id)}
                           style={{
-                            background: partnerBrand === b.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.02)',
-                            border: partnerBrand === b.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.07)',
-                            color: partnerBrand === b.id ? '#38bdf8' : '#94a3b8',
+                            background: partnerBrand === b.id 
+                              ? (isLight ? 'rgba(2, 132, 199, 0.12)' : 'rgba(56, 189, 248, 0.2)') 
+                              : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)'),
+                            border: partnerBrand === b.id 
+                              ? (isLight ? '1px solid #0284c7' : '1px solid #38bdf8') 
+                              : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.07)'),
+                            color: partnerBrand === b.id ? (isLight ? '#0284c7' : '#38bdf8') : (isLight ? '#64748b' : '#94a3b8'),
                             borderRadius: '999px',
                             padding: '1px 7px',
                             fontSize: '0.64rem',
@@ -2563,8 +2628,8 @@ const UserDashboard = ({ user }) => {
 
                   {/* Grid Cards */}
                   {list.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
-                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>
+                    <div style={{ textAlign: 'center', padding: '1.25rem', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)', borderRadius: '12px', border: isLight ? '1px dashed #cbd5e1' : '1px dashed var(--border-color)' }}>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                         {partnerCategory === 'beli_lagi'
                           ? '⚡ Belum ada toko yang pernah kamu beli. Pesan galon, laundry, atau makanan sekali untuk fitur re-order kilat (quick-time click)!'
                           : 'Tidak ditemukan mitra atau affiliate yang cocok dengan filter ini.'}
@@ -2670,7 +2735,7 @@ const UserDashboard = ({ user }) => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(5, 10, 20, 0.88)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.88)',
           backdropFilter: 'blur(10px)',
           zIndex: 999999,
           display: 'flex',
@@ -2679,30 +2744,30 @@ const UserDashboard = ({ user }) => {
           padding: '1rem'
         }}>
           <div style={{
-            background: '#090e1a',
-            border: '1px solid rgba(245, 158, 11, 0.4)',
+            background: isLight ? '#ffffff' : '#090e1a',
+            border: isLight ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(245, 158, 11, 0.4)',
             borderRadius: '20px',
             padding: '1.5rem',
             maxWidth: '480px',
             width: '100%',
             maxHeight: '92vh',
             overflowY: 'auto',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.95)'
+            boxShadow: isLight ? '0 25px 50px -12px rgba(15, 23, 42, 0.25)' : '0 25px 60px rgba(0,0,0,0.95)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Star size={18} fill="#fbbf24" color="#fbbf24" />
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'white' }}>Nilai Layanan Teknisi</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: isLight ? '#0f172a' : 'white' }}>Nilai Layanan Teknisi</h3>
                 </div>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                   {ratingModalComplaint.assignedStaffName || 'Teknisi Lapangan'} • Kamar {ratingModalComplaint.kamar}
                 </span>
               </div>
               <button 
                 type="button"
                 onClick={() => setRatingModalComplaint(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
@@ -2735,7 +2800,7 @@ const UserDashboard = ({ user }) => {
               
               {/* Star Rating Selector */}
               <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                <span style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                <span style={{ display: 'block', fontSize: '0.82rem', color: isLight ? '#64748b' : 'var(--text-secondary)', marginBottom: '8px' }}>
                   Berapa bintang kepuasan Anda terhadap hasil perbaikan?
                 </span>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
@@ -2756,12 +2821,12 @@ const UserDashboard = ({ user }) => {
                       <Star
                         size={32}
                         fill={star <= ratingStars ? '#fbbf24' : 'none'}
-                        color={star <= ratingStars ? '#fbbf24' : '#64748b'}
+                        color={star <= ratingStars ? '#fbbf24' : (isLight ? '#cbd5e1' : '#64748b')}
                       />
                     </button>
                   ))}
                 </div>
-                <span style={{ display: 'block', marginTop: '6px', fontSize: '0.9rem', fontWeight: 800, color: '#fbbf24' }}>
+                <span style={{ display: 'block', marginTop: '6px', fontSize: '0.9rem', fontWeight: 800, color: isLight ? '#d97706' : '#fbbf24' }}>
                   {ratingStars === 5 ? '⭐⭐⭐⭐⭐ Luar Biasa & Sangat Memuaskan!' :
                    ratingStars === 4 ? '⭐⭐⭐⭐ Sangat Bagus' :
                    ratingStars === 3 ? '⭐⭐⭐ Cukup Baik' :
@@ -2771,7 +2836,7 @@ const UserDashboard = ({ user }) => {
 
               {/* Praise Badges */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#0f172a' : '#e2e8f0', marginBottom: '8px' }}>
                   Pilih Lencana Pujian untuk Staf:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -2794,9 +2859,11 @@ const UserDashboard = ({ user }) => {
                         style={{
                           padding: '8px 10px',
                           borderRadius: '8px',
-                          border: isSelected ? '1.5px solid #f59e0b' : '1px solid var(--border-color)',
-                          background: isSelected ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                          color: isSelected ? '#fde68a' : 'var(--text-secondary)',
+                          border: isSelected ? '1.5px solid #f59e0b' : (isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)'),
+                          background: isSelected 
+                            ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)') 
+                            : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
+                          color: isSelected ? (isLight ? '#92400e' : '#fde68a') : (isLight ? '#475569' : 'var(--text-secondary)'),
                           fontSize: '0.74rem',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -2813,7 +2880,7 @@ const UserDashboard = ({ user }) => {
 
               {/* Review Text */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#0f172a' : '#e2e8f0', marginBottom: '6px' }}>
                   Tulis Ulasan / Testimoni Singkat:
                 </label>
                 <textarea
@@ -2828,16 +2895,16 @@ const UserDashboard = ({ user }) => {
 
               {/* Tip Sukarela (Apresiasi Finansial untuk Staf) */}
               <div style={{
-                background: 'rgba(16, 185, 129, 0.05)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
+                background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.05)',
+                border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(16, 185, 129, 0.25)',
                 borderRadius: '12px',
                 padding: '12px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#6ee7b7' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#15803d' : '#6ee7b7' }}>
                     💸 Tip Sukarela untuk Teknisi (Opsional):
                   </label>
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>100% diterima staf</span>
+                  <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>100% diterima staf</span>
                 </div>
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
@@ -2855,9 +2922,11 @@ const UserDashboard = ({ user }) => {
                       style={{
                         padding: '6px 12px',
                         borderRadius: '6px',
-                        border: tipAmount === tp.val ? '1.5px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
-                        background: tipAmount === tp.val ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.03)',
-                        color: tipAmount === tp.val ? '#34d399' : 'var(--text-secondary)',
+                        border: tipAmount === tp.val ? '1.5px solid #10b981' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                        background: tipAmount === tp.val 
+                          ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)') 
+                          : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.03)'),
+                        color: tipAmount === tp.val ? (isLight ? '#15803d' : '#34d399') : (isLight ? '#475569' : 'var(--text-secondary)'),
                         fontSize: '0.74rem',
                         fontWeight: 700,
                         cursor: 'pointer'
@@ -2870,16 +2939,16 @@ const UserDashboard = ({ user }) => {
 
                 {tipAmount > 0 && (
                   <div style={{
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px dashed rgba(16, 185, 129, 0.4)',
+                    background: isLight ? '#ffffff' : 'rgba(0,0,0,0.3)',
+                    border: isLight ? '1px dashed #86efac' : '1px dashed rgba(16, 185, 129, 0.4)',
                     borderRadius: '8px',
                     padding: '8px 12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'
                   }}>
-                    <span style={{ fontSize: '0.74rem', color: '#e2e8f0' }}>Metode Pembayaran Tip:</span>
-                    <strong style={{ fontSize: '0.78rem', color: '#34d399' }}>QRIS / Dompet Digital</strong>
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#475569' : '#e2e8f0' }}>Metode Pembayaran Tip:</span>
+                    <strong style={{ fontSize: '0.78rem', color: isLight ? '#15803d' : '#34d399' }}>QRIS / Dompet Digital</strong>
                   </div>
                 )}
               </div>
@@ -2921,7 +2990,7 @@ const UserDashboard = ({ user }) => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
@@ -2930,13 +2999,13 @@ const UserDashboard = ({ user }) => {
           padding: '16px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #090d16 0%, #0f172a 100%)',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
+            background: isLight ? '#ffffff' : 'linear-gradient(135deg, #090d16 0%, #0f172a 100%)',
+            border: isLight ? '1px solid rgba(14, 165, 233, 0.3)' : '1px solid rgba(56, 189, 248, 0.3)',
             borderRadius: '16px',
             width: '100%',
             maxWidth: '460px',
             padding: '20px',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(56, 189, 248, 0.1)',
+            boxShadow: isLight ? '0 20px 40px rgba(15, 23, 42, 0.15)' : '0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(56, 189, 248, 0.1)',
             position: 'relative'
           }}>
             <button
@@ -2945,9 +3014,9 @@ const UserDashboard = ({ user }) => {
                 position: 'absolute',
                 top: '14px',
                 right: '14px',
-                background: 'rgba(255,255,255,0.06)',
+                background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)',
                 border: 'none',
-                color: '#94a3b8',
+                color: isLight ? '#475569' : '#94a3b8',
                 borderRadius: '8px',
                 width: '28px',
                 height: '28px',
@@ -2975,16 +3044,16 @@ const UserDashboard = ({ user }) => {
                 🍜
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                   Usulkan Warung Langganan
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>
                   Dapatkan Bonus +500 Loyalty Points
                 </span>
               </div>
             </div>
 
-            <p style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45, marginBottom: '14px' }}>
+            <p style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.45, marginBottom: '14px' }}>
               Punya warung makan, laundry, atau langganan favorit di sekitar kost? Beritahu kami agar bisa dihubungi dan dimasukkan ke katalog KostKu!
             </p>
 
@@ -2996,7 +3065,7 @@ const UserDashboard = ({ user }) => {
                 padding: '10px 12px',
                 marginBottom: '14px',
                 fontSize: '0.75rem',
-                color: '#34d399',
+                color: isLight ? '#15803d' : '#34d399',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -3008,7 +3077,7 @@ const UserDashboard = ({ user }) => {
 
             <form onSubmit={handleSuggestSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                   Nama Warung / Usaha *
                 </label>
                 <input
@@ -3019,18 +3088,18 @@ const UserDashboard = ({ user }) => {
                   onChange={e => setSuggestForm(prev => ({ ...prev, name: e.target.value }))}
                   style={{
                     width: '100%',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#f8fafc',
+                    color: isLight ? '#0f172a' : '#f8fafc',
                     fontSize: '0.8rem'
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                   Nomor WhatsApp Pemilik / Kontak Warung *
                 </label>
                 <input
@@ -3041,18 +3110,18 @@ const UserDashboard = ({ user }) => {
                   onChange={e => setSuggestForm(prev => ({ ...prev, phone: e.target.value }))}
                   style={{
                     width: '100%',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#f8fafc',
+                    color: isLight ? '#0f172a' : '#f8fafc',
                     fontSize: '0.8rem'
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                   Patokan Lokasi / Alamat (Opsional)
                 </label>
                 <input
@@ -3062,11 +3131,11 @@ const UserDashboard = ({ user }) => {
                   onChange={e => setSuggestForm(prev => ({ ...prev, address: e.target.value }))}
                   style={{
                     width: '100%',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#f8fafc',
+                    color: isLight ? '#0f172a' : '#f8fafc',
                     fontSize: '0.8rem'
                   }}
                 />
@@ -3109,7 +3178,7 @@ const UserDashboard = ({ user }) => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
@@ -3118,13 +3187,13 @@ const UserDashboard = ({ user }) => {
           padding: '16px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #090d16 0%, #0f172a 100%)',
-            border: '1px solid rgba(14, 165, 233, 0.35)',
+            background: isLight ? '#ffffff' : 'linear-gradient(135deg, #090d16 0%, #0f172a 100%)',
+            border: isLight ? '1px solid rgba(14, 165, 233, 0.35)' : '1px solid rgba(14, 165, 233, 0.35)',
             borderRadius: '16px',
             width: '100%',
             maxWidth: '480px',
             padding: '20px',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(14, 165, 233, 0.15)',
+            boxShadow: isLight ? '0 20px 40px rgba(15, 23, 42, 0.15)' : '0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(14, 165, 233, 0.15)',
             position: 'relative',
             maxHeight: '90vh',
             overflowY: 'auto'
@@ -3135,9 +3204,9 @@ const UserDashboard = ({ user }) => {
                 position: 'absolute',
                 top: '14px',
                 right: '14px',
-                background: 'rgba(255,255,255,0.06)',
+                background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)',
                 border: 'none',
-                color: '#94a3b8',
+                color: isLight ? '#475569' : '#94a3b8',
                 borderRadius: '8px',
                 width: '28px',
                 height: '28px',
@@ -3165,16 +3234,16 @@ const UserDashboard = ({ user }) => {
                 🏪
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                   Pasang Toko Mandiri (Bebas Kontrak)
                 </h3>
-                <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>
                   Terbuka untuk UMKM Sekitar & Penghuni Kost
                 </span>
               </div>
             </div>
 
-            <p style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45, marginBottom: '14px' }}>
+            <p style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.45, marginBottom: '14px' }}>
               UMKM sekitar bebas jualan langsung ke ribuan penghuni tanpa harus terikat kontrak kemitraan resmi pemilik kost. Toko baru otomatis mendapat <strong>Slot Inkubasi Khusus</strong> agar langsung terlihat pembeli!
             </p>
 
@@ -3186,7 +3255,7 @@ const UserDashboard = ({ user }) => {
                 padding: '10px 12px',
                 marginBottom: '14px',
                 fontSize: '0.75rem',
-                color: '#34d399',
+                color: isLight ? '#15803d' : '#34d399',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -3198,7 +3267,7 @@ const UserDashboard = ({ user }) => {
 
             <form onSubmit={handleRegisterIndependentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                   Nama Toko / Usaha *
                 </label>
                 <input
@@ -3209,11 +3278,11 @@ const UserDashboard = ({ user }) => {
                   onChange={e => setIndependentForm(prev => ({ ...prev, name: e.target.value }))}
                   style={{
                     width: '100%',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#f8fafc',
+                    color: isLight ? '#0f172a' : '#f8fafc',
                     fontSize: '0.8rem'
                   }}
                 />
@@ -3221,7 +3290,7 @@ const UserDashboard = ({ user }) => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                     Kategori Usaha
                   </label>
                   <select
@@ -3229,11 +3298,11 @@ const UserDashboard = ({ user }) => {
                     onChange={e => setIndependentForm(prev => ({ ...prev, category: e.target.value }))}
                     style={{
                       width: '100%',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                       borderRadius: '8px',
                       padding: '8px 12px',
-                      color: '#f8fafc',
+                      color: isLight ? '#0f172a' : '#f8fafc',
                       fontSize: '0.8rem'
                     }}
                   >
@@ -3244,7 +3313,7 @@ const UserDashboard = ({ user }) => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                     WhatsApp Toko *
                   </label>
                   <input
@@ -3255,11 +3324,11 @@ const UserDashboard = ({ user }) => {
                     onChange={e => setIndependentForm(prev => ({ ...prev, phone: e.target.value }))}
                     style={{
                       width: '100%',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                       borderRadius: '8px',
                       padding: '8px 12px',
-                      color: '#f8fafc',
+                      color: isLight ? '#0f172a' : '#f8fafc',
                       fontSize: '0.8rem'
                     }}
                   />
@@ -3267,7 +3336,7 @@ const UserDashboard = ({ user }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                   Alamat / Patokan Toko
                 </label>
                 <input
@@ -3277,28 +3346,28 @@ const UserDashboard = ({ user }) => {
                   onChange={e => setIndependentForm(prev => ({ ...prev, address: e.target.value }))}
                   style={{
                     width: '100%',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#f8fafc',
+                    color: isLight ? '#0f172a' : '#f8fafc',
                     fontSize: '0.8rem'
                   }}
                 />
               </div>
 
               <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px dashed rgba(255, 255, 255, 0.15)',
+                background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.15)',
                 borderRadius: '10px',
                 padding: '10px 12px'
               }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', display: 'block', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#0284c7' : '#38bdf8', display: 'block', marginBottom: '6px' }}>
                   📦 Produk / Menu Utama Pertama:
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '8px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.68rem', color: '#94a3b8', marginBottom: '3px' }}>
+                    <label style={{ display: 'block', fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '3px' }}>
                       Nama Menu / Jasa *
                     </label>
                     <input
@@ -3309,17 +3378,17 @@ const UserDashboard = ({ user }) => {
                       onChange={e => setIndependentForm(prev => ({ ...prev, firstProductName: e.target.value }))}
                       style={{
                         width: '100%',
-                        background: 'rgba(15, 23, 42, 0.8)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                         borderRadius: '6px',
                         padding: '6px 10px',
-                        color: '#f8fafc',
+                        color: isLight ? '#0f172a' : '#f8fafc',
                         fontSize: '0.76rem'
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.68rem', color: '#94a3b8', marginBottom: '3px' }}>
+                    <label style={{ display: 'block', fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '3px' }}>
                       Harga (Rp) *
                     </label>
                     <input
@@ -3332,11 +3401,11 @@ const UserDashboard = ({ user }) => {
                       onChange={e => setIndependentForm(prev => ({ ...prev, firstProductPrice: e.target.value }))}
                       style={{
                         width: '100%',
-                        background: 'rgba(15, 23, 42, 0.8)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
                         borderRadius: '6px',
                         padding: '6px 10px',
-                        color: '#f8fafc',
+                        color: isLight ? '#0f172a' : '#f8fafc',
                         fontSize: '0.76rem'
                       }}
                     />

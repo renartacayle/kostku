@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../context/ThemeContext';
 import { 
   X, 
@@ -135,13 +136,13 @@ export default function CustomerServiceModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div 
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 99999,
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backgroundColor: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(15, 23, 42, 0.75)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
@@ -550,4 +551,6 @@ export default function CustomerServiceModal({ isOpen, onClose }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
