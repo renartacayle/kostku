@@ -5182,16 +5182,11 @@ async function createTripayClosedTransaction({
   const isProd = gw.isProduction !== undefined ? gw.isProduction : true;
 
   const upper = String(method || 'QRIS').toUpperCase();
+  // TriPay merchant only has QRIS channel activated (no VA)
   let channel = 'QRIS';
-  if (upper.includes('BCA')) channel = 'BCAVA';
-  else if (upper.includes('MANDIRI')) channel = 'MANDIRIVA';
-  else if (upper.includes('BNI')) channel = 'BNIVA';
-  else if (upper.includes('BRI')) channel = 'BRIVA';
-  else if (upper.includes('PERMATA')) channel = 'PERMATAVA';
-  else if (upper.includes('CIMB')) channel = 'CIMBVA';
-  else if (upper.includes('ALFAMART')) channel = 'ALFAMART';
+  if (upper.includes('ALFAMART')) channel = 'ALFAMART';
   else if (upper.includes('INDOMARET')) channel = 'INDOMARET';
-  else if (upper.includes('GOPAY') || upper.includes('OVO') || upper.includes('DANA') || upper.includes('SHOPEEPAY')) channel = 'QRIS';
+  else channel = 'QRIS';
 
   const intAmount = Math.round(Number(amount) || 0);
   const signature = crypto
@@ -6765,12 +6760,12 @@ app.post('/api/electricity/order', async (req, res) => {
 
   const cleanMeter = String(meterNumber || '').replace(/[^0-9]/g, '');
   const numNominal = Number(nominal) || 50000;
-  const methodUpper = String(paymentMethod).toUpperCase();
+  const methodUpper = 'QRIS';
   const orderId = `ORDER-PLN-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
   const expiryTime = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-  // Admin fee: 0 for QRIS, 2000 for VA
-  const adminFee = methodUpper === 'QRIS' ? 0 : 2000;
+  // Admin fee: Rp 500 for QRIS
+  const adminFee = 500;
   const totalAmount = numNominal + adminFee;
 
   const db = getDB();
@@ -7134,8 +7129,8 @@ app.post('/api/pdam/order', async (req, res) => {
   };
 
   const numBill = Number(billAmount) || 65000;
-  const methodUpper = String(paymentMethod).toUpperCase();
-  const gatewayFee = methodUpper === 'QRIS' ? 0 : 2000;
+  const methodUpper = 'QRIS';
+  const gatewayFee = 500;
   const effectiveAdminFee = Number(adminFee) || 2500;
   const totalAmount = numBill + effectiveAdminFee + gatewayFee;
 

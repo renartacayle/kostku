@@ -38,11 +38,7 @@ const NOMINAL_OPTIONS = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'QRIS', name: 'QRIS Dinamis', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA', fee: 0, badge: 'Bebas Admin' },
-  { id: 'VA BCA', name: 'BCA Virtual Account', desc: 'Transfer otomatis 24 jam via BCA Mobile & KlikBCA', fee: 2000 },
-  { id: 'VA MANDIRI', name: 'Mandiri Virtual Account', desc: 'Transfer via Livin by Mandiri & ATM Mandiri', fee: 2000 },
-  { id: 'VA BRI', name: 'BRI Virtual Account (BRIVA)', desc: 'Transfer via BRImo & ATM BRI', fee: 2000 },
-  { id: 'VA BNI', name: 'BNI Virtual Account', desc: 'Transfer via BNI Mobile Banking', fee: 2000 }
+  { id: 'QRIS', name: 'QRIS Realtime (Semua E-Wallet & Mobile Banking)', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, DANA', fee: 500, badge: 'Rp 500' }
 ];
 
 const SmartLockAndTokenModal = ({ 
@@ -789,14 +785,14 @@ const SmartLockAndTokenModal = ({
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '8px' }}>
-                  <span>Biaya Layanan Payment Gateway ({paymentMethod}):</span>
-                  <span style={{ color: paymentMethod === 'QRIS' ? '#16a34a' : (isLight ? '#0f172a' : 'white'), fontWeight: 600 }}>
-                    {paymentMethod === 'QRIS' ? 'Gratis (Rp 0)' : '+Rp 2.000'}
+                  <span>Biaya Layanan Gateway QRIS:</span>
+                  <span style={{ color: isLight ? '#0f172a' : 'white', fontWeight: 600 }}>
+                    Rp 500
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 800, color: '#d97706', borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255, 255, 255, 0.1)', paddingTop: '8px' }}>
                   <span>Total Pembayaran:</span>
-                  <span>{formatRupiah(nominal + (paymentMethod === 'QRIS' ? 0 : 2000))}</span>
+                  <span>{formatRupiah(nominal + 500)}</span>
                 </div>
               </div>
 
@@ -818,7 +814,7 @@ const SmartLockAndTokenModal = ({
                   fontSize: '0.92rem'
                 }}
               >
-                <Zap size={18} /> {loadingOrder ? 'Membuat Tagihan TriPay...' : `Bayar ${formatRupiah(nominal + (paymentMethod === 'QRIS' ? 0 : 2000))} via TriPay`}
+                <Zap size={18} /> {loadingOrder ? 'Membuat Tagihan QRIS...' : `Bayar ${formatRupiah(nominal + 500)} via QRIS`}
               </button>
             </div>
           ) : step === 'payment' ? (

@@ -33,11 +33,7 @@ import { generateQrisDataUrl } from '../utils/qrisEngine';
 import { useTheme } from '../context/ThemeContext';
 
 const PAYMENT_METHODS = [
-  { id: 'QRIS', name: 'QRIS Dinamis', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA', fee: 0, badge: 'Bebas Admin' },
-  { id: 'VA BCA', name: 'BCA Virtual Account', desc: 'Transfer otomatis 24 jam via BCA Mobile & KlikBCA', fee: 2000 },
-  { id: 'VA MANDIRI', name: 'Mandiri Virtual Account', desc: 'Transfer via Livin by Mandiri & ATM Mandiri', fee: 2000 },
-  { id: 'VA BRI', name: 'BRI Virtual Account (BRIVA)', desc: 'Transfer via BRImo & ATM BRI', fee: 2000 },
-  { id: 'VA BNI', name: 'BNI Virtual Account', desc: 'Transfer via BNI Mobile Banking', fee: 2000 }
+  { id: 'QRIS', name: 'QRIS Realtime (Semua E-Wallet & Bank)', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, DANA', fee: 500, badge: 'Rp 500' }
 ];
 
 const PdamPaymentModal = ({ 
@@ -926,9 +922,9 @@ const PdamPaymentModal = ({
                       <span style={{ color: isLight ? '#0f172a' : 'white', fontWeight: 600 }}>{formatRupiah(inquiryResult.adminFee || 2500)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#475569' : '#94a3b8' }}>
-                      <span>Biaya Layanan Payment Gateway ({paymentMethod}):</span>
-                      <span style={{ color: paymentMethod === 'QRIS' ? '#10b981' : (isLight ? '#0f172a' : 'white'), fontWeight: 600 }}>
-                        {paymentMethod === 'QRIS' ? 'Gratis (Rp 0)' : '+Rp 2.000'}
+                      <span>Biaya Layanan Gateway QRIS:</span>
+                      <span style={{ color: isLight ? '#0f172a' : 'white', fontWeight: 600 }}>
+                        Rp 500
                       </span>
                     </div>
                   </div>
@@ -944,7 +940,7 @@ const PdamPaymentModal = ({
                   }}>
                     <span style={{ fontSize: '0.85rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: 700 }}>Total Tagihan Lunas:</span>
                     <strong style={{ fontSize: '1.15rem', color: isLight ? '#0284c7' : '#38bdf8' }}>
-                      {formatRupiah(inquiryResult.totalAmount + (paymentMethod === 'QRIS' ? 0 : 2000))}
+                      {formatRupiah(inquiryResult.totalAmount + 500)}
                     </strong>
                   </div>
 
@@ -967,7 +963,7 @@ const PdamPaymentModal = ({
                       marginTop: '12px'
                     }}
                   >
-                    <Droplets size={16} /> {loadingOrder ? 'Membuat Tagihan TriPay...' : `Bayar ${formatRupiah(inquiryResult.totalAmount + (paymentMethod === 'QRIS' ? 0 : 2000))} via TriPay`}
+                    <Droplets size={16} /> {loadingOrder ? 'Membuat Tagihan QRIS...' : `Bayar ${formatRupiah(inquiryResult.totalAmount + 500)} via QRIS`}
                   </button>
                 </div>
               )}
