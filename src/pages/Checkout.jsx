@@ -224,6 +224,10 @@ export default function Checkout({ user }) {
       alert('Mohon pilih nomor kamar yang ingin disewa.');
       return;
     }
+    if (selectedRoomObj && selectedRoomObj.status === 'occupied') {
+      alert(`Kamar ${selectedRoomNumber} saat ini sudah terisi dan tidak dapat disewa. Silakan pilih kamar lain yang masih kosong.`);
+      return;
+    }
     if (!customerName.trim()) {
       alert('Mohon masukkan nama lengkap Anda.');
       return;
@@ -525,6 +529,84 @@ export default function Checkout({ user }) {
             ══════════════════════════════════════════════════════════════ */}
         {!loadingKosts && step === 'form' && (
           <form onSubmit={handleProceedToPayment}>
+            {/* Notice for already registered tenants */}
+            {user && (user.role === 'user' || user.role === 'penghuni') && user.kamar && (
+              <div style={{
+                marginBottom: '1.5rem',
+                padding: '1.25rem 1.5rem',
+                borderRadius: '20px',
+                background: isLight 
+                  ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' 
+                  : 'linear-gradient(135deg, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.7) 100%)',
+                border: isLight ? '1.5px solid #93c5fd' : '1.5px solid rgba(59, 130, 246, 0.4)',
+                boxShadow: '0 8px 24px rgba(37, 99, 235, 0.12)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Building size={20} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: isLight ? '#1e3a8a' : '#ffffff' }}>
+                      Anda Sudah Terdaftar di Kamar {user.kamar}
+                    </h4>
+                    <span style={{ fontSize: '0.76rem', color: isLight ? '#1e40af' : '#93c5fd' }}>
+                      Status Akun: Penghuni Aktif ({user.name || 'Penyewa'})
+                    </span>
+                  </div>
+                </div>
+
+                <p style={{ margin: 0, fontSize: '0.84rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
+                  Halaman ini ditujukan untuk <strong>calon anak kost baru</strong> yang ingin memesan kamar sewa pertama kali. Jika Anda ingin <strong>membayar sewa bulanan rutin untuk kamar Anda</strong>, silakan langsung buka <strong>Dashboard Penghuni</strong>.
+                </p>
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate('/dashboard');
+                      setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('kostku:open-payment'));
+                      }, 300);
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '10px 18px',
+                      borderRadius: '12px',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)'
+                    }}
+                  >
+                    <CreditCard size={16} />
+                    <span>Buka Dashboard & Bayar Tagihan Kamar {user.kamar}</span>
+                  </button>
+
+                  <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                    *Abaikan pesan ini jika Anda sedang menyewa kamar tambahan untuk saudara/teman.
+                  </span>
+                </div>
+              </div>
+            )}
+
             <style>{`
               .checkout-responsive-grid {
                 display: grid;
@@ -1131,23 +1213,31 @@ export default function Checkout({ user }) {
                       padding: '15px',
                       borderRadius: '14px',
                       border: 'none',
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      background: selectedRoomObj?.status === 'occupied'
+                        ? '#ef4444'
+                        : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                       color: 'white',
-                      fontSize: '1rem',
+                      fontSize: '0.96rem',
                       fontWeight: 800,
-                      cursor: isSubmitting ? 'wait' : 'pointer',
-                      boxShadow: '0 8px 25px rgba(37, 99, 235, 0.45)',
+                      cursor: (isSubmitting || selectedRoomObj?.status === 'occupied') ? 'not-allowed' : 'pointer',
+                      boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 8px 25px rgba(37, 99, 235, 0.45)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
+                      opacity: selectedRoomObj?.status === 'occupied' ? 0.85 : 1
                     }}
                   >
                     {isSubmitting ? (
                       <>
                         <RefreshCw size={18} className="animate-spin" />
                         <span>Membuat Transaksi Gateway...</span>
+                      </>
+                    ) : selectedRoomObj?.status === 'occupied' ? (
+                      <>
+                        <AlertCircle size={18} />
+                        <span>Kamar {selectedRoomNumber} Sudah Terisi (Pilih Kamar Kosong)</span>
                       </>
                     ) : (
                       <>
