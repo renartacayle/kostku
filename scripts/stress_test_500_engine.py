@@ -1023,8 +1023,8 @@ def generate_html_report(results, output_path, is_standalone_web=False):
         b_type = r.get("bathroom_type", "KM Dalam (Ensuite)" if r.get("has_bathroom") else "KM Luar (Shared)")
         km_counts[b_type] = km_counts.get(b_type, 0) + 1
 
-    img_prefix_photo = "photos/" if not is_standalone_web else "downloads/photos/"
-    img_prefix_bp = "blueprints/" if not is_standalone_web else "downloads/blueprints/"
+    img_prefix_photo = "photos/" if not is_standalone_web else "/downloads/photos/"
+    img_prefix_bp = "blueprints/" if not is_standalone_web else "/downloads/blueprints/"
 
     html_parts = []
     html_parts.append(f"""<!DOCTYPE html>
@@ -1248,9 +1248,79 @@ def generate_html_report(results, output_path, is_standalone_web=False):
       color: #64748b;
       padding: 0 4px;
     }}
+    @media screen {{
+      body {{
+        padding: 68px 16px 80px;
+        background: #090e1a;
+      }}
+      .online-nav-bar {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 54px;
+        background: rgba(15, 23, 42, 0.96);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        z-index: 10000;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }}
+      .page {{
+        max-width: 1140px;
+        min-height: 680px;
+        height: auto;
+        max-height: none;
+        margin: 0 auto 36px auto;
+        background: #0b1329;
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      }}
+      .room-row {{
+        height: auto;
+        min-height: 280px;
+        max-height: none;
+      }}
+      .room-photo-wrapper img {{
+        max-height: 270px;
+      }}
+      .blueprint-wrapper img {{
+        max-height: 270px;
+      }}
+    }}
+    @media print {{
+      .online-nav-bar {{
+        display: none !important;
+      }}
+    }}
   </style>
 </head>
 <body>
+
+  <!-- Top Sticky Navigation Bar for Online Viewer -->
+  <div class="online-nav-bar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="background: #2563eb; color: #fff; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px;">KOSTKU CAD</span>
+      <span style="font-size: 13px; font-weight: 800; color: #f8fafc;">Stress Test 500 Kamar (252 Halaman Online)</span>
+      <span style="font-size: 11px; color: #38bdf8; background: rgba(56,189,248,0.15); padding: 2px 8px; border-radius: 9999px;">✓ 100% Vektor CAD Skala 1:50</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button onclick="window.print()" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
+        🖨️ Cetak / Print PDF
+      </button>
+      <a href="/downloads/KostKu_StressTest_500_Kamar_Tidur_Auto2D.pdf" download style="background: #2563eb; color: #fff; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none;">
+        📥 Unduh File PDF (58 MB)
+      </a>
+      <a href="/stress-test-report" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none;">
+        🎴 Kembali ke Mode Grid
+      </a>
+    </div>
+  </div>
 
   <!-- PAGE 1: COVER PAGE -->
   <div class="page">
@@ -1431,7 +1501,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
         html_parts.append(f"""
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="{img_prefix_photo}{r1['photo_file']}" alt="Foto {r1['room_code']}">
+          <img src="{img_prefix_photo}{r1['photo_file']}" alt="Foto {r1['room_code']}" loading="lazy">
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -1466,7 +1536,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="{img_prefix_bp}{r1['blueprint_file']}" alt="Denah 2D {r1['room_code']}">
+          <img src="{img_prefix_bp}{r1['blueprint_file']}" alt="Denah 2D {r1['room_code']}" loading="lazy">
         </div>
       </div>
 """)
@@ -1476,7 +1546,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
             html_parts.append(f"""
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="{img_prefix_photo}{r2['photo_file']}" alt="Foto {r2['room_code']}">
+          <img src="{img_prefix_photo}{r2['photo_file']}" alt="Foto {r2['room_code']}" loading="lazy">
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -1511,7 +1581,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="{img_prefix_bp}{r2['blueprint_file']}" alt="Denah 2D {r2['room_code']}">
+          <img src="{img_prefix_bp}{r2['blueprint_file']}" alt="Denah 2D {r2['room_code']}" loading="lazy">
         </div>
       </div>
 """)

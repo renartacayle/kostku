@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Maximize2,
   Check,
-  Grid
+  Grid,
+  FileText
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -24,6 +25,7 @@ export default function StressTestReport() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('document'); // 'document' | 'grid'
   const [zoomModal, setZoomModal] = useState(null); // { type: 'photo' | 'blueprint', src: string, title: string }
   const pageSize = 12;
 
@@ -66,7 +68,9 @@ export default function StressTestReport() {
   const displayedRooms = filteredRooms.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const pdfDownloadUrl = '/downloads/KostKu_StressTest_500_Kamar_Tidur_Auto2D.pdf';
-  const googleDocsViewerUrl = `https://docs.google.com/viewer?url=https://kostku.riuph.me${pdfDownloadUrl}`;
+  const showcasePdfUrl = '/downloads/KostKu_StressTest_Showcase_Auto2D.pdf';
+  const googleDocsViewerUrl = `https://docs.google.com/viewer?url=https://kostku.riuph.me${showcasePdfUrl}`;
+  const htmlDocumentUrl = '/stress-test-document.html';
 
   return (
     <div style={{
@@ -101,7 +105,7 @@ export default function StressTestReport() {
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <a
-              href={googleDocsViewerUrl}
+              href={htmlDocumentUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -119,7 +123,29 @@ export default function StressTestReport() {
               }}
             >
               <ExternalLink size={15} />
-              Buka di Google Cloud PDF Reader
+              Buka Dokumen 252 Hal (Full Browser)
+            </a>
+
+            <a
+              href={googleDocsViewerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
+                border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                color: isLight ? '#0f172a' : '#ffffff',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                textDecoration: 'none',
+                fontSize: '0.82rem',
+                fontWeight: 700
+              }}
+            >
+              <ExternalLink size={15} />
+              Buka Google Cloud PDF Reader
             </a>
 
             <a
@@ -140,7 +166,7 @@ export default function StressTestReport() {
               }}
             >
               <Download size={15} />
-              Unduh PDF (252 Halaman)
+              Unduh PDF Lengkap (58 MB)
             </a>
           </div>
         </div>
@@ -217,7 +243,168 @@ export default function StressTestReport() {
           </div>
         </div>
 
-        {/* Filter & Search Bar */}
+        {/* View Mode Switcher */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            padding: '5px',
+            borderRadius: '14px',
+            background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.8)',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+            gap: '6px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('document')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 22px',
+                borderRadius: '10px',
+                border: 'none',
+                background: viewMode === 'document' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
+                color: viewMode === 'document' ? '#ffffff' : (isLight ? '#475569' : '#94a3b8'),
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                boxShadow: viewMode === 'document' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              <FileText size={16} />
+              📑 Mode Dokumen PDF (252 Halaman Online)
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 22px',
+                borderRadius: '10px',
+                border: 'none',
+                background: viewMode === 'grid' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
+                color: viewMode === 'grid' ? '#ffffff' : (isLight ? '#475569' : '#94a3b8'),
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                boxShadow: viewMode === 'grid' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Grid size={16} />
+              🎴 Mode Grid Interaktif (500 Kamar)
+            </button>
+          </div>
+        </div>
+
+        {viewMode === 'document' ? (
+          /* Document Reader Section */
+          <div style={{
+            background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.9)',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.35)',
+            borderRadius: '20px',
+            padding: '1.25rem',
+            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.35)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            marginBottom: '2rem'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              paddingBottom: '12px',
+              borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <div>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 4px 0', color: isLight ? '#0f172a' : '#ffffff' }}>
+                  📑 Pembaca Dokumen PDF 252 Halaman (A4 Landscape • Vektor CAD)
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  Bisa dibaca langsung secara instan di browser/HP tanpa download file 58 MB. Teks &amp; denah 100% vektor SVG tajam.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <a
+                  href={htmlDocumentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    color: '#38bdf8',
+                    padding: '7px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  <ExternalLink size={14} />
+                  Buka Tab Baru (Fullscreen)
+                </a>
+                <a
+                  href={pdfDownloadUrl}
+                  download="KostKu_StressTest_500_Kamar_Tidur_Auto2D.pdf"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    padding: '7px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  <Download size={14} />
+                  Unduh File PDF Asli (58 MB)
+                </a>
+              </div>
+            </div>
+
+            {/* Responsive Iframe Container */}
+            <div style={{
+              position: 'relative',
+              width: '100%',
+              height: '840px',
+              borderRadius: '14px',
+              overflow: 'hidden',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+              background: '#0a0f1d'
+            }}>
+              <iframe
+                src={htmlDocumentUrl}
+                title="KostKu AI Vision - Stress Test 500 Kamar Tidur Auto-2D Benchmark"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block'
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* Filter & Search Bar */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -532,6 +719,8 @@ export default function StressTestReport() {
             Berikutnya <ChevronRight size={16} />
           </button>
         </div>
+          </div>
+        )}
 
       </div>
 
