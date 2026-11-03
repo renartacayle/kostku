@@ -31,6 +31,12 @@
       <stop offset="0%" stop-color="#fef08a" stop-opacity="0.5" />
       <stop offset="100%" stop-color="#fef08a" stop-opacity="0" />
     </radialGradient>
+    <!-- Camera View Frustum Cone Gradient -->
+    <radialGradient id="camera_frustum_365" cx="0%" cy="100%" r="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.32" />
+      <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
+    </radialGradient>
     <!-- Drop Shadow Filter -->
     <filter id="drop_shadow_365" x="-5%" y="-5%" width="115%" height="115%">
       <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.45" />
@@ -87,6 +93,13 @@
   <rect x="167" y="85" width="255" height="290" fill="none" stroke="#1e293b" stroke-width="8" rx="2" />
   <rect x="163" y="81" width="263" height="298" fill="none" stroke="#475569" stroke-width="1" rx="3" />
   <rect x="171" y="89" width="247" height="282" fill="none" stroke="#64748b" stroke-width="1" rx="1" />
+
+  <!-- 📷 ARCHITECTURAL CAMERA VIEW FRUSTUM (Perspective Distortion Visualizer) -->
+  <g id="camera_frustum_cone" opacity="0.85">
+    <polygon points="294,384 178.5,144.4 411.7,145.5" fill="url(#camera_frustum_365)" />
+    <line x1="294" y1="384" x2="178.5" y2="144.4" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
+    <line x1="294" y1="384" x2="411.7" y2="145.5" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
+  </g>
 
   <!-- 🌫️ CAMERA BLIND SPOT (FROSTED ARCHITECTURAL BLUR) -->
   <g id="unsure_zone" opacity="0.95">
@@ -179,6 +192,31 @@
     <circle cx="269" cy="326" r="1.5" fill="#38bdf8" />
   </g>
 
+  <!-- 📷 CAMERA SIGHTLINE RAY & PERSPECTIVE BADGE -->
+  <g id="camera_marker_overlay">
+    <!-- Central Sightline Ray from Camera to Bed Center -->
+    <line x1="294" y1="384" x2="295" y2="168" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.85" />
+    <circle cx="295" cy="168" r="3" fill="#38bdf8" opacity="0.85" />
+    <circle cx="295" cy="168" r="6.5" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.6" />
+
+    <!-- Camera Icon Glyph -->
+    <g transform="translate(294, 384) rotate(0.2652563433759809)">
+      <rect x="-9" y="-6" width="18" height="12" rx="2.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
+      <path d="M -3 -6 L -1.5 -8.5 L 1.5 -8.5 L 3 -6 Z" fill="#38bdf8" />
+      <circle cx="0" cy="0" r="4" fill="#0f172a" stroke="#ffffff" stroke-width="0.9" />
+      <circle cx="0" cy="0" r="1.8" fill="#38bdf8" />
+      <polygon points="0,-10 -2.5,-7 2.5,-7" fill="#38bdf8" />
+    </g>
+
+    <!-- Camera Perspective Angle Badge (positioned neatly beside camera in margin) -->
+    <g transform="translate(174, 375)">
+      <rect width="108" height="18" rx="4" fill="rgba(12, 21, 39, 0.94)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="0.8" />
+      <text x="54" y="12" fill="#38bdf8" font-size="7" font-weight="700" text-anchor="middle" letter-spacing="0.2">
+        📷 SUDUT KAMERA 32°
+      </text>
+    </g>
+  </g>
+
   <!-- ── SWISS ARCHITECTURAL TITLE BLOCK (CARTOUCHE) ── -->
   <g id="title_block" transform="translate(435, 428)">
     <rect x="0" y="0" width="230" height="40" rx="6" fill="rgba(12, 21, 39, 0.96)" stroke="rgba(56, 189, 248, 0.35)" stroke-width="1" />
@@ -186,7 +224,7 @@
       UNIT 815 • 14.0 m²
     </text>
     <text x="10" y="25" fill="#38bdf8" font-size="7.5" font-weight="700">
-      DOUBLE BED (140x200)
+      DOUBLE BED (140x200) • ORIENTASI: TEGAK
     </text>
     <text x="10" y="34" fill="#94a3b8" font-size="6.5" font-weight="500">
       KM LUAR (SHARED) • SKALA 1:50

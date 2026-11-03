@@ -49,6 +49,7 @@ PHOTO_CATALOG = [
         "bed_label": "Single Bed (100x200 cm)",
         "pillows": 1,
         "bed_side": "right",
+        "bed_orientation": "vertical",
         "window_wall": "right",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -73,6 +74,7 @@ PHOTO_CATALOG = [
         "bed_label": "Single Bed (90x200 cm)",
         "pillows": 1,
         "bed_side": "right",
+        "bed_orientation": "horizontal_top",
         "window_wall": "right",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -97,6 +99,7 @@ PHOTO_CATALOG = [
         "bed_label": "Single Bed (100x200 cm)",
         "pillows": 1,
         "bed_side": "center",
+        "bed_orientation": "horizontal_top",
         "window_wall": "top",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -409,6 +412,7 @@ PHOTO_CATALOG = [
         "bed_label": "King Bed (180x200 cm)",
         "pillows": 2,
         "bed_side": "center",
+        "bed_orientation": "horizontal_right",
         "window_wall": "left",
         "has_bathroom": True,
         "bathroom_type": "KM Dalam (Ensuite)",
@@ -433,6 +437,7 @@ PHOTO_CATALOG = [
         "bed_label": "King Bed (180x200 cm)",
         "pillows": 2,
         "bed_side": "center",
+        "bed_orientation": "vertical",
         "window_wall": "top",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -457,6 +462,7 @@ PHOTO_CATALOG = [
         "bed_label": "King Bed (180x200 cm)",
         "pillows": 2,
         "bed_side": "center",
+        "bed_orientation": "horizontal_right",
         "window_wall": "left",
         "has_bathroom": True,
         "bathroom_type": "KM Dalam (Ensuite)",
@@ -575,6 +581,7 @@ def generate_all_room_specs(count=500):
             "bed_label": cat["bed_label"],
             "pillows": cat["pillows"],
             "bed_side": cat["bed_side"],
+            "bed_orientation": cat.get("bed_orientation", "vertical"),
             "window_wall": cat["window_wall"],
             "has_bathroom": cat["has_bathroom"],
             "bathroom_type": cat["bathroom_type"],
@@ -646,6 +653,7 @@ def process_single_room(spec):
     
     cv_features = {
         "bed_side": spec["bed_side"],
+        "bed_orientation": spec.get("bed_orientation", "vertical"),
         "window_wall": spec["window_wall"],
         "blanket_hex": spec["blanket_hex"],
         "blanket_accent": spec["blanket_accent"],
@@ -666,6 +674,7 @@ def process_single_room(spec):
         "area_m2": spec["area_m2"],
         "bed_type": spec["bed_type"],
         "bed_label": spec["bed_label"],
+        "bed_orientation": spec.get("bed_orientation", "vertical"),
         "pillows": spec["pillows"],
         "has_bathroom": spec["has_bathroom"],
         "bathroom_type": spec["bathroom_type"],
@@ -1212,7 +1221,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
               {furn_pills_1}
             </div>
             <div style="font-size: 9.5px; color: #38bdf8; font-weight: 700; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; background: rgba(56, 189, 248, 0.1); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">
-              <span>🎯 Spasial: Kasur <strong>{r1['cv_features']['bed_side'].upper()}</strong> • Jendela <strong>{r1['cv_features']['window_wall'].upper()}</strong></span>
+              <span>🎯 Spasial: Kasur <strong>{r1['cv_features']['bed_side'].upper()} ({r1['cv_features'].get('bed_orientation', 'vertical').upper()})</strong> • Jendela <strong>{r1['cv_features']['window_wall'].upper()}</strong></span>
               <div style="display: flex; gap: 4px; align-items: center;">
                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r1['cv_features']['blanket_hex']}; border: 1px solid #ffffff;" title="Warna Kasur"></span>
                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r1['cv_features']['floor_hex']}; border: 1px solid #ffffff;" title="Warna Lantai"></span>
@@ -1257,7 +1266,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
               {furn_pills_2}
             </div>
             <div style="font-size: 9.5px; color: #38bdf8; font-weight: 700; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; background: rgba(56, 189, 248, 0.1); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">
-              <span>🎯 Spasial: Kasur <strong>{r2['cv_features']['bed_side'].upper()}</strong> • Jendela <strong>{r2['cv_features']['window_wall'].upper()}</strong></span>
+              <span>🎯 Spasial: Kasur <strong>{r2['cv_features']['bed_side'].upper()} ({r2['cv_features'].get('bed_orientation', 'vertical').upper()})</strong> • Jendela <strong>{r2['cv_features']['window_wall'].upper()}</strong></span>
               <div style="display: flex; gap: 4px; align-items: center;">
                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r2['cv_features']['blanket_hex']}; border: 1px solid #ffffff;" title="Warna Kasur"></span>
                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r2['cv_features']['floor_hex']}; border: 1px solid #ffffff;" title="Warna Lantai"></span>
@@ -1366,6 +1375,9 @@ def main():
     
     print("\n[Step 4/5] Compiling 252-page HTML report documents...")
     generate_html_report(results, REPORT_HTML, is_standalone_web=False)
+    generate_html_report(results, os.path.join("public", "stress-test-document.html"), is_standalone_web=True)
+    generate_html_report(results, os.path.join("public", "report.html"), is_standalone_web=True)
+    shutil.copy2(REPORT_HTML, PUBLIC_REPORT_HTML)
     html_size_mb = os.path.getsize(REPORT_HTML) / (1024 * 1024)
     print(f"-> Generated PDF HTML report: {REPORT_HTML} ({html_size_mb:.2f} MB)")
     

@@ -973,6 +973,20 @@ export default function StressTestReport() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: isMobile ? '0.74rem' : '0.78rem', color: isLight ? '#475569' : '#cbd5e1' }}>
                           Kasur: <strong style={{ color: '#38bdf8' }}>{room.bed_label}</strong>
+                          {room.bed_orientation && (
+                            <span style={{
+                              marginLeft: '6px',
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              background: room.bed_orientation.startsWith('horizontal') ? 'rgba(234, 179, 8, 0.18)' : 'rgba(56, 189, 248, 0.12)',
+                              color: room.bed_orientation.startsWith('horizontal') ? '#facc15' : '#38bdf8',
+                              border: room.bed_orientation.startsWith('horizontal') ? '1px solid rgba(234, 179, 8, 0.35)' : '1px solid rgba(56, 189, 248, 0.25)'
+                            }}>
+                              {room.bed_orientation.startsWith('horizontal') ? '↔ HORIZONTAL' : '↕ TEGAK'}
+                            </span>
+                          )}
                         </span>
                         
                         {/* Extracted Color Palette Dots */}
@@ -1181,6 +1195,20 @@ export default function StressTestReport() {
                 </div>
                 <p style={{ margin: '3px 0 0', fontSize: isMobile ? '0.76rem' : '0.85rem', color: '#94a3b8' }}>
                   {selectedRoomModal.type_name} • <strong>{selectedRoomModal.dimensions} ({selectedRoomModal.area_m2} m²)</strong> • {selectedRoomModal.bathroom_type}
+                  {selectedRoomModal.bed_orientation && (
+                    <span style={{
+                      marginLeft: '8px',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: selectedRoomModal.bed_orientation.startsWith('horizontal') ? 'rgba(234, 179, 8, 0.18)' : 'rgba(56, 189, 248, 0.15)',
+                      color: selectedRoomModal.bed_orientation.startsWith('horizontal') ? '#facc15' : '#38bdf8',
+                      border: selectedRoomModal.bed_orientation.startsWith('horizontal') ? '1px solid rgba(234, 179, 8, 0.35)' : '1px solid rgba(56, 189, 248, 0.3)'
+                    }}>
+                      {selectedRoomModal.bed_orientation.startsWith('horizontal') ? '↔ KASUR HORIZONTAL' : '↕ KASUR TEGAK'}
+                    </span>
+                  )}
                 </p>
               </div>
 

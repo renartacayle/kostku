@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import math
 from concurrent.futures import ThreadPoolExecutor
 
 def render_luxury_cad_svg(spec):
@@ -10,6 +11,7 @@ def render_luxury_cad_svg(spec):
     furnitures = spec["furnitures"]
     bed_type = spec["bed_type"]
     bed_side = spec.get("bed_side") or spec.get("cv_features", {}).get("bed_side", "center")
+    bed_orient = spec.get("bed_orientation") or spec.get("cv_features", {}).get("bed_orientation", "vertical")
     window_wall = spec.get("window_wall") or spec.get("cv_features", {}).get("window_wall", "top")
     room_number = spec["room_number"]
     pillows = int(spec["pillows"])
@@ -64,89 +66,137 @@ def render_luxury_cad_svg(spec):
     else:
         bm_x, bm_y, bm_w, bm_h = -999, -999, 0, 0
 
-    # ── BED PLACEMENT (ARCHITECTURAL DRAFTING STANDARD) ──
-    # Double, Queen, and King beds accommodate 2 persons and MUST be centered along the headboard wall
-    # with bilateral clearance and dual bedside tables (nakas) on BOTH sides.
-    is_double_or_larger = bed_type in ["double", "queen", "king"] or pillows >= 2
-    
-    if is_double_or_larger or bed_side == 'center':
-        if has_bm:
-            # Bed is centered within the usable sleeping wall span to the right of the bathroom
-            usable_span = rw - bm_w
-            bx = round(rx + bm_w + (usable_span - bw) / 2)
-            by = ry + 8
-            # Symmetrical bilateral clearance
-            c_left = bx - (rx + bm_w)
-            c_right = (rx + rw) - (bx + bw)
-            nw = 22
-            # Dual nakas centered in left and right clearances
-            nx_left = round((rx + bm_w) + max(2, (c_left - nw) / 2))
-            nx_right = round((bx + bw) + max(2, (c_right - nw) / 2))
-            nakas_items = [(nx_left, by + 2), (nx_right, by + 2)]
-        else:
-            # Bed is centered along the entire headboard wall
-            clearance = (rw - bw) / 2
-            bx = round(rx + clearance)
-            by = ry + 8
-            # Dual nakas with generous outer walkway
-            nx_left = max(rx + 6, bx - 26)
-            nx_right = min(rx + rw - 28, bx + bw + 4)
-            nakas_items = [(nx_left, by + 2), (nx_right, by + 2)]
-    elif bed_side == 'left':
-        # Single bed tucked into left wall (compact dorm style)
-        bx = rx + 8
-        by = ry + 8
-        nakas_items = [(bx + bw + 4, by + 2)]
-    else:  # right
-        # Single bed tucked into right wall (compact dorm style)
-        bx = rx + rw - bw - 8
-        by = ry + 8
-        nakas_items = [(bx - 26, by + 2)]
-        
-    rug_x = bx - 8
-    rug_y = by + 25
-    rug_w = bw + 16
-    rug_h = bl + 10
-    
-    # ── WARDROBE (LEMARI) & WORK DESK ──
+    # Common furniture dimensions
     ww = min(round(1.15 * SCALE), round(rw * 0.32))
     wh = round(0.55 * SCALE)
     dw = min(round(1.05 * SCALE), round(rw * 0.30))
     dh = round(0.55 * SCALE)
-    
-    if not has_bm:
-        if window_wall == 'left':
-            desk_x = rx + 8
-            desk_y = ry + rh - dh - 8
-            wardrobe_x = rx + rw - ww - 8
-            wardrobe_y = ry + rh - wh - 8
-        else:
-            wardrobe_x = rx + 8
-            wardrobe_y = ry + rh - wh - 8
-            desk_x = rx + rw - dw - 8
-            desk_y = ry + rh - dh - 8
-    else:
-        # With ensuite bathroom at top-left:
-        if window_wall == 'left':
-            desk_x = rx + 8
-            desk_y = ry + rh - dh - 8
-            wardrobe_x = rx + rw - ww - 8
-            wardrobe_y = ry + rh - wh - 8
-        else:
-            wardrobe_x = rx + 8
-            wardrobe_y = ry + rh - wh - 8
-            desk_x = rx + rw - dw - 8
-            desk_y = ry + rh - dh - 8
-            
-    # ── MINI FRIDGE ──
     fw = round(0.50 * SCALE)
     fh = round(0.50 * SCALE)
-    if has_bm:
-        fridge_x = rx + 8
-        fridge_y = ry + bm_h + 10
-    else:
+
+    # ── BED ORIENTATION & PLACEMENT LOGIC ──
+    if bed_orient == "horizontal_top":
+        # Bed lengthwise along top wall (daybed dorm style, Rooms 2 & 3)
+        bed_span_x = bl
+        bed_depth_y = bw
+        by = ry + 8
+        if bed_side == "right":
+            bx = rx + rw - bed_span_x - 8
+            nakas_items = []  # Single bed sits against wall; wardrobe on left
+            # Wardrobe along left wall vertically
+            ww = round(0.55 * SCALE)
+            wh = min(round(1.05 * SCALE), round(rh * 0.35))
+            wardrobe_x = rx + 8
+            wardrobe_y = ry + 8
+            desk_x = rx + 8
+            desk_y = ry + rh - dh - 8
+        elif bed_side == "center":
+            bx = round(rx + (rw - bed_span_x) / 2)
+            nakas_items = [(rx + 4, by + 4)]
+            desk_x = rx + rw - dw - 8
+            desk_y = ry + rh - dh - 8
+            wardrobe_x = rx + 8
+            wardrobe_y = ry + rh - wh - 8
+        else:
+            bx = rx + 8
+            nakas_items = [(bx + bed_span_x + 4, by + 4)]
+            wardrobe_x = rx + rw - ww - 8
+            wardrobe_y = ry + 8
+            desk_x = rx + rw - dw - 8
+            desk_y = ry + rh - dh - 8
+
+        rug_x = bx - 6
+        rug_y = by + 6
+        rug_w = bed_span_x + 12
+        rug_h = bed_depth_y + 16
         fridge_x = rx + 8 if desk_x > rx + 50 else rx + rw - fw - 8
         fridge_y = ry + round(rh / 2) - 10
+
+    elif bed_orient == "horizontal_right":
+        # Bed headboard on right wall, extending horizontally west into room (VIP King Suites 16 & 18)
+        bed_span_x = bl
+        bed_depth_y = bw
+        bx = rx + rw - 8 - bed_span_x
+        by = round(ry + (rh - bed_depth_y) / 2)
+        nakas_items = [(rx + rw - 28, by - 26), (rx + rw - 28, by + bed_depth_y + 4)]
+        rug_x = bx - 26
+        rug_y = by - 8
+        rug_w = bed_span_x + 28
+        rug_h = bed_depth_y + 16
+        # Desk is on the left wall under the window
+        desk_x = rx + 8
+        desk_y = ry + bm_h + 16
+        dw = round(0.55 * SCALE)
+        dh = min(round(1.05 * SCALE), round(rh * 0.28))
+        # Wardrobe is along bottom-left wall
+        wardrobe_x = rx + 8
+        wardrobe_y = ry + rh - wh - 8
+        fridge_x = rx + 8
+        fridge_y = desk_y + dh + 10
+
+    else:
+        # Standard Vertical Bed (Headboard on top wall, pointing south)
+        bed_span_x = bw
+        bed_depth_y = bl
+        is_double_or_larger = bed_type in ["double", "queen", "king"] or pillows >= 2
+        
+        if is_double_or_larger or bed_side == 'center':
+            if has_bm:
+                usable_span = rw - bm_w
+                bx = round(rx + bm_w + (usable_span - bw) / 2)
+                by = ry + 8
+                c_left = bx - (rx + bm_w)
+                c_right = (rx + rw) - (bx + bw)
+                nw = 22
+                nx_left = round((rx + bm_w) + max(2, (c_left - nw) / 2))
+                nx_right = round((bx + bw) + max(2, (c_right - nw) / 2))
+                nakas_items = [(nx_left, by + 2), (nx_right, by + 2)]
+            else:
+                clearance = (rw - bw) / 2
+                bx = round(rx + clearance)
+                by = ry + 8
+                nx_left = max(rx + 6, bx - 26)
+                nx_right = min(rx + rw - 28, bx + bw + 4)
+                nakas_items = [(nx_left, by + 2), (nx_right, by + 2)]
+        elif bed_side == 'left':
+            bx = rx + 8
+            by = ry + 8
+            nakas_items = [(bx + bw + 4, by + 2)]
+        else:  # right
+            bx = rx + rw - bw - 8
+            by = ry + 8
+            nakas_items = [(bx - 26, by + 2)]
+            
+        rug_x = bx - 8
+        rug_y = by + 25
+        rug_w = bw + 16
+        rug_h = bl + 10
+        
+        if not has_bm:
+            if window_wall == 'left':
+                desk_x = rx + 8
+                desk_y = ry + rh - dh - 8
+                wardrobe_x = rx + rw - ww - 8
+                wardrobe_y = ry + rh - wh - 8
+            else:
+                wardrobe_x = rx + 8
+                wardrobe_y = ry + rh - wh - 8
+                desk_x = rx + rw - dw - 8
+                desk_y = ry + rh - dh - 8
+        else:
+            if window_wall == 'left':
+                desk_x = rx + 8
+                desk_y = ry + rh - dh - 8
+                wardrobe_x = rx + rw - ww - 8
+                wardrobe_y = ry + rh - wh - 8
+            else:
+                wardrobe_x = rx + 8
+                wardrobe_y = ry + rh - wh - 8
+                desk_x = rx + rw - dw - 8
+                desk_y = ry + rh - dh - 8
+                
+        fridge_x = rx + 8 if (not has_bm and desk_x > rx + 50) else (rx + 8 if has_bm else rx + rw - fw - 8)
+        fridge_y = ry + bm_h + 10 if has_bm else ry + round(rh / 2) - 10
     
     # ── MAIN DOORWAY ──
     door_w = round(0.85 * SCALE)
@@ -171,7 +221,31 @@ def render_luxury_cad_svg(spec):
     else:
         uz_x, uz_y, uz_w, uz_h = 0, 0, 0, 0
         
+    # ── CAMERA PERSPECTIVE MATH & VIEW FRUSTUM ──
+    bed_cx = bx + round(bed_span_x / 2)
+    bed_cy = by + round(bed_depth_y / 2)
+    
+    # Camera standing point: entrance doorway foyer threshold (the authentic wide-angle shooting spot)
+    cam_x = door_x + round(door_w / 2)
+    cam_y = ry + rh + 14
+
+    cdx = bed_cx - cam_x
+    cdy = bed_cy - cam_y
+    cdist = math.hypot(cdx, cdy)
+    cdeg = math.degrees(math.atan2(cdy, cdx))
+    tilt_angle = max(32, min(48, round(abs(math.degrees(math.atan2(abs(cdx), abs(cdy)))))))
+
+    fov_half = 26.0
+    fov_len = min(cdist + 55, max(rw, rh) * 0.95)
+    ang_l = cdeg - fov_half
+    ang_r = cdeg + fov_half
+    xl = cam_x + fov_len * math.cos(math.radians(ang_l))
+    yl = cam_y + fov_len * math.sin(math.radians(ang_l))
+    xr = cam_x + fov_len * math.cos(math.radians(ang_r))
+    yr = cam_y + fov_len * math.sin(math.radians(ang_r))
+
     km_label = "KM DALAM (ENSUITE)" if has_bm else "KM LUAR (SHARED)"
+    orient_label = "ORIENTASI: HORIZONTAL" if bed_orient.startswith("horizontal") else "ORIENTASI: TEGAK"
 
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {CANVAS_W} {CANVAS_H}" width="100%" height="100%" style="background:#090e17; border-radius:14px; font-family:'Inter',system-ui,-apple-system,sans-serif;">
   <defs>
@@ -205,6 +279,12 @@ def render_luxury_cad_svg(spec):
     <radialGradient id="lamp_glow_{uid}">
       <stop offset="0%" stop-color="#fef08a" stop-opacity="0.5" />
       <stop offset="100%" stop-color="#fef08a" stop-opacity="0" />
+    </radialGradient>
+    <!-- Camera View Frustum Cone Gradient -->
+    <radialGradient id="camera_frustum_{uid}" cx="0%" cy="100%" r="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.32" />
+      <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
     </radialGradient>
     <!-- Drop Shadow Filter -->
     <filter id="drop_shadow_{uid}" x="-5%" y="-5%" width="115%" height="115%">
@@ -262,6 +342,13 @@ def render_luxury_cad_svg(spec):
   <rect x="{rx - 5}" y="{ry - 5}" width="{rw + 10}" height="{rh + 10}" fill="none" stroke="#1e293b" stroke-width="8" rx="2" />
   <rect x="{rx - 9}" y="{ry - 9}" width="{rw + 18}" height="{rh + 18}" fill="none" stroke="#475569" stroke-width="1" rx="3" />
   <rect x="{rx - 1}" y="{ry - 1}" width="{rw + 2}" height="{rh + 2}" fill="none" stroke="#64748b" stroke-width="1" rx="1" />
+
+  <!-- 📷 ARCHITECTURAL CAMERA VIEW FRUSTUM (Perspective Distortion Visualizer) -->
+  <g id="camera_frustum_cone" opacity="0.85">
+    <polygon points="{cam_x},{cam_y} {xl:.1f},{yl:.1f} {xr:.1f},{yr:.1f}" fill="url(#camera_frustum_{uid})" />
+    <line x1="{cam_x}" y1="{cam_y}" x2="{xl:.1f}" y2="{yl:.1f}" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
+    <line x1="{cam_x}" y1="{cam_y}" x2="{xr:.1f}" y2="{yr:.1f}" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
+  </g>
 """
 
     # ── ENSUITE BATHROOM (KM DALAM) ──
@@ -318,7 +405,76 @@ def render_luxury_cad_svg(spec):
 """
 
     # ── BED CAD UNIT (PHYSICALLY PROPORTIONAL) ──
-    svg += f"""
+    if bed_orient == "horizontal_top":
+        svg += f"""
+  <!-- 🛏️ BED CAD BLOCK (Horizontal Daybed along Back Wall) -->
+  <g id="bed_unit" filter="url(#drop_shadow_{uid})">
+    <!-- Solid Wood Headboard on Left Wall -->
+    <rect x="{bx - 6}" y="{by}" width="8" height="{bed_depth_y}" rx="2" fill="#3b271d" stroke="#78350f" stroke-width="1" />
+    <circle cx="{bx - 2}" cy="{by + round(bed_depth_y/2)}" r="10" fill="url(#lamp_glow_{uid})" />
+    <circle cx="{bx - 2}" cy="{by + round(bed_depth_y/2)}" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
+
+    <!-- White Mattress Sheet Base -->
+    <rect x="{bx + 2}" y="{by}" width="{bed_span_x - 2}" height="{bed_depth_y}" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+
+    <!-- Duvet with Exact Photo Blanket Hex -->
+    <rect x="{bx + 34}" y="{by + 2}" width="{bed_span_x - 36}" height="{bed_depth_y - 4}" rx="3" fill="{blanket_hex}" stroke="rgba(0,0,0,0.15)" stroke-width="0.8" />
+    
+    <!-- Turnback Line -->
+    <path d="M {bx + 34} {by + 2} Q {bx + 40} {by + round(bed_depth_y/2)} {bx + 34} {by + bed_depth_y - 2}" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
+    
+    <!-- Accent Bed Runner at Foot (East) -->
+    <rect x="{bx + bed_span_x - 24}" y="{by + 2}" width="22" height="{bed_depth_y - 4}" fill="{blanket_accent}" opacity="0.88" />
+    <line x1="{bx + bed_span_x - 24}" y1="{by + 2}" x2="{bx + bed_span_x - 24}" y2="{by + bed_depth_y - 2}" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
+
+    <!-- Single Hotel Pillow on Left -->
+    <rect x="{bx + 6}" y="{by + round((bed_depth_y - 36)/2)}" width="22" height="36" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+    <path d="M {bx + 17} {by + round((bed_depth_y - 36)/2) + 6} Q {bx + 20} {by + round(bed_depth_y/2)} {bx + 17} {by + round((bed_depth_y - 36)/2) + 30}" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
+  </g>
+"""
+    elif bed_orient == "horizontal_right":
+        bench_svg = ""
+        if spec.get("catalog_id") == 18 or "VIP" in spec.get("type_name", ""):
+            bench_svg = f"""
+    <!-- Upholstered Foot Bench -->
+    <rect x="{bx - 20}" y="{by + 14}" width="14" height="{bed_depth_y - 28}" rx="3" fill="#1e3a8a" stroke="#d97706" stroke-width="1" />
+    <line x1="{bx - 13}" y1="{by + 20}" x2="{bx - 13}" y2="{by + bed_depth_y - 20}" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="2 2" />
+"""
+        svg += f"""
+  <!-- 🛏️ BED CAD BLOCK (King Suite Bed along Right Wall) -->
+  <g id="bed_unit" filter="url(#drop_shadow_{uid})">
+    <!-- Solid Wood Headboard on Right Wall -->
+    <rect x="{rx + rw - 6}" y="{by}" width="8" height="{bed_depth_y}" rx="2" fill="#3b271d" stroke="#78350f" stroke-width="1" />
+    <circle cx="{rx + rw - 2}" cy="{by + 18}" r="12" fill="url(#lamp_glow_{uid})" />
+    <circle cx="{rx + rw - 2}" cy="{by + bed_depth_y - 18}" r="12" fill="url(#lamp_glow_{uid})" />
+    <circle cx="{rx + rw - 2}" cy="{by + 18}" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
+    <circle cx="{rx + rw - 2}" cy="{by + bed_depth_y - 18}" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
+
+    <!-- White Mattress Sheet Base -->
+    <rect x="{bx}" y="{by + 2}" width="{bed_span_x - 2}" height="{bed_depth_y - 4}" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+
+    <!-- Duvet with Exact Photo Blanket Hex (extending from foot on west) -->
+    <rect x="{bx + 2}" y="{by + 4}" width="{bed_span_x - 42}" height="{bed_depth_y - 8}" rx="3" fill="{blanket_hex}" stroke="rgba(0,0,0,0.15)" stroke-width="0.8" />
+    
+    <!-- Turnback Line -->
+    <path d="M {bx + bed_span_x - 42} {by + 4} Q {bx + bed_span_x - 48} {by + round(bed_depth_y/2)} {bx + bed_span_x - 42} {by + bed_depth_y - 4}" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
+    
+    <!-- Accent Bed Runner at Foot (West) -->
+    <rect x="{bx + 6}" y="{by + 4}" width="22" height="{bed_depth_y - 8}" fill="{blanket_accent}" opacity="0.88" />
+    <line x1="{bx + 28}" y1="{by + 4}" x2="{bx + 28}" y2="{by + bed_depth_y - 4}" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
+
+    <!-- Dual Hotel Pillows against Right Wall -->
+    <rect x="{bx + bed_span_x - 30}" y="{by + 10}" width="22" height="{min(42, (bed_depth_y - 28) // 2)}" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+    <path d="M {bx + bed_span_x - 19} {by + 16} Q {bx + bed_span_x - 16} {by + 10 + min(42, (bed_depth_y - 28) // 2)/2} {bx + bed_span_x - 19} {by + 10 + min(42, (bed_depth_y - 28) // 2) - 6}" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
+
+    <rect x="{bx + bed_span_x - 30}" y="{by + bed_depth_y - 10 - min(42, (bed_depth_y - 28) // 2)}" width="22" height="{min(42, (bed_depth_y - 28) // 2)}" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+    <path d="M {bx + bed_span_x - 19} {by + bed_depth_y - min(42, (bed_depth_y - 28) // 2) - 4} Q {bx + bed_span_x - 16} {by + bed_depth_y - 10 - min(42, (bed_depth_y - 28) // 2)/2} {bx + bed_span_x - 19} {by + bed_depth_y - 16}" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
+
+    {bench_svg}
+  </g>
+"""
+    else:
+        svg += f"""
   <!-- 🛏️ BED CAD BLOCK (True Scale to Room) -->
   <g id="bed_unit" filter="url(#drop_shadow_{uid})">
     <!-- Solid Wood Headboard -->
@@ -343,17 +499,16 @@ def render_luxury_cad_svg(spec):
     <rect x="{bx + 2}" y="{by + bl - 32}" width="{bw - 4}" height="24" fill="{blanket_accent}" opacity="0.88" />
     <line x1="{bx + 2}" y1="{by + bl - 32}" x2="{bx + bw - 2}" y2="{by + bl - 32}" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
 """
-
-    # Pillows
-    if pillows == 1:
-        svg += f"""
+        # Pillows
+        if pillows == 1:
+            svg += f"""
     <!-- Single Pillow -->
     <rect x="{bx + (bw//2) - 22}" y="{by + 6}" width="44" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
     <path d="M {bx + (bw//2) - 15} {by + 18} Q {bx + (bw//2)} {by + 21} {bx + (bw//2) + 15} {by + 18}" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
 """
-    else:
-        pw = min(42, (bw - 18) // 2)
-        svg += f"""
+        else:
+            pw = min(42, (bw - 18) // 2)
+            svg += f"""
     <!-- Dual Hotel Pillows -->
     <rect x="{bx + 6}" y="{by + 6}" width="{pw}" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
     <path d="M {bx + 12} {by + 18} Q {bx + 6 + pw/2} {by + 21} {bx + pw} {by + 18}" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
@@ -361,8 +516,7 @@ def render_luxury_cad_svg(spec):
     <rect x="{bx + bw - 6 - pw}" y="{by + 6}" width="{pw}" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
     <path d="M {bx + bw - pw} {by + 18} Q {bx + bw - 6 - pw/2} {by + 21} {bx + bw - 12} {by + 18}" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
 """
-
-    svg += "  </g>\n"
+        svg += "  </g>\n"
 
     # Bedside Tables (Nakas)
     for nx, ny in nakas_items:
@@ -388,6 +542,22 @@ def render_luxury_cad_svg(spec):
 
     # ── WORK DESK & CHAIR ──
     if has_desk:
+        if bed_orient == "horizontal_right":
+            chair_cx = desk_x + dw + 11
+            chair_cy = desk_y + round(dh / 2)
+            chair_svg = f"""
+    <!-- Ergonomic Chair (facing desk on left wall) -->
+    <ellipse cx="{chair_cx}" cy="{chair_cy}" rx="8" ry="11" fill="#334155" stroke="#94a3b8" stroke-width="1" />
+    <path d="M {chair_cx + 4} {chair_cy - 10} Q {chair_cx + 7} {chair_cy} {chair_cx + 4} {chair_cy + 10}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+"""
+        else:
+            chair_cx = desk_x + round(dw / 2)
+            chair_cy = desk_y + dh + 10
+            chair_svg = f"""
+    <!-- Ergonomic Chair -->
+    <ellipse cx="{chair_cx}" cy="{chair_cy}" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
+    <path d="M {chair_cx - 10} {chair_cy + 4} Q {chair_cx} {chair_cy + 7} {chair_cx + 10} {chair_cy + 4}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+"""
         svg += f"""
   <!-- 🖥️ WORK DESK & ERGONOMIC CHAIR (Scaled) -->
   <g id="desk_setup" filter="url(#drop_shadow_{uid})">
@@ -395,16 +565,14 @@ def render_luxury_cad_svg(spec):
     <!-- Laptop -->
     <rect x="{desk_x + dw/2 - 12}" y="{desk_y + 6}" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
     <rect x="{desk_x + dw/2 - 10}" y="{desk_y + 8}" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
-    <!-- Ergonomic Chair -->
-    <ellipse cx="{desk_x + dw/2}" cy="{desk_y + dh + 10}" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
-    <path d="M {desk_x + dw/2 - 10} {desk_y + dh + 14} Q {desk_x + dw/2} {desk_y + dh + 17} {desk_x + dw/2 + 10} {desk_y + dh + 14}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+    {chair_svg}
   </g>
 """
 
     # ── AC UNIT ──
     if has_ac:
         ac_w = 58
-        ac_x = bx + round(bw / 2) - 29
+        ac_x = bx + round(bed_span_x / 2) - 29
         svg += f"""
   <!-- ❄️ AC UNIT -->
   <g id="ac_unit">
@@ -461,6 +629,31 @@ def render_luxury_cad_svg(spec):
     <circle cx="{door_x + 5}" cy="{door_y - (door_w - 16)}" r="1.5" fill="#38bdf8" />
   </g>
 
+  <!-- 📷 CAMERA SIGHTLINE RAY & PERSPECTIVE BADGE -->
+  <g id="camera_marker_overlay">
+    <!-- Central Sightline Ray from Camera to Bed Center -->
+    <line x1="{cam_x}" y1="{cam_y}" x2="{bed_cx}" y2="{bed_cy}" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.85" />
+    <circle cx="{bed_cx}" cy="{bed_cy}" r="3" fill="#38bdf8" opacity="0.85" />
+    <circle cx="{bed_cx}" cy="{bed_cy}" r="6.5" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.6" />
+
+    <!-- Camera Icon Glyph -->
+    <g transform="translate({cam_x}, {cam_y}) rotate({cdeg + 90})">
+      <rect x="-9" y="-6" width="18" height="12" rx="2.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
+      <path d="M -3 -6 L -1.5 -8.5 L 1.5 -8.5 L 3 -6 Z" fill="#38bdf8" />
+      <circle cx="0" cy="0" r="4" fill="#0f172a" stroke="#ffffff" stroke-width="0.9" />
+      <circle cx="0" cy="0" r="1.8" fill="#38bdf8" />
+      <polygon points="0,-10 -2.5,-7 2.5,-7" fill="#38bdf8" />
+    </g>
+
+    <!-- Camera Perspective Angle Badge (positioned neatly beside camera in margin) -->
+    <g transform="translate({cam_x - 120}, {cam_y - 9})">
+      <rect width="108" height="18" rx="4" fill="rgba(12, 21, 39, 0.94)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="0.8" />
+      <text x="54" y="12" fill="#38bdf8" font-size="7" font-weight="700" text-anchor="middle" letter-spacing="0.2">
+        📷 SUDUT KAMERA {tilt_angle}°
+      </text>
+    </g>
+  </g>
+
   <!-- ── SWISS ARCHITECTURAL TITLE BLOCK (CARTOUCHE) ── -->
   <g id="title_block" transform="translate({CANVAS_W - 245}, {CANVAS_H - 52})">
     <rect x="0" y="0" width="230" height="40" rx="6" fill="rgba(12, 21, 39, 0.96)" stroke="rgba(56, 189, 248, 0.35)" stroke-width="1" />
@@ -468,7 +661,7 @@ def render_luxury_cad_svg(spec):
       UNIT {room_number} • {area_m2:.1f} m²
     </text>
     <text x="10" y="25" fill="#38bdf8" font-size="7.5" font-weight="700">
-      {bcfg['label']}
+      {bcfg['label']} • {orient_label}
     </text>
     <text x="10" y="34" fill="#94a3b8" font-size="6.5" font-weight="500">
       {km_label} • SKALA 1:50
