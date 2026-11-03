@@ -103,76 +103,83 @@
   </g>
 
   <!-- Area Rug -->
-  <rect x="158" y="109" width="128" height="150" rx="6" fill="rgba(255, 255, 255, 0.04)" stroke="rgba(148, 163, 184, 0.18)" stroke-width="0.8" stroke-dasharray="3 2" />
+  <rect x="230" y="109" width="128" height="150" rx="6" fill="rgba(255, 255, 255, 0.04)" stroke="rgba(148, 163, 184, 0.18)" stroke-width="0.8" stroke-dasharray="3 2" />
 
   <!-- 🛏️ BED CAD BLOCK (True Scale to Room) -->
   <g id="bed_unit" filter="url(#drop_shadow_372)">
     <!-- Solid Wood Headboard -->
-    <rect x="166" y="78" width="112" height="8" rx="2" fill="#3b271d" stroke="#78350f" stroke-width="1" />
+    <rect x="238" y="78" width="112" height="8" rx="2" fill="#3b271d" stroke="#78350f" stroke-width="1" />
     
     <!-- Reading Lamp Spots -->
-    <circle cx="178" cy="82" r="12" fill="url(#lamp_glow_372)" />
-    <circle cx="266" cy="82" r="12" fill="url(#lamp_glow_372)" />
-    <circle cx="178" cy="82" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
-    <circle cx="266" cy="82" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
+    <circle cx="250" cy="82" r="12" fill="url(#lamp_glow_372)" />
+    <circle cx="338" cy="82" r="12" fill="url(#lamp_glow_372)" />
+    <circle cx="250" cy="82" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
+    <circle cx="338" cy="82" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
 
     <!-- White Mattress Sheet Base -->
-    <rect x="168" y="84" width="108" height="140" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+    <rect x="240" y="84" width="108" height="140" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
 
     <!-- Duvet with Exact Photo Blanket Hex -->
-    <rect x="168" y="128" width="108" height="94" rx="3" fill="#f8fafc" stroke="rgba(0,0,0,0.15)" stroke-width="0.8" />
+    <rect x="240" y="128" width="108" height="94" rx="3" fill="#f8fafc" stroke="rgba(0,0,0,0.15)" stroke-width="0.8" />
     
     <!-- Turnback Line -->
-    <path d="M 168 128 Q 222.0 134 276 128" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M 240 128 Q 294.0 134 348 128" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
     
     <!-- Accent Bed Runner -->
-    <rect x="168" y="192" width="108" height="24" fill="#15803d" opacity="0.88" />
-    <line x1="168" y1="192" x2="276" y2="192" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
+    <rect x="240" y="192" width="108" height="24" fill="#15803d" opacity="0.88" />
+    <line x1="240" y1="192" x2="348" y2="192" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
 
     <!-- Dual Hotel Pillows -->
-    <rect x="172" y="90" width="42" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
-    <path d="M 178 102 Q 193.0 105 208 102" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
+    <rect x="244" y="90" width="42" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+    <path d="M 250 102 Q 265.0 105 280 102" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
     
-    <rect x="230" y="90" width="42" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
-    <path d="M 236 102 Q 251.0 105 266 102" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
+    <rect x="302" y="90" width="42" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+    <path d="M 308 102 Q 323.0 105 338 102" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
   </g>
 
   <!-- Bedside Nakas -->
   <g filter="url(#drop_shadow_372)">
-    <rect x="284" y="86" width="22" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
-    <circle cx="295" cy="97" r="4.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" opacity="0.85" />
-    <circle cx="295" cy="97" r="1.5" fill="#d97706" />
+    <rect x="212" y="86" width="22" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="223" cy="97" r="4.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" opacity="0.85" />
+    <circle cx="223" cy="97" r="1.5" fill="#d97706" />
+  </g>
+
+  <!-- Bedside Nakas -->
+  <g filter="url(#drop_shadow_372)">
+    <rect x="354" y="86" width="22" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="365" cy="97" r="4.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" opacity="0.85" />
+    <circle cx="365" cy="97" r="1.5" fill="#d97706" />
   </g>
 
   <!-- 🚪 WARDROBE (Scaled) -->
   <g id="wardrobe" filter="url(#drop_shadow_372)">
-    <rect x="343" y="338" width="80" height="38" rx="2" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
-    <line x1="349" y1="357.0" x2="417" y2="357.0" stroke="#64748b" stroke-width="1" stroke-dasharray="2 2" />
-    <line x1="383.0" y1="338" x2="383.0" y2="376" stroke="#38bdf8" stroke-width="1.2" />
+    <rect x="166" y="338" width="80" height="38" rx="2" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
+    <line x1="172" y1="357.0" x2="240" y2="357.0" stroke="#64748b" stroke-width="1" stroke-dasharray="2 2" />
+    <line x1="206.0" y1="338" x2="206.0" y2="376" stroke="#38bdf8" stroke-width="1.2" />
   </g>
 
   <!-- 🖥️ WORK DESK & ERGONOMIC CHAIR (Scaled) -->
   <g id="desk_setup" filter="url(#drop_shadow_372)">
-    <rect x="349" y="84" width="74" height="38" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
+    <rect x="349" y="338" width="74" height="38" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
     <!-- Laptop -->
-    <rect x="374.0" y="90" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
-    <rect x="376.0" y="92" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
+    <rect x="374.0" y="344" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
+    <rect x="376.0" y="346" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
     <!-- Ergonomic Chair -->
-    <ellipse cx="386.0" cy="132" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
-    <path d="M 376.0 136 Q 386.0 139 396.0 136" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+    <ellipse cx="386.0" cy="386" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
+    <path d="M 376.0 390 Q 386.0 393 396.0 390" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
   </g>
 
   <!-- ❄️ AC UNIT -->
   <g id="ac_unit">
-    <rect x="193" y="77" width="58" height="10" rx="2" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2" />
-    <line x1="198" y1="84" x2="246" y2="84" stroke="#cbd5e1" stroke-width="1" />
-    <circle cx="245" cy="81" r="1" fill="#22c55e" />
+    <rect x="265" y="77" width="58" height="10" rx="2" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2" />
+    <line x1="270" y1="84" x2="318" y2="84" stroke="#cbd5e1" stroke-width="1" />
+    <circle cx="317" cy="81" r="1" fill="#22c55e" />
   </g>
 
   <!-- 🧊 MINI FRIDGE -->
   <g id="fridge" filter="url(#drop_shadow_372)">
-    <rect x="388" y="230" width="35" height="35" rx="2" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
-    <line x1="419" y1="236" x2="419" y2="259" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" />
+    <rect x="166" y="220" width="35" height="35" rx="2" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
+    <line x1="197" y1="226" x2="197" y2="249" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" />
   </g>
 
   <!-- 🪟 WINDOW (RIGHT WALL) -->

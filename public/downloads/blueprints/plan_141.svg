@@ -143,13 +143,13 @@
 
   <!-- 🖥️ WORK DESK & ERGONOMIC CHAIR (Scaled) -->
   <g id="desk_setup" filter="url(#drop_shadow_141)">
-    <rect x="202" y="133" width="61" height="38" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
+    <rect x="328" y="289" width="61" height="38" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
     <!-- Laptop -->
-    <rect x="220.5" y="139" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
-    <rect x="222.5" y="141" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
+    <rect x="346.5" y="295" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
+    <rect x="348.5" y="297" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
     <!-- Ergonomic Chair -->
-    <ellipse cx="232.5" cy="181" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
-    <path d="M 222.5 185 Q 232.5 188 242.5 185" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+    <ellipse cx="358.5" cy="337" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
+    <path d="M 348.5 341 Q 358.5 344 368.5 341" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
   </g>
 
   <!-- ❄️ AC UNIT -->

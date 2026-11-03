@@ -55,16 +55,50 @@ def render_luxury_cad_svg(spec):
     bw = bcfg["w"]
     bl = bcfg["l"]
     
-    # Bed placement along top wall (headboard at top wall)
-    if bed_side == 'left':
+    # ── ENSUITE BATHROOM (KM DALAM) ──
+    if has_bm:
+        bm_w = min(round(1.50 * SCALE), round(rw * 0.40))
+        bm_h = min(round(1.65 * SCALE), round(rh * 0.44))
+        bm_x = rx
+        bm_y = ry
+    else:
+        bm_x, bm_y, bm_w, bm_h = -999, -999, 0, 0
+
+    # ── BED PLACEMENT (ARCHITECTURAL DRAFTING STANDARD) ──
+    # Double, Queen, and King beds accommodate 2 persons and MUST be centered along the headboard wall
+    # with bilateral clearance and dual bedside tables (nakas) on BOTH sides.
+    is_double_or_larger = bed_type in ["double", "queen", "king"] or pillows >= 2
+    
+    if is_double_or_larger or bed_side == 'center':
+        if has_bm:
+            # Bed is centered within the usable sleeping wall span to the right of the bathroom
+            usable_span = rw - bm_w
+            bx = round(rx + bm_w + (usable_span - bw) / 2)
+            by = ry + 8
+            # Symmetrical bilateral clearance
+            c_left = bx - (rx + bm_w)
+            c_right = (rx + rw) - (bx + bw)
+            nw = 22
+            # Dual nakas centered in left and right clearances
+            nx_left = round((rx + bm_w) + max(2, (c_left - nw) / 2))
+            nx_right = round((bx + bw) + max(2, (c_right - nw) / 2))
+            nakas_items = [(nx_left, by + 2), (nx_right, by + 2)]
+        else:
+            # Bed is centered along the entire headboard wall
+            clearance = (rw - bw) / 2
+            bx = round(rx + clearance)
+            by = ry + 8
+            # Dual nakas with generous outer walkway
+            nx_left = max(rx + 6, bx - 26)
+            nx_right = min(rx + rw - 28, bx + bw + 4)
+            nakas_items = [(nx_left, by + 2), (nx_right, by + 2)]
+    elif bed_side == 'left':
+        # Single bed tucked into left wall (compact dorm style)
         bx = rx + 8
         by = ry + 8
-        nakas_items = [(bx + bw + 6, by + 2)]
-    elif bed_side == 'center':
-        bx = round(rx + (rw - bw) / 2)
-        by = ry + 8
-        nakas_items = [(bx - 26, by + 2), (bx + bw + 4, by + 2)]
+        nakas_items = [(bx + bw + 4, by + 2)]
     else:  # right
+        # Single bed tucked into right wall (compact dorm style)
         bx = rx + rw - bw - 8
         by = ry + 8
         nakas_items = [(bx - 26, by + 2)]
@@ -74,66 +108,45 @@ def render_luxury_cad_svg(spec):
     rug_w = bw + 16
     rug_h = bl + 10
     
-    # ── ENSUITE BATHROOM (KM DALAM) ──
-    if has_bm:
-        bm_w = min(round(1.50 * SCALE), round(rw * 0.40))
-        bm_h = min(round(1.65 * SCALE), round(rh * 0.44))
-        if bed_side == 'left':
-            bm_x = rx + rw - bm_w
-            bm_y = ry
-        else:
-            bm_x = rx
-            bm_y = ry
-    else:
-        bm_x, bm_y, bm_w, bm_h = -999, -999, 0, 0
-        
-    # ── WARDROBE (LEMARI) ──
+    # ── WARDROBE (LEMARI) & WORK DESK ──
     ww = min(round(1.15 * SCALE), round(rw * 0.32))
     wh = round(0.55 * SCALE)
-    if not has_bm:
-        if bed_side == 'left':
-            wardrobe_x = rx + rw - ww - 8
-            wardrobe_y = ry + rh - wh - 8
-        elif bed_side == 'center':
-            wardrobe_x = rx + 8
-            wardrobe_y = ry + rh - wh - 8
-        else:  # right
-            wardrobe_x = rx + 8
-            wardrobe_y = ry + rh - wh - 8
-    else:
-        if bed_side == 'left':
-            wardrobe_x = rx + 8
-            wardrobe_y = ry + rh - wh - 8
-        else:
-            wardrobe_x = rx + rw - ww - 8
-            wardrobe_y = ry + rh - wh - 8
-            
-    # ── WORK DESK & CHAIR ──
     dw = min(round(1.05 * SCALE), round(rw * 0.30))
     dh = round(0.55 * SCALE)
+    
     if not has_bm:
-        if bed_side == 'left':
-            desk_x = rx + rw - dw - 8
-            desk_y = ry + 8
-        elif bed_side == 'center':
-            desk_x = rx + rw - dw - 8
-            desk_y = ry + rh - dh - 8
-        else:  # right
+        if window_wall == 'left':
             desk_x = rx + 8
-            desk_y = ry + 8
-    else:
-        if bed_side == 'left':
-            desk_x = rx + rw - dw - 8
             desk_y = ry + rh - dh - 8
+            wardrobe_x = rx + rw - ww - 8
+            wardrobe_y = ry + rh - wh - 8
         else:
+            wardrobe_x = rx + 8
+            wardrobe_y = ry + rh - wh - 8
+            desk_x = rx + rw - dw - 8
+            desk_y = ry + rh - dh - 8
+    else:
+        # With ensuite bathroom at top-left:
+        if window_wall == 'left':
             desk_x = rx + 8
+            desk_y = ry + rh - dh - 8
+            wardrobe_x = rx + rw - ww - 8
+            wardrobe_y = ry + rh - wh - 8
+        else:
+            wardrobe_x = rx + 8
+            wardrobe_y = ry + rh - wh - 8
+            desk_x = rx + rw - dw - 8
             desk_y = ry + rh - dh - 8
             
     # ── MINI FRIDGE ──
     fw = round(0.50 * SCALE)
     fh = round(0.50 * SCALE)
-    fridge_x = rx + 8 if bed_side != 'left' else rx + rw - fw - 8
-    fridge_y = ry + round(rh / 2)
+    if has_bm:
+        fridge_x = rx + 8
+        fridge_y = ry + bm_h + 10
+    else:
+        fridge_x = rx + 8 if desk_x > rx + 50 else rx + rw - fw - 8
+        fridge_y = ry + round(rh / 2) - 10
     
     # ── MAIN DOORWAY ──
     door_w = round(0.85 * SCALE)

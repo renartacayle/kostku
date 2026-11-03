@@ -136,27 +136,27 @@
 
   <!-- Bedside Nakas -->
   <g filter="url(#drop_shadow_284)">
-    <rect x="292" y="104" width="22" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
-    <circle cx="303" cy="115" r="4.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" opacity="0.85" />
-    <circle cx="303" cy="115" r="1.5" fill="#d97706" />
+    <rect x="290" y="104" width="22" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="301" cy="115" r="4.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" opacity="0.85" />
+    <circle cx="301" cy="115" r="1.5" fill="#d97706" />
   </g>
 
   <!-- 🚪 WARDROBE (Scaled) -->
   <g id="wardrobe" filter="url(#drop_shadow_284)">
-    <rect x="324" y="321" width="65" height="38" rx="2" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
-    <line x1="330" y1="340.0" x2="383" y2="340.0" stroke="#64748b" stroke-width="1" stroke-dasharray="2 2" />
-    <line x1="356.5" y1="321" x2="356.5" y2="359" stroke="#38bdf8" stroke-width="1.2" />
+    <rect x="202" y="321" width="65" height="38" rx="2" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
+    <line x1="208" y1="340.0" x2="261" y2="340.0" stroke="#64748b" stroke-width="1" stroke-dasharray="2 2" />
+    <line x1="234.5" y1="321" x2="234.5" y2="359" stroke="#38bdf8" stroke-width="1.2" />
   </g>
 
   <!-- 🖥️ WORK DESK & ERGONOMIC CHAIR (Scaled) -->
   <g id="desk_setup" filter="url(#drop_shadow_284)">
-    <rect x="328" y="102" width="61" height="38" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
+    <rect x="328" y="321" width="61" height="38" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
     <!-- Laptop -->
-    <rect x="346.5" y="108" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
-    <rect x="348.5" y="110" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
+    <rect x="346.5" y="327" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
+    <rect x="348.5" y="329" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
     <!-- Ergonomic Chair -->
-    <ellipse cx="358.5" cy="150" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
-    <path d="M 348.5 154 Q 358.5 157 368.5 154" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+    <ellipse cx="358.5" cy="369" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
+    <path d="M 348.5 373 Q 358.5 376 368.5 373" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
   </g>
 
   <!-- ❄️ AC UNIT -->

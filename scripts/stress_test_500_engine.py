@@ -144,7 +144,7 @@ PHOTO_CATALOG = [
         "bed_type": "double",
         "bed_label": "Double Bed (140x200 cm)",
         "pillows": 2,
-        "bed_side": "left",
+        "bed_side": "center",
         "window_wall": "right",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -168,7 +168,7 @@ PHOTO_CATALOG = [
         "bed_type": "double",
         "bed_label": "Double Bed (140x200 cm)",
         "pillows": 2,
-        "bed_side": "left",
+        "bed_side": "center",
         "window_wall": "right",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -216,7 +216,7 @@ PHOTO_CATALOG = [
         "bed_type": "double",
         "bed_label": "Double Bed (140x200 cm)",
         "pillows": 2,
-        "bed_side": "left",
+        "bed_side": "center",
         "window_wall": "left",
         "has_bathroom": True,
         "bathroom_type": "KM Dalam (Ensuite)",
@@ -264,7 +264,7 @@ PHOTO_CATALOG = [
         "bed_type": "queen",
         "bed_label": "Queen Bed (160x200 cm)",
         "pillows": 2,
-        "bed_side": "left",
+        "bed_side": "center",
         "window_wall": "left",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -288,7 +288,7 @@ PHOTO_CATALOG = [
         "bed_type": "queen",
         "bed_label": "Queen Bed (160x200 cm)",
         "pillows": 2,
-        "bed_side": "right",
+        "bed_side": "center",
         "window_wall": "left",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -312,7 +312,7 @@ PHOTO_CATALOG = [
         "bed_type": "queen",
         "bed_label": "Queen Bed (160x200 cm)",
         "pillows": 2,
-        "bed_side": "left",
+        "bed_side": "center",
         "window_wall": "right",
         "has_bathroom": False,
         "bathroom_type": "KM Luar (Shared)",
@@ -336,7 +336,7 @@ PHOTO_CATALOG = [
         "bed_type": "queen",
         "bed_label": "Queen Bed (160x200 cm)",
         "pillows": 2,
-        "bed_side": "right",
+        "bed_side": "center",
         "window_wall": "left",
         "has_bathroom": True,
         "bathroom_type": "KM Dalam (Ensuite)",
@@ -408,7 +408,7 @@ PHOTO_CATALOG = [
         "bed_type": "king",
         "bed_label": "King Bed (180x200 cm)",
         "pillows": 2,
-        "bed_side": "right",
+        "bed_side": "center",
         "window_wall": "left",
         "has_bathroom": True,
         "bathroom_type": "KM Dalam (Ensuite)",
@@ -420,7 +420,7 @@ PHOTO_CATALOG = [
         "blanket_accent": "#ca8a04",
         "floor_hex": "#fef08a",
         "floor_type": "Ivory Marble Tile",
-        "unsure_zone": None  # Clearly shows king bed on right and ensuite bathroom on left!
+        "unsure_zone": None  # Clearly shows king bed centered in sleeping area and ensuite bathroom on left!
     },
     {
         "catalog_id": 17,
@@ -456,7 +456,7 @@ PHOTO_CATALOG = [
         "bed_type": "king",
         "bed_label": "King Bed (180x200 cm)",
         "pillows": 2,
-        "bed_side": "right",
+        "bed_side": "center",
         "window_wall": "left",
         "has_bathroom": True,
         "bathroom_type": "KM Dalam (Ensuite)",
@@ -625,7 +625,10 @@ def process_real_bedroom_photo(spec, output_path, target_w=480, target_h=360):
 
 # ── 4. Auto-2D Floor Plan SVG Synthesizer (Architectural CAD Vector) ─
 def render_floor_plan_svg(spec, output_path):
-    from scripts.regenerate_500_blueprints import render_luxury_cad_svg
+    try:
+        from scripts.regenerate_500_blueprints import render_luxury_cad_svg
+    except ModuleNotFoundError:
+        from regenerate_500_blueprints import render_luxury_cad_svg
     svg = render_luxury_cad_svg(spec)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(svg)
