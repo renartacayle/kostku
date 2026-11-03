@@ -11,7 +11,6 @@ import {
   Copy,
   Check,
   Printer,
-  Sparkles,
   ChevronRight,
   Info,
   Lock,
@@ -22,7 +21,6 @@ import {
   Phone,
   Mail,
   FileText,
-  ExternalLink,
   ChevronDown
 } from 'lucide-react';
 import { 
@@ -284,10 +282,11 @@ export default function Checkout({ user }) {
             throw new Error('Fallback needed');
           }
         } catch (_) {
+          const merchantLabel = (selectedKost?.kostName || selectedKost?.name || 'KAMAR').slice(0, 16);
           const fallback = await generateQrisDataUrl({
             amount: grandTotal,
             orderId: trxRes.orderId,
-            merchantName: `KOSTKU ${selectedKost.kostName.slice(0, 16)}`
+            merchantName: `KOSTKU ${merchantLabel}`
           });
           setQrisDataUrl(fallback.dataUrl);
         } finally {
@@ -305,14 +304,13 @@ export default function Checkout({ user }) {
     }
   };
 
-  // Instant Verification / Simulation for Reviewers & Users
+  // Instant Verification for Reviewers & Users
   const handleVerifyOrSimulate = async () => {
     if (!transaction?.orderId) return;
     try {
       setIsVerifying(true);
       const res = await apiVerifyPayment({
-        orderId: transaction.orderId,
-        forceManual: true
+        orderId: transaction.orderId
       });
 
       if (res?.success || res?.status === 'settlement') {
@@ -331,16 +329,8 @@ export default function Checkout({ user }) {
       }
     } catch (err) {
       console.error('Verify error:', err);
-      // Fallback settlement for verification review
-      setSettledReceipt({
-        receiptNumber: `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`,
-        settledAt: new Date().toISOString(),
-        orderId: transaction.orderId,
-        amount: grandTotal,
-        paymentMethod: transaction.paymentMethod || selectedMethodId
-      });
-      setStep('success');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setUnpaidErrorMsg(err?.message || 'Terjadi gangguan koneksi saat memverifikasi status pembayaran. Silakan coba kembali.');
+      setShowUnpaidModal(true);
     } finally {
       setIsVerifying(false);
     }
@@ -713,10 +703,11 @@ export default function Checkout({ user }) {
                       {/* Dropdown Ganti Kost jika ada opsi lain */}
                       {allKosts.length > 1 && (
                         <div style={{ marginBottom: '1rem' }}>
-                          <label style={{ display: 'block', fontSize: '0.75rem', color: themeStyles.textMuted, marginBottom: '4px' }}>
+                          <label htmlFor="checkout-kost-select" style={{ display: 'block', fontSize: '0.75rem', color: themeStyles.textMuted, marginBottom: '4px' }}>
                             Pilih Properti Kost Lainnya:
                           </label>
                           <select
+                            id="checkout-kost-select"
                             value={selectedKost.uid}
                             onChange={(e) => {
                               const k = allKosts.find(item => item.uid === e.target.value);
@@ -749,10 +740,11 @@ export default function Checkout({ user }) {
                       {/* Grid Pilihan Kamar & Durasi */}
                       <div className="checkout-two-col-grid">
                         <div style={{ minWidth: 0 }}>
-                          <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                          <label htmlFor="checkout-room-select" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                             Nomor Kamar:
                           </label>
                           <select
+                            id="checkout-room-select"
                             value={selectedRoomNumber}
                             onChange={(e) => setSelectedRoomNumber(e.target.value)}
                             style={{
@@ -780,10 +772,11 @@ export default function Checkout({ user }) {
                         </div>
 
                         <div style={{ minWidth: 0 }}>
-                          <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                          <label htmlFor="checkout-duration-select" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                             Durasi Sewa:
                           </label>
                           <select
+                            id="checkout-duration-select"
                             value={duration}
                             onChange={(e) => setDuration(Number(e.target.value))}
                             style={{
@@ -806,10 +799,11 @@ export default function Checkout({ user }) {
                       </div>
 
                       <div style={{ marginTop: '12px' }}>
-                        <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                        <label htmlFor="checkout-checkin-date" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                           Rencana Tanggal Check-in:
                         </label>
                         <input 
+                          id="checkout-checkin-date"
                           type="date"
                           value={checkInDate}
                           onChange={(e) => setCheckInDate(e.target.value)}
@@ -851,10 +845,11 @@ export default function Checkout({ user }) {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                      <label htmlFor="checkout-customer-name" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                         Nama Lengkap Penyewa *:
                       </label>
                       <input 
+                        id="checkout-customer-name"
                         type="text"
                         required
                         placeholder="Contoh: Oscar Herdian Wijaya"
@@ -875,12 +870,13 @@ export default function Checkout({ user }) {
 
                     <div className="checkout-two-col-grid">
                       <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                        <label htmlFor="checkout-customer-phone" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                           Nomor WhatsApp Aktif *:
                         </label>
                         <div style={{ position: 'relative' }}>
                           <Phone size={15} color={themeStyles.textMuted} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                           <input 
+                            id="checkout-customer-phone"
                             type="tel"
                             required
                             placeholder="08123456789"
@@ -901,12 +897,13 @@ export default function Checkout({ user }) {
                       </div>
 
                       <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                        <label htmlFor="checkout-customer-email" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                           Email Pengiriman Invoice:
                         </label>
                         <div style={{ position: 'relative' }}>
                           <Mail size={15} color={themeStyles.textMuted} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                           <input 
+                            id="checkout-customer-email"
                             type="email"
                             placeholder="nama@email.com"
                             value={customerEmail}
@@ -928,10 +925,11 @@ export default function Checkout({ user }) {
 
                     <div className="checkout-two-col-grid">
                       <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                        <label htmlFor="checkout-customer-job" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                           Profesi / Status:
                         </label>
                         <select
+                          id="checkout-customer-job"
                           value={customerJob}
                           onChange={(e) => setCustomerJob(e.target.value)}
                           style={{
@@ -952,10 +950,11 @@ export default function Checkout({ user }) {
                       </div>
 
                       <div style={{ minWidth: 0 }}>
-                        <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                        <label htmlFor="checkout-customer-notes" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                           Catatan Khusus (Opsional):
                         </label>
                         <input 
+                          id="checkout-customer-notes"
                           type="text"
                           placeholder="Misal: Bawa motor, tiba sore..."
                           value={customerNotes}
@@ -1260,7 +1259,7 @@ export default function Checkout({ user }) {
                     flexDirection: 'column',
                     gap: '6px'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34d399' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isLight ? '#047857' : '#34d399' }}>
                       <ShieldCheck size={14} />
                       <span>Pembayaran 100% diproses langsung di website (On-Site Checkout)</span>
                     </div>

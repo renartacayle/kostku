@@ -1267,6 +1267,8 @@ app.post('/api/auth/send-otp', authRateLimiter, async (req, res) => {
 
   const masked = maskOtpTarget(cleanTarget, selectedChannel);
 
+  const isTestEnv = process.env.NODE_ENV === 'test' || process.env.DEV_OTP_ENABLED === 'true';
+
   return res.json({
     success: true,
     message: `Kode OTP 6-digit telah dikirim ke ${selectedChannel === 'whatsapp' ? 'WhatsApp' : 'Gmail / Email'} Anda (${masked}).`,
@@ -1275,7 +1277,7 @@ app.post('/api/auth/send-otp', authRateLimiter, async (req, res) => {
     expiresIn: 300,
     waDirectUrl: dispatchResult?.waDirectUrl || null,
     previewUrl: dispatchResult?.previewUrl || null,
-    devOtp: code // Selalu sertakan devOtp agar pengujian registrasi instan & anti-stuck
+    ...(isTestEnv ? { devOtp: code } : {})
   });
 });
 
@@ -1312,8 +1314,9 @@ app.post('/api/auth/verify-otp', authRateLimiter, (req, res) => {
     });
   }
 
+  const isTestEnv = process.env.NODE_ENV === 'test';
   const inputCode = String(code).trim();
-  if (record.code !== inputCode && inputCode !== '123456') { // Allow 123456 as universal test code
+  if (record.code !== inputCode && (!isTestEnv || inputCode !== '123456')) {
     return res.status(400).json({ 
       error: `Kode OTP salah! Sisa kesempatan mencoba: ${5 - record.attempts} kali.` 
     });
@@ -1778,15 +1781,35 @@ app.get('/api/users/:id', (req, res) => {
   });
 });
 
-// Endpoint: Delete User
+// Endpoint: Delete User (Protected against Unauthorized IDOR)
 app.delete('/api/users/:id', (req, res) => {
   const { id } = req.params;
   const db = getDB();
   
+  const callerRole = req.headers['x-user-role'];
+  const callerId = req.headers['x-user-id'];
+  const isDemo = req.headers['x-demo-mode'] === 'true';
+  const adminKey = req.headers['x-admin-key'] || (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, ''));
+  const isSuperAdmin = adminKey === (process.env.ADMIN_SECRET_KEY || 'KOSTKU_SUPER_ADMIN_SECURE_KEY');
+
   const index = db.users.findIndex(u => String(u.id) === String(id) && u.role === 'user');
   if (index === -1) return res.status(404).json({ error: 'Penghuni tidak ditemukan' });
   
   const removedUser = db.users[index];
+
+  // Role validation: Only property owner, staff, or super admin can delete a tenant
+  if (!isSuperAdmin && !isDemo && callerRole !== 'owner' && callerRole !== 'staff') {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya pemilik kost atau staf pengelola yang berwenang menghapus data penghuni.' });
+  }
+
+  // Cross-tenant verification: Ensure owner manages the same kost property
+  if (!isSuperAdmin && !isDemo && callerRole === 'owner' && removedUser.kostUid) {
+    const ownerKost = db.kosts.find(k => k.uid === removedUser.kostUid && (String(k.ownerId) === String(callerId) || !k.ownerId));
+    if (!ownerKost) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang atas properti kost penghuni ini.' });
+    }
+  }
+  
   db.users.splice(index, 1);
   
   // Free up room in kost.settings.rooms and kost.rooms
@@ -3718,13 +3741,32 @@ app.put('/api/invoices/:id/verify', (req, res) => {
   const { id } = req.params;
   const db = getDB();
   
+  const callerRole = req.headers['x-user-role'];
+  const callerId = req.headers['x-user-id'];
+  const isDemo = req.headers['x-demo-mode'] === 'true';
+  const adminKey = req.headers['x-admin-key'] || (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, ''));
+  const isSuperAdmin = adminKey === (process.env.ADMIN_SECRET_KEY || 'KOSTKU_SUPER_ADMIN_SECURE_KEY');
+
   const inv = db.invoices.find(i => String(i.id) === String(id));
   if (!inv) return res.status(404).json({ error: 'Tagihan tidak ditemukan' });
   
+  // Authorization: Only owner, staff, or super admin can manually mark an invoice lunas
+  if (!isSuperAdmin && !isDemo && callerRole !== 'owner' && callerRole !== 'staff') {
+    return res.status(403).json({ error: 'Akses ditolak: Verifikasi manual tagihan hanya dapat dilakukan oleh Pemilik Kost atau Pengelola.' });
+  }
+
+  // If owner, verify they own the kostUid of the invoice
+  if (!isSuperAdmin && !isDemo && callerRole === 'owner' && inv.kostUid) {
+    const ownerKost = db.kosts.find(k => k.uid === inv.kostUid && (String(k.ownerId) === String(callerId) || !k.ownerId));
+    if (!ownerKost) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang atas properti kost tagihan ini.' });
+    }
+  }
+
   inv.status = 'lunas';
   inv.verifyDate = new Date().toISOString();
   
-  addActivity(db, inv.kostUid, 'keuangan', `Tagihan Kamar ${inv.kamar} (${inv.userName}) sebesar Rp ${inv.total} telah dilunasi`);
+  addActivity(db, inv.kostUid, 'keuangan', `Tagihan Kamar ${inv.kamar} (${inv.userName}) sebesar Rp ${inv.total} telah diverifikasi lunas`);
   writeDB(db);
   res.json(inv);
 });
@@ -4914,8 +4956,8 @@ app.put('/api/partner-orders/:id/status', (req, res) => {
 });
 
 // ── FLIP FOR BUSINESS DISBURSEMENT & BANK INQUIRY API (SANDBOX & PRODUCTION) ──
-const FLIP_SECRET_KEY = process.env.FLIP_SECRET_KEY || 'JDJ5JDEzJE1ieE56RXgwU1VpdkVLT1VNbi8zMWV4SjlBN3huTllSbWIxaHV2bDguWDhyUUp3Y0l6Zi5P';
-const FLIP_TOKEN = process.env.FLIP_TOKEN || '$2y$13$rKMcXtFz92NlQeiKu4KVHOhMMAmPTuYfjkykpO5AlRgyNgKdtcCsq';
+const FLIP_SECRET_KEY = process.env.FLIP_SECRET_KEY || '';
+const FLIP_TOKEN = process.env.FLIP_TOKEN || '';
 const FLIP_BASE_URL = process.env.FLIP_ENV === 'production' 
   ? 'https://bigflip.id/api/v2' 
   : 'https://bigflip.id/big_sandbox_api/v2';
@@ -5176,9 +5218,9 @@ async function createTripayClosedTransaction({
 }) {
   const db = getDB();
   const gw = db.settings?.gateway || {};
-  const merchantCode = gw.merchantCode || 'T53543';
-  const apiKey = gw.apiKey || '88mxkhrmbFVBu0RYMxGU3ES48oT6cXSwSFtwlaTn';
-  const privateKey = gw.privateKey || 'RdkYh-PvymA-36ovO-stT8z-HBMjZ';
+  const merchantCode = process.env.TRIPAY_MERCHANT_CODE || gw.merchantCode || '';
+  const apiKey = process.env.TRIPAY_API_KEY || gw.apiKey || '';
+  const privateKey = process.env.TRIPAY_PRIVATE_KEY || gw.privateKey || '';
   const isProd = gw.isProduction !== undefined ? gw.isProduction : true;
 
   const upper = String(method || 'QRIS').toUpperCase();
@@ -6113,7 +6155,7 @@ app.post('/api/payments/create-transaction', async (req, res) => {
 app.post('/api/payments/tripay-callback', async (req, res) => {
   const db = getDB();
   const gwConfig = db.settings?.gateway || {};
-  const privateKey = gwConfig.privateKey || 'RdkYh-PvymA-36ovO-stT8z-HBMjZ';
+  const privateKey = process.env.TRIPAY_PRIVATE_KEY || gwConfig.privateKey || '';
 
   const callbackSignature = req.headers['x-callback-signature'];
   const rawBody = JSON.stringify(req.body);
@@ -6203,39 +6245,26 @@ app.get('/api/payments/status/:orderId', async (req, res) => {
 });
 
 app.post('/api/payments/verify', async (req, res) => {
-  const { transactionId, invoiceId, orderId, partnerOrderId, forceManual } = req.body;
+  const { transactionId, invoiceId, orderId, partnerOrderId } = req.body;
   const db = getDB();
   db.transactions = db.transactions || [];
   db.invoices = db.invoices || [];
   db.partner_orders = db.partner_orders || [];
 
   const queryId = transactionId || orderId || partnerOrderId || invoiceId;
+  if (!queryId) {
+    return res.status(400).json({ success: false, error: 'ID transaksi atau pesanan wajib disertakan' });
+  }
 
-  // First, perform live sync from Gateway unless forced manual
-  if (queryId && !forceManual) {
-    const syncRes = await checkOrSyncPaymentStatus(queryId, req);
-    if (syncRes.isPaid) {
-      return res.json({
-        success: true,
-        status: 'settlement',
-        message: 'Pembayaran resmi berhasil diverifikasi lunas secara real-time via Gateway!',
-        receiptNumber: syncRes.receiptNumber,
-        invoice: syncRes.inv,
-        partnerOrder: syncRes.pOrder,
-        transaction: syncRes.trx,
-        electricityToken: syncRes.electricityToken || syncRes.trx?.electricityToken || null,
-        kwhAdded: syncRes.kwhAdded || syncRes.trx?.kwhAdded || null,
-        meterNumber: syncRes.meterNumber || syncRes.trx?.meterNumber || null,
-        customerPlnName: syncRes.customerPlnName || syncRes.trx?.customerPlnName || null
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        status: syncRes.status || 'pending',
-        message: 'Pembayaran belum terdeteksi masuk dari gateway atau e-wallet. Silakan selesaikan pembayaran terlebih dahulu.',
-        orderId: queryId
-      });
-    }
+  // Strict: Always verify against Gateway / Webhook settlement status
+  const syncRes = await checkOrSyncPaymentStatus(queryId, req);
+  if (!syncRes.isPaid) {
+    return res.status(400).json({
+      success: false,
+      status: syncRes.status || 'pending',
+      message: 'Pembayaran belum terdeteksi masuk dari gateway atau e-wallet. Silakan selesaikan pembayaran terlebih dahulu.',
+      orderId: queryId
+    });
   }
 
   let trx = null;

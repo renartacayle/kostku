@@ -148,8 +148,16 @@ export default function FabFanMenu() {
                   justifyContent: 'center'
                 }}
               >
-                {/* Floating Tooltip Label */}
+                {/* Floating Tooltip Label (Clickable & Accessible) */}
                 <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={item.onClick}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      item.onClick();
+                    }
+                  }}
                   style={{
                     position: 'absolute',
                     right: '52px',
@@ -161,14 +169,16 @@ export default function FabFanMenu() {
                     fontSize: '0.74rem',
                     fontWeight: 700,
                     letterSpacing: '0.02em',
-                    padding: '4px 12px',
+                    padding: '6px 12px',
                     borderRadius: '9999px',
                     border: '1px solid rgba(255, 255, 255, 0.16)',
                     boxShadow: '0 4px 14px rgba(0, 0, 0, 0.4)',
-                    pointerEvents: 'none',
+                    pointerEvents: isOpen ? 'auto' : 'none',
+                    cursor: 'pointer',
                     opacity: isOpen ? 1 : 0,
                     transform: isOpen ? 'translateX(0)' : 'translateX(10px)',
-                    transition: `opacity 0.2s ease ${index * 45 + 100}ms, transform 0.25s ease ${index * 45 + 100}ms`
+                    transition: `opacity 0.2s ease ${index * 45 + 100}ms, transform 0.25s ease ${index * 45 + 100}ms`,
+                    userSelect: 'none'
                   }}
                 >
                   {item.label}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, Building, Settings } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 /**
  * MobileBottomNav - Pure CSS & SVG "Floating Notch" Tab Bar
@@ -64,8 +65,12 @@ export default function MobileBottomNav({ user }) {
     }
   ];
 
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
   const activeIndex = navItems.findIndex((item) => item.isActive);
-  const validIndex = activeIndex >= 0 ? activeIndex : 0;
+  const isAnyActive = activeIndex >= 0;
+  const validIndex = isAnyActive ? activeIndex : 0;
 
   const [currentIdx, setCurrentIdx] = useState(validIndex);
   const [isHopping, setIsHopping] = useState(false);
@@ -73,22 +78,23 @@ export default function MobileBottomNav({ user }) {
 
   // Sync index on external route changes (e.g. browser back/forward)
   useEffect(() => {
-    if (validIndex !== currentIdx && !isHopping) {
+    if (isAnyActive && activeIndex !== currentIdx && !isHopping) {
       setIsHopping(true);
-      setCurrentIdx(validIndex);
+      setCurrentIdx(activeIndex);
       if (hoppingTimerRef.current) clearTimeout(hoppingTimerRef.current);
       hoppingTimerRef.current = setTimeout(() => {
         setIsHopping(false);
       }, 460);
     }
-  }, [validIndex, currentIdx, isHopping]);
+  }, [activeIndex, isAnyActive, currentIdx, isHopping]);
 
   // Immediate Click/Touch Trigger: Start animation on first millisecond of touch
   const handleTabClick = useCallback((e, item, idx) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (idx === currentIdx) return;
+    // Prevent re-navigation only if user is already on the exact target path
+    if (location.pathname === item.path) return;
 
     if (hoppingTimerRef.current) clearTimeout(hoppingTimerRef.current);
 
@@ -102,7 +108,7 @@ export default function MobileBottomNav({ user }) {
     hoppingTimerRef.current = setTimeout(() => {
       setIsHopping(false);
     }, 460);
-  }, [currentIdx, navigate]);
+  }, [location.pathname, navigate]);
 
   return (
     <nav
@@ -140,52 +146,53 @@ export default function MobileBottomNav({ user }) {
           }}
         >
           {/* SLIDING NOTCH & FLOATING BALL UNIT */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '-18px',
-              left: 0,
-              width: '25%',
-              height: '80px',
-              transform: `translateX(${currentIdx * 100}%)`,
-              transition: 'transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              pointerEvents: 'none',
-              zIndex: 10
-            }}
-          >
-            {/* Curved Notch Cutout Shape (Visually dips into the tab bar) */}
+          {isAnyActive && (
             <div
               style={{
                 position: 'absolute',
-                top: '17px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '74px',
-                height: '24px',
+                top: '-18px',
+                left: 0,
+                width: '25%',
+                height: '80px',
+                transform: `translateX(${currentIdx * 100}%)`,
+                transition: 'transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 pointerEvents: 'none',
-                overflow: 'visible'
+                zIndex: 10
               }}
             >
-              <svg
-                viewBox="0 0 74 24"
+              {/* Curved Notch Cutout Shape (Visually dips into the tab bar) */}
+              <div
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'block'
+                  position: 'absolute',
+                  top: '17px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '74px',
+                  height: '24px',
+                  pointerEvents: 'none',
+                  overflow: 'visible'
                 }}
               >
-                {/* Physical Notch Fill that matches page background */}
-                <path
-                  d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0 L 74,24 L 0,24 Z"
-                  fill="var(--bg-main, #080d1a)"
-                />
-                {/* Notch Rim Border */}
-                <path
-                  d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0"
-                  fill="none"
-                  stroke="var(--border-color, rgba(255, 255, 255, 0.15))"
-                  strokeWidth="1.5"
-                />
+                <svg
+                  viewBox="0 0 74 24"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'block'
+                  }}
+                >
+                  {/* Physical Notch Fill that matches page background */}
+                  <path
+                    d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0 L 74,24 L 0,24 Z"
+                    fill={isLight ? '#f1f5f9' : 'var(--bg-main, #080d1a)'}
+                  />
+                  {/* Notch Rim Border */}
+                  <path
+                    d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0"
+                    fill="none"
+                    stroke={isLight ? 'rgba(15, 23, 42, 0.12)' : 'var(--border-color, rgba(255, 255, 255, 0.15))'}
+                    strokeWidth="1.5"
+                  />
                 {/* Concentric Cyan Glow Contour (from Reel 4 Option 3) */}
                 <path
                   d="M 14,2 C 22,2 27,18 37,18 C 47,18 52,2 60,2"
@@ -259,6 +266,7 @@ export default function MobileBottomNav({ user }) {
               </div>
             </div>
           </div>
+        )}
 
           {/* TAB BUTTONS ROW */}
           <div
@@ -272,7 +280,7 @@ export default function MobileBottomNav({ user }) {
             }}
           >
             {navItems.map((item, idx) => {
-              const active = idx === currentIdx;
+              const active = isAnyActive && idx === currentIdx;
               return (
                 <button
                   type="button"

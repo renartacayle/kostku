@@ -978,6 +978,16 @@ html, body {
   }
 }
 
+@media (max-width: 480px) {
+  .mobile-bottom-booking-bar {
+    padding: 0.6rem 0.85rem calc(0.6rem + max(env(safe-area-inset-bottom, 0px), 6px));
+    gap: 8px;
+  }
+  .mobile-booking-bar-back {
+    display: none !important;
+  }
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);

@@ -56,11 +56,17 @@ const PaymentGatewayModal = ({
 
   // Real-time payment status polling (auto-detects bank/e-wallet transfer)
   useEffect(() => {
-    if (!isOpen || isSuccess || !transaction?.orderId) return;
+    if (!isOpen || isSuccess || !transaction?.orderId || timeLeft <= 0) return;
 
+    let errorCount = 0;
     const pollInterval = setInterval(async () => {
+      if (timeLeft <= 0 || errorCount >= 6) {
+        clearInterval(pollInterval);
+        return;
+      }
       try {
         const res = await apiGetPaymentStatus(transaction.orderId);
+        errorCount = 0;
         if (res?.status === 'settlement' || res?.status === 'lunas') {
           setIsSuccess(true);
           const rNum = res.receiptNumber || `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
@@ -70,12 +76,12 @@ const PaymentGatewayModal = ({
           }
         }
       } catch (err) {
-        // Silently catch background poll network errors
+        errorCount += 1;
       }
     }, 3500);
 
     return () => clearInterval(pollInterval);
-  }, [isOpen, isSuccess, transaction?.orderId, invoice, onPaymentSuccess]);
+  }, [isOpen, isSuccess, transaction?.orderId, invoice, onPaymentSuccess, timeLeft]);
 
   // Initialize transaction
   useEffect(() => {
@@ -154,6 +160,7 @@ const PaymentGatewayModal = ({
 
   // Real-time verification action
   const handleVerifyPayment = async (forceManual = false) => {
+    const isForced = forceManual === true;
     setIsProcessing(true);
     setCheckNotice(null);
     try {
@@ -161,12 +168,12 @@ const PaymentGatewayModal = ({
       // 1. Live status check from gateway first
       if (qId) {
         const statusRes = await apiGetPaymentStatus(qId).catch(() => null);
-        if (statusRes?.status === 'settlement' || statusRes?.status === 'lunas' || statusRes?.isPaid || forceManual) {
+        if (statusRes?.status === 'settlement' || statusRes?.status === 'lunas' || statusRes?.isPaid || isForced) {
           const res = await apiVerifyPayment({
             transactionId: transaction?.id,
             invoiceId: invoice?.id,
             orderId: transaction?.orderId,
-            forceManual: true
+            forceManual: isForced
           });
           
           setIsSuccess(true);
@@ -177,7 +184,7 @@ const PaymentGatewayModal = ({
           }
           return;
         }
-      } else if (forceManual) {
+      } else if (isForced) {
         const res = await apiVerifyPayment({
           transactionId: transaction?.id,
           invoiceId: invoice?.id,
@@ -196,7 +203,7 @@ const PaymentGatewayModal = ({
         message: 'Pembayaran belum terdeteksi di mutasi QRIS / Bank. Pastikan transfer telah selesai di aplikasi m-Banking atau E-Wallet Anda.'
       });
     } catch (err) {
-      if (forceManual) {
+      if (isForced) {
         setIsSuccess(true);
         const rNum = `RCP-KST-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
         setReceiptNumber(rNum);
@@ -614,7 +621,7 @@ const PaymentGatewayModal = ({
                 </div>
                 <button
                   type="button"
-                  onClick={handleVerifyPayment}
+                  onClick={() => handleVerifyPayment(false)}
                   disabled={isProcessing}
                   className="btn btn-success"
                   style={{

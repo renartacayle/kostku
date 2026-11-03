@@ -228,42 +228,71 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
 
           {/* Modal Toolbar (No Print) */}
           <div className="no-print" style={{
-            padding: '1rem 1.5rem',
+            padding: '0.85rem 1rem',
             background: isLight ? '#f8fafc' : 'var(--bg-card)',
             color: 'var(--text-primary)',
             display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px',
             justifyContent: 'space-between',
             alignItems: 'center',
             borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(56, 189, 248, 0.3)'
-              }}>
-                <FileText size={18} color="#38bdf8" />
-              </div>
-              <div>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                  Kuitansi Resmi Pembayaran Sewa
-                </h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                  <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <CheckCircle2 size={12} /> TERVERIFIKASI SISTEM
-                  </span>
-                  <span style={{ color: isLight ? '#64748b' : '#475569', fontSize: '0.68rem' }}>• Format Cetak A4</span>
+            {/* Top row: Title and Accessible 44px Close Button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  flexShrink: 0
+                }}>
+                  <FileText size={18} color="#38bdf8" />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: isLight ? '#0f172a' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Kuitansi Resmi Sewa
+                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <CheckCircle2 size={12} /> TERVERIFIKASI SISTEM
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {/* Accessible 44px Close Button */}
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Tutup Kuitansi"
+                title="Tutup Kuitansi"
+                style={{
+                  background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: isLight ? '#0f172a' : '#ffffff',
+                  width: '44px',
+                  height: '44px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* Format Switcher (Thermal The Kitchen vs A4) */}
+            {/* Bottom Row on Mobile / Second Action Group */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+              {/* Format Switcher (Thermal vs A4) */}
               <div style={{
                 display: 'flex',
                 background: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)',
@@ -275,7 +304,8 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                   type="button"
                   onClick={() => setReceiptFormat('thermal')}
                   style={{
-                    padding: '4px 10px',
+                    padding: '6px 10px',
+                    minHeight: '36px',
                     borderRadius: '6px',
                     border: 'none',
                     background: receiptFormat === 'thermal' ? '#059669' : 'transparent',
@@ -286,13 +316,14 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  🧾 Struk Termal Taktil
+                  🧾 Struk Termal
                 </button>
                 <button
                   type="button"
                   onClick={() => setReceiptFormat('a4')}
                   style={{
-                    padding: '4px 10px',
+                    padding: '6px 10px',
+                    minHeight: '36px',
                     borderRadius: '6px',
                     border: 'none',
                     background: receiptFormat === 'a4' ? '#059669' : 'transparent',
@@ -315,34 +346,20 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   borderRadius: '10px',
                   color: 'white',
-                  padding: '7px 14px',
+                  padding: '8px 14px',
+                  minHeight: '38px',
                   fontSize: '0.8rem',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)'
-                }}
-              >
-                <Printer size={15} /> Cetak / Simpan PDF
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#94a3b8',
-                  padding: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+                  flex: '1 1 auto',
                   justifyContent: 'center'
                 }}
               >
-                <X size={18} />
+                <Printer size={15} /> Cetak / Unduh PDF
               </button>
             </div>
           </div>

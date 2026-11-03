@@ -1343,8 +1343,10 @@ export default function KostDetail({ user }) {
 
       {/* Floating Bottom Booking Bar for Mobile */}
       <div className="mobile-bottom-booking-bar">
+        {/* Quick Back Action (hidden on small mobile to avoid overflow) */}
         <button
           type="button"
+          className="mobile-booking-bar-back"
           onClick={() => {
             if (window.history.length > 1) {
               navigate(-1);
@@ -1358,6 +1360,8 @@ export default function KostDetail({ user }) {
             color: isLight ? '#334155' : '#cbd5e1',
             borderRadius: '12px',
             padding: '9px 12px',
+            minHeight: '44px',
+            minWidth: '44px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1368,71 +1372,82 @@ export default function KostDetail({ user }) {
             whiteSpace: 'nowrap'
           }}
           title="Kembali ke daftar kost"
+          aria-label="Kembali ke daftar kost"
         >
-          <ArrowLeft size={15} />
+          <ArrowLeft size={16} />
           <span>Kembali</span>
         </button>
 
-        {/* Quick WhatsApp Action on Mobile */}
-        <a
-          href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo Pemilik ${kost.kostName}, saya tertarik Kamar ${selectedRoom || ''}. Apakah bisa tanya info via WhatsApp?`)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.18)',
-            border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.4)',
-            color: isLight ? '#15803d' : '#4ade80',
-            borderRadius: '12px',
-            padding: '9px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '5px',
-            cursor: 'pointer',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-            textDecoration: 'none'
-          }}
-          title="Tanya Pemilik via WhatsApp"
-        >
-          <span style={{ fontSize: '13px' }}>💬</span>
-          <span>Tanya WA</span>
-        </a>
-
-        <div>
-          <div style={{ fontSize: '0.70rem', color: isLight ? '#64748b' : '#94a3b8' }}>Kamar {selectedRoom} ({rentalDuration} Bln)</div>
+        {/* Room Price Info (compact & flexible) */}
+        <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+          <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Kamar {selectedRoom} ({rentalDuration} Bln)
+          </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#1d4ed8' : '#60a5fa' }}>
+            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#1d4ed8' : '#60a5fa', whiteSpace: 'nowrap' }}>
               Rp {totalFirstPayment.toLocaleString('id-ID')}
             </span>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleApplyClick}
-          disabled={selectedRoomObj?.status === 'occupied'}
-          style={{
-            padding: '9px 16px',
-            borderRadius: '12px',
-            border: 'none',
-            background: selectedRoomObj?.status === 'occupied'
-              ? 'rgba(100, 116, 139, 0.3)'
-              : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-            color: selectedRoomObj?.status === 'occupied' ? '#94a3b8' : 'white',
-            fontWeight: 800,
-            fontSize: '0.84rem',
-            cursor: selectedRoomObj?.status === 'occupied' ? 'not-allowed' : 'pointer',
-            boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <span>{selectedRoomObj?.status === 'occupied' ? 'Kamar Terisi' : 'Sewa & Checkout'}</span>
-        </button>
+        {/* Action Group: WA + Sewa */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {/* Quick WhatsApp Action on Mobile */}
+          <a
+            href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo Pemilik ${kost.kostName}, saya tertarik Kamar ${selectedRoom || ''}. Apakah bisa tanya info via WhatsApp?`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.18)',
+              border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.4)',
+              color: isLight ? '#15803d' : '#4ade80',
+              borderRadius: '12px',
+              padding: '0 10px',
+              minHeight: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              textDecoration: 'none'
+            }}
+            title="Tanya Pemilik via WhatsApp"
+            aria-label="Tanya Pemilik via WhatsApp"
+          >
+            <span style={{ fontSize: '15px' }}>💬</span>
+            <span style={{ fontSize: '0.78rem' }}>WA</span>
+          </a>
+
+          {/* Main Booking CTA */}
+          <button
+            type="button"
+            onClick={handleApplyClick}
+            disabled={selectedRoomObj?.status === 'occupied'}
+            style={{
+              minHeight: '44px',
+              padding: '0 16px',
+              borderRadius: '12px',
+              border: 'none',
+              background: selectedRoomObj?.status === 'occupied'
+                ? 'rgba(100, 116, 139, 0.3)'
+                : 'linear-gradient(135deg, #2563eb, #3b82f6)',
+              color: selectedRoomObj?.status === 'occupied' ? '#94a3b8' : 'white',
+              fontWeight: 800,
+              fontSize: '0.84rem',
+              cursor: selectedRoomObj?.status === 'occupied' ? 'not-allowed' : 'pointer',
+              boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 4px 15px rgba(37, 99, 235, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>{selectedRoomObj?.status === 'occupied' ? 'Kamar Terisi' : 'Sewa & Checkout'}</span>
+          </button>
+        </div>
       </div>
 
       {/* ══════════════════════════════════════

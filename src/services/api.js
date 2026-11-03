@@ -114,6 +114,8 @@ async function request(endpoint, options = {}) {
   }
 
   let isDemoSession = false;
+  let activeUserId = null;
+  let activeUserRole = null;
   try {
     if (typeof window !== 'undefined') {
       if (window.location.pathname.startsWith('/demo') || window.location.search.includes('demo=true')) {
@@ -122,6 +124,8 @@ async function request(endpoint, options = {}) {
         const stored = localStorage.getItem('kostUser');
         if (stored) {
           const u = JSON.parse(stored);
+          if (u?.id) activeUserId = String(u.id);
+          if (u?.role) activeUserRole = String(u.role);
           if (u?.isDemo || u?.email?.endsWith('@kostku.id')) {
             isDemoSession = true;
           }
@@ -132,6 +136,8 @@ async function request(endpoint, options = {}) {
 
   const headers = {
     'Content-Type': 'application/json',
+    ...(activeUserId ? { 'x-user-id': activeUserId } : {}),
+    ...(activeUserRole ? { 'x-user-role': activeUserRole } : {}),
     ...(isDemoSession ? { 'x-demo-mode': 'true' } : {}),
     ...(options.headers || {})
   };

@@ -46,6 +46,7 @@ import {
   apiSubmitComplaintRating
 } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { compressImage } from '../utils/imageUtils';
 
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
 import DigitalReceiptModal from '../components/DigitalReceiptModal';
@@ -745,6 +746,7 @@ const UserDashboard = ({ user }) => {
         parsed.loyalty_points = currentPts + 500;
         localStorage.setItem('kostUser', JSON.stringify(parsed));
         setCurrentUser(parsed);
+        window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
         window.dispatchEvent(new Event('kostUser_updated'));
       }
     } catch (err) {
@@ -849,8 +851,26 @@ const UserDashboard = ({ user }) => {
     return () => window.removeEventListener('kostku_partner_order_created', handleOrderCreated);
   }, []);
 
+  const invoicesRef = useRef(invoices);
   useEffect(() => {
-    const handleOpenPayment = () => setShowPaymentModal(true);
+    invoicesRef.current = invoices;
+  }, [invoices]);
+
+  useEffect(() => {
+    const handleOpenPayment = () => {
+      const currentInvoices = invoicesRef.current;
+      const inv = currentInvoices && currentInvoices.length > 0 ? currentInvoices[0] : null;
+      if (!inv) {
+        alert('Belum ada tagihan sewa aktif untuk kamar Anda.');
+        return;
+      }
+      if (inv.status === 'lunas') {
+        setSelectedReceiptId(inv.id);
+        setShowReceiptModal(true);
+      } else {
+        setShowPaymentModal(true);
+      }
+    };
     window.addEventListener('kostku:open-payment', handleOpenPayment);
     return () => window.removeEventListener('kostku:open-payment', handleOpenPayment);
   }, []);
@@ -939,7 +959,7 @@ const UserDashboard = ({ user }) => {
 
       // Sync user previous partner orders for "Beli Lagi" filter
       try {
-        const pOrders = await apiGetPartnerOrders(activeUserId).catch(() => []);
+        const pOrders = await apiGetPartnerOrders(currentUser?.kostUid || null, activeUserId).catch(() => []);
         if (Array.isArray(pOrders) && pOrders.length > 0) {
           const serverMerchantIds = pOrders.map(o => o.merchantId || o.serviceId).filter(Boolean);
           if (serverMerchantIds.length > 0) {
