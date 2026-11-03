@@ -53,6 +53,12 @@
     <line x1="178" y1="182" x2="212" y2="182" stroke="#e0f2fe" stroke-width="3" />
   </g>
 
+  <!-- Area Rug under Bed -->
+  <g>
+    <rect x="390" y="95" width="146" height="150" rx="6" fill="rgba(56, 189, 248, 0.05)" stroke="rgba(56, 189, 248, 0.25)" stroke-width="1.2" stroke-dasharray="4 3" />
+    <text x="463.0" y="239" fill="rgba(148, 163, 184, 0.55)" font-size="6.5" font-weight="600" text-anchor="middle">KARPET AREA</text>
+  </g>
+
   <!-- Bed Unit (Visual Twin Extracted) -->
   <g>
     <rect x="400" y="60" width="126" height="140" rx="5" fill="#1e293b" stroke="#60a5fa" stroke-width="2.5" />
@@ -60,10 +66,10 @@
     <rect x="404" y="64" width="118" height="128" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
     <rect x="404" y="114" width="118" height="80" rx="3" fill="#aeabab" stroke="#767474" stroke-width="1.5" fill-opacity="0.95" />
     <path d="M 404 114 Q 463.0 122 522 114" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8" />
-    <rect x="406" y="70" width="55" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
-    <rect x="465.0" y="70" width="55" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
+    <rect x="406" y="70" width="44" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
+    <rect x="476" y="70" width="44" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
     <ellipse cx="463.0" cy="112" rx="7" ry="20" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
-    <text x="463.0" cy="160" fill="#ffffff" font-size="8.5" font-weight="800" text-anchor="middle">QUEEN BED</text>
+    <text x="463.0" cy="160" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle">QUEEN BED (160x200)</text>
   </g>
   <rect x="368" y="62" width="26" height="28" rx="3" fill="#334155" stroke="#64748b" stroke-width="1.5" />
   <circle cx="381" cy="76" r="5" fill="#f59e0b" opacity="0.75" />
@@ -79,13 +85,13 @@
 
   <!-- Desk & Chair -->
   <g>
-    <rect x="94" y="278" width="105" height="48" rx="4" fill="#334155" stroke="#38bdf8" stroke-width="2" />
-    <rect x="130" y="284" width="26" height="16" rx="2" fill="#0f172a" stroke="#60a5fa" stroke-width="1" />
-    <rect x="132" y="286" width="22" height="12" fill="#38bdf8" opacity="0.75" />
-    <circle cx="112" cy="292" r="4.5" fill="#fbbf24" opacity="0.8" />
-    <ellipse cx="144" cy="336" rx="13" ry="10" fill="#1e293b" stroke="#60a5fa" stroke-width="1.5" />
-    <path d="M 135 342 C 144 345 153 342 153 342" stroke="#60a5fa" stroke-width="2" fill="none" />
-    <text x="144" y="316" fill="#cbd5e1" font-size="7.5" font-weight="700" text-anchor="middle">MEJA KERJA</text>
+    <rect x="94" y="260" width="105" height="48" rx="4" fill="#334155" stroke="#38bdf8" stroke-width="2" />
+    <rect x="130" y="266" width="26" height="16" rx="2" fill="#0f172a" stroke="#60a5fa" stroke-width="1" />
+    <rect x="132" y="268" width="22" height="12" fill="#38bdf8" opacity="0.75" />
+    <circle cx="112" cy="274" r="4.5" fill="#fbbf24" opacity="0.8" />
+    <ellipse cx="144" cy="318" rx="13" ry="10" fill="#1e293b" stroke="#60a5fa" stroke-width="1.5" />
+    <path d="M 135 324 C 144 327 153 324 153 324" stroke="#60a5fa" stroke-width="2" fill="none" />
+    <text x="144" y="298" fill="#cbd5e1" font-size="7.5" font-weight="700" text-anchor="middle">MEJA KERJA</text>
   </g>
 
   <!-- AC Unit -->
@@ -121,10 +127,10 @@
 
   <!-- Title Stamp & AI CV Detection Badge -->
   <g>
-    <rect x="230" y="170" width="160" height="52" rx="8" fill="rgba(15, 23, 42, 0.92)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
+    <rect x="210" y="170" width="200" height="54" rx="8" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
     <text x="310" y="186" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">KAMAR 803</text>
-    <text x="310" y="199" fill="#38bdf8" font-size="8.5" font-weight="600" text-anchor="middle">LUAS: 17.6 m² (3.9x4.5m)</text>
-    <text x="310" y="213" fill="#4ade80" font-size="7.5" font-weight="700" text-anchor="middle">AI: KASUR RIGHT • JENDELA TOP</text>
+    <text x="310" y="200" fill="#38bdf8" font-size="8" font-weight="700" text-anchor="middle">LUAS: 17.6 m² (3.9x4.5m) • KM DALAM (ENSUITE)</text>
+    <text x="310" y="214" fill="#4ade80" font-size="7" font-weight="700" text-anchor="middle">AI: QUEEN BED (160x200) • KASUR RIGHT</text>
   </g>
 
   <!-- Compass -->

@@ -41,11 +41,21 @@ export default function StressTestReport() {
   }, []);
 
   const filteredRooms = rooms.filter((r) => {
-    const matchType = selectedType === 'all' || r.type_name.toLowerCase().includes(selectedType.toLowerCase());
+    let matchType = true;
+    if (selectedType === 'all') {
+      matchType = true;
+    } else if (selectedType === 'km luar') {
+      matchType = !r.has_bathroom || (r.bathroom_type && r.bathroom_type.toLowerCase().includes('luar'));
+    } else if (selectedType === 'km dalam') {
+      matchType = r.has_bathroom || (r.bathroom_type && r.bathroom_type.toLowerCase().includes('dalam'));
+    } else {
+      matchType = r.type_name.toLowerCase().includes(selectedType.toLowerCase());
+    }
     const matchSearch = 
       r.room_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.room_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.type_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.bed_label && r.bed_label.toLowerCase().includes(searchQuery.toLowerCase())) ||
       r.dimensions.toLowerCase().includes(searchQuery.toLowerCase());
     return matchType && matchSearch;
   });
@@ -218,11 +228,13 @@ export default function StressTestReport() {
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {[
               { id: 'all', label: 'Semua (500)' },
-              { id: 'tipe a', label: 'Tipe A (9m²)' },
-              { id: 'tipe b', label: 'Tipe B (12m²)' },
-              { id: 'tipe c', label: 'Tipe C (14m²)' },
-              { id: 'tipe d', label: 'Tipe D (18m²)' },
-              { id: 'tipe e', label: 'Tipe E (22.5m²)' }
+              { id: 'tipe a', label: 'Tipe A (9m² • Single)' },
+              { id: 'tipe b', label: 'Tipe B (12m² • Super Single)' },
+              { id: 'tipe c', label: 'Tipe C (14m² • Double Bed)' },
+              { id: 'tipe d', label: 'Tipe D (18m² • Queen)' },
+              { id: 'tipe e', label: 'Tipe E (22.5m² • King)' },
+              { id: 'km luar', label: '🚪 KM Luar (Shared)' },
+              { id: 'km dalam', label: '🚿 KM Dalam (Ensuite)' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -294,7 +306,7 @@ export default function StressTestReport() {
                 }}
               >
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{
                       background: '#2563eb',
@@ -311,9 +323,22 @@ export default function StressTestReport() {
                     </span>
                   </div>
 
-                  <span style={{ fontSize: '0.74rem', background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                    📐 {room.dimensions} ({room.area_m2} m²)
-                  </span>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.74rem', background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                      📐 {room.dimensions} ({room.area_m2} m²)
+                    </span>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: room.has_bathroom ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                      color: room.has_bathroom ? '#34d399' : '#fbbf24',
+                      border: room.has_bathroom ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(245, 158, 11, 0.35)'
+                    }}>
+                      {room.has_bathroom ? '🚿 KM Dalam' : '🚪 KM Luar'}
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f1f5f9' }}>

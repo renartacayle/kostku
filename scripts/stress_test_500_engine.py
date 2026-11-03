@@ -44,10 +44,10 @@ ARCHETYPES = [
         "length_m": 3.0,
         "area_m2": 9.0,
         "bed_type": "single",
-        "bed_label": "Single (90x200 cm)",
+        "bed_label": "Single Bed (90x200 cm)",
         "furnitures_default": ["wardrobe", "desk", "window", "ac"],
-        "has_bathroom_prob": 0.40,
-        "has_fridge_prob": 0.10,
+        "has_bathroom_prob": 0.0,   # 100% Kamar Mandi Luar (Shared) - No bathroom inside!
+        "has_fridge_prob": 0.05,
     },
     {
         "type_id": "type_b",
@@ -57,44 +57,44 @@ ARCHETYPES = [
         "area_m2": 12.0,
         "bed_type": "super_single",
         "bed_label": "Super Single (120x200 cm)",
-        "furnitures_default": ["wardrobe", "desk", "bathroom", "ac", "window"],
-        "has_bathroom_prob": 0.95,
-        "has_fridge_prob": 0.35,
+        "furnitures_default": ["wardrobe", "desk", "ac", "window"],
+        "has_bathroom_prob": 0.20,  # 80% KM Luar, 20% KM Dalam
+        "has_fridge_prob": 0.25,
     },
     {
         "type_id": "type_c",
-        "type_name": "Tipe C - Superior Comfort (Eksekutif)",
+        "type_name": "Tipe C - Comfort Double Bed (Karyawan)",
         "width_m": 3.5,
         "length_m": 4.0,
         "area_m2": 14.0,
-        "bed_type": "super_single",
-        "bed_label": "Super Single (120x200 cm)",
-        "furnitures_default": ["wardrobe", "desk", "bathroom", "ac", "window", "fridge"],
-        "has_bathroom_prob": 1.0,
-        "has_fridge_prob": 0.70,
+        "bed_type": "double",       # Explicit DOUBLE BED (140x200 cm)
+        "bed_label": "Double Bed (140x200 cm)",
+        "furnitures_default": ["wardrobe", "desk", "ac", "window"],
+        "has_bathroom_prob": 0.40,  # 60% KM Luar, 40% KM Dalam
+        "has_fridge_prob": 0.50,
     },
     {
         "type_id": "type_d",
-        "type_name": "Tipe D - Deluxe Queen (Pasutri/Worker)",
+        "type_name": "Tipe D - Deluxe Queen Suite (Pasutri/Eksekutif)",
         "width_m": 4.0,
         "length_m": 4.5,
         "area_m2": 18.0,
         "bed_type": "queen",
         "bed_label": "Queen Bed (160x200 cm)",
-        "furnitures_default": ["wardrobe", "desk", "bathroom", "ac", "window", "fridge"],
-        "has_bathroom_prob": 1.0,
-        "has_fridge_prob": 0.90,
+        "furnitures_default": ["wardrobe", "desk", "ac", "window"],
+        "has_bathroom_prob": 0.75,  # 25% KM Luar, 75% KM Dalam
+        "has_fridge_prob": 0.80,
     },
     {
         "type_id": "type_e",
-        "type_name": "Tipe E - Studio Master Suite (VIP)",
+        "type_name": "Tipe E - Studio Master King Suite (VIP)",
         "width_m": 4.5,
         "length_m": 5.0,
         "area_m2": 22.5,
         "bed_type": "king",
         "bed_label": "King Bed (180x200 cm)",
         "furnitures_default": ["wardrobe", "desk", "bathroom", "ac", "window", "fridge"],
-        "has_bathroom_prob": 1.0,
+        "has_bathroom_prob": 1.0,   # 100% KM Dalam (VIP Suite)
         "has_fridge_prob": 1.0,
     }
 ]
@@ -144,9 +144,7 @@ def generate_all_room_specs(cached_photos, count=500):
                 
             bed_type = arch["bed_type"]
             bed_label = arch["bed_label"]
-            if arch["type_id"] == "type_c" and rng.random() > 0.5:
-                bed_type = "queen"
-                bed_label = "Queen Bed (160x200 cm)"
+            bathroom_type = "KM Dalam (Ensuite)" if has_bm else "KM Luar (Shared)"
 
             confidence_pct = round(rng.uniform(97.2, 99.8), 2)
             latency_ms = round(rng.uniform(16.5, 34.2), 1)
@@ -167,6 +165,8 @@ def generate_all_room_specs(cached_photos, count=500):
                 "area_m2": area,
                 "bed_type": bed_type,
                 "bed_label": bed_label,
+                "has_bathroom": has_bm,
+                "bathroom_type": bathroom_type,
                 "furnitures": furnitures,
                 "confidence_pct": confidence_pct,
                 "latency_ms": latency_ms,
@@ -322,51 +322,80 @@ def render_floor_plan_svg(spec, output_path, cv_features):
     has_fridge = "fridge" in furnitures
     
     bed_map = {
-        "single": {"label": "SINGLE (90x200)", "svgW": 76, "svgL": 140, "pillows": 1},
-        "super_single": {"label": "SUPER SINGLE", "svgW": 96, "svgL": 140, "pillows": 1},
-        "queen": {"label": "QUEEN BED", "svgW": 126, "svgL": 140, "pillows": 2},
-        "king": {"label": "KING BED", "svgW": 148, "svgL": 140, "pillows": 2}
+        "single": {"label": "SINGLE BED (90x200)", "svgW": 76, "svgL": 140, "pillows": 1},
+        "super_single": {"label": "SUPER SINGLE (120x200)", "svgW": 96, "svgL": 140, "pillows": 1},
+        "double": {"label": "DOUBLE BED (140x200)", "svgW": 114, "svgL": 140, "pillows": 2},
+        "queen": {"label": "QUEEN BED (160x200)", "svgW": 126, "svgL": 140, "pillows": 2},
+        "king": {"label": "KING BED (180x200)", "svgW": 148, "svgL": 140, "pillows": 2}
     }
-    bcfg = bed_map.get(bed_type, bed_map["super_single"])
+    bcfg = bed_map.get(bed_type, bed_map["double" if bed_type == "double" else "super_single"])
+    km_label = "KM DALAM (ENSUITE)" if has_bm else "KM LUAR (SHARED)"
     
     # ── Dynamic Layout Coordinate Synthesis ──
-    if bed_side == 'left':
-        bed_x = 94
-        bed_y = 60
-        nakas_items = [(bed_x + bcfg['svgW'] + 8, 62)]
-        bm_x, bm_y = 396, 56
-        desk_x, desk_y = 425, 278
-        wardrobe_x, wardrobe_y = 94, 278
-        ac_x = 240
-        fridge_x, fridge_y = 220, 286
-    elif bed_side == 'center':
-        bed_x = 310 - (bcfg['svgW'] // 2)
-        bed_y = 60
-        if has_bm:
-            # Shift bed slightly right to accommodate ensuite bathroom
+    if not has_bm:
+        # Kamar Mandi Luar (Shared): No ensuite bathroom box in the room!
+        # Balance the room space naturally so furniture is well distributed
+        if bed_side == 'left':
+            bed_x = 94
+            bed_y = 60
+            nakas_items = [(bed_x + bcfg['svgW'] + 8, 62)]
+            bm_x, bm_y = -999, -999
+            desk_x, desk_y = 425, 68
+            wardrobe_x, wardrobe_y = 425, 236
+            ac_x = 240
+            fridge_x, fridge_y = 94, 278
+        elif bed_side == 'center':
+            bed_x = 310 - (bcfg['svgW'] // 2)
+            bed_y = 60
+            nakas_items = [(bed_x - 30, 62), (bed_x + bcfg['svgW'] + 6, 62)]
+            bm_x, bm_y = -999, -999
+            wardrobe_x, wardrobe_y = 94, 200
+            desk_x, desk_y = 425, 200
+            ac_x = 310 - 34
+            fridge_x, fridge_y = 94, 280
+        else:  # right
+            bed_x = 534 - bcfg['svgW'] - 8
+            bed_y = 60
+            nakas_items = [(bed_x - 32, 62)]
+            bm_x, bm_y = -999, -999
+            desk_x, desk_y = 94, 68
+            wardrobe_x, wardrobe_y = 94, 236
+            ac_x = 250
+            fridge_x, fridge_y = 425, 278
+    else:
+        # Kamar Mandi Dalam (Ensuite): Include ensuite bathroom box
+        if bed_side == 'left':
+            bed_x = 94
+            bed_y = 60
+            nakas_items = [(bed_x + bcfg['svgW'] + 8, 62)]
+            bm_x, bm_y = 396, 56
+            desk_x, desk_y = 425, 260
+            wardrobe_x, wardrobe_y = 94, 278
+            ac_x = 240
+            fridge_x, fridge_y = 220, 286
+        elif bed_side == 'center':
             bed_x = 320 - (bcfg['svgW'] // 2)
+            bed_y = 60
             nakas_items = [(bed_x - 30, 62), (bed_x + bcfg['svgW'] + 6, 62)]
             bm_x, bm_y = 86, 56
-            desk_x, desk_y = 425, 278
             wardrobe_x, wardrobe_y = 94, 278
+            desk_x, desk_y = 425, 278
             ac_x = bed_x + (bcfg['svgW'] // 2) - 34
             fridge_x, fridge_y = 220, 286
-        else:
-            nakas_items = [(bed_x - 32, 62), (bed_x + bcfg['svgW'] + 8, 62)]
+        else:  # right
+            bed_x = 534 - bcfg['svgW'] - 8
+            bed_y = 60
+            nakas_items = [(bed_x - 32, 62)]
             bm_x, bm_y = 86, 56
-            desk_x, desk_y = 425, 278
-            wardrobe_x, wardrobe_y = 94, 278
-            ac_x = 310 - 34
+            desk_x, desk_y = 94, 260
+            wardrobe_x, wardrobe_y = 425, 278
+            ac_x = 250
             fridge_x, fridge_y = 220, 286
-    else:  # right
-        bed_x = 534 - bcfg['svgW'] - 8
-        bed_y = 60
-        nakas_items = [(bed_x - 32, 62)]
-        bm_x, bm_y = 86, 56
-        desk_x, desk_y = 94, 278
-        wardrobe_x, wardrobe_y = 425, 278
-        ac_x = 250
-        fridge_x, fridge_y = 220, 286
+
+    rug_x = bed_x - 10
+    rug_y = bed_y + 35
+    rug_w = bcfg['svgW'] + 20
+    rug_h = bcfg['svgL'] + 10
 
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 400" width="100%" height="100%" style="background:#0b1329; border-radius:12px; font-family:'Inter',system-ui,sans-serif;">
   <defs>
@@ -428,6 +457,12 @@ def render_floor_plan_svg(spec, output_path, cv_features):
 """
 
     svg += f"""
+  <!-- Area Rug under Bed -->
+  <g>
+    <rect x="{rug_x}" y="{rug_y}" width="{rug_w}" height="{rug_h}" rx="6" fill="rgba(56, 189, 248, 0.05)" stroke="rgba(56, 189, 248, 0.25)" stroke-width="1.2" stroke-dasharray="4 3" />
+    <text x="{rug_x + rug_w/2}" y="{rug_y + rug_h - 6}" fill="rgba(148, 163, 184, 0.55)" font-size="6.5" font-weight="600" text-anchor="middle">KARPET AREA</text>
+  </g>
+
   <!-- Bed Unit (Visual Twin Extracted) -->
   <g>
     <rect x="{bed_x}" y="{bed_y}" width="{bcfg['svgW']}" height="{bcfg['svgL']}" rx="5" fill="#1e293b" stroke="#60a5fa" stroke-width="2.5" />
@@ -440,12 +475,12 @@ def render_floor_plan_svg(spec, output_path, cv_features):
     if bcfg["pillows"] == 1:
         svg += f"""    <rect x="{bed_x + (bcfg['svgW']/2) - 24}" y="{bed_y + 10}" width="48" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />\n"""
     else:
-        half_p = (bcfg["svgW"] // 2) - 8
-        svg += f"""    <rect x="{bed_x + 6}" y="{bed_y + 10}" width="{half_p}" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
-    <rect x="{bed_x + (bcfg['svgW']/2) + 2}" y="{bed_y + 10}" width="{half_p}" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />\n"""
+        p_w = min(44, (bcfg["svgW"] - 18) // 2)
+        svg += f"""    <rect x="{bed_x + 6}" y="{bed_y + 10}" width="{p_w}" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
+    <rect x="{bed_x + bcfg['svgW'] - 6 - p_w}" y="{bed_y + 10}" width="{p_w}" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />\n"""
 
     svg += f"""    <ellipse cx="{bed_x + (bcfg['svgW']/2)}" cy="{bed_y + 52}" rx="7" ry="20" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
-    <text x="{bed_x + (bcfg['svgW']/2)}" cy="{bed_y + 100}" fill="#ffffff" font-size="8.5" font-weight="800" text-anchor="middle">{bcfg['label']}</text>
+    <text x="{bed_x + (bcfg['svgW']/2)}" cy="{bed_y + 100}" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle">{bcfg['label']}</text>
   </g>
 """
 
@@ -543,10 +578,10 @@ def render_floor_plan_svg(spec, output_path, cv_features):
 
   <!-- Title Stamp & AI CV Detection Badge -->
   <g>
-    <rect x="230" y="170" width="160" height="52" rx="8" fill="rgba(15, 23, 42, 0.92)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
+    <rect x="210" y="170" width="200" height="54" rx="8" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
     <text x="310" y="186" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">KAMAR {room_number}</text>
-    <text x="310" y="199" fill="#38bdf8" font-size="8.5" font-weight="600" text-anchor="middle">LUAS: {area_m2:.1f} m² ({w_m:.1f}x{l_m:.1f}m)</text>
-    <text x="310" y="213" fill="#4ade80" font-size="7.5" font-weight="700" text-anchor="middle">AI: KASUR {bed_side.upper()} • JENDELA {window_wall.upper()}</text>
+    <text x="310" y="200" fill="#38bdf8" font-size="8" font-weight="700" text-anchor="middle">LUAS: {area_m2:.1f} m² ({w_m:.1f}x{l_m:.1f}m) • {km_label}</text>
+    <text x="310" y="214" fill="#4ade80" font-size="7" font-weight="700" text-anchor="middle">AI: {bcfg['label']} • KASUR {bed_side.upper()}</text>
   </g>
 
   <!-- Compass -->
@@ -586,6 +621,8 @@ def process_single_room(spec):
         "area_m2": spec["area_m2"],
         "bed_type": spec["bed_type"],
         "bed_label": spec["bed_label"],
+        "has_bathroom": spec.get("has_bathroom", "bathroom" in spec["furnitures"]),
+        "bathroom_type": spec.get("bathroom_type", "KM Dalam (Ensuite)" if "bathroom" in spec["furnitures"] else "KM Luar (Shared)"),
         "furnitures": spec["furnitures"],
         "confidence_pct": spec["confidence_pct"],
         "latency_ms": spec["latency_ms"],
@@ -611,6 +648,11 @@ def generate_html_report(results, output_path, is_standalone_web=False):
     for r in results:
         b = r["bed_label"]
         bed_counts[b] = bed_counts.get(b, 0) + 1
+
+    km_counts = {"KM Dalam (Ensuite)": 0, "KM Luar (Shared)": 0}
+    for r in results:
+        b_type = r.get("bathroom_type", "KM Dalam (Ensuite)" if r.get("has_bathroom") else "KM Luar (Shared)")
+        km_counts[b_type] = km_counts.get(b_type, 0) + 1
 
     img_prefix_photo = "photos/" if not is_standalone_web else "downloads/photos/"
     img_prefix_bp = "blueprints/" if not is_standalone_web else "downloads/blueprints/"
@@ -894,16 +936,24 @@ def generate_html_report(results, output_path, is_standalone_web=False):
     html_parts.append(f"""          </table>
         </div>
         <div>
-          <h4 style="font-size: 13px; font-weight: 800; color: #38bdf8; margin-bottom: 10px;">🛏️ Distribusi Dimensi Kasur &amp; Furnitur</h4>
+          <h4 style="font-size: 13px; font-weight: 800; color: #38bdf8; margin-bottom: 10px;">🛏️ Distribusi Kasur &amp; Fasilitas Kamar Mandi</h4>
           <table style="width: 100%; font-size: 11px; border-collapse: collapse; color: #cbd5e1;">
 """)
     for b_label, cnt in bed_counts.items():
-        html_parts.append(f"""            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 24px;">
+        html_parts.append(f"""            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 22px;">
               <td style="padding: 2px 0;">{b_label}</td>
               <td style="text-align: right; font-weight: 700; color: #fff;">{cnt} unit</td>
             </tr>\n""")
 
-    html_parts.append(f"""          </table>
+    html_parts.append(f"""            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 22px;">
+              <td style="padding: 2px 0; color: #34d399;">🚿 KM Dalam (Ensuite)</td>
+              <td style="text-align: right; font-weight: 700; color: #34d399;">{km_counts.get('KM Dalam (Ensuite)', 0)} kamar</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 22px;">
+              <td style="padding: 2px 0; color: #fbbf24;">🚪 KM Luar (Shared)</td>
+              <td style="text-align: right; font-weight: 700; color: #fbbf24;">{km_counts.get('KM Luar (Shared)', 0)} kamar</td>
+            </tr>
+          </table>
         </div>
       </div>
 
@@ -1006,7 +1056,12 @@ def generate_html_report(results, output_path, is_standalone_web=False):
               <span class="room-code">{r1['room_code']}</span>
             </div>
             <div class="room-title">{r1['type_name']}</div>
-            <div class="dim-badge">📐 {r1['dimensions']} ({r1['area_m2']} m²)</div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+              <span class="dim-badge">📐 {r1['dimensions']} ({r1['area_m2']} m²)</span>
+              <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; background: {'rgba(16, 185, 129, 0.2)' if r1.get('has_bathroom') else 'rgba(245, 158, 11, 0.2)'}; color: {'#34d399' if r1.get('has_bathroom') else '#fbbf24'}; border: 1px solid {'rgba(16, 185, 129, 0.4)' if r1.get('has_bathroom') else 'rgba(245, 158, 11, 0.4)'};">
+                {'🚿 KM Dalam' if r1.get('has_bathroom') else '🚪 KM Luar'}
+              </span>
+            </div>
             <div style="font-size: 10.5px; color: #f8fafc; font-weight: 700; margin-top: 5px;">
               Kasur: <span style="color: #60a5fa;">{r1['bed_label']}</span>
             </div>
@@ -1046,7 +1101,12 @@ def generate_html_report(results, output_path, is_standalone_web=False):
               <span class="room-code">{r2['room_code']}</span>
             </div>
             <div class="room-title">{r2['type_name']}</div>
-            <div class="dim-badge">📐 {r2['dimensions']} ({r2['area_m2']} m²)</div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+              <span class="dim-badge">📐 {r2['dimensions']} ({r2['area_m2']} m²)</span>
+              <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; background: {'rgba(16, 185, 129, 0.2)' if r2.get('has_bathroom') else 'rgba(245, 158, 11, 0.2)'}; color: {'#34d399' if r2.get('has_bathroom') else '#fbbf24'}; border: 1px solid {'rgba(16, 185, 129, 0.4)' if r2.get('has_bathroom') else 'rgba(245, 158, 11, 0.4)'};">
+                {'🚿 KM Dalam' if r2.get('has_bathroom') else '🚪 KM Luar'}
+              </span>
+            </div>
             <div style="font-size: 10.5px; color: #f8fafc; font-weight: 700; margin-top: 5px;">
               Kasur: <span style="color: #60a5fa;">{r2['bed_label']}</span>
             </div>
