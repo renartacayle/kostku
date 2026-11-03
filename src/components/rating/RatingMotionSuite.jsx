@@ -1,6 +1,5 @@
 import React from 'react';
 import StarCascade from './StarCascade';
-import EmojiScale from './EmojiScale';
 import HalfStars from './HalfStars';
 import ReviewBars from './ReviewBars';
 import ThanksMorph from './ThanksMorph';
@@ -8,7 +7,7 @@ import { Sparkles } from 'lucide-react';
 
 /**
  * RatingMotionSuite - UI Motion Prompts "Rating 星の評価 Part 1"
- * Excludes Mood Slider per user directive.
+ * Focuses purely on star & bar micro-interactions (Excludes Mood Slider and Emoji Scale).
  */
 export default function RatingMotionSuite() {
   const cards = [
@@ -20,29 +19,22 @@ export default function RatingMotionSuite() {
       component: <StarCascade value={4} />
     },
     {
-      id: 2,
-      num: '2',
-      title: 'Emoji Scale',
-      desc: 'Tap a face: it grows and lights up, the others shrink and turn gray.',
-      component: <EmojiScale value={4} />
-    },
-    {
       id: 3,
-      num: '3',
+      num: '2',
       title: 'Half Stars',
       desc: 'Drag across the stars: they fill in half steps and the score follows.',
       component: <HalfStars value={3.5} />
     },
     {
       id: 5,
-      num: '4', // numbered 4 since Mood Slider was omitted
+      num: '3',
       title: 'Review Bars',
       desc: 'The score counts up to 4.6 while the five bars grow one after another.',
       component: <ReviewBars targetScore={4.6} totalReviews={128} />
     },
     {
       id: 6,
-      num: '5',
+      num: '4',
       title: 'Thanks Morph',
       desc: 'Tap the 5th star: they fill, gather into one and morph into "Thanks!"',
       component: <ThanksMorph />
