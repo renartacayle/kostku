@@ -396,6 +396,34 @@ export default function StressTestReport() {
                   ))}
                 </div>
 
+                {/* CV Extracted Spatial Twin */}
+                {room.cv_features && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    background: isLight ? 'rgba(56, 189, 248, 0.08)' : 'rgba(56, 189, 248, 0.12)',
+                    border: isLight ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(56, 189, 248, 0.3)',
+                    fontSize: '0.72rem',
+                    color: '#38bdf8',
+                    fontWeight: 700
+                  }}>
+                    <span>🎯 Spasial: Kasur {room.cv_features.bed_side.toUpperCase()} • Jendela {room.cv_features.window_wall.toUpperCase()}</span>
+                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                      <span 
+                        style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: room.cv_features.blanket_hex, border: '1px solid rgba(255,255,255,0.6)' }} 
+                        title={`Warna Kasur/Sprei: ${room.cv_features.blanket_hex}`} 
+                      />
+                      <span 
+                        style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: room.cv_features.floor_hex, border: '1px solid rgba(255,255,255,0.6)' }} 
+                        title={`Warna Lantai: ${room.cv_features.floor_hex}`} 
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* CV Accuracy Footer */}
                 <div style={{
                   display: 'flex',

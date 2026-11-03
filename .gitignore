@@ -16,3 +16,5 @@ docs/BLUEPRINT_CLIENT_KOSTKU.md
 docs/BLUEPRINT_DEVELOPER_KOSTKU.md
 .vercel
 .env*
+stress_test_500/
+KostKu_StressTest_500_Kamar_Tidur_Auto2D.pdf

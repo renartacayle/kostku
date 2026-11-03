@@ -18,6 +18,14 @@
     ],
     "confidence_pct": 98.08,
     "latency_ms": 30.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#7f796e",
+      "blanket_accent": "#56524a",
+      "floor_hex": "#2f302a",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_001.jpg",
     "blueprint_file": "plan_001.svg"
   },
@@ -41,6 +49,14 @@
     ],
     "confidence_pct": 99.56,
     "latency_ms": 25.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#857c76",
+      "blanket_accent": "#5a5450",
+      "floor_hex": "#36291d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_002.jpg",
     "blueprint_file": "plan_002.svg"
   },
@@ -64,6 +80,14 @@
     ],
     "confidence_pct": 99.05,
     "latency_ms": 26.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#949294",
+      "blanket_accent": "#646364",
+      "floor_hex": "#3d342f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_003.jpg",
     "blueprint_file": "plan_003.svg"
   },
@@ -86,6 +110,14 @@
     ],
     "confidence_pct": 98.45,
     "latency_ms": 33.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8b9eaf",
+      "blanket_accent": "#5e6b77",
+      "floor_hex": "#657d8f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_004.jpg",
     "blueprint_file": "plan_004.svg"
   },
@@ -109,6 +141,14 @@
     ],
     "confidence_pct": 98.41,
     "latency_ms": 20.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a8a59f",
+      "blanket_accent": "#72706c",
+      "floor_hex": "#766e63",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_005.jpg",
     "blueprint_file": "plan_005.svg"
   },
@@ -131,6 +171,14 @@
     ],
     "confidence_pct": 99.68,
     "latency_ms": 30.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#766057",
+      "blanket_accent": "#50413b",
+      "floor_hex": "#6a4b41",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_006.jpg",
     "blueprint_file": "plan_006.svg"
   },
@@ -153,6 +201,14 @@
     ],
     "confidence_pct": 97.23,
     "latency_ms": 23.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#7b7566",
+      "blanket_accent": "#534f45",
+      "floor_hex": "#848385",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_007.jpg",
     "blueprint_file": "plan_007.svg"
   },
@@ -175,6 +231,14 @@
     ],
     "confidence_pct": 97.72,
     "latency_ms": 20.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#73625f",
+      "blanket_accent": "#4e4240",
+      "floor_hex": "#450a17",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_008.jpg",
     "blueprint_file": "plan_008.svg"
   },
@@ -198,6 +262,14 @@
     ],
     "confidence_pct": 97.35,
     "latency_ms": 26.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#816851",
+      "blanket_accent": "#574637",
+      "floor_hex": "#a98760",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_009.jpg",
     "blueprint_file": "plan_009.svg"
   },
@@ -220,6 +292,14 @@
     ],
     "confidence_pct": 98.6,
     "latency_ms": 17.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#aa9882",
+      "blanket_accent": "#736758",
+      "floor_hex": "#d3b698",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_010.jpg",
     "blueprint_file": "plan_010.svg"
   },
@@ -242,6 +322,14 @@
     ],
     "confidence_pct": 98.13,
     "latency_ms": 21.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5f4637",
+      "blanket_accent": "#402f25",
+      "floor_hex": "#ae9b89",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_011.jpg",
     "blueprint_file": "plan_011.svg"
   },
@@ -264,6 +352,14 @@
     ],
     "confidence_pct": 98.9,
     "latency_ms": 32.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#938f84",
+      "blanket_accent": "#636159",
+      "floor_hex": "#9a958a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_012.jpg",
     "blueprint_file": "plan_012.svg"
   },
@@ -287,6 +383,14 @@
     ],
     "confidence_pct": 99.72,
     "latency_ms": 32.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#764b23",
+      "blanket_accent": "#503317",
+      "floor_hex": "#391f14",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_013.jpg",
     "blueprint_file": "plan_013.svg"
   },
@@ -309,6 +413,14 @@
     ],
     "confidence_pct": 98.07,
     "latency_ms": 18.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b17025",
+      "blanket_accent": "#784c19",
+      "floor_hex": "#431605",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_014.jpg",
     "blueprint_file": "plan_014.svg"
   },
@@ -332,6 +444,14 @@
     ],
     "confidence_pct": 98.99,
     "latency_ms": 28.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#5c270f",
+      "blanket_accent": "#3e1a0a",
+      "floor_hex": "#703404",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_015.jpg",
     "blueprint_file": "plan_015.svg"
   },
@@ -354,6 +474,14 @@
     ],
     "confidence_pct": 99.54,
     "latency_ms": 29.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#604d3d",
+      "blanket_accent": "#413429",
+      "floor_hex": "#473423",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_016.jpg",
     "blueprint_file": "plan_016.svg"
   },
@@ -377,6 +505,14 @@
     ],
     "confidence_pct": 99.64,
     "latency_ms": 17.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#69665e",
+      "blanket_accent": "#47453f",
+      "floor_hex": "#633d23",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_017.jpg",
     "blueprint_file": "plan_017.svg"
   },
@@ -399,6 +535,14 @@
     ],
     "confidence_pct": 98.0,
     "latency_ms": 21.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9c988f",
+      "blanket_accent": "#6a6761",
+      "floor_hex": "#4b2f1f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_018.jpg",
     "blueprint_file": "plan_018.svg"
   },
@@ -421,6 +565,14 @@
     ],
     "confidence_pct": 98.98,
     "latency_ms": 24.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#6e5244",
+      "blanket_accent": "#4a372e",
+      "floor_hex": "#97745a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_019.jpg",
     "blueprint_file": "plan_019.svg"
   },
@@ -444,6 +596,14 @@
     ],
     "confidence_pct": 98.97,
     "latency_ms": 18.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a3a0a7",
+      "blanket_accent": "#6e6c71",
+      "floor_hex": "#221e1c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_020.jpg",
     "blueprint_file": "plan_020.svg"
   },
@@ -467,6 +627,14 @@
     ],
     "confidence_pct": 99.55,
     "latency_ms": 22.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#998781",
+      "blanket_accent": "#685b57",
+      "floor_hex": "#c6a476",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_021.jpg",
     "blueprint_file": "plan_021.svg"
   },
@@ -490,6 +658,14 @@
     ],
     "confidence_pct": 99.53,
     "latency_ms": 32.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#72503f",
+      "blanket_accent": "#4d362a",
+      "floor_hex": "#696268",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_022.jpg",
     "blueprint_file": "plan_022.svg"
   },
@@ -513,6 +689,14 @@
     ],
     "confidence_pct": 98.06,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7b4c2f",
+      "blanket_accent": "#53331f",
+      "floor_hex": "#a28278",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_023.jpg",
     "blueprint_file": "plan_023.svg"
   },
@@ -535,6 +719,14 @@
     ],
     "confidence_pct": 98.38,
     "latency_ms": 29.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#b1ac96",
+      "blanket_accent": "#787466",
+      "floor_hex": "#767566",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_024.jpg",
     "blueprint_file": "plan_024.svg"
   },
@@ -558,6 +750,14 @@
     ],
     "confidence_pct": 97.35,
     "latency_ms": 31.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#957859",
+      "blanket_accent": "#65513c",
+      "floor_hex": "#9b7a5c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_025.jpg",
     "blueprint_file": "plan_025.svg"
   },
@@ -581,6 +781,14 @@
     ],
     "confidence_pct": 98.36,
     "latency_ms": 26.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#ae9761",
+      "blanket_accent": "#766641",
+      "floor_hex": "#735843",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_026.jpg",
     "blueprint_file": "plan_026.svg"
   },
@@ -603,6 +811,14 @@
     ],
     "confidence_pct": 99.66,
     "latency_ms": 32.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#c1c1c1",
+      "blanket_accent": "#838383",
+      "floor_hex": "#1d191c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_027.jpg",
     "blueprint_file": "plan_027.svg"
   },
@@ -625,6 +841,14 @@
     ],
     "confidence_pct": 98.81,
     "latency_ms": 32.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#ad9e98",
+      "blanket_accent": "#756b67",
+      "floor_hex": "#a09fa2",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_028.jpg",
     "blueprint_file": "plan_028.svg"
   },
@@ -648,6 +872,14 @@
     ],
     "confidence_pct": 97.69,
     "latency_ms": 26.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#958365",
+      "blanket_accent": "#655944",
+      "floor_hex": "#56432c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_029.jpg",
     "blueprint_file": "plan_029.svg"
   },
@@ -670,6 +902,14 @@
     ],
     "confidence_pct": 99.21,
     "latency_ms": 29.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#747880",
+      "blanket_accent": "#4e5157",
+      "floor_hex": "#64676c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_030.jpg",
     "blueprint_file": "plan_030.svg"
   },
@@ -693,6 +933,14 @@
     ],
     "confidence_pct": 99.72,
     "latency_ms": 17.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#b28b8b",
+      "blanket_accent": "#795e5e",
+      "floor_hex": "#7b594f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_031.jpg",
     "blueprint_file": "plan_031.svg"
   },
@@ -716,6 +964,14 @@
     ],
     "confidence_pct": 98.42,
     "latency_ms": 29.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a08e78",
+      "blanket_accent": "#6c6051",
+      "floor_hex": "#4b2f1c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_032.jpg",
     "blueprint_file": "plan_032.svg"
   },
@@ -738,6 +994,14 @@
     ],
     "confidence_pct": 99.24,
     "latency_ms": 25.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b3b0af",
+      "blanket_accent": "#797777",
+      "floor_hex": "#747574",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_033.jpg",
     "blueprint_file": "plan_033.svg"
   },
@@ -760,6 +1024,14 @@
     ],
     "confidence_pct": 97.75,
     "latency_ms": 24.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#8c8081",
+      "blanket_accent": "#5f5757",
+      "floor_hex": "#9fabb7",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_034.jpg",
     "blueprint_file": "plan_034.svg"
   },
@@ -782,6 +1054,14 @@
     ],
     "confidence_pct": 99.21,
     "latency_ms": 26.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#ab8b68",
+      "blanket_accent": "#745e46",
+      "floor_hex": "#65533a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_035.jpg",
     "blueprint_file": "plan_035.svg"
   },
@@ -804,6 +1084,14 @@
     ],
     "confidence_pct": 99.74,
     "latency_ms": 20.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9a806c",
+      "blanket_accent": "#685749",
+      "floor_hex": "#715d51",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_036.jpg",
     "blueprint_file": "plan_036.svg"
   },
@@ -826,6 +1114,14 @@
     ],
     "confidence_pct": 98.32,
     "latency_ms": 23.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#846952",
+      "blanket_accent": "#594737",
+      "floor_hex": "#5f4b3d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_037.jpg",
     "blueprint_file": "plan_037.svg"
   },
@@ -848,6 +1144,14 @@
     ],
     "confidence_pct": 98.46,
     "latency_ms": 19.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#987458",
+      "blanket_accent": "#674e3b",
+      "floor_hex": "#796452",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_038.jpg",
     "blueprint_file": "plan_038.svg"
   },
@@ -871,6 +1175,14 @@
     ],
     "confidence_pct": 97.68,
     "latency_ms": 21.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#7c5f4a",
+      "blanket_accent": "#544032",
+      "floor_hex": "#654d3b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_039.jpg",
     "blueprint_file": "plan_039.svg"
   },
@@ -894,6 +1206,14 @@
     ],
     "confidence_pct": 99.42,
     "latency_ms": 24.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a07d63",
+      "blanket_accent": "#6c5543",
+      "floor_hex": "#715f51",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_040.jpg",
     "blueprint_file": "plan_040.svg"
   },
@@ -916,6 +1236,14 @@
     ],
     "confidence_pct": 98.65,
     "latency_ms": 19.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#797367",
+      "blanket_accent": "#524e46",
+      "floor_hex": "#282922",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_041.jpg",
     "blueprint_file": "plan_041.svg"
   },
@@ -940,6 +1268,14 @@
     ],
     "confidence_pct": 99.3,
     "latency_ms": 28.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7a736e",
+      "blanket_accent": "#524e4a",
+      "floor_hex": "#34281e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_042.jpg",
     "blueprint_file": "plan_042.svg"
   },
@@ -963,6 +1299,14 @@
     ],
     "confidence_pct": 99.49,
     "latency_ms": 23.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#908f90",
+      "blanket_accent": "#616161",
+      "floor_hex": "#3f3631",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_043.jpg",
     "blueprint_file": "plan_043.svg"
   },
@@ -985,6 +1329,14 @@
     ],
     "confidence_pct": 97.95,
     "latency_ms": 21.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#8393a0",
+      "blanket_accent": "#59636c",
+      "floor_hex": "#637a8b",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_044.jpg",
     "blueprint_file": "plan_044.svg"
   },
@@ -1008,6 +1360,14 @@
     ],
     "confidence_pct": 98.63,
     "latency_ms": 20.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#aaa8a2",
+      "blanket_accent": "#73726e",
+      "floor_hex": "#756d61",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_045.jpg",
     "blueprint_file": "plan_045.svg"
   },
@@ -1030,6 +1390,14 @@
     ],
     "confidence_pct": 99.11,
     "latency_ms": 31.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#755e55",
+      "blanket_accent": "#4f3f39",
+      "floor_hex": "#6b5049",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_046.jpg",
     "blueprint_file": "plan_046.svg"
   },
@@ -1052,6 +1420,14 @@
     ],
     "confidence_pct": 98.76,
     "latency_ms": 22.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#867f6f",
+      "blanket_accent": "#5b564b",
+      "floor_hex": "#8e8b8d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_047.jpg",
     "blueprint_file": "plan_047.svg"
   },
@@ -1074,6 +1450,14 @@
     ],
     "confidence_pct": 97.59,
     "latency_ms": 33.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#756360",
+      "blanket_accent": "#4f4341",
+      "floor_hex": "#440b17",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_048.jpg",
     "blueprint_file": "plan_048.svg"
   },
@@ -1096,6 +1480,14 @@
     ],
     "confidence_pct": 97.21,
     "latency_ms": 24.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#755d47",
+      "blanket_accent": "#4f3f30",
+      "floor_hex": "#9a7a55",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_049.jpg",
     "blueprint_file": "plan_049.svg"
   },
@@ -1119,6 +1511,14 @@
     ],
     "confidence_pct": 98.18,
     "latency_ms": 17.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#94826e",
+      "blanket_accent": "#64584a",
+      "floor_hex": "#ba9e82",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_050.jpg",
     "blueprint_file": "plan_050.svg"
   },
@@ -1141,6 +1541,14 @@
     ],
     "confidence_pct": 97.46,
     "latency_ms": 24.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#684b39",
+      "blanket_accent": "#463326",
+      "floor_hex": "#c5ae9a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_051.jpg",
     "blueprint_file": "plan_051.svg"
   },
@@ -1163,6 +1571,14 @@
     ],
     "confidence_pct": 97.53,
     "latency_ms": 30.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#969186",
+      "blanket_accent": "#66625b",
+      "floor_hex": "#9f988d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_052.jpg",
     "blueprint_file": "plan_052.svg"
   },
@@ -1186,6 +1602,14 @@
     ],
     "confidence_pct": 97.41,
     "latency_ms": 22.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#704924",
+      "blanket_accent": "#4c3118",
+      "floor_hex": "#392015",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_053.jpg",
     "blueprint_file": "plan_053.svg"
   },
@@ -1209,6 +1633,14 @@
     ],
     "confidence_pct": 99.19,
     "latency_ms": 32.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a4631c",
+      "blanket_accent": "#6f4313",
+      "floor_hex": "#3b1003",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_054.jpg",
     "blueprint_file": "plan_054.svg"
   },
@@ -1231,6 +1663,14 @@
     ],
     "confidence_pct": 98.72,
     "latency_ms": 28.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#571f07",
+      "blanket_accent": "#3b1504",
+      "floor_hex": "#743704",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_055.jpg",
     "blueprint_file": "plan_055.svg"
   },
@@ -1254,6 +1694,14 @@
     ],
     "confidence_pct": 97.63,
     "latency_ms": 16.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#584637",
+      "blanket_accent": "#3b2f25",
+      "floor_hex": "#402f20",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_056.jpg",
     "blueprint_file": "plan_056.svg"
   },
@@ -1278,6 +1726,14 @@
     ],
     "confidence_pct": 97.44,
     "latency_ms": 32.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#65635c",
+      "blanket_accent": "#44433e",
+      "floor_hex": "#593925",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_057.jpg",
     "blueprint_file": "plan_057.svg"
   },
@@ -1300,6 +1756,14 @@
     ],
     "confidence_pct": 97.72,
     "latency_ms": 31.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#8f8a81",
+      "blanket_accent": "#615d57",
+      "floor_hex": "#432819",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_058.jpg",
     "blueprint_file": "plan_058.svg"
   },
@@ -1322,6 +1786,14 @@
     ],
     "confidence_pct": 98.0,
     "latency_ms": 20.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#614739",
+      "blanket_accent": "#413026",
+      "floor_hex": "#a07c60",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_059.jpg",
     "blueprint_file": "plan_059.svg"
   },
@@ -1344,6 +1816,14 @@
     ],
     "confidence_pct": 99.44,
     "latency_ms": 24.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a3a0a7",
+      "blanket_accent": "#6e6c71",
+      "floor_hex": "#221e1c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_060.jpg",
     "blueprint_file": "plan_060.svg"
   },
@@ -1366,6 +1846,14 @@
     ],
     "confidence_pct": 99.0,
     "latency_ms": 19.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a89691",
+      "blanket_accent": "#726662",
+      "floor_hex": "#d0ab78",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_061.jpg",
     "blueprint_file": "plan_061.svg"
   },
@@ -1389,6 +1877,14 @@
     ],
     "confidence_pct": 98.61,
     "latency_ms": 21.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#6d4e3f",
+      "blanket_accent": "#4a352a",
+      "floor_hex": "#645d62",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_062.jpg",
     "blueprint_file": "plan_062.svg"
   },
@@ -1411,6 +1907,14 @@
     ],
     "confidence_pct": 98.3,
     "latency_ms": 18.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#8a5a3c",
+      "blanket_accent": "#5d3d28",
+      "floor_hex": "#b69893",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_063.jpg",
     "blueprint_file": "plan_063.svg"
   },
@@ -1433,6 +1937,14 @@
     ],
     "confidence_pct": 98.57,
     "latency_ms": 17.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#bbb7a0",
+      "blanket_accent": "#7f7c6c",
+      "floor_hex": "#888777",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_064.jpg",
     "blueprint_file": "plan_064.svg"
   },
@@ -1456,6 +1968,14 @@
     ],
     "confidence_pct": 98.28,
     "latency_ms": 17.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a2815d",
+      "blanket_accent": "#6e573f",
+      "floor_hex": "#b0865f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_065.jpg",
     "blueprint_file": "plan_065.svg"
   },
@@ -1478,6 +1998,14 @@
     ],
     "confidence_pct": 98.01,
     "latency_ms": 31.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9c8755",
+      "blanket_accent": "#6a5b39",
+      "floor_hex": "#664c39",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_066.jpg",
     "blueprint_file": "plan_066.svg"
   },
@@ -1501,6 +2029,14 @@
     ],
     "confidence_pct": 99.23,
     "latency_ms": 16.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#b4b3b3",
+      "blanket_accent": "#7a7979",
+      "floor_hex": "#232021",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_067.jpg",
     "blueprint_file": "plan_067.svg"
   },
@@ -1524,6 +2060,14 @@
     ],
     "confidence_pct": 97.52,
     "latency_ms": 23.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b3a49f",
+      "blanket_accent": "#796f6c",
+      "floor_hex": "#aeaeb3",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_068.jpg",
     "blueprint_file": "plan_068.svg"
   },
@@ -1547,6 +2091,14 @@
     ],
     "confidence_pct": 99.4,
     "latency_ms": 24.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#8e7c5f",
+      "blanket_accent": "#605440",
+      "floor_hex": "#5a4831",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_069.jpg",
     "blueprint_file": "plan_069.svg"
   },
@@ -1569,6 +2121,14 @@
     ],
     "confidence_pct": 98.72,
     "latency_ms": 23.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#767a82",
+      "blanket_accent": "#505258",
+      "floor_hex": "#686b70",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_070.jpg",
     "blueprint_file": "plan_070.svg"
   },
@@ -1591,6 +2151,14 @@
     ],
     "confidence_pct": 98.4,
     "latency_ms": 32.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#bf9695",
+      "blanket_accent": "#816665",
+      "floor_hex": "#856156",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_071.jpg",
     "blueprint_file": "plan_071.svg"
   },
@@ -1613,6 +2181,14 @@
     ],
     "confidence_pct": 98.52,
     "latency_ms": 26.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#ab967f",
+      "blanket_accent": "#746656",
+      "floor_hex": "#4e2f1a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_072.jpg",
     "blueprint_file": "plan_072.svg"
   },
@@ -1635,6 +2211,14 @@
     ],
     "confidence_pct": 98.08,
     "latency_ms": 31.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a6a2a1",
+      "blanket_accent": "#706e6d",
+      "floor_hex": "#727373",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_073.jpg",
     "blueprint_file": "plan_073.svg"
   },
@@ -1657,6 +2241,14 @@
     ],
     "confidence_pct": 97.53,
     "latency_ms": 18.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#837777",
+      "blanket_accent": "#595050",
+      "floor_hex": "#9fa8b5",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_074.jpg",
     "blueprint_file": "plan_074.svg"
   },
@@ -1679,6 +2271,14 @@
     ],
     "confidence_pct": 97.27,
     "latency_ms": 26.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#967a5c",
+      "blanket_accent": "#66523e",
+      "floor_hex": "#584832",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_075.jpg",
     "blueprint_file": "plan_075.svg"
   },
@@ -1702,6 +2302,14 @@
     ],
     "confidence_pct": 98.54,
     "latency_ms": 19.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9b806a",
+      "blanket_accent": "#695748",
+      "floor_hex": "#6f5b4e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_076.jpg",
     "blueprint_file": "plan_076.svg"
   },
@@ -1725,6 +2333,14 @@
     ],
     "confidence_pct": 99.26,
     "latency_ms": 18.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#795e48",
+      "blanket_accent": "#523f30",
+      "floor_hex": "#584435",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_077.jpg",
     "blueprint_file": "plan_077.svg"
   },
@@ -1747,6 +2363,14 @@
     ],
     "confidence_pct": 98.25,
     "latency_ms": 28.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#816148",
+      "blanket_accent": "#574130",
+      "floor_hex": "#665141",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_078.jpg",
     "blueprint_file": "plan_078.svg"
   },
@@ -1769,6 +2393,14 @@
     ],
     "confidence_pct": 99.11,
     "latency_ms": 34.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#906d52",
+      "blanket_accent": "#614a37",
+      "floor_hex": "#735945",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_079.jpg",
     "blueprint_file": "plan_079.svg"
   },
@@ -1791,6 +2423,14 @@
     ],
     "confidence_pct": 99.59,
     "latency_ms": 24.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a37f64",
+      "blanket_accent": "#6e5644",
+      "floor_hex": "#69594d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_080.jpg",
     "blueprint_file": "plan_080.svg"
   },
@@ -1814,6 +2454,14 @@
     ],
     "confidence_pct": 97.56,
     "latency_ms": 25.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#7a746a",
+      "blanket_accent": "#524e48",
+      "floor_hex": "#2e2e28",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_081.jpg",
     "blueprint_file": "plan_081.svg"
   },
@@ -1836,6 +2484,14 @@
     ],
     "confidence_pct": 98.9,
     "latency_ms": 24.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#807873",
+      "blanket_accent": "#57514e",
+      "floor_hex": "#36291e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_082.jpg",
     "blueprint_file": "plan_082.svg"
   },
@@ -1858,6 +2514,14 @@
     ],
     "confidence_pct": 98.07,
     "latency_ms": 21.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#99989a",
+      "blanket_accent": "#686768",
+      "floor_hex": "#453b37",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_083.jpg",
     "blueprint_file": "plan_083.svg"
   },
@@ -1880,6 +2544,14 @@
     ],
     "confidence_pct": 98.58,
     "latency_ms": 31.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8a9ba9",
+      "blanket_accent": "#5d6972",
+      "floor_hex": "#6d8494",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_084.jpg",
     "blueprint_file": "plan_084.svg"
   },
@@ -1903,6 +2575,14 @@
     ],
     "confidence_pct": 99.7,
     "latency_ms": 19.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#b6b4ad",
+      "blanket_accent": "#7b7a75",
+      "floor_hex": "#786e60",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_085.jpg",
     "blueprint_file": "plan_085.svg"
   },
@@ -1926,6 +2606,14 @@
     ],
     "confidence_pct": 99.71,
     "latency_ms": 22.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#675652",
+      "blanket_accent": "#463a37",
+      "floor_hex": "#563d37",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_086.jpg",
     "blueprint_file": "plan_086.svg"
   },
@@ -1948,6 +2636,14 @@
     ],
     "confidence_pct": 99.71,
     "latency_ms": 23.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#8f8774",
+      "blanket_accent": "#615b4e",
+      "floor_hex": "#8b8686",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_087.jpg",
     "blueprint_file": "plan_087.svg"
   },
@@ -1971,6 +2667,14 @@
     ],
     "confidence_pct": 98.21,
     "latency_ms": 32.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#6c5c5a",
+      "blanket_accent": "#493e3d",
+      "floor_hex": "#3f0c18",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_088.jpg",
     "blueprint_file": "plan_088.svg"
   },
@@ -1993,6 +2697,14 @@
     ],
     "confidence_pct": 97.65,
     "latency_ms": 17.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#80674f",
+      "blanket_accent": "#574635",
+      "floor_hex": "#a8865f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_089.jpg",
     "blueprint_file": "plan_089.svg"
   },
@@ -2015,6 +2727,14 @@
     ],
     "confidence_pct": 98.75,
     "latency_ms": 26.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9d8a75",
+      "blanket_accent": "#6a5d4f",
+      "floor_hex": "#c7a98b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_090.jpg",
     "blueprint_file": "plan_090.svg"
   },
@@ -2037,6 +2757,14 @@
     ],
     "confidence_pct": 98.14,
     "latency_ms": 21.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#604737",
+      "blanket_accent": "#413025",
+      "floor_hex": "#b9a594",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_091.jpg",
     "blueprint_file": "plan_091.svg"
   },
@@ -2059,6 +2787,14 @@
     ],
     "confidence_pct": 97.52,
     "latency_ms": 32.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#969186",
+      "blanket_accent": "#66625b",
+      "floor_hex": "#a19b90",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_092.jpg",
     "blueprint_file": "plan_092.svg"
   },
@@ -2082,6 +2818,14 @@
     ],
     "confidence_pct": 97.26,
     "latency_ms": 31.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#6a4421",
+      "blanket_accent": "#482e16",
+      "floor_hex": "#371f13",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_093.jpg",
     "blueprint_file": "plan_093.svg"
   },
@@ -2105,6 +2849,14 @@
     ],
     "confidence_pct": 98.25,
     "latency_ms": 29.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b07228",
+      "blanket_accent": "#774d1b",
+      "floor_hex": "#441908",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_094.jpg",
     "blueprint_file": "plan_094.svg"
   },
@@ -2128,6 +2880,14 @@
     ],
     "confidence_pct": 99.09,
     "latency_ms": 29.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#5b2812",
+      "blanket_accent": "#3d1b0c",
+      "floor_hex": "#7e3d05",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_095.jpg",
     "blueprint_file": "plan_095.svg"
   },
@@ -2151,6 +2911,14 @@
     ],
     "confidence_pct": 97.7,
     "latency_ms": 19.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#544334",
+      "blanket_accent": "#392d23",
+      "floor_hex": "#3e2f22",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_096.jpg",
     "blueprint_file": "plan_096.svg"
   },
@@ -2174,6 +2942,14 @@
     ],
     "confidence_pct": 99.29,
     "latency_ms": 33.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#696760",
+      "blanket_accent": "#474641",
+      "floor_hex": "#583722",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_097.jpg",
     "blueprint_file": "plan_097.svg"
   },
@@ -2196,6 +2972,14 @@
     ],
     "confidence_pct": 99.57,
     "latency_ms": 33.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9f9b91",
+      "blanket_accent": "#6c6962",
+      "floor_hex": "#4a2d1e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_098.jpg",
     "blueprint_file": "plan_098.svg"
   },
@@ -2219,6 +3003,14 @@
     ],
     "confidence_pct": 98.34,
     "latency_ms": 34.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#695042",
+      "blanket_accent": "#47362c",
+      "floor_hex": "#9a795f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_099.jpg",
     "blueprint_file": "plan_099.svg"
   },
@@ -2242,6 +3034,14 @@
     ],
     "confidence_pct": 97.25,
     "latency_ms": 20.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9f9ca4",
+      "blanket_accent": "#6c6a6f",
+      "floor_hex": "#272221",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_100.jpg",
     "blueprint_file": "plan_100.svg"
   },
@@ -2265,6 +3065,14 @@
     ],
     "confidence_pct": 97.47,
     "latency_ms": 18.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#80695c",
+      "blanket_accent": "#57473e",
+      "floor_hex": "#b99b71",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_101.jpg",
     "blueprint_file": "plan_101.svg"
   },
@@ -2289,6 +3097,14 @@
     ],
     "confidence_pct": 97.72,
     "latency_ms": 21.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#795645",
+      "blanket_accent": "#523a2e",
+      "floor_hex": "#6e676e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_102.jpg",
     "blueprint_file": "plan_102.svg"
   },
@@ -2312,6 +3128,14 @@
     ],
     "confidence_pct": 98.25,
     "latency_ms": 29.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#794d31",
+      "blanket_accent": "#523421",
+      "floor_hex": "#99776a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_103.jpg",
     "blueprint_file": "plan_103.svg"
   },
@@ -2335,6 +3159,14 @@
     ],
     "confidence_pct": 98.44,
     "latency_ms": 26.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#b1ac96",
+      "blanket_accent": "#787466",
+      "floor_hex": "#858373",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_104.jpg",
     "blueprint_file": "plan_104.svg"
   },
@@ -2358,6 +3190,14 @@
     ],
     "confidence_pct": 98.22,
     "latency_ms": 22.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a68764",
+      "blanket_accent": "#705b44",
+      "floor_hex": "#b58d69",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_105.jpg",
     "blueprint_file": "plan_105.svg"
   },
@@ -2381,6 +3221,14 @@
     ],
     "confidence_pct": 99.47,
     "latency_ms": 27.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#bba165",
+      "blanket_accent": "#7f6d44",
+      "floor_hex": "#765842",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_106.jpg",
     "blueprint_file": "plan_106.svg"
   },
@@ -2404,6 +3252,14 @@
     ],
     "confidence_pct": 98.03,
     "latency_ms": 19.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#bebebd",
+      "blanket_accent": "#818180",
+      "floor_hex": "#1f1c1e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_107.jpg",
     "blueprint_file": "plan_107.svg"
   },
@@ -2428,6 +3284,14 @@
     ],
     "confidence_pct": 97.56,
     "latency_ms": 18.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#ac9d98",
+      "blanket_accent": "#746a67",
+      "floor_hex": "#a6a6aa",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_108.jpg",
     "blueprint_file": "plan_108.svg"
   },
@@ -2451,6 +3315,14 @@
     ],
     "confidence_pct": 97.25,
     "latency_ms": 23.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a69576",
+      "blanket_accent": "#706550",
+      "floor_hex": "#5c4831",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_109.jpg",
     "blueprint_file": "plan_109.svg"
   },
@@ -2474,6 +3346,14 @@
     ],
     "confidence_pct": 98.12,
     "latency_ms": 32.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#787c85",
+      "blanket_accent": "#51545a",
+      "floor_hex": "#666a6f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_110.jpg",
     "blueprint_file": "plan_110.svg"
   },
@@ -2498,6 +3378,14 @@
     ],
     "confidence_pct": 97.99,
     "latency_ms": 25.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b7908f",
+      "blanket_accent": "#7c6161",
+      "floor_hex": "#79574d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_111.jpg",
     "blueprint_file": "plan_111.svg"
   },
@@ -2521,6 +3409,14 @@
     ],
     "confidence_pct": 98.67,
     "latency_ms": 32.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a18e78",
+      "blanket_accent": "#6d6051",
+      "floor_hex": "#523720",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_112.jpg",
     "blueprint_file": "plan_112.svg"
   },
@@ -2545,6 +3441,14 @@
     ],
     "confidence_pct": 98.21,
     "latency_ms": 28.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a29d9c",
+      "blanket_accent": "#6e6a6a",
+      "floor_hex": "#707271",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_113.jpg",
     "blueprint_file": "plan_113.svg"
   },
@@ -2568,6 +3472,14 @@
     ],
     "confidence_pct": 98.61,
     "latency_ms": 33.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#8d8283",
+      "blanket_accent": "#5f5859",
+      "floor_hex": "#9cabb7",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_114.jpg",
     "blueprint_file": "plan_114.svg"
   },
@@ -2591,6 +3503,14 @@
     ],
     "confidence_pct": 97.61,
     "latency_ms": 33.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#a28361",
+      "blanket_accent": "#6e5941",
+      "floor_hex": "#624e34",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_115.jpg",
     "blueprint_file": "plan_115.svg"
   },
@@ -2614,6 +3534,14 @@
     ],
     "confidence_pct": 97.38,
     "latency_ms": 18.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#957c68",
+      "blanket_accent": "#655446",
+      "floor_hex": "#6c5a4d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_116.jpg",
     "blueprint_file": "plan_116.svg"
   },
@@ -2638,6 +3566,14 @@
     ],
     "confidence_pct": 99.17,
     "latency_ms": 22.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#80654f",
+      "blanket_accent": "#574435",
+      "floor_hex": "#5c483a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_117.jpg",
     "blueprint_file": "plan_117.svg"
   },
@@ -2661,6 +3597,14 @@
     ],
     "confidence_pct": 99.54,
     "latency_ms": 22.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#957154",
+      "blanket_accent": "#654c39",
+      "floor_hex": "#755e4c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_118.jpg",
     "blueprint_file": "plan_118.svg"
   },
@@ -2685,6 +3629,14 @@
     ],
     "confidence_pct": 99.23,
     "latency_ms": 19.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#846650",
+      "blanket_accent": "#594536",
+      "floor_hex": "#665141",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_119.jpg",
     "blueprint_file": "plan_119.svg"
   },
@@ -2708,6 +3660,14 @@
     ],
     "confidence_pct": 98.05,
     "latency_ms": 31.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a27e62",
+      "blanket_accent": "#6e5542",
+      "floor_hex": "#846d5a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_120.jpg",
     "blueprint_file": "plan_120.svg"
   },
@@ -2732,6 +3692,14 @@
     ],
     "confidence_pct": 99.52,
     "latency_ms": 17.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#878176",
+      "blanket_accent": "#5b5750",
+      "floor_hex": "#31322d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_121.jpg",
     "blueprint_file": "plan_121.svg"
   },
@@ -2756,6 +3724,14 @@
     ],
     "confidence_pct": 98.85,
     "latency_ms": 30.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#877e79",
+      "blanket_accent": "#5b5552",
+      "floor_hex": "#392c20",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_122.jpg",
     "blueprint_file": "plan_122.svg"
   },
@@ -2780,6 +3756,14 @@
     ],
     "confidence_pct": 98.25,
     "latency_ms": 23.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#928f91",
+      "blanket_accent": "#636162",
+      "floor_hex": "#3a302b",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_123.jpg",
     "blueprint_file": "plan_123.svg"
   },
@@ -2803,6 +3787,14 @@
     ],
     "confidence_pct": 99.06,
     "latency_ms": 25.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8fa0ae",
+      "blanket_accent": "#616c76",
+      "floor_hex": "#70889a",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_124.jpg",
     "blueprint_file": "plan_124.svg"
   },
@@ -2827,6 +3819,14 @@
     ],
     "confidence_pct": 98.92,
     "latency_ms": 23.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a5a39d",
+      "blanket_accent": "#706e6a",
+      "floor_hex": "#6f665a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_125.jpg",
     "blueprint_file": "plan_125.svg"
   },
@@ -2851,6 +3851,14 @@
     ],
     "confidence_pct": 99.19,
     "latency_ms": 27.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#6d5850",
+      "blanket_accent": "#4a3b36",
+      "floor_hex": "#63453c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_126.jpg",
     "blueprint_file": "plan_126.svg"
   },
@@ -2875,6 +3883,14 @@
     ],
     "confidence_pct": 99.58,
     "latency_ms": 32.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#918a77",
+      "blanket_accent": "#625d50",
+      "floor_hex": "#9c9da1",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_127.jpg",
     "blueprint_file": "plan_127.svg"
   },
@@ -2898,6 +3914,14 @@
     ],
     "confidence_pct": 97.63,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#746461",
+      "blanket_accent": "#4e4441",
+      "floor_hex": "#490f1c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_128.jpg",
     "blueprint_file": "plan_128.svg"
   },
@@ -2921,6 +3945,14 @@
     ],
     "confidence_pct": 97.82,
     "latency_ms": 18.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#755f4a",
+      "blanket_accent": "#4f4032",
+      "floor_hex": "#967957",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_129.jpg",
     "blueprint_file": "plan_129.svg"
   },
@@ -2945,6 +3977,14 @@
     ],
     "confidence_pct": 97.49,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#978570",
+      "blanket_accent": "#665a4c",
+      "floor_hex": "#c0a386",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_130.jpg",
     "blueprint_file": "plan_130.svg"
   },
@@ -2969,6 +4009,14 @@
     ],
     "confidence_pct": 99.76,
     "latency_ms": 27.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#634a39",
+      "blanket_accent": "#433226",
+      "floor_hex": "#b6a291",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_131.jpg",
     "blueprint_file": "plan_131.svg"
   },
@@ -2992,6 +4040,14 @@
     ],
     "confidence_pct": 99.27,
     "latency_ms": 24.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#949085",
+      "blanket_accent": "#64615a",
+      "floor_hex": "#9b968b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_132.jpg",
     "blueprint_file": "plan_132.svg"
   },
@@ -3016,6 +4072,14 @@
     ],
     "confidence_pct": 97.79,
     "latency_ms": 32.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#68401c",
+      "blanket_accent": "#462b13",
+      "floor_hex": "#321b12",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_133.jpg",
     "blueprint_file": "plan_133.svg"
   },
@@ -3039,6 +4103,14 @@
     ],
     "confidence_pct": 99.22,
     "latency_ms": 21.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#b0681b",
+      "blanket_accent": "#774612",
+      "floor_hex": "#401103",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_134.jpg",
     "blueprint_file": "plan_134.svg"
   },
@@ -3062,6 +4134,14 @@
     ],
     "confidence_pct": 99.61,
     "latency_ms": 20.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#5b2a10",
+      "blanket_accent": "#3d1c0a",
+      "floor_hex": "#773e09",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_135.jpg",
     "blueprint_file": "plan_135.svg"
   },
@@ -3086,6 +4166,14 @@
     ],
     "confidence_pct": 97.54,
     "latency_ms": 33.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#554232",
+      "blanket_accent": "#392c22",
+      "floor_hex": "#3a2b1f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_136.jpg",
     "blueprint_file": "plan_136.svg"
   },
@@ -3110,6 +4198,14 @@
     ],
     "confidence_pct": 98.74,
     "latency_ms": 33.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#5c5b54",
+      "blanket_accent": "#3e3d39",
+      "floor_hex": "#553520",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_137.jpg",
     "blueprint_file": "plan_137.svg"
   },
@@ -3133,6 +4229,14 @@
     ],
     "confidence_pct": 98.44,
     "latency_ms": 29.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#949189",
+      "blanket_accent": "#64625d",
+      "floor_hex": "#472d1e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_138.jpg",
     "blueprint_file": "plan_138.svg"
   },
@@ -3157,6 +4261,14 @@
     ],
     "confidence_pct": 97.48,
     "latency_ms": 29.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#6b5143",
+      "blanket_accent": "#48372d",
+      "floor_hex": "#a78468",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_139.jpg",
     "blueprint_file": "plan_139.svg"
   },
@@ -3180,6 +4292,14 @@
     ],
     "confidence_pct": 98.79,
     "latency_ms": 21.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9e9ba3",
+      "blanket_accent": "#6b696e",
+      "floor_hex": "#282423",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_140.jpg",
     "blueprint_file": "plan_140.svg"
   },
@@ -3204,6 +4324,14 @@
     ],
     "confidence_pct": 98.18,
     "latency_ms": 26.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#9f8d87",
+      "blanket_accent": "#6c5f5b",
+      "floor_hex": "#caa97b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_141.jpg",
     "blueprint_file": "plan_141.svg"
   },
@@ -3228,6 +4356,14 @@
     ],
     "confidence_pct": 99.27,
     "latency_ms": 23.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#775949",
+      "blanket_accent": "#503c31",
+      "floor_hex": "#6f6a70",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_142.jpg",
     "blueprint_file": "plan_142.svg"
   },
@@ -3252,6 +4388,14 @@
     ],
     "confidence_pct": 98.83,
     "latency_ms": 32.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#835334",
+      "blanket_accent": "#593823",
+      "floor_hex": "#a58174",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_143.jpg",
     "blueprint_file": "plan_143.svg"
   },
@@ -3275,6 +4419,14 @@
     ],
     "confidence_pct": 99.4,
     "latency_ms": 16.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#b6b39c",
+      "blanket_accent": "#7b796a",
+      "floor_hex": "#7d7b6c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_144.jpg",
     "blueprint_file": "plan_144.svg"
   },
@@ -3298,6 +4450,14 @@
     ],
     "confidence_pct": 97.87,
     "latency_ms": 17.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9e7f5d",
+      "blanket_accent": "#6b563f",
+      "floor_hex": "#a78361",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_145.jpg",
     "blueprint_file": "plan_145.svg"
   },
@@ -3321,6 +4481,14 @@
     ],
     "confidence_pct": 98.97,
     "latency_ms": 28.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#ab935e",
+      "blanket_accent": "#74633f",
+      "floor_hex": "#6e533f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_146.jpg",
     "blueprint_file": "plan_146.svg"
   },
@@ -3345,6 +4513,14 @@
     ],
     "confidence_pct": 98.67,
     "latency_ms": 19.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#aaa9a8",
+      "blanket_accent": "#737272",
+      "floor_hex": "#181415",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_147.jpg",
     "blueprint_file": "plan_147.svg"
   },
@@ -3369,6 +4545,14 @@
     ],
     "confidence_pct": 98.39,
     "latency_ms": 29.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b2a49e",
+      "blanket_accent": "#796f6b",
+      "floor_hex": "#acadb2",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_148.jpg",
     "blueprint_file": "plan_148.svg"
   },
@@ -3392,6 +4576,14 @@
     ],
     "confidence_pct": 97.38,
     "latency_ms": 24.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a09073",
+      "blanket_accent": "#6c614e",
+      "floor_hex": "#625139",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_149.jpg",
     "blueprint_file": "plan_149.svg"
   },
@@ -3415,6 +4607,14 @@
     ],
     "confidence_pct": 98.76,
     "latency_ms": 19.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#7a7e87",
+      "blanket_accent": "#52555b",
+      "floor_hex": "#64686d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_150.jpg",
     "blueprint_file": "plan_150.svg"
   },
@@ -3439,6 +4639,14 @@
     ],
     "confidence_pct": 97.84,
     "latency_ms": 16.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#ab8686",
+      "blanket_accent": "#745b5b",
+      "floor_hex": "#75564d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_151.jpg",
     "blueprint_file": "plan_151.svg"
   },
@@ -3463,6 +4671,14 @@
     ],
     "confidence_pct": 98.27,
     "latency_ms": 20.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a5917a",
+      "blanket_accent": "#706252",
+      "floor_hex": "#543821",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_152.jpg",
     "blueprint_file": "plan_152.svg"
   },
@@ -3486,6 +4702,14 @@
     ],
     "confidence_pct": 99.33,
     "latency_ms": 27.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a09b98",
+      "blanket_accent": "#6c6967",
+      "floor_hex": "#747575",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_153.jpg",
     "blueprint_file": "plan_153.svg"
   },
@@ -3509,6 +4733,14 @@
     ],
     "confidence_pct": 97.88,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7b7071",
+      "blanket_accent": "#534c4c",
+      "floor_hex": "#949dab",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_154.jpg",
     "blueprint_file": "plan_154.svg"
   },
@@ -3532,6 +4764,14 @@
     ],
     "confidence_pct": 99.2,
     "latency_ms": 28.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#96795a",
+      "blanket_accent": "#66523d",
+      "floor_hex": "#594830",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_155.jpg",
     "blueprint_file": "plan_155.svg"
   },
@@ -3556,6 +4796,14 @@
     ],
     "confidence_pct": 98.57,
     "latency_ms": 31.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#927862",
+      "blanket_accent": "#635142",
+      "floor_hex": "#645143",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_156.jpg",
     "blueprint_file": "plan_156.svg"
   },
@@ -3579,6 +4827,14 @@
     ],
     "confidence_pct": 97.33,
     "latency_ms": 20.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#816750",
+      "blanket_accent": "#574636",
+      "floor_hex": "#624d3e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_157.jpg",
     "blueprint_file": "plan_157.svg"
   },
@@ -3602,6 +4858,14 @@
     ],
     "confidence_pct": 97.96,
     "latency_ms": 19.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#83654d",
+      "blanket_accent": "#594434",
+      "floor_hex": "#635143",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_158.jpg",
     "blueprint_file": "plan_158.svg"
   },
@@ -3625,6 +4889,14 @@
     ],
     "confidence_pct": 98.15,
     "latency_ms": 23.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#8b6b53",
+      "blanket_accent": "#5e4838",
+      "floor_hex": "#6f5947",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_159.jpg",
     "blueprint_file": "plan_159.svg"
   },
@@ -3649,6 +4921,14 @@
     ],
     "confidence_pct": 97.37,
     "latency_ms": 21.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9b795e",
+      "blanket_accent": "#69523f",
+      "floor_hex": "#68574a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_160.jpg",
     "blueprint_file": "plan_160.svg"
   },
@@ -3672,6 +4952,14 @@
     ],
     "confidence_pct": 98.01,
     "latency_ms": 19.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#898275",
+      "blanket_accent": "#5d584f",
+      "floor_hex": "#383830",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_161.jpg",
     "blueprint_file": "plan_161.svg"
   },
@@ -3695,6 +4983,14 @@
     ],
     "confidence_pct": 99.12,
     "latency_ms": 33.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#827a75",
+      "blanket_accent": "#58524f",
+      "floor_hex": "#362a1e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_162.jpg",
     "blueprint_file": "plan_162.svg"
   },
@@ -3719,6 +5015,14 @@
     ],
     "confidence_pct": 98.13,
     "latency_ms": 17.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a09fa2",
+      "blanket_accent": "#6c6c6e",
+      "floor_hex": "#4a413d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_163.jpg",
     "blueprint_file": "plan_163.svg"
   },
@@ -3742,6 +5046,14 @@
     ],
     "confidence_pct": 98.74,
     "latency_ms": 26.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#93a6b6",
+      "blanket_accent": "#63707b",
+      "floor_hex": "#657886",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_164.jpg",
     "blueprint_file": "plan_164.svg"
   },
@@ -3766,6 +5078,14 @@
     ],
     "confidence_pct": 99.68,
     "latency_ms": 17.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#b4b2ac",
+      "blanket_accent": "#7a7974",
+      "floor_hex": "#7d7468",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_165.jpg",
     "blueprint_file": "plan_165.svg"
   },
@@ -3789,6 +5109,14 @@
     ],
     "confidence_pct": 97.28,
     "latency_ms": 23.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#6e5950",
+      "blanket_accent": "#4a3c36",
+      "floor_hex": "#604138",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_166.jpg",
     "blueprint_file": "plan_166.svg"
   },
@@ -3813,6 +5141,14 @@
     ],
     "confidence_pct": 97.84,
     "latency_ms": 25.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#817a6b",
+      "blanket_accent": "#575248",
+      "floor_hex": "#8d8f93",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_167.jpg",
     "blueprint_file": "plan_167.svg"
   },
@@ -3837,6 +5173,14 @@
     ],
     "confidence_pct": 98.71,
     "latency_ms": 18.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#72605e",
+      "blanket_accent": "#4d413f",
+      "floor_hex": "#430916",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_168.jpg",
     "blueprint_file": "plan_168.svg"
   },
@@ -3861,6 +5205,14 @@
     ],
     "confidence_pct": 97.75,
     "latency_ms": 23.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#856c54",
+      "blanket_accent": "#5a4939",
+      "floor_hex": "#ac8963",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_169.jpg",
     "blueprint_file": "plan_169.svg"
   },
@@ -3884,6 +5236,14 @@
     ],
     "confidence_pct": 99.63,
     "latency_ms": 31.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a59079",
+      "blanket_accent": "#706152",
+      "floor_hex": "#d2b18f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_170.jpg",
     "blueprint_file": "plan_170.svg"
   },
@@ -3907,6 +5267,14 @@
     ],
     "confidence_pct": 99.63,
     "latency_ms": 17.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#684e3d",
+      "blanket_accent": "#463529",
+      "floor_hex": "#b29d8b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_171.jpg",
     "blueprint_file": "plan_171.svg"
   },
@@ -3931,6 +5299,14 @@
     ],
     "confidence_pct": 99.05,
     "latency_ms": 22.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9b968b",
+      "blanket_accent": "#69665e",
+      "floor_hex": "#a59e92",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_172.jpg",
     "blueprint_file": "plan_172.svg"
   },
@@ -3955,6 +5331,14 @@
     ],
     "confidence_pct": 99.09,
     "latency_ms": 24.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#734b24",
+      "blanket_accent": "#4e3318",
+      "floor_hex": "#402718",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_173.jpg",
     "blueprint_file": "plan_173.svg"
   },
@@ -3979,6 +5363,14 @@
     ],
     "confidence_pct": 98.12,
     "latency_ms": 29.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#975b19",
+      "blanket_accent": "#663d11",
+      "floor_hex": "#391304",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_174.jpg",
     "blueprint_file": "plan_174.svg"
   },
@@ -4002,6 +5394,14 @@
     ],
     "confidence_pct": 98.46,
     "latency_ms": 27.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#56260f",
+      "blanket_accent": "#3a190a",
+      "floor_hex": "#7e4006",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_175.jpg",
     "blueprint_file": "plan_175.svg"
   },
@@ -4025,6 +5425,14 @@
     ],
     "confidence_pct": 97.57,
     "latency_ms": 32.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#554233",
+      "blanket_accent": "#392c22",
+      "floor_hex": "#3b2c1e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_176.jpg",
     "blueprint_file": "plan_176.svg"
   },
@@ -4048,6 +5456,14 @@
     ],
     "confidence_pct": 99.45,
     "latency_ms": 27.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#6a675e",
+      "blanket_accent": "#48463f",
+      "floor_hex": "#5b3a24",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_177.jpg",
     "blueprint_file": "plan_177.svg"
   },
@@ -4071,6 +5487,14 @@
     ],
     "confidence_pct": 98.78,
     "latency_ms": 29.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#918e86",
+      "blanket_accent": "#62605b",
+      "floor_hex": "#462c1e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_178.jpg",
     "blueprint_file": "plan_178.svg"
   },
@@ -4094,6 +5518,14 @@
     ],
     "confidence_pct": 98.87,
     "latency_ms": 27.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#6c5244",
+      "blanket_accent": "#49372e",
+      "floor_hex": "#a17f64",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_179.jpg",
     "blueprint_file": "plan_179.svg"
   },
@@ -4117,6 +5549,14 @@
     ],
     "confidence_pct": 99.27,
     "latency_ms": 29.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#96939a",
+      "blanket_accent": "#666368",
+      "floor_hex": "#24211f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_180.jpg",
     "blueprint_file": "plan_180.svg"
   },
@@ -4141,6 +5581,14 @@
     ],
     "confidence_pct": 99.78,
     "latency_ms": 17.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b1a099",
+      "blanket_accent": "#786c68",
+      "floor_hex": "#dab98a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_181.jpg",
     "blueprint_file": "plan_181.svg"
   },
@@ -4165,6 +5613,14 @@
     ],
     "confidence_pct": 99.21,
     "latency_ms": 21.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#735444",
+      "blanket_accent": "#4e392e",
+      "floor_hex": "#6b666c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_182.jpg",
     "blueprint_file": "plan_182.svg"
   },
@@ -4188,6 +5644,14 @@
     ],
     "confidence_pct": 97.42,
     "latency_ms": 21.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#8a5838",
+      "blanket_accent": "#5d3b26",
+      "floor_hex": "#b08b7d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_183.jpg",
     "blueprint_file": "plan_183.svg"
   },
@@ -4212,6 +5676,14 @@
     ],
     "confidence_pct": 99.09,
     "latency_ms": 31.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#b3ae98",
+      "blanket_accent": "#797667",
+      "floor_hex": "#747365",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_184.jpg",
     "blueprint_file": "plan_184.svg"
   },
@@ -4236,6 +5708,14 @@
     ],
     "confidence_pct": 98.89,
     "latency_ms": 27.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a2815d",
+      "blanket_accent": "#6e573f",
+      "floor_hex": "#af8762",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_185.jpg",
     "blueprint_file": "plan_185.svg"
   },
@@ -4259,6 +5739,14 @@
     ],
     "confidence_pct": 98.17,
     "latency_ms": 28.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a7905b",
+      "blanket_accent": "#71613d",
+      "floor_hex": "#6c513d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_186.jpg",
     "blueprint_file": "plan_186.svg"
   },
@@ -4282,6 +5770,14 @@
     ],
     "confidence_pct": 98.81,
     "latency_ms": 31.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#bababa",
+      "blanket_accent": "#7e7e7e",
+      "floor_hex": "#1b181a",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_187.jpg",
     "blueprint_file": "plan_187.svg"
   },
@@ -4306,6 +5802,14 @@
     ],
     "confidence_pct": 98.37,
     "latency_ms": 17.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a09591",
+      "blanket_accent": "#6c6562",
+      "floor_hex": "#98999d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_188.jpg",
     "blueprint_file": "plan_188.svg"
   },
@@ -4329,6 +5833,14 @@
     ],
     "confidence_pct": 98.12,
     "latency_ms": 16.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#968366",
+      "blanket_accent": "#665945",
+      "floor_hex": "#6c5a3f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_189.jpg",
     "blueprint_file": "plan_189.svg"
   },
@@ -4352,6 +5864,14 @@
     ],
     "confidence_pct": 98.85,
     "latency_ms": 28.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#7d828a",
+      "blanket_accent": "#55585d",
+      "floor_hex": "#6c7074",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_190.jpg",
     "blueprint_file": "plan_190.svg"
   },
@@ -4375,6 +5895,14 @@
     ],
     "confidence_pct": 97.28,
     "latency_ms": 16.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#b58e8d",
+      "blanket_accent": "#7b605f",
+      "floor_hex": "#7c5b51",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_191.jpg",
     "blueprint_file": "plan_191.svg"
   },
@@ -4399,6 +5927,14 @@
     ],
     "confidence_pct": 97.71,
     "latency_ms": 22.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#998670",
+      "blanket_accent": "#685b4c",
+      "floor_hex": "#4c321c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_192.jpg",
     "blueprint_file": "plan_192.svg"
   },
@@ -4422,6 +5958,14 @@
     ],
     "confidence_pct": 98.27,
     "latency_ms": 25.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a6a19f",
+      "blanket_accent": "#706d6c",
+      "floor_hex": "#707171",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_193.jpg",
     "blueprint_file": "plan_193.svg"
   },
@@ -4445,6 +5989,14 @@
     ],
     "confidence_pct": 99.0,
     "latency_ms": 26.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#897d7e",
+      "blanket_accent": "#5d5555",
+      "floor_hex": "#98a5b1",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_194.jpg",
     "blueprint_file": "plan_194.svg"
   },
@@ -4469,6 +6021,14 @@
     ],
     "confidence_pct": 98.63,
     "latency_ms": 21.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#997c5d",
+      "blanket_accent": "#68543f",
+      "floor_hex": "#5c4b33",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_195.jpg",
     "blueprint_file": "plan_195.svg"
   },
@@ -4493,6 +6053,14 @@
     ],
     "confidence_pct": 99.67,
     "latency_ms": 32.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#89705c",
+      "blanket_accent": "#5d4c3e",
+      "floor_hex": "#604e42",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_196.jpg",
     "blueprint_file": "plan_196.svg"
   },
@@ -4517,6 +6085,14 @@
     ],
     "confidence_pct": 99.34,
     "latency_ms": 23.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#755b46",
+      "blanket_accent": "#4f3d2f",
+      "floor_hex": "#554133",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_197.jpg",
     "blueprint_file": "plan_197.svg"
   },
@@ -4540,6 +6116,14 @@
     ],
     "confidence_pct": 98.27,
     "latency_ms": 30.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#89664c",
+      "blanket_accent": "#5d4533",
+      "floor_hex": "#655242",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_198.jpg",
     "blueprint_file": "plan_198.svg"
   },
@@ -4563,6 +6147,14 @@
     ],
     "confidence_pct": 98.9,
     "latency_ms": 21.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#856750",
+      "blanket_accent": "#5a4636",
+      "floor_hex": "#6c533f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_199.jpg",
     "blueprint_file": "plan_199.svg"
   },
@@ -4586,6 +6178,14 @@
     ],
     "confidence_pct": 99.05,
     "latency_ms": 23.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9e7b61",
+      "blanket_accent": "#6b5341",
+      "floor_hex": "#6b5a4d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_200.jpg",
     "blueprint_file": "plan_200.svg"
   },
@@ -4610,6 +6210,14 @@
     ],
     "confidence_pct": 98.16,
     "latency_ms": 20.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#797368",
+      "blanket_accent": "#524e46",
+      "floor_hex": "#252620",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_201.jpg",
     "blueprint_file": "plan_201.svg"
   },
@@ -4634,6 +6242,14 @@
     ],
     "confidence_pct": 97.2,
     "latency_ms": 21.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7b736e",
+      "blanket_accent": "#534e4a",
+      "floor_hex": "#36291f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_202.jpg",
     "blueprint_file": "plan_202.svg"
   },
@@ -4658,6 +6274,14 @@
     ],
     "confidence_pct": 98.57,
     "latency_ms": 33.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9b999b",
+      "blanket_accent": "#696869",
+      "floor_hex": "#423833",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_203.jpg",
     "blueprint_file": "plan_203.svg"
   },
@@ -4682,6 +6306,14 @@
     ],
     "confidence_pct": 97.24,
     "latency_ms": 33.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#8595a1",
+      "blanket_accent": "#5a656d",
+      "floor_hex": "#647684",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_204.jpg",
     "blueprint_file": "plan_204.svg"
   },
@@ -4706,6 +6338,14 @@
     ],
     "confidence_pct": 99.41,
     "latency_ms": 27.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a8a59e",
+      "blanket_accent": "#72706b",
+      "floor_hex": "#756d61",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_205.jpg",
     "blueprint_file": "plan_205.svg"
   },
@@ -4730,6 +6370,14 @@
     ],
     "confidence_pct": 99.16,
     "latency_ms": 21.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#755e54",
+      "blanket_accent": "#4f3f39",
+      "floor_hex": "#6e5149",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_206.jpg",
     "blueprint_file": "plan_206.svg"
   },
@@ -4753,6 +6401,14 @@
     ],
     "confidence_pct": 98.91,
     "latency_ms": 24.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#767061",
+      "blanket_accent": "#504c41",
+      "floor_hex": "#7b7573",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_207.jpg",
     "blueprint_file": "plan_207.svg"
   },
@@ -4777,6 +6433,14 @@
     ],
     "confidence_pct": 97.92,
     "latency_ms": 33.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#6f5f5c",
+      "blanket_accent": "#4b403e",
+      "floor_hex": "#410c19",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_208.jpg",
     "blueprint_file": "plan_208.svg"
   },
@@ -4801,6 +6465,14 @@
     ],
     "confidence_pct": 98.44,
     "latency_ms": 18.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#83684f",
+      "blanket_accent": "#594635",
+      "floor_hex": "#ae895f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_209.jpg",
     "blueprint_file": "plan_209.svg"
   },
@@ -4825,6 +6497,14 @@
     ],
     "confidence_pct": 99.31,
     "latency_ms": 30.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#94836f",
+      "blanket_accent": "#64594b",
+      "floor_hex": "#ba9f83",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_210.jpg",
     "blueprint_file": "plan_210.svg"
   },
@@ -4849,6 +6529,14 @@
     ],
     "confidence_pct": 99.05,
     "latency_ms": 28.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5a4131",
+      "blanket_accent": "#3d2c21",
+      "floor_hex": "#b3a08f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_211.jpg",
     "blueprint_file": "plan_211.svg"
   },
@@ -4873,6 +6561,14 @@
     ],
     "confidence_pct": 98.37,
     "latency_ms": 20.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9d998e",
+      "blanket_accent": "#6a6860",
+      "floor_hex": "#a9a297",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_212.jpg",
     "blueprint_file": "plan_212.svg"
   },
@@ -4897,6 +6593,14 @@
     ],
     "confidence_pct": 98.99,
     "latency_ms": 33.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#714822",
+      "blanket_accent": "#4c3017",
+      "floor_hex": "#3b2114",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_213.jpg",
     "blueprint_file": "plan_213.svg"
   },
@@ -4921,6 +6625,14 @@
     ],
     "confidence_pct": 99.67,
     "latency_ms": 17.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#ab6a20",
+      "blanket_accent": "#744815",
+      "floor_hex": "#3c1104",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_214.jpg",
     "blueprint_file": "plan_214.svg"
   },
@@ -4945,6 +6657,14 @@
     ],
     "confidence_pct": 98.77,
     "latency_ms": 33.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#521d06",
+      "blanket_accent": "#371304",
+      "floor_hex": "#6c3304",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_215.jpg",
     "blueprint_file": "plan_215.svg"
   },
@@ -4968,6 +6688,14 @@
     ],
     "confidence_pct": 97.55,
     "latency_ms": 26.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#534031",
+      "blanket_accent": "#382b21",
+      "floor_hex": "#392b1e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_216.jpg",
     "blueprint_file": "plan_216.svg"
   },
@@ -4992,6 +6720,14 @@
     ],
     "confidence_pct": 98.82,
     "latency_ms": 25.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#68645b",
+      "blanket_accent": "#46443d",
+      "floor_hex": "#5d3b24",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_217.jpg",
     "blueprint_file": "plan_217.svg"
   },
@@ -5016,6 +6752,14 @@
     ],
     "confidence_pct": 97.23,
     "latency_ms": 27.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#8b877f",
+      "blanket_accent": "#5e5b56",
+      "floor_hex": "#462f21",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_218.jpg",
     "blueprint_file": "plan_218.svg"
   },
@@ -5040,6 +6784,14 @@
     ],
     "confidence_pct": 98.3,
     "latency_ms": 26.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#634a3c",
+      "blanket_accent": "#433228",
+      "floor_hex": "#a27f63",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_219.jpg",
     "blueprint_file": "plan_219.svg"
   },
@@ -5063,6 +6815,14 @@
     ],
     "confidence_pct": 99.04,
     "latency_ms": 16.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#97949c",
+      "blanket_accent": "#66646a",
+      "floor_hex": "#1b1816",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_220.jpg",
     "blueprint_file": "plan_220.svg"
   },
@@ -5087,6 +6847,14 @@
     ],
     "confidence_pct": 99.54,
     "latency_ms": 23.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#ab9892",
+      "blanket_accent": "#746763",
+      "floor_hex": "#d6b27f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_221.jpg",
     "blueprint_file": "plan_221.svg"
   },
@@ -5111,6 +6879,14 @@
     ],
     "confidence_pct": 99.36,
     "latency_ms": 26.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#694b3c",
+      "blanket_accent": "#473328",
+      "floor_hex": "#615b62",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_222.jpg",
     "blueprint_file": "plan_222.svg"
   },
@@ -5135,6 +6911,14 @@
     ],
     "confidence_pct": 97.88,
     "latency_ms": 25.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#87583a",
+      "blanket_accent": "#5b3b27",
+      "floor_hex": "#ad8c82",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_223.jpg",
     "blueprint_file": "plan_223.svg"
   },
@@ -5158,6 +6942,14 @@
     ],
     "confidence_pct": 97.22,
     "latency_ms": 29.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a39e8b",
+      "blanket_accent": "#6e6b5e",
+      "floor_hex": "#7e7c6f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_224.jpg",
     "blueprint_file": "plan_224.svg"
   },
@@ -5182,6 +6974,14 @@
     ],
     "confidence_pct": 98.65,
     "latency_ms": 27.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a07e5a",
+      "blanket_accent": "#6c553d",
+      "floor_hex": "#aa835e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_225.jpg",
     "blueprint_file": "plan_225.svg"
   },
@@ -5206,6 +7006,14 @@
     ],
     "confidence_pct": 98.71,
     "latency_ms": 26.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a18a57",
+      "blanket_accent": "#6d5d3b",
+      "floor_hex": "#624836",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_226.jpg",
     "blueprint_file": "plan_226.svg"
   },
@@ -5230,6 +7038,14 @@
     ],
     "confidence_pct": 97.72,
     "latency_ms": 30.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#aeadab",
+      "blanket_accent": "#767574",
+      "floor_hex": "#1f1c1d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_227.jpg",
     "blueprint_file": "plan_227.svg"
   },
@@ -5254,6 +7070,14 @@
     ],
     "confidence_pct": 99.05,
     "latency_ms": 16.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#afa19c",
+      "blanket_accent": "#776d6a",
+      "floor_hex": "#abacb1",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_228.jpg",
     "blueprint_file": "plan_228.svg"
   },
@@ -5278,6 +7102,14 @@
     ],
     "confidence_pct": 97.75,
     "latency_ms": 21.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#8b7a60",
+      "blanket_accent": "#5e5241",
+      "floor_hex": "#5c4b35",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_229.jpg",
     "blueprint_file": "plan_229.svg"
   },
@@ -5302,6 +7134,14 @@
     ],
     "confidence_pct": 99.53,
     "latency_ms": 27.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#747881",
+      "blanket_accent": "#4e5157",
+      "floor_hex": "#60646a",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_230.jpg",
     "blueprint_file": "plan_230.svg"
   },
@@ -5326,6 +7166,14 @@
     ],
     "confidence_pct": 99.52,
     "latency_ms": 32.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b38a89",
+      "blanket_accent": "#795d5d",
+      "floor_hex": "#7c584d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_231.jpg",
     "blueprint_file": "plan_231.svg"
   },
@@ -5350,6 +7198,14 @@
     ],
     "confidence_pct": 99.15,
     "latency_ms": 29.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#b19c84",
+      "blanket_accent": "#786a59",
+      "floor_hex": "#55351e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_232.jpg",
     "blueprint_file": "plan_232.svg"
   },
@@ -5373,6 +7229,14 @@
     ],
     "confidence_pct": 99.16,
     "latency_ms": 24.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b2adab",
+      "blanket_accent": "#797574",
+      "floor_hex": "#727473",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_233.jpg",
     "blueprint_file": "plan_233.svg"
   },
@@ -5397,6 +7261,14 @@
     ],
     "confidence_pct": 97.56,
     "latency_ms": 26.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#7c7273",
+      "blanket_accent": "#544d4e",
+      "floor_hex": "#8c99a6",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_234.jpg",
     "blueprint_file": "plan_234.svg"
   },
@@ -5420,6 +7292,14 @@
     ],
     "confidence_pct": 99.02,
     "latency_ms": 29.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#ad8c68",
+      "blanket_accent": "#755f46",
+      "floor_hex": "#685438",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_235.jpg",
     "blueprint_file": "plan_235.svg"
   },
@@ -5444,6 +7324,14 @@
     ],
     "confidence_pct": 97.42,
     "latency_ms": 17.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#856f5e",
+      "blanket_accent": "#5a4b3f",
+      "floor_hex": "#635348",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_236.jpg",
     "blueprint_file": "plan_236.svg"
   },
@@ -5467,6 +7355,14 @@
     ],
     "confidence_pct": 99.07,
     "latency_ms": 17.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#836851",
+      "blanket_accent": "#594637",
+      "floor_hex": "#5f4a3b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_237.jpg",
     "blueprint_file": "plan_237.svg"
   },
@@ -5491,6 +7387,14 @@
     ],
     "confidence_pct": 99.09,
     "latency_ms": 30.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#83644c",
+      "blanket_accent": "#594433",
+      "floor_hex": "#715c4b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_238.jpg",
     "blueprint_file": "plan_238.svg"
   },
@@ -5515,6 +7419,14 @@
     ],
     "confidence_pct": 98.27,
     "latency_ms": 23.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#856750",
+      "blanket_accent": "#5a4636",
+      "floor_hex": "#6b5340",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_239.jpg",
     "blueprint_file": "plan_239.svg"
   },
@@ -5539,6 +7451,14 @@
     ],
     "confidence_pct": 97.39,
     "latency_ms": 24.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8f7159",
+      "blanket_accent": "#614c3c",
+      "floor_hex": "#776353",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_240.jpg",
     "blueprint_file": "plan_240.svg"
   },
@@ -5563,6 +7483,14 @@
     ],
     "confidence_pct": 97.44,
     "latency_ms": 30.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#847e72",
+      "blanket_accent": "#59554d",
+      "floor_hex": "#30312b",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_241.jpg",
     "blueprint_file": "plan_241.svg"
   },
@@ -5587,6 +7515,14 @@
     ],
     "confidence_pct": 98.65,
     "latency_ms": 24.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#89817b",
+      "blanket_accent": "#5d5753",
+      "floor_hex": "#3b2e22",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_242.jpg",
     "blueprint_file": "plan_242.svg"
   },
@@ -5610,6 +7546,14 @@
     ],
     "confidence_pct": 99.28,
     "latency_ms": 18.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a6a4a6",
+      "blanket_accent": "#706f70",
+      "floor_hex": "#4a403b",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_243.jpg",
     "blueprint_file": "plan_243.svg"
   },
@@ -5633,6 +7577,14 @@
     ],
     "confidence_pct": 97.72,
     "latency_ms": 19.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#8f9fac",
+      "blanket_accent": "#616c74",
+      "floor_hex": "#6e8393",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_244.jpg",
     "blueprint_file": "plan_244.svg"
   },
@@ -5657,6 +7609,14 @@
     ],
     "confidence_pct": 98.91,
     "latency_ms": 22.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9f9e98",
+      "blanket_accent": "#6c6b67",
+      "floor_hex": "#726b60",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_245.jpg",
     "blueprint_file": "plan_245.svg"
   },
@@ -5680,6 +7640,14 @@
     ],
     "confidence_pct": 97.67,
     "latency_ms": 33.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#745f59",
+      "blanket_accent": "#4e403c",
+      "floor_hex": "#64483f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_246.jpg",
     "blueprint_file": "plan_246.svg"
   },
@@ -5703,6 +7671,14 @@
     ],
     "confidence_pct": 99.05,
     "latency_ms": 16.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#8a8371",
+      "blanket_accent": "#5d594c",
+      "floor_hex": "#8a8586",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_247.jpg",
     "blueprint_file": "plan_247.svg"
   },
@@ -5726,6 +7702,14 @@
     ],
     "confidence_pct": 97.84,
     "latency_ms": 17.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#6e5e5b",
+      "blanket_accent": "#4a3f3d",
+      "floor_hex": "#400c18",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_248.jpg",
     "blueprint_file": "plan_248.svg"
   },
@@ -5749,6 +7733,14 @@
     ],
     "confidence_pct": 97.35,
     "latency_ms": 17.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#816851",
+      "blanket_accent": "#574637",
+      "floor_hex": "#a5845f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_249.jpg",
     "blueprint_file": "plan_249.svg"
   },
@@ -5772,6 +7764,14 @@
     ],
     "confidence_pct": 99.27,
     "latency_ms": 21.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a8947d",
+      "blanket_accent": "#726455",
+      "floor_hex": "#d3b494",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_250.jpg",
     "blueprint_file": "plan_250.svg"
   },
@@ -5796,6 +7796,14 @@
     ],
     "confidence_pct": 98.22,
     "latency_ms": 17.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5b4535",
+      "blanket_accent": "#3d2e24",
+      "floor_hex": "#aa9888",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_251.jpg",
     "blueprint_file": "plan_251.svg"
   },
@@ -5820,6 +7828,14 @@
     ],
     "confidence_pct": 97.68,
     "latency_ms": 32.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a19c91",
+      "blanket_accent": "#6d6a62",
+      "floor_hex": "#a9a297",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_252.jpg",
     "blueprint_file": "plan_252.svg"
   },
@@ -5844,6 +7860,14 @@
     ],
     "confidence_pct": 98.01,
     "latency_ms": 32.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#724c27",
+      "blanket_accent": "#4d331a",
+      "floor_hex": "#3a2115",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_253.jpg",
     "blueprint_file": "plan_253.svg"
   },
@@ -5868,6 +7892,14 @@
     ],
     "confidence_pct": 99.12,
     "latency_ms": 29.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a7631b",
+      "blanket_accent": "#714312",
+      "floor_hex": "#3a0e03",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_254.jpg",
     "blueprint_file": "plan_254.svg"
   },
@@ -5891,6 +7923,14 @@
     ],
     "confidence_pct": 98.93,
     "latency_ms": 24.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#56210a",
+      "blanket_accent": "#3a1606",
+      "floor_hex": "#713604",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_255.jpg",
     "blueprint_file": "plan_255.svg"
   },
@@ -5914,6 +7954,14 @@
     ],
     "confidence_pct": 99.19,
     "latency_ms": 25.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#604c3b",
+      "blanket_accent": "#413328",
+      "floor_hex": "#453222",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_256.jpg",
     "blueprint_file": "plan_256.svg"
   },
@@ -5938,6 +7986,14 @@
     ],
     "confidence_pct": 99.09,
     "latency_ms": 21.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#62625c",
+      "blanket_accent": "#42423e",
+      "floor_hex": "#593926",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_257.jpg",
     "blueprint_file": "plan_257.svg"
   },
@@ -5962,6 +8018,14 @@
     ],
     "confidence_pct": 98.79,
     "latency_ms": 19.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#96928a",
+      "blanket_accent": "#66635d",
+      "floor_hex": "#492a1a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_258.jpg",
     "blueprint_file": "plan_258.svg"
   },
@@ -5985,6 +8049,14 @@
     ],
     "confidence_pct": 98.19,
     "latency_ms": 31.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#6f5446",
+      "blanket_accent": "#4b392f",
+      "floor_hex": "#9e7b61",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_259.jpg",
     "blueprint_file": "plan_259.svg"
   },
@@ -6009,6 +8081,14 @@
     ],
     "confidence_pct": 99.52,
     "latency_ms": 18.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9e9ba2",
+      "blanket_accent": "#6b696e",
+      "floor_hex": "#23201e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_260.jpg",
     "blueprint_file": "plan_260.svg"
   },
@@ -6032,6 +8112,14 @@
     ],
     "confidence_pct": 97.51,
     "latency_ms": 19.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a6948d",
+      "blanket_accent": "#70645f",
+      "floor_hex": "#d4b282",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_261.jpg",
     "blueprint_file": "plan_261.svg"
   },
@@ -6056,6 +8144,14 @@
     ],
     "confidence_pct": 98.31,
     "latency_ms": 21.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#674a3a",
+      "blanket_accent": "#463227",
+      "floor_hex": "#5f585e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_262.jpg",
     "blueprint_file": "plan_262.svg"
   },
@@ -6080,6 +8176,14 @@
     ],
     "confidence_pct": 97.26,
     "latency_ms": 32.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#8b5838",
+      "blanket_accent": "#5e3b26",
+      "floor_hex": "#b6938a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_263.jpg",
     "blueprint_file": "plan_263.svg"
   },
@@ -6104,6 +8208,14 @@
     ],
     "confidence_pct": 97.94,
     "latency_ms": 27.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#aaa48f",
+      "blanket_accent": "#736f61",
+      "floor_hex": "#7c7a6b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_264.jpg",
     "blueprint_file": "plan_264.svg"
   },
@@ -6127,6 +8239,14 @@
     ],
     "confidence_pct": 98.84,
     "latency_ms": 33.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a18260",
+      "blanket_accent": "#6d5841",
+      "floor_hex": "#b18864",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_265.jpg",
     "blueprint_file": "plan_265.svg"
   },
@@ -6151,6 +8271,14 @@
     ],
     "confidence_pct": 99.74,
     "latency_ms": 19.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#b09860",
+      "blanket_accent": "#776741",
+      "floor_hex": "#755a44",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_266.jpg",
     "blueprint_file": "plan_266.svg"
   },
@@ -6175,6 +8303,14 @@
     ],
     "confidence_pct": 99.36,
     "latency_ms": 31.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#acabaa",
+      "blanket_accent": "#747473",
+      "floor_hex": "#1f1c1d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_267.jpg",
     "blueprint_file": "plan_267.svg"
   },
@@ -6199,6 +8335,14 @@
     ],
     "confidence_pct": 99.25,
     "latency_ms": 20.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b0a39d",
+      "blanket_accent": "#776e6a",
+      "floor_hex": "#a09e9f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_268.jpg",
     "blueprint_file": "plan_268.svg"
   },
@@ -6222,6 +8366,14 @@
     ],
     "confidence_pct": 99.01,
     "latency_ms": 29.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#96866b",
+      "blanket_accent": "#665b48",
+      "floor_hex": "#584731",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_269.jpg",
     "blueprint_file": "plan_269.svg"
   },
@@ -6246,6 +8398,14 @@
     ],
     "confidence_pct": 98.0,
     "latency_ms": 25.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#747981",
+      "blanket_accent": "#4e5257",
+      "floor_hex": "#63676c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_270.jpg",
     "blueprint_file": "plan_270.svg"
   },
@@ -6270,6 +8430,14 @@
     ],
     "confidence_pct": 98.95,
     "latency_ms": 32.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#bf9796",
+      "blanket_accent": "#816666",
+      "floor_hex": "#815d53",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_271.jpg",
     "blueprint_file": "plan_271.svg"
   },
@@ -6294,6 +8462,14 @@
     ],
     "confidence_pct": 97.67,
     "latency_ms": 20.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a7937c",
+      "blanket_accent": "#716354",
+      "floor_hex": "#50321b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_272.jpg",
     "blueprint_file": "plan_272.svg"
   },
@@ -6317,6 +8493,14 @@
     ],
     "confidence_pct": 98.55,
     "latency_ms": 31.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#aaa6a5",
+      "blanket_accent": "#737070",
+      "floor_hex": "#787979",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_273.jpg",
     "blueprint_file": "plan_273.svg"
   },
@@ -6341,6 +8525,14 @@
     ],
     "confidence_pct": 98.69,
     "latency_ms": 18.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#857a7b",
+      "blanket_accent": "#5a5253",
+      "floor_hex": "#91a0ae",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_274.jpg",
     "blueprint_file": "plan_274.svg"
   },
@@ -6365,6 +8557,14 @@
     ],
     "confidence_pct": 97.43,
     "latency_ms": 22.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#a88a69",
+      "blanket_accent": "#725d47",
+      "floor_hex": "#69573d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_275.jpg",
     "blueprint_file": "plan_275.svg"
   },
@@ -6388,6 +8588,14 @@
     ],
     "confidence_pct": 98.37,
     "latency_ms": 29.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9a806b",
+      "blanket_accent": "#685748",
+      "floor_hex": "#715d50",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_276.jpg",
     "blueprint_file": "plan_276.svg"
   },
@@ -6411,6 +8619,14 @@
     ],
     "confidence_pct": 99.76,
     "latency_ms": 33.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#775d48",
+      "blanket_accent": "#503f30",
+      "floor_hex": "#503d30",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_277.jpg",
     "blueprint_file": "plan_277.svg"
   },
@@ -6435,6 +8651,14 @@
     ],
     "confidence_pct": 99.41,
     "latency_ms": 28.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#8e6a50",
+      "blanket_accent": "#604836",
+      "floor_hex": "#6d5949",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_278.jpg",
     "blueprint_file": "plan_278.svg"
   },
@@ -6458,6 +8682,14 @@
     ],
     "confidence_pct": 99.63,
     "latency_ms": 27.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#8f6d53",
+      "blanket_accent": "#614a38",
+      "floor_hex": "#6d5543",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_279.jpg",
     "blueprint_file": "plan_279.svg"
   },
@@ -6482,6 +8714,14 @@
     ],
     "confidence_pct": 99.49,
     "latency_ms": 30.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#997a61",
+      "blanket_accent": "#685241",
+      "floor_hex": "#846f5c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_280.jpg",
     "blueprint_file": "plan_280.svg"
   },
@@ -6505,6 +8745,14 @@
     ],
     "confidence_pct": 99.35,
     "latency_ms": 23.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#807a6d",
+      "blanket_accent": "#57524a",
+      "floor_hex": "#36362d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_281.jpg",
     "blueprint_file": "plan_281.svg"
   },
@@ -6528,6 +8776,14 @@
     ],
     "confidence_pct": 98.51,
     "latency_ms": 21.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7a726d",
+      "blanket_accent": "#524d4a",
+      "floor_hex": "#362a1f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_282.jpg",
     "blueprint_file": "plan_282.svg"
   },
@@ -6552,6 +8808,14 @@
     ],
     "confidence_pct": 99.8,
     "latency_ms": 31.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9e9d9f",
+      "blanket_accent": "#6b6a6c",
+      "floor_hex": "#3f3532",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_283.jpg",
     "blueprint_file": "plan_283.svg"
   },
@@ -6576,6 +8840,14 @@
     ],
     "confidence_pct": 98.94,
     "latency_ms": 21.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8b9cac",
+      "blanket_accent": "#5e6a74",
+      "floor_hex": "#6d8494",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_284.jpg",
     "blueprint_file": "plan_284.svg"
   },
@@ -6600,6 +8872,14 @@
     ],
     "confidence_pct": 97.55,
     "latency_ms": 24.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#aca9a3",
+      "blanket_accent": "#74726e",
+      "floor_hex": "#7b7368",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_285.jpg",
     "blueprint_file": "plan_285.svg"
   },
@@ -6624,6 +8904,14 @@
     ],
     "confidence_pct": 99.41,
     "latency_ms": 30.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#69564f",
+      "blanket_accent": "#473a35",
+      "floor_hex": "#614740",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_286.jpg",
     "blueprint_file": "plan_286.svg"
   },
@@ -6648,6 +8936,14 @@
     ],
     "confidence_pct": 98.17,
     "latency_ms": 25.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#8b8472",
+      "blanket_accent": "#5e594d",
+      "floor_hex": "#97969a",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_287.jpg",
     "blueprint_file": "plan_287.svg"
   },
@@ -6672,6 +8968,14 @@
     ],
     "confidence_pct": 97.86,
     "latency_ms": 24.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#6a5b58",
+      "blanket_accent": "#483d3b",
+      "floor_hex": "#420c19",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_288.jpg",
     "blueprint_file": "plan_288.svg"
   },
@@ -6696,6 +9000,14 @@
     ],
     "confidence_pct": 99.55,
     "latency_ms": 34.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#7f654d",
+      "blanket_accent": "#564434",
+      "floor_hex": "#a7855c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_289.jpg",
     "blueprint_file": "plan_289.svg"
   },
@@ -6720,6 +9032,14 @@
     ],
     "confidence_pct": 97.47,
     "latency_ms": 33.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a48f79",
+      "blanket_accent": "#6f6152",
+      "floor_hex": "#d1b190",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_290.jpg",
     "blueprint_file": "plan_290.svg"
   },
@@ -6744,6 +9064,14 @@
     ],
     "confidence_pct": 99.62,
     "latency_ms": 19.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#634938",
+      "blanket_accent": "#433126",
+      "floor_hex": "#b9a592",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_291.jpg",
     "blueprint_file": "plan_291.svg"
   },
@@ -6767,6 +9095,14 @@
     ],
     "confidence_pct": 99.54,
     "latency_ms": 34.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9b978c",
+      "blanket_accent": "#69665f",
+      "floor_hex": "#a49d93",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_292.jpg",
     "blueprint_file": "plan_292.svg"
   },
@@ -6791,6 +9127,14 @@
     ],
     "confidence_pct": 97.24,
     "latency_ms": 23.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#68421f",
+      "blanket_accent": "#462c15",
+      "floor_hex": "#351e13",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_293.jpg",
     "blueprint_file": "plan_293.svg"
   },
@@ -6815,6 +9159,14 @@
     ],
     "confidence_pct": 98.28,
     "latency_ms": 25.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#ac6e25",
+      "blanket_accent": "#744a19",
+      "floor_hex": "#431807",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_294.jpg",
     "blueprint_file": "plan_294.svg"
   },
@@ -6839,6 +9191,14 @@
     ],
     "confidence_pct": 97.41,
     "latency_ms": 21.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#552810",
+      "blanket_accent": "#391b0a",
+      "floor_hex": "#763f09",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_295.jpg",
     "blueprint_file": "plan_295.svg"
   },
@@ -6862,6 +9222,14 @@
     ],
     "confidence_pct": 97.72,
     "latency_ms": 22.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5e4a38",
+      "blanket_accent": "#3f3226",
+      "floor_hex": "#423426",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_296.jpg",
     "blueprint_file": "plan_296.svg"
   },
@@ -6886,6 +9254,14 @@
     ],
     "confidence_pct": 99.45,
     "latency_ms": 19.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#6a665e",
+      "blanket_accent": "#48453f",
+      "floor_hex": "#623f27",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_297.jpg",
     "blueprint_file": "plan_297.svg"
   },
@@ -6909,6 +9285,14 @@
     ],
     "confidence_pct": 97.48,
     "latency_ms": 33.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9f9b92",
+      "blanket_accent": "#6c6963",
+      "floor_hex": "#4a2b1a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_298.jpg",
     "blueprint_file": "plan_298.svg"
   },
@@ -6933,6 +9317,14 @@
     ],
     "confidence_pct": 98.33,
     "latency_ms": 17.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#6c5143",
+      "blanket_accent": "#49372d",
+      "floor_hex": "#a88467",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_299.jpg",
     "blueprint_file": "plan_299.svg"
   },
@@ -6957,6 +9349,14 @@
     ],
     "confidence_pct": 97.43,
     "latency_ms": 16.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9a989e",
+      "blanket_accent": "#68676b",
+      "floor_hex": "#2d2927",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_300.jpg",
     "blueprint_file": "plan_300.svg"
   },
@@ -6981,6 +9381,14 @@
     ],
     "confidence_pct": 98.23,
     "latency_ms": 31.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#98847e",
+      "blanket_accent": "#675955",
+      "floor_hex": "#c8a473",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_301.jpg",
     "blueprint_file": "plan_301.svg"
   },
@@ -7005,6 +9413,14 @@
     ],
     "confidence_pct": 97.78,
     "latency_ms": 31.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#755343",
+      "blanket_accent": "#4f382d",
+      "floor_hex": "#6c666d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_302.jpg",
     "blueprint_file": "plan_302.svg"
   },
@@ -7029,6 +9445,14 @@
     ],
     "confidence_pct": 97.9,
     "latency_ms": 28.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7f5033",
+      "blanket_accent": "#563622",
+      "floor_hex": "#a78982",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_303.jpg",
     "blueprint_file": "plan_303.svg"
   },
@@ -7053,6 +9477,14 @@
     ],
     "confidence_pct": 99.32,
     "latency_ms": 24.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a49f8c",
+      "blanket_accent": "#6f6c5f",
+      "floor_hex": "#6b6b5e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_304.jpg",
     "blueprint_file": "plan_304.svg"
   },
@@ -7077,6 +9509,14 @@
     ],
     "confidence_pct": 99.45,
     "latency_ms": 17.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#997b5b",
+      "blanket_accent": "#68533d",
+      "floor_hex": "#a4805e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_305.jpg",
     "blueprint_file": "plan_305.svg"
   },
@@ -7101,6 +9541,14 @@
     ],
     "confidence_pct": 97.89,
     "latency_ms": 17.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9e8957",
+      "blanket_accent": "#6b5d3b",
+      "floor_hex": "#6d5540",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_306.jpg",
     "blueprint_file": "plan_306.svg"
   },
@@ -7125,6 +9573,14 @@
     ],
     "confidence_pct": 98.17,
     "latency_ms": 30.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#b8b7b6",
+      "blanket_accent": "#7d7c7b",
+      "floor_hex": "#1b1718",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_307.jpg",
     "blueprint_file": "plan_307.svg"
   },
@@ -7149,6 +9605,14 @@
     ],
     "confidence_pct": 99.55,
     "latency_ms": 24.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b0a39e",
+      "blanket_accent": "#776e6b",
+      "floor_hex": "#a7a7ab",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_308.jpg",
     "blueprint_file": "plan_308.svg"
   },
@@ -7173,6 +9637,14 @@
     ],
     "confidence_pct": 98.08,
     "latency_ms": 26.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#93846b",
+      "blanket_accent": "#635948",
+      "floor_hex": "#5c4c37",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_309.jpg",
     "blueprint_file": "plan_309.svg"
   },
@@ -7197,6 +9669,14 @@
     ],
     "confidence_pct": 98.14,
     "latency_ms": 20.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#777b83",
+      "blanket_accent": "#505359",
+      "floor_hex": "#65676d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_310.jpg",
     "blueprint_file": "plan_310.svg"
   },
@@ -7221,6 +9701,14 @@
     ],
     "confidence_pct": 99.73,
     "latency_ms": 29.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#c69a9a",
+      "blanket_accent": "#866868",
+      "floor_hex": "#866055",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_311.jpg",
     "blueprint_file": "plan_311.svg"
   },
@@ -7245,6 +9733,14 @@
     ],
     "confidence_pct": 99.35,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a08d78",
+      "blanket_accent": "#6c5f51",
+      "floor_hex": "#513721",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_312.jpg",
     "blueprint_file": "plan_312.svg"
   },
@@ -7269,6 +9765,14 @@
     ],
     "confidence_pct": 97.84,
     "latency_ms": 34.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a5a1a1",
+      "blanket_accent": "#706d6d",
+      "floor_hex": "#616261",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_313.jpg",
     "blueprint_file": "plan_313.svg"
   },
@@ -7292,6 +9796,14 @@
     ],
     "confidence_pct": 98.2,
     "latency_ms": 19.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#8b8080",
+      "blanket_accent": "#5e5757",
+      "floor_hex": "#9eaab7",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_314.jpg",
     "blueprint_file": "plan_314.svg"
   },
@@ -7316,6 +9828,14 @@
     ],
     "confidence_pct": 97.42,
     "latency_ms": 21.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#a88968",
+      "blanket_accent": "#725d46",
+      "floor_hex": "#68553b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_315.jpg",
     "blueprint_file": "plan_315.svg"
   },
@@ -7340,6 +9860,14 @@
     ],
     "confidence_pct": 98.4,
     "latency_ms": 24.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#89725f",
+      "blanket_accent": "#5d4d40",
+      "floor_hex": "#635145",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_316.jpg",
     "blueprint_file": "plan_316.svg"
   },
@@ -7364,6 +9892,14 @@
     ],
     "confidence_pct": 98.48,
     "latency_ms": 32.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#7a604b",
+      "blanket_accent": "#524133",
+      "floor_hex": "#5a4638",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_317.jpg",
     "blueprint_file": "plan_317.svg"
   },
@@ -7388,6 +9924,14 @@
     ],
     "confidence_pct": 98.17,
     "latency_ms": 31.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#836249",
+      "blanket_accent": "#594231",
+      "floor_hex": "#695544",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_318.jpg",
     "blueprint_file": "plan_318.svg"
   },
@@ -7412,6 +9956,14 @@
     ],
     "confidence_pct": 97.42,
     "latency_ms": 29.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#7e6049",
+      "blanket_accent": "#554131",
+      "floor_hex": "#654e3b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_319.jpg",
     "blueprint_file": "plan_319.svg"
   },
@@ -7436,6 +9988,14 @@
     ],
     "confidence_pct": 97.61,
     "latency_ms": 34.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8b6d56",
+      "blanket_accent": "#5e4a3a",
+      "floor_hex": "#5f5045",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_320.jpg",
     "blueprint_file": "plan_320.svg"
   },
@@ -7460,6 +10020,14 @@
     ],
     "confidence_pct": 97.81,
     "latency_ms": 31.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#7e786c",
+      "blanket_accent": "#555149",
+      "floor_hex": "#262721",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_321.jpg",
     "blueprint_file": "plan_321.svg"
   },
@@ -7484,6 +10052,14 @@
     ],
     "confidence_pct": 97.3,
     "latency_ms": 28.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#7d7570",
+      "blanket_accent": "#554f4c",
+      "floor_hex": "#35291e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_322.jpg",
     "blueprint_file": "plan_322.svg"
   },
@@ -7508,6 +10084,14 @@
     ],
     "confidence_pct": 99.61,
     "latency_ms": 23.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a3a1a3",
+      "blanket_accent": "#6e6d6e",
+      "floor_hex": "#413732",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_323.jpg",
     "blueprint_file": "plan_323.svg"
   },
@@ -7532,6 +10116,14 @@
     ],
     "confidence_pct": 97.98,
     "latency_ms": 31.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#879bad",
+      "blanket_accent": "#5b6975",
+      "floor_hex": "#5d7181",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_324.jpg",
     "blueprint_file": "plan_324.svg"
   },
@@ -7555,6 +10147,14 @@
     ],
     "confidence_pct": 97.62,
     "latency_ms": 26.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a4a29d",
+      "blanket_accent": "#6f6e6a",
+      "floor_hex": "#787369",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_325.jpg",
     "blueprint_file": "plan_325.svg"
   },
@@ -7579,6 +10179,14 @@
     ],
     "confidence_pct": 99.34,
     "latency_ms": 18.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#6f5d59",
+      "blanket_accent": "#4b3f3c",
+      "floor_hex": "#614843",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_326.jpg",
     "blueprint_file": "plan_326.svg"
   },
@@ -7603,6 +10211,14 @@
     ],
     "confidence_pct": 99.38,
     "latency_ms": 32.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#837d6c",
+      "blanket_accent": "#595549",
+      "floor_hex": "#847f7e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_327.jpg",
     "blueprint_file": "plan_327.svg"
   },
@@ -7627,6 +10243,14 @@
     ],
     "confidence_pct": 97.25,
     "latency_ms": 27.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#796764",
+      "blanket_accent": "#524644",
+      "floor_hex": "#470d1b",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_328.jpg",
     "blueprint_file": "plan_328.svg"
   },
@@ -7651,6 +10275,14 @@
     ],
     "confidence_pct": 98.38,
     "latency_ms": 24.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#856b51",
+      "blanket_accent": "#5a4837",
+      "floor_hex": "#b18e62",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_329.jpg",
     "blueprint_file": "plan_329.svg"
   },
@@ -7675,6 +10307,14 @@
     ],
     "confidence_pct": 99.65,
     "latency_ms": 22.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#97846f",
+      "blanket_accent": "#66594b",
+      "floor_hex": "#bc9f83",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_330.jpg",
     "blueprint_file": "plan_330.svg"
   },
@@ -7699,6 +10339,14 @@
     ],
     "confidence_pct": 97.71,
     "latency_ms": 20.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#624938",
+      "blanket_accent": "#423126",
+      "floor_hex": "#bda998",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_331.jpg",
     "blueprint_file": "plan_331.svg"
   },
@@ -7723,6 +10371,14 @@
     ],
     "confidence_pct": 99.37,
     "latency_ms": 17.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a39f94",
+      "blanket_accent": "#6e6c64",
+      "floor_hex": "#afa99e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_332.jpg",
     "blueprint_file": "plan_332.svg"
   },
@@ -7747,6 +10403,14 @@
     ],
     "confidence_pct": 97.96,
     "latency_ms": 30.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#673d15",
+      "blanket_accent": "#46290e",
+      "floor_hex": "#362016",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_333.jpg",
     "blueprint_file": "plan_333.svg"
   },
@@ -7771,6 +10435,14 @@
     ],
     "confidence_pct": 98.06,
     "latency_ms": 28.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#ae6d20",
+      "blanket_accent": "#764a15",
+      "floor_hex": "#3f1204",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_334.jpg",
     "blueprint_file": "plan_334.svg"
   },
@@ -7795,6 +10467,14 @@
     ],
     "confidence_pct": 98.02,
     "latency_ms": 21.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#5e3017",
+      "blanket_accent": "#3f200f",
+      "floor_hex": "#80450b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_335.jpg",
     "blueprint_file": "plan_335.svg"
   },
@@ -7819,6 +10499,14 @@
     ],
     "confidence_pct": 99.43,
     "latency_ms": 17.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5d4a39",
+      "blanket_accent": "#3f3226",
+      "floor_hex": "#443426",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_336.jpg",
     "blueprint_file": "plan_336.svg"
   },
@@ -7843,6 +10531,14 @@
     ],
     "confidence_pct": 97.96,
     "latency_ms": 24.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#6b6a64",
+      "blanket_accent": "#484844",
+      "floor_hex": "#5c3a26",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_337.jpg",
     "blueprint_file": "plan_337.svg"
   },
@@ -7867,6 +10563,14 @@
     ],
     "confidence_pct": 99.24,
     "latency_ms": 22.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#949189",
+      "blanket_accent": "#64625d",
+      "floor_hex": "#472f21",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_338.jpg",
     "blueprint_file": "plan_338.svg"
   },
@@ -7891,6 +10595,14 @@
     ],
     "confidence_pct": 99.55,
     "latency_ms": 18.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#63483a",
+      "blanket_accent": "#433027",
+      "floor_hex": "#9a775b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_339.jpg",
     "blueprint_file": "plan_339.svg"
   },
@@ -7915,6 +10627,14 @@
     ],
     "confidence_pct": 98.1,
     "latency_ms": 33.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a09da4",
+      "blanket_accent": "#6c6a6f",
+      "floor_hex": "#1d1a18",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_340.jpg",
     "blueprint_file": "plan_340.svg"
   },
@@ -7939,6 +10659,14 @@
     ],
     "confidence_pct": 99.48,
     "latency_ms": 29.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#928079",
+      "blanket_accent": "#635752",
+      "floor_hex": "#c1a073",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_341.jpg",
     "blueprint_file": "plan_341.svg"
   },
@@ -7962,6 +10690,14 @@
     ],
     "confidence_pct": 98.42,
     "latency_ms": 30.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#745546",
+      "blanket_accent": "#4e392f",
+      "floor_hex": "#6c666c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_342.jpg",
     "blueprint_file": "plan_342.svg"
   },
@@ -7986,6 +10722,14 @@
     ],
     "confidence_pct": 98.7,
     "latency_ms": 22.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7e4f31",
+      "blanket_accent": "#553521",
+      "floor_hex": "#a88982",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_343.jpg",
     "blueprint_file": "plan_343.svg"
   },
@@ -8010,6 +10754,14 @@
     ],
     "confidence_pct": 99.2,
     "latency_ms": 23.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#b4af9a",
+      "blanket_accent": "#7a7768",
+      "floor_hex": "#737264",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_344.jpg",
     "blueprint_file": "plan_344.svg"
   },
@@ -8034,6 +10786,14 @@
     ],
     "confidence_pct": 99.73,
     "latency_ms": 22.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a6835c",
+      "blanket_accent": "#70593e",
+      "floor_hex": "#ad8660",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_345.jpg",
     "blueprint_file": "plan_345.svg"
   },
@@ -8058,6 +10818,14 @@
     ],
     "confidence_pct": 99.09,
     "latency_ms": 28.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9d8756",
+      "blanket_accent": "#6a5b3a",
+      "floor_hex": "#634a38",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_346.jpg",
     "blueprint_file": "plan_346.svg"
   },
@@ -8082,6 +10850,14 @@
     ],
     "confidence_pct": 97.51,
     "latency_ms": 16.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#b0afae",
+      "blanket_accent": "#777776",
+      "floor_hex": "#1d191b",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_347.jpg",
     "blueprint_file": "plan_347.svg"
   },
@@ -8106,6 +10882,14 @@
     ],
     "confidence_pct": 97.35,
     "latency_ms": 18.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#9e938f",
+      "blanket_accent": "#6b6361",
+      "floor_hex": "#97989c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_348.jpg",
     "blueprint_file": "plan_348.svg"
   },
@@ -8130,6 +10914,14 @@
     ],
     "confidence_pct": 98.7,
     "latency_ms": 17.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#88775c",
+      "blanket_accent": "#5c503e",
+      "floor_hex": "#584631",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_349.jpg",
     "blueprint_file": "plan_349.svg"
   },
@@ -8154,6 +10946,14 @@
     ],
     "confidence_pct": 98.31,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#72757d",
+      "blanket_accent": "#4d4f55",
+      "floor_hex": "#62656a",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_350.jpg",
     "blueprint_file": "plan_350.svg"
   },
@@ -8178,6 +10978,14 @@
     ],
     "confidence_pct": 97.92,
     "latency_ms": 28.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b68f8e",
+      "blanket_accent": "#7b6160",
+      "floor_hex": "#7c594f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_351.jpg",
     "blueprint_file": "plan_351.svg"
   },
@@ -8202,6 +11010,14 @@
     ],
     "confidence_pct": 98.85,
     "latency_ms": 33.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a7937c",
+      "blanket_accent": "#716354",
+      "floor_hex": "#4f321d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_352.jpg",
     "blueprint_file": "plan_352.svg"
   },
@@ -8226,6 +11042,14 @@
     ],
     "confidence_pct": 98.21,
     "latency_ms": 24.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#aeabab",
+      "blanket_accent": "#767474",
+      "floor_hex": "#656664",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_353.jpg",
     "blueprint_file": "plan_353.svg"
   },
@@ -8250,6 +11074,14 @@
     ],
     "confidence_pct": 97.79,
     "latency_ms": 29.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#867b7c",
+      "blanket_accent": "#5b5354",
+      "floor_hex": "#98a2ae",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_354.jpg",
     "blueprint_file": "plan_354.svg"
   },
@@ -8274,6 +11106,14 @@
     ],
     "confidence_pct": 98.46,
     "latency_ms": 22.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#997c5d",
+      "blanket_accent": "#68543f",
+      "floor_hex": "#5c4b34",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_355.jpg",
     "blueprint_file": "plan_355.svg"
   },
@@ -8298,6 +11138,14 @@
     ],
     "confidence_pct": 99.36,
     "latency_ms": 29.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#997e68",
+      "blanket_accent": "#685546",
+      "floor_hex": "#6b574a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_356.jpg",
     "blueprint_file": "plan_356.svg"
   },
@@ -8322,6 +11170,14 @@
     ],
     "confidence_pct": 97.42,
     "latency_ms": 30.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#7e634c",
+      "blanket_accent": "#554333",
+      "floor_hex": "#554133",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_357.jpg",
     "blueprint_file": "plan_357.svg"
   },
@@ -8345,6 +11201,14 @@
     ],
     "confidence_pct": 98.58,
     "latency_ms": 24.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#947054",
+      "blanket_accent": "#644c39",
+      "floor_hex": "#6b5848",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_358.jpg",
     "blueprint_file": "plan_358.svg"
   },
@@ -8369,6 +11233,14 @@
     ],
     "confidence_pct": 98.43,
     "latency_ms": 29.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9f7c60",
+      "blanket_accent": "#6c5441",
+      "floor_hex": "#765d49",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_359.jpg",
     "blueprint_file": "plan_359.svg"
   },
@@ -8393,6 +11265,14 @@
     ],
     "confidence_pct": 98.53,
     "latency_ms": 20.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#947359",
+      "blanket_accent": "#644e3c",
+      "floor_hex": "#69584a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_360.jpg",
     "blueprint_file": "plan_360.svg"
   },
@@ -8417,6 +11297,14 @@
     ],
     "confidence_pct": 98.38,
     "latency_ms": 32.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#837c71",
+      "blanket_accent": "#59544c",
+      "floor_hex": "#36362f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_361.jpg",
     "blueprint_file": "plan_361.svg"
   },
@@ -8441,6 +11329,14 @@
     ],
     "confidence_pct": 98.31,
     "latency_ms": 21.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7c746f",
+      "blanket_accent": "#544e4b",
+      "floor_hex": "#382d22",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_362.jpg",
     "blueprint_file": "plan_362.svg"
   },
@@ -8465,6 +11361,14 @@
     ],
     "confidence_pct": 98.91,
     "latency_ms": 19.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#908e8f",
+      "blanket_accent": "#616061",
+      "floor_hex": "#352b27",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_363.jpg",
     "blueprint_file": "plan_363.svg"
   },
@@ -8489,6 +11393,14 @@
     ],
     "confidence_pct": 97.62,
     "latency_ms": 27.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8497a8",
+      "blanket_accent": "#596672",
+      "floor_hex": "#5e7180",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_364.jpg",
     "blueprint_file": "plan_364.svg"
   },
@@ -8513,6 +11425,14 @@
     ],
     "confidence_pct": 99.08,
     "latency_ms": 17.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#afada8",
+      "blanket_accent": "#777572",
+      "floor_hex": "#7c7469",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_365.jpg",
     "blueprint_file": "plan_365.svg"
   },
@@ -8537,6 +11457,14 @@
     ],
     "confidence_pct": 97.71,
     "latency_ms": 19.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#715e58",
+      "blanket_accent": "#4c3f3b",
+      "floor_hex": "#583d37",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_366.jpg",
     "blueprint_file": "plan_366.svg"
   },
@@ -8561,6 +11489,14 @@
     ],
     "confidence_pct": 97.93,
     "latency_ms": 19.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#837c6d",
+      "blanket_accent": "#59544a",
+      "floor_hex": "#8e8f93",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_367.jpg",
     "blueprint_file": "plan_367.svg"
   },
@@ -8585,6 +11521,14 @@
     ],
     "confidence_pct": 99.72,
     "latency_ms": 20.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#73615e",
+      "blanket_accent": "#4e413f",
+      "floor_hex": "#440915",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_368.jpg",
     "blueprint_file": "plan_368.svg"
   },
@@ -8609,6 +11553,14 @@
     ],
     "confidence_pct": 97.99,
     "latency_ms": 30.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#755c45",
+      "blanket_accent": "#4f3e2e",
+      "floor_hex": "#9d7b54",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_369.jpg",
     "blueprint_file": "plan_369.svg"
   },
@@ -8633,6 +11585,14 @@
     ],
     "confidence_pct": 99.04,
     "latency_ms": 23.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a8947e",
+      "blanket_accent": "#726455",
+      "floor_hex": "#d2b394",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_370.jpg",
     "blueprint_file": "plan_370.svg"
   },
@@ -8657,6 +11617,14 @@
     ],
     "confidence_pct": 97.67,
     "latency_ms": 26.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5a4232",
+      "blanket_accent": "#3d2c22",
+      "floor_hex": "#ad9a88",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_371.jpg",
     "blueprint_file": "plan_371.svg"
   },
@@ -8681,6 +11649,14 @@
     ],
     "confidence_pct": 98.72,
     "latency_ms": 27.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9f9a8f",
+      "blanket_accent": "#6c6861",
+      "floor_hex": "#aba599",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_372.jpg",
     "blueprint_file": "plan_372.svg"
   },
@@ -8704,6 +11680,14 @@
     ],
     "confidence_pct": 97.39,
     "latency_ms": 16.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#613a15",
+      "blanket_accent": "#41270e",
+      "floor_hex": "#362217",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_373.jpg",
     "blueprint_file": "plan_373.svg"
   },
@@ -8728,6 +11712,14 @@
     ],
     "confidence_pct": 98.13,
     "latency_ms": 26.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a4641b",
+      "blanket_accent": "#6f4412",
+      "floor_hex": "#3e1304",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_374.jpg",
     "blueprint_file": "plan_374.svg"
   },
@@ -8751,6 +11743,14 @@
     ],
     "confidence_pct": 98.94,
     "latency_ms": 34.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#582b13",
+      "blanket_accent": "#3b1d0c",
+      "floor_hex": "#7a3f06",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_375.jpg",
     "blueprint_file": "plan_375.svg"
   },
@@ -8775,6 +11775,14 @@
     ],
     "confidence_pct": 97.27,
     "latency_ms": 30.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#534234",
+      "blanket_accent": "#382c23",
+      "floor_hex": "#3d2e21",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_376.jpg",
     "blueprint_file": "plan_376.svg"
   },
@@ -8799,6 +11807,14 @@
     ],
     "confidence_pct": 98.76,
     "latency_ms": 21.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#615e57",
+      "blanket_accent": "#413f3b",
+      "floor_hex": "#593a26",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_377.jpg",
     "blueprint_file": "plan_377.svg"
   },
@@ -8823,6 +11839,14 @@
     ],
     "confidence_pct": 98.71,
     "latency_ms": 20.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9f9a91",
+      "blanket_accent": "#6c6862",
+      "floor_hex": "#492918",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_378.jpg",
     "blueprint_file": "plan_378.svg"
   },
@@ -8847,6 +11871,14 @@
     ],
     "confidence_pct": 99.24,
     "latency_ms": 22.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#6a5042",
+      "blanket_accent": "#48362c",
+      "floor_hex": "#9f7d63",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_379.jpg",
     "blueprint_file": "plan_379.svg"
   },
@@ -8871,6 +11903,14 @@
     ],
     "confidence_pct": 99.61,
     "latency_ms": 21.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a4a1a9",
+      "blanket_accent": "#6f6d72",
+      "floor_hex": "#272421",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_380.jpg",
     "blueprint_file": "plan_380.svg"
   },
@@ -8895,6 +11935,14 @@
     ],
     "confidence_pct": 97.34,
     "latency_ms": 20.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a3928b",
+      "blanket_accent": "#6e635e",
+      "floor_hex": "#ccab7d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_381.jpg",
     "blueprint_file": "plan_381.svg"
   },
@@ -8919,6 +11967,14 @@
     ],
     "confidence_pct": 99.49,
     "latency_ms": 25.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#765545",
+      "blanket_accent": "#50392e",
+      "floor_hex": "#6e686f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_382.jpg",
     "blueprint_file": "plan_382.svg"
   },
@@ -8943,6 +11999,14 @@
     ],
     "confidence_pct": 97.79,
     "latency_ms": 24.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#875536",
+      "blanket_accent": "#5b3924",
+      "floor_hex": "#b4948e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_383.jpg",
     "blueprint_file": "plan_383.svg"
   },
@@ -8967,6 +12031,14 @@
     ],
     "confidence_pct": 97.41,
     "latency_ms": 27.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a49f8c",
+      "blanket_accent": "#6f6c5f",
+      "floor_hex": "#79786a",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_384.jpg",
     "blueprint_file": "plan_384.svg"
   },
@@ -8991,6 +12063,14 @@
     ],
     "confidence_pct": 98.71,
     "latency_ms": 19.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#95795b",
+      "blanket_accent": "#65523d",
+      "floor_hex": "#a27d5c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_385.jpg",
     "blueprint_file": "plan_385.svg"
   },
@@ -9015,6 +12095,14 @@
     ],
     "confidence_pct": 99.72,
     "latency_ms": 23.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9e8957",
+      "blanket_accent": "#6b5d3b",
+      "floor_hex": "#674e3b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_386.jpg",
     "blueprint_file": "plan_386.svg"
   },
@@ -9039,6 +12127,14 @@
     ],
     "confidence_pct": 99.7,
     "latency_ms": 30.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#bbbab9",
+      "blanket_accent": "#7f7e7d",
+      "floor_hex": "#1d1919",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_387.jpg",
     "blueprint_file": "plan_387.svg"
   },
@@ -9063,6 +12159,14 @@
     ],
     "confidence_pct": 99.62,
     "latency_ms": 32.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b4a39e",
+      "blanket_accent": "#7a6e6b",
+      "floor_hex": "#b1b2b8",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_388.jpg",
     "blueprint_file": "plan_388.svg"
   },
@@ -9087,6 +12191,14 @@
     ],
     "confidence_pct": 98.84,
     "latency_ms": 26.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#928063",
+      "blanket_accent": "#635743",
+      "floor_hex": "#54412b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_389.jpg",
     "blueprint_file": "plan_389.svg"
   },
@@ -9111,6 +12223,14 @@
     ],
     "confidence_pct": 97.97,
     "latency_ms": 18.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#747880",
+      "blanket_accent": "#4e5157",
+      "floor_hex": "#64666b",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_390.jpg",
     "blueprint_file": "plan_390.svg"
   },
@@ -9135,6 +12255,14 @@
     ],
     "confidence_pct": 98.67,
     "latency_ms": 18.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#b38b8a",
+      "blanket_accent": "#795e5d",
+      "floor_hex": "#7a574d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_391.jpg",
     "blueprint_file": "plan_391.svg"
   },
@@ -9159,6 +12287,14 @@
     ],
     "confidence_pct": 99.03,
     "latency_ms": 23.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#ab967e",
+      "blanket_accent": "#746655",
+      "floor_hex": "#583a21",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_392.jpg",
     "blueprint_file": "plan_392.svg"
   },
@@ -9182,6 +12318,14 @@
     ],
     "confidence_pct": 97.84,
     "latency_ms": 20.1,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9d9997",
+      "blanket_accent": "#6a6866",
+      "floor_hex": "#737575",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_393.jpg",
     "blueprint_file": "plan_393.svg"
   },
@@ -9206,6 +12350,14 @@
     ],
     "confidence_pct": 99.63,
     "latency_ms": 26.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#7b7172",
+      "blanket_accent": "#534c4d",
+      "floor_hex": "#87929e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_394.jpg",
     "blueprint_file": "plan_394.svg"
   },
@@ -9229,6 +12381,14 @@
     ],
     "confidence_pct": 97.66,
     "latency_ms": 21.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#997d5e",
+      "blanket_accent": "#68553f",
+      "floor_hex": "#5d4c36",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_395.jpg",
     "blueprint_file": "plan_395.svg"
   },
@@ -9253,6 +12413,14 @@
     ],
     "confidence_pct": 97.35,
     "latency_ms": 30.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#967c68",
+      "blanket_accent": "#665446",
+      "floor_hex": "#6e5b4e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_396.jpg",
     "blueprint_file": "plan_396.svg"
   },
@@ -9277,6 +12445,14 @@
     ],
     "confidence_pct": 98.72,
     "latency_ms": 31.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#836750",
+      "blanket_accent": "#594636",
+      "floor_hex": "#634d3d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_397.jpg",
     "blueprint_file": "plan_397.svg"
   },
@@ -9301,6 +12477,14 @@
     ],
     "confidence_pct": 97.81,
     "latency_ms": 23.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#916f54",
+      "blanket_accent": "#624b39",
+      "floor_hex": "#74604f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_398.jpg",
     "blueprint_file": "plan_398.svg"
   },
@@ -9325,6 +12509,14 @@
     ],
     "confidence_pct": 97.85,
     "latency_ms": 29.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#957156",
+      "blanket_accent": "#654c3a",
+      "floor_hex": "#755c48",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_399.jpg",
     "blueprint_file": "plan_399.svg"
   },
@@ -9349,6 +12541,14 @@
     ],
     "confidence_pct": 97.43,
     "latency_ms": 22.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#8d7058",
+      "blanket_accent": "#5f4c3b",
+      "floor_hex": "#69594b",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_400.jpg",
     "blueprint_file": "plan_400.svg"
   },
@@ -9373,6 +12573,14 @@
     ],
     "confidence_pct": 98.73,
     "latency_ms": 28.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#837c6f",
+      "blanket_accent": "#59544b",
+      "floor_hex": "#35352d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_401.jpg",
     "blueprint_file": "plan_401.svg"
   },
@@ -9397,6 +12605,14 @@
     ],
     "confidence_pct": 98.6,
     "latency_ms": 23.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#88807b",
+      "blanket_accent": "#5c5753",
+      "floor_hex": "#372a1f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_402.jpg",
     "blueprint_file": "plan_402.svg"
   },
@@ -9421,6 +12637,14 @@
     ],
     "confidence_pct": 99.72,
     "latency_ms": 26.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#9b9a9c",
+      "blanket_accent": "#69686a",
+      "floor_hex": "#3f3532",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_403.jpg",
     "blueprint_file": "plan_403.svg"
   },
@@ -9445,6 +12669,14 @@
     ],
     "confidence_pct": 98.02,
     "latency_ms": 33.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#8898a5",
+      "blanket_accent": "#5c6770",
+      "floor_hex": "#6c8494",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_404.jpg",
     "blueprint_file": "plan_404.svg"
   },
@@ -9469,6 +12701,14 @@
     ],
     "confidence_pct": 97.26,
     "latency_ms": 18.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9a9891",
+      "blanket_accent": "#686762",
+      "floor_hex": "#6b6459",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_405.jpg",
     "blueprint_file": "plan_405.svg"
   },
@@ -9493,6 +12733,14 @@
     ],
     "confidence_pct": 97.97,
     "latency_ms": 33.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#695852",
+      "blanket_accent": "#473b37",
+      "floor_hex": "#593f38",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_406.jpg",
     "blueprint_file": "plan_406.svg"
   },
@@ -9517,6 +12765,14 @@
     ],
     "confidence_pct": 97.93,
     "latency_ms": 33.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7c7567",
+      "blanket_accent": "#544f46",
+      "floor_hex": "#817c7d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_407.jpg",
     "blueprint_file": "plan_407.svg"
   },
@@ -9541,6 +12797,14 @@
     ],
     "confidence_pct": 98.42,
     "latency_ms": 32.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#756360",
+      "blanket_accent": "#4f4341",
+      "floor_hex": "#420914",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_408.jpg",
     "blueprint_file": "plan_408.svg"
   },
@@ -9565,6 +12829,14 @@
     ],
     "confidence_pct": 99.41,
     "latency_ms": 33.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#79614a",
+      "blanket_accent": "#524132",
+      "floor_hex": "#9f7e58",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_409.jpg",
     "blueprint_file": "plan_409.svg"
   },
@@ -9589,6 +12861,14 @@
     ],
     "confidence_pct": 98.07,
     "latency_ms": 31.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9b8772",
+      "blanket_accent": "#695b4d",
+      "floor_hex": "#c4a688",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_410.jpg",
     "blueprint_file": "plan_410.svg"
   },
@@ -9613,6 +12893,14 @@
     ],
     "confidence_pct": 99.66,
     "latency_ms": 20.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5e4332",
+      "blanket_accent": "#3f2d22",
+      "floor_hex": "#c0ab97",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_411.jpg",
     "blueprint_file": "plan_411.svg"
   },
@@ -9637,6 +12925,14 @@
     ],
     "confidence_pct": 97.24,
     "latency_ms": 21.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#908c81",
+      "blanket_accent": "#615f57",
+      "floor_hex": "#999489",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_412.jpg",
     "blueprint_file": "plan_412.svg"
   },
@@ -9661,6 +12957,14 @@
     ],
     "confidence_pct": 98.46,
     "latency_ms": 22.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#654321",
+      "blanket_accent": "#442d16",
+      "floor_hex": "#331d13",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_413.jpg",
     "blueprint_file": "plan_413.svg"
   },
@@ -9685,6 +12989,14 @@
     ],
     "confidence_pct": 97.58,
     "latency_ms": 22.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a7671f",
+      "blanket_accent": "#714615",
+      "floor_hex": "#3c1103",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_414.jpg",
     "blueprint_file": "plan_414.svg"
   },
@@ -9709,6 +13021,14 @@
     ],
     "confidence_pct": 98.14,
     "latency_ms": 18.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#56270f",
+      "blanket_accent": "#3a1a0a",
+      "floor_hex": "#81460a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_415.jpg",
     "blueprint_file": "plan_415.svg"
   },
@@ -9733,6 +13053,14 @@
     ],
     "confidence_pct": 98.18,
     "latency_ms": 22.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#574637",
+      "blanket_accent": "#3b2f25",
+      "floor_hex": "#413020",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_416.jpg",
     "blueprint_file": "plan_416.svg"
   },
@@ -9757,6 +13085,14 @@
     ],
     "confidence_pct": 98.46,
     "latency_ms": 18.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#615e57",
+      "blanket_accent": "#413f3b",
+      "floor_hex": "#5d3d27",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_417.jpg",
     "blueprint_file": "plan_417.svg"
   },
@@ -9781,6 +13117,14 @@
     ],
     "confidence_pct": 98.93,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9d998e",
+      "blanket_accent": "#6a6860",
+      "floor_hex": "#4b3022",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_418.jpg",
     "blueprint_file": "plan_418.svg"
   },
@@ -9805,6 +13149,14 @@
     ],
     "confidence_pct": 98.56,
     "latency_ms": 30.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#6b4e40",
+      "blanket_accent": "#48352b",
+      "floor_hex": "#9c775c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_419.jpg",
     "blueprint_file": "plan_419.svg"
   },
@@ -9829,6 +13181,14 @@
     ],
     "confidence_pct": 98.3,
     "latency_ms": 18.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a3a1a7",
+      "blanket_accent": "#6e6d71",
+      "floor_hex": "#2a2624",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_420.jpg",
     "blueprint_file": "plan_420.svg"
   },
@@ -9853,6 +13213,14 @@
     ],
     "confidence_pct": 98.56,
     "latency_ms": 20.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9b8a83",
+      "blanket_accent": "#695d59",
+      "floor_hex": "#c6a579",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_421.jpg",
     "blueprint_file": "plan_421.svg"
   },
@@ -9877,6 +13245,14 @@
     ],
     "confidence_pct": 97.69,
     "latency_ms": 31.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#6f5040",
+      "blanket_accent": "#4b362b",
+      "floor_hex": "#665f65",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_422.jpg",
     "blueprint_file": "plan_422.svg"
   },
@@ -9901,6 +13277,14 @@
     ],
     "confidence_pct": 99.22,
     "latency_ms": 22.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#88583a",
+      "blanket_accent": "#5c3b27",
+      "floor_hex": "#b19088",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_423.jpg",
     "blueprint_file": "plan_423.svg"
   },
@@ -9925,6 +13309,14 @@
     ],
     "confidence_pct": 98.13,
     "latency_ms": 18.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#b4af98",
+      "blanket_accent": "#7a7767",
+      "floor_hex": "#797769",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_424.jpg",
     "blueprint_file": "plan_424.svg"
   },
@@ -9949,6 +13341,14 @@
     ],
     "confidence_pct": 98.13,
     "latency_ms": 16.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#947758",
+      "blanket_accent": "#64503b",
+      "floor_hex": "#a17c5a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_425.jpg",
     "blueprint_file": "plan_425.svg"
   },
@@ -9973,6 +13373,14 @@
     ],
     "confidence_pct": 98.08,
     "latency_ms": 24.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a18c59",
+      "blanket_accent": "#6d5f3c",
+      "floor_hex": "#6a513d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_426.jpg",
     "blueprint_file": "plan_426.svg"
   },
@@ -9997,6 +13405,14 @@
     ],
     "confidence_pct": 98.48,
     "latency_ms": 19.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#adacaa",
+      "blanket_accent": "#757473",
+      "floor_hex": "#1f1b1c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_427.jpg",
     "blueprint_file": "plan_427.svg"
   },
@@ -10021,6 +13437,14 @@
     ],
     "confidence_pct": 97.5,
     "latency_ms": 18.6,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9b8f8b",
+      "blanket_accent": "#69615e",
+      "floor_hex": "#98989d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_428.jpg",
     "blueprint_file": "plan_428.svg"
   },
@@ -10045,6 +13469,14 @@
     ],
     "confidence_pct": 97.86,
     "latency_ms": 29.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#ad9c7c",
+      "blanket_accent": "#756a54",
+      "floor_hex": "#655137",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_429.jpg",
     "blueprint_file": "plan_429.svg"
   },
@@ -10069,6 +13501,14 @@
     ],
     "confidence_pct": 98.42,
     "latency_ms": 22.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#7b7f88",
+      "blanket_accent": "#53565c",
+      "floor_hex": "#66696f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_430.jpg",
     "blueprint_file": "plan_430.svg"
   },
@@ -10093,6 +13533,14 @@
     ],
     "confidence_pct": 98.41,
     "latency_ms": 29.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#b5908f",
+      "blanket_accent": "#7b6161",
+      "floor_hex": "#78574d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_431.jpg",
     "blueprint_file": "plan_431.svg"
   },
@@ -10117,6 +13565,14 @@
     ],
     "confidence_pct": 99.4,
     "latency_ms": 28.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#ad9981",
+      "blanket_accent": "#756857",
+      "floor_hex": "#51311c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_432.jpg",
     "blueprint_file": "plan_432.svg"
   },
@@ -10141,6 +13597,14 @@
     ],
     "confidence_pct": 98.97,
     "latency_ms": 32.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#a6a2a2",
+      "blanket_accent": "#706e6e",
+      "floor_hex": "#717372",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_433.jpg",
     "blueprint_file": "plan_433.svg"
   },
@@ -10165,6 +13629,14 @@
     ],
     "confidence_pct": 99.06,
     "latency_ms": 22.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#887e7f",
+      "blanket_accent": "#5c5556",
+      "floor_hex": "#9aaab8",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_434.jpg",
     "blueprint_file": "plan_434.svg"
   },
@@ -10189,6 +13661,14 @@
     ],
     "confidence_pct": 97.72,
     "latency_ms": 18.2,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#9a7e60",
+      "blanket_accent": "#685541",
+      "floor_hex": "#5e4d36",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_435.jpg",
     "blueprint_file": "plan_435.svg"
   },
@@ -10213,6 +13693,14 @@
     ],
     "confidence_pct": 97.7,
     "latency_ms": 18.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#87705e",
+      "blanket_accent": "#5b4c3f",
+      "floor_hex": "#615146",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_436.jpg",
     "blueprint_file": "plan_436.svg"
   },
@@ -10237,6 +13725,14 @@
     ],
     "confidence_pct": 98.38,
     "latency_ms": 29.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#876950",
+      "blanket_accent": "#5b4736",
+      "floor_hex": "#644d3c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_437.jpg",
     "blueprint_file": "plan_437.svg"
   },
@@ -10261,6 +13757,14 @@
     ],
     "confidence_pct": 97.35,
     "latency_ms": 28.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#86674f",
+      "blanket_accent": "#5b4635",
+      "floor_hex": "#715d4c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_438.jpg",
     "blueprint_file": "plan_438.svg"
   },
@@ -10285,6 +13789,14 @@
     ],
     "confidence_pct": 99.06,
     "latency_ms": 23.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#8a674e",
+      "blanket_accent": "#5d4635",
+      "floor_hex": "#6a4e39",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_439.jpg",
     "blueprint_file": "plan_439.svg"
   },
@@ -10309,6 +13821,14 @@
     ],
     "confidence_pct": 98.07,
     "latency_ms": 22.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#97755c",
+      "blanket_accent": "#664f3e",
+      "floor_hex": "#705e50",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_440.jpg",
     "blueprint_file": "plan_440.svg"
   },
@@ -10333,6 +13853,14 @@
     ],
     "confidence_pct": 99.7,
     "latency_ms": 22.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#787368",
+      "blanket_accent": "#514e46",
+      "floor_hex": "#2e2f29",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_441.jpg",
     "blueprint_file": "plan_441.svg"
   },
@@ -10357,6 +13885,14 @@
     ],
     "confidence_pct": 98.57,
     "latency_ms": 25.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#908883",
+      "blanket_accent": "#615c59",
+      "floor_hex": "#3e3023",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_442.jpg",
     "blueprint_file": "plan_442.svg"
   },
@@ -10381,6 +13917,14 @@
     ],
     "confidence_pct": 97.44,
     "latency_ms": 26.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#9a989a",
+      "blanket_accent": "#686768",
+      "floor_hex": "#3d332d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_443.jpg",
     "blueprint_file": "plan_443.svg"
   },
@@ -10405,6 +13949,14 @@
     ],
     "confidence_pct": 99.53,
     "latency_ms": 22.8,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#8fa1b0",
+      "blanket_accent": "#616d77",
+      "floor_hex": "#6c8495",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_444.jpg",
     "blueprint_file": "plan_444.svg"
   },
@@ -10429,6 +13981,14 @@
     ],
     "confidence_pct": 99.48,
     "latency_ms": 31.6,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a9a7a0",
+      "blanket_accent": "#72716c",
+      "floor_hex": "#72695c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_445.jpg",
     "blueprint_file": "plan_445.svg"
   },
@@ -10453,6 +14013,14 @@
     ],
     "confidence_pct": 98.86,
     "latency_ms": 20.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#745f58",
+      "blanket_accent": "#4e403b",
+      "floor_hex": "#664941",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_446.jpg",
     "blueprint_file": "plan_446.svg"
   },
@@ -10477,6 +14045,14 @@
     ],
     "confidence_pct": 97.75,
     "latency_ms": 22.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7d7666",
+      "blanket_accent": "#555045",
+      "floor_hex": "#7d7776",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_447.jpg",
     "blueprint_file": "plan_447.svg"
   },
@@ -10501,6 +14077,14 @@
     ],
     "confidence_pct": 99.64,
     "latency_ms": 26.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#7c6a67",
+      "blanket_accent": "#544846",
+      "floor_hex": "#480b19",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_448.jpg",
     "blueprint_file": "plan_448.svg"
   },
@@ -10525,6 +14109,14 @@
     ],
     "confidence_pct": 99.41,
     "latency_ms": 32.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#796048",
+      "blanket_accent": "#524130",
+      "floor_hex": "#a17e57",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_449.jpg",
     "blueprint_file": "plan_449.svg"
   },
@@ -10549,6 +14141,14 @@
     ],
     "confidence_pct": 97.34,
     "latency_ms": 32.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#93816d",
+      "blanket_accent": "#63574a",
+      "floor_hex": "#bb9e82",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_450.jpg",
     "blueprint_file": "plan_450.svg"
   },
@@ -10573,6 +14173,14 @@
     ],
     "confidence_pct": 97.34,
     "latency_ms": 17.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#634837",
+      "blanket_accent": "#433025",
+      "floor_hex": "#bfaa97",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_451.jpg",
     "blueprint_file": "plan_451.svg"
   },
@@ -10597,6 +14205,14 @@
     ],
     "confidence_pct": 97.58,
     "latency_ms": 20.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#939085",
+      "blanket_accent": "#63615a",
+      "floor_hex": "#9e998e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_452.jpg",
     "blueprint_file": "plan_452.svg"
   },
@@ -10621,6 +14237,14 @@
     ],
     "confidence_pct": 98.17,
     "latency_ms": 26.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#6c4723",
+      "blanket_accent": "#493017",
+      "floor_hex": "#382013",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_453.jpg",
     "blueprint_file": "plan_453.svg"
   },
@@ -10645,6 +14269,14 @@
     ],
     "confidence_pct": 99.16,
     "latency_ms": 24.9,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#9f5f19",
+      "blanket_accent": "#6c4011",
+      "floor_hex": "#390f03",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_454.jpg",
     "blueprint_file": "plan_454.svg"
   },
@@ -10669,6 +14301,14 @@
     ],
     "confidence_pct": 99.23,
     "latency_ms": 22.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#5d290f",
+      "blanket_accent": "#3f1b0a",
+      "floor_hex": "#7d3f06",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_455.jpg",
     "blueprint_file": "plan_455.svg"
   },
@@ -10693,6 +14333,14 @@
     ],
     "confidence_pct": 99.76,
     "latency_ms": 31.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#624c3a",
+      "blanket_accent": "#423327",
+      "floor_hex": "#453424",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_456.jpg",
     "blueprint_file": "plan_456.svg"
   },
@@ -10717,6 +14365,14 @@
     ],
     "confidence_pct": 98.34,
     "latency_ms": 31.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#676760",
+      "blanket_accent": "#464641",
+      "floor_hex": "#563929",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_457.jpg",
     "blueprint_file": "plan_457.svg"
   },
@@ -10741,6 +14397,14 @@
     ],
     "confidence_pct": 98.56,
     "latency_ms": 18.7,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9a968c",
+      "blanket_accent": "#68665f",
+      "floor_hex": "#4b3326",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_458.jpg",
     "blueprint_file": "plan_458.svg"
   },
@@ -10765,6 +14429,14 @@
     ],
     "confidence_pct": 97.82,
     "latency_ms": 23.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#715445",
+      "blanket_accent": "#4c392e",
+      "floor_hex": "#b18a6c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_459.jpg",
     "blueprint_file": "plan_459.svg"
   },
@@ -10789,6 +14461,14 @@
     ],
     "confidence_pct": 98.8,
     "latency_ms": 25.3,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#9e9ba2",
+      "blanket_accent": "#6b696e",
+      "floor_hex": "#272221",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_460.jpg",
     "blueprint_file": "plan_460.svg"
   },
@@ -10813,6 +14493,14 @@
     ],
     "confidence_pct": 98.28,
     "latency_ms": 33.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#9c8982",
+      "blanket_accent": "#6a5d58",
+      "floor_hex": "#cca978",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_461.jpg",
     "blueprint_file": "plan_461.svg"
   },
@@ -10837,6 +14525,14 @@
     ],
     "confidence_pct": 98.55,
     "latency_ms": 20.5,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#6d4f3f",
+      "blanket_accent": "#4a352a",
+      "floor_hex": "#655f65",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_462.jpg",
     "blueprint_file": "plan_462.svg"
   },
@@ -10861,6 +14557,14 @@
     ],
     "confidence_pct": 97.93,
     "latency_ms": 17.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#7e5235",
+      "blanket_accent": "#553724",
+      "floor_hex": "#9f7c6e",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_463.jpg",
     "blueprint_file": "plan_463.svg"
   },
@@ -10885,6 +14589,14 @@
     ],
     "confidence_pct": 98.09,
     "latency_ms": 26.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a6a18c",
+      "blanket_accent": "#706d5f",
+      "floor_hex": "#706f62",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_464.jpg",
     "blueprint_file": "plan_464.svg"
   },
@@ -10909,6 +14621,14 @@
     ],
     "confidence_pct": 97.55,
     "latency_ms": 23.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#a2805b",
+      "blanket_accent": "#6e573d",
+      "floor_hex": "#b0865f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_465.jpg",
     "blueprint_file": "plan_465.svg"
   },
@@ -10933,6 +14653,14 @@
     ],
     "confidence_pct": 97.22,
     "latency_ms": 29.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a38c5a",
+      "blanket_accent": "#6e5f3d",
+      "floor_hex": "#644a38",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_466.jpg",
     "blueprint_file": "plan_466.svg"
   },
@@ -10957,6 +14685,14 @@
     ],
     "confidence_pct": 98.32,
     "latency_ms": 29.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#b3b3b3",
+      "blanket_accent": "#797979",
+      "floor_hex": "#1c191c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_467.jpg",
     "blueprint_file": "plan_467.svg"
   },
@@ -10981,6 +14717,14 @@
     ],
     "confidence_pct": 98.75,
     "latency_ms": 21.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#9c918d",
+      "blanket_accent": "#6a625f",
+      "floor_hex": "#939396",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_468.jpg",
     "blueprint_file": "plan_468.svg"
   },
@@ -11005,6 +14749,14 @@
     ],
     "confidence_pct": 99.64,
     "latency_ms": 28.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9f8f72",
+      "blanket_accent": "#6c614d",
+      "floor_hex": "#5b4932",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_469.jpg",
     "blueprint_file": "plan_469.svg"
   },
@@ -11029,6 +14781,14 @@
     ],
     "confidence_pct": 98.35,
     "latency_ms": 27.4,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#757981",
+      "blanket_accent": "#4f5257",
+      "floor_hex": "#64676c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_470.jpg",
     "blueprint_file": "plan_470.svg"
   },
@@ -11053,6 +14813,14 @@
     ],
     "confidence_pct": 97.78,
     "latency_ms": 31.3,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#ad8887",
+      "blanket_accent": "#755c5b",
+      "floor_hex": "#7f5e54",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_471.jpg",
     "blueprint_file": "plan_471.svg"
   },
@@ -11077,6 +14845,14 @@
     ],
     "confidence_pct": 98.08,
     "latency_ms": 24.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#a8947c",
+      "blanket_accent": "#726454",
+      "floor_hex": "#52341d",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_472.jpg",
     "blueprint_file": "plan_472.svg"
   },
@@ -11101,6 +14877,14 @@
     ],
     "confidence_pct": 99.47,
     "latency_ms": 27.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#aca7a6",
+      "blanket_accent": "#747170",
+      "floor_hex": "#7d7e7e",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_473.jpg",
     "blueprint_file": "plan_473.svg"
   },
@@ -11125,6 +14909,14 @@
     ],
     "confidence_pct": 99.36,
     "latency_ms": 27.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#807678",
+      "blanket_accent": "#575051",
+      "floor_hex": "#93a2b0",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_474.jpg",
     "blueprint_file": "plan_474.svg"
   },
@@ -11149,6 +14941,14 @@
     ],
     "confidence_pct": 98.97,
     "latency_ms": 16.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#9c8061",
+      "blanket_accent": "#6a5741",
+      "floor_hex": "#615038",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_475.jpg",
     "blueprint_file": "plan_475.svg"
   },
@@ -11173,6 +14973,14 @@
     ],
     "confidence_pct": 97.21,
     "latency_ms": 32.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#876f5c",
+      "blanket_accent": "#5b4b3e",
+      "floor_hex": "#615044",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_476.jpg",
     "blueprint_file": "plan_476.svg"
   },
@@ -11197,6 +15005,14 @@
     ],
     "confidence_pct": 98.41,
     "latency_ms": 29.0,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#7c614a",
+      "blanket_accent": "#544132",
+      "floor_hex": "#554133",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_477.jpg",
     "blueprint_file": "plan_477.svg"
   },
@@ -11221,6 +15037,14 @@
     ],
     "confidence_pct": 98.42,
     "latency_ms": 19.3,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#87674e",
+      "blanket_accent": "#5b4635",
+      "floor_hex": "#695648",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_478.jpg",
     "blueprint_file": "plan_478.svg"
   },
@@ -11245,6 +15069,14 @@
     ],
     "confidence_pct": 99.18,
     "latency_ms": 26.8,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#80624d",
+      "blanket_accent": "#574234",
+      "floor_hex": "#654e3c",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_479.jpg",
     "blueprint_file": "plan_479.svg"
   },
@@ -11269,6 +15101,14 @@
     ],
     "confidence_pct": 99.44,
     "latency_ms": 28.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#a37f63",
+      "blanket_accent": "#6e5643",
+      "floor_hex": "#7b6756",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_480.jpg",
     "blueprint_file": "plan_480.svg"
   },
@@ -11293,6 +15133,14 @@
     ],
     "confidence_pct": 98.5,
     "latency_ms": 34.1,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#837c71",
+      "blanket_accent": "#59544c",
+      "floor_hex": "#272822",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_481.jpg",
     "blueprint_file": "plan_481.svg"
   },
@@ -11317,6 +15165,14 @@
     ],
     "confidence_pct": 99.35,
     "latency_ms": 16.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#89817c",
+      "blanket_accent": "#5d5754",
+      "floor_hex": "#392b1f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_482.jpg",
     "blueprint_file": "plan_482.svg"
   },
@@ -11341,6 +15197,14 @@
     ],
     "confidence_pct": 98.25,
     "latency_ms": 31.2,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#949294",
+      "blanket_accent": "#646364",
+      "floor_hex": "#342b27",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_483.jpg",
     "blueprint_file": "plan_483.svg"
   },
@@ -11365,6 +15229,14 @@
     ],
     "confidence_pct": 99.5,
     "latency_ms": 19.8,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "top",
+      "blanket_hex": "#7f8e9a",
+      "blanket_accent": "#566068",
+      "floor_hex": "#647887",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_484.jpg",
     "blueprint_file": "plan_484.svg"
   },
@@ -11389,6 +15261,14 @@
     ],
     "confidence_pct": 98.62,
     "latency_ms": 20.4,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#aaa8a2",
+      "blanket_accent": "#73726e",
+      "floor_hex": "#776f63",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_485.jpg",
     "blueprint_file": "plan_485.svg"
   },
@@ -11413,6 +15293,14 @@
     ],
     "confidence_pct": 97.55,
     "latency_ms": 24.2,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#695954",
+      "blanket_accent": "#473c39",
+      "floor_hex": "#5b4641",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_486.jpg",
     "blueprint_file": "plan_486.svg"
   },
@@ -11437,6 +15325,14 @@
     ],
     "confidence_pct": 97.57,
     "latency_ms": 22.0,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#7c7567",
+      "blanket_accent": "#544f46",
+      "floor_hex": "#807e7f",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_487.jpg",
     "blueprint_file": "plan_487.svg"
   },
@@ -11461,6 +15357,14 @@
     ],
     "confidence_pct": 98.25,
     "latency_ms": 27.5,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "left",
+      "blanket_hex": "#786664",
+      "blanket_accent": "#514544",
+      "floor_hex": "#460f1c",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_488.jpg",
     "blueprint_file": "plan_488.svg"
   },
@@ -11485,6 +15389,14 @@
     ],
     "confidence_pct": 98.53,
     "latency_ms": 28.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#775f47",
+      "blanket_accent": "#504030",
+      "floor_hex": "#a17e56",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_489.jpg",
     "blueprint_file": "plan_489.svg"
   },
@@ -11509,6 +15421,14 @@
     ],
     "confidence_pct": 97.86,
     "latency_ms": 17.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#9a8976",
+      "blanket_accent": "#685d50",
+      "floor_hex": "#c0a489",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_490.jpg",
     "blueprint_file": "plan_490.svg"
   },
@@ -11533,6 +15453,14 @@
     ],
     "confidence_pct": 97.36,
     "latency_ms": 19.6,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#5a4435",
+      "blanket_accent": "#3d2e24",
+      "floor_hex": "#a59484",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_491.jpg",
     "blueprint_file": "plan_491.svg"
   },
@@ -11557,6 +15485,14 @@
     ],
     "confidence_pct": 98.64,
     "latency_ms": 32.5,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#a7a298",
+      "blanket_accent": "#716e67",
+      "floor_hex": "#b0aa9f",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_492.jpg",
     "blueprint_file": "plan_492.svg"
   },
@@ -11581,6 +15517,14 @@
     ],
     "confidence_pct": 99.39,
     "latency_ms": 31.7,
+    "cv_features": {
+      "bed_side": "left",
+      "window_wall": "left",
+      "blanket_hex": "#6f4319",
+      "blanket_accent": "#4b2d11",
+      "floor_hex": "#3c2417",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_493.jpg",
     "blueprint_file": "plan_493.svg"
   },
@@ -11605,6 +15549,14 @@
     ],
     "confidence_pct": 97.24,
     "latency_ms": 24.0,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "top",
+      "blanket_hex": "#9c6523",
+      "blanket_accent": "#6a4417",
+      "floor_hex": "#3e1808",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_494.jpg",
     "blueprint_file": "plan_494.svg"
   },
@@ -11629,6 +15581,14 @@
     ],
     "confidence_pct": 98.67,
     "latency_ms": 27.7,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#5b2910",
+      "blanket_accent": "#3d1b0a",
+      "floor_hex": "#854407",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_495.jpg",
     "blueprint_file": "plan_495.svg"
   },
@@ -11653,6 +15613,14 @@
     ],
     "confidence_pct": 98.2,
     "latency_ms": 19.9,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#564536",
+      "blanket_accent": "#3a2e24",
+      "floor_hex": "#3f2f21",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_496.jpg",
     "blueprint_file": "plan_496.svg"
   },
@@ -11677,6 +15645,14 @@
     ],
     "confidence_pct": 97.59,
     "latency_ms": 22.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#5f5e57",
+      "blanket_accent": "#403f3b",
+      "floor_hex": "#563826",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_497.jpg",
     "blueprint_file": "plan_497.svg"
   },
@@ -11701,6 +15677,14 @@
     ],
     "confidence_pct": 98.0,
     "latency_ms": 28.4,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "right",
+      "blanket_hex": "#8b8780",
+      "blanket_accent": "#5e5b57",
+      "floor_hex": "#41281a",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_498.jpg",
     "blueprint_file": "plan_498.svg"
   },
@@ -11725,6 +15709,14 @@
     ],
     "confidence_pct": 99.24,
     "latency_ms": 34.1,
+    "cv_features": {
+      "bed_side": "center",
+      "window_wall": "top",
+      "blanket_hex": "#64493b",
+      "blanket_accent": "#443128",
+      "floor_hex": "#906e54",
+      "floor_type": "Parquet Wood"
+    },
     "photo_file": "room_499.jpg",
     "blueprint_file": "plan_499.svg"
   },
@@ -11749,6 +15741,14 @@
     ],
     "confidence_pct": 99.65,
     "latency_ms": 22.9,
+    "cv_features": {
+      "bed_side": "right",
+      "window_wall": "right",
+      "blanket_hex": "#98969d",
+      "blanket_accent": "#67666a",
+      "floor_hex": "#221e1d",
+      "floor_type": "Ceramic Tile"
+    },
     "photo_file": "room_500.jpg",
     "blueprint_file": "plan_500.svg"
   }

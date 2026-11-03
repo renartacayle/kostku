@@ -20,7 +20,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 try:
-    from PIL import Image, ImageEnhance, ImageFilter
+    from PIL import Image, ImageEnhance, ImageFilter, ImageStat
 except ImportError:
     print("Error: PIL (Pillow) is required. Install via pip install Pillow.")
     sys.exit(1)
@@ -214,13 +214,105 @@ def process_real_bedroom_photo(spec, output_path, target_w=480, target_h=360):
         im.save(output_path, "JPEG", quality=75, optimize=True)
 
 # ── 5. Auto-2D Floor Plan SVG Synthesizer (Architectural CAD Vector) ─
-def render_floor_plan_svg(spec, output_path):
+def rgb_to_hex(rgb):
+    return '#{:02x}{:02x}{:02x}'.format(
+        max(0, min(255, int(rgb[0]))),
+        max(0, min(255, int(rgb[1]))),
+        max(0, min(255, int(rgb[2])))
+    )
+
+def clamp_color(hex_str, factor):
+    h = hex_str.lstrip('#')
+    rgb = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+    new_rgb = [max(0, min(255, int(c * factor))) for c in rgb]
+    return rgb_to_hex(new_rgb)
+
+def analyze_photo_features(img_path):
+    with Image.open(img_path) as im:
+        im = im.convert('RGB')
+        w, h = im.size
+        
+        # 1. Daylight / Window Detection (Upper 50% across 3 regions)
+        y_top = int(h * 0.50)
+        c_l = im.crop((0, 0, int(w * 0.35), y_top))
+        c_t = im.crop((int(w * 0.30), 0, int(w * 0.70), y_top))
+        c_r = im.crop((int(w * 0.65), 0, w, y_top))
+        
+        lum_l = sum(ImageStat.Stat(c_l).mean) / 3.0
+        lum_t = sum(ImageStat.Stat(c_t).mean) / 3.0
+        lum_r = sum(ImageStat.Stat(c_r).mean) / 3.0
+        
+        if lum_l > lum_r + 14 and lum_l >= lum_t - 5:
+            win_wall = 'left'
+        elif lum_r > lum_l + 14 and lum_r >= lum_t - 5:
+            win_wall = 'right'
+        else:
+            win_wall = 'top'
+            
+        # 2. Bed Placement Detection (Mid-lower zone y: 35% - 80%)
+        y_m1, y_m2 = int(h * 0.35), int(h * 0.80)
+        b_l = im.crop((0, y_m1, int(w * 0.38), y_m2))
+        b_c = im.crop((int(w * 0.31), y_m1, int(w * 0.69), y_m2))
+        b_r = im.crop((int(w * 0.62), y_m1, w, y_m2))
+        
+        mean_l = sum(ImageStat.Stat(b_l).mean) / 3.0
+        mean_c = sum(ImageStat.Stat(b_c).mean) / 3.0
+        mean_r = sum(ImageStat.Stat(b_r).mean) / 3.0
+        
+        diff = mean_l - mean_r
+        if diff > 15:
+            bed_side = 'left'
+        elif diff < -15:
+            bed_side = 'right'
+        else:
+            bed_side = 'center'
+            
+        # 3. Sample Bed Blanket Color
+        if bed_side == 'left':
+            s_bed = im.crop((int(w * 0.12), int(h * 0.45), int(w * 0.40), int(h * 0.75)))
+        elif bed_side == 'right':
+            s_bed = im.crop((int(w * 0.60), int(h * 0.45), int(w * 0.88), int(h * 0.75)))
+        else:
+            s_bed = im.crop((int(w * 0.32), int(h * 0.45), int(w * 0.68), int(h * 0.75)))
+            
+        b_rgb = ImageStat.Stat(s_bed).mean
+        blanket_hex = rgb_to_hex(b_rgb)
+        blanket_accent = clamp_color(blanket_hex, 0.68)
+        
+        # 4. Sample Floor Color
+        s_floor = im.crop((int(w * 0.20), int(h * 0.84), int(w * 0.80), int(h * 0.98)))
+        f_rgb = ImageStat.Stat(s_floor).mean
+        floor_hex = rgb_to_hex(f_rgb)
+        
+        # Determine Floor Type
+        if f_rgb[0] > f_rgb[2] + 15 and f_rgb[1] > f_rgb[2]:
+            floor_type = 'Parquet Wood'
+        else:
+            floor_type = 'Ceramic Tile'
+            
+        return {
+            'bed_side': bed_side,
+            'window_wall': win_wall,
+            'blanket_hex': blanket_hex,
+            'blanket_accent': blanket_accent,
+            'floor_hex': floor_hex,
+            'floor_type': floor_type
+        }
+
+def render_floor_plan_svg(spec, output_path, cv_features):
     w_m = spec["width_m"]
     l_m = spec["length_m"]
     area_m2 = spec["area_m2"]
     furnitures = spec["furnitures"]
     bed_type = spec["bed_type"]
     room_number = spec["room_number"]
+    
+    bed_side = cv_features["bed_side"]
+    window_wall = cv_features["window_wall"]
+    blanket_hex = cv_features["blanket_hex"]
+    blanket_accent = cv_features["blanket_accent"]
+    floor_hex = cv_features["floor_hex"]
+    floor_type = cv_features["floor_type"]
     
     has_bm = "bathroom" in furnitures
     has_wardrobe = "wardrobe" in furnitures
@@ -237,6 +329,45 @@ def render_floor_plan_svg(spec, output_path):
     }
     bcfg = bed_map.get(bed_type, bed_map["super_single"])
     
+    # ── Dynamic Layout Coordinate Synthesis ──
+    if bed_side == 'left':
+        bed_x = 94
+        bed_y = 60
+        nakas_items = [(bed_x + bcfg['svgW'] + 8, 62)]
+        bm_x, bm_y = 396, 56
+        desk_x, desk_y = 425, 278
+        wardrobe_x, wardrobe_y = 94, 278
+        ac_x = 240
+        fridge_x, fridge_y = 220, 286
+    elif bed_side == 'center':
+        bed_x = 310 - (bcfg['svgW'] // 2)
+        bed_y = 60
+        if has_bm:
+            # Shift bed slightly right to accommodate ensuite bathroom
+            bed_x = 320 - (bcfg['svgW'] // 2)
+            nakas_items = [(bed_x - 30, 62), (bed_x + bcfg['svgW'] + 6, 62)]
+            bm_x, bm_y = 86, 56
+            desk_x, desk_y = 425, 278
+            wardrobe_x, wardrobe_y = 94, 278
+            ac_x = bed_x + (bcfg['svgW'] // 2) - 34
+            fridge_x, fridge_y = 220, 286
+        else:
+            nakas_items = [(bed_x - 32, 62), (bed_x + bcfg['svgW'] + 8, 62)]
+            bm_x, bm_y = 86, 56
+            desk_x, desk_y = 425, 278
+            wardrobe_x, wardrobe_y = 94, 278
+            ac_x = 310 - 34
+            fridge_x, fridge_y = 220, 286
+    else:  # right
+        bed_x = 534 - bcfg['svgW'] - 8
+        bed_y = 60
+        nakas_items = [(bed_x - 32, 62)]
+        bm_x, bm_y = 86, 56
+        desk_x, desk_y = 94, 278
+        wardrobe_x, wardrobe_y = 425, 278
+        ac_x = 250
+        fridge_x, fridge_y = 220, 286
+
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 400" width="100%" height="100%" style="background:#0b1329; border-radius:12px; font-family:'Inter',system-ui,sans-serif;">
   <defs>
     <pattern id="grid_s_{spec['id']}" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -273,38 +404,37 @@ def render_floor_plan_svg(spec, output_path):
     </text>
   </g>
 
-  <!-- Wall & Floor -->
+  <!-- Wall & Tinted Floor -->
   <rect x="80" y="50" width="460" height="300" fill="#0f1d38" stroke="#38bdf8" stroke-width="8" rx="2" />
-  <rect x="86" y="56" width="448" height="288" fill="rgba(15, 23, 42, 0.88)" />
+  <rect x="86" y="56" width="448" height="288" fill="{floor_hex}" opacity="0.22" />
+  <rect x="86" y="56" width="448" height="288" fill="rgba(15, 23, 42, 0.75)" />
 """
 
     if has_bm:
         svg += f"""
   <!-- Ensuite Bathroom -->
   <g>
-    <rect x="86" y="56" width="138" height="126" fill="url(#tile_{spec['id']})" stroke="#0284c7" stroke-width="4.5" />
-    <text x="155" y="88" fill="#38bdf8" font-size="10.5" font-weight="800" text-anchor="middle">KM / WC</text>
-    <text x="155" y="101" fill="#94a3b8" font-size="8" text-anchor="middle">(1.5m x 1.4m)</text>
-    <rect x="94" y="65" width="28" height="15" rx="3" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-    <ellipse cx="108" cy="92" rx="12" ry="14" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5" />
-    <rect x="158" y="65" width="54" height="54" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3 3" />
-    <circle cx="185" cy="92" r="7" fill="#38bdf8" opacity="0.3" />
-    <circle cx="185" cy="92" r="2.5" fill="#0284c7" />
-    <path d="M 178 182 A 34 34 0 0 1 212 148" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
-    <line x1="178" y1="182" x2="212" y2="182" stroke="#e0f2fe" stroke-width="3" />
+    <rect x="{bm_x}" y="{bm_y}" width="138" height="126" fill="url(#tile_{spec['id']})" stroke="#0284c7" stroke-width="4.5" />
+    <text x="{bm_x + 69}" y="{bm_y + 32}" fill="#38bdf8" font-size="10.5" font-weight="800" text-anchor="middle">KM / WC</text>
+    <text x="{bm_x + 69}" y="{bm_y + 45}" fill="#94a3b8" font-size="8" text-anchor="middle">(1.5m x 1.4m)</text>
+    <rect x="{bm_x + 8}" y="{bm_y + 9}" width="28" height="15" rx="3" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+    <ellipse cx="{bm_x + 22}" cy="{bm_y + 36}" rx="12" ry="14" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5" />
+    <rect x="{bm_x + 72}" y="{bm_y + 9}" width="54" height="54" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3 3" />
+    <circle cx="{bm_x + 99}" cy="{bm_y + 36}" r="7" fill="#38bdf8" opacity="0.3" />
+    <circle cx="{bm_x + 99}" cy="{bm_y + 36}" r="2.5" fill="#0284c7" />
+    <path d="M {bm_x + 92} {bm_y + 126} A 34 34 0 0 1 {bm_x + 126} {bm_y + 92}" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
+    <line x1="{bm_x + 92}" y1="{bm_y + 126}" x2="{bm_x + 126}" y2="{bm_y + 126}" stroke="#e0f2fe" stroke-width="3" />
   </g>
 """
 
-    bed_x = 540 - bcfg["svgW"] - 18
-    bed_y = 60
     svg += f"""
-  <!-- Bed Unit -->
+  <!-- Bed Unit (Visual Twin Extracted) -->
   <g>
     <rect x="{bed_x}" y="{bed_y}" width="{bcfg['svgW']}" height="{bcfg['svgL']}" rx="5" fill="#1e293b" stroke="#60a5fa" stroke-width="2.5" />
     <rect x="{bed_x}" y="{bed_y - 6}" width="{bcfg['svgW']}" height="8" rx="2" fill="#935a26" stroke="#d97706" stroke-width="1.5" />
     <rect x="{bed_x + 4}" y="{bed_y + 4}" width="{bcfg['svgW'] - 8}" height="{bcfg['svgL'] - 12}" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
-    <rect x="{bed_x + 4}" y="{bed_y + 54}" width="{bcfg['svgW'] - 8}" height="{bcfg['svgL'] - 60}" rx="3" fill="#3b82f6" opacity="0.82" />
-    <path d="M {bed_x + 4} {bed_y + 54} Q {bed_x + (bcfg['svgW']/2)} {bed_y + 62} {bed_x + bcfg['svgW'] - 4} {bed_y + 54}" fill="none" stroke="#1d4ed8" stroke-width="2" />
+    <rect x="{bed_x + 4}" y="{bed_y + 54}" width="{bcfg['svgW'] - 8}" height="{bcfg['svgL'] - 60}" rx="3" fill="{blanket_hex}" stroke="{blanket_accent}" stroke-width="1.5" fill-opacity="0.95" />
+    <path d="M {bed_x + 4} {bed_y + 54} Q {bed_x + (bcfg['svgW']/2)} {bed_y + 62} {bed_x + bcfg['svgW'] - 4} {bed_y + 54}" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8" />
 """
 
     if bcfg["pillows"] == 1:
@@ -317,25 +447,26 @@ def render_floor_plan_svg(spec, output_path):
     svg += f"""    <ellipse cx="{bed_x + (bcfg['svgW']/2)}" cy="{bed_y + 52}" rx="7" ry="20" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
     <text x="{bed_x + (bcfg['svgW']/2)}" cy="{bed_y + 100}" fill="#ffffff" font-size="8.5" font-weight="800" text-anchor="middle">{bcfg['label']}</text>
   </g>
-  <rect x="{bed_x - 32}" y="62" width="26" height="28" rx="3" fill="#334155" stroke="#64748b" stroke-width="1.5" />
-  <circle cx="{bed_x - 19}" cy="76" r="5" fill="#f59e0b" opacity="0.75" />
 """
+
+    # Nakas
+    for nx, ny in nakas_items:
+        svg += f"""  <rect x="{nx}" y="{ny}" width="26" height="28" rx="3" fill="#334155" stroke="#64748b" stroke-width="1.5" />
+  <circle cx="{nx + 13}" cy="{ny + 14}" r="5" fill="#f59e0b" opacity="0.75" />\n"""
 
     if has_wardrobe:
         svg += f"""
   <!-- Wardrobe -->
   <g>
-    <rect x="425" y="278" width="110" height="46" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
-    <line x1="480" y1="278" x2="480" y2="324" stroke="#38bdf8" stroke-width="1.5" />
-    <circle cx="476" cy="301" r="2" fill="#38bdf8" />
-    <circle cx="484" cy="301" r="2" fill="#38bdf8" />
-    <text x="480" y="318" fill="#94a3b8" font-size="8" font-weight="700" text-anchor="middle">LEMARI 2 PINTU</text>
+    <rect x="{wardrobe_x}" y="{wardrobe_y}" width="110" height="46" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+    <line x1="{wardrobe_x + 55}" y1="{wardrobe_y}" x2="{wardrobe_x + 55}" y2="{wardrobe_y + 46}" stroke="#38bdf8" stroke-width="1.5" />
+    <circle cx="{wardrobe_x + 51}" cy="{wardrobe_y + 23}" r="2" fill="#38bdf8" />
+    <circle cx="{wardrobe_x + 59}" cy="{wardrobe_y + 23}" r="2" fill="#38bdf8" />
+    <text x="{wardrobe_x + 55}" y="{wardrobe_y + 40}" fill="#94a3b8" font-size="8" font-weight="700" text-anchor="middle">LEMARI 2 PINTU</text>
   </g>
 """
 
     if has_desk:
-        desk_x = 94
-        desk_y = 278
         svg += f"""
   <!-- Desk & Chair -->
   <g>
@@ -353,11 +484,11 @@ def render_floor_plan_svg(spec, output_path):
         svg += f"""
   <!-- AC Unit -->
   <g>
-    <rect x="290" y="52" width="68" height="13" rx="2" fill="#f8fafc" stroke="#0284c7" stroke-width="1.5" />
-    <path d="M 298 65 L 294 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
-    <path d="M 324 65 L 324 76" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
-    <path d="M 350 65 L 354 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
-    <text x="324" y="61" fill="#0284c7" font-size="7" font-weight="800" text-anchor="middle">AC 1 PK</text>
+    <rect x="{ac_x}" y="52" width="68" height="13" rx="2" fill="#f8fafc" stroke="#0284c7" stroke-width="1.5" />
+    <path d="M {ac_x + 8} 65 L {ac_x + 4} 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
+    <path d="M {ac_x + 34} 65 L {ac_x + 34} 76" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
+    <path d="M {ac_x + 60} 65 L {ac_x + 64} 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
+    <text x="{ac_x + 34}" y="61" fill="#0284c7" font-size="7" font-weight="800" text-anchor="middle">AC 1 PK</text>
   </g>
 """
 
@@ -365,36 +496,57 @@ def render_floor_plan_svg(spec, output_path):
         svg += f"""
   <!-- Mini Fridge -->
   <g>
-    <rect x="220" y="286" width="34" height="36" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-    <circle cx="226" cy="304" r="2" fill="#38bdf8" />
-    <text x="237" y="316" fill="#94a3b8" font-size="6.5" font-weight="700" text-anchor="middle">KULKAS</text>
+    <rect x="{fridge_x}" y="{fridge_y}" width="34" height="36" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+    <circle cx="{fridge_x + 6}" cy="{fridge_y + 18}" r="2" fill="#38bdf8" />
+    <text x="{fridge_x + 17}" y="{fridge_y + 30}" fill="#94a3b8" font-size="6.5" font-weight="700" text-anchor="middle">KULKAS</text>
   </g>
 """
 
     if has_window:
-        svg += f"""
-  <!-- Window -->
+        if window_wall == 'left':
+            svg += """
+  <!-- Window on Left Wall -->
   <g>
-    <rect x="385" y="46" width="58" height="8" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
-    <line x1="385" y1="50" x2="443" y2="50" stroke="#ffffff" stroke-width="1.5" />
-    <text x="414" y="42" fill="#38bdf8" font-size="7.5" font-weight="700" text-anchor="middle">JENDELA</text>
+    <rect x="76" y="160" width="8" height="60" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
+    <line x1="80" y1="160" x2="80" y2="220" stroke="#ffffff" stroke-width="1.5" />
+    <text x="70" y="192" fill="#38bdf8" font-size="7.5" font-weight="700" text-anchor="middle" transform="rotate(-90 70 192)">JENDELA</text>
+  </g>
+"""
+        elif window_wall == 'right':
+            svg += """
+  <!-- Window on Right Wall -->
+  <g>
+    <rect x="536" y="160" width="8" height="60" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
+    <line x1="540" y1="160" x2="540" y2="220" stroke="#ffffff" stroke-width="1.5" />
+    <text x="550" y="192" fill="#38bdf8" font-size="7.5" font-weight="700" text-anchor="middle" transform="rotate(90 550 192)">JENDELA</text>
+  </g>
+"""
+        else:
+            win_top_x = 240 if bed_side != 'center' else 430
+            svg += f"""
+  <!-- Window on Top Wall -->
+  <g>
+    <rect x="{win_top_x}" y="46" width="65" height="8" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
+    <line x1="{win_top_x}" y1="50" x2="{win_top_x + 65}" y2="50" stroke="#ffffff" stroke-width="1.5" />
+    <text x="{win_top_x + 32}" y="42" fill="#38bdf8" font-size="7.5" font-weight="700" text-anchor="middle">JENDELA</text>
   </g>
 """
 
     svg += f"""
   <!-- Door -->
   <g>
-    <rect x="282" y="342" width="54" height="16" fill="#0f1d38" />
-    <path d="M 282 346 A 46 46 0 0 1 328 300" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3" />
-    <line x1="282" y1="346" x2="282" y2="300" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round" />
-    <text x="312" y="364" fill="#38bdf8" font-size="8" font-weight="800" text-anchor="middle">PINTU MASUK</text>
+    <rect x="280" y="342" width="50" height="16" fill="#0f1d38" />
+    <path d="M 280 346 A 44 44 0 0 1 324 302" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3" />
+    <line x1="280" y1="346" x2="280" y2="302" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round" />
+    <text x="305" y="364" fill="#38bdf8" font-size="8" font-weight="800" text-anchor="middle">PINTU</text>
   </g>
 
-  <!-- Title Stamp -->
+  <!-- Title Stamp & AI CV Detection Badge -->
   <g>
-    <rect x="268" y="180" width="124" height="42" rx="8" fill="rgba(15, 23, 42, 0.9)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
-    <text x="330" y="198" fill="#ffffff" font-size="11.5" font-weight="800" text-anchor="middle">KAMAR {room_number}</text>
-    <text x="330" y="213" fill="#38bdf8" font-size="9" font-weight="600" text-anchor="middle">LUAS: {area_m2:.1f} m² ({w_m:.1f}x{l_m:.1f}m)</text>
+    <rect x="230" y="170" width="160" height="52" rx="8" fill="rgba(15, 23, 42, 0.92)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
+    <text x="310" y="186" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">KAMAR {room_number}</text>
+    <text x="310" y="199" fill="#38bdf8" font-size="8.5" font-weight="600" text-anchor="middle">LUAS: {area_m2:.1f} m² ({w_m:.1f}x{l_m:.1f}m)</text>
+    <text x="310" y="213" fill="#4ade80" font-size="7.5" font-weight="700" text-anchor="middle">AI: KASUR {bed_side.upper()} • JENDELA {window_wall.upper()}</text>
   </g>
 
   <!-- Compass -->
@@ -414,8 +566,14 @@ def process_single_room(spec):
     photo_path = os.path.join(PHOTOS_DIR, spec["photo_filename"])
     svg_path = os.path.join(BLUEPRINTS_DIR, spec["blueprint_filename"])
     
+    # 1. Process & augment photo
     process_real_bedroom_photo(spec, photo_path)
-    render_floor_plan_svg(spec, svg_path)
+    
+    # 2. Extract CV features from the actual saved photo
+    cv_features = analyze_photo_features(photo_path)
+    
+    # 3. Synthesize dynamic floor plan matching the photo
+    render_floor_plan_svg(spec, svg_path, cv_features)
     
     return {
         "id": spec["id"],
@@ -431,6 +589,7 @@ def process_single_room(spec):
         "furnitures": spec["furnitures"],
         "confidence_pct": spec["confidence_pct"],
         "latency_ms": spec["latency_ms"],
+        "cv_features": cv_features,
         "photo_file": spec["photo_filename"],
         "blueprint_file": spec["blueprint_filename"]
     }
@@ -854,6 +1013,13 @@ def generate_html_report(results, output_path, is_standalone_web=False):
             <div class="furniture-list">
               {furn_pills_1}
             </div>
+            <div style="font-size: 9.5px; color: #38bdf8; font-weight: 700; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; background: rgba(56, 189, 248, 0.1); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">
+              <span>🎯 Spasial: Kasur <strong>{r1['cv_features']['bed_side'].upper()}</strong> • Jendela <strong>{r1['cv_features']['window_wall'].upper()}</strong></span>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r1['cv_features']['blanket_hex']}; border: 1px solid #ffffff;" title="Warna Kasur"></span>
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r1['cv_features']['floor_hex']}; border: 1px solid #ffffff;" title="Warna Lantai"></span>
+              </div>
+            </div>
           </div>
           <div class="cv-badge">
             <span>Akurasi CV: <strong style="color: #4ade80;">{r1['confidence_pct']}%</strong></span>
@@ -886,6 +1052,13 @@ def generate_html_report(results, output_path, is_standalone_web=False):
             </div>
             <div class="furniture-list">
               {furn_pills_2}
+            </div>
+            <div style="font-size: 9.5px; color: #38bdf8; font-weight: 700; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; background: rgba(56, 189, 248, 0.1); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">
+              <span>🎯 Spasial: Kasur <strong>{r2['cv_features']['bed_side'].upper()}</strong> • Jendela <strong>{r2['cv_features']['window_wall'].upper()}</strong></span>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r2['cv_features']['blanket_hex']}; border: 1px solid #ffffff;" title="Warna Kasur"></span>
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: {r2['cv_features']['floor_hex']}; border: 1px solid #ffffff;" title="Warna Lantai"></span>
+              </div>
             </div>
           </div>
           <div class="cv-badge">

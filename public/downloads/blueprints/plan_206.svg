@@ -34,9 +34,10 @@
     </text>
   </g>
 
-  <!-- Wall & Floor -->
+  <!-- Wall & Tinted Floor -->
   <rect x="80" y="50" width="460" height="300" fill="#0f1d38" stroke="#38bdf8" stroke-width="8" rx="2" />
-  <rect x="86" y="56" width="448" height="288" fill="rgba(15, 23, 42, 0.88)" />
+  <rect x="86" y="56" width="448" height="288" fill="#6e5149" opacity="0.22" />
+  <rect x="86" y="56" width="448" height="288" fill="rgba(15, 23, 42, 0.75)" />
 
   <!-- Ensuite Bathroom -->
   <g>
@@ -52,19 +53,19 @@
     <line x1="178" y1="182" x2="212" y2="182" stroke="#e0f2fe" stroke-width="3" />
   </g>
 
-  <!-- Bed Unit -->
+  <!-- Bed Unit (Visual Twin Extracted) -->
   <g>
-    <rect x="426" y="60" width="96" height="140" rx="5" fill="#1e293b" stroke="#60a5fa" stroke-width="2.5" />
-    <rect x="426" y="54" width="96" height="8" rx="2" fill="#935a26" stroke="#d97706" stroke-width="1.5" />
-    <rect x="430" y="64" width="88" height="128" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
-    <rect x="430" y="114" width="88" height="80" rx="3" fill="#3b82f6" opacity="0.82" />
-    <path d="M 430 114 Q 474.0 122 518 114" fill="none" stroke="#1d4ed8" stroke-width="2" />
-    <rect x="450.0" y="70" width="48" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
-    <ellipse cx="474.0" cy="112" rx="7" ry="20" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
-    <text x="474.0" cy="160" fill="#ffffff" font-size="8.5" font-weight="800" text-anchor="middle">SUPER SINGLE</text>
+    <rect x="430" y="60" width="96" height="140" rx="5" fill="#1e293b" stroke="#60a5fa" stroke-width="2.5" />
+    <rect x="430" y="54" width="96" height="8" rx="2" fill="#935a26" stroke="#d97706" stroke-width="1.5" />
+    <rect x="434" y="64" width="88" height="128" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+    <rect x="434" y="114" width="88" height="80" rx="3" fill="#755e54" stroke="#4f3f39" stroke-width="1.5" fill-opacity="0.95" />
+    <path d="M 434 114 Q 478.0 122 522 114" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.8" />
+    <rect x="454.0" y="70" width="48" height="24" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
+    <ellipse cx="478.0" cy="112" rx="7" ry="20" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" />
+    <text x="478.0" cy="160" fill="#ffffff" font-size="8.5" font-weight="800" text-anchor="middle">SUPER SINGLE</text>
   </g>
-  <rect x="394" y="62" width="26" height="28" rx="3" fill="#334155" stroke="#64748b" stroke-width="1.5" />
-  <circle cx="407" cy="76" r="5" fill="#f59e0b" opacity="0.75" />
+  <rect x="398" y="62" width="26" height="28" rx="3" fill="#334155" stroke="#64748b" stroke-width="1.5" />
+  <circle cx="411" cy="76" r="5" fill="#f59e0b" opacity="0.75" />
 
   <!-- Wardrobe -->
   <g>
@@ -88,11 +89,11 @@
 
   <!-- AC Unit -->
   <g>
-    <rect x="290" y="52" width="68" height="13" rx="2" fill="#f8fafc" stroke="#0284c7" stroke-width="1.5" />
-    <path d="M 298 65 L 294 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
-    <path d="M 324 65 L 324 76" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
-    <path d="M 350 65 L 354 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
-    <text x="324" y="61" fill="#0284c7" font-size="7" font-weight="800" text-anchor="middle">AC 1 PK</text>
+    <rect x="250" y="52" width="68" height="13" rx="2" fill="#f8fafc" stroke="#0284c7" stroke-width="1.5" />
+    <path d="M 258 65 L 254 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
+    <path d="M 284 65 L 284 76" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
+    <path d="M 310 65 L 314 74" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" />
+    <text x="284" y="61" fill="#0284c7" font-size="7" font-weight="800" text-anchor="middle">AC 1 PK</text>
   </g>
 
   <!-- Mini Fridge -->
@@ -102,26 +103,27 @@
     <text x="237" y="316" fill="#94a3b8" font-size="6.5" font-weight="700" text-anchor="middle">KULKAS</text>
   </g>
 
-  <!-- Window -->
+  <!-- Window on Right Wall -->
   <g>
-    <rect x="385" y="46" width="58" height="8" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
-    <line x1="385" y1="50" x2="443" y2="50" stroke="#ffffff" stroke-width="1.5" />
-    <text x="414" y="42" fill="#38bdf8" font-size="7.5" font-weight="700" text-anchor="middle">JENDELA</text>
+    <rect x="536" y="160" width="8" height="60" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
+    <line x1="540" y1="160" x2="540" y2="220" stroke="#ffffff" stroke-width="1.5" />
+    <text x="550" y="192" fill="#38bdf8" font-size="7.5" font-weight="700" text-anchor="middle" transform="rotate(90 550 192)">JENDELA</text>
   </g>
 
   <!-- Door -->
   <g>
-    <rect x="282" y="342" width="54" height="16" fill="#0f1d38" />
-    <path d="M 282 346 A 46 46 0 0 1 328 300" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3" />
-    <line x1="282" y1="346" x2="282" y2="300" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round" />
-    <text x="312" y="364" fill="#38bdf8" font-size="8" font-weight="800" text-anchor="middle">PINTU MASUK</text>
+    <rect x="280" y="342" width="50" height="16" fill="#0f1d38" />
+    <path d="M 280 346 A 44 44 0 0 1 324 302" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3 3" />
+    <line x1="280" y1="346" x2="280" y2="302" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round" />
+    <text x="305" y="364" fill="#38bdf8" font-size="8" font-weight="800" text-anchor="middle">PINTU</text>
   </g>
 
-  <!-- Title Stamp -->
+  <!-- Title Stamp & AI CV Detection Badge -->
   <g>
-    <rect x="268" y="180" width="124" height="42" rx="8" fill="rgba(15, 23, 42, 0.9)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
-    <text x="330" y="198" fill="#ffffff" font-size="11.5" font-weight="800" text-anchor="middle">KAMAR 506</text>
-    <text x="330" y="213" fill="#38bdf8" font-size="9" font-weight="600" text-anchor="middle">LUAS: 14.8 m² (3.6x4.1m)</text>
+    <rect x="230" y="170" width="160" height="52" rx="8" fill="rgba(15, 23, 42, 0.92)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1" />
+    <text x="310" y="186" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">KAMAR 506</text>
+    <text x="310" y="199" fill="#38bdf8" font-size="8.5" font-weight="600" text-anchor="middle">LUAS: 14.8 m² (3.6x4.1m)</text>
+    <text x="310" y="213" fill="#4ade80" font-size="7.5" font-weight="700" text-anchor="middle">AI: KASUR RIGHT • JENDELA RIGHT</text>
   </g>
 
   <!-- Compass -->
