@@ -281,6 +281,9 @@
       <span style="font-size: 11px; color: #38bdf8; background: rgba(56,189,248,0.15); padding: 2px 8px; border-radius: 9999px;">✓ 100% Vektor CAD Skala 1:50</span>
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="#rooms-start" style="background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.45); color: #38bdf8; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none;">
+        👉 Langsung ke Kamar #001
+      </a>
       <button onclick="window.print()" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
         🖨️ Cetak / Print PDF
       </button>
@@ -306,6 +309,11 @@
         <p class="cover-desc">
           Laporan stress test komprehensif 500 foto kamar tidur nyata dari web yang dikonversi secara otomatis ke denah arsitektural 2D CAD presisi tinggi skala 1:50. Dilengkapi visualisasi spasial 100% presisi (posisi kasur, jumlah bantal, tipe KM, jendela) dan perlakuan filter Gaussian Blur pada area tertutup kamera / blind spot ("Kalo unsure dibuat blur aja 2D").
         </p>
+        <div style="margin-top: 14px;">
+          <a href="#rooms-start" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 10px 22px; border-radius: 10px; font-size: 13px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 15px rgba(37,99,235,0.4);">
+            👇 Langsung Lihat 500 Foto Kamar &amp; Blueprint CAD (Mulai Hal 3)
+          </a>
+        </div>
       </div>
 
       <div class="metrics-grid">
@@ -456,12 +464,13 @@
   </div>
 
   <!-- PAGE 3: ROOMS 001 - 002 -->
-  <div class="page">
+  <div id="rooms-start" style="position: relative; top: -70px;"></div>
+  <div class="page" id="room-001">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="/downloads/photos/room_001.jpg" alt="Foto ROOM-001" loading="lazy">
+          <img src="/downloads/photos/room_001.jpg" alt="Foto ROOM-001" loading="eager">
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -496,13 +505,13 @@
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="/downloads/blueprints/plan_001.svg" alt="Denah 2D ROOM-001" loading="lazy">
+          <img src="/downloads/blueprints/plan_001.svg" alt="Denah 2D ROOM-001" loading="eager">
         </div>
       </div>
 
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="/downloads/photos/room_002.jpg" alt="Foto ROOM-002" loading="lazy">
+          <img src="/downloads/photos/room_002.jpg" alt="Foto ROOM-002" loading="eager">
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -537,7 +546,7 @@
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="/downloads/blueprints/plan_002.svg" alt="Denah 2D ROOM-002" loading="lazy">
+          <img src="/downloads/blueprints/plan_002.svg" alt="Denah 2D ROOM-002" loading="eager">
         </div>
       </div>
 
@@ -549,12 +558,13 @@
   </div>
 
   <!-- PAGE 4: ROOMS 003 - 004 -->
-  <div class="page">
+  
+  <div class="page" id="room-003">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="/downloads/photos/room_003.jpg" alt="Foto ROOM-003" loading="lazy">
+          <img src="/downloads/photos/room_003.jpg" alt="Foto ROOM-003" loading="eager">
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -589,13 +599,13 @@
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="/downloads/blueprints/plan_003.svg" alt="Denah 2D ROOM-003" loading="lazy">
+          <img src="/downloads/blueprints/plan_003.svg" alt="Denah 2D ROOM-003" loading="eager">
         </div>
       </div>
 
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="/downloads/photos/room_004.jpg" alt="Foto ROOM-004" loading="lazy">
+          <img src="/downloads/photos/room_004.jpg" alt="Foto ROOM-004" loading="eager">
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -630,7 +640,7 @@
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="/downloads/blueprints/plan_004.svg" alt="Denah 2D ROOM-004" loading="lazy">
+          <img src="/downloads/blueprints/plan_004.svg" alt="Denah 2D ROOM-004" loading="eager">
         </div>
       </div>
 
@@ -642,7 +652,8 @@
   </div>
 
   <!-- PAGE 5: ROOMS 005 - 006 -->
-  <div class="page">
+  
+  <div class="page" id="room-005">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -735,7 +746,8 @@
   </div>
 
   <!-- PAGE 6: ROOMS 007 - 008 -->
-  <div class="page">
+  
+  <div class="page" id="room-007">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -828,7 +840,8 @@
   </div>
 
   <!-- PAGE 7: ROOMS 009 - 010 -->
-  <div class="page">
+  
+  <div class="page" id="room-009">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -921,7 +934,8 @@
   </div>
 
   <!-- PAGE 8: ROOMS 011 - 012 -->
-  <div class="page">
+  
+  <div class="page" id="room-011">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1014,7 +1028,8 @@
   </div>
 
   <!-- PAGE 9: ROOMS 013 - 014 -->
-  <div class="page">
+  
+  <div class="page" id="room-013">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1107,7 +1122,8 @@
   </div>
 
   <!-- PAGE 10: ROOMS 015 - 016 -->
-  <div class="page">
+  
+  <div class="page" id="room-015">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1200,7 +1216,8 @@
   </div>
 
   <!-- PAGE 11: ROOMS 017 - 018 -->
-  <div class="page">
+  
+  <div class="page" id="room-017">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1293,7 +1310,8 @@
   </div>
 
   <!-- PAGE 12: ROOMS 019 - 020 -->
-  <div class="page">
+  
+  <div class="page" id="room-019">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1386,7 +1404,8 @@
   </div>
 
   <!-- PAGE 13: ROOMS 021 - 022 -->
-  <div class="page">
+  
+  <div class="page" id="room-021">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1479,7 +1498,8 @@
   </div>
 
   <!-- PAGE 14: ROOMS 023 - 024 -->
-  <div class="page">
+  
+  <div class="page" id="room-023">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1572,7 +1592,8 @@
   </div>
 
   <!-- PAGE 15: ROOMS 025 - 026 -->
-  <div class="page">
+  
+  <div class="page" id="room-025">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1665,7 +1686,8 @@
   </div>
 
   <!-- PAGE 16: ROOMS 027 - 028 -->
-  <div class="page">
+  
+  <div class="page" id="room-027">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1758,7 +1780,8 @@
   </div>
 
   <!-- PAGE 17: ROOMS 029 - 030 -->
-  <div class="page">
+  
+  <div class="page" id="room-029">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1851,7 +1874,8 @@
   </div>
 
   <!-- PAGE 18: ROOMS 031 - 032 -->
-  <div class="page">
+  
+  <div class="page" id="room-031">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -1944,7 +1968,8 @@
   </div>
 
   <!-- PAGE 19: ROOMS 033 - 034 -->
-  <div class="page">
+  
+  <div class="page" id="room-033">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2037,7 +2062,8 @@
   </div>
 
   <!-- PAGE 20: ROOMS 035 - 036 -->
-  <div class="page">
+  
+  <div class="page" id="room-035">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2130,7 +2156,8 @@
   </div>
 
   <!-- PAGE 21: ROOMS 037 - 038 -->
-  <div class="page">
+  
+  <div class="page" id="room-037">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2223,7 +2250,8 @@
   </div>
 
   <!-- PAGE 22: ROOMS 039 - 040 -->
-  <div class="page">
+  
+  <div class="page" id="room-039">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2316,7 +2344,8 @@
   </div>
 
   <!-- PAGE 23: ROOMS 041 - 042 -->
-  <div class="page">
+  
+  <div class="page" id="room-041">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2409,7 +2438,8 @@
   </div>
 
   <!-- PAGE 24: ROOMS 043 - 044 -->
-  <div class="page">
+  
+  <div class="page" id="room-043">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2502,7 +2532,8 @@
   </div>
 
   <!-- PAGE 25: ROOMS 045 - 046 -->
-  <div class="page">
+  
+  <div class="page" id="room-045">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2595,7 +2626,8 @@
   </div>
 
   <!-- PAGE 26: ROOMS 047 - 048 -->
-  <div class="page">
+  
+  <div class="page" id="room-047">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2688,7 +2720,8 @@
   </div>
 
   <!-- PAGE 27: ROOMS 049 - 050 -->
-  <div class="page">
+  
+  <div class="page" id="room-049">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2781,7 +2814,8 @@
   </div>
 
   <!-- PAGE 28: ROOMS 051 - 052 -->
-  <div class="page">
+  
+  <div class="page" id="room-051">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2874,7 +2908,8 @@
   </div>
 
   <!-- PAGE 29: ROOMS 053 - 054 -->
-  <div class="page">
+  
+  <div class="page" id="room-053">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -2967,7 +3002,8 @@
   </div>
 
   <!-- PAGE 30: ROOMS 055 - 056 -->
-  <div class="page">
+  
+  <div class="page" id="room-055">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3060,7 +3096,8 @@
   </div>
 
   <!-- PAGE 31: ROOMS 057 - 058 -->
-  <div class="page">
+  
+  <div class="page" id="room-057">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3153,7 +3190,8 @@
   </div>
 
   <!-- PAGE 32: ROOMS 059 - 060 -->
-  <div class="page">
+  
+  <div class="page" id="room-059">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3246,7 +3284,8 @@
   </div>
 
   <!-- PAGE 33: ROOMS 061 - 062 -->
-  <div class="page">
+  
+  <div class="page" id="room-061">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3339,7 +3378,8 @@
   </div>
 
   <!-- PAGE 34: ROOMS 063 - 064 -->
-  <div class="page">
+  
+  <div class="page" id="room-063">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3432,7 +3472,8 @@
   </div>
 
   <!-- PAGE 35: ROOMS 065 - 066 -->
-  <div class="page">
+  
+  <div class="page" id="room-065">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3525,7 +3566,8 @@
   </div>
 
   <!-- PAGE 36: ROOMS 067 - 068 -->
-  <div class="page">
+  
+  <div class="page" id="room-067">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3618,7 +3660,8 @@
   </div>
 
   <!-- PAGE 37: ROOMS 069 - 070 -->
-  <div class="page">
+  
+  <div class="page" id="room-069">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3711,7 +3754,8 @@
   </div>
 
   <!-- PAGE 38: ROOMS 071 - 072 -->
-  <div class="page">
+  
+  <div class="page" id="room-071">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3804,7 +3848,8 @@
   </div>
 
   <!-- PAGE 39: ROOMS 073 - 074 -->
-  <div class="page">
+  
+  <div class="page" id="room-073">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3897,7 +3942,8 @@
   </div>
 
   <!-- PAGE 40: ROOMS 075 - 076 -->
-  <div class="page">
+  
+  <div class="page" id="room-075">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -3990,7 +4036,8 @@
   </div>
 
   <!-- PAGE 41: ROOMS 077 - 078 -->
-  <div class="page">
+  
+  <div class="page" id="room-077">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4083,7 +4130,8 @@
   </div>
 
   <!-- PAGE 42: ROOMS 079 - 080 -->
-  <div class="page">
+  
+  <div class="page" id="room-079">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4176,7 +4224,8 @@
   </div>
 
   <!-- PAGE 43: ROOMS 081 - 082 -->
-  <div class="page">
+  
+  <div class="page" id="room-081">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4269,7 +4318,8 @@
   </div>
 
   <!-- PAGE 44: ROOMS 083 - 084 -->
-  <div class="page">
+  
+  <div class="page" id="room-083">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4362,7 +4412,8 @@
   </div>
 
   <!-- PAGE 45: ROOMS 085 - 086 -->
-  <div class="page">
+  
+  <div class="page" id="room-085">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4455,7 +4506,8 @@
   </div>
 
   <!-- PAGE 46: ROOMS 087 - 088 -->
-  <div class="page">
+  
+  <div class="page" id="room-087">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4548,7 +4600,8 @@
   </div>
 
   <!-- PAGE 47: ROOMS 089 - 090 -->
-  <div class="page">
+  
+  <div class="page" id="room-089">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4641,7 +4694,8 @@
   </div>
 
   <!-- PAGE 48: ROOMS 091 - 092 -->
-  <div class="page">
+  
+  <div class="page" id="room-091">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4734,7 +4788,8 @@
   </div>
 
   <!-- PAGE 49: ROOMS 093 - 094 -->
-  <div class="page">
+  
+  <div class="page" id="room-093">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4827,7 +4882,8 @@
   </div>
 
   <!-- PAGE 50: ROOMS 095 - 096 -->
-  <div class="page">
+  
+  <div class="page" id="room-095">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -4920,7 +4976,8 @@
   </div>
 
   <!-- PAGE 51: ROOMS 097 - 098 -->
-  <div class="page">
+  
+  <div class="page" id="room-097">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5013,7 +5070,8 @@
   </div>
 
   <!-- PAGE 52: ROOMS 099 - 100 -->
-  <div class="page">
+  
+  <div class="page" id="room-099">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5106,7 +5164,8 @@
   </div>
 
   <!-- PAGE 53: ROOMS 101 - 102 -->
-  <div class="page">
+  
+  <div class="page" id="room-101">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5199,7 +5258,8 @@
   </div>
 
   <!-- PAGE 54: ROOMS 103 - 104 -->
-  <div class="page">
+  
+  <div class="page" id="room-103">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5292,7 +5352,8 @@
   </div>
 
   <!-- PAGE 55: ROOMS 105 - 106 -->
-  <div class="page">
+  
+  <div class="page" id="room-105">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5385,7 +5446,8 @@
   </div>
 
   <!-- PAGE 56: ROOMS 107 - 108 -->
-  <div class="page">
+  
+  <div class="page" id="room-107">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5478,7 +5540,8 @@
   </div>
 
   <!-- PAGE 57: ROOMS 109 - 110 -->
-  <div class="page">
+  
+  <div class="page" id="room-109">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5571,7 +5634,8 @@
   </div>
 
   <!-- PAGE 58: ROOMS 111 - 112 -->
-  <div class="page">
+  
+  <div class="page" id="room-111">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5664,7 +5728,8 @@
   </div>
 
   <!-- PAGE 59: ROOMS 113 - 114 -->
-  <div class="page">
+  
+  <div class="page" id="room-113">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5757,7 +5822,8 @@
   </div>
 
   <!-- PAGE 60: ROOMS 115 - 116 -->
-  <div class="page">
+  
+  <div class="page" id="room-115">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5850,7 +5916,8 @@
   </div>
 
   <!-- PAGE 61: ROOMS 117 - 118 -->
-  <div class="page">
+  
+  <div class="page" id="room-117">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -5943,7 +6010,8 @@
   </div>
 
   <!-- PAGE 62: ROOMS 119 - 120 -->
-  <div class="page">
+  
+  <div class="page" id="room-119">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6036,7 +6104,8 @@
   </div>
 
   <!-- PAGE 63: ROOMS 121 - 122 -->
-  <div class="page">
+  
+  <div class="page" id="room-121">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6129,7 +6198,8 @@
   </div>
 
   <!-- PAGE 64: ROOMS 123 - 124 -->
-  <div class="page">
+  
+  <div class="page" id="room-123">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6222,7 +6292,8 @@
   </div>
 
   <!-- PAGE 65: ROOMS 125 - 126 -->
-  <div class="page">
+  
+  <div class="page" id="room-125">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6315,7 +6386,8 @@
   </div>
 
   <!-- PAGE 66: ROOMS 127 - 128 -->
-  <div class="page">
+  
+  <div class="page" id="room-127">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6408,7 +6480,8 @@
   </div>
 
   <!-- PAGE 67: ROOMS 129 - 130 -->
-  <div class="page">
+  
+  <div class="page" id="room-129">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6501,7 +6574,8 @@
   </div>
 
   <!-- PAGE 68: ROOMS 131 - 132 -->
-  <div class="page">
+  
+  <div class="page" id="room-131">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6594,7 +6668,8 @@
   </div>
 
   <!-- PAGE 69: ROOMS 133 - 134 -->
-  <div class="page">
+  
+  <div class="page" id="room-133">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6687,7 +6762,8 @@
   </div>
 
   <!-- PAGE 70: ROOMS 135 - 136 -->
-  <div class="page">
+  
+  <div class="page" id="room-135">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6780,7 +6856,8 @@
   </div>
 
   <!-- PAGE 71: ROOMS 137 - 138 -->
-  <div class="page">
+  
+  <div class="page" id="room-137">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6873,7 +6950,8 @@
   </div>
 
   <!-- PAGE 72: ROOMS 139 - 140 -->
-  <div class="page">
+  
+  <div class="page" id="room-139">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -6966,7 +7044,8 @@
   </div>
 
   <!-- PAGE 73: ROOMS 141 - 142 -->
-  <div class="page">
+  
+  <div class="page" id="room-141">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7059,7 +7138,8 @@
   </div>
 
   <!-- PAGE 74: ROOMS 143 - 144 -->
-  <div class="page">
+  
+  <div class="page" id="room-143">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7152,7 +7232,8 @@
   </div>
 
   <!-- PAGE 75: ROOMS 145 - 146 -->
-  <div class="page">
+  
+  <div class="page" id="room-145">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7245,7 +7326,8 @@
   </div>
 
   <!-- PAGE 76: ROOMS 147 - 148 -->
-  <div class="page">
+  
+  <div class="page" id="room-147">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7338,7 +7420,8 @@
   </div>
 
   <!-- PAGE 77: ROOMS 149 - 150 -->
-  <div class="page">
+  
+  <div class="page" id="room-149">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7431,7 +7514,8 @@
   </div>
 
   <!-- PAGE 78: ROOMS 151 - 152 -->
-  <div class="page">
+  
+  <div class="page" id="room-151">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7524,7 +7608,8 @@
   </div>
 
   <!-- PAGE 79: ROOMS 153 - 154 -->
-  <div class="page">
+  
+  <div class="page" id="room-153">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7617,7 +7702,8 @@
   </div>
 
   <!-- PAGE 80: ROOMS 155 - 156 -->
-  <div class="page">
+  
+  <div class="page" id="room-155">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7710,7 +7796,8 @@
   </div>
 
   <!-- PAGE 81: ROOMS 157 - 158 -->
-  <div class="page">
+  
+  <div class="page" id="room-157">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7803,7 +7890,8 @@
   </div>
 
   <!-- PAGE 82: ROOMS 159 - 160 -->
-  <div class="page">
+  
+  <div class="page" id="room-159">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7896,7 +7984,8 @@
   </div>
 
   <!-- PAGE 83: ROOMS 161 - 162 -->
-  <div class="page">
+  
+  <div class="page" id="room-161">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -7989,7 +8078,8 @@
   </div>
 
   <!-- PAGE 84: ROOMS 163 - 164 -->
-  <div class="page">
+  
+  <div class="page" id="room-163">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8082,7 +8172,8 @@
   </div>
 
   <!-- PAGE 85: ROOMS 165 - 166 -->
-  <div class="page">
+  
+  <div class="page" id="room-165">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8175,7 +8266,8 @@
   </div>
 
   <!-- PAGE 86: ROOMS 167 - 168 -->
-  <div class="page">
+  
+  <div class="page" id="room-167">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8268,7 +8360,8 @@
   </div>
 
   <!-- PAGE 87: ROOMS 169 - 170 -->
-  <div class="page">
+  
+  <div class="page" id="room-169">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8361,7 +8454,8 @@
   </div>
 
   <!-- PAGE 88: ROOMS 171 - 172 -->
-  <div class="page">
+  
+  <div class="page" id="room-171">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8454,7 +8548,8 @@
   </div>
 
   <!-- PAGE 89: ROOMS 173 - 174 -->
-  <div class="page">
+  
+  <div class="page" id="room-173">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8547,7 +8642,8 @@
   </div>
 
   <!-- PAGE 90: ROOMS 175 - 176 -->
-  <div class="page">
+  
+  <div class="page" id="room-175">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8640,7 +8736,8 @@
   </div>
 
   <!-- PAGE 91: ROOMS 177 - 178 -->
-  <div class="page">
+  
+  <div class="page" id="room-177">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8733,7 +8830,8 @@
   </div>
 
   <!-- PAGE 92: ROOMS 179 - 180 -->
-  <div class="page">
+  
+  <div class="page" id="room-179">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8826,7 +8924,8 @@
   </div>
 
   <!-- PAGE 93: ROOMS 181 - 182 -->
-  <div class="page">
+  
+  <div class="page" id="room-181">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -8919,7 +9018,8 @@
   </div>
 
   <!-- PAGE 94: ROOMS 183 - 184 -->
-  <div class="page">
+  
+  <div class="page" id="room-183">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9012,7 +9112,8 @@
   </div>
 
   <!-- PAGE 95: ROOMS 185 - 186 -->
-  <div class="page">
+  
+  <div class="page" id="room-185">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9105,7 +9206,8 @@
   </div>
 
   <!-- PAGE 96: ROOMS 187 - 188 -->
-  <div class="page">
+  
+  <div class="page" id="room-187">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9198,7 +9300,8 @@
   </div>
 
   <!-- PAGE 97: ROOMS 189 - 190 -->
-  <div class="page">
+  
+  <div class="page" id="room-189">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9291,7 +9394,8 @@
   </div>
 
   <!-- PAGE 98: ROOMS 191 - 192 -->
-  <div class="page">
+  
+  <div class="page" id="room-191">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9384,7 +9488,8 @@
   </div>
 
   <!-- PAGE 99: ROOMS 193 - 194 -->
-  <div class="page">
+  
+  <div class="page" id="room-193">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9477,7 +9582,8 @@
   </div>
 
   <!-- PAGE 100: ROOMS 195 - 196 -->
-  <div class="page">
+  
+  <div class="page" id="room-195">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9570,7 +9676,8 @@
   </div>
 
   <!-- PAGE 101: ROOMS 197 - 198 -->
-  <div class="page">
+  
+  <div class="page" id="room-197">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9663,7 +9770,8 @@
   </div>
 
   <!-- PAGE 102: ROOMS 199 - 200 -->
-  <div class="page">
+  
+  <div class="page" id="room-199">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9756,7 +9864,8 @@
   </div>
 
   <!-- PAGE 103: ROOMS 201 - 202 -->
-  <div class="page">
+  
+  <div class="page" id="room-201">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9849,7 +9958,8 @@
   </div>
 
   <!-- PAGE 104: ROOMS 203 - 204 -->
-  <div class="page">
+  
+  <div class="page" id="room-203">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -9942,7 +10052,8 @@
   </div>
 
   <!-- PAGE 105: ROOMS 205 - 206 -->
-  <div class="page">
+  
+  <div class="page" id="room-205">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10035,7 +10146,8 @@
   </div>
 
   <!-- PAGE 106: ROOMS 207 - 208 -->
-  <div class="page">
+  
+  <div class="page" id="room-207">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10128,7 +10240,8 @@
   </div>
 
   <!-- PAGE 107: ROOMS 209 - 210 -->
-  <div class="page">
+  
+  <div class="page" id="room-209">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10221,7 +10334,8 @@
   </div>
 
   <!-- PAGE 108: ROOMS 211 - 212 -->
-  <div class="page">
+  
+  <div class="page" id="room-211">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10314,7 +10428,8 @@
   </div>
 
   <!-- PAGE 109: ROOMS 213 - 214 -->
-  <div class="page">
+  
+  <div class="page" id="room-213">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10407,7 +10522,8 @@
   </div>
 
   <!-- PAGE 110: ROOMS 215 - 216 -->
-  <div class="page">
+  
+  <div class="page" id="room-215">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10500,7 +10616,8 @@
   </div>
 
   <!-- PAGE 111: ROOMS 217 - 218 -->
-  <div class="page">
+  
+  <div class="page" id="room-217">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10593,7 +10710,8 @@
   </div>
 
   <!-- PAGE 112: ROOMS 219 - 220 -->
-  <div class="page">
+  
+  <div class="page" id="room-219">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10686,7 +10804,8 @@
   </div>
 
   <!-- PAGE 113: ROOMS 221 - 222 -->
-  <div class="page">
+  
+  <div class="page" id="room-221">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10779,7 +10898,8 @@
   </div>
 
   <!-- PAGE 114: ROOMS 223 - 224 -->
-  <div class="page">
+  
+  <div class="page" id="room-223">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10872,7 +10992,8 @@
   </div>
 
   <!-- PAGE 115: ROOMS 225 - 226 -->
-  <div class="page">
+  
+  <div class="page" id="room-225">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -10965,7 +11086,8 @@
   </div>
 
   <!-- PAGE 116: ROOMS 227 - 228 -->
-  <div class="page">
+  
+  <div class="page" id="room-227">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11058,7 +11180,8 @@
   </div>
 
   <!-- PAGE 117: ROOMS 229 - 230 -->
-  <div class="page">
+  
+  <div class="page" id="room-229">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11151,7 +11274,8 @@
   </div>
 
   <!-- PAGE 118: ROOMS 231 - 232 -->
-  <div class="page">
+  
+  <div class="page" id="room-231">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11244,7 +11368,8 @@
   </div>
 
   <!-- PAGE 119: ROOMS 233 - 234 -->
-  <div class="page">
+  
+  <div class="page" id="room-233">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11337,7 +11462,8 @@
   </div>
 
   <!-- PAGE 120: ROOMS 235 - 236 -->
-  <div class="page">
+  
+  <div class="page" id="room-235">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11430,7 +11556,8 @@
   </div>
 
   <!-- PAGE 121: ROOMS 237 - 238 -->
-  <div class="page">
+  
+  <div class="page" id="room-237">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11523,7 +11650,8 @@
   </div>
 
   <!-- PAGE 122: ROOMS 239 - 240 -->
-  <div class="page">
+  
+  <div class="page" id="room-239">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11616,7 +11744,8 @@
   </div>
 
   <!-- PAGE 123: ROOMS 241 - 242 -->
-  <div class="page">
+  
+  <div class="page" id="room-241">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11709,7 +11838,8 @@
   </div>
 
   <!-- PAGE 124: ROOMS 243 - 244 -->
-  <div class="page">
+  
+  <div class="page" id="room-243">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11802,7 +11932,8 @@
   </div>
 
   <!-- PAGE 125: ROOMS 245 - 246 -->
-  <div class="page">
+  
+  <div class="page" id="room-245">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11895,7 +12026,8 @@
   </div>
 
   <!-- PAGE 126: ROOMS 247 - 248 -->
-  <div class="page">
+  
+  <div class="page" id="room-247">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -11988,7 +12120,8 @@
   </div>
 
   <!-- PAGE 127: ROOMS 249 - 250 -->
-  <div class="page">
+  
+  <div class="page" id="room-249">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12081,7 +12214,8 @@
   </div>
 
   <!-- PAGE 128: ROOMS 251 - 252 -->
-  <div class="page">
+  
+  <div class="page" id="room-251">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12174,7 +12308,8 @@
   </div>
 
   <!-- PAGE 129: ROOMS 253 - 254 -->
-  <div class="page">
+  
+  <div class="page" id="room-253">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12267,7 +12402,8 @@
   </div>
 
   <!-- PAGE 130: ROOMS 255 - 256 -->
-  <div class="page">
+  
+  <div class="page" id="room-255">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12360,7 +12496,8 @@
   </div>
 
   <!-- PAGE 131: ROOMS 257 - 258 -->
-  <div class="page">
+  
+  <div class="page" id="room-257">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12453,7 +12590,8 @@
   </div>
 
   <!-- PAGE 132: ROOMS 259 - 260 -->
-  <div class="page">
+  
+  <div class="page" id="room-259">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12546,7 +12684,8 @@
   </div>
 
   <!-- PAGE 133: ROOMS 261 - 262 -->
-  <div class="page">
+  
+  <div class="page" id="room-261">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12639,7 +12778,8 @@
   </div>
 
   <!-- PAGE 134: ROOMS 263 - 264 -->
-  <div class="page">
+  
+  <div class="page" id="room-263">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12732,7 +12872,8 @@
   </div>
 
   <!-- PAGE 135: ROOMS 265 - 266 -->
-  <div class="page">
+  
+  <div class="page" id="room-265">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12825,7 +12966,8 @@
   </div>
 
   <!-- PAGE 136: ROOMS 267 - 268 -->
-  <div class="page">
+  
+  <div class="page" id="room-267">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -12918,7 +13060,8 @@
   </div>
 
   <!-- PAGE 137: ROOMS 269 - 270 -->
-  <div class="page">
+  
+  <div class="page" id="room-269">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13011,7 +13154,8 @@
   </div>
 
   <!-- PAGE 138: ROOMS 271 - 272 -->
-  <div class="page">
+  
+  <div class="page" id="room-271">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13104,7 +13248,8 @@
   </div>
 
   <!-- PAGE 139: ROOMS 273 - 274 -->
-  <div class="page">
+  
+  <div class="page" id="room-273">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13197,7 +13342,8 @@
   </div>
 
   <!-- PAGE 140: ROOMS 275 - 276 -->
-  <div class="page">
+  
+  <div class="page" id="room-275">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13290,7 +13436,8 @@
   </div>
 
   <!-- PAGE 141: ROOMS 277 - 278 -->
-  <div class="page">
+  
+  <div class="page" id="room-277">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13383,7 +13530,8 @@
   </div>
 
   <!-- PAGE 142: ROOMS 279 - 280 -->
-  <div class="page">
+  
+  <div class="page" id="room-279">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13476,7 +13624,8 @@
   </div>
 
   <!-- PAGE 143: ROOMS 281 - 282 -->
-  <div class="page">
+  
+  <div class="page" id="room-281">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13569,7 +13718,8 @@
   </div>
 
   <!-- PAGE 144: ROOMS 283 - 284 -->
-  <div class="page">
+  
+  <div class="page" id="room-283">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13662,7 +13812,8 @@
   </div>
 
   <!-- PAGE 145: ROOMS 285 - 286 -->
-  <div class="page">
+  
+  <div class="page" id="room-285">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13755,7 +13906,8 @@
   </div>
 
   <!-- PAGE 146: ROOMS 287 - 288 -->
-  <div class="page">
+  
+  <div class="page" id="room-287">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13848,7 +14000,8 @@
   </div>
 
   <!-- PAGE 147: ROOMS 289 - 290 -->
-  <div class="page">
+  
+  <div class="page" id="room-289">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -13941,7 +14094,8 @@
   </div>
 
   <!-- PAGE 148: ROOMS 291 - 292 -->
-  <div class="page">
+  
+  <div class="page" id="room-291">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14034,7 +14188,8 @@
   </div>
 
   <!-- PAGE 149: ROOMS 293 - 294 -->
-  <div class="page">
+  
+  <div class="page" id="room-293">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14127,7 +14282,8 @@
   </div>
 
   <!-- PAGE 150: ROOMS 295 - 296 -->
-  <div class="page">
+  
+  <div class="page" id="room-295">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14220,7 +14376,8 @@
   </div>
 
   <!-- PAGE 151: ROOMS 297 - 298 -->
-  <div class="page">
+  
+  <div class="page" id="room-297">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14313,7 +14470,8 @@
   </div>
 
   <!-- PAGE 152: ROOMS 299 - 300 -->
-  <div class="page">
+  
+  <div class="page" id="room-299">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14406,7 +14564,8 @@
   </div>
 
   <!-- PAGE 153: ROOMS 301 - 302 -->
-  <div class="page">
+  
+  <div class="page" id="room-301">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14499,7 +14658,8 @@
   </div>
 
   <!-- PAGE 154: ROOMS 303 - 304 -->
-  <div class="page">
+  
+  <div class="page" id="room-303">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14592,7 +14752,8 @@
   </div>
 
   <!-- PAGE 155: ROOMS 305 - 306 -->
-  <div class="page">
+  
+  <div class="page" id="room-305">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14685,7 +14846,8 @@
   </div>
 
   <!-- PAGE 156: ROOMS 307 - 308 -->
-  <div class="page">
+  
+  <div class="page" id="room-307">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14778,7 +14940,8 @@
   </div>
 
   <!-- PAGE 157: ROOMS 309 - 310 -->
-  <div class="page">
+  
+  <div class="page" id="room-309">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14871,7 +15034,8 @@
   </div>
 
   <!-- PAGE 158: ROOMS 311 - 312 -->
-  <div class="page">
+  
+  <div class="page" id="room-311">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -14964,7 +15128,8 @@
   </div>
 
   <!-- PAGE 159: ROOMS 313 - 314 -->
-  <div class="page">
+  
+  <div class="page" id="room-313">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15057,7 +15222,8 @@
   </div>
 
   <!-- PAGE 160: ROOMS 315 - 316 -->
-  <div class="page">
+  
+  <div class="page" id="room-315">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15150,7 +15316,8 @@
   </div>
 
   <!-- PAGE 161: ROOMS 317 - 318 -->
-  <div class="page">
+  
+  <div class="page" id="room-317">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15243,7 +15410,8 @@
   </div>
 
   <!-- PAGE 162: ROOMS 319 - 320 -->
-  <div class="page">
+  
+  <div class="page" id="room-319">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15336,7 +15504,8 @@
   </div>
 
   <!-- PAGE 163: ROOMS 321 - 322 -->
-  <div class="page">
+  
+  <div class="page" id="room-321">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15429,7 +15598,8 @@
   </div>
 
   <!-- PAGE 164: ROOMS 323 - 324 -->
-  <div class="page">
+  
+  <div class="page" id="room-323">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15522,7 +15692,8 @@
   </div>
 
   <!-- PAGE 165: ROOMS 325 - 326 -->
-  <div class="page">
+  
+  <div class="page" id="room-325">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15615,7 +15786,8 @@
   </div>
 
   <!-- PAGE 166: ROOMS 327 - 328 -->
-  <div class="page">
+  
+  <div class="page" id="room-327">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15708,7 +15880,8 @@
   </div>
 
   <!-- PAGE 167: ROOMS 329 - 330 -->
-  <div class="page">
+  
+  <div class="page" id="room-329">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15801,7 +15974,8 @@
   </div>
 
   <!-- PAGE 168: ROOMS 331 - 332 -->
-  <div class="page">
+  
+  <div class="page" id="room-331">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15894,7 +16068,8 @@
   </div>
 
   <!-- PAGE 169: ROOMS 333 - 334 -->
-  <div class="page">
+  
+  <div class="page" id="room-333">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -15987,7 +16162,8 @@
   </div>
 
   <!-- PAGE 170: ROOMS 335 - 336 -->
-  <div class="page">
+  
+  <div class="page" id="room-335">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16080,7 +16256,8 @@
   </div>
 
   <!-- PAGE 171: ROOMS 337 - 338 -->
-  <div class="page">
+  
+  <div class="page" id="room-337">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16173,7 +16350,8 @@
   </div>
 
   <!-- PAGE 172: ROOMS 339 - 340 -->
-  <div class="page">
+  
+  <div class="page" id="room-339">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16266,7 +16444,8 @@
   </div>
 
   <!-- PAGE 173: ROOMS 341 - 342 -->
-  <div class="page">
+  
+  <div class="page" id="room-341">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16359,7 +16538,8 @@
   </div>
 
   <!-- PAGE 174: ROOMS 343 - 344 -->
-  <div class="page">
+  
+  <div class="page" id="room-343">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16452,7 +16632,8 @@
   </div>
 
   <!-- PAGE 175: ROOMS 345 - 346 -->
-  <div class="page">
+  
+  <div class="page" id="room-345">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16545,7 +16726,8 @@
   </div>
 
   <!-- PAGE 176: ROOMS 347 - 348 -->
-  <div class="page">
+  
+  <div class="page" id="room-347">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16638,7 +16820,8 @@
   </div>
 
   <!-- PAGE 177: ROOMS 349 - 350 -->
-  <div class="page">
+  
+  <div class="page" id="room-349">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16731,7 +16914,8 @@
   </div>
 
   <!-- PAGE 178: ROOMS 351 - 352 -->
-  <div class="page">
+  
+  <div class="page" id="room-351">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16824,7 +17008,8 @@
   </div>
 
   <!-- PAGE 179: ROOMS 353 - 354 -->
-  <div class="page">
+  
+  <div class="page" id="room-353">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -16917,7 +17102,8 @@
   </div>
 
   <!-- PAGE 180: ROOMS 355 - 356 -->
-  <div class="page">
+  
+  <div class="page" id="room-355">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17010,7 +17196,8 @@
   </div>
 
   <!-- PAGE 181: ROOMS 357 - 358 -->
-  <div class="page">
+  
+  <div class="page" id="room-357">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17103,7 +17290,8 @@
   </div>
 
   <!-- PAGE 182: ROOMS 359 - 360 -->
-  <div class="page">
+  
+  <div class="page" id="room-359">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17196,7 +17384,8 @@
   </div>
 
   <!-- PAGE 183: ROOMS 361 - 362 -->
-  <div class="page">
+  
+  <div class="page" id="room-361">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17289,7 +17478,8 @@
   </div>
 
   <!-- PAGE 184: ROOMS 363 - 364 -->
-  <div class="page">
+  
+  <div class="page" id="room-363">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17382,7 +17572,8 @@
   </div>
 
   <!-- PAGE 185: ROOMS 365 - 366 -->
-  <div class="page">
+  
+  <div class="page" id="room-365">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17475,7 +17666,8 @@
   </div>
 
   <!-- PAGE 186: ROOMS 367 - 368 -->
-  <div class="page">
+  
+  <div class="page" id="room-367">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17568,7 +17760,8 @@
   </div>
 
   <!-- PAGE 187: ROOMS 369 - 370 -->
-  <div class="page">
+  
+  <div class="page" id="room-369">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17661,7 +17854,8 @@
   </div>
 
   <!-- PAGE 188: ROOMS 371 - 372 -->
-  <div class="page">
+  
+  <div class="page" id="room-371">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17754,7 +17948,8 @@
   </div>
 
   <!-- PAGE 189: ROOMS 373 - 374 -->
-  <div class="page">
+  
+  <div class="page" id="room-373">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17847,7 +18042,8 @@
   </div>
 
   <!-- PAGE 190: ROOMS 375 - 376 -->
-  <div class="page">
+  
+  <div class="page" id="room-375">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -17940,7 +18136,8 @@
   </div>
 
   <!-- PAGE 191: ROOMS 377 - 378 -->
-  <div class="page">
+  
+  <div class="page" id="room-377">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18033,7 +18230,8 @@
   </div>
 
   <!-- PAGE 192: ROOMS 379 - 380 -->
-  <div class="page">
+  
+  <div class="page" id="room-379">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18126,7 +18324,8 @@
   </div>
 
   <!-- PAGE 193: ROOMS 381 - 382 -->
-  <div class="page">
+  
+  <div class="page" id="room-381">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18219,7 +18418,8 @@
   </div>
 
   <!-- PAGE 194: ROOMS 383 - 384 -->
-  <div class="page">
+  
+  <div class="page" id="room-383">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18312,7 +18512,8 @@
   </div>
 
   <!-- PAGE 195: ROOMS 385 - 386 -->
-  <div class="page">
+  
+  <div class="page" id="room-385">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18405,7 +18606,8 @@
   </div>
 
   <!-- PAGE 196: ROOMS 387 - 388 -->
-  <div class="page">
+  
+  <div class="page" id="room-387">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18498,7 +18700,8 @@
   </div>
 
   <!-- PAGE 197: ROOMS 389 - 390 -->
-  <div class="page">
+  
+  <div class="page" id="room-389">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18591,7 +18794,8 @@
   </div>
 
   <!-- PAGE 198: ROOMS 391 - 392 -->
-  <div class="page">
+  
+  <div class="page" id="room-391">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18684,7 +18888,8 @@
   </div>
 
   <!-- PAGE 199: ROOMS 393 - 394 -->
-  <div class="page">
+  
+  <div class="page" id="room-393">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18777,7 +18982,8 @@
   </div>
 
   <!-- PAGE 200: ROOMS 395 - 396 -->
-  <div class="page">
+  
+  <div class="page" id="room-395">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18870,7 +19076,8 @@
   </div>
 
   <!-- PAGE 201: ROOMS 397 - 398 -->
-  <div class="page">
+  
+  <div class="page" id="room-397">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -18963,7 +19170,8 @@
   </div>
 
   <!-- PAGE 202: ROOMS 399 - 400 -->
-  <div class="page">
+  
+  <div class="page" id="room-399">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19056,7 +19264,8 @@
   </div>
 
   <!-- PAGE 203: ROOMS 401 - 402 -->
-  <div class="page">
+  
+  <div class="page" id="room-401">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19149,7 +19358,8 @@
   </div>
 
   <!-- PAGE 204: ROOMS 403 - 404 -->
-  <div class="page">
+  
+  <div class="page" id="room-403">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19242,7 +19452,8 @@
   </div>
 
   <!-- PAGE 205: ROOMS 405 - 406 -->
-  <div class="page">
+  
+  <div class="page" id="room-405">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19335,7 +19546,8 @@
   </div>
 
   <!-- PAGE 206: ROOMS 407 - 408 -->
-  <div class="page">
+  
+  <div class="page" id="room-407">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19428,7 +19640,8 @@
   </div>
 
   <!-- PAGE 207: ROOMS 409 - 410 -->
-  <div class="page">
+  
+  <div class="page" id="room-409">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19521,7 +19734,8 @@
   </div>
 
   <!-- PAGE 208: ROOMS 411 - 412 -->
-  <div class="page">
+  
+  <div class="page" id="room-411">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19614,7 +19828,8 @@
   </div>
 
   <!-- PAGE 209: ROOMS 413 - 414 -->
-  <div class="page">
+  
+  <div class="page" id="room-413">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19707,7 +19922,8 @@
   </div>
 
   <!-- PAGE 210: ROOMS 415 - 416 -->
-  <div class="page">
+  
+  <div class="page" id="room-415">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19800,7 +20016,8 @@
   </div>
 
   <!-- PAGE 211: ROOMS 417 - 418 -->
-  <div class="page">
+  
+  <div class="page" id="room-417">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19893,7 +20110,8 @@
   </div>
 
   <!-- PAGE 212: ROOMS 419 - 420 -->
-  <div class="page">
+  
+  <div class="page" id="room-419">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -19986,7 +20204,8 @@
   </div>
 
   <!-- PAGE 213: ROOMS 421 - 422 -->
-  <div class="page">
+  
+  <div class="page" id="room-421">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20079,7 +20298,8 @@
   </div>
 
   <!-- PAGE 214: ROOMS 423 - 424 -->
-  <div class="page">
+  
+  <div class="page" id="room-423">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20172,7 +20392,8 @@
   </div>
 
   <!-- PAGE 215: ROOMS 425 - 426 -->
-  <div class="page">
+  
+  <div class="page" id="room-425">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20265,7 +20486,8 @@
   </div>
 
   <!-- PAGE 216: ROOMS 427 - 428 -->
-  <div class="page">
+  
+  <div class="page" id="room-427">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20358,7 +20580,8 @@
   </div>
 
   <!-- PAGE 217: ROOMS 429 - 430 -->
-  <div class="page">
+  
+  <div class="page" id="room-429">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20451,7 +20674,8 @@
   </div>
 
   <!-- PAGE 218: ROOMS 431 - 432 -->
-  <div class="page">
+  
+  <div class="page" id="room-431">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20544,7 +20768,8 @@
   </div>
 
   <!-- PAGE 219: ROOMS 433 - 434 -->
-  <div class="page">
+  
+  <div class="page" id="room-433">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20637,7 +20862,8 @@
   </div>
 
   <!-- PAGE 220: ROOMS 435 - 436 -->
-  <div class="page">
+  
+  <div class="page" id="room-435">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20730,7 +20956,8 @@
   </div>
 
   <!-- PAGE 221: ROOMS 437 - 438 -->
-  <div class="page">
+  
+  <div class="page" id="room-437">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20823,7 +21050,8 @@
   </div>
 
   <!-- PAGE 222: ROOMS 439 - 440 -->
-  <div class="page">
+  
+  <div class="page" id="room-439">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -20916,7 +21144,8 @@
   </div>
 
   <!-- PAGE 223: ROOMS 441 - 442 -->
-  <div class="page">
+  
+  <div class="page" id="room-441">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21009,7 +21238,8 @@
   </div>
 
   <!-- PAGE 224: ROOMS 443 - 444 -->
-  <div class="page">
+  
+  <div class="page" id="room-443">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21102,7 +21332,8 @@
   </div>
 
   <!-- PAGE 225: ROOMS 445 - 446 -->
-  <div class="page">
+  
+  <div class="page" id="room-445">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21195,7 +21426,8 @@
   </div>
 
   <!-- PAGE 226: ROOMS 447 - 448 -->
-  <div class="page">
+  
+  <div class="page" id="room-447">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21288,7 +21520,8 @@
   </div>
 
   <!-- PAGE 227: ROOMS 449 - 450 -->
-  <div class="page">
+  
+  <div class="page" id="room-449">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21381,7 +21614,8 @@
   </div>
 
   <!-- PAGE 228: ROOMS 451 - 452 -->
-  <div class="page">
+  
+  <div class="page" id="room-451">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21474,7 +21708,8 @@
   </div>
 
   <!-- PAGE 229: ROOMS 453 - 454 -->
-  <div class="page">
+  
+  <div class="page" id="room-453">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21567,7 +21802,8 @@
   </div>
 
   <!-- PAGE 230: ROOMS 455 - 456 -->
-  <div class="page">
+  
+  <div class="page" id="room-455">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21660,7 +21896,8 @@
   </div>
 
   <!-- PAGE 231: ROOMS 457 - 458 -->
-  <div class="page">
+  
+  <div class="page" id="room-457">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21753,7 +21990,8 @@
   </div>
 
   <!-- PAGE 232: ROOMS 459 - 460 -->
-  <div class="page">
+  
+  <div class="page" id="room-459">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21846,7 +22084,8 @@
   </div>
 
   <!-- PAGE 233: ROOMS 461 - 462 -->
-  <div class="page">
+  
+  <div class="page" id="room-461">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -21939,7 +22178,8 @@
   </div>
 
   <!-- PAGE 234: ROOMS 463 - 464 -->
-  <div class="page">
+  
+  <div class="page" id="room-463">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22032,7 +22272,8 @@
   </div>
 
   <!-- PAGE 235: ROOMS 465 - 466 -->
-  <div class="page">
+  
+  <div class="page" id="room-465">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22125,7 +22366,8 @@
   </div>
 
   <!-- PAGE 236: ROOMS 467 - 468 -->
-  <div class="page">
+  
+  <div class="page" id="room-467">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22218,7 +22460,8 @@
   </div>
 
   <!-- PAGE 237: ROOMS 469 - 470 -->
-  <div class="page">
+  
+  <div class="page" id="room-469">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22311,7 +22554,8 @@
   </div>
 
   <!-- PAGE 238: ROOMS 471 - 472 -->
-  <div class="page">
+  
+  <div class="page" id="room-471">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22404,7 +22648,8 @@
   </div>
 
   <!-- PAGE 239: ROOMS 473 - 474 -->
-  <div class="page">
+  
+  <div class="page" id="room-473">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22497,7 +22742,8 @@
   </div>
 
   <!-- PAGE 240: ROOMS 475 - 476 -->
-  <div class="page">
+  
+  <div class="page" id="room-475">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22590,7 +22836,8 @@
   </div>
 
   <!-- PAGE 241: ROOMS 477 - 478 -->
-  <div class="page">
+  
+  <div class="page" id="room-477">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22683,7 +22930,8 @@
   </div>
 
   <!-- PAGE 242: ROOMS 479 - 480 -->
-  <div class="page">
+  
+  <div class="page" id="room-479">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22776,7 +23024,8 @@
   </div>
 
   <!-- PAGE 243: ROOMS 481 - 482 -->
-  <div class="page">
+  
+  <div class="page" id="room-481">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22869,7 +23118,8 @@
   </div>
 
   <!-- PAGE 244: ROOMS 483 - 484 -->
-  <div class="page">
+  
+  <div class="page" id="room-483">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -22962,7 +23212,8 @@
   </div>
 
   <!-- PAGE 245: ROOMS 485 - 486 -->
-  <div class="page">
+  
+  <div class="page" id="room-485">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -23055,7 +23306,8 @@
   </div>
 
   <!-- PAGE 246: ROOMS 487 - 488 -->
-  <div class="page">
+  
+  <div class="page" id="room-487">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -23148,7 +23400,8 @@
   </div>
 
   <!-- PAGE 247: ROOMS 489 - 490 -->
-  <div class="page">
+  
+  <div class="page" id="room-489">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -23241,7 +23494,8 @@
   </div>
 
   <!-- PAGE 248: ROOMS 491 - 492 -->
-  <div class="page">
+  
+  <div class="page" id="room-491">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -23334,7 +23588,8 @@
   </div>
 
   <!-- PAGE 249: ROOMS 493 - 494 -->
-  <div class="page">
+  
+  <div class="page" id="room-493">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -23427,7 +23682,8 @@
   </div>
 
   <!-- PAGE 250: ROOMS 495 - 496 -->
-  <div class="page">
+  
+  <div class="page" id="room-495">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -23520,7 +23776,8 @@
   </div>
 
   <!-- PAGE 251: ROOMS 497 - 498 -->
-  <div class="page">
+  
+  <div class="page" id="room-497">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">
@@ -23613,7 +23870,8 @@
   </div>
 
   <!-- PAGE 252: ROOMS 499 - 500 -->
-  <div class="page">
+  
+  <div class="page" id="room-499">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 
       <div class="room-row">

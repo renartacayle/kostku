@@ -1310,6 +1310,9 @@ def generate_html_report(results, output_path, is_standalone_web=False):
       <span style="font-size: 11px; color: #38bdf8; background: rgba(56,189,248,0.15); padding: 2px 8px; border-radius: 9999px;">✓ 100% Vektor CAD Skala 1:50</span>
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="#rooms-start" style="background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.45); color: #38bdf8; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none;">
+        👉 Langsung ke Kamar #001
+      </a>
       <button onclick="window.print()" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
         🖨️ Cetak / Print PDF
       </button>
@@ -1335,6 +1338,11 @@ def generate_html_report(results, output_path, is_standalone_web=False):
         <p class="cover-desc">
           Laporan stress test komprehensif 500 foto kamar tidur nyata dari web yang dikonversi secara otomatis ke denah arsitektural 2D CAD presisi tinggi skala 1:50. Dilengkapi visualisasi spasial 100% presisi (posisi kasur, jumlah bantal, tipe KM, jendela) dan perlakuan filter Gaussian Blur pada area tertutup kamera / blind spot ("Kalo unsure dibuat blur aja 2D").
         </p>
+        <div style="margin-top: 14px;">
+          <a href="#rooms-start" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 10px 22px; border-radius: 10px; font-size: 13px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 15px rgba(37,99,235,0.4);">
+            👇 Langsung Lihat 500 Foto Kamar &amp; Blueprint CAD (Mulai Hal 3)
+          </a>
+        </div>
       </div>
 
       <div class="metrics-grid">
@@ -1490,10 +1498,13 @@ def generate_html_report(results, output_path, is_standalone_web=False):
         page_num = 3 + (i // 2)
         r1 = results[i]
         r2 = results[i+1] if (i+1) < total_count else None
+        anchor_tag = '<div id="rooms-start" style="position: relative; top: -70px;"></div>' if i == 0 else ""
+        lazy_attr = 'loading="lazy"' if i >= 4 else 'loading="eager"'
         
         html_parts.append(f"""
   <!-- PAGE {page_num}: ROOMS {r1['id']:03d} - {(r2['id'] if r2 else r1['id']):03d} -->
-  <div class="page">
+  {anchor_tag}
+  <div class="page" id="room-{r1['id']:03d}">
     <div style="display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: space-between;">
 """)
         
@@ -1501,7 +1512,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
         html_parts.append(f"""
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="{img_prefix_photo}{r1['photo_file']}" alt="Foto {r1['room_code']}" loading="lazy">
+          <img src="{img_prefix_photo}{r1['photo_file']}" alt="Foto {r1['room_code']}" {lazy_attr}>
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -1536,7 +1547,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="{img_prefix_bp}{r1['blueprint_file']}" alt="Denah 2D {r1['room_code']}" loading="lazy">
+          <img src="{img_prefix_bp}{r1['blueprint_file']}" alt="Denah 2D {r1['room_code']}" {lazy_attr}>
         </div>
       </div>
 """)
@@ -1546,7 +1557,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
             html_parts.append(f"""
       <div class="room-row">
         <div class="room-photo-wrapper">
-          <img src="{img_prefix_photo}{r2['photo_file']}" alt="Foto {r2['room_code']}" loading="lazy">
+          <img src="{img_prefix_photo}{r2['photo_file']}" alt="Foto {r2['room_code']}" {lazy_attr}>
         </div>
         <div class="room-specs-wrapper">
           <div>
@@ -1581,7 +1592,7 @@ def generate_html_report(results, output_path, is_standalone_web=False):
           </div>
         </div>
         <div class="blueprint-wrapper">
-          <img src="{img_prefix_bp}{r2['blueprint_file']}" alt="Denah 2D {r2['room_code']}" loading="lazy">
+          <img src="{img_prefix_bp}{r2['blueprint_file']}" alt="Denah 2D {r2['room_code']}" {lazy_attr}>
         </div>
       </div>
 """)

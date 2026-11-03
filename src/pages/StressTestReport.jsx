@@ -25,7 +25,7 @@ export default function StressTestReport() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState('document'); // 'document' | 'grid'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'document'
   const [zoomModal, setZoomModal] = useState(null); // { type: 'photo' | 'blueprint', src: string, title: string }
   const pageSize = 12;
 
@@ -391,7 +391,7 @@ export default function StressTestReport() {
               background: '#0a0f1d'
             }}>
               <iframe
-                src={htmlDocumentUrl}
+                src={`${htmlDocumentUrl}#rooms-start`}
                 title="KostKu AI Vision - Stress Test 500 Kamar Tidur Auto-2D Benchmark"
                 style={{
                   width: '100%',
@@ -481,7 +481,7 @@ export default function StressTestReport() {
             gap: '1.25rem',
             marginBottom: '2rem'
           }}>
-            {displayedRooms.map((room) => (
+            {displayedRooms.map((room, idx) => (
               <div
                 key={room.id}
                 style={{
@@ -551,19 +551,20 @@ export default function StressTestReport() {
                   {/* Real Photo */}
                   <div 
                     onClick={() => setZoomModal({ type: 'photo', src: `/downloads/photos/${room.photo_file}`, title: `Foto Real Web ${room.room_code}` })}
-                    style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', aspectRatio: '4/3', background: '#0b1329' }}
+                    style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', aspectRatio: '4/3', minHeight: '140px', background: '#0b1329' }}
                   >
                     <img
                       src={`/downloads/photos/${room.photo_file}`}
                       alt={`Foto Real ${room.room_code}`}
-                      loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      loading={idx < 4 ? 'eager' : 'lazy'}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
                     <div style={{
                       position: 'absolute',
                       bottom: '4px',
                       left: '4px',
-                      background: 'rgba(0, 0, 0, 0.65)',
+                      background: 'rgba(0, 0, 0, 0.75)',
+                      backdropFilter: 'blur(4px)',
                       padding: '2px 6px',
                       borderRadius: '4px',
                       fontSize: '0.65rem',
@@ -577,19 +578,20 @@ export default function StressTestReport() {
                   {/* 2D Blueprint */}
                   <div 
                     onClick={() => setZoomModal({ type: 'blueprint', src: `/downloads/blueprints/${room.blueprint_file}`, title: `Denah CAD 2D ${room.room_code}` })}
-                    style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', aspectRatio: '4/3', background: '#0b1329' }}
+                    style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', aspectRatio: '4/3', minHeight: '140px', background: '#0b1329' }}
                   >
                     <img
                       src={`/downloads/blueprints/${room.blueprint_file}`}
                       alt={`Denah 2D ${room.room_code}`}
-                      loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      loading={idx < 4 ? 'eager' : 'lazy'}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                     />
                     <div style={{
                       position: 'absolute',
                       bottom: '4px',
                       left: '4px',
-                      background: 'rgba(0, 0, 0, 0.65)',
+                      background: 'rgba(0, 0, 0, 0.75)',
+                      backdropFilter: 'blur(4px)',
                       padding: '2px 6px',
                       borderRadius: '4px',
                       fontSize: '0.65rem',
