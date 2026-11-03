@@ -48,6 +48,8 @@ export default function StressTestReport() {
       matchType = !r.has_bathroom || (r.bathroom_type && r.bathroom_type.toLowerCase().includes('luar'));
     } else if (selectedType === 'km dalam') {
       matchType = r.has_bathroom || (r.bathroom_type && r.bathroom_type.toLowerCase().includes('dalam'));
+    } else if (selectedType === 'blur unsure') {
+      matchType = !!r.unsure_zone;
     } else {
       matchType = r.type_name.toLowerCase().includes(selectedType.toLowerCase());
     }
@@ -234,7 +236,8 @@ export default function StressTestReport() {
               { id: 'tipe d', label: 'Tipe D (18m² • Queen)' },
               { id: 'tipe e', label: 'Tipe E (22.5m² • King)' },
               { id: 'km luar', label: '🚪 KM Luar (Shared)' },
-              { id: 'km dalam', label: '🚿 KM Dalam (Ensuite)' }
+              { id: 'km dalam', label: '🚿 KM Dalam (Ensuite)' },
+              { id: 'blur unsure', label: '🌫️ Zona Unsure (Blur)' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -337,6 +340,17 @@ export default function StressTestReport() {
                       border: room.has_bathroom ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(245, 158, 11, 0.35)'
                     }}>
                       {room.has_bathroom ? '🚿 KM Dalam' : '🚪 KM Luar'}
+                    </span>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: room.unsure_zone ? 'rgba(148, 163, 184, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                      color: room.unsure_zone ? '#94a3b8' : '#38bdf8',
+                      border: room.unsure_zone ? '1px solid rgba(148, 163, 184, 0.35)' : '1px solid rgba(56, 189, 248, 0.35)'
+                    }}>
+                      {room.unsure_zone ? '🌫️ Blur Unsure' : '✓ 100% Crisp'}
                     </span>
                   </div>
                 </div>
