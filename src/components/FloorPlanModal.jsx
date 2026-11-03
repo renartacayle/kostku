@@ -6,10 +6,10 @@ import RoomFloorPlanViewer from './RoomFloorPlanViewer';
  * FloorPlanModal
  * Modal pratinjau arsitektur denah 2D presisi kamar kost.
  */
-export default function FloorPlanModal({ isOpen, onClose, kost }) {
+export default function FloorPlanModal({ isOpen, onClose, kost, selectedRoomNumber = null }) {
   if (!isOpen || !kost) return null;
 
-  const room = kost.rooms?.[0] || {};
+  const room = (selectedRoomNumber && kost.rooms?.find(r => r.number === selectedRoomNumber)) || kost.rooms?.[0] || {};
   const rawSize = room.size || room.dimension || '3.5m x 4.0m';
   const dimensions = rawSize.includes('x') && !rawSize.includes('m') ? rawSize.replace('x', 'm x ') + 'm' : rawSize;
   const bedType = room.bedType || 'super_single';

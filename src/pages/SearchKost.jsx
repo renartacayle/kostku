@@ -51,6 +51,7 @@ import {
 } from '../utils/imageUtils';
 import { useDebounce } from '../hooks/useDebounce';
 import KostCardSkeleton from '../components/KostCardSkeleton';
+import MarketingBanners from '../components/MarketingBanners';
 
 export const FACILITY_OPTIONS = [
   { id: 'AC', label: '❄️ AC' },
@@ -905,6 +906,9 @@ export default function SearchKost({ user }) {
       {/* Main Content Area */}
       <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '1.5rem 1.25rem calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
         
+        {/* Marketing Guarantee Banners (Aligned with Landing Page) */}
+        <MarketingBanners style={{ margin: '0 0 1.5rem' }} />
+
         {/* Results Counter & Sort Bar */}
         <div style={{
           display: 'flex',
@@ -984,6 +988,22 @@ export default function SearchKost({ user }) {
               const layout = kost.layoutInfo || {};
               const coords = getKostCoordinates(kost);
               const distanceKm = userLocation ? calculateDistanceKm(userLocation.lat, userLocation.lng, coords?.lat, coords?.lng) : null;
+
+              const isPutri = (kost.type || '').toLowerCase().includes('putri');
+              const isPutra = (kost.type || '').toLowerCase().includes('putra');
+              const categoryBadgeStyle = isPutri ? {
+                background: '#FEF3C7',
+                color: '#92400e',
+                border: '1px solid rgba(146, 64, 14, 0.2)'
+              } : isPutra ? {
+                background: '#DBEAFE',
+                color: '#1e40af',
+                border: '1px solid rgba(30, 64, 175, 0.2)'
+              } : {
+                background: '#E0E7FF',
+                color: '#3730a3',
+                border: '1px solid rgba(55, 48, 163, 0.2)'
+              };
 
               const isHighlighted = Boolean(highlightUid && (kost.uid === highlightUid));
 
@@ -1214,15 +1234,40 @@ export default function SearchKost({ user }) {
                         </span>
                       )}
                       <span style={{
-                        background: kost.type === 'Putri' ? '#ec4899' : kost.type === 'Putra' ? '#2563eb' : '#059669',
-                        color: 'white',
-                        padding: '3px 10px',
-                        borderRadius: '12px',
+                        ...categoryBadgeStyle,
+                        padding: '4px 10px',
+                        borderRadius: '100px',
                         fontSize: '0.72rem',
                         fontWeight: 800,
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35)'
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)'
                       }}>
-                        {kost.type === 'Putri' ? '🌸 Putri' : kost.type === 'Putra' ? '👔 Putra' : '🏡 Campur'}
+                        {kost.type || 'Campur'}
+                      </span>
+
+                      {/* Status Ketersediaan Kamar */}
+                      <span style={{
+                        background: availableRoomsCount > 0 ? 'rgba(15, 23, 42, 0.85)' : 'rgba(239, 68, 68, 0.85)',
+                        color: availableRoomsCount > 0 ? '#4ade80' : '#fca5a5',
+                        border: availableRoomsCount > 0 ? '1px solid rgba(74, 222, 128, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                        backdropFilter: 'blur(8px)',
+                        padding: '4px 9px',
+                        borderRadius: '100px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)'
+                      }}>
+                        <span style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: availableRoomsCount > 0 ? '#22c55e' : '#ef4444'
+                        }} />
+                        {availableRoomsCount > 0 ? `Tersedia ${availableRoomsCount} Kamar` : 'Penuh'}
                       </span>
 
                       {/* Distance Badge */}

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { apiCreateOwnerKost } from '../services/api';
 import AiRoomPlanSection from './AiRoomPlanSection';
-import { getCurrentPositionAsync } from '../utils/geoUtils';
+import { getCurrentPositionAsync, validateKostGmapsUrl } from '../utils/geoUtils';
 import { isValidBuildingPhoto, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
 import { useTheme } from '../context/ThemeContext';
 
@@ -53,6 +53,8 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const gmapsValidation = gmapsUrl.trim() ? validateKostGmapsUrl(gmapsUrl, kostName) : null;
+
   if (!isOpen) return null;
 
   const handleCustomFrontUpload = (e) => {
@@ -70,7 +72,8 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
   const handleGetCoordinates = async () => {
     try {
       const pos = await getCurrentPositionAsync();
-      const url = `https://maps.google.com/?q=${pos.lat},${pos.lng}`;
+      const cleanName = kostName.trim() || 'Kost';
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanName)}+${pos.lat},${pos.lng}`;
       setGmapsUrl(url);
     } catch (_) {
       alert('Tidak dapat mendeteksi lokasi GPS otomatis. Silakan masukkan tautan Google Maps manual.');
@@ -81,6 +84,13 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
     e.preventDefault();
     if (!kostName.trim()) {
       setError('Nama properti kost wajib diisi');
+      return;
+    }
+
+    // Strict Google Maps Link Validation: Must point to owner's kost; generic road links without matching kost name are rejected!
+    const gmapsValidation = validateKostGmapsUrl(gmapsUrl, kostName);
+    if (!gmapsValidation.valid) {
+      setError(gmapsValidation.message);
       return;
     }
 
@@ -96,7 +106,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
         ownerId: user.id,
         kostName: kostName.trim(),
         address: address.trim(),
-        gmapsUrl: gmapsUrl.trim() || (address.trim() ? `https://maps.google.com/?q=${encodeURIComponent(address.trim())}` : ''),
+        gmapsUrl: gmapsUrl.trim(),
         type,
         roomsCount: Number(roomsCount) || 8,
         defaultPrice: Number(defaultPrice) || 1500000,
@@ -250,37 +260,69 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
 
           {/* Lokasi Google Maps */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                Lokasi Google Maps (Tautan / Koordinat GPS)
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={15} color="#3b82f6" />
+                <span>Tautan Google Maps Profil Kost *</span>
               </label>
-              <button
-                type="button"
-                onClick={handleGetCoordinates}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#60a5fa',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: 0
-                }}
-              >
-                <Compass size={13} /> Deteksi GPS Otomatis
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={handleGetCoordinates}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#60a5fa',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: 0
+                  }}
+                  title="Deteksi koordinat GPS dan buat tautan tempat pencarian nama kost Anda"
+                >
+                  <Compass size={13} /> Deteksi GPS
+                </button>
+
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((kostName.trim() || 'Kost') + ' ' + (address.trim() || ''))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: isLight ? '#0284c7' : '#38bdf8',
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    textDecoration: 'none'
+                  }}
+                  title="Cari listing profil bisnis kost Anda di Google Maps lalu salin tautannya"
+                >
+                  <ExternalLink size={12} /> Cari di Google Maps
+                </a>
+              </div>
             </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="text"
-                placeholder="Misal: https://maps.app.goo.gl/... atau koordinat -6.9827, 110.4091"
+                required
+                placeholder="Contoh: https://maps.app.goo.gl/... atau https://www.google.com/maps/place/NamaKost/..."
                 value={gmapsUrl}
-                onChange={e => setGmapsUrl(e.target.value)}
+                onChange={e => {
+                  setGmapsUrl(e.target.value);
+                  if (error) setError(null);
+                }}
                 className="input-field"
-                style={{ flex: 1 }}
+                style={{
+                  flex: 1,
+                  borderColor: gmapsValidation
+                    ? (gmapsValidation.valid ? '#10b981' : '#ef4444')
+                    : undefined
+                }}
               />
               {gmapsUrl && (
                 <a
@@ -290,13 +332,41 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
                   className="btn btn-secondary"
                   style={{ padding: '0 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
-                  <ExternalLink size={14} /> Peta
+                  <ExternalLink size={14} /> Tes Link
                 </a>
               )}
             </div>
-            <span style={{ fontSize: '0.73rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
-              Memudahkan calon penghuni navigasi langsung ke pintu kost Anda.
-            </span>
+
+            {/* Validation Feedback Status Box */}
+            {gmapsValidation && (
+              <div style={{
+                marginTop: '6px',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '6px',
+                background: gmapsValidation.valid
+                  ? (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)')
+                  : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)'),
+                color: gmapsValidation.valid
+                  ? (isLight ? '#15803d' : '#4ade80')
+                  : (isLight ? '#b91c1c' : '#f87171'),
+                border: gmapsValidation.valid
+                  ? (isLight ? '1px solid #bbf7d0' : '1px solid rgba(16, 185, 129, 0.3)')
+                  : (isLight ? '1px solid #fecaca' : '1px solid rgba(239, 68, 68, 0.3)')
+              }}>
+                {gmapsValidation.valid ? <CheckCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} /> : <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />}
+                <span>{gmapsValidation.message}</span>
+              </div>
+            )}
+
+            {!gmapsValidation && (
+              <span style={{ fontSize: '0.73rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '4px' }}>
+                ⚠️ <strong>Wajib Tautan Profil Kost:</strong> Link harus mengarah langsung ke pin/profil bisnis kost Anda. Link yang hanya berupa nama jalan umum atau koordinat tanpa nama kost akan ditolak.
+              </span>
+            )}
           </div>
 
           {/* Kategori Kost & Jumlah Kamar */}

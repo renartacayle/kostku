@@ -921,6 +921,101 @@ function hasValidBuildingPhoto(k) {
   return list.length > 0;
 }
 
+// Helper: Validasi tautan Google Maps agar mengarah langsung ke profil/titik bisnis kost pemilik
+// Menolak tautan yang hanya berupa nama jalan umum atau koordinat mentah tanpa nama kost yang sesuai
+function validateKostGmapsUrl(rawUrl, rawKostName) {
+  const url = (rawUrl || '').trim();
+  const kostName = (rawKostName || '').trim();
+
+  if (!kostName) {
+    return { valid: false, message: 'Nama kost wajib diisi terlebih dahulu' };
+  }
+  if (!url) {
+    return { valid: false, message: 'Tautan Google Maps wajib diisi untuk lokasi properti kost' };
+  }
+
+  const isGoogleMaps = /https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)\b/i.test(url);
+  if (!isGoogleMaps) {
+    return { valid: false, message: 'Tautan harus berasal dari domain resmi Google Maps' };
+  }
+
+  const isPureCoords = /^(https?:\/\/[^\s]+[\?&]q=)?-?\d+\.\d+[\s,]+-?\d+\.\d+$/i.test(url) ||
+    (/google\.[a-z.]+\/maps\/@[-\d.]+,[-\d.]+/i.test(url) && !/\/place\//i.test(url)) ||
+    /maps\.google\.[a-z.]+\/\?q=[-\d.]+,[-\d.]+$/i.test(url) ||
+    /\/place\/[-\d.]+,[-\d.]+/i.test(url);
+
+  if (isPureCoords) {
+    return { valid: false, message: `Tautan ditolak! Link hanya berupa titik koordinat jalan tanpa nama kost '${kostName}'.` };
+  }
+
+  let extractedPlace = '';
+  const placeMatch = url.match(/\/maps\/place\/([^/@?]+)/i);
+  if (placeMatch && placeMatch[1]) {
+    try {
+      extractedPlace = decodeURIComponent(placeMatch[1].replace(/\+/g, ' ')).trim();
+    } catch (_) {
+      extractedPlace = placeMatch[1].replace(/\+/g, ' ').trim();
+    }
+  }
+
+  if (!extractedPlace) {
+    const queryMatch = url.match(/[?&](?:query|q)=([^&]+)/i);
+    if (queryMatch && queryMatch[1]) {
+      try {
+        extractedPlace = decodeURIComponent(queryMatch[1].replace(/\+/g, ' ')).trim();
+      } catch (_) {
+        extractedPlace = queryMatch[1].replace(/\+/g, ' ').trim();
+      }
+    }
+  }
+
+  const stopWords = new Set([
+    'kost', 'kos', 'kosan', 'indekos', 'house', 'homestay', 'residence', 
+    'griya', 'wisma', 'putra', 'putri', 'campur', 'exclusive', 'eksklusif', 
+    'executive', 'the', 'pondok', 'paviliun', 'dorm', 'dormitory'
+  ]);
+
+  const kostTokens = kostName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(t => t.length >= 2);
+
+  const distinctiveTokens = kostTokens.filter(t => !stopWords.has(t));
+  const tokensToCheck = distinctiveTokens.length > 0 ? distinctiveTokens : kostTokens;
+
+  if (extractedPlace) {
+    const lowerExtracted = extractedPlace.toLowerCase();
+    const startsWithStreet = /^(jl\.?|jalan|gang|gg\.?|lorong|boulevard|blvd|street|st\.?|road|rd\.?)\b/i.test(extractedPlace);
+    const lodgingKeywords = ['kost', 'kos', 'kosan', 'griya', 'wisma', 'residence', 'homestay', 'pondok', 'paviliun', 'dorm', 'house', 'penginapan'];
+    const hasLodgingKeyword = lodgingKeywords.some(k => lowerExtracted.includes(k));
+    const isGenericStreetOnly = startsWithStreet && !hasLodgingKeyword;
+
+    if (isGenericStreetOnly) {
+      return {
+        valid: false,
+        message: `Tautan ditolak! Link hanya mengarah ke nama jalan umum ('${extractedPlace}'), bukan profil tempat kost '${kostName}'.`
+      };
+    }
+
+    const hasKostMatch = tokensToCheck.some(token => lowerExtracted.includes(token));
+    if (!hasKostMatch) {
+      return {
+        valid: false,
+        message: `Tautan ditolak! Nama tempat di Google Maps ('${extractedPlace}') tidak cocok dengan nama kost '${kostName}'.`
+      };
+    }
+
+    return { valid: true, placeName: extractedPlace };
+  }
+
+  if (/maps\.app\.goo\.gl|goo\.gl\/maps/i.test(url)) {
+    return { valid: true, isShortLink: true };
+  }
+
+  return { valid: true };
+}
+
 // Endpoint: Check Availability (NIK validation)
 app.get('/api/check-nik', (req, res) => {
   const nik = String(req.query.nik || '').trim();
@@ -1899,6 +1994,12 @@ app.post('/api/owner/kosts', (req, res) => {
 
   if (!ownerId) return res.status(400).json({ error: 'ownerId wajib disertakan' });
   if (!kostName || !kostName.trim()) return res.status(400).json({ error: 'Nama kost wajib diisi' });
+
+  // Validasi Google Maps link: wajib mengarah ke profil kost, bukan sekadar jalan umum
+  const gmapsCheck = validateKostGmapsUrl(gmapsUrl, kostName);
+  if (!gmapsCheck.valid) {
+    return res.status(400).json({ error: gmapsCheck.message });
+  }
 
   const owner = db.users.find(u => String(u.id) === String(ownerId));
   if (!owner) return res.status(404).json({ error: 'Akun owner tidak ditemukan' });

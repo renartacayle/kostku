@@ -35,139 +35,22 @@ import {
   Camera,
   Zap,
   Droplet,
-  Copy
+  Copy,
+  Navigation,
+  Grid,
+  Calculator
 } from 'lucide-react';
 import { apiGetPublicKosts, apiApplyKost } from '../services/api';
 import KostRatingReviewSection from '../components/KostRatingReviewSection';
 import InAppChatModal from '../components/InAppChatModal';
+import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
+import FloorPlanModal from '../components/FloorPlanModal';
+import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
 import { getValidBuildingImages, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
+import { getGmapsDirectionsUrl, calculateDistanceKm, formatDistance, getCurrentPositionAsync } from '../utils/geoUtils';
 import Footer from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
 
-// Interactive SVG 2D Room Blueprint Component
-const RoomBlueprintSvg = ({ dimensions = "4.0m x 4.5m", area = "18 m²", kostName = "Kamar Kost", roomNumber = "101", roomType = "Exclusive" }) => {
-  return (
-    <div className="blueprint-wrapper">
-      {/* Blueprint Grid Background Pattern */}
-      <svg width="100%" height="auto" viewBox="0 0 600 380" style={{ display: 'block', margin: '0 auto', maxWidth: '100%', aspectRatio: '600 / 380' }}>
-        <defs>
-          <pattern id="blueprintGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(59, 130, 246, 0.12)" strokeWidth="0.8" />
-          </pattern>
-          <pattern id="blueprintGridMajor" width="100" height="100" patternUnits="userSpaceOnUse">
-            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1.2" />
-          </pattern>
-        </defs>
-
-        {/* Grid Background */}
-        <rect width="600" height="380" fill="#071120" />
-        <rect width="600" height="380" fill="url(#blueprintGrid)" />
-        <rect width="600" height="380" fill="url(#blueprintGridMajor)" />
-
-        {/* Blueprint Stamp / Title Block */}
-        <g transform="translate(360, 280)">
-          <rect width="210" height="80" fill="rgba(15, 23, 42, 0.9)" stroke="#3b82f6" strokeWidth="1.5" rx="8" />
-          <text x="12" y="20" fill="#93c5fd" fontSize="10" fontWeight="bold" fontFamily="monospace">DENAH UNIT & KAMAR {roomNumber}</text>
-          <text x="12" y="38" fill="#ffffff" fontSize="13" fontWeight="bold">SKALA 1:50 ARSITEKTUR</text>
-          <text x="12" y="55" fill="#60a5fa" fontSize="10" fontFamily="monospace">DIMENSI: {dimensions} ({area})</text>
-          <text x="12" y="70" fill="#34d399" fontSize="9" fontFamily="monospace">STATUS: TERVERIFIKASI ASLI</text>
-        </g>
-
-        {/* MAIN ROOM OUTER WALLS (Thick Architecture Lines) */}
-        <rect x="50" y="40" width="500" height="230" fill="rgba(30, 58, 138, 0.08)" stroke="#60a5fa" strokeWidth="4" rx="4" />
-        
-        {/* Dimension Lines (Top Width & Left Length) */}
-        <line x1="50" y1="20" x2="550" y2="20" stroke="#93c5fd" strokeWidth="1.5" strokeDasharray="4,2" />
-        <circle cx="50" cy="20" r="3" fill="#60a5fa" />
-        <circle cx="550" cy="20" r="3" fill="#60a5fa" />
-        <text x="300" y="16" fill="#93c5fd" fontSize="11" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
-          LEBAR: {dimensions.split('x')[0] || '4.0m'}
-        </text>
-
-        <line x1="25" y1="40" x2="25" y2="270" stroke="#93c5fd" strokeWidth="1.5" strokeDasharray="4,2" />
-        <circle cx="25" cy="40" r="3" fill="#60a5fa" />
-        <circle cx="25" cy="270" r="3" fill="#60a5fa" />
-        <text x="18" y="160" fill="#93c5fd" fontSize="11" fontWeight="bold" textAnchor="middle" transform="rotate(-90 18 160)" fontFamily="monospace">
-          PANJANG: {dimensions.split('x')[1] || '5.0m'}
-        </text>
-
-        {/* 1. ENTRANCE DOOR */}
-        <line x1="120" y1="270" x2="165" y2="270" stroke="#071120" strokeWidth="6" />
-        <path d="M 120 270 Q 120 225, 165 225" fill="none" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="3,3" />
-        <line x1="120" y1="270" x2="120" y2="225" stroke="#38bdf8" strokeWidth="2.5" />
-        <text x="110" y="260" fill="#38bdf8" fontSize="9" fontWeight="bold">PINTU UTAMA</text>
-
-        {/* 2. WINDOW (Top Right - Natural Light Rays) */}
-        <line x1="380" y1="40" x2="480" y2="40" stroke="#0284c7" strokeWidth="6" />
-        <rect x="382" y="38" width="96" height="4" fill="#38bdf8" />
-        <line x1="400" y1="44" x2="385" y2="70" stroke="rgba(250, 204, 21, 0.4)" strokeWidth="1.5" strokeDasharray="3,3" />
-        <line x1="430" y1="44" x2="415" y2="70" stroke="rgba(250, 204, 21, 0.4)" strokeWidth="1.5" strokeDasharray="3,3" />
-        <line x1="460" y1="44" x2="445" y2="70" stroke="rgba(250, 204, 21, 0.4)" strokeWidth="1.5" strokeDasharray="3,3" />
-        <text x="430" y="58" fill="#facc15" fontSize="9" fontWeight="bold" textAnchor="middle">JENDELA LUAR (CAHAYA & ANGIN)</text>
-
-        {/* 3. SPRINGBED (Center Right - Queen/Single) */}
-        <g transform="translate(360, 95)">
-          <rect width="160" height="150" fill="rgba(37, 99, 235, 0.25)" stroke="#3b82f6" strokeWidth="2" rx="8" />
-          <rect x="15" y="10" width="55" height="35" fill="rgba(255, 255, 255, 0.7)" stroke="#60a5fa" rx="4" />
-          <rect x="85" y="10" width="55" height="35" fill="rgba(255, 255, 255, 0.7)" stroke="#60a5fa" rx="4" />
-          <line x1="10" y1="65" x2="150" y2="65" stroke="#93c5fd" strokeWidth="1.5" />
-          <text x="80" y="115" fill="#ffffff" fontSize="12" fontWeight="bold" textAnchor="middle">KASUR SPRINGBED</text>
-          <text x="80" y="132" fill="#bfdbfe" fontSize="9" textAnchor="middle">160 x 200 cm (Empuk)</text>
-        </g>
-
-        {/* Bedside Table / Nakas */}
-        <rect x="325" y="105" width="28" height="30" fill="rgba(30, 58, 138, 0.5)" stroke="#3b82f6" rx="3" />
-        <text x="339" y="123" fill="#93c5fd" fontSize="7" textAnchor="middle">NAKAS</text>
-
-        {/* 4. WORK DESK & CHAIR (Top Left) */}
-        <g transform="translate(65, 55)">
-          <rect width="130" height="50" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" strokeWidth="2" rx="4" />
-          <rect x="45" y="12" width="36" height="24" fill="#334155" stroke="#94a3b8" rx="2" />
-          <rect x="51" y="15" width="24" height="16" fill="#38bdf8" rx="1" />
-          <circle cx="63" cy="72" r="14" fill="rgba(16, 185, 129, 0.3)" stroke="#10b981" strokeWidth="1.5" />
-          <text x="65" y="45" fill="#34d399" fontSize="9" fontWeight="bold" textAnchor="middle">MEJA KERJA & BELAJAR</text>
-        </g>
-
-        {/* 5. WARDROBE / LEMARI PAKAIAN (Left Middle) */}
-        <g transform="translate(65, 125)">
-          <rect width="60" height="95" fill="rgba(217, 119, 6, 0.2)" stroke="#f59e0b" strokeWidth="2" rx="4" />
-          <line x1="95" y1="125" x2="95" y2="220" stroke="#f59e0b" strokeWidth="1" strokeDasharray="2,2" />
-          <circle cx="90" cy="172" r="2" fill="#fef3c7" />
-          <circle cx="100" cy="172" r="2" fill="#fef3c7" />
-          <text x="95" y="165" fill="#fcd34d" fontSize="9" fontWeight="bold" textAnchor="middle" transform="rotate(-90 95 165)">
-            LEMARI 2 PINTU
-          </text>
-        </g>
-
-        {/* 6. KAMAR MANDI DALAM (Bottom Right En-Suite Bathroom) */}
-        <g transform="translate(195, 150)">
-          <rect width="120" height="120" fill="rgba(6, 182, 212, 0.15)" stroke="#06b6d4" strokeWidth="2.5" rx="4" />
-          <line x1="205" y1="150" x2="235" y2="150" stroke="#071120" strokeWidth="4" />
-          <path d="M 205 150 Q 205 175, 235 175" fill="none" stroke="#22d3ee" strokeWidth="1.2" strokeDasharray="2,2" />
-          <rect x="15" y="40" width="45" height="45" fill="rgba(14, 165, 233, 0.3)" stroke="#38bdf8" strokeWidth="1.5" rx="4" />
-          <circle cx="37" cy="62" r="7" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
-          <circle cx="37" cy="62" r="2" fill="#38bdf8" />
-          <text x="37" y="98" fill="#67e8f9" fontSize="8" textAnchor="middle">SHOWER</text>
-
-          <g transform="translate(72, 45)">
-            <rect width="32" height="16" fill="#e2e8f0" rx="3" />
-            <ellipse cx="16" cy="24" rx="14" ry="16" fill="#ffffff" stroke="#94a3b8" />
-            <ellipse cx="16" cy="25" rx="9" ry="11" fill="#38bdf8" opacity="0.3" />
-            <text x="16" y="52" fill="#93c5fd" fontSize="7" textAnchor="middle">KLOSET</text>
-          </g>
-          <text x="60" y="25" fill="#22d3ee" fontSize="9" fontWeight="bold" textAnchor="middle">KM DALAM</text>
-        </g>
-
-        {/* 7. AC UNIT INDOOR (Top Center Wall) */}
-        <g transform="translate(240, 42)">
-          <rect width="80" height="18" fill="rgba(56, 189, 248, 0.3)" stroke="#38bdf8" strokeWidth="1.5" rx="2" />
-          <line x1="245" y1="52" x2="315" y2="52" stroke="#e0f2fe" strokeWidth="1" />
-          <text x="280" y="54" fill="#ffffff" fontSize="8" fontWeight="bold" textAnchor="middle">AC 1/2 PK</text>
-        </g>
-      </svg>
-    </div>
-  );
-};
 
 export default function KostDetail({ user }) {
   const { id } = useParams();
@@ -200,6 +83,19 @@ export default function KostDetail({ user }) {
   const [copiedMeter, setCopiedMeter] = useState('');
   const [showChatModal, setShowChatModal] = useState(false);
   const [chatInitialText, setChatInitialText] = useState('');
+  const [showElectricCalculator, setShowElectricCalculator] = useState(false);
+  const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    getCurrentPositionAsync()
+      .then(pos => {
+        if (pos && pos.lat && pos.lng) {
+          setUserLocation(pos);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleCopyText = (text, type) => {
     if (!text) return;
@@ -223,19 +119,6 @@ export default function KostDetail({ user }) {
       .catch(err => console.error('Gagal memuat detail kost:', err))
       .finally(() => setLoading(false));
   }, [id]);
-
-  const hasBlueprint = Boolean(
-    kost?.layoutImage || 
-    kost?.blueprintImage || 
-    kost?.floorPlanImage ||
-    (typeof kost?.floorPlan === 'string' && kost.floorPlan.startsWith('http'))
-  );
-
-  useEffect(() => {
-    if (kost && !hasBlueprint && activeTab === 'layout') {
-      setActiveTab('photos');
-    }
-  }, [kost, hasBlueprint, activeTab]);
 
   const handleApplyClick = () => {
     if (selectedRoomObj?.status === 'occupied') {
@@ -393,12 +276,41 @@ export default function KostDetail({ user }) {
 
   const layout = kost.layoutInfo || {};
 
+  const allFacilities = [
+    ...(kost.facilities || []),
+    ...(kost.features || []),
+    ...(selectedRoomObj?.facilities || [])
+  ].map(f => String(f).toLowerCase());
+
+  const computedFurnitures = ['wardrobe', 'desk', 'window'];
+  if (allFacilities.some(f => f.includes('ac'))) computedFurnitures.push('ac');
+  if (allFacilities.some(f => f.includes('mandi') || f.includes('km'))) computedFurnitures.push('bathroom');
+  if (allFacilities.some(f => f.includes('kulkas') || f.includes('fridge'))) computedFurnitures.push('fridge');
+
+  const rawDimensions = selectedRoomObj?.size || selectedRoomObj?.dimension || layout.roomDimensions || "3.5m x 4.0m";
+  const normalizedDimensions = rawDimensions.includes('x') && !rawDimensions.includes('m')
+    ? rawDimensions.replace('x', 'm x ') + 'm'
+    : rawDimensions;
+
   const activeFloorPlan = selectedRoomObj?.floorPlan || kost.floorPlan || {
-    dimensions: selectedRoomObj?.size || layout.roomDimensions || "3.5m x 4.0m",
-    bedType: "super_single",
-    furnitures: ["wardrobe", "desk", "bathroom", "ac", "window"]
+    dimensions: normalizedDimensions,
+    bedType: selectedRoomObj?.bedType || "super_single",
+    furnitures: computedFurnitures
   };
   const activeRoomPhoto = selectedRoomObj?.roomPhoto || kost.roomPhoto || null;
+
+  // Directions & Distance calculation
+  const kostCoords = kost.location?.lat && kost.location?.lng ? kost.location : null;
+  const userDistanceKm = (userLocation && kostCoords)
+    ? calculateDistanceKm(userLocation.lat, userLocation.lng, kostCoords.lat, kostCoords.lng)
+    : null;
+  const formattedDistance = formatDistance(userDistanceKm);
+  const directionsUrl = getGmapsDirectionsUrl(
+    kostCoords?.lat,
+    kostCoords?.lng,
+    userLocation?.lat,
+    userLocation?.lng
+  );
 
 
   return (
@@ -522,59 +434,127 @@ export default function KostDetail({ user }) {
                   <span>{kost.address}</span>
                 </p>
                 {(kost.gmapsUrl || (kost.location?.lat && kost.location?.lng)) && (
-                  <a
-                    href={kost.gmapsUrl || `https://maps.google.com/?q=${kost.location.lat},${kost.location.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.15)',
-                      border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)',
-                      color: isLight ? '#1d4ed8' : '#93c5fd',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      textDecoration: 'none'
-                    }}
-                  >
-                    <ExternalLink size={12} /> Buka Google Maps
-                  </a>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {formattedDistance && (
+                      <span style={{
+                        fontSize: '0.76rem',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(59, 130, 246, 0.15)',
+                        color: isLight ? '#1d4ed8' : '#93c5fd',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <Compass size={12} /> {formattedDistance} dari Anda
+                      </span>
+                    )}
+                    <a
+                      href={directionsUrl || kost.gmapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '5px 12px',
+                        borderRadius: '8px',
+                        background: isLight ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.18)',
+                        border: isLight ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(16, 185, 129, 0.35)',
+                        color: isLight ? '#047857' : '#34d399',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        transition: 'all 0.2s'
+                      }}
+                      title="Buka Navigasi Rute di Google Maps"
+                    >
+                      <Navigation size={13} /> 🗺️ Petunjuk Rute Google Maps
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Gallery Media Header */}
+            {/* Gallery Media Header Switcher Tabs */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               borderBottom: '1px solid var(--border-color)',
-              paddingBottom: '10px'
+              paddingBottom: '10px',
+              gap: '8px',
+              flexWrap: 'wrap'
             }}>
-              <div
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                  color: 'white'
-                }}
-              >
-                <Camera size={16} />
-                <span>📸 Galeri Foto Asli Bangunan & Kamar ({images.length})</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('photos')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    background: activeTab === 'photos'
+                      ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
+                      : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)'),
+                    color: activeTab === 'photos' ? 'white' : 'var(--text-secondary)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Camera size={16} />
+                  <span>📸 Foto Asli ({images.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('layout')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    background: activeTab === 'layout'
+                      ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
+                      : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)'),
+                    color: activeTab === 'layout' ? 'white' : 'var(--text-secondary)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Grid size={16} />
+                  <span>📐 Denah 2D Unit Kamar</span>
+                </button>
               </div>
+
               <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>
-                ✓ 100% Foto Terverifikasi
+                ✓ 100% Foto & Denah Terverifikasi
               </span>
             </div>
+
+            {/* TAB CONTENT 2: DENAH 2D ARSITEKTUR DALAM GALLERY */}
+            {activeTab === 'layout' && (
+              <div style={{ marginBottom: '14px' }}>
+                <RoomFloorPlanViewer
+                  dimensions={normalizedDimensions}
+                  bedType={activeFloorPlan.bedType || 'super_single'}
+                  furnitures={computedFurnitures}
+                  roomNumber={selectedRoom || '101'}
+                  kostName={kost.kostName}
+                  initialView="2d"
+                />
+              </div>
+            )}
 
             {/* TAB CONTENT 1: FOTO ASLI GALLERY */}
             {activeTab === 'photos' && (
@@ -923,6 +903,31 @@ export default function KostDetail({ user }) {
                               </button>
                             </div>
                           )}
+
+                          <button
+                            type="button"
+                            onClick={() => setShowElectricCalculator(true)}
+                            style={{
+                              marginTop: '8px',
+                              width: '100%',
+                              padding: '7px 10px',
+                              borderRadius: '8px',
+                              border: isLight ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid rgba(251, 191, 36, 0.4)',
+                              background: isLight ? '#fffbeb' : 'rgba(251, 191, 36, 0.12)',
+                              color: isLight ? '#b45309' : '#fde047',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '5px',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <Calculator size={13} />
+                            <span>⚡ Simulasi Biaya Token Listrik</span>
+                          </button>
                         </div>
 
                         {/* Air Status */}
@@ -1022,7 +1027,367 @@ export default function KostDetail({ user }) {
               </div>
             )}
 
-            {/* 7. Rating & Ulasan Penghuni */}
+            {/* 7. DENAH 2D ARSITEKTURAL & TATA LETAK KAMAR */}
+            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                    <Grid size={20} color="#38bdf8" />
+                    <span>Denah 2D Arsitektural Unit (Skala 1:50)</span>
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    Tata letak proporsional unit Kamar {selectedRoom || '101'} dengan kasur, meja belajar, lemari, & ventilasi.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFloorPlanModal(true)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.4)',
+                    background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.12)',
+                    color: isLight ? '#0284c7' : '#38bdf8',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Maximize2 size={14} />
+                  <span>Denah Seluruh Gedung</span>
+                </button>
+              </div>
+
+              {/* Embedded Interactive Viewer */}
+              <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                <RoomFloorPlanViewer
+                  dimensions={normalizedDimensions}
+                  bedType={activeFloorPlan.bedType || 'super_single'}
+                  furnitures={computedFurnitures}
+                  roomNumber={selectedRoom || '101'}
+                  kostName={kost.kostName}
+                  initialView="2d"
+                />
+              </div>
+
+              {/* Floor Plan Specs Pills */}
+              <div style={{
+                marginTop: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+                fontSize: '0.78rem'
+              }}>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600
+                }}>
+                  📐 Luas: {normalizedDimensions.width} x {normalizedDimensions.length} m ({normalizedDimensions.area})
+                </span>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600
+                }}>
+                  🛏️ Kasur: {activeFloorPlan.bedType === 'queen' ? 'Queen Bed (160x200)' : 'Single/Super Single Bed'}
+                </span>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600
+                }}>
+                  ✨ {computedFurnitures.length} Furnitur Lengkap
+                </span>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: isLight ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.18)',
+                  color: isLight ? '#047857' : '#34d399',
+                  fontWeight: 700,
+                  marginLeft: 'auto'
+                }}>
+                  ✓ Terverifikasi Skala 1:50
+                </span>
+              </div>
+            </div>
+
+            {/* 8. SIMULASI BIAYA LISTRIK & TOKEN PLN */}
+            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                    <Zap size={20} color="#fbbf24" />
+                    <span>Simulasi Biaya Listrik & Token PLN</span>
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    Ketahui estimasi pengeluaran listrik bulanan unit Kamar {selectedRoom || '101'} secara transparan tanpa biaya siluman.
+                  </p>
+                </div>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  background: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                    ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)')
+                    : (isLight ? '#dbeafe' : 'rgba(59, 130, 246, 0.2)'),
+                  color: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                    ? (isLight ? '#b45309' : '#fbbf24')
+                    : (isLight ? '#1d4ed8' : '#60a5fa'),
+                  border: isLight ? '1px solid rgba(217, 119, 6, 0.2)' : '1px solid rgba(251, 191, 36, 0.3)'
+                }}>
+                  {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? '⚡ Token PLN Mandiri' : '🏢 Listrik Dikelola Kost'}
+                </span>
+              </div>
+
+              {/* Utility Overview Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '12px',
+                marginBottom: '1rem'
+              }}>
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                    Sistem Meteran Listrik:
+                  </span>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', display: 'block' }}>
+                    {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                      ? 'Meteran Prabayar Tiap Kamar'
+                      : (kost.electricityRate && Number(kost.electricityRate) > 0)
+                        ? `Tarif Flat Rp ${Number(kost.electricityRate).toLocaleString('id-ID')}/bln`
+                        : 'Include Harga Sewa'}
+                  </strong>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                    {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
+                      ? 'Beli token via mobile banking/minimarket kapan saja.'
+                      : 'Pembayaran tagihan listrik disatukan dengan sewa.'}
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                    Nomor ID Pelanggan / Meter PLN:
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <strong style={{ fontSize: '1rem', color: isLight ? '#b45309' : '#fbbf24', letterSpacing: '0.04em' }}>
+                      {selectedRoomObj?.plnMeterNo || 'Tersedia di Meter Kamar'}
+                    </strong>
+                    {selectedRoomObj?.plnMeterNo && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(selectedRoomObj.plnMeterNo, 'pln_sec')}
+                        style={{
+                          background: isLight ? '#fff' : 'rgba(255,255,255,0.08)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          color: isLight ? '#b45309' : '#fbbf24',
+                          cursor: 'pointer',
+                          fontSize: '0.7rem',
+                          padding: '3px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        {copiedMeter === 'pln_sec' ? <Check size={11} /> : <Copy size={11} />}
+                        {copiedMeter === 'pln_sec' ? 'Tersalin' : 'Salin'}
+                      </button>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                    Tarif acuan PLN Golongan R1: ~Rp 1.444 / kWh
+                  </span>
+                </div>
+              </div>
+
+              {/* Interactive CTA Banner to Open Kwh Utility Calculator */}
+              <div style={{
+                padding: '1rem 1.25rem',
+                borderRadius: '16px',
+                background: isLight
+                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(37, 99, 235, 0.08) 100%)'
+                  : 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
+                border: isLight ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(251, 191, 36, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ minWidth: '240px', flex: '1 1 auto' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)', marginBottom: '3px' }}>
+                    Berapa perkiraan token listrik bulanan Anda?
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Simulasikan pemakaian AC (8-12 jam), Laptop kerja, Kulkas mini, & Lampu kamar dengan kalkulator interaktif.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowElectricCalculator(true)}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #d97706, #f59e0b)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Calculator size={16} />
+                  <span>Buka Kalkulator Simulasi Listrik</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 9. LOKASI & PETUNJUK RUTE KE KOST */}
+            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                    <MapPin size={20} color="#3b82f6" />
+                    <span>Lokasi & Petunjuk Rute ke Kost</span>
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    {kost.address}{kost.district ? `, ${kost.district}` : ''}{kost.city ? `, ${kost.city}` : ''}
+                  </p>
+                </div>
+                {formattedDistance && (
+                  <span style={{
+                    padding: '5px 12px',
+                    borderRadius: '20px',
+                    background: isLight ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.18)',
+                    color: isLight ? '#1d4ed8' : '#93c5fd',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}>
+                    <Compass size={14} /> {formattedDistance} dari Lokasi Anda
+                  </span>
+                )}
+              </div>
+
+              {/* Embedded Google Maps */}
+              <div style={{
+                width: '100%',
+                height: '280px',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                border: '1px solid var(--border-color)',
+                position: 'relative',
+                background: isLight ? '#f1f5f9' : '#0f172a',
+                marginBottom: '1rem'
+              }}>
+                <iframe
+                  title={`Peta Lokasi ${kost.kostName}`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                    (kost.location?.lat && kost.location?.lng)
+                      ? `${kost.location.lat},${kost.location.lng}`
+                      : `${kost.kostName}, ${kost.address || ''}`
+                  )}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                />
+              </div>
+
+              {/* Route Action Tools */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                flexWrap: 'wrap'
+              }}>
+                <a
+                  href={directionsUrl || kost.gmapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    flex: '1 1 auto',
+                    minWidth: '200px',
+                    padding: '11px 18px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                    transition: 'all 0.2s'
+                  }}
+                  title="Buka Navigasi Rute Langsung di Google Maps"
+                >
+                  <Navigation size={16} />
+                  <span>Buka Petunjuk Rute di Google Maps</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(`${kost.kostName}, ${kost.address || ''}`, 'address')}
+                  style={{
+                    padding: '11px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-color)',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {copiedMeter === 'address' ? <Check size={15} color="#10b981" /> : <Copy size={15} />}
+                  <span>{copiedMeter === 'address' ? 'Alamat Tersalin!' : 'Salin Alamat Lengkap'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 10. Rating & Ulasan Penghuni */}
             <KostRatingReviewSection
               kostUid={kost.uid}
               kostName={kost.kostName}
@@ -1651,6 +2016,22 @@ export default function KostDetail({ user }) {
         roomNumber={selectedRoom}
         initialMessage={chatInitialText}
         user={user}
+      />
+
+      {/* MODAL: SIMULASI BIAYA LISTRIK & TOKEN PLN */}
+      <KwhUtilityCalculatorModal
+        isOpen={showElectricCalculator}
+        onClose={() => setShowElectricCalculator(false)}
+        kost={kost}
+        roomPrice={selectedRoomObj ? Number(selectedRoomObj.price) : baseMonthlyPrice}
+      />
+
+      {/* MODAL: DENAH 2D ARSITEKTUR SELURUH GEDUNG */}
+      <FloorPlanModal
+        isOpen={showFloorPlanModal}
+        onClose={() => setShowFloorPlanModal(false)}
+        kost={kost}
+        selectedRoomNumber={selectedRoom}
       />
 
       {/* Footer Legal & Compliance */}

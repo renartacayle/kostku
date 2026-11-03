@@ -38,8 +38,6 @@ import SpatialBentoShowcase from '../components/SpatialBentoShowcase';
 import VideoScroll from '../components/VideoScroll';
 import InstallModal from '../components/InstallModal';
 import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
-import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
-import FloorPlanModal from '../components/FloorPlanModal';
 import KostFilterModal from '../components/KostFilterModal';
 import Footer from '../components/Footer';
 import { TactileButton, KitchenShowcaseSection } from '../components/kitchen';
@@ -529,9 +527,6 @@ export default function Home({ user }) {
 
   // Gold Standard Real Estate Interactive States
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
-  const [showCalculator, setShowCalculator] = useState(false);
-  const [calcSelectedKost, setCalcSelectedKost] = useState(null);
-  const [previewFloorPlanKost, setPreviewFloorPlanKost] = useState(null);
 
   // ── 4x2 Koleksi Kost with User-Controlled Carousel (Auto-scroll OFF by default) ──
   const [activeGridPage, setActiveGridPage] = useState(0);
@@ -1568,31 +1563,7 @@ export default function Home({ user }) {
               <span>Filter {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
             </button>
 
-            {/* Utility Calculator Trigger */}
-            <button
-              type="button"
-              onClick={() => {
-                setCalcSelectedKost(null);
-                setShowCalculator(true);
-              }}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '12px',
-                background: 'rgba(234, 179, 8, 0.12)',
-                border: '1px solid rgba(234, 179, 8, 0.35)',
-                color: '#D97706',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Zap size={14} fill="#D97706" />
-              <span>Simulasi Listrik & Biaya</span>
-            </button>
+
 
             {/* Auto-Scroll Controls & 4x2 Page Navigation */}
             {viewMode === 'grid' && gridPages.length > 1 && (
@@ -1850,11 +1821,6 @@ export default function Home({ user }) {
                               key={kost.uid || `${pIdx}-${idx}`} 
                               kost={kost} 
                               userLocation={userLocation}
-                              onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
-                              onOpenCalculator={(k) => {
-                                setCalcSelectedKost(k);
-                                setShowCalculator(true);
-                              }}
                             />
                           ))}
                         </div>
@@ -1906,11 +1872,6 @@ export default function Home({ user }) {
                       key={`hp-2col-${kost.uid || idx}`} 
                       kost={kost} 
                       userLocation={userLocation}
-                      onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
-                      onOpenCalculator={(k) => {
-                        setCalcSelectedKost(k);
-                        setShowCalculator(true);
-                      }}
                     />
                   ))}
                 </div>
@@ -1953,11 +1914,6 @@ export default function Home({ user }) {
                       key={`catalog-${kost.uid || idx}`} 
                       kost={kost} 
                       userLocation={userLocation}
-                      onOpenFloorPlan={(k) => setPreviewFloorPlanKost(k)}
-                      onOpenCalculator={(k) => {
-                        setCalcSelectedKost(k);
-                        setShowCalculator(true);
-                      }}
                     />
                   ))}
                 </div>
@@ -1977,23 +1933,7 @@ export default function Home({ user }) {
       {/* Floating Install PWA Modal */}
       {showInstall && <InstallModal onClose={() => setShowInstall(false)} />}
 
-      {/* Kwh Utility & Rent Calculator Modal */}
-      {showCalculator && (
-        <KwhUtilityCalculatorModal
-          isOpen={showCalculator}
-          onClose={() => setShowCalculator(false)}
-          selectedKost={calcSelectedKost}
-        />
-      )}
 
-      {/* 2D Architectural Floorplan Blueprint Modal */}
-      {previewFloorPlanKost && (
-        <FloorPlanModal
-          isOpen={Boolean(previewFloorPlanKost)}
-          onClose={() => setPreviewFloorPlanKost(null)}
-          kost={previewFloorPlanKost}
-        />
-      )}
 
       {/* Full Feature Filter Pop-up Modal / Bottom Sheet */}
       <KostFilterModal
@@ -2036,7 +1976,7 @@ export default function Home({ user }) {
 // - Max 3 Essential Facilities Icons (AC, KM Dalam, WiFi)
 // - Bold Monospace Tabular Pricing
 // ═══════════════════════════════════════════════════════════════════
-function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
+function KostCard({ kost, userLocation }) {
   if (!kost) return null;
 
   const { theme } = useTheme();
@@ -2409,94 +2349,6 @@ function KostCard({ kost, userLocation, onOpenFloorPlan, onOpenCalculator }) {
               </div>
             </div>
 
-            {/* Row 2: Secondary Quick Utility Tools (Desktop Only) */}
-            <div 
-              className="kost-card-action-tools desktop-only"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onOpenCalculator?.(kost);
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  background: isLight ? 'rgba(234, 179, 8, 0.12)' : 'rgba(234, 179, 8, 0.12)',
-                  border: isLight ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid rgba(234, 179, 8, 0.25)',
-                  color: isLight ? '#b45309' : '#fbbf24',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                title="Simulasi Estimasi Token Listrik"
-              >
-                <Zap size={11} /> Listrik
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onOpenFloorPlan?.(kost);
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  background: isLight ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)',
-                  border: isLight ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)',
-                  color: isLight ? '#2563eb' : '#60a5fa',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                title="Lihat Denah 2D Arsitektur Kamar"
-              >
-                📐 Denah 2D
-              </button>
-
-              {kost.location?.lat && kost.location?.lng && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const url = getGmapsDirectionsUrl(
-                      kost.location.lat,
-                      kost.location.lng,
-                      userLocation?.lat,
-                      userLocation?.lng
-                    );
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                  }}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    background: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.15)',
-                    border: isLight ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.3)',
-                    color: isLight ? '#059669' : '#34d399',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                  title="Buka Navigasi Rute Google Maps"
-                >
-                  <Navigation size={11} /> 🗺️ Rute
-                </button>
-              )}
-            </div>
           </div>
 
         </div>

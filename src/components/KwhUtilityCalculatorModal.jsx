@@ -18,9 +18,9 @@ import {
  * Transparansi Utilitas & Kalkulator Estimasi Biaya Sewa + Token Listrik PLN
  * Mengatasi kekhawatiran nomor satu mahasiswa & pekerja: biaya utilitas tersembunyi.
  */
-export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKost = null }) {
-  // Base rent price (defaults to selectedKost or Rp 1.500.000)
-  const initialRent = selectedKost?.rooms?.[0]?.price || 1500000;
+export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKost = null, roomPrice = null }) {
+  // Base rent price (defaults to roomPrice, selectedKost, or Rp 1.500.000)
+  const initialRent = roomPrice || selectedKost?.rooms?.[0]?.price || 1500000;
   const [rentPrice, setRentPrice] = useState(initialRent);
 
   // AC type and hours per day

@@ -276,3 +276,135 @@ export function getGmapsPlaceUrl(lat, lng, name) {
   }
   return `https://maps.google.com/?q=${lat},${lng}`;
 }
+
+// Alias for backwards compatibility
+export const getUserCurrentLocation = getCurrentPositionAsync;
+
+/**
+ * Validates that an owner's Google Maps link points to their registered Kost business place pin,
+ * and strictly REJECTS generic street/road links or links with mismatching names.
+ * @param {string} rawUrl 
+ * @param {string} rawKostName 
+ * @returns {{ valid: boolean, message: string, placeName?: string, isShortLink?: boolean }}
+ */
+export function validateKostGmapsUrl(rawUrl, rawKostName) {
+  const url = (rawUrl || '').trim();
+  const kostName = (rawKostName || '').trim();
+
+  if (!kostName) {
+    return { 
+      valid: false, 
+      message: 'Nama properti kost wajib diisi terlebih dahulu sebelum memvalidasi tautan Google Maps.' 
+    };
+  }
+  if (!url) {
+    return { 
+      valid: false, 
+      message: 'Tautan Google Maps wajib diisi. Calon penghuni membutuhkan titik navigasi resmi ke lokasi kost Anda.' 
+    };
+  }
+
+  // 1. Must be a valid Google Maps domain
+  const isGoogleMaps = /https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)\b/i.test(url);
+  if (!isGoogleMaps) {
+    return { 
+      valid: false, 
+      message: 'Tautan harus berasal dari domain resmi Google Maps (maps.google.com atau maps.app.goo.gl).' 
+    };
+  }
+
+  // 2. Reject pure coordinates or map view without place/kost name
+  const isPureCoords = /^(https?:\/\/[^\s]+[\?&]q=)?-?\d+\.\d+[\s,]+-?\d+\.\d+$/i.test(url) ||
+    (/google\.[a-z.]+\/maps\/@[-\d.]+,[-\d.]+/i.test(url) && !/\/place\//i.test(url)) ||
+    /maps\.google\.[a-z.]+\/\?q=[-\d.]+,[-\d.]+$/i.test(url) ||
+    /\/place\/[-\d.]+,[-\d.]+/i.test(url);
+
+  if (isPureCoords) {
+    return { 
+      valid: false, 
+      message: `Tautan ditolak! Link hanya berupa titik koordinat jalan umum tanpa nama kost. Owner KostKu wajib menyematkan tautan profil bisnis/tempat kost '${kostName}' di Google Maps.` 
+    };
+  }
+
+  // 3. Extract place name or query parameter from URL
+  let extractedPlace = '';
+  const placeMatch = url.match(/\/maps\/place\/([^/@?]+)/i);
+  if (placeMatch && placeMatch[1]) {
+    try {
+      extractedPlace = decodeURIComponent(placeMatch[1].replace(/\+/g, ' ')).trim();
+    } catch (_) {
+      extractedPlace = placeMatch[1].replace(/\+/g, ' ').trim();
+    }
+  }
+
+  if (!extractedPlace) {
+    const queryMatch = url.match(/[?&](?:query|q)=([^&]+)/i);
+    if (queryMatch && queryMatch[1]) {
+      try {
+        extractedPlace = decodeURIComponent(queryMatch[1].replace(/\+/g, ' ')).trim();
+      } catch (_) {
+        extractedPlace = queryMatch[1].replace(/\+/g, ' ').trim();
+      }
+    }
+  }
+
+  // Common generic Indonesian/English lodging terms
+  const stopWords = new Set([
+    'kost', 'kos', 'kosan', 'indekos', 'house', 'homestay', 'residence', 
+    'griya', 'wisma', 'putra', 'putri', 'campur', 'exclusive', 'eksklusif', 
+    'executive', 'the', 'pondok', 'paviliun', 'dorm', 'dormitory'
+  ]);
+
+  const kostTokens = kostName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(t => t.length >= 2);
+
+  const distinctiveTokens = kostTokens.filter(t => !stopWords.has(t));
+  const tokensToCheck = distinctiveTokens.length > 0 ? distinctiveTokens : kostTokens;
+
+  if (extractedPlace) {
+    const lowerExtracted = extractedPlace.toLowerCase();
+
+    // Check if place name is solely a street/road without lodging designation
+    const startsWithStreet = /^(jl\.?|jalan|gang|gg\.?|lorong|boulevard|blvd|street|st\.?|road|rd\.?)\b/i.test(extractedPlace);
+    const lodgingKeywords = ['kost', 'kos', 'kosan', 'griya', 'wisma', 'residence', 'homestay', 'pondok', 'paviliun', 'dorm', 'house', 'penginapan'];
+    const hasLodgingKeyword = lodgingKeywords.some(k => lowerExtracted.includes(k));
+    const isGenericStreetOnly = startsWithStreet && !hasLodgingKeyword;
+
+    if (isGenericStreetOnly) {
+      return {
+        valid: false,
+        message: `Tautan ditolak! Link hanya mengarah ke nama jalan umum ('${extractedPlace}'), bukan profil tempat kost '${kostName}'. Pastikan tautan berasal dari titik pin bisnis kost Anda di Google Maps.`
+      };
+    }
+
+    // Check if extracted place contains at least one distinctive token of kostName
+    const hasKostMatch = tokensToCheck.some(token => lowerExtracted.includes(token));
+    if (!hasKostMatch) {
+      return {
+        valid: false,
+        message: `Tautan ditolak! Nama tempat di Google Maps ('${extractedPlace}') tidak cocok dengan nama kost '${kostName}'. Tautan wajib mengarah ke tempat kost Anda.`
+      };
+    }
+
+    return { 
+      valid: true, 
+      message: `Tautan terverifikasi mengarah ke "${extractedPlace}".`, 
+      placeName: extractedPlace 
+    };
+  }
+
+  // Short link support (maps.app.goo.gl or goo.gl/maps)
+  if (/maps\.app\.goo\.gl|goo\.gl\/maps/i.test(url)) {
+    return { 
+      valid: true, 
+      message: 'Tautan Google Maps format pendek (maps.app.goo.gl) terdeteksi. Pastikan link ini diambil dari menu Bagikan di profil kost Anda.',
+      isShortLink: true 
+    };
+  }
+
+  return { valid: true, message: 'Tautan Google Maps terverifikasi.' };
+}
+
