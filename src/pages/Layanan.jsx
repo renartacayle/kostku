@@ -1,0 +1,1385 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
+import {
+  Sparkles,
+  Search,
+  X,
+  Store,
+  ArrowLeft,
+  ArrowRight,
+  Zap,
+  RefreshCw,
+  Plus,
+  Check,
+  Copy,
+  ShoppingBag,
+  SlidersHorizontal,
+  ThumbsUp,
+  MapPin,
+  Tag,
+  Building,
+  Info
+} from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { apiGetMerchants, apiGetPartnerOrders } from '../services/api';
+import MitraGridCard from '../components/MitraGridCard';
+import PartnerOrderModal from '../components/PartnerOrderModal';
+import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
+
+export default function Layanan({ user }) {
+  const { isLight } = useTheme();
+
+  // Responsive mobile detector
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    if (typeof window !== 'undefined') return window.innerWidth < 768;
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileScreen(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // User State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kostUser');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return user || { id: 'usr-1', name: 'Penghuni Kost', kamar: '122', kostUid: 'KOST-OJN64X', loyalty_points: 250 };
+  });
+
+  const kostName = localStorage.getItem('kostName') || 'KostKu Residence';
+  const targetKostUid = currentUser?.kostUid || user?.kostUid || 'KOST-OJN64X';
+  const activeUserId = currentUser?.id || user?.id || 'usr-1';
+
+  // Data States
+  const [merchants, setMerchants] = useState([]);
+  const [loadingMerchants, setLoadingMerchants] = useState(true);
+
+  // Search, Categories & Sorting
+  const [partnerCategory, setPartnerCategory] = useState('all');
+  const [partnerBrand, setPartnerBrand] = useState('all');
+  const [partnerSort, setPartnerSort] = useState('cheapest'); // 'cheapest', 'highest', 'distance'
+  const [pinMainPartner, setPinMainPartner] = useState(true);
+  const [partnerSearch, setPartnerSearch] = useState('');
+
+  // Referral & Loyalty States
+  const [referralCopied, setReferralCopied] = useState(false);
+  const [friendReferralInput, setFriendReferralInput] = useState('');
+  const [friendReferralStatus, setFriendReferralStatus] = useState(null);
+
+  // Modal States
+  const [selectedService, setSelectedService] = useState(null);
+  const [showSmartLockModal, setShowSmartLockModal] = useState(false);
+  const [showSuggestMerchantModal, setShowSuggestMerchantModal] = useState(false);
+  const [showRegisterIndependentModal, setShowRegisterIndependentModal] = useState(false);
+
+  // Repeat Orders ("Beli Lagi")
+  const [orderedMerchantIds, setOrderedMerchantIds] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('kostku_ordered_merchants');
+        const parsed = stored ? JSON.parse(stored) : [];
+        return new Set(['PTR-DEF-01', 'PTR-DEF-03', ...parsed]);
+      }
+    } catch (e) {}
+    return new Set(['PTR-DEF-01', 'PTR-DEF-03']);
+  });
+
+  // Independent Stores
+  const [independentMerchants, setIndependentMerchants] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('kostku_independent_merchants');
+        if (stored) return JSON.parse(stored);
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  // Suggest Merchant Form
+  const [suggestForm, setSuggestForm] = useState({ name: '', category: 'makanan', phone: '', note: '' });
+  const [suggestNotice, setSuggestNotice] = useState(null);
+
+  // Independent Merchant Form
+  const [independentForm, setIndependentForm] = useState({
+    name: '',
+    category: 'makanan',
+    phone: '',
+    address: '',
+    firstProductName: '',
+    firstProductPrice: 15000
+  });
+  const [independentNotice, setIndependentNotice] = useState(null);
+
+  // Fetch merchants & previous orders
+  const fetchMerchantsData = async () => {
+    setLoadingMerchants(true);
+    try {
+      const res = await apiGetMerchants(targetKostUid);
+      if (Array.isArray(res)) setMerchants(res);
+      else if (res?.merchants) setMerchants(res.merchants);
+
+      const pOrders = await apiGetPartnerOrders(targetKostUid, activeUserId).catch(() => []);
+      if (Array.isArray(pOrders) && pOrders.length > 0) {
+        setOrderedMerchantIds(prev => {
+          const next = new Set(prev);
+          pOrders.forEach(o => {
+            if (o.merchantId) next.add(o.merchantId);
+          });
+          return next;
+        });
+      }
+    } catch (err) {
+      console.warn('Gagal memuat katalog mitra:', err);
+    } finally {
+      setLoadingMerchants(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMerchantsData();
+  }, [targetKostUid, activeUserId]);
+
+  // Sync user updates (e.g. loyalty points)
+  useEffect(() => {
+    const handleUserUpdated = (e) => {
+      if (e.detail) setCurrentUser(e.detail);
+    };
+    window.addEventListener('kostku_user_updated', handleUserUpdated);
+    window.addEventListener('kostUser_updated', handleUserUpdated);
+    return () => {
+      window.removeEventListener('kostku_user_updated', handleUserUpdated);
+      window.removeEventListener('kostUser_updated', handleUserUpdated);
+    };
+  }, []);
+
+  // Listen for newly created orders
+  useEffect(() => {
+    const handleOrderCreated = () => {
+      fetchMerchantsData();
+    };
+    window.addEventListener('kostku_partner_order_created', handleOrderCreated);
+    return () => window.removeEventListener('kostku_partner_order_created', handleOrderCreated);
+  }, []);
+
+  // Handle Referral Copy
+  const currentLoyaltyPoints = Number(currentUser?.loyalty_points ?? 250);
+  const userRefCode = currentUser?.referralCode || `KOST-${(currentUser?.kamar || '101').replace(/\s+/g, '')}-${(currentUser?.name || 'ANAKKOST').split(' ')[0].toUpperCase()}`;
+
+  const handleCopyCode = () => {
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(userRefCode);
+      }
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch (e) {
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    }
+  };
+
+  const handleClaimFriendCode = () => {
+    if (!friendReferralInput.trim()) return;
+    const cleanInput = friendReferralInput.trim().toUpperCase();
+    if (cleanInput === userRefCode.toUpperCase()) {
+      setFriendReferralStatus({ type: 'error', message: 'Tidak bisa pakai kodemu sendiri!' });
+      return;
+    }
+    const newTotal = currentLoyaltyPoints + 100;
+    const updated = {
+      ...currentUser,
+      loyalty_points: newTotal,
+      claimedFriendReferral: cleanInput,
+      lastUsedReferral: cleanInput
+    };
+    setCurrentUser(updated);
+    localStorage.setItem('kostUser', JSON.stringify(updated));
+    localStorage.setItem('kostku_last_referral_code', cleanInput);
+    window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: updated }));
+    setFriendReferralInput('');
+    setFriendReferralStatus({ type: 'success', message: '🎉 +100 Poin referral tersimpan otomatis!' });
+    setTimeout(() => setFriendReferralStatus(null), 3000);
+  };
+
+  // Submit Warung Suggestion
+  const handleSuggestMerchantSubmit = (e) => {
+    e.preventDefault();
+    if (!suggestForm.name.trim()) return;
+
+    try {
+      const stored = localStorage.getItem('kostUser');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const currentPts = Number(parsed.loyalty_points ?? 250);
+        parsed.loyalty_points = currentPts + 500;
+        localStorage.setItem('kostUser', JSON.stringify(parsed));
+        setCurrentUser(parsed);
+        window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
+        window.dispatchEvent(new Event('kostUser_updated'));
+      }
+    } catch (err) {
+      console.warn('Gagal menambah poin usulan warung:', err);
+    }
+
+    setSuggestNotice({
+      type: 'success',
+      message: `🎉 Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
+    });
+  };
+
+  // Register Independent Merchant
+  const handleRegisterIndependentSubmit = (e) => {
+    e.preventDefault();
+    if (!independentForm.name.trim() || !independentForm.firstProductName.trim()) return;
+
+    const newMerchantId = `PTR-INDEP-${Date.now()}`;
+    const categoryLabel = independentForm.category === 'makanan' ? 'Warung & Kuliner'
+      : independentForm.category === 'laundry' ? 'Laundry Express'
+      : independentForm.category === 'galon' ? 'Air & Gas'
+      : 'Jasa & Servis';
+
+    const defaultIcon = independentForm.category === 'makanan' ? '🍲'
+      : independentForm.category === 'laundry' ? '🧺'
+      : independentForm.category === 'galon' ? '💧'
+      : '🛠️';
+
+    const defaultPhoto = independentForm.category === 'makanan'
+      ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80'
+      : null;
+
+    const newMerchant = {
+      id: newMerchantId,
+      name: independentForm.name.trim(),
+      category: categoryLabel,
+      icon: defaultIcon,
+      rating: 5.0,
+      soldCount: 0,
+      deliveryEstimate: '15-25 mnt',
+      deliveryFee: 2000,
+      distance: '300m',
+      phone: independentForm.phone.trim() || '6281234567890',
+      address: independentForm.address.trim() || 'Sekitar Kost',
+      isIndependent: true,
+      partnershipType: 'independent',
+      isNewcomer: true,
+      isNew: true,
+      createdAt: new Date().toISOString(),
+      products: [
+        {
+          id: `PROD-${Date.now()}-1`,
+          name: independentForm.firstProductName.trim(),
+          price: Number(independentForm.firstProductPrice) || 15000,
+          image: defaultPhoto,
+          isBestSeller: true,
+          totalSold: 1,
+          isCameraVerified: true
+        }
+      ]
+    };
+
+    try {
+      const stored = localStorage.getItem('kostku_independent_merchants');
+      const parsed = stored ? JSON.parse(stored) : [];
+      const updated = [newMerchant, ...parsed];
+      localStorage.setItem('kostku_independent_merchants', JSON.stringify(updated));
+      setIndependentMerchants(updated);
+    } catch (err) {
+      console.warn('Gagal menyimpan toko mandiri:', err);
+    }
+
+    setIndependentNotice({
+      type: 'success',
+      message: `🏪 Selamat! Toko "${newMerchant.name}" berhasil terpasang dan langsung aktif di katalog KostKu (Masa Inkubasi Baru).`
+    });
+  };
+
+  // Base list of merchants with fallback
+  const defaultUserMerchants = [
+    {
+      id: 'PTR-BDG-01-DEF',
+      icon: '🍱',
+      logo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=100&auto=format&fit=crop&q=80',
+      name: 'Warung Makan Bu Siti Dago',
+      category: 'makanan',
+      distanceKm: 0.08,
+      isMainPartner: true,
+      partnershipType: 'main',
+      originKostName: kostName,
+      commissionOwner: 1000,
+      products: [
+        { id: 'p1', name: 'Es Teh Manis Jumbo Segar', brand: 'Minuman', price: 5000, desc: 'Penyegar tenggorokan hemat', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=80', totalSold: 54 },
+        { id: 'p2', name: 'Nasi Goreng Spesial Telur Ceplok', brand: 'Makanan', price: 16000, desc: 'Porsi kenyang + telur mata sapi & kerupuk', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&auto=format&fit=crop&q=80', totalSold: 78 },
+        { id: 'p3', name: 'Paket Ayam Geprek Sambal Korek + Nasi', brand: 'Makanan', price: 20000, desc: 'Ayam renyah krispi pedas level 1-5', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300&auto=format&fit=crop&q=80', totalSold: 136, isBestSeller: true }
+      ]
+    },
+    {
+      id: 'PTR-SHARED-03-DEF',
+      icon: '🥞',
+      logo: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100&auto=format&fit=crop&q=80',
+      name: 'Martabak & Roti Bakar Bangka 99',
+      category: 'makanan',
+      distanceKm: 0.45,
+      isShared: true,
+      partnershipType: 'shared',
+      originKostName: 'Jaringan Bersama Multi-Kost',
+      commissionOwner: 1000,
+      products: [
+        { id: 'm1', name: 'Roti Bakar Coklat Susu Crispy', brand: 'Roti Bakar', price: 14000, desc: 'Roti bakar empuk selai coklat lumer', image: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=300&auto=format&fit=crop&q=80', totalSold: 42 },
+        { id: 'm2', name: 'Martabak Telur Daging Sapi Gurih', brand: 'Martabak', price: 32000, desc: 'Isi daging sapi cincang gurih', image: 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=300&auto=format&fit=crop&q=80', totalSold: 89 },
+        { id: 'm3', name: 'Martabak Manis Spesial Keju Wisman', brand: 'Martabak', price: 38000, desc: 'Mentega wisman wangi legit keju tebal', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&auto=format&fit=crop&q=80', totalSold: 154, isBestSeller: true }
+      ]
+    },
+    {
+      id: 'PTR-DEF-01',
+      icon: '💧',
+      logo: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=100&auto=format&fit=crop&q=80',
+      name: 'Depot Air & Gas Barokah',
+      category: 'galon',
+      distanceKm: 0.15,
+      isMainPartner: true,
+      partnershipType: 'main',
+      originKostName: kostName,
+      commissionOwner: 1000,
+      products: [
+        { id: 'P-GLN-03', name: 'Air Galon Vit 19L', brand: 'Vit', price: 16000, desc: 'Paling hemat & higienis', image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=300&auto=format&fit=crop&q=80', totalSold: 98 },
+        { id: 'P-GLN-01', name: 'Air Galon Aqua 19L', brand: 'Aqua', price: 19000, desc: 'Air mineral alami pegunungan', image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=300&auto=format&fit=crop&q=80', totalSold: 218, isBestSeller: true },
+        { id: 'P-GLN-02', name: 'Air Galon Le Minerale 19L', brand: 'Le Minerale', price: 21000, desc: 'Galon sekali pakai higienis', image: 'https://images.unsplash.com/photo-1560023907-5f339617ea30?w=300&auto=format&fit=crop&q=80', totalSold: 114 },
+        { id: 'P-GAS-01', name: 'Gas LPG 3kg Melon', brand: 'Pertamina', price: 23000, desc: 'Tabung gas segel resmi SNI', image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=300&auto=format&fit=crop&q=80', totalSold: 76 }
+      ]
+    },
+    {
+      id: 'PTR-DEF-02',
+      icon: '🧺',
+      logo: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=100&auto=format&fit=crop&q=80',
+      name: 'Melati Express Laundry Kiloan',
+      category: 'laundry',
+      distanceKm: 0.35,
+      isMainPartner: true,
+      partnershipType: 'main',
+      originKostName: kostName,
+      commissionOwner: 1000,
+      products: [
+        { id: 'P-LND-01', name: 'Cuci + Setrika Reguler (2 Hari)', brand: 'Reguler', price: 8000, desc: 'Harga per kg, wangi rapi', image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=300&auto=format&fit=crop&q=80', totalSold: 85 },
+        { id: 'P-LND-02', name: 'Cuci Komplit Kilat Express (1 Hari)', brand: 'Express', price: 15000, desc: 'Harga per kg, selesai 24 jam', image: 'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?w=300&auto=format&fit=crop&q=80', totalSold: 192, isBestSeller: true },
+        { id: 'P-LND-03', name: 'Cuci Sprei & Selimut Tebal', brand: 'Bedding', price: 25000, desc: 'Per set sprei + sarung bantal', image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=300&auto=format&fit=crop&q=80', totalSold: 38 }
+      ]
+    },
+    {
+      id: 'PTR-EXT-05-DEF',
+      icon: '🍱',
+      logo: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=100&auto=format&fit=crop&q=80',
+      name: 'Katering Sehat Bento Kampus Bu Dian',
+      category: 'makanan',
+      distanceKm: 1.10,
+      isMainPartner: false,
+      partnershipType: 'network',
+      originKostName: 'Binaan Kost Sekitar (Kost B)',
+      commissionOwner: 1000,
+      products: [
+        { id: 'b1', name: 'Bento Box Chicken Teriyaki + Salad', brand: 'Bento', price: 22000, desc: 'Ayam teriyaki gurih manis + nasi jepang', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300&auto=format&fit=crop&q=80', totalSold: 112, isBestSeller: true },
+        { id: 'b2', name: 'Paket Nasi Rawon Daging Komplit Telur Asin', brand: 'Tradisional', price: 28000, desc: 'Kuah kluwek gurih daging empuk', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&auto=format&fit=crop&q=80', totalSold: 64 },
+        { id: 'b3', name: 'Paket Premium Sirloin Steak Rice Bowl', brand: 'Premium', price: 42000, desc: 'Daging sapi sirloin empuk saus lada hitam', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&auto=format&fit=crop&q=80', totalSold: 46 }
+      ]
+    },
+    {
+      id: 'PTR-INDEP-01',
+      icon: '🧃',
+      logo: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=100&auto=format&fit=crop&q=80',
+      name: 'Juice Bar & Camilan Mas Dimas',
+      category: 'makanan',
+      distanceKm: 0.12,
+      isIndependent: true,
+      isNewcomer: true,
+      partnershipType: 'independent',
+      originKostName: 'UMKM Mandiri Sekitar Kost',
+      commissionOwner: 0,
+      products: [
+        { id: 'j1', name: 'Jus Alpukat Kocok Gula Aren', brand: 'Minuman', price: 12000, desc: 'Alpukat mentega kental + susu coklat', image: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=300&auto=format&fit=crop&q=80', totalSold: 18, isBestSeller: true },
+        { id: 'j2', name: 'Pisang Crispy Keju Coklat Lumer', brand: 'Camilan', price: 10000, desc: 'Porsi ngemil kenyang hemat', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?w=300&auto=format&fit=crop&q=80', totalSold: 12 }
+      ]
+    }
+  ];
+
+  const baseMerged = merchants.length > 0
+    ? [...merchants, ...defaultUserMerchants.filter(d => d.isIndependent && !merchants.some(m => m.id === d.id))]
+    : defaultUserMerchants;
+  const rawList = [...baseMerged, ...independentMerchants.filter(im => !baseMerged.some(bm => bm.id === im.id))];
+
+  // Filter list
+  let list = rawList.filter(m => {
+    if (partnerCategory === 'all') return true;
+    if (partnerCategory === 'beli_lagi') {
+      return orderedMerchantIds.has(m.id) ||
+             Array.from(orderedMerchantIds).some(oid => String(m.id).includes(String(oid)) || String(oid).includes(String(m.id)));
+    }
+    if (partnerCategory === 'mandiri') {
+      return Boolean(m.isIndependent || m.partnershipType === 'independent');
+    }
+    if (partnerCategory === 'galon') return m.category === 'galon' || (m.products || []).some(p => p.name.toLowerCase().includes('galon'));
+    if (partnerCategory === 'laundry') return m.category === 'laundry' || (m.products || []).some(p => p.name.toLowerCase().includes('laundry') || p.name.toLowerCase().includes('cuci'));
+    if (partnerCategory === 'gas') return m.category === 'gas' || (m.products || []).some(p => p.name.toLowerCase().includes('gas') || p.name.toLowerCase().includes('lpg'));
+    if (partnerCategory === 'makanan') return m.category === 'makanan' || m.category === 'Warung & Kuliner' || (m.products || []).some(p => p.name.toLowerCase().includes('nasi') || p.name.toLowerCase().includes('roti') || p.name.toLowerCase().includes('martabak') || p.name.toLowerCase().includes('bento'));
+    if (partnerCategory === 'service') return m.category === 'service';
+    return m.category === partnerCategory;
+  });
+
+  if (partnerBrand !== 'all') {
+    list = list.filter(m => {
+      return (m.products || []).some(p => 
+        (p.brand || '').toLowerCase() === partnerBrand.toLowerCase() ||
+        p.name.toLowerCase().includes(partnerBrand.toLowerCase())
+      );
+    });
+  }
+
+  if (partnerSearch.trim()) {
+    const q = partnerSearch.toLowerCase();
+    list = list.filter(m => {
+      const matchName = m.name?.toLowerCase().includes(q);
+      const matchProd = (m.products || []).some(p => 
+        p.name?.toLowerCase().includes(q) || 
+        p.desc?.toLowerCase().includes(q) || 
+        p.brand?.toLowerCase().includes(q)
+      );
+      return matchName || matchProd;
+    });
+  }
+
+  // Sorting
+  list.sort((a, b) => {
+    if (pinMainPartner) {
+      const isMainA = Boolean(a.isMainPartner || a.partnershipType === 'main');
+      const isMainB = Boolean(b.isMainPartner || b.partnershipType === 'main');
+      if (isMainA && !isMainB) return -1;
+      if (!isMainA && isMainB) return 1;
+    }
+
+    if (partnerSort === 'cheapest') {
+      const minA = Math.min(...(a.products || [{ price: 999999 }]).map(p => Number(p.price) || 999999));
+      const minB = Math.min(...(b.products || [{ price: 999999 }]).map(p => Number(p.price) || 999999));
+      return minA - minB;
+    } else if (partnerSort === 'highest') {
+      const maxA = Math.max(...(a.products || [{ price: 0 }]).map(p => Number(p.price) || 0));
+      const maxB = Math.max(...(b.products || [{ price: 0 }]).map(p => Number(p.price) || 0));
+      return maxB - maxA;
+    } else if (partnerSort === 'distance') {
+      return (Number(a.distanceKm) || 0) - (Number(b.distanceKm) || 0);
+    }
+    return 0;
+  });
+
+  // Guaranteed Exploration Slot
+  if (partnerCategory !== 'beli_lagi' && list.length > 2) {
+    const newcomerIdx = list.findIndex(m => Boolean(m.isNewcomer || m.isNew));
+    if (newcomerIdx > 1) {
+      const [newcomer] = list.splice(newcomerIdx, 1);
+      list.splice(1, 0, newcomer);
+    }
+  }
+
+  return (
+    <div style={{
+      maxWidth: '1280px',
+      margin: '0 auto',
+      padding: isMobileScreen ? '1rem 0.75rem 5rem' : '2rem 1.5rem 3rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1.25rem'
+    }}>
+      {/* Top Breadcrumb & Return to Dashboard */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+        <Link
+          to="/dashboard"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.85rem',
+            color: 'var(--accent-primary)',
+            textDecoration: 'none',
+            fontWeight: 700
+          }}
+        >
+          <ArrowLeft size={16} /> Kembali ke Kost Saya
+        </Link>
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+          Kamar: <strong style={{ color: 'var(--text-primary)' }}>{currentUser?.kamar || '122'}</strong> • {kostName}
+        </span>
+      </div>
+
+      {/* Main Container Card */}
+      <div className="card glass-panel" style={{
+        border: '1px solid rgba(59, 130, 246, 0.25)',
+        padding: isMobileScreen ? '12px 14px' : '20px 24px',
+        borderRadius: '20px'
+      }}>
+        {/* Header Title & Badges */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <h2 style={{
+              margin: 0,
+              fontSize: isMobileScreen ? '1.15rem' : '1.35rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800
+            }}>
+              <Sparkles size={20} color="#60a5fa" /> Layanan Toko & Mitra Sekitar Kost
+            </h2>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Bebas pilih toko langganan & bandingkan harga • Antar langsung ke pintu kamar
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: '0.68rem',
+              padding: '3px 8px',
+              borderRadius: '999px',
+              background: 'rgba(34, 197, 94, 0.12)',
+              color: '#4ade80',
+              fontWeight: 700,
+              border: '1px solid rgba(34, 197, 94, 0.25)'
+            }}>
+              💳 Non-Tunai / Tagihan
+            </span>
+            <span style={{
+              fontSize: '0.68rem',
+              padding: '3px 8px',
+              borderRadius: '999px',
+              background: 'rgba(59, 130, 246, 0.12)',
+              color: '#93c5fd',
+              fontWeight: 700,
+              border: '1px solid rgba(59, 130, 246, 0.25)'
+            }}>
+              🏷️ Fee Max Rp 500
+            </span>
+          </div>
+        </div>
+
+        {/* PROGRAM REFERRAL & POIN ANAK KOST */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px',
+          padding: '6px 12px',
+          borderRadius: '10px',
+          background: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.04)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+          marginBottom: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem' }}>🪙</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isLight ? '#b45309' : '#fbbf24' }}>
+              {currentLoyaltyPoints} Poin
+            </span>
+            <span style={{ fontSize: '0.68rem', color: isLight ? '#78350f' : '#fef3c7' }}>
+              (Rp {currentLoyaltyPoints.toLocaleString('id-ID')})
+            </span>
+            <span style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b' }}>•</span>
+            <span style={{ fontSize: '0.68rem', color: isLight ? '#475569' : '#cbd5e1' }}>
+              Referral: Teman <strong style={{ color: '#4ade80' }}>+100</strong>, Kamu <strong style={{ color: '#38bdf8' }}>+100</strong>
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            {/* Referral Code Badge */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              borderRadius: '6px',
+              padding: '2px 6px',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              fontFamily: 'monospace',
+              color: isLight ? '#0f172a' : '#f8fafc'
+            }}>
+              <span>{userRefCode}</span>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                style={{
+                  background: referralCopied ? '#22c55e' : (isLight ? '#f59e0b' : '#d97706'),
+                  border: 'none',
+                  color: '#ffffff',
+                  borderRadius: '4px',
+                  padding: '1px 5px',
+                  fontSize: '0.62rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {referralCopied ? 'Tersalin!' : 'Salin'}
+              </button>
+            </div>
+
+            {/* Friend Code Input */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <input
+                type="text"
+                placeholder="Kode teman?"
+                value={friendReferralInput}
+                onChange={e => setFriendReferralInput(e.target.value)}
+                style={{
+                  width: '90px',
+                  padding: '2px 6px',
+                  fontSize: '0.68rem',
+                  borderRadius: '6px',
+                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                  background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                  color: isLight ? '#0f172a' : '#f8fafc',
+                  textTransform: 'uppercase'
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleClaimFriendCode}
+                disabled={!friendReferralInput.trim()}
+                style={{
+                  background: '#2563eb',
+                  border: 'none',
+                  color: '#ffffff',
+                  borderRadius: '6px',
+                  padding: '2px 7px',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  cursor: friendReferralInput.trim() ? 'pointer' : 'default',
+                  opacity: friendReferralInput.trim() ? 1 : 0.6
+                }}
+              >
+                +100
+              </button>
+            </div>
+
+            {/* Quick Token PLN Button */}
+            <button
+              type="button"
+              onClick={() => setShowSmartLockModal(true)}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                borderRadius: '6px',
+                padding: '2px 7px',
+                fontSize: '0.68rem',
+                color: '#fbbf24',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}
+            >
+              <Zap size={12} /> Token PLN
+            </button>
+          </div>
+
+          {friendReferralStatus && (
+            <div style={{ fontSize: '0.65rem', color: friendReferralStatus.type === 'success' ? '#4ade80' : '#f87171', width: '100%', marginTop: '2px' }}>
+              {friendReferralStatus.message}
+            </div>
+          )}
+        </div>
+
+        {/* Search Bar */}
+        <div style={{ position: 'relative', marginBottom: '8px' }}>
+          <div style={{
+            position: 'absolute',
+            left: '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            color: '#94a3b8',
+            pointerEvents: 'none'
+          }}>
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            value={partnerSearch}
+            onChange={e => setPartnerSearch(e.target.value)}
+            placeholder="Cari toko, menu makanan, galon, laundry..."
+            className="input-field"
+            style={{
+              width: '100%',
+              paddingLeft: '34px',
+              paddingRight: partnerSearch ? '32px' : '12px',
+              paddingTop: '9px',
+              paddingBottom: '9px',
+              fontSize: '0.85rem',
+              borderRadius: '8px',
+              background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.6)',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: isLight ? '#0f172a' : '#f8fafc'
+            }}
+          />
+          {partnerSearch && (
+            <button
+              type="button"
+              onClick={() => setPartnerSearch('')}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        {/* UMKM BANNER: Usulkan Warung & Pasang Toko Mandiri */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px',
+          background: isLight ? 'rgba(2, 132, 199, 0.06)' : 'rgba(56, 189, 248, 0.04)',
+          border: isLight ? '1px solid rgba(2, 132, 199, 0.2)' : '1px solid rgba(56, 189, 248, 0.15)',
+          borderRadius: '8px',
+          padding: '6px 10px',
+          marginBottom: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.9rem' }}>💡</span>
+            <div style={{ fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.25 }}>
+              <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>Punya usaha atau warung langganan?</strong> UMKM sekitar bebas jualan tanpa wajib kontrak kost!
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => { setShowSuggestMerchantModal(true); setSuggestNotice(null); }}
+              style={{
+                background: isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(56, 189, 248, 0.15)',
+                border: isLight ? '1px solid #0284c7' : '1px solid #38bdf8',
+                color: isLight ? '#0284c7' : '#38bdf8',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '0.70rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              + Usulkan Warung (+500 Pts)
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowRegisterIndependentModal(true); setIndependentNotice(null); }}
+              style={{
+                background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                border: 'none',
+                color: '#ffffff',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '0.70rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 2px 4px rgba(14, 165, 233, 0.3)'
+              }}
+            >
+              🏪 Pasang Toko Mandiri
+            </button>
+          </div>
+        </div>
+
+        {/* Controls Bar: Category Tabs & Sort/Pin Controls */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+          {/* Category Selector */}
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {[
+              { id: 'all', label: 'Semua' },
+              { id: 'beli_lagi', label: '⚡ Beli Lagi' },
+              { id: 'mandiri', label: '🏪 Mandiri' },
+              { id: 'makanan', label: '🍱 Warung' },
+              { id: 'galon', label: '💧 Galon' },
+              { id: 'laundry', label: '🧺 Laundry' },
+              { id: 'gas', label: '🔥 Gas' }
+            ].map(cat => {
+              const isSelected = partnerCategory === cat.id;
+              const isBeliLagi = cat.id === 'beli_lagi';
+              const isMandiri = cat.id === 'mandiri';
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => { setPartnerCategory(cat.id); setPartnerBrand('all'); }}
+                  style={{
+                    background: isSelected
+                      ? (isBeliLagi ? 'linear-gradient(135deg, #7e22ce, #9333ea)' : isMandiri ? 'linear-gradient(135deg, #0891b2, #0284c7)' : '#2563eb')
+                      : (isBeliLagi 
+                          ? (isLight ? 'rgba(147, 51, 234, 0.08)' : 'rgba(147, 51, 234, 0.12)') 
+                          : isMandiri 
+                          ? (isLight ? 'rgba(6, 182, 212, 0.08)' : 'rgba(6, 182, 212, 0.12)') 
+                          : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)')),
+                    border: isSelected
+                      ? (isBeliLagi ? '1px solid #c084fc' : isMandiri ? '1px solid #38bdf8' : '1px solid #3b82f6')
+                      : (isBeliLagi 
+                          ? '1px solid rgba(168, 85, 247, 0.35)' 
+                          : isMandiri 
+                          ? '1px solid rgba(6, 182, 212, 0.35)' 
+                          : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)')),
+                    color: isSelected ? '#ffffff' : (isLight ? '#475569' : '#cbd5e1'),
+                    padding: '4px 10px',
+                    borderRadius: '7px',
+                    fontSize: '0.72rem',
+                    fontWeight: isSelected ? 800 : 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right: Toggle Mitra Utama & Sort Criteria */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setPinMainPartner(prev => !prev)}
+              style={{
+                background: pinMainPartner 
+                  ? (isLight ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.20)') 
+                  : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)'),
+                border: pinMainPartner ? '1px solid #f59e0b' : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'),
+                color: pinMainPartner ? (isLight ? '#b45309' : '#fbbf24') : (isLight ? '#64748b' : '#94a3b8'),
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}
+              title="Prioritaskan toko mitra utama kost di urutan pertama"
+            >
+              👑 Utama: {pinMainPartner ? 'ON' : 'OFF'}
+            </button>
+
+            <span style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b' }}>Urut:</span>
+            {[
+              { id: 'cheapest', label: '🏷️ Termurah' },
+              { id: 'highest', label: '💎 Tertinggi' },
+              { id: 'distance', label: '📍 Terdekat' }
+            ].map(s => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setPartnerSort(s.id)}
+                style={{
+                  background: partnerSort === s.id 
+                    ? (isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.2)') 
+                    : 'transparent',
+                  border: partnerSort === s.id 
+                    ? '1px solid #38bdf8' 
+                    : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'),
+                  color: partnerSort === s.id 
+                    ? (isLight ? '#0284c7' : '#38bdf8') 
+                    : (isLight ? '#64748b' : '#94a3b8'),
+                  padding: '3px 7px',
+                  borderRadius: '6px',
+                  fontSize: '0.68rem',
+                  fontWeight: partnerSort === s.id ? 700 : 500,
+                  cursor: 'pointer'
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Merchant Cards Grid */}
+        {list.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '2.5rem 1rem',
+            background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+            borderRadius: '12px',
+            border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.1)'
+          }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+              {partnerCategory === 'beli_lagi'
+                ? '⚡ Belum ada toko yang pernah kamu beli. Pesan galon, laundry, atau makanan sekali untuk fitur re-order kilat!'
+                : 'Tidak ditemukan mitra atau toko yang cocok dengan filter pencarian ini.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => { setPartnerCategory('all'); setPartnerBrand('all'); setPartnerSearch(''); }}
+              className="btn btn-secondary btn-sm"
+              style={{ marginTop: '10px', fontSize: '0.75rem' }}
+            >
+              Reset Filter
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobileScreen ? 'repeat(2, 1fr)' : 'repeat(4, minmax(0, 1fr))',
+            gap: isMobileScreen ? '8px' : '14px'
+          }}>
+            {list.map((item, idx) => (
+              <MitraGridCard
+                key={item.id || idx}
+                item={item}
+                idx={idx}
+                isMobileScreen={isMobileScreen}
+                onSelect={setSelectedService}
+                hasOrderedBefore={
+                  orderedMerchantIds.has(item.id) ||
+                  Array.from(orderedMerchantIds).some(oid => String(item.id).includes(String(oid)) || String(oid).includes(String(item.id)))
+                }
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* MODAL USULKAN WARUNG SEKITAR */}
+      {showSuggestMerchantModal && createPortal(
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: isLight ? 'rgba(15, 23, 42, 0.5)' : 'rgba(5, 10, 20, 0.88)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: isLight ? '#ffffff' : '#0f172a',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '16px',
+            padding: '1.25rem',
+            maxWidth: '440px',
+            width: '100%',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: isLight ? '#0f172a' : '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🍜</span> Usulkan Warung Langganan
+                </h3>
+                <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  Dapatkan <strong style={{ color: '#f59e0b' }}>+500 Poin loyalty</strong> saat warung kamu daftarkan!
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowSuggestMerchantModal(false); setSuggestNotice(null); }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {suggestNotice && (
+              <div style={{
+                padding: '8px 10px',
+                borderRadius: '8px',
+                fontSize: '0.75rem',
+                marginBottom: '10px',
+                background: suggestNotice.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: suggestNotice.type === 'success' ? '#4ade80' : '#f87171',
+                border: `1px solid ${suggestNotice.type === 'success' ? '#22c55e' : '#ef4444'}`
+              }}>
+                {suggestNotice.message}
+              </div>
+            )}
+
+            <form onSubmit={handleSuggestMerchantSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                  Nama Warung / Usaha *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Warung Nasi Padang Sabana"
+                  value={suggestForm.name}
+                  onChange={e => setSuggestForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontSize: '0.8rem'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                  Kategori Usaha
+                </label>
+                <select
+                  value={suggestForm.category}
+                  onChange={e => setSuggestForm(prev => ({ ...prev, category: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  <option value="makanan">🍲 Warung Makan & Jajanan</option>
+                  <option value="laundry">🧺 Laundry Kiloan</option>
+                  <option value="galon">💧 Air Galon & Gas LPG</option>
+                  <option value="jasa">🛠️ Jasa / Fotokopi / Servis</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                  Kontak / WhatsApp Warung (Jika ada)
+                </label>
+                <input
+                  type="tel"
+                  placeholder="Contoh: 081234567890"
+                  value={suggestForm.phone}
+                  onChange={e => setSuggestForm(prev => ({ ...prev, phone: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontSize: '0.8rem'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                  Menu Rekomendasi / Catatan
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Ayam bakar bumbu rujaknya enak banget dan murah!"
+                  value={suggestForm.note}
+                  onChange={e => setSuggestForm(prev => ({ ...prev, note: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontSize: '0.8rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowSuggestMerchantModal(false); setSuggestNotice(null); }}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ padding: '6px 16px', fontSize: '0.75rem', fontWeight: 700 }}
+                >
+                  Kirim Usulan (+500 Poin)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* MODAL PASANG TOKO MANDIRI (UMKM INDEPENDENT) */}
+      {showRegisterIndependentModal && createPortal(
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: isLight ? 'rgba(15, 23, 42, 0.5)' : 'rgba(5, 10, 20, 0.88)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: isLight ? '#ffffff' : '#0f172a',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '16px',
+            padding: '1.25rem',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: isLight ? '#0f172a' : '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🏪</span> Pasang Toko Mandiri (UMKM Sekitar Kost)
+                </h3>
+                <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  Langsung tayang di aplikasi penghuni tanpa perlu kontrak khusus pemilik kost
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowRegisterIndependentModal(false); setIndependentNotice(null); }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {independentNotice && (
+              <div style={{
+                padding: '8px 10px',
+                borderRadius: '8px',
+                fontSize: '0.75rem',
+                marginBottom: '10px',
+                background: independentNotice.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: independentNotice.type === 'success' ? '#4ade80' : '#f87171',
+                border: `1px solid ${independentNotice.type === 'success' ? '#22c55e' : '#ef4444'}`
+              }}>
+                {independentNotice.message}
+              </div>
+            )}
+
+            <form onSubmit={handleRegisterIndependentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                  Nama Toko / Usaha *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Juice Bar & Snack Segar"
+                  value={independentForm.name}
+                  onChange={e => setIndependentForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontSize: '0.8rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                    Kategori Usaha
+                  </label>
+                  <select
+                    value={independentForm.category}
+                    onChange={e => setIndependentForm(prev => ({ ...prev, category: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '8px',
+                      padding: '7px 10px',
+                      color: isLight ? '#0f172a' : '#f8fafc',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    <option value="makanan">🍲 Warung & Kuliner</option>
+                    <option value="laundry">🧺 Laundry Kiloan</option>
+                    <option value="galon">💧 Air & Gas Elpiji</option>
+                    <option value="jasa">🛠️ Jasa & Servis</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                    WhatsApp Toko *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Contoh: 081298765432"
+                    value={independentForm.phone}
+                    onChange={e => setIndependentForm(prev => ({ ...prev, phone: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '8px',
+                      padding: '7px 10px',
+                      color: isLight ? '#0f172a' : '#f8fafc',
+                      fontSize: '0.8rem'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
+                  Alamat / Patokan Toko
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Jl. Menoreh Tengah No. 12 (150m dari kost)"
+                  value={independentForm.address}
+                  onChange={e => setIndependentForm(prev => ({ ...prev, address: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontSize: '0.8rem'
+                  }}
+                />
+              </div>
+
+              <div style={{
+                background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.15)',
+                borderRadius: '10px',
+                padding: '10px 12px'
+              }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#0284c7' : '#38bdf8', display: 'block', marginBottom: '6px' }}>
+                  📦 Produk / Menu Utama Pertama:
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '3px' }}>
+                      Nama Menu / Jasa *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: Jus Alpukat Kocok"
+                      value={independentForm.firstProductName}
+                      onChange={e => setIndependentForm(prev => ({ ...prev, firstProductName: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        color: isLight ? '#0f172a' : '#f8fafc',
+                        fontSize: '0.76rem'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '3px' }}>
+                      Harga (Rp) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1000"
+                      step="500"
+                      placeholder="15000"
+                      value={independentForm.firstProductPrice}
+                      onChange={e => setIndependentForm(prev => ({ ...prev, firstProductPrice: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        color: isLight ? '#0f172a' : '#f8fafc',
+                        fontSize: '0.76rem'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowRegisterIndependentModal(false); setIndependentNotice(null); }}
+                  className="btn btn-secondary"
+                  style={{ padding: '7px 14px', fontSize: '0.75rem' }}
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '7px 18px',
+                    background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(14, 165, 233, 0.4)'
+                  }}
+                >
+                  🚀 Pasang Sekarang & Aktifkan Toko
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Partner Concierge Order Modal */}
+      <PartnerOrderModal
+        isOpen={Boolean(selectedService)}
+        onClose={() => setSelectedService(null)}
+        service={selectedService}
+        user={currentUser}
+        kost={{ kostName: kostName || 'KostKu Residence', kostUid: targetKostUid }}
+      />
+
+      {/* Smart Lock & Token Modal for PLN Token purchases */}
+      <SmartLockAndTokenModal
+        isOpen={showSmartLockModal}
+        onClose={() => setShowSmartLockModal(false)}
+        user={currentUser}
+        roomNumber={currentUser?.kamar || '122'}
+      />
+    </div>
+  );
+}

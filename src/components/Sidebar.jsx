@@ -28,10 +28,11 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
     { path: '/', name: 'Halaman Utama', icon: <Home size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
     { path: '/search', name: 'Cari Kost', icon: <Search size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
     { path: '/dashboard', name: user?.role === 'staff' ? 'Dashboard Staf' : user?.role === 'owner' ? 'My Kost (Overview)' : 'Kost Saya', icon: <LayoutDashboard size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
+    { path: '/layanan', name: 'Toko & Mitra Sekitar', icon: <Store size={20} />, roles: ['user', 'owner', 'master', 'staff'] },
     { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/keuangan', name: user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan & Laporan', icon: <DollarSign size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/mitra', name: user?.role === 'mitra' ? 'Portal Toko & Menu' : 'Mitra & Toko Sekitar', icon: <Store size={20} />, roles: ['owner', 'master', 'staff', 'mitra'] },
+    { path: '/mitra', name: user?.role === 'mitra' ? 'Portal Toko & Menu' : 'Kelola Mitra Toko', icon: <Store size={20} />, roles: ['owner', 'master', 'staff', 'mitra'] },
     { path: '/karyawan', name: 'Pengaturan Karyawan', icon: <UserCheck size={20} />, roles: ['owner', 'master'] }
   ];
 

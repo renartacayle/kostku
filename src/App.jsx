@@ -42,6 +42,7 @@ const Home = lazy(() => import('./pages/Home'));
 const SearchKost = lazy(() => import('./pages/SearchKost'));
 const KostDetail = lazy(() => import('./pages/KostDetail'));
 const Mitra = lazy(() => import('./pages/Mitra'));
+const Layanan = lazy(() => import('./pages/Layanan'));
 const KebijakanPrivasi = lazy(() => import('./pages/KebijakanPrivasi'));
 const SyaratKetentuan = lazy(() => import('./pages/SyaratKetentuan'));
 const TentangKami = lazy(() => import('./pages/TentangKami'));
@@ -340,11 +341,28 @@ function App() {
           />
 
           <Route 
-            path="/mitra" 
+            path="/layanan" 
             element={activeUser ? (
               <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                <Mitra user={activeUser} />
+                <Layanan user={activeUser} />
               </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
+          <Route path="/toko" element={<Navigate to="/layanan" replace />} />
+          <Route path="/toko-sekitar" element={<Navigate to="/layanan" replace />} />
+
+          <Route 
+            path="/mitra" 
+            element={activeUser ? (
+              activeUser.role === 'user' ? (
+                <Navigate to="/layanan" replace />
+              ) : (
+                <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                  <Mitra user={activeUser} />
+                </MainLayout>
+              )
             ) : (
               <Navigate to="/login" replace />
             )} 

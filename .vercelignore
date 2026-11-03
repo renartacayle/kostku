@@ -4,6 +4,12 @@ dist-binaries
 release
 .gradle
 *.log
+*.pdf
+*.zip
+*.apk
+*.exe
+*.pptx
+stress_test_500
 .git
 BLUEPRINT_CLIENT_KOSTKU.md
 BLUEPRINT_DEVELOPER_KOSTKU.md

@@ -22,7 +22,8 @@ import {
   RefreshCw,
   ExternalLink,
   Zap,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 import {
   apiCreatePartnerOrder,
@@ -65,6 +66,8 @@ const PartnerOrderModal = ({
   const [configSavedToast, setConfigSavedToast] = useState(false);
   const [checkNotice, setCheckNotice] = useState(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [downloadingQr, setDownloadingQr] = useState(false);
+  const [qrDownloaded, setQrDownloaded] = useState(false);
 
   // Products quantity state
   const [quantities, setQuantities] = useState({});
@@ -443,6 +446,46 @@ const PartnerOrderModal = ({
     }
   };
 
+  const handleDownloadQr = async () => {
+    const targetUrl = qrisData?.qrCodeUrl || service?.qrisImage;
+    if (!targetUrl || downloadingQr) return;
+    
+    setDownloadingQr(true);
+    try {
+      const sanitizedName = (service?.name || service?.title || 'Mitra').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `QRIS_${sanitizedName}_${Date.now()}.png`;
+
+      if (typeof targetUrl === 'string' && targetUrl.startsWith('data:')) {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = targetUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        const res = await fetch(targetUrl);
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = blobUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      }
+      setQrDownloaded(true);
+      setTimeout(() => setQrDownloaded(false), 2500);
+    } catch (err) {
+      console.error('Gagal mengunduh QRIS:', err);
+      if (typeof targetUrl === 'string') {
+        window.open(targetUrl, '_blank');
+      }
+    } finally {
+      setDownloadingQr(false);
+    }
+  };
+
   const handleCheckQrisPaymentStatus = async (forceManual = false) => {
     if (!qrisData?.orderId || checkingStatus || submitting) return;
     setCheckingStatus(true);
@@ -800,142 +843,56 @@ const PartnerOrderModal = ({
         ) : showQrisScreen ? (
           /* SCREEN 2: REAL DYNAMIC QRIS (NON-COD EMPHASIS & AUTO-POLLING) */
           <div style={{ textAlign: 'center', padding: '0.25rem 0' }}>
-            {/* Gateway Status Badge & Settings Toggle */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  padding: '3px 8px',
-                  borderRadius: '999px',
-                  background: qrisData?.provider === 'midtrans_production'
-                    ? 'rgba(239, 68, 68, 0.2)'
-                    : qrisData?.provider === 'midtrans_sandbox'
-                    ? 'rgba(234, 179, 8, 0.2)'
-                    : 'rgba(34, 197, 94, 0.2)',
-                  color: qrisData?.provider === 'midtrans_production'
-                    ? '#f87171'
-                    : qrisData?.provider === 'midtrans_sandbox'
-                    ? '#facc15'
-                    : '#4ade80',
-                  border: '1px solid rgba(255,255,255,0.1)'
-                }}>
-                  {qrisData?.provider === 'midtrans_production'
-                    ? '🔴 Midtrans Production API'
-                    : qrisData?.provider === 'midtrans_sandbox'
-                    ? '🟡 Midtrans Sandbox API'
-                    : '🟢 ASPI Dynamic QRIS EMVCo'}
-                </span>
-                {isPolling && (
-                  <span style={{ fontSize: '0.65rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <RefreshCw size={11} className="animate-spin" /> Menunggu Pembayaran...
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowGatewayConfig(prev => !prev)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: '8px',
-                  color: '#94a3b8',
-                  padding: '4px 8px',
-                  fontSize: '0.7rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                <Settings size={13} />
-                <span>Pengaturan API</span>
-              </button>
-            </div>
-
-            {/* Gateway Configuration Drawer (Toggleable) */}
-            {showGatewayConfig && (
-              <div style={{
-                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.95)',
-                border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(59, 130, 246, 0.4)',
-                borderRadius: '14px',
-                padding: '12px',
-                marginBottom: '12px',
-                textAlign: 'left',
-                fontSize: '0.75rem',
-                boxShadow: isLight ? '0 4px 12px rgba(0,0,0,0.06)' : 'none'
+            {/* Gateway Status & Payment Polling Badge (Clean Centered Header) */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: '999px',
+                background: qrisData?.provider === 'midtrans_production'
+                  ? 'rgba(239, 68, 68, 0.15)'
+                  : qrisData?.provider === 'midtrans_sandbox'
+                  ? 'rgba(234, 179, 8, 0.15)'
+                  : 'rgba(34, 197, 94, 0.15)',
+                color: qrisData?.provider === 'midtrans_production'
+                  ? '#f87171'
+                  : qrisData?.provider === 'midtrans_sandbox'
+                  ? '#facc15'
+                  : (isLight ? '#16a34a' : '#4ade80'),
+                border: qrisData?.provider === 'midtrans_production'
+                  ? '1px solid rgba(239, 68, 68, 0.3)'
+                  : qrisData?.provider === 'midtrans_sandbox'
+                  ? '1px solid rgba(234, 179, 8, 0.3)'
+                  : (isLight ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(34, 197, 94, 0.25)'),
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
               }}>
-                <div style={{ fontWeight: 800, color: isLight ? '#0284c7' : '#38bdf8', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>⚙️ Konfigurasi Gateway Pembayaran:</span>
-                  <button onClick={() => setShowGatewayConfig(false)} style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}>✕</button>
-                </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{ display: 'block', color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.68rem', marginBottom: '3px' }}>Mode Gateway:</label>
-                  <select
-                    value={gwConfig.provider || 'aspi_emvco_dynamic'}
-                    onChange={e => setGwConfig(prev => ({ ...prev, provider: e.target.value, isSandbox: e.target.value === 'midtrans_sandbox', isProduction: e.target.value === 'midtrans_production' }))}
-                    style={{ 
-                      width: '100%', 
-                      padding: '6px 8px', 
-                      background: isLight ? '#ffffff' : '#0f172a', 
-                      border: isLight ? '1px solid #cbd5e1' : '1px solid #334155', 
-                      borderRadius: '6px', 
-                      color: isLight ? '#0f172a' : '#f8fafc', 
-                      fontSize: '0.72rem' 
-                    }}
-                  >
-                    <option value="aspi_emvco_dynamic">🟢 Bank Indonesia ASPI Dynamic QRIS EMVCo (Rekomendasi - Terkunci Nominal Pas)</option>
-                    <option value="midtrans_sandbox">🟡 Midtrans Core API (Sandbox Mode)</option>
-                    <option value="midtrans_production">🔴 Midtrans Core API (Production Real Mode)</option>
-                  </select>
-                </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{ display: 'block', color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.68rem', marginBottom: '3px' }}>Midtrans Server Key (Kosongkan jika pakai ASPI):</label>
-                  <input
-                    type="password"
-                    placeholder="Contoh: Mid-server-xxxxxxxx atau SB-Mid-server-xxxx"
-                    value={gwConfig.serverKey || ''}
-                    onChange={e => setGwConfig(prev => ({ ...prev, serverKey: e.target.value }))}
-                    style={{ 
-                      width: '100%', 
-                      padding: '6px 8px', 
-                      background: isLight ? '#ffffff' : '#0f172a', 
-                      border: isLight ? '1px solid #cbd5e1' : '1px solid #334155', 
-                      borderRadius: '6px', 
-                      color: isLight ? '#0f172a' : '#f8fafc', 
-                      fontSize: '0.72rem', 
-                      boxSizing: 'border-box' 
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveConfig(gwConfig)}
-                    className="btn btn-primary btn-sm"
-                    style={{ flex: 1, padding: '6px', fontSize: '0.72rem', justifyContent: 'center' }}
-                  >
-                    <Check size={12} /> Simpan & Terapkan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const resetCfg = { provider: 'aspi_emvco_dynamic', serverKey: '', clientKey: '', merchantId: 'G1020268892', isSandbox: true };
-                      handleSaveConfig(resetCfg);
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ padding: '6px 10px', fontSize: '0.72rem' }}
-                  >
-                    Reset
-                  </button>
-                </div>
-                {configSavedToast && (
-                  <div style={{ color: '#4ade80', fontSize: '0.68rem', marginTop: '6px', fontWeight: 700, textAlign: 'center' }}>
-                    ✓ Konfigurasi gateway berhasil disimpan & QRIS diperbarui!
-                  </div>
-                )}
-              </div>
-            )}
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }} />
+                {qrisData?.provider === 'midtrans_production'
+                  ? 'Midtrans Production API'
+                  : qrisData?.provider === 'midtrans_sandbox'
+                  ? 'Midtrans Sandbox API'
+                  : 'ASPI Dynamic QRIS EMVCo'}
+              </span>
+              {isPolling && (
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: isLight ? '#0284c7' : '#38bdf8',
+                  background: isLight ? 'rgba(2, 132, 199, 0.08)' : 'rgba(56, 189, 248, 0.12)',
+                  border: isLight ? '1px solid rgba(2, 132, 199, 0.2)' : '1px solid rgba(56, 189, 248, 0.25)',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}>
+                  <RefreshCw size={11} className="animate-spin" /> Menunggu Pembayaran...
+                </span>
+              )}
+            </div>
 
             {/* REAL QRIS WHITE CONTAINER */}
             <div style={{
@@ -943,17 +900,19 @@ const PartnerOrderModal = ({
               borderRadius: '20px',
               padding: '1.25rem',
               display: 'inline-block',
-              margin: '0 auto 0.75rem auto',
-              boxShadow: '0 12px 35px rgba(0,0,0,0.6)',
-              border: '4px solid #f8fafc',
-              maxWidth: '300px',
+              margin: '0 auto 1rem auto',
+              boxShadow: isLight
+                ? '0 16px 40px -10px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)'
+                : '0 20px 48px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08)',
+              border: '1px solid rgba(226, 232, 240, 0.9)',
+              maxWidth: '310px',
               width: '100%',
               boxSizing: 'border-box'
             }}>
               {/* QRIS Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#dc2626', letterSpacing: '1.2px' }}>QRIS</span>
-                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#475569' }}>ASPI / BANK INDONESIA</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#dc2626', letterSpacing: '1.5px', fontFamily: 'system-ui, sans-serif' }}>QRIS</span>
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#475569', letterSpacing: '0.5px' }}>ASPI / BANK INDONESIA</span>
               </div>
 
               {/* Scannable Dynamic QRIS Code */}
@@ -962,17 +921,18 @@ const PartnerOrderModal = ({
                 height: '210px',
                 margin: '0 auto',
                 background: '#ffffff',
-                borderRadius: '10px',
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden',
-                position: 'relative'
+                position: 'relative',
+                border: '1px solid #f1f5f9'
               }}>
                 {qrisLoading ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
                     <RefreshCw size={28} className="animate-spin" color="#2563eb" />
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Membuat QRIS Dinamis...</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>Membuat QRIS Dinamis...</span>
                   </div>
                 ) : qrisData?.qrCodeUrl ? (
                   <img
@@ -991,37 +951,59 @@ const PartnerOrderModal = ({
               </div>
 
               <div style={{ marginTop: '10px', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0f172a' }}>
+                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>
                   {qrisData?.merchantName || service.name?.toUpperCase() || 'DEPOT AIR & GAS BAROKAH'}
                 </div>
-                <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600, marginTop: '2px', letterSpacing: '0.3px' }}>
                   NMID: {qrisData?.nmid || service.nmid || 'ID1020268892019'}
                 </div>
               </div>
             </div>
 
             {/* Dynamic Rupee Amount Badge */}
-            <div style={{ marginBottom: '0.85rem' }}>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Nominal Pas Terkunci Dinamis:</div>
-              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#22c55e', margin: '2px 0' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                Nominal Pas Terkunci Dinamis:
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: isLight ? '#15803d' : '#22c55e', margin: '4px 0 6px 0', letterSpacing: '-0.5px' }}>
                 Rp {grandTotal.toLocaleString('id-ID')}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                BCA • Mandiri • BRI • BNI • GoPay • OVO • DANA • ShopeePay
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '5px',
+                flexWrap: 'wrap',
+                maxWidth: '380px',
+                margin: '0 auto'
+              }}>
+                {['BCA', 'Mandiri', 'BRI', 'BNI', 'GoPay', 'OVO', 'DANA', 'ShopeePay'].map(method => (
+                  <span key={method} style={{
+                    fontSize: '0.65rem',
+                    padding: '2px 7px',
+                    borderRadius: '5px',
+                    background: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)',
+                    border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: isLight ? '#475569' : '#94a3b8',
+                    fontWeight: 600
+                  }}>
+                    {method}
+                  </span>
+                ))}
               </div>
             </div>
 
             {/* Auto-Polling Status Alert Strip */}
             <div style={{
-              background: 'rgba(34, 197, 94, 0.1)',
-              border: '1px solid rgba(34, 197, 94, 0.3)',
+              background: isLight ? 'rgba(34, 197, 94, 0.08)' : 'rgba(34, 197, 94, 0.1)',
+              border: isLight ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid rgba(34, 197, 94, 0.3)',
               borderRadius: '12px',
-              padding: '8px 12px',
+              padding: '9px 14px',
               marginBottom: '0.85rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              fontSize: '0.72rem'
+              fontSize: '0.74rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
                 <span style={{
@@ -1030,51 +1012,81 @@ const PartnerOrderModal = ({
                   borderRadius: '50%',
                   background: '#22c55e',
                   display: 'inline-block',
-                  boxShadow: '0 0 8px #22c55e'
+                  boxShadow: '0 0 8px #22c55e',
+                  flexShrink: 0
                 }} className="animate-pulse" />
-                <span style={{ color: '#cbd5e1' }}>
+                <span style={{ color: isLight ? '#166534' : '#cbd5e1' }}>
                   <strong>Auto-Polling Aktif:</strong> Sistem mendeteksi otomatis saat Anda selesai transfer.
                 </span>
               </div>
             </div>
 
-            {/* Simulation Settlement Button (for Testing / Evaluation) */}
+            {/* Download QR Code Button (Simpan Gambar QR) */}
             <div style={{ marginBottom: '0.85rem' }}>
               <button
                 type="button"
-                onClick={handleSimulateScanSettlement}
-                disabled={submitting}
+                onClick={handleDownloadQr}
+                disabled={downloadingQr || (!qrisData?.qrCodeUrl && !service?.qrisImage)}
                 style={{
                   width: '100%',
-                  padding: '9px 12px',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px dashed rgba(56, 189, 248, 0.45)',
-                  borderRadius: '10px',
-                  color: '#38bdf8',
-                  fontSize: '0.75rem',
+                  padding: '10px 14px',
+                  background: qrDownloaded
+                    ? (isLight ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.2)')
+                    : (isLight ? '#f1f5f9' : 'rgba(99, 102, 241, 0.12)'),
+                  border: qrDownloaded
+                    ? '1px solid rgba(34, 197, 94, 0.4)'
+                    : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(99, 102, 241, 0.3)'),
+                  borderRadius: '12px',
+                  color: qrDownloaded
+                    ? (isLight ? '#15803d' : '#4ade80')
+                    : (isLight ? '#334155' : '#a5b4fc'),
+                  fontSize: '0.8rem',
                   fontWeight: 700,
-                  cursor: submitting ? 'wait' : 'pointer',
+                  cursor: downloadingQr ? 'wait' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px'
+                  gap: '7px',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                <Zap size={14} />
-                <span>Simulasi Scan E-Wallet Berhasil (Auto-Settled Testing)</span>
+                {downloadingQr ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Menyiapkan Gambar QR...</span>
+                  </>
+                ) : qrDownloaded ? (
+                  <>
+                    <Check size={15} />
+                    <span>✓ QR Code Berhasil Diunduh!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={15} />
+                    <span>Unduh QR Code (Simpan Gambar)</span>
+                  </>
+                )}
               </button>
             </div>
 
             {/* Live Gateway Check Feedback Notice */}
             {checkNotice && (
               <div style={{
-                background: checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.12)' : checkNotice.type === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                background: checkNotice.type === 'pending'
+                  ? (isLight ? 'rgba(234, 179, 8, 0.1)' : 'rgba(234, 179, 8, 0.12)')
+                  : checkNotice.type === 'error'
+                  ? (isLight ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.12)')
+                  : (isLight ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.12)'),
                 border: `1px solid ${checkNotice.type === 'pending' ? 'rgba(234, 179, 8, 0.35)' : checkNotice.type === 'error' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.35)'}`,
                 borderRadius: '12px',
                 padding: '10px 14px',
                 marginBottom: '0.85rem',
                 fontSize: '0.78rem',
-                color: checkNotice.type === 'pending' ? '#fde047' : checkNotice.type === 'error' ? '#fca5a5' : '#86efac',
+                color: checkNotice.type === 'pending'
+                  ? (isLight ? '#a16207' : '#fde047')
+                  : checkNotice.type === 'error'
+                  ? (isLight ? '#b91c1c' : '#fca5a5')
+                  : (isLight ? '#15803d' : '#86efac'),
                 textAlign: 'left'
               }}>
                 <div style={{ fontWeight: 600 }}>{checkNotice.message}</div>
@@ -1085,7 +1097,7 @@ const PartnerOrderModal = ({
                       onClick={() => handleCheckQrisPaymentStatus(false)}
                       disabled={checkingStatus || submitting}
                       style={{
-                        padding: '5px 10px',
+                        padding: '6px 12px',
                         fontSize: '0.72rem',
                         background: '#2563eb',
                         color: '#fff',
@@ -1102,11 +1114,11 @@ const PartnerOrderModal = ({
                       onClick={() => handleCheckQrisPaymentStatus(true)}
                       disabled={checkingStatus || submitting}
                       style={{
-                        padding: '5px 10px',
+                        padding: '6px 12px',
                         fontSize: '0.72rem',
-                        background: 'rgba(255,255,255,0.08)',
-                        color: '#e2e8f0',
-                        border: '1px solid rgba(255,255,255,0.2)',
+                        background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.08)',
+                        color: isLight ? '#334155' : '#e2e8f0',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.2)',
                         borderRadius: '6px',
                         fontWeight: 600,
                         cursor: 'pointer'
@@ -1128,16 +1140,17 @@ const PartnerOrderModal = ({
                 className="btn btn-primary"
                 style={{
                   width: '100%',
-                  padding: '12px',
+                  padding: '13px',
                   fontWeight: 800,
-                  fontSize: '0.9rem',
+                  fontSize: '0.92rem',
                   background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                  boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
+                  boxShadow: '0 4px 18px rgba(34, 197, 94, 0.45)',
                   cursor: (checkingStatus || submitting) ? 'wait' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  borderRadius: '12px'
                 }}
               >
                 {checkingStatus || submitting ? (
@@ -1148,7 +1161,7 @@ const PartnerOrderModal = ({
                 ) : (
                   <>
                     <ShieldCheck size={18} />
-                    <span>⚡ Cek Status Pembayaran (Saya Sudah Bayar)</span>
+                    <span>Cek Status Pembayaran (Saya Sudah Bayar)</span>
                   </>
                 )}
               </button>
@@ -1156,7 +1169,12 @@ const PartnerOrderModal = ({
               <button
                 onClick={() => setShowQrisScreen(false)}
                 className="btn btn-secondary"
-                style={{ width: '100%', fontSize: '0.8rem' }}
+                style={{
+                  width: '100%',
+                  fontSize: '0.8rem',
+                  padding: '10px',
+                  borderRadius: '10px'
+                }}
               >
                 &larr; Ubah Rincian / Pilih Metode Lain
               </button>
