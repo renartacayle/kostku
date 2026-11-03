@@ -19,12 +19,14 @@ export default function MobileBottomNav({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // If on login, register, checkout, or kost detail page, hide bottom nav
+  // If on login, register, checkout, stress-test report, or kost detail page, hide bottom nav
   if (
     location.pathname === '/login' || 
     location.pathname === '/register' || 
     location.pathname === '/checkout' || 
     location.pathname === '/bayar' || 
+    location.pathname === '/stress-test-report' ||
+    location.pathname.startsWith('/stress-test') ||
     location.pathname.startsWith('/kost/')
   ) {
     return null;

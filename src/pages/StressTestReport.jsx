@@ -35,7 +35,16 @@ export default function StressTestReport() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'document'
   const [mediaDisplay, setMediaDisplay] = useState('split'); // 'split' | 'cad' | 'photo'
   const [selectedRoomModal, setSelectedRoomModal] = useState(null);
+  const [modalTab, setModalTab] = useState('cad'); // 'cad' | 'photo' | 'split'
+  const [showHeroDetails, setShowHeroDetails] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const pageSize = 12;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetch('/benchmark_results.json')
@@ -97,19 +106,18 @@ export default function StressTestReport() {
       background: isLight 
         ? '#f8fafc' 
         : 'radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.22) 0%, #060b14 65%)',
-      padding: '1.5rem 1rem 7.5rem',
+      padding: isMobile ? '0.75rem 0.65rem 4rem' : '1.5rem 1rem 7.5rem',
       color: isLight ? '#0f172a' : '#f8fafc',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
-      <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1360px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
         {/* Top Breadcrumb & Action Links */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          marginBottom: '1.5rem', 
-          flexWrap: 'wrap', 
+          marginBottom: isMobile ? '0.75rem' : '1.5rem', 
           gap: '8px' 
         }}>
           <Link
@@ -121,20 +129,21 @@ export default function StressTestReport() {
               background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
               color: isLight ? '#0f172a' : '#f8fafc',
-              padding: '7px 14px',
+              padding: isMobile ? '6px 10px' : '7px 14px',
               borderRadius: '10px',
               textDecoration: 'none',
-              fontSize: '0.8rem',
+              fontSize: isMobile ? '0.74rem' : '0.8rem',
               fontWeight: 700,
               boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : 'none',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              flexShrink: 0
             }}
           >
-            <ArrowLeft size={15} />
-            Demo Sandbox
+            <ArrowLeft size={14} />
+            {isMobile ? 'Demo' : 'Demo Sandbox'}
           </Link>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto' }}>
             <a
               href={htmlDocumentUrl}
               target="_blank"
@@ -142,43 +151,45 @@ export default function StressTestReport() {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
                 background: 'rgba(56, 189, 248, 0.12)',
                 border: '1px solid rgba(56, 189, 248, 0.35)',
                 color: '#38bdf8',
-                padding: '7px 14px',
+                padding: isMobile ? '6px 10px' : '7px 14px',
                 borderRadius: '10px',
                 textDecoration: 'none',
-                fontSize: '0.78rem',
+                fontSize: isMobile ? '0.72rem' : '0.78rem',
                 fontWeight: 700,
-                transition: 'all 0.2s'
+                flexShrink: 0
               }}
             >
-              <ExternalLink size={14} />
-              Dokumen A4 (252 Hal)
+              <ExternalLink size={13} />
+              {isMobile ? 'A4 Web' : 'Dokumen A4 (252 Hal)'}
             </a>
 
-            <a
-              href={googleDocsViewerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
-                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
-                color: isLight ? '#0f172a' : '#f8fafc',
-                padding: '7px 14px',
-                borderRadius: '10px',
-                textDecoration: 'none',
-                fontSize: '0.78rem',
-                fontWeight: 700
-              }}
-            >
-              <ExternalLink size={14} />
-              Cloud PDF Reader
-            </a>
+            {!isMobile && (
+              <a
+                href={googleDocsViewerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
+                  color: isLight ? '#0f172a' : '#f8fafc',
+                  padding: '7px 14px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 700
+                }}
+              >
+                <ExternalLink size={14} />
+                Cloud PDF Reader
+              </a>
+            )}
 
             <a
               href={pdfDownloadUrl}
@@ -186,118 +197,163 @@ export default function StressTestReport() {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
                 background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 color: '#ffffff',
-                padding: '7px 15px',
+                padding: isMobile ? '6px 10px' : '7px 15px',
                 borderRadius: '10px',
                 textDecoration: 'none',
-                fontSize: '0.78rem',
+                fontSize: isMobile ? '0.72rem' : '0.78rem',
                 fontWeight: 700,
-                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)'
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                flexShrink: 0
               }}
             >
-              <Download size={14} />
-              Unduh PDF (58 MB)
+              <Download size={13} />
+              {isMobile ? 'PDF (58M)' : 'Unduh PDF (58 MB)'}
             </a>
           </div>
         </div>
 
-        {/* Hero Architectural Banner (Double Bezel) */}
+        {/* Hero Architectural Banner */}
         <div style={{
           background: isLight 
             ? '#ffffff' 
             : 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%)',
           backdropFilter: 'blur(20px)',
           border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '24px',
-          padding: '2.5rem',
-          marginBottom: '2.25rem',
+          borderRadius: isMobile ? '16px' : '24px',
+          padding: isMobile ? '1rem' : '2.25rem',
+          marginBottom: isMobile ? '1rem' : '2rem',
           boxShadow: isLight 
-            ? '0 12px 30px rgba(0, 0, 0, 0.05)' 
+            ? '0 10px 25px rgba(0, 0, 0, 0.05)' 
             : '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
         }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '5px 14px',
+            gap: '6px',
+            padding: '4px 10px',
             borderRadius: '999px',
             background: 'rgba(56, 189, 248, 0.12)',
             border: '1px solid rgba(56, 189, 248, 0.3)',
             color: '#38bdf8',
-            fontSize: '0.78rem',
+            fontSize: isMobile ? '0.7rem' : '0.78rem',
             fontWeight: 800,
             textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: '1rem'
+            letterSpacing: '0.4px',
+            marginBottom: isMobile ? '0.5rem' : '0.85rem'
           }}>
-            <Sparkles size={14} />
-            <span>KostKu Spatial Vision Suite • Architectural CAD Benchmark</span>
+            <Sparkles size={12} />
+            <span>{isMobile ? 'Spatial Vision CAD • 500 Unit' : 'KostKu Spatial Vision Suite • Architectural CAD Benchmark'}</span>
           </div>
 
           <h1 style={{
-            fontSize: 'clamp(1.75rem, 3.8vw, 2.6rem)',
+            fontSize: isMobile ? '1.25rem' : 'clamp(1.75rem, 3.8vw, 2.5rem)',
             fontWeight: 900,
-            lineHeight: 1.2,
+            lineHeight: 1.25,
             letterSpacing: '-0.02em',
             color: isLight ? '#0f172a' : '#f8fafc',
-            margin: '0 0 1rem 0'
+            margin: '0 0 0.5rem 0'
           }}>
-            500 Real Web Bedroom Photos &amp; Auto-2D Floor Plan CAD Benchmark
+            {isMobile ? '500 Kamar Real & Auto-2D Floor Plan CAD' : '500 Real Web Bedroom Photos & Auto-2D Floor Plan CAD Benchmark'}
           </h1>
 
-          <p style={{
-            fontSize: '0.98rem',
-            color: isLight ? '#475569' : '#94a3b8',
-            lineHeight: 1.65,
-            maxWidth: '920px',
-            margin: '0 0 2rem 0'
-          }}>
-            Katalog arsitektural interaktif yang mendemonstrasikan kemampuan Computer Vision KostKu mengekstrak foto kamar tidur nyata dari web dan secara instan merender denah lantai 2D CAD vektor berstandar drafting Swiss skala 1:50 dengan akurasi 100%.
-          </p>
+          {isMobile ? (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <p style={{
+                fontSize: '0.8rem',
+                color: isLight ? '#475569' : '#94a3b8',
+                lineHeight: 1.45,
+                margin: '0 0 4px 0'
+              }}>
+                Katalog arsitektural CV KostKu: 500 foto real diekstrak ke denah CAD 1:50.
+              </p>
+              {showHeroDetails && (
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: isLight ? '#64748b' : '#94a3b8',
+                  lineHeight: 1.5,
+                  margin: '6px 0 0',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.25)'
+                }}>
+                  Katalog arsitektural interaktif yang mendemonstrasikan kemampuan Computer Vision KostKu mengekstrak foto kamar tidur nyata dari web dan secara instan merender denah lantai 2D CAD vektor berstandar drafting Swiss skala 1:50 dengan akurasi 100%.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowHeroDetails(!showHeroDetails)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '0',
+                  color: '#38bdf8',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}
+              >
+                {showHeroDetails ? 'Sembunyikan ▴' : 'Baca Selengkapnya ▾'}
+              </button>
+            </div>
+          ) : (
+            <p style={{
+              fontSize: '0.98rem',
+              color: isLight ? '#475569' : '#94a3b8',
+              lineHeight: 1.65,
+              maxWidth: '920px',
+              margin: '0 0 1.75rem 0'
+            }}>
+              Katalog arsitektural interaktif yang mendemonstrasikan kemampuan Computer Vision KostKu mengekstrak foto kamar tidur nyata dari web dan secara instan merender denah lantai 2D CAD vektor berstandar drafting Swiss skala 1:50 dengan akurasi 100%.
+            </p>
+          )}
 
           {/* Quick Metrics Strip */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '14px'
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+            gap: isMobile ? '8px' : '14px'
           }}>
             <div style={{ 
               background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
-              padding: '14px 18px', 
-              borderRadius: '16px',
+              padding: isMobile ? '8px 12px' : '14px 18px', 
+              borderRadius: isMobile ? '12px' : '16px',
               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
             }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#38bdf8', fontFamily: 'monospace' }}>500 Unit</div>
-              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Foto Kamar Web Nyata</div>
+              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: '#38bdf8', fontFamily: 'monospace' }}>500 Unit</div>
+              <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Foto Kamar Web Nyata</div>
             </div>
             <div style={{ 
               background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
-              padding: '14px 18px', 
-              borderRadius: '16px',
+              padding: isMobile ? '8px 12px' : '14px 18px', 
+              borderRadius: isMobile ? '12px' : '16px',
               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
             }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#4ade80', fontFamily: 'monospace' }}>100%</div>
-              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Akurasi Rekonstruksi CAD</div>
+              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: '#4ade80', fontFamily: 'monospace' }}>100%</div>
+              <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Akurasi Rekonstruksi</div>
             </div>
             <div style={{ 
               background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
-              padding: '14px 18px', 
-              borderRadius: '16px',
+              padding: isMobile ? '8px 12px' : '14px 18px', 
+              borderRadius: isMobile ? '12px' : '16px',
               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
             }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>25.4 ms</div>
-              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Rata-Rata Latensi Inferensi</div>
+              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>25.4 ms</div>
+              <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Rata Latensi Inferensi</div>
             </div>
             <div style={{ 
               background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
-              padding: '14px 18px', 
-              borderRadius: '16px',
+              padding: isMobile ? '8px 12px' : '14px 18px', 
+              borderRadius: isMobile ? '12px' : '16px',
               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
             }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#a855f7', fontFamily: 'monospace' }}>252 Halaman</div>
-              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Dokumen Vektor A4 Resmi</div>
+              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: '#a855f7', fontFamily: 'monospace' }}>252 Hal</div>
+              <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Dokumen Vektor A4</div>
             </div>
           </div>
         </div>
@@ -307,63 +363,70 @@ export default function StressTestReport() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '14px',
-          marginBottom: '2rem'
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          gap: isMobile ? '8px' : '14px',
+          marginBottom: isMobile ? '1rem' : '1.75rem'
         }}>
           {/* Main View Mode (Grid vs Document Reader) */}
           <div style={{
             display: 'inline-flex',
-            padding: '4px',
-            borderRadius: '14px',
+            padding: '3px',
+            borderRadius: '12px',
             background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.85)',
             border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
-            gap: '4px'
+            gap: '3px',
+            width: isMobile ? '100%' : 'auto'
           }}>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
               style={{
+                flex: isMobile ? 1 : 'initial',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '9px 20px',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: isMobile ? '7px 10px' : '9px 20px',
                 borderRadius: '10px',
                 border: 'none',
                 background: viewMode === 'grid' ? '#2563eb' : 'transparent',
                 color: viewMode === 'grid' ? '#ffffff' : (isLight ? '#475569' : '#94a3b8'),
                 fontWeight: 700,
-                fontSize: '0.85rem',
+                fontSize: isMobile ? '0.76rem' : '0.85rem',
                 cursor: 'pointer',
                 boxShadow: viewMode === 'grid' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Grid size={16} />
-              Galeri Grid Interaktif (500 Kamar)
+              <Grid size={isMobile ? 14 : 16} />
+              {isMobile ? 'Galeri Grid (500)' : 'Galeri Grid Interaktif (500 Kamar)'}
             </button>
 
             <button
               type="button"
               onClick={() => setViewMode('document')}
               style={{
+                flex: isMobile ? 1 : 'initial',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '9px 20px',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: isMobile ? '7px 10px' : '9px 20px',
                 borderRadius: '10px',
                 border: 'none',
                 background: viewMode === 'document' ? '#2563eb' : 'transparent',
                 color: viewMode === 'document' ? '#ffffff' : (isLight ? '#475569' : '#94a3b8'),
                 fontWeight: 700,
-                fontSize: '0.85rem',
+                fontSize: isMobile ? '0.76rem' : '0.85rem',
                 cursor: 'pointer',
                 boxShadow: viewMode === 'document' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
               }}
             >
-              <FileText size={16} />
-              Dokumen PDF Resmi (252 Halaman)
+              <FileText size={isMobile ? 14 : 16} />
+              {isMobile ? 'Dokumen A4 (252p)' : 'Dokumen PDF Resmi (252 Halaman)'}
             </button>
           </div>
 
@@ -371,73 +434,84 @@ export default function StressTestReport() {
           {viewMode === 'grid' && (
             <div style={{
               display: 'inline-flex',
-              padding: '4px',
-              borderRadius: '12px',
+              padding: '3px',
+              borderRadius: '11px',
               background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.65)',
               border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.08)',
-              gap: '4px'
+              gap: '3px',
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-start'
             }}>
               <button
                 type="button"
                 onClick={() => setMediaDisplay('split')}
                 style={{
+                  flex: isMobile ? 1 : 'initial',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: isMobile ? '6px 8px' : '7px 14px',
                   borderRadius: '8px',
                   border: 'none',
                   background: mediaDisplay === 'split' ? (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.15)') : 'transparent',
                   color: mediaDisplay === 'split' ? (isLight ? '#0f172a' : '#ffffff') : (isLight ? '#64748b' : '#94a3b8'),
-                  fontSize: '0.78rem',
+                  fontSize: isMobile ? '0.72rem' : '0.78rem',
                   fontWeight: 700,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <Layers size={14} />
-                Berdampingan (Foto + CAD)
+                <Layers size={13} />
+                {isMobile ? 'Split' : 'Berdampingan (Foto + CAD)'}
               </button>
 
               <button
                 type="button"
                 onClick={() => setMediaDisplay('cad')}
                 style={{
+                  flex: isMobile ? 1 : 'initial',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: isMobile ? '6px 8px' : '7px 14px',
                   borderRadius: '8px',
                   border: 'none',
                   background: mediaDisplay === 'cad' ? (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.15)') : 'transparent',
                   color: mediaDisplay === 'cad' ? (isLight ? '#0f172a' : '#ffffff') : (isLight ? '#64748b' : '#94a3b8'),
-                  fontSize: '0.78rem',
+                  fontSize: isMobile ? '0.72rem' : '0.78rem',
                   fontWeight: 700,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <Compass size={14} />
-                Fokus CAD Blueprint
+                <Compass size={13} />
+                {isMobile ? 'CAD Saja' : 'Fokus CAD Blueprint'}
               </button>
 
               <button
                 type="button"
                 onClick={() => setMediaDisplay('photo')}
                 style={{
+                  flex: isMobile ? 1 : 'initial',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: isMobile ? '6px 8px' : '7px 14px',
                   borderRadius: '8px',
                   border: 'none',
                   background: mediaDisplay === 'photo' ? (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.15)') : 'transparent',
                   color: mediaDisplay === 'photo' ? (isLight ? '#0f172a' : '#ffffff') : (isLight ? '#64748b' : '#94a3b8'),
-                  fontSize: '0.78rem',
+                  fontSize: isMobile ? '0.72rem' : '0.78rem',
                   fontWeight: 700,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <Eye size={14} />
-                Fokus Foto Web
+                <Eye size={13} />
+                {isMobile ? 'Foto Saja' : 'Fokus Foto Web'}
               </button>
             </div>
           )}
@@ -448,12 +522,12 @@ export default function StressTestReport() {
           <div style={{
             background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
             border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '24px',
-            padding: '1.5rem',
+            borderRadius: isMobile ? '16px' : '24px',
+            padding: isMobile ? '12px' : '1.5rem',
             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '14px',
+            gap: isMobile ? '10px' : '14px',
             marginBottom: '2rem'
           }}>
             <div style={{
@@ -461,15 +535,15 @@ export default function StressTestReport() {
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '12px',
-              paddingBottom: '14px',
+              gap: '10px',
+              paddingBottom: '12px',
               borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'
             }}>
               <div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 4px 0', color: isLight ? '#0f172a' : '#ffffff' }}>
-                  📑 Pembaca Dokumen CAD 252 Halaman (A4 Landscape Vektor)
+                <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 800, margin: '0 0 4px 0', color: isLight ? '#0f172a' : '#ffffff' }}>
+                  📑 Pembaca Dokumen CAD 252 Halaman (A4 Vektor)
                 </h2>
-                <p style={{ margin: 0, fontSize: '0.84rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                <p style={{ margin: 0, fontSize: isMobile ? '0.76rem' : '0.84rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Dibaca langsung di browser tanpa perlu download file 58 MB. Teks &amp; linework 100% SVG tajam.
                 </p>
               </div>
@@ -482,19 +556,19 @@ export default function StressTestReport() {
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '5px',
                     background: 'rgba(56, 189, 248, 0.12)',
                     border: '1px solid rgba(56, 189, 248, 0.35)',
                     color: '#38bdf8',
-                    padding: '8px 16px',
+                    padding: isMobile ? '6px 12px' : '8px 16px',
                     borderRadius: '10px',
-                    fontSize: '0.82rem',
+                    fontSize: isMobile ? '0.74rem' : '0.82rem',
                     fontWeight: 700,
                     textDecoration: 'none'
                   }}
                 >
-                  <ExternalLink size={14} />
-                  Buka Tab Baru (Fullscreen)
+                  <ExternalLink size={13} />
+                  Tab Baru (Fullscreen)
                 </a>
               </div>
             </div>
@@ -502,8 +576,8 @@ export default function StressTestReport() {
             <div style={{
               position: 'relative',
               width: '100%',
-              height: '840px',
-              borderRadius: '16px',
+              height: isMobile ? '70vh' : '840px',
+              borderRadius: isMobile ? '12px' : '16px',
               overflow: 'hidden',
               border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
               background: '#090e17'
@@ -528,28 +602,37 @@ export default function StressTestReport() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              gap: '14px',
-              marginBottom: '1.75rem',
-              flexWrap: 'wrap'
+              gap: isMobile ? '10px' : '14px',
+              marginBottom: isMobile ? '1rem' : '1.75rem',
+              flexDirection: isMobile ? 'column' : 'row'
             }}>
-              {/* Type Filter Pills */}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {/* Type Filter Pills - Horizontal Scroll on Mobile */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '6px', 
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                width: isMobile ? '100%' : 'auto',
+                paddingBottom: isMobile ? '2px' : '0'
+              }}>
                 {[
                   { id: 'all', label: 'Semua (500)' },
-                  { id: 'tipe a', label: 'Tipe A (9m² • Single)' },
-                  { id: 'tipe b', label: 'Tipe B (12m² • Super Single)' },
-                  { id: 'tipe c', label: 'Tipe C (14m² • Double Bed)' },
-                  { id: 'tipe d', label: 'Tipe D (18m² • Queen Suite)' },
-                  { id: 'tipe e', label: 'Tipe E (22.5m² • King Suite)' },
-                  { id: 'km dalam', label: '🚿 KM Dalam (Ensuite)' },
-                  { id: 'km luar', label: '🚪 KM Luar (Shared)' },
-                  { id: 'blur unsure', label: '🌫️ Sudut Terbatas (Blur)' }
+                  { id: 'tipe a', label: 'Tipe A (9m²)' },
+                  { id: 'tipe b', label: 'Tipe B (12m²)' },
+                  { id: 'tipe c', label: 'Tipe C (14m²)' },
+                  { id: 'tipe d', label: 'Tipe D (18m²)' },
+                  { id: 'tipe e', label: 'Tipe E (22.5m²)' },
+                  { id: 'km dalam', label: '🚿 KM Dalam' },
+                  { id: 'km luar', label: '🚪 KM Luar' },
+                  { id: 'blur unsure', label: '🌫️ Sudut Blur' }
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => { setSelectedType(tab.id); setCurrentPage(1); }}
                     style={{
+                      flexShrink: 0,
                       background: selectedType === tab.id 
                         ? '#2563eb' 
                         : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)'),
@@ -559,12 +642,13 @@ export default function StressTestReport() {
                       color: selectedType === tab.id 
                         ? '#ffffff' 
                         : (isLight ? '#334155' : '#cbd5e1'),
-                      padding: '7px 15px',
+                      padding: isMobile ? '6px 12px' : '7px 15px',
                       borderRadius: '10px',
-                      fontSize: '0.8rem',
+                      fontSize: isMobile ? '0.74rem' : '0.8rem',
                       fontWeight: 700,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     {tab.label}
@@ -573,8 +657,13 @@ export default function StressTestReport() {
               </div>
 
               {/* Search Box */}
-              <div style={{ position: 'relative', minWidth: '260px', flex: '1', maxWidth: '360px' }}>
-                <Search size={16} style={{ 
+              <div style={{ 
+                position: 'relative', 
+                width: isMobile ? '100%' : 'auto', 
+                minWidth: isMobile ? '100%' : '260px', 
+                maxWidth: isMobile ? '100%' : '360px' 
+              }}>
+                <Search size={15} style={{ 
                   position: 'absolute', 
                   left: '12px', 
                   top: '50%', 
@@ -583,17 +672,18 @@ export default function StressTestReport() {
                 }} />
                 <input
                   type="text"
-                  placeholder="Cari kode atau nomor kamar (e.g. ROOM-042)..."
+                  placeholder="Cari kamar (e.g. ROOM-042)..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                   style={{
                     width: '100%',
-                    padding: '9px 12px 9px 38px',
+                    boxSizing: 'border-box',
+                    padding: isMobile ? '8px 12px 8px 36px' : '9px 12px 9px 38px',
                     borderRadius: '12px',
                     background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
                     border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
                     color: isLight ? '#0f172a' : '#ffffff',
-                    fontSize: '0.85rem',
+                    fontSize: isMobile ? '0.8rem' : '0.85rem',
                     outline: 'none',
                     boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.03)' : 'none'
                   }}
@@ -610,9 +700,11 @@ export default function StressTestReport() {
             ) : (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2.5rem'
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))',
+                gap: isMobile ? '1rem' : '1.5rem',
+                marginBottom: isMobile ? '1.75rem' : '2.5rem',
+                width: '100%',
+                boxSizing: 'border-box'
               }}>
                 {displayedRooms.map((room, idx) => (
                   <div
@@ -623,15 +715,17 @@ export default function StressTestReport() {
                         : 'linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.9) 100%)',
                       backdropFilter: 'blur(16px)',
                       border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '20px',
-                      padding: '1.25rem',
+                      borderRadius: isMobile ? '16px' : '20px',
+                      padding: isMobile ? '12px' : '1.25rem',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '14px',
+                      gap: isMobile ? '10px' : '14px',
                       boxShadow: isLight 
-                        ? '0 6px 20px rgba(0,0,0,0.04)' 
+                        ? '0 4px 16px rgba(0,0,0,0.04)' 
                         : '0 15px 35px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                      boxSizing: 'border-box',
+                      width: '100%',
+                      overflow: 'hidden'
                     }}
                   >
                     {/* Card Header (Clean Visual Hierarchy) */}
@@ -639,7 +733,7 @@ export default function StressTestReport() {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{
-                            fontSize: '1.15rem',
+                            fontSize: isMobile ? '1.05rem' : '1.15rem',
                             fontWeight: 900,
                             letterSpacing: '-0.01em',
                             color: isLight ? '#0f172a' : '#f8fafc'
@@ -649,9 +743,9 @@ export default function StressTestReport() {
                           <span style={{
                             background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
                             color: isLight ? '#64748b' : '#94a3b8',
-                            fontSize: '0.72rem',
+                            fontSize: '0.7rem',
                             fontWeight: 700,
-                            padding: '2px 8px',
+                            padding: '2px 7px',
                             borderRadius: '6px',
                             fontFamily: 'monospace'
                           }}>
@@ -659,9 +753,9 @@ export default function StressTestReport() {
                           </span>
                         </div>
                         <div style={{ 
-                          fontSize: '0.8rem', 
+                          fontSize: isMobile ? '0.76rem' : '0.8rem', 
                           color: isLight ? '#64748b' : '#94a3b8', 
-                          marginTop: '3px',
+                          marginTop: '2px',
                           fontWeight: 500
                         }}>
                           {room.type_name.split('-')[1]?.trim() || room.type_name} • <strong style={{ color: '#38bdf8' }}>{room.dimensions} ({room.area_m2} m²)</strong>
@@ -669,30 +763,30 @@ export default function StressTestReport() {
                       </div>
 
                       {/* Status Badges */}
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         <span style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.68rem',
                           fontWeight: 800,
-                          padding: '3px 9px',
-                          borderRadius: '8px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
                           background: room.has_bathroom ? 'rgba(16, 185, 129, 0.12)' : 'rgba(148, 163, 184, 0.12)',
                           color: room.has_bathroom ? '#34d399' : (isLight ? '#475569' : '#cbd5e1'),
                           border: room.has_bathroom ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(148, 163, 184, 0.25)'
                         }}>
-                          {room.has_bathroom ? '🚿 KM Dalam' : '🚪 KM Luar'}
+                          {room.has_bathroom ? '🚿 KM Dlm' : '🚪 KM Luar'}
                         </span>
                         
                         {room.unsure_zone && (
                           <span style={{
-                            fontSize: '0.72rem',
+                            fontSize: '0.68rem',
                             fontWeight: 800,
-                            padding: '3px 9px',
-                            borderRadius: '8px',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
                             background: 'rgba(244, 63, 94, 0.12)',
                             color: '#fb7185',
                             border: '1px solid rgba(244, 63, 94, 0.3)'
                           }}>
-                            🌫️ Sudut Blur
+                            🌫️ Blur
                           </span>
                         )}
                       </div>
@@ -704,18 +798,17 @@ export default function StressTestReport() {
                       <div style={{ 
                         display: 'grid', 
                         gridTemplateColumns: '1fr 1fr', 
-                        gap: '10px' 
+                        gap: isMobile ? '6px' : '10px' 
                       }}>
                         {/* Real Photo */}
                         <div 
-                          onClick={() => setSelectedRoomModal({ room, activeTab: 'photo' })}
+                          onClick={() => { setSelectedRoomModal(room); setModalTab('photo'); }}
                           style={{ 
                             position: 'relative', 
-                            borderRadius: '12px', 
+                            borderRadius: isMobile ? '10px' : '12px', 
                             overflow: 'hidden', 
                             cursor: 'pointer', 
-                            aspectRatio: '16/11', 
-                            minHeight: '160px', 
+                            aspectRatio: isMobile ? '1/1' : '16/11', 
                             background: '#090e17',
                             border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'
                           }}
@@ -728,39 +821,37 @@ export default function StressTestReport() {
                               width: '100%', 
                               height: '100%', 
                               objectFit: 'cover', 
-                              display: 'block',
-                              transition: 'transform 0.3s ease'
+                              display: 'block' 
                             }}
                           />
                           <div style={{
                             position: 'absolute',
-                            bottom: '6px',
-                            left: '6px',
-                            background: 'rgba(0, 0, 0, 0.8)',
-                            backdropFilter: 'blur(6px)',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.68rem',
+                            bottom: '5px',
+                            left: '5px',
+                            background: 'rgba(0, 0, 0, 0.82)',
+                            backdropFilter: 'blur(4px)',
+                            padding: isMobile ? '2px 6px' : '3px 8px',
+                            borderRadius: '5px',
+                            fontSize: isMobile ? '0.62rem' : '0.68rem',
                             color: '#4ade80',
                             fontWeight: 800,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '3px'
                           }}>
-                            📸 Foto Web Nyata
+                            📸 {isMobile ? 'Real Web' : 'Foto Web Nyata'}
                           </div>
                         </div>
 
                         {/* 2D Architectural CAD Blueprint */}
                         <div 
-                          onClick={() => setSelectedRoomModal({ room, activeTab: 'cad' })}
+                          onClick={() => { setSelectedRoomModal(room); setModalTab('cad'); }}
                           style={{ 
                             position: 'relative', 
-                            borderRadius: '12px', 
+                            borderRadius: isMobile ? '10px' : '12px', 
                             overflow: 'hidden', 
                             cursor: 'pointer', 
-                            aspectRatio: '16/11', 
-                            minHeight: '160px', 
+                            aspectRatio: isMobile ? '1/1' : '16/11', 
                             background: '#090e17',
                             border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.25)'
                           }}
@@ -778,35 +869,34 @@ export default function StressTestReport() {
                           />
                           <div style={{
                             position: 'absolute',
-                            bottom: '6px',
-                            left: '6px',
-                            background: 'rgba(9, 14, 23, 0.85)',
-                            backdropFilter: 'blur(6px)',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.68rem',
+                            bottom: '5px',
+                            left: '5px',
+                            background: 'rgba(9, 14, 23, 0.88)',
+                            backdropFilter: 'blur(4px)',
+                            padding: isMobile ? '2px 6px' : '3px 8px',
+                            borderRadius: '5px',
+                            fontSize: isMobile ? '0.62rem' : '0.68rem',
                             color: '#38bdf8',
                             fontWeight: 800,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '3px',
                             border: '1px solid rgba(56, 189, 248, 0.3)'
                           }}>
-                            📐 CAD Skala 1:50
+                            📐 {isMobile ? 'CAD 1:50' : 'CAD Skala 1:50'}
                           </div>
                         </div>
                       </div>
                     ) : mediaDisplay === 'cad' ? (
                       /* Full CAD Frame */
                       <div 
-                        onClick={() => setSelectedRoomModal({ room, activeTab: 'cad' })}
+                        onClick={() => { setSelectedRoomModal(room); setModalTab('cad'); }}
                         style={{ 
                           position: 'relative', 
-                          borderRadius: '14px', 
+                          borderRadius: isMobile ? '12px' : '14px', 
                           overflow: 'hidden', 
                           cursor: 'pointer', 
-                          aspectRatio: '16/10', 
-                          minHeight: '220px', 
+                          aspectRatio: isMobile ? '4/3' : '16/10', 
                           background: '#090e17',
                           border: '1px solid rgba(56, 189, 248, 0.35)'
                         }}
@@ -819,31 +909,30 @@ export default function StressTestReport() {
                         />
                         <div style={{
                           position: 'absolute',
-                          bottom: '8px',
-                          left: '8px',
-                          background: 'rgba(9, 14, 23, 0.85)',
-                          backdropFilter: 'blur(6px)',
-                          padding: '4px 10px',
+                          bottom: '6px',
+                          left: '6px',
+                          background: 'rgba(9, 14, 23, 0.88)',
+                          backdropFilter: 'blur(4px)',
+                          padding: isMobile ? '3px 8px' : '4px 10px',
                           borderRadius: '6px',
-                          fontSize: '0.72rem',
+                          fontSize: isMobile ? '0.68rem' : '0.72rem',
                           color: '#38bdf8',
                           fontWeight: 800,
                           border: '1px solid rgba(56, 189, 248, 0.3)'
                         }}>
-                          📐 Architectural Blueprint 1:50 • Klik untuk Layar Penuh
+                          📐 CAD 1:50 • Tap Layar Penuh
                         </div>
                       </div>
                     ) : (
                       /* Full Photo Frame */
                       <div 
-                        onClick={() => setSelectedRoomModal({ room, activeTab: 'photo' })}
+                        onClick={() => { setSelectedRoomModal(room); setModalTab('photo'); }}
                         style={{ 
                           position: 'relative', 
-                          borderRadius: '14px', 
+                          borderRadius: isMobile ? '12px' : '14px', 
                           overflow: 'hidden', 
                           cursor: 'pointer', 
-                          aspectRatio: '16/10', 
-                          minHeight: '220px', 
+                          aspectRatio: isMobile ? '4/3' : '16/10', 
                           background: '#090e17',
                           border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'
                         }}
@@ -856,17 +945,17 @@ export default function StressTestReport() {
                         />
                         <div style={{
                           position: 'absolute',
-                          bottom: '8px',
-                          left: '8px',
-                          background: 'rgba(0, 0, 0, 0.8)',
-                          backdropFilter: 'blur(6px)',
-                          padding: '4px 10px',
+                          bottom: '6px',
+                          left: '6px',
+                          background: 'rgba(0, 0, 0, 0.82)',
+                          backdropFilter: 'blur(4px)',
+                          padding: isMobile ? '3px 8px' : '4px 10px',
                           borderRadius: '6px',
-                          fontSize: '0.72rem',
+                          fontSize: isMobile ? '0.68rem' : '0.72rem',
                           color: '#4ade80',
                           fontWeight: 800
                         }}>
-                          📸 Foto Asli Web • Klik untuk Layar Penuh
+                          📸 Foto Web Real • Tap Layar Penuh
                         </div>
                       </div>
                     )}
@@ -875,41 +964,39 @@ export default function StressTestReport() {
                     <div style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '8px',
+                      gap: '6px',
                       background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.25)',
-                      padding: '10px 12px',
+                      padding: isMobile ? '8px 10px' : '10px 12px',
                       borderRadius: '12px',
                       border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#cbd5e1' }}>
+                        <span style={{ fontSize: isMobile ? '0.74rem' : '0.78rem', color: isLight ? '#475569' : '#cbd5e1' }}>
                           Kasur: <strong style={{ color: '#38bdf8' }}>{room.bed_label}</strong>
                         </span>
                         
                         {/* Extracted Color Palette Dots */}
-                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8' }}>Palet:</span>
+                        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8' }}>Palet:</span>
                           <span 
                             style={{ 
                               display: 'inline-block', 
-                              width: '14px', 
-                              height: '14px', 
-                              borderRadius: '4px', 
+                              width: '12px', 
+                              height: '12px', 
+                              borderRadius: '3px', 
                               background: room.cv_features?.blanket_hex || '#cbd5e1', 
-                              border: '1px solid rgba(255,255,255,0.4)',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                              border: '1px solid rgba(255,255,255,0.4)'
                             }} 
                             title={`Warna Sprei: ${room.cv_features?.blanket_hex}`} 
                           />
                           <span 
                             style={{ 
                               display: 'inline-block', 
-                              width: '14px', 
-                              height: '14px', 
-                              borderRadius: '4px', 
+                              width: '12px', 
+                              height: '12px', 
+                              borderRadius: '3px', 
                               background: room.cv_features?.floor_hex || '#64748b', 
-                              border: '1px solid rgba(255,255,255,0.4)',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                              border: '1px solid rgba(255,255,255,0.4)'
                             }} 
                             title={`Warna Lantai: ${room.cv_features?.floor_hex}`} 
                           />
@@ -917,14 +1004,14 @@ export default function StressTestReport() {
                       </div>
 
                       {/* Amenity Badges */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                         {room.furnitures.map((f, i) => (
                           <span
                             key={i}
                             style={{
-                              fontSize: '0.7rem',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
+                              fontSize: isMobile ? '0.65rem' : '0.7rem',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
                               background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.06)',
                               color: isLight ? '#475569' : '#cbd5e1',
                               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
@@ -940,25 +1027,25 @@ export default function StressTestReport() {
                     {/* Card Action & Inspection Button */}
                     <button
                       type="button"
-                      onClick={() => setSelectedRoomModal({ room, activeTab: 'cad' })}
+                      onClick={() => { setSelectedRoomModal(room); setModalTab('cad'); }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '8px',
-                        padding: '10px 16px',
-                        borderRadius: '12px',
+                        gap: '6px',
+                        padding: isMobile ? '8px 12px' : '10px 16px',
+                        borderRadius: '11px',
                         border: '1px solid rgba(56, 189, 248, 0.3)',
                         background: isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.08)',
                         color: '#38bdf8',
-                        fontSize: '0.82rem',
+                        fontSize: isMobile ? '0.78rem' : '0.82rem',
                         fontWeight: 700,
                         cursor: 'pointer',
                         transition: 'all 0.2s ease'
                       }}
                     >
-                      <Maximize size={15} />
-                      Inspeksi CAD Presisi Tinggi &amp; Komparasi HD
+                      <Maximize size={14} />
+                      {isMobile ? 'Inspeksi CAD & Foto HD' : 'Inspeksi CAD Presisi Tinggi & Komparasi HD'}
                     </button>
                   </div>
                 ))}
@@ -970,16 +1057,17 @@ export default function StressTestReport() {
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center', 
-              gap: '14px', 
-              marginTop: '2.5rem' 
+              gap: isMobile ? '8px' : '14px', 
+              marginTop: isMobile ? '1.5rem' : '2.5rem',
+              flexWrap: 'wrap'
             }}>
               <button
                 type="button"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 style={{
-                  padding: '9px 18px',
-                  borderRadius: '12px',
+                  padding: isMobile ? '7px 12px' : '9px 18px',
+                  borderRadius: '10px',
                   background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.06)',
                   border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
                   color: isLight ? '#0f172a' : '#ffffff',
@@ -987,24 +1075,24 @@ export default function StressTestReport() {
                   opacity: currentPage === 1 ? 0.4 : 1,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '4px',
                   fontWeight: 700,
-                  fontSize: '0.84rem'
+                  fontSize: isMobile ? '0.76rem' : '0.84rem'
                 }}
               >
-                <ChevronLeft size={16} /> Sebelumnya
+                <ChevronLeft size={isMobile ? 14 : 16} /> Sebelumnya
               </button>
 
               <span style={{ 
-                fontSize: '0.88rem', 
+                fontSize: isMobile ? '0.76rem' : '0.88rem', 
                 fontWeight: 800, 
                 color: '#38bdf8', 
                 fontFamily: 'monospace',
-                padding: '6px 14px',
+                padding: isMobile ? '5px 10px' : '6px 14px',
                 borderRadius: '8px',
                 background: isLight ? '#f1f5f9' : 'rgba(0, 0, 0, 0.4)'
               }}>
-                Halaman {currentPage} dari {totalPages}
+                Hal {currentPage} / {totalPages}
               </span>
 
               <button
@@ -1012,8 +1100,8 @@ export default function StressTestReport() {
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 style={{
-                  padding: '9px 18px',
-                  borderRadius: '12px',
+                  padding: isMobile ? '7px 12px' : '9px 18px',
+                  borderRadius: '10px',
                   background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.06)',
                   border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
                   color: isLight ? '#0f172a' : '#ffffff',
@@ -1021,12 +1109,12 @@ export default function StressTestReport() {
                   opacity: currentPage === totalPages ? 0.4 : 1,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '4px',
                   fontWeight: 700,
-                  fontSize: '0.84rem'
+                  fontSize: isMobile ? '0.76rem' : '0.84rem'
                 }}
               >
-                Berikutnya <ChevronRight size={16} />
+                Berikutnya <ChevronRight size={isMobile ? 14 : 16} />
               </button>
             </div>
           </div>
@@ -1047,7 +1135,7 @@ export default function StressTestReport() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '20px'
+            padding: isMobile ? '10px' : '20px'
           }}
         >
           <div 
@@ -1056,11 +1144,11 @@ export default function StressTestReport() {
               maxWidth: '1080px',
               width: '100%',
               background: '#090e17',
-              borderRadius: '24px',
+              borderRadius: isMobile ? '16px' : '24px',
               border: '1px solid rgba(56, 189, 248, 0.35)',
-              padding: '1.75rem',
+              padding: isMobile ? '1rem' : '1.75rem',
               boxShadow: '0 30px 80px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-              maxHeight: '92vh',
+              maxHeight: '94vh',
               overflowY: 'auto'
             }}
           >
@@ -1068,53 +1156,55 @@ export default function StressTestReport() {
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
-              alignItems: 'center', 
-              marginBottom: '1.25rem',
-              paddingBottom: '1rem',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+              alignItems: 'flex-start', 
+              marginBottom: '1rem',
+              paddingBottom: '0.75rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              gap: '8px'
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#ffffff' }}>
-                    Unit {selectedRoomModal.room.room_number} • {selectedRoomModal.room.room_code}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: isMobile ? '1.1rem' : '1.35rem', fontWeight: 900, color: '#ffffff' }}>
+                    Unit {selectedRoomModal.room_number} • {selectedRoomModal.room_code}
                   </h3>
                   <span style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.68rem',
                     fontWeight: 800,
-                    padding: '3px 8px',
+                    padding: '2px 7px',
                     borderRadius: '6px',
                     background: 'rgba(56, 189, 248, 0.15)',
                     color: '#38bdf8',
                     border: '1px solid rgba(56, 189, 248, 0.3)'
                   }}>
-                    CAD SKALA 1:50
+                    CAD 1:50
                   </span>
                 </div>
-                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-                  {selectedRoomModal.room.type_name} • Dimensi: <strong>{selectedRoomModal.room.dimensions} ({selectedRoomModal.room.area_m2} m²)</strong> • {selectedRoomModal.room.bathroom_type}
+                <p style={{ margin: '3px 0 0', fontSize: isMobile ? '0.76rem' : '0.85rem', color: '#94a3b8' }}>
+                  {selectedRoomModal.type_name} • <strong>{selectedRoomModal.dimensions} ({selectedRoomModal.area_m2} m²)</strong> • {selectedRoomModal.bathroom_type}
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <a
-                  href={`/downloads/blueprints/${selectedRoomModal.room.blueprint_file}`}
-                  download={selectedRoomModal.room.blueprint_file}
+                  href={`/downloads/blueprints/${selectedRoomModal.blueprint_file}`}
+                  download={selectedRoomModal.blueprint_file}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '4px',
                     background: 'rgba(56, 189, 248, 0.15)',
                     border: '1px solid rgba(56, 189, 248, 0.35)',
                     color: '#38bdf8',
-                    padding: '8px 14px',
-                    borderRadius: '10px',
-                    fontSize: '0.8rem',
+                    padding: isMobile ? '6px 10px' : '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: isMobile ? '0.72rem' : '0.8rem',
                     fontWeight: 700,
-                    textDecoration: 'none'
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <Download size={14} />
-                  Unduh CAD SVG
+                  <Download size={13} />
+                  {isMobile ? 'SVG' : 'Unduh CAD SVG'}
                 </a>
 
                 <button 
@@ -1124,97 +1214,203 @@ export default function StressTestReport() {
                     background: 'rgba(255, 255, 255, 0.08)', 
                     border: '1px solid rgba(255, 255, 255, 0.12)', 
                     color: '#94a3b8', 
-                    borderRadius: '10px',
-                    padding: '8px',
+                    borderRadius: '8px', 
+                    padding: isMobile ? '6px' : '8px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer' 
                   }}
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
             </div>
 
-            {/* Modal Image Comparison: Large High-Res View */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '1.5rem'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4ade80', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  📸 Foto Real Web Kamar Tidur
+            {/* Modal Tab Switcher on Mobile */}
+            {isMobile && (
+              <div style={{
+                display: 'flex',
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '8px',
+                padding: '3px',
+                gap: '3px',
+                marginBottom: '10px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('cad')}
+                  style={{
+                    flex: 1,
+                    padding: '6px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: modalTab === 'cad' ? '#2563eb' : 'transparent',
+                    color: '#ffffff',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  📐 CAD 2D
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('photo')}
+                  style={{
+                    flex: 1,
+                    padding: '6px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: modalTab === 'photo' ? '#2563eb' : 'transparent',
+                    color: '#ffffff',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  📸 Foto Real
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('split')}
+                  style={{
+                    flex: 1,
+                    padding: '6px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: modalTab === 'split' ? '#2563eb' : 'transparent',
+                    color: '#ffffff',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  ⚖️ Keduanya
+                </button>
+              </div>
+            )}
+
+            {/* Modal Image View */}
+            {(!isMobile || modalTab === 'split') ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: isMobile ? '10px' : '16px',
+                marginBottom: '1.25rem'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#4ade80', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    📸 Foto Real Web Kamar Tidur
+                  </div>
+                  <div style={{
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    background: '#040711',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    aspectRatio: isMobile ? '4/3' : '16/11'
+                  }}>
+                    <img 
+                      src={`/downloads/photos/${selectedRoomModal.photo_file}`} 
+                      alt="Foto Real" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  </div>
                 </div>
-                <div style={{
-                  borderRadius: '14px',
-                  overflow: 'hidden',
-                  background: '#040711',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  aspectRatio: '16/11'
-                }}>
-                  <img 
-                    src={`/downloads/photos/${selectedRoomModal.room.photo_file}`} 
-                    alt="Foto Real" 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
+
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    📐 Denah Vektor CAD Arsitektural (Skala 1:50)
+                  </div>
+                  <div style={{
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    background: '#090e17',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    aspectRatio: isMobile ? '4/3' : '16/11'
+                  }}>
+                    <img 
+                      src={`/downloads/blueprints/${selectedRoomModal.blueprint_file}`} 
+                      alt="Denah CAD" 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                    />
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            ) : modalTab === 'cad' ? (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', marginBottom: '6px' }}>
                   📐 Denah Vektor CAD Arsitektural (Skala 1:50)
                 </div>
                 <div style={{
-                  borderRadius: '14px',
+                  borderRadius: '12px',
                   overflow: 'hidden',
                   background: '#090e17',
                   border: '1px solid rgba(56, 189, 248, 0.4)',
-                  aspectRatio: '16/11'
+                  aspectRatio: '4/3',
+                  maxHeight: '55vh'
                 }}>
                   <img 
-                    src={`/downloads/blueprints/${selectedRoomModal.room.blueprint_file}`} 
+                    src={`/downloads/blueprints/${selectedRoomModal.blueprint_file}`} 
                     alt="Denah CAD" 
                     style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                   />
                 </div>
               </div>
-            </div>
+            ) : (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#4ade80', marginBottom: '6px' }}>
+                  📸 Foto Real Web Kamar Tidur
+                </div>
+                <div style={{
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  background: '#040711',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  aspectRatio: '4/3',
+                  maxHeight: '55vh'
+                }}>
+                  <img 
+                    src={`/downloads/photos/${selectedRoomModal.photo_file}`} 
+                    alt="Foto Real" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Precision Ground Truth & Computer Vision Audit Bar */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '12px',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: isMobile ? '8px' : '12px',
               background: 'rgba(0, 0, 0, 0.4)',
-              padding: '14px 18px',
-              borderRadius: '14px',
+              padding: isMobile ? '10px 12px' : '14px 18px',
+              borderRadius: '12px',
               border: '1px solid rgba(255, 255, 255, 0.06)'
             }}>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Konfigurasi Kasur</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
-                  {selectedRoomModal.room.bed_label}
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Konfigurasi Kasur</div>
+                <div style={{ fontSize: isMobile ? '0.8rem' : '0.9rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                  {selectedRoomModal.bed_label}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Kamar Mandi</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedRoomModal.room.has_bathroom ? '#34d399' : '#fbbf24', marginTop: '2px' }}>
-                  {selectedRoomModal.room.bathroom_type}
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Kamar Mandi</div>
+                <div style={{ fontSize: isMobile ? '0.8rem' : '0.9rem', fontWeight: 800, color: selectedRoomModal.has_bathroom ? '#34d399' : '#fbbf24', marginTop: '2px' }}>
+                  {selectedRoomModal.bathroom_type}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Sudut Unsure (Blind Spot)</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedRoomModal.room.unsure_zone ? '#fb7185' : '#38bdf8', marginTop: '2px' }}>
-                  {selectedRoomModal.room.unsure_zone ? '🌫️ Dibuat Blur (Presisi)' : '✓ 100% Terlihat'}
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Sudut Unsure</div>
+                <div style={{ fontSize: isMobile ? '0.8rem' : '0.9rem', fontWeight: 800, color: selectedRoomModal.unsure_zone ? '#fb7185' : '#38bdf8', marginTop: '2px' }}>
+                  {selectedRoomModal.unsure_zone ? '🌫️ Dibuat Blur' : '✓ 100% Terlihat'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Akurasi &amp; Latensi Inferensi</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#4ade80', marginTop: '2px' }}>
-                  {selectedRoomModal.room.confidence_pct}% • {selectedRoomModal.room.latency_ms}ms
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Akurasi &amp; Latensi</div>
+                <div style={{ fontSize: isMobile ? '0.8rem' : '0.9rem', fontWeight: 800, color: '#4ade80', marginTop: '2px' }}>
+                  {selectedRoomModal.confidence_pct}% • {selectedRoomModal.latency_ms}ms
                 </div>
               </div>
             </div>

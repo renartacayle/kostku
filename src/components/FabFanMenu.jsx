@@ -38,8 +38,13 @@ export default function FabFanMenu() {
     setIsOpen(false);
   }, [location.pathname]);
 
-  // Hide on checkout & direct payment to avoid covering payment details
-  if (location.pathname === '/checkout' || location.pathname === '/bayar') {
+  // Hide on checkout, direct payment, and stress-test report to avoid covering details
+  if (
+    location.pathname === '/checkout' || 
+    location.pathname === '/bayar' ||
+    location.pathname === '/stress-test-report' ||
+    location.pathname.startsWith('/stress-test')
+  ) {
     return null;
   }
 
