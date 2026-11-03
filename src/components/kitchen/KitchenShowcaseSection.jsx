@@ -26,6 +26,7 @@ import CopyFeedbackButton from './CopyFeedbackButton';
 import ShineSweepButton from './ShineSweepButton';
 import ScrambleText from './ScrambleText';
 import ReceiptPrinter from './ReceiptPrinter';
+import { RatingMotionSuite } from '../rating';
 
 /**
  * KitchenShowcaseSection - Inspired by UI Motion Prompts & The Kitchen
@@ -608,6 +609,9 @@ export default function KitchenShowcaseSection() {
 
         </div>
       </div>
+
+      {/* ── UI Motion Prompts: Rating Suite (Star Cascade, Emoji Scale, Half Stars, Review Bars, Thanks Morph) ── */}
+      <RatingMotionSuite />
 
     </section>
   );

@@ -46,6 +46,7 @@ const KebijakanPrivasi = lazy(() => import('./pages/KebijakanPrivasi'));
 const SyaratKetentuan = lazy(() => import('./pages/SyaratKetentuan'));
 const TentangKami = lazy(() => import('./pages/TentangKami'));
 const Checkout = lazy(() => import('./pages/Checkout'));
+const StressTestReport = lazy(() => import('./pages/StressTestReport'));
 
 // Lightweight, tactile loading indicator during route chunks hydration
 const PageLoadingFallback = () => (
@@ -275,6 +276,11 @@ function App() {
           <Route path="/tentang-kami" element={<TentangKami />} />
           <Route path="/about" element={<Navigate to="/tentang-kami" replace />} />
           <Route path="/about-us" element={<Navigate to="/tentang-kami" replace />} />
+          
+          {/* Stress Test 500 Real Bedroom Photos & Auto-2D Benchmark Report */}
+          <Route path="/stress-test-report" element={<StressTestReport />} />
+          <Route path="/stress-test" element={<Navigate to="/stress-test-report" replace />} />
+          <Route path="/denah-500" element={<Navigate to="/stress-test-report" replace />} />
           
           {/* Redirect legacy /blueprint routes */}
           <Route path="/blueprint" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />
