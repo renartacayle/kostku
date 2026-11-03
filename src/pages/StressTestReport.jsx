@@ -6,13 +6,20 @@ import {
   Download, 
   ExternalLink, 
   Search, 
-  Filter, 
   ChevronLeft, 
   ChevronRight,
   Maximize2,
-  Check,
   Grid,
-  FileText
+  FileText,
+  Compass,
+  Layers,
+  Eye,
+  CheckCircle2,
+  Bed,
+  Bath,
+  Wind,
+  Maximize,
+  X
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -26,7 +33,8 @@ export default function StressTestReport() {
   const [selectedType, setSelectedType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'document'
-  const [zoomModal, setZoomModal] = useState(null); // { type: 'photo' | 'blueprint', src: string, title: string }
+  const [mediaDisplay, setMediaDisplay] = useState('split'); // 'split' | 'cad' | 'photo'
+  const [selectedRoomModal, setSelectedRoomModal] = useState(null);
   const pageSize = 12;
 
   useEffect(() => {
@@ -40,6 +48,17 @@ export default function StressTestReport() {
         console.error('Failed to load benchmark results:', err);
         setLoading(false);
       });
+  }, []);
+
+  // Keyboard escape listener for modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedRoomModal(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const filteredRooms = rooms.filter((r) => {
@@ -75,32 +94,44 @@ export default function StressTestReport() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: isLight ? '#f8fafc' : 'radial-gradient(circle at 50% 5%, rgba(37, 99, 235, 0.15) 0%, #090e1a 70%)',
-      padding: '2rem 1.25rem 4rem',
-      color: isLight ? '#0f172a' : '#f8fafc'
+      background: isLight 
+        ? '#f8fafc' 
+        : 'radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.22) 0%, #060b14 65%)',
+      padding: '1.5rem 1rem 7.5rem',
+      color: isLight ? '#0f172a' : '#f8fafc',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
-      <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
         
-        {/* Navigation & Back Link */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '10px' }}>
+        {/* Top Breadcrumb & Action Links */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem', 
+          flexWrap: 'wrap', 
+          gap: '8px' 
+        }}>
           <Link
             to="/demo"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
-              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-              color: isLight ? '#0f172a' : '#ffffff',
-              padding: '8px 16px',
-              borderRadius: '12px',
+              gap: '6px',
+              background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: isLight ? '#0f172a' : '#f8fafc',
+              padding: '7px 14px',
+              borderRadius: '10px',
               textDecoration: 'none',
-              fontSize: '0.84rem',
-              fontWeight: 700
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : 'none',
+              transition: 'all 0.2s ease'
             }}
           >
-            <ArrowLeft size={16} />
-            Kembali ke Sandbox / Demo
+            <ArrowLeft size={15} />
+            Demo Sandbox
           </Link>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -112,18 +143,19 @@ export default function StressTestReport() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.4)',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
                 color: '#38bdf8',
-                padding: '8px 14px',
+                padding: '7px 14px',
                 borderRadius: '10px',
                 textDecoration: 'none',
-                fontSize: '0.82rem',
-                fontWeight: 700
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                transition: 'all 0.2s'
               }}
             >
-              <ExternalLink size={15} />
-              Buka Dokumen 252 Hal (Full Browser)
+              <ExternalLink size={14} />
+              Dokumen A4 (252 Hal)
             </a>
 
             <a
@@ -134,18 +166,18 @@ export default function StressTestReport() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
-                border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                color: isLight ? '#0f172a' : '#ffffff',
-                padding: '8px 14px',
+                background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
+                color: isLight ? '#0f172a' : '#f8fafc',
+                padding: '7px 14px',
                 borderRadius: '10px',
                 textDecoration: 'none',
-                fontSize: '0.82rem',
+                fontSize: '0.78rem',
                 fontWeight: 700
               }}
             >
-              <ExternalLink size={15} />
-              Buka Google Cloud PDF Reader
+              <ExternalLink size={14} />
+              Cloud PDF Reader
             </a>
 
             <a
@@ -157,129 +189,137 @@ export default function StressTestReport() {
                 gap: '6px',
                 background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 color: '#ffffff',
-                padding: '8px 16px',
+                padding: '7px 15px',
                 borderRadius: '10px',
                 textDecoration: 'none',
-                fontSize: '0.82rem',
+                fontSize: '0.78rem',
                 fontWeight: 700,
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)'
               }}
             >
-              <Download size={15} />
-              Unduh PDF Lengkap (58 MB)
+              <Download size={14} />
+              Unduh PDF (58 MB)
             </a>
           </div>
         </div>
 
-        {/* Header Hero Banner */}
+        {/* Hero Architectural Banner (Double Bezel) */}
         <div style={{
-          background: isLight ? '#ffffff' : 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.85) 100%)',
-          border: isLight ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(56, 189, 248, 0.35)',
+          background: isLight 
+            ? '#ffffff' 
+            : 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%)',
+          backdropFilter: 'blur(20px)',
+          border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '24px',
-          padding: '2rem',
-          marginBottom: '2rem',
-          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.25)'
+          padding: '2.5rem',
+          marginBottom: '2.25rem',
+          boxShadow: isLight 
+            ? '0 12px 30px rgba(0, 0, 0, 0.05)' 
+            : '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
         }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '4px 14px',
+            padding: '5px 14px',
             borderRadius: '999px',
-            background: 'rgba(56, 189, 248, 0.15)',
-            border: '1px solid rgba(56, 189, 248, 0.35)',
+            background: 'rgba(56, 189, 248, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
             color: '#38bdf8',
             fontSize: '0.78rem',
             fontWeight: 800,
             textTransform: 'uppercase',
-            marginBottom: '0.75rem'
+            letterSpacing: '0.5px',
+            marginBottom: '1rem'
           }}>
             <Sparkles size={14} />
-            <span>KostKu AI Vision Suite • Live Web Stress Test Viewer</span>
+            <span>KostKu Spatial Vision Suite • Architectural CAD Benchmark</span>
           </div>
 
           <h1 style={{
-            fontSize: 'clamp(1.5rem, 3.5vw, 2.3rem)',
+            fontSize: 'clamp(1.75rem, 3.8vw, 2.6rem)',
             fontWeight: 900,
-            lineHeight: 1.25,
+            lineHeight: 1.2,
+            letterSpacing: '-0.02em',
             color: isLight ? '#0f172a' : '#f8fafc',
-            margin: '0 0 0.75rem 0'
+            margin: '0 0 1rem 0'
           }}>
             500 Real Web Bedroom Photos &amp; Auto-2D Floor Plan CAD Benchmark
           </h1>
 
           <p style={{
-            fontSize: '0.92rem',
+            fontSize: '0.98rem',
             color: isLight ? '#475569' : '#94a3b8',
-            lineHeight: 1.6,
-            maxWidth: '880px',
-            margin: '0 0 1.5rem 0'
+            lineHeight: 1.65,
+            maxWidth: '920px',
+            margin: '0 0 2rem 0'
           }}>
-            Katalog online interaktif untuk 500 foto kamar tidur nyata dari web yang diproses oleh pipeline Computer Vision spasial KostKu dan dikonversi otomatis menjadi denah arsitektural 2D vektor CAD presisi tinggi skala 1:50.
+            Katalog arsitektural interaktif yang mendemonstrasikan kemampuan Computer Vision KostKu mengekstrak foto kamar tidur nyata dari web dan secara instan merender denah lantai 2D CAD vektor berstandar drafting Swiss skala 1:50 dengan akurasi 100%.
           </p>
 
-          {/* Quick Metrics Bar */}
+          {/* Quick Metrics Strip */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: '12px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '14px'
           }}>
-            <div style={{ background: isLight ? '#f1f5f9' : 'rgba(0, 0, 0, 0.35)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#38bdf8', fontFamily: 'monospace' }}>500 Unit</div>
-              <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Foto Web Nyata</div>
+            <div style={{ 
+              background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
+              padding: '14px 18px', 
+              borderRadius: '16px',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
+            }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#38bdf8', fontFamily: 'monospace' }}>500 Unit</div>
+              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Foto Kamar Web Nyata</div>
             </div>
-            <div style={{ background: isLight ? '#f1f5f9' : 'rgba(0, 0, 0, 0.35)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#4ade80', fontFamily: 'monospace' }}>100%</div>
-              <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Akurasi Konversi CAD</div>
+            <div style={{ 
+              background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
+              padding: '14px 18px', 
+              borderRadius: '16px',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
+            }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#4ade80', fontFamily: 'monospace' }}>100%</div>
+              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Akurasi Rekonstruksi CAD</div>
             </div>
-            <div style={{ background: isLight ? '#f1f5f9' : 'rgba(0, 0, 0, 0.35)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>25.4 ms</div>
-              <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Rata-Rata Latensi CV</div>
+            <div style={{ 
+              background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
+              padding: '14px 18px', 
+              borderRadius: '16px',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
+            }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>25.4 ms</div>
+              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Rata-Rata Latensi Inferensi</div>
             </div>
-            <div style={{ background: isLight ? '#f1f5f9' : 'rgba(0, 0, 0, 0.35)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#a855f7', fontFamily: 'monospace' }}>252 Halaman</div>
-              <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>Dokumen PDF Resmi</div>
+            <div style={{ 
+              background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.35)', 
+              padding: '14px 18px', 
+              borderRadius: '16px',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
+            }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#a855f7', fontFamily: 'monospace' }}>252 Halaman</div>
+              <div style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>Dokumen Vektor A4 Resmi</div>
             </div>
           </div>
         </div>
 
-        {/* View Mode Switcher */}
+        {/* Global Controls & View Segmented Switcher */}
         <div style={{
           display: 'flex',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '14px',
           marginBottom: '2rem'
         }}>
+          {/* Main View Mode (Grid vs Document Reader) */}
           <div style={{
             display: 'inline-flex',
-            padding: '5px',
+            padding: '4px',
             borderRadius: '14px',
-            background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.8)',
-            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
-            gap: '6px'
+            background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.85)',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+            gap: '4px'
           }}>
-            <button
-              type="button"
-              onClick={() => setViewMode('document')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 22px',
-                borderRadius: '10px',
-                border: 'none',
-                background: viewMode === 'document' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
-                color: viewMode === 'document' ? '#ffffff' : (isLight ? '#475569' : '#94a3b8'),
-                fontWeight: 800,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                boxShadow: viewMode === 'document' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : 'none',
-                transition: 'all 0.2s'
-              }}
-            >
-              <FileText size={16} />
-              📑 Mode Dokumen PDF (252 Halaman Online)
-            </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
@@ -287,35 +327,133 @@ export default function StressTestReport() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '10px 22px',
+                padding: '9px 20px',
                 borderRadius: '10px',
                 border: 'none',
-                background: viewMode === 'grid' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
+                background: viewMode === 'grid' ? '#2563eb' : 'transparent',
                 color: viewMode === 'grid' ? '#ffffff' : (isLight ? '#475569' : '#94a3b8'),
-                fontWeight: 800,
-                fontSize: '0.86rem',
+                fontWeight: 700,
+                fontSize: '0.85rem',
                 cursor: 'pointer',
-                boxShadow: viewMode === 'grid' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : 'none',
+                boxShadow: viewMode === 'grid' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none',
                 transition: 'all 0.2s'
               }}
             >
               <Grid size={16} />
-              🎴 Mode Grid Interaktif (500 Kamar)
+              Galeri Grid Interaktif (500 Kamar)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewMode('document')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 20px',
+                borderRadius: '10px',
+                border: 'none',
+                background: viewMode === 'document' ? '#2563eb' : 'transparent',
+                color: viewMode === 'document' ? '#ffffff' : (isLight ? '#475569' : '#94a3b8'),
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                boxShadow: viewMode === 'document' ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              <FileText size={16} />
+              Dokumen PDF Resmi (252 Halaman)
             </button>
           </div>
+
+          {/* Media Display Mode Switcher (When in Grid Mode) */}
+          {viewMode === 'grid' && (
+            <div style={{
+              display: 'inline-flex',
+              padding: '4px',
+              borderRadius: '12px',
+              background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.65)',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.08)',
+              gap: '4px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setMediaDisplay('split')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: mediaDisplay === 'split' ? (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.15)') : 'transparent',
+                  color: mediaDisplay === 'split' ? (isLight ? '#0f172a' : '#ffffff') : (isLight ? '#64748b' : '#94a3b8'),
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Layers size={14} />
+                Berdampingan (Foto + CAD)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMediaDisplay('cad')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: mediaDisplay === 'cad' ? (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.15)') : 'transparent',
+                  color: mediaDisplay === 'cad' ? (isLight ? '#0f172a' : '#ffffff') : (isLight ? '#64748b' : '#94a3b8'),
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Compass size={14} />
+                Fokus CAD Blueprint
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMediaDisplay('photo')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: mediaDisplay === 'photo' ? (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.15)') : 'transparent',
+                  color: mediaDisplay === 'photo' ? (isLight ? '#0f172a' : '#ffffff') : (isLight ? '#64748b' : '#94a3b8'),
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Eye size={14} />
+                Fokus Foto Web
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* View Mode: Document Reader */}
         {viewMode === 'document' ? (
-          /* Document Reader Section */
           <div style={{
-            background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.9)',
-            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.35)',
-            borderRadius: '20px',
-            padding: '1.25rem',
-            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.35)',
+            background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px',
+            padding: '1.5rem',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '14px',
             marginBottom: '2rem'
           }}>
             <div style={{
@@ -324,15 +462,15 @@ export default function StressTestReport() {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '12px',
-              paddingBottom: '12px',
-              borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'
+              paddingBottom: '14px',
+              borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'
             }}>
               <div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 4px 0', color: isLight ? '#0f172a' : '#ffffff' }}>
-                  📑 Pembaca Dokumen PDF 252 Halaman (A4 Landscape • Vektor CAD)
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 4px 0', color: isLight ? '#0f172a' : '#ffffff' }}>
+                  📑 Pembaca Dokumen CAD 252 Halaman (A4 Landscape Vektor)
                 </h2>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                  Bisa dibaca langsung secara instan di browser/HP tanpa download file 58 MB. Teks &amp; denah 100% vektor SVG tajam.
+                <p style={{ margin: 0, fontSize: '0.84rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  Dibaca langsung di browser tanpa perlu download file 58 MB. Teks &amp; linework 100% SVG tajam.
                 </p>
               </div>
 
@@ -345,12 +483,12 @@ export default function StressTestReport() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: 'rgba(56, 189, 248, 0.15)',
-                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
                     color: '#38bdf8',
-                    padding: '7px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    fontSize: '0.82rem',
                     fontWeight: 700,
                     textDecoration: 'none'
                   }}
@@ -358,41 +496,21 @@ export default function StressTestReport() {
                   <ExternalLink size={14} />
                   Buka Tab Baru (Fullscreen)
                 </a>
-                <a
-                  href={pdfDownloadUrl}
-                  download="KostKu_StressTest_500_Kamar_Tidur_Auto2D.pdf"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    padding: '7px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    textDecoration: 'none'
-                  }}
-                >
-                  <Download size={14} />
-                  Unduh File PDF Asli (58 MB)
-                </a>
               </div>
             </div>
 
-            {/* Responsive Iframe Container */}
             <div style={{
               position: 'relative',
               width: '100%',
               height: '840px',
-              borderRadius: '14px',
+              borderRadius: '16px',
               overflow: 'hidden',
               border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
-              background: '#0a0f1d'
+              background: '#090e17'
             }}>
               <iframe
                 src={`${htmlDocumentUrl}#rooms-start`}
-                title="KostKu AI Vision - Stress Test 500 Kamar Tidur Auto-2D Benchmark"
+                title="KostKu Architectural CAD Benchmark"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -403,338 +521,528 @@ export default function StressTestReport() {
             </div>
           </div>
         ) : (
+          /* View Mode: Interactive Gallery Grid */
           <div>
-            {/* Filter & Search Bar */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '1.5rem',
-          flexWrap: 'wrap'
-        }}>
-          {/* Type Filter Pills */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {[
-              { id: 'all', label: 'Semua (500)' },
-              { id: 'tipe a', label: 'Tipe A (9m² • Single)' },
-              { id: 'tipe b', label: 'Tipe B (12m² • Super Single)' },
-              { id: 'tipe c', label: 'Tipe C (14m² • Double Bed)' },
-              { id: 'tipe d', label: 'Tipe D (18m² • Queen)' },
-              { id: 'tipe e', label: 'Tipe E (22.5m² • King)' },
-              { id: 'km luar', label: '🚪 KM Luar (Shared)' },
-              { id: 'km dalam', label: '🚿 KM Dalam (Ensuite)' },
-              { id: 'blur unsure', label: '🌫️ Zona Unsure (Blur)' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => { setSelectedType(tab.id); setCurrentPage(1); }}
-                style={{
-                  background: selectedType === tab.id ? '#2563eb' : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.06)'),
-                  border: selectedType === tab.id ? '1px solid #3b82f6' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
-                  color: selectedType === tab.id ? '#ffffff' : (isLight ? '#334155' : '#cbd5e1'),
-                  padding: '6px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Search Input */}
-          <div style={{ position: 'relative', minWidth: '240px', flex: '1', maxWidth: '340px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-            <input
-              type="text"
-              placeholder="Cari kode kamar (e.g. ROOM-042)..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              style={{
-                width: '100%',
-                padding: '8px 12px 8px 36px',
-                borderRadius: '10px',
-                background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
-                border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                color: isLight ? '#0f172a' : '#ffffff',
-                fontSize: '0.84rem'
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Room Grid */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '4rem 0', color: '#64748b' }}>
-            <Sparkles size={28} className="animate-spin" style={{ margin: '0 auto 12px' }} />
-            <p>Memuat 500 sampel kamar tidur real &amp; blueprint CAD...</p>
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-            gap: '1.25rem',
-            marginBottom: '2rem'
-          }}>
-            {displayedRooms.map((room, idx) => (
-              <div
-                key={room.id}
-                style={{
-                  background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.75)',
-                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.25)',
-                  borderRadius: '18px',
-                  padding: '1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  boxShadow: isLight ? '0 4px 16px rgba(0,0,0,0.06)' : '0 8px 25px rgba(0,0,0,0.35)'
-                }}
-              >
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{
-                      background: '#2563eb',
-                      color: '#ffffff',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '6px'
-                    }}>
-                      #{room.id.toString().padStart(3, '0')}
-                    </span>
-                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace' }}>
-                      {room.room_code}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.74rem', background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                      📐 {room.dimensions} ({room.area_m2} m²)
-                    </span>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      background: room.has_bathroom ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                      color: room.has_bathroom ? '#34d399' : '#fbbf24',
-                      border: room.has_bathroom ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(245, 158, 11, 0.35)'
-                    }}>
-                      {room.has_bathroom ? '🚿 KM Dalam' : '🚪 KM Luar'}
-                    </span>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      background: room.unsure_zone ? 'rgba(148, 163, 184, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                      color: room.unsure_zone ? '#94a3b8' : '#38bdf8',
-                      border: room.unsure_zone ? '1px solid rgba(148, 163, 184, 0.35)' : '1px solid rgba(56, 189, 248, 0.35)'
-                    }}>
-                      {room.unsure_zone ? '🌫️ Blur Unsure' : '✓ 100% Crisp'}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f1f5f9' }}>
-                  {room.type_name}
-                </div>
-
-                {/* Side-by-side: Real Photo & 2D Blueprint */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {/* Real Photo */}
-                  <div 
-                    onClick={() => setZoomModal({ type: 'photo', src: `/downloads/photos/${room.photo_file}`, title: `Foto Real Web ${room.room_code}` })}
-                    style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', aspectRatio: '4/3', minHeight: '140px', background: '#0b1329' }}
+            {/* Filter Pills & Search Input */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '14px',
+              marginBottom: '1.75rem',
+              flexWrap: 'wrap'
+            }}>
+              {/* Type Filter Pills */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  { id: 'all', label: 'Semua (500)' },
+                  { id: 'tipe a', label: 'Tipe A (9m² • Single)' },
+                  { id: 'tipe b', label: 'Tipe B (12m² • Super Single)' },
+                  { id: 'tipe c', label: 'Tipe C (14m² • Double Bed)' },
+                  { id: 'tipe d', label: 'Tipe D (18m² • Queen Suite)' },
+                  { id: 'tipe e', label: 'Tipe E (22.5m² • King Suite)' },
+                  { id: 'km dalam', label: '🚿 KM Dalam (Ensuite)' },
+                  { id: 'km luar', label: '🚪 KM Luar (Shared)' },
+                  { id: 'blur unsure', label: '🌫️ Sudut Terbatas (Blur)' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => { setSelectedType(tab.id); setCurrentPage(1); }}
+                    style={{
+                      background: selectedType === tab.id 
+                        ? '#2563eb' 
+                        : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)'),
+                      border: selectedType === tab.id 
+                        ? '1px solid #3b82f6' 
+                        : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'),
+                      color: selectedType === tab.id 
+                        ? '#ffffff' 
+                        : (isLight ? '#334155' : '#cbd5e1'),
+                      padding: '7px 15px',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
                   >
-                    <img
-                      src={`/downloads/photos/${room.photo_file}`}
-                      alt={`Foto Real ${room.room_code}`}
-                      loading={idx < 4 ? 'eager' : 'lazy'}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '4px',
-                      left: '4px',
-                      background: 'rgba(0, 0, 0, 0.75)',
-                      backdropFilter: 'blur(4px)',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '0.65rem',
-                      color: '#4ade80',
-                      fontWeight: 800
-                    }}>
-                      📸 Foto Real Web
-                    </div>
-                  </div>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-                  {/* 2D Blueprint */}
-                  <div 
-                    onClick={() => setZoomModal({ type: 'blueprint', src: `/downloads/blueprints/${room.blueprint_file}`, title: `Denah CAD 2D ${room.room_code}` })}
-                    style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', aspectRatio: '4/3', minHeight: '140px', background: '#0b1329' }}
+              {/* Search Box */}
+              <div style={{ position: 'relative', minWidth: '260px', flex: '1', maxWidth: '360px' }}>
+                <Search size={16} style={{ 
+                  position: 'absolute', 
+                  left: '12px', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  color: isLight ? '#94a3b8' : '#64748b' 
+                }} />
+                <input
+                  type="text"
+                  placeholder="Cari kode atau nomor kamar (e.g. ROOM-042)..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px 9px 38px',
+                    borderRadius: '12px',
+                    background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
+                    color: isLight ? '#0f172a' : '#ffffff',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.03)' : 'none'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Room Card Grid */}
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '5rem 0', color: '#64748b' }}>
+                <Sparkles size={32} className="animate-spin" style={{ margin: '0 auto 14px' }} />
+                <p style={{ fontSize: '0.95rem' }}>Memuat 500 sampel kamar tidur real &amp; blueprint CAD...</p>
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))',
+                gap: '1.5rem',
+                marginBottom: '2.5rem'
+              }}>
+                {displayedRooms.map((room, idx) => (
+                  <div
+                    key={room.id}
+                    style={{
+                      background: isLight 
+                        ? '#ffffff' 
+                        : 'linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                      backdropFilter: 'blur(16px)',
+                      border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '20px',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px',
+                      boxShadow: isLight 
+                        ? '0 6px 20px rgba(0,0,0,0.04)' 
+                        : '0 15px 35px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                    }}
                   >
-                    <img
-                      src={`/downloads/blueprints/${room.blueprint_file}`}
-                      alt={`Denah 2D ${room.room_code}`}
-                      loading={idx < 4 ? 'eager' : 'lazy'}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '4px',
-                      left: '4px',
-                      background: 'rgba(0, 0, 0, 0.75)',
-                      backdropFilter: 'blur(4px)',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '0.65rem',
-                      color: '#38bdf8',
-                      fontWeight: 800
-                    }}>
-                      📐 Auto-2D CAD
-                    </div>
-                  </div>
-                </div>
+                    {/* Card Header (Clean Visual Hierarchy) */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontSize: '1.15rem',
+                            fontWeight: 900,
+                            letterSpacing: '-0.01em',
+                            color: isLight ? '#0f172a' : '#f8fafc'
+                          }}>
+                            Unit {room.room_number}
+                          </span>
+                          <span style={{
+                            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                            color: isLight ? '#64748b' : '#94a3b8',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontFamily: 'monospace'
+                          }}>
+                            {room.room_code}
+                          </span>
+                        </div>
+                        <div style={{ 
+                          fontSize: '0.8rem', 
+                          color: isLight ? '#64748b' : '#94a3b8', 
+                          marginTop: '3px',
+                          fontWeight: 500
+                        }}>
+                          {room.type_name.split('-')[1]?.trim() || room.type_name} • <strong style={{ color: '#38bdf8' }}>{room.dimensions} ({room.area_m2} m²)</strong>
+                        </div>
+                      </div>
 
-                {/* Specs & Badges */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  <span style={{ fontSize: '0.72rem', color: isLight ? '#475569' : '#cbd5e1', width: '100%', marginBottom: '2px' }}>
-                    Kasur: <strong style={{ color: '#60a5fa' }}>{room.bed_label}</strong>
-                  </span>
-                  {room.furnitures.map((f, idx) => (
-                    <span
-                      key={idx}
+                      {/* Status Badges */}
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          padding: '3px 9px',
+                          borderRadius: '8px',
+                          background: room.has_bathroom ? 'rgba(16, 185, 129, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+                          color: room.has_bathroom ? '#34d399' : (isLight ? '#475569' : '#cbd5e1'),
+                          border: room.has_bathroom ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(148, 163, 184, 0.25)'
+                        }}>
+                          {room.has_bathroom ? '🚿 KM Dalam' : '🚪 KM Luar'}
+                        </span>
+                        
+                        {room.unsure_zone && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            padding: '3px 9px',
+                            borderRadius: '8px',
+                            background: 'rgba(244, 63, 94, 0.12)',
+                            color: '#fb7185',
+                            border: '1px solid rgba(244, 63, 94, 0.3)'
+                          }}>
+                            🌫️ Sudut Blur
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Media Showcase Frame */}
+                    {mediaDisplay === 'split' ? (
+                      /* Side-by-Side: Real Web Photo & 2D CAD Blueprint */
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '10px' 
+                      }}>
+                        {/* Real Photo */}
+                        <div 
+                          onClick={() => setSelectedRoomModal({ room, activeTab: 'photo' })}
+                          style={{ 
+                            position: 'relative', 
+                            borderRadius: '12px', 
+                            overflow: 'hidden', 
+                            cursor: 'pointer', 
+                            aspectRatio: '16/11', 
+                            minHeight: '160px', 
+                            background: '#090e17',
+                            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'
+                          }}
+                        >
+                          <img
+                            src={`/downloads/photos/${room.photo_file}`}
+                            alt={`Foto Real ${room.room_code}`}
+                            loading={idx < 4 ? 'eager' : 'lazy'}
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'cover', 
+                              display: 'block',
+                              transition: 'transform 0.3s ease'
+                            }}
+                          />
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '6px',
+                            left: '6px',
+                            background: 'rgba(0, 0, 0, 0.8)',
+                            backdropFilter: 'blur(6px)',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.68rem',
+                            color: '#4ade80',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            📸 Foto Web Nyata
+                          </div>
+                        </div>
+
+                        {/* 2D Architectural CAD Blueprint */}
+                        <div 
+                          onClick={() => setSelectedRoomModal({ room, activeTab: 'cad' })}
+                          style={{ 
+                            position: 'relative', 
+                            borderRadius: '12px', 
+                            overflow: 'hidden', 
+                            cursor: 'pointer', 
+                            aspectRatio: '16/11', 
+                            minHeight: '160px', 
+                            background: '#090e17',
+                            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.25)'
+                          }}
+                        >
+                          <img
+                            src={`/downloads/blueprints/${room.blueprint_file}`}
+                            alt={`Denah 2D ${room.room_code}`}
+                            loading={idx < 4 ? 'eager' : 'lazy'}
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'contain', 
+                              display: 'block' 
+                            }}
+                          />
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '6px',
+                            left: '6px',
+                            background: 'rgba(9, 14, 23, 0.85)',
+                            backdropFilter: 'blur(6px)',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.68rem',
+                            color: '#38bdf8',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            border: '1px solid rgba(56, 189, 248, 0.3)'
+                          }}>
+                            📐 CAD Skala 1:50
+                          </div>
+                        </div>
+                      </div>
+                    ) : mediaDisplay === 'cad' ? (
+                      /* Full CAD Frame */
+                      <div 
+                        onClick={() => setSelectedRoomModal({ room, activeTab: 'cad' })}
+                        style={{ 
+                          position: 'relative', 
+                          borderRadius: '14px', 
+                          overflow: 'hidden', 
+                          cursor: 'pointer', 
+                          aspectRatio: '16/10', 
+                          minHeight: '220px', 
+                          background: '#090e17',
+                          border: '1px solid rgba(56, 189, 248, 0.35)'
+                        }}
+                      >
+                        <img
+                          src={`/downloads/blueprints/${room.blueprint_file}`}
+                          alt={`Denah 2D ${room.room_code}`}
+                          loading={idx < 4 ? 'eager' : 'lazy'}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '8px',
+                          left: '8px',
+                          background: 'rgba(9, 14, 23, 0.85)',
+                          backdropFilter: 'blur(6px)',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          color: '#38bdf8',
+                          fontWeight: 800,
+                          border: '1px solid rgba(56, 189, 248, 0.3)'
+                        }}>
+                          📐 Architectural Blueprint 1:50 • Klik untuk Layar Penuh
+                        </div>
+                      </div>
+                    ) : (
+                      /* Full Photo Frame */
+                      <div 
+                        onClick={() => setSelectedRoomModal({ room, activeTab: 'photo' })}
+                        style={{ 
+                          position: 'relative', 
+                          borderRadius: '14px', 
+                          overflow: 'hidden', 
+                          cursor: 'pointer', 
+                          aspectRatio: '16/10', 
+                          minHeight: '220px', 
+                          background: '#090e17',
+                          border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                      >
+                        <img
+                          src={`/downloads/photos/${room.photo_file}`}
+                          alt={`Foto Real ${room.room_code}`}
+                          loading={idx < 4 ? 'eager' : 'lazy'}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '8px',
+                          left: '8px',
+                          background: 'rgba(0, 0, 0, 0.8)',
+                          backdropFilter: 'blur(6px)',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          color: '#4ade80',
+                          fontWeight: 800
+                        }}>
+                          📸 Foto Asli Web • Klik untuk Layar Penuh
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Architectural Specifications Strip */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.25)',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#cbd5e1' }}>
+                          Kasur: <strong style={{ color: '#38bdf8' }}>{room.bed_label}</strong>
+                        </span>
+                        
+                        {/* Extracted Color Palette Dots */}
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8' }}>Palet:</span>
+                          <span 
+                            style={{ 
+                              display: 'inline-block', 
+                              width: '14px', 
+                              height: '14px', 
+                              borderRadius: '4px', 
+                              background: room.cv_features?.blanket_hex || '#cbd5e1', 
+                              border: '1px solid rgba(255,255,255,0.4)',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                            }} 
+                            title={`Warna Sprei: ${room.cv_features?.blanket_hex}`} 
+                          />
+                          <span 
+                            style={{ 
+                              display: 'inline-block', 
+                              width: '14px', 
+                              height: '14px', 
+                              borderRadius: '4px', 
+                              background: room.cv_features?.floor_hex || '#64748b', 
+                              border: '1px solid rgba(255,255,255,0.4)',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                            }} 
+                            title={`Warna Lantai: ${room.cv_features?.floor_hex}`} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Amenity Badges */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                        {room.furnitures.map((f, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.06)',
+                              color: isLight ? '#475569' : '#cbd5e1',
+                              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
+                              fontWeight: 600
+                            }}
+                          >
+                            ✓ {f.toUpperCase()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Card Action & Inspection Button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRoomModal({ room, activeTab: 'cad' })}
                       style={{
-                        fontSize: '0.68rem',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
-                        color: isLight ? '#475569' : '#cbd5e1'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '10px 16px',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        background: isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.08)',
+                        color: '#38bdf8',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
                       }}
                     >
-                      ✓ {f.toUpperCase()}
-                    </span>
-                  ))}
-                </div>
-
-                {/* CV Extracted Spatial Twin */}
-                {room.cv_features && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    background: isLight ? 'rgba(56, 189, 248, 0.08)' : 'rgba(56, 189, 248, 0.12)',
-                    border: isLight ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(56, 189, 248, 0.3)',
-                    fontSize: '0.72rem',
-                    color: '#38bdf8',
-                    fontWeight: 700
-                  }}>
-                    <span>🎯 Spasial: Kasur {room.cv_features.bed_side.toUpperCase()} • Jendela {room.cv_features.window_wall.toUpperCase()}</span>
-                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                      <span 
-                        style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: room.cv_features.blanket_hex, border: '1px solid rgba(255,255,255,0.6)' }} 
-                        title={`Warna Kasur/Sprei: ${room.cv_features.blanket_hex}`} 
-                      />
-                      <span 
-                        style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: room.cv_features.floor_hex, border: '1px solid rgba(255,255,255,0.6)' }} 
-                        title={`Warna Lantai: ${room.cv_features.floor_hex}`} 
-                      />
-                    </div>
+                      <Maximize size={15} />
+                      Inspeksi CAD Presisi Tinggi &amp; Komparasi HD
+                    </button>
                   </div>
-                )}
-
-                {/* CV Accuracy Footer */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.3)',
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  fontSize: '0.72rem',
-                  borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)'
-                }}>
-                  <span>Akurasi CV: <strong style={{ color: '#4ade80' }}>{room.confidence_pct}%</strong></span>
-                  <span>Latensi: <strong style={{ color: '#38bdf8' }}>{room.latency_ms}ms</strong></span>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Pagination Navigation */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '2rem' }}>
-          <button
-            type="button"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '10px',
-              background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
-              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-              color: isLight ? '#0f172a' : '#ffffff',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              opacity: currentPage === 1 ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 700,
-              fontSize: '0.82rem'
-            }}
-          >
-            <ChevronLeft size={16} /> Sebelumnya
-          </button>
+            {/* Pagination Controls */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              gap: '14px', 
+              marginTop: '2.5rem' 
+            }}>
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '12px',
+                  background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.06)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
+                  color: isLight ? '#0f172a' : '#ffffff',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.4 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.84rem'
+                }}
+              >
+                <ChevronLeft size={16} /> Sebelumnya
+              </button>
 
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace' }}>
-            Halaman {currentPage} dari {totalPages}
-          </span>
+              <span style={{ 
+                fontSize: '0.88rem', 
+                fontWeight: 800, 
+                color: '#38bdf8', 
+                fontFamily: 'monospace',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : 'rgba(0, 0, 0, 0.4)'
+              }}>
+                Halaman {currentPage} dari {totalPages}
+              </span>
 
-          <button
-            type="button"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '10px',
-              background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
-              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-              color: isLight ? '#0f172a' : '#ffffff',
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              opacity: currentPage === totalPages ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 700,
-              fontSize: '0.82rem'
-            }}
-          >
-            Berikutnya <ChevronRight size={16} />
-          </button>
-        </div>
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '12px',
+                  background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.06)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)',
+                  color: isLight ? '#0f172a' : '#ffffff',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages ? 0.4 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.84rem'
+                }}
+              >
+                Berikutnya <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         )}
 
       </div>
 
-      {/* Fullscreen Zoom Modal */}
-      {zoomModal && (
+      {/* Luxury Architectural CAD Inspection Modal */}
+      {selectedRoomModal && (
         <div 
-          onClick={() => setZoomModal(null)}
+          onClick={() => setSelectedRoomModal(null)}
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(8px)',
+            background: 'rgba(2, 6, 23, 0.88)',
+            backdropFilter: 'blur(12px)',
             zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
@@ -745,30 +1053,171 @@ export default function StressTestReport() {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '900px',
+              maxWidth: '1080px',
               width: '100%',
-              background: '#0b1329',
-              borderRadius: '20px',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              padding: '1.25rem',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+              background: '#090e17',
+              borderRadius: '24px',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              padding: '1.75rem',
+              boxShadow: '0 30px 80px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+              maxHeight: '92vh',
+              overflowY: 'auto'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#ffffff' }}>{zoomModal.title}</h3>
-              <button 
-                type="button"
-                onClick={() => setZoomModal(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.25rem', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
+            {/* Modal Header */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '1.25rem',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#ffffff' }}>
+                    Unit {selectedRoomModal.room.room_number} • {selectedRoomModal.room.room_code}
+                  </h3>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    color: '#38bdf8',
+                    border: '1px solid rgba(56, 189, 248, 0.3)'
+                  }}>
+                    CAD SKALA 1:50
+                  </span>
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  {selectedRoomModal.room.type_name} • Dimensi: <strong>{selectedRoomModal.room.dimensions} ({selectedRoomModal.room.area_m2} m²)</strong> • {selectedRoomModal.room.bathroom_type}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <a
+                  href={`/downloads/blueprints/${selectedRoomModal.room.blueprint_file}`}
+                  download={selectedRoomModal.room.blueprint_file}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    color: '#38bdf8',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  <Download size={14} />
+                  Unduh CAD SVG
+                </a>
+
+                <button 
+                  type="button"
+                  onClick={() => setSelectedRoomModal(null)}
+                  style={{ 
+                    background: 'rgba(255, 255, 255, 0.08)', 
+                    border: '1px solid rgba(255, 255, 255, 0.12)', 
+                    color: '#94a3b8', 
+                    borderRadius: '10px',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer' 
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
-            <img 
-              src={zoomModal.src} 
-              alt={zoomModal.title} 
-              style={{ width: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: '12px' }} 
-            />
+
+            {/* Modal Image Comparison: Large High-Res View */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '1.5rem'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4ade80', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  📸 Foto Real Web Kamar Tidur
+                </div>
+                <div style={{
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: '#040711',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  aspectRatio: '16/11'
+                }}>
+                  <img 
+                    src={`/downloads/photos/${selectedRoomModal.room.photo_file}`} 
+                    alt="Foto Real" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  📐 Denah Vektor CAD Arsitektural (Skala 1:50)
+                </div>
+                <div style={{
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: '#090e17',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  aspectRatio: '16/11'
+                }}>
+                  <img 
+                    src={`/downloads/blueprints/${selectedRoomModal.room.blueprint_file}`} 
+                    alt="Denah CAD" 
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Precision Ground Truth & Computer Vision Audit Bar */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '12px',
+              background: 'rgba(0, 0, 0, 0.4)',
+              padding: '14px 18px',
+              borderRadius: '14px',
+              border: '1px solid rgba(255, 255, 255, 0.06)'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Konfigurasi Kasur</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                  {selectedRoomModal.room.bed_label}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Kamar Mandi</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedRoomModal.room.has_bathroom ? '#34d399' : '#fbbf24', marginTop: '2px' }}>
+                  {selectedRoomModal.room.bathroom_type}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Sudut Unsure (Blind Spot)</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedRoomModal.room.unsure_zone ? '#fb7185' : '#38bdf8', marginTop: '2px' }}>
+                  {selectedRoomModal.room.unsure_zone ? '🌫️ Dibuat Blur (Presisi)' : '✓ 100% Terlihat'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Akurasi &amp; Latensi Inferensi</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#4ade80', marginTop: '2px' }}>
+                  {selectedRoomModal.room.confidence_pct}% • {selectedRoomModal.room.latency_ms}ms
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

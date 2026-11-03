@@ -11,22 +11,6 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true
-      },
-      '/downloads': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      },
-      '/download': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      },
-      '/unduh': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      },
-      '/apk': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
       }
     }
   },
@@ -35,22 +19,6 @@ export default defineConfig({
     port: 5180,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      },
-      '/downloads': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      },
-      '/download': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      },
-      '/unduh': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      },
-      '/apk': {
         target: 'http://localhost:3001',
         changeOrigin: true
       }
