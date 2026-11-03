@@ -59,7 +59,6 @@ import PartnerOrderModal from '../components/PartnerOrderModal';
 import CommunityBulletinBoard from '../components/CommunityBulletinBoard';
 import PrelovedMarketplace from '../components/PrelovedMarketplace';
 import GuestRegistrationModal from '../components/GuestRegistrationModal';
-import SmartLockAndApplianceCard from '../components/SmartLockAndApplianceCard';
 
 // ── MITRA GRID CARD (2-KOLOM MOBILE DENGAN CYCLING FOTO / LOGO NON-FNB) ──────────
 const MitraGridCard = ({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }) => {
@@ -1662,13 +1661,6 @@ const UserDashboard = ({ user }) => {
 
           {/* Titipan Paket Digital Locker Card */}
           <PackageLockerCard user={currentUser} isStaff={false} />
-
-          {/* Smart Lock & Beban Alat Elektronik Kamar */}
-          <SmartLockAndApplianceCard 
-            user={currentUser} 
-            kostUid={currentUser.kostUid} 
-            roomNumber={currentUser.kamar} 
-          />
 
           {/* Community & Living Hub: Mading Digital & Pasar Preloved */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
