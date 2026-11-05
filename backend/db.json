@@ -169,7 +169,7 @@
       "dutyCycle": 0.35,
       "estKwhPerMonth": 21.4,
       "hoursPerDay": 24,
-      "icon": "❄️",
+      "icon": "\u2744\ufe0f",
       "id": "kulkas_mini",
       "name": "Kulkas Mini / Bar Fridge",
       "watt": 85
@@ -179,7 +179,7 @@
       "dutyCycle": 0.5,
       "estKwhPerMonth": 21,
       "hoursPerDay": 4,
-      "icon": "♨️",
+      "icon": "\u2668\ufe0f",
       "id": "dispenser_panas",
       "name": "Dispenser Galon Pemanas",
       "watt": 350
@@ -189,7 +189,7 @@
       "dutyCycle": 0.7,
       "estKwhPerMonth": 56.7,
       "hoursPerDay": 6,
-      "icon": "🖥️",
+      "icon": "\ud83d\udda5\ufe0f",
       "id": "pc_gaming",
       "name": "PC Gaming High-End & Dual Monitor",
       "watt": 450
@@ -199,7 +199,7 @@
       "dutyCycle": 0.9,
       "estKwhPerMonth": 13.2,
       "hoursPerDay": 0.75,
-      "icon": "🍳",
+      "icon": "\ud83c\udf73",
       "id": "air_fryer",
       "name": "Air Fryer / Oven Mini Listrik",
       "watt": 650
@@ -209,7 +209,7 @@
       "dutyCycle": 0.8,
       "estKwhPerMonth": 3.6,
       "hoursPerDay": 0.5,
-      "icon": "👔",
+      "icon": "\ud83d\udc54",
       "id": "setrika_baju",
       "name": "Setrika Pakaian Uap / Biasa",
       "watt": 300
@@ -219,7 +219,7 @@
       "dutyCycle": 1,
       "estKwhPerMonth": 18,
       "hoursPerDay": 24,
-      "icon": "🐠",
+      "icon": "\ud83d\udc20",
       "id": "akuarium",
       "name": "Akuarium Ikan Hias (Pompa & Lampu)",
       "watt": 25
@@ -333,164 +333,7 @@
       "uid": "KOST-OJN64X"
     }
   ],
-  "merchants": [
-    {
-      "address": "Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)",
-      "category": "galon",
-      "commissionOwner": 500,
-      "createdAt": "2026-10-13T08:10:32.550Z",
-      "distanceKm": 0.15,
-      "icon": "💧",
-      "id": "PTR-DEF-01-KOST-OJN64X",
-      "isAffiliate": false,
-      "kostUid": "KOST-OJN64X",
-      "location": {
-        "lat": -6.237299999999999,
-        "lng": 106.8542
-      },
-      "logo": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200&auto=format&fit=crop&q=80",
-      "name": "Depot Air & Gas Barokah",
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "phone": "081398765432",
-      "platformFee": 200,
-      "products": [
-        {
-          "brand": "Vit",
-          "desc": "Paling hemat & higienis (Termurah)",
-          "id": "P-GLN-03",
-          "image": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=200&auto=format&fit=crop&q=80",
-          "name": "Air Galon Vit 19L",
-          "price": 16000
-        },
-        {
-          "brand": "Aqua",
-          "desc": "Air mineral alami pegunungan",
-          "id": "P-GLN-01",
-          "image": "https://images.unsplash.com/photo-1564419320461-6870880221ad?w=200&auto=format&fit=crop&q=80",
-          "name": "Air Galon Aqua 19L",
-          "price": 19000
-        },
-        {
-          "brand": "Le Minerale",
-          "desc": "Galon sekali pakai higienis bebas BPA",
-          "id": "P-GLN-02",
-          "image": "https://images.unsplash.com/photo-1559839914-17aae19cec71?w=200&auto=format&fit=crop&q=80",
-          "name": "Air Galon Le Minerale 19L",
-          "price": 21000
-        },
-        {
-          "brand": "Pertamina",
-          "desc": "Tabung gas segel resmi SNI",
-          "id": "P-GAS-01",
-          "image": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=200&auto=format&fit=crop&q=80",
-          "name": "Gas LPG 3kg Melon",
-          "price": 23000
-        }
-      ],
-      "status": "active"
-    },
-    {
-      "address": "Jl. Tebet Barat Dalam VII No. 5",
-      "category": "laundry",
-      "commissionOwner": 500,
-      "createdAt": "2026-10-13T08:10:32.550Z",
-      "distanceKm": 0.35,
-      "icon": "🧺",
-      "id": "PTR-DEF-02-KOST-OJN64X",
-      "isAffiliate": false,
-      "kostUid": "KOST-OJN64X",
-      "location": {
-        "lat": -6.2402999999999995,
-        "lng": 106.8542
-      },
-      "logo": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=200&auto=format&fit=crop&q=80",
-      "name": "Melati Express Laundry Kiloan",
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "phone": "081287654321",
-      "platformFee": 200,
-      "products": [
-        {
-          "brand": "Reguler",
-          "desc": "Harga per kg, wangi rapi terbungkus plastik",
-          "id": "P-LND-01",
-          "image": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80",
-          "name": "Cuci + Setrika Reguler (2 Hari)",
-          "price": 6000
-        },
-        {
-          "brand": "Express",
-          "desc": "Harga per kg, selesai 24 jam",
-          "id": "P-LND-02",
-          "image": "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200&auto=format&fit=crop&q=80",
-          "name": "Cuci Komplit Kilat Express (1 Hari)",
-          "price": 9000
-        },
-        {
-          "brand": "Bedding",
-          "desc": "Per set sprei + sarung bantal",
-          "id": "P-LND-03",
-          "image": "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200&auto=format&fit=crop&q=80",
-          "name": "Cuci Sprei & Selimut Tebal",
-          "price": 20000
-        }
-      ],
-      "status": "active"
-    },
-    {
-      "address": "Jl. Sangkuriang Barat No. 18",
-      "category": "makanan",
-      "commissionOwner": 1000,
-      "deliveryFee": 4000,
-      "deliveryType": "delivery",
-      "distanceKm": 1.1,
-      "icon": "🍱",
-      "id": "PTR-EXT-05-KOST-OJN64X",
-      "isAffiliate": false,
-      "isOpen": true,
-      "kostUid": "KOST-OJN64X",
-      "logo": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=80",
-      "name": "Katering Sehat Bento Kampus Bu Dian",
-      "openingHours": "09:00 - 20:00 WIB",
-      "phone": "081299112233",
-      "platformFee": 500,
-      "products": [
-        {
-          "brand": "Bento",
-          "desc": "Ayam teriyaki gurih manis + nasi jepang",
-          "id": "b1",
-          "image": "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=200&auto=format&fit=crop&q=80",
-          "isAvailable": true,
-          "name": "Bento Box Chicken Teriyaki + Salad",
-          "price": 22000
-        },
-        {
-          "brand": "Tradisional",
-          "desc": "Kuah kluwek gurih daging empuk",
-          "id": "b2",
-          "image": "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=200&auto=format&fit=crop&q=80",
-          "isAvailable": true,
-          "name": "Paket Nasi Rawon Daging Komplit Telur Asin",
-          "price": 28000
-        },
-        {
-          "brand": "Premium",
-          "desc": "Daging sapi sirloin empuk saus lada hitam",
-          "id": "b3",
-          "image": "https://images.unsplash.com/photo-1544025162-d76694265947?w=200&auto=format&fit=crop&q=80",
-          "isAvailable": true,
-          "name": "Paket Premium Sirloin Steak Rice Bowl",
-          "price": 42000
-        }
-      ],
-      "status": "active"
-    }
-  ],
+  "merchants": [],
   "messages": [
     {
       "category": "tanya_kamar",
@@ -547,7 +390,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -586,7 +429,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -625,7 +468,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -664,7 +507,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -703,7 +546,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -742,7 +585,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -781,7 +624,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -820,7 +663,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"
@@ -859,7 +702,7 @@
         "beneficiaryKostUid": "KOST-JAKSEL-01",
         "hostKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
         "recruiterKostUid": "KOST-JAKSEL-01",
         "recruiterOwnerAmount": 0,
         "type": "full_main_partner"

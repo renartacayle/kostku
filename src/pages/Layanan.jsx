@@ -144,6 +144,34 @@ export default function Layanan({ user }) {
     fetchMerchantsData();
   }, [targetKostUid, activeUserId]);
 
+  // Clean up any legacy demo data from localStorage
+  useEffect(() => {
+    try {
+      const storedIndep = localStorage.getItem('kostku_independent_merchants');
+      if (storedIndep) {
+        const parsed = JSON.parse(storedIndep);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(m => !isDemoMerchant(m));
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('kostku_independent_merchants', JSON.stringify(cleaned));
+            setIndependentMerchants(cleaned);
+          }
+        }
+      }
+      const storedOrdered = localStorage.getItem('kostku_ordered_merchants');
+      if (storedOrdered) {
+        const parsedO = JSON.parse(storedOrdered);
+        if (Array.isArray(parsedO)) {
+          const cleanedO = parsedO.filter(id => !isDemoMerchant({ id, name: id }));
+          if (cleanedO.length !== parsedO.length) {
+            localStorage.setItem('kostku_ordered_merchants', JSON.stringify(cleanedO));
+            setOrderedMerchantIds(new Set(cleanedO));
+          }
+        }
+      }
+    } catch (_) {}
+  }, []);
+
   // Sync user updates (e.g. loyalty points)
   useEffect(() => {
     const handleUserUpdated = (e) => {
