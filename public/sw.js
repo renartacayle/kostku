@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kostku-cache-v141';
+const CACHE_NAME = 'kostku-cache-v142';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -78,20 +78,43 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Static Assets: Stale-while-revalidate for speed
+  // 3. Static Assets: Validated Stale-while-revalidate
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
+      // Validate cached response: If it's a JS/CSS file, ensure it is NOT poisoned with text/html
+      let validCachedResponse = cachedResponse;
+      if (validCachedResponse) {
+        const cachedType = validCachedResponse.headers.get('content-type') || '';
+        if ((url.pathname.endsWith('.js') || url.pathname.includes('/assets/')) && cachedType.includes('text/html')) {
+          // Stale cache poisoned with HTML SPA fallback! Delete immediately
+          caches.open(CACHE_NAME).then((cache) => cache.delete(event.request));
+          validCachedResponse = undefined;
+        }
+      }
+
       const fetchPromise = fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
+            const contentType = networkResponse.headers.get('content-type') || '';
+            // Critical safeguard: NEVER cache HTML responses for JS or CSS requests!
+            // When an SPA server rewrites missing chunks to index.html, caching it bricks dynamic imports.
+            if ((url.pathname.endsWith('.js') || url.pathname.includes('/assets/')) && contentType.includes('text/html')) {
+              console.warn('[KostKu SW] Rejected caching HTML response for chunk:', url.pathname);
+              return new Response('Chunk not found on server', {
+                status: 404,
+                statusText: 'Not Found',
+                headers: { 'Content-Type': 'text/plain' }
+              });
+            }
+
             const copy = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           }
           return networkResponse;
         })
-        .catch(() => cachedResponse);
+        .catch(() => validCachedResponse);
 
-      return cachedResponse || fetchPromise;
+      return validCachedResponse || fetchPromise;
     })
   );
 });

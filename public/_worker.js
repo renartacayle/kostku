@@ -38,6 +38,22 @@ export default {
 
     // 3. Serve static assets (HTML, JS, CSS, Media) via Cloudflare Pages
     if (env.ASSETS) {
+      if (url.pathname.startsWith('/assets/')) {
+        const assetRes = await env.ASSETS.fetch(request);
+        const cType = assetRes.headers.get('content-type') || '';
+        // If chunk is missing on server and Cloudflare Pages SPA fallback returned index.html, force real 404
+        if (assetRes.status === 404 || cType.includes('text/html')) {
+          return new Response('Asset chunk not found', {
+            status: 404,
+            statusText: 'Not Found',
+            headers: {
+              'Content-Type': 'text/plain',
+              'Cache-Control': 'no-cache, no-store, must-revalidate'
+            }
+          });
+        }
+        return assetRes;
+      }
       return env.ASSETS.fetch(request);
     }
 

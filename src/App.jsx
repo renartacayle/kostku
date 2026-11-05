@@ -12,6 +12,14 @@ function ScrollToTop() {
   const { pathname, search } = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    // Reset any pending chunk retry flags on successful navigation
+    try {
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith('kostku_chunk_retry_')) {
+          sessionStorage.removeItem(k);
+        }
+      });
+    } catch (_) {}
   }, [pathname, search]);
   return null;
 }
@@ -27,27 +35,28 @@ import ErrorBoundary from './components/ErrorBoundary';
 import CustomerServiceFloatingButton from './components/CustomerServiceFloatingButton';
 import RouteMetadataManager from './components/RouteMetadataManager';
 import { apiSwitchOwnerKost } from './services/api';
+import { lazyRetry } from './utils/lazyRetry';
 
-// Route-level code-splitting for high-speed initial loads (FCP < 1s) and tiny bundle footprint
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
-const Demo = lazy(() => import('./pages/Demo'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penghuni = lazy(() => import('./pages/Penghuni'));
-const Pengaturan = lazy(() => import('./pages/Pengaturan'));
-const Karyawan = lazy(() => import('./pages/Karyawan'));
-const Keuangan = lazy(() => import('./pages/Keuangan'));
-const Komplain = lazy(() => import('./pages/Komplain'));
-const Home = lazy(() => import('./pages/Home'));
-const SearchKost = lazy(() => import('./pages/SearchKost'));
-const KostDetail = lazy(() => import('./pages/KostDetail'));
-const Mitra = lazy(() => import('./pages/Mitra'));
-const Layanan = lazy(() => import('./pages/Layanan'));
-const KebijakanPrivasi = lazy(() => import('./pages/KebijakanPrivasi'));
-const SyaratKetentuan = lazy(() => import('./pages/SyaratKetentuan'));
-const TentangKami = lazy(() => import('./pages/TentangKami'));
-const Checkout = lazy(() => import('./pages/Checkout'));
-const StressTestReport = lazy(() => import('./pages/StressTestReport'));
+// Route-level code-splitting with resilient auto-retry across deployments
+const Login = lazyRetry(() => import('./pages/Login'), 'Login');
+const Register = lazyRetry(() => import('./pages/Register'), 'Register');
+const Demo = lazyRetry(() => import('./pages/Demo'), 'Demo');
+const Dashboard = lazyRetry(() => import('./pages/Dashboard'), 'Dashboard');
+const Penghuni = lazyRetry(() => import('./pages/Penghuni'), 'Penghuni');
+const Pengaturan = lazyRetry(() => import('./pages/Pengaturan'), 'Pengaturan');
+const Karyawan = lazyRetry(() => import('./pages/Karyawan'), 'Karyawan');
+const Keuangan = lazyRetry(() => import('./pages/Keuangan'), 'Keuangan');
+const Komplain = lazyRetry(() => import('./pages/Komplain'), 'Komplain');
+const Home = lazyRetry(() => import('./pages/Home'), 'Home');
+const SearchKost = lazyRetry(() => import('./pages/SearchKost'), 'SearchKost');
+const KostDetail = lazyRetry(() => import('./pages/KostDetail'), 'KostDetail');
+const Mitra = lazyRetry(() => import('./pages/Mitra'), 'Mitra');
+const Layanan = lazyRetry(() => import('./pages/Layanan'), 'Layanan');
+const KebijakanPrivasi = lazyRetry(() => import('./pages/KebijakanPrivasi'), 'KebijakanPrivasi');
+const SyaratKetentuan = lazyRetry(() => import('./pages/SyaratKetentuan'), 'SyaratKetentuan');
+const TentangKami = lazyRetry(() => import('./pages/TentangKami'), 'TentangKami');
+const Checkout = lazyRetry(() => import('./pages/Checkout'), 'Checkout');
+const StressTestReport = lazyRetry(() => import('./pages/StressTestReport'), 'StressTestReport');
 
 // Lightweight, tactile loading indicator during route chunks hydration
 const PageLoadingFallback = () => (

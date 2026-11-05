@@ -4,24 +4,96 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { 
+      hasError: false, 
+      error: null, 
+      errorInfo: null,
+      isChunkError: false,
+      isAutoReloading: false 
+    };
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+    const isChunkError = Boolean(
+      error && (
+        error.message?.includes('Failed to fetch dynamically imported module') ||
+        error.message?.includes('Loading chunk') ||
+        error.message?.includes('Importing a module script failed') ||
+        error.message?.includes('error loading dynamically imported module') ||
+        error.name === 'ChunkLoadError'
+      )
+    );
+    return { hasError: true, error, isChunkError };
   }
 
   componentDidCatch(error, errorInfo) {
     console.error('KostKu ErrorBoundary caught an unhandled error:', error, errorInfo);
     this.setState({ errorInfo });
+
+    const isChunkError = Boolean(
+      error && (
+        error.message?.includes('Failed to fetch dynamically imported module') ||
+        error.message?.includes('Loading chunk') ||
+        error.message?.includes('Importing a module script failed') ||
+        error.message?.includes('error loading dynamically imported module') ||
+        error.name === 'ChunkLoadError'
+      )
+    );
+
+    // Automatic seamless recovery for chunk load failures after new production deployment
+    if (isChunkError && typeof window !== 'undefined') {
+      const storageKey = 'kostku_boundary_chunk_reload';
+      const lastReload = sessionStorage.getItem(storageKey);
+      const now = Date.now();
+
+      // Only auto-reload if we haven't done so in the last 12 seconds (prevents reload loop)
+      if (!lastReload || now - parseInt(lastReload, 10) > 12000) {
+        sessionStorage.setItem(storageKey, now.toString());
+        this.setState({ isAutoReloading: true });
+
+        // Wipe Service Worker Cache Storage & hard reload
+        const doHardReload = () => {
+          window.location.reload();
+        };
+
+        if ('caches' in window) {
+          caches.keys()
+            .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+            .catch(() => {})
+            .finally(() => {
+              setTimeout(doHardReload, 300);
+            });
+        } else {
+          setTimeout(doHardReload, 300);
+        }
+      }
+    }
   }
 
-  handleReload = () => {
+  handleReload = async () => {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          await reg.update();
+        }
+      }
+    } catch (_) {}
     window.location.reload();
   };
 
-  handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+  handleReset = async () => {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (_) {}
+    this.setState({ hasError: false, error: null, errorInfo: null, isChunkError: false });
     window.location.href = '/';
   };
 
@@ -60,22 +132,35 @@ export class ErrorBoundary extends React.Component {
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              background: isLight ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
-              border: isLight ? '2px solid rgba(239, 68, 68, 0.3)' : '2px solid rgba(239, 68, 68, 0.4)',
-              color: '#ef4444',
+              background: this.state.isChunkError
+                ? (isLight ? 'rgba(37, 99, 235, 0.1)' : 'rgba(56, 189, 248, 0.15)')
+                : (isLight ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)'),
+              border: this.state.isChunkError
+                ? (isLight ? '2px solid rgba(37, 99, 235, 0.3)' : '2px solid rgba(56, 189, 248, 0.4)')
+                : (isLight ? '2px solid rgba(239, 68, 68, 0.3)' : '2px solid rgba(239, 68, 68, 0.4)'),
+              color: this.state.isChunkError ? (isLight ? '#2563eb' : '#38bdf8') : '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1.25rem auto'
             }}>
-              <AlertTriangle size={32} />
+              {this.state.isChunkError ? <RefreshCw size={30} className={this.state.isAutoReloading ? 'animate-spin' : ''} /> : <AlertTriangle size={32} />}
             </div>
 
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 8px 0', color: '#ef4444' }}>
-              Terjadi Kendala Memuat Tampilan
+            <h2 style={{ 
+              fontSize: '1.35rem', 
+              fontWeight: 800, 
+              margin: '0 0 8px 0', 
+              color: this.state.isChunkError ? (isLight ? '#1d4ed8' : '#38bdf8') : '#ef4444' 
+            }}>
+              {this.state.isChunkError 
+                ? (this.state.isAutoReloading ? 'Memperbarui Modul KostKu...' : 'Pembaruan Sistem Tersedia')
+                : 'Terjadi Kendala Memuat Tampilan'}
             </h2>
             <p style={{ fontSize: '0.88rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.6, margin: '0 0 1.5rem 0' }}>
-              Aplikasi mendeteksi adanya kendala saat merender komponen. Tenang, data akun dan properti Anda tetap aman.
+              {this.state.isChunkError
+                ? 'Versi aplikasi KostKu telah diperbarui di server produksi. Klik tombol di bawah untuk menyinkronkan aset terbaru.'
+                : 'Aplikasi mendeteksi adanya kendala saat merender komponen. Tenang, data akun dan properti Anda tetap aman.'}
             </p>
 
             {this.state.error && (
@@ -115,7 +200,7 @@ export class ErrorBoundary extends React.Component {
                   cursor: 'pointer'
                 }}
               >
-                <RefreshCw size={15} /> Muat Ulang
+                <RefreshCw size={15} className={this.state.isAutoReloading ? 'animate-spin' : ''} /> {this.state.isChunkError ? (this.state.isAutoReloading ? 'Menyinkronkan...' : 'Perbarui Tampilan') : 'Muat Ulang'}
               </button>
               <button
                 type="button"
