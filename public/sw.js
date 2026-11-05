@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kostku-cache-v139';
+const CACHE_NAME = 'kostku-cache-v140';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -11,7 +11,7 @@ const ASSETS_TO_CACHE = [
   '/apple-touch-icon.png'
 ];
 
-// Install Event - Precache shell
+// Install Event - Precache shell and skip waiting immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -27,6 +27,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('[KostKu SW] Purging stale cache:', key);
             return caches.delete(key);
           }
         })

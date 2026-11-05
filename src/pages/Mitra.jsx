@@ -165,8 +165,25 @@ export default function Mitra({ user }) {
         apiGetPartnerOrders(targetKostUid, null, isMitraUser ? (user?.merchantId || 'PTR-DEF-03') : null).catch(() => [])
       ]);
 
-      const defaultMerchants = [];
-      const realMerchants = Array.isArray(merchRes) ? merchRes.filter(m => !String(m.id).includes('DEF') && !m.isDemo) : [];
+      const isDemoMerchant = (m) => {
+        if (!m) return true;
+        if (m.isDemo) return true;
+        const id = String(m.id || '').toUpperCase();
+        if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO')) return true;
+        const name = String(m.name || '').toLowerCase();
+        if (
+          name.includes('bu siti') || 
+          name.includes('barokah') || 
+          name.includes('mas dimas') || 
+          name.includes('melati express') || 
+          name.includes('bangka 99') || 
+          name.includes('bu dian') ||
+          name.includes('dago clean')
+        ) return true;
+        return false;
+      };
+
+      const realMerchants = Array.isArray(merchRes) ? merchRes.filter(m => !isDemoMerchant(m)) : [];
       const activeList = realMerchants;
       setMerchants(activeList);
       if (sumRes) setSummary(sumRes);
@@ -193,86 +210,13 @@ export default function Mitra({ user }) {
         }
       }
 
-      // Sample orders with lifecycle status
-      const defaultSampleOrders = [
-        {
-          id: 'ORD-SRV-101',
-          roomNumber: '101',
-          userName: 'Annisa Rahmawati',
-          userPhone: '081234567890',
-          merchantId: 'PTR-DEF-03',
-          merchantName: 'Warung Makan & Laundry Bu Siti',
-          serviceName: 'Nasi Goreng Spesial',
-          deliveryMode: 'delivery', // 'delivery' | 'pickup'
-          deliveryFee: 2000,
-          items: [
-            { id: 'p1', name: 'Nasi Goreng Spesial Telur Ceplok', price: 16000, qty: 1 }
-          ],
-          subtotal: 16000,
-          ownerCommission: 1000,
-          platformFee: 500,
-          total: 19500, // 16000 + 1500 admin + 2000 ongkir
-          paymentMethod: 'qris',
-          paymentStatus: 'paid',
-          lifecycleStatus: 'pending_acc', // 🚨 Belum di-ACC
-          status: 'Pesanan Baru (Diantar ke Kamar) - Menunggu Konfirmasi Mitra',
-          notes: 'Tolong jangan terlalu pedas ya bu, telur ceplok matang',
-          createdAt: new Date(Date.now() - 1000 * 60 * 12).toISOString()
-        },
-        {
-          id: 'ORD-SRV-102',
-          roomNumber: '204',
-          userName: 'Dimas Prasetyo',
-          userPhone: '081398765432',
-          merchantId: 'PTR-DEF-03',
-          merchantName: 'Warung Makan & Laundry Bu Siti',
-          serviceName: 'Cuci Setrika Reguler (4 kg)',
-          deliveryMode: 'pickup',
-          deliveryFee: 0,
-          items: [
-            { id: 'p3', name: 'Cuci Setrika Komplit Reguler (4 kg)', price: 28000, qty: 1 }
-          ],
-          subtotal: 28000,
-          ownerCommission: 1000,
-          platformFee: 500,
-          total: 29500, // 28000 + 1500 admin + 0
-          paymentMethod: 'monthly_bill',
-          paymentStatus: 'billed_monthly',
-          lifecycleStatus: 'accepted', // ⏳ Sedang Diproses
-          status: 'Pesanan Diterima Mitra (Sedang Disiapkan di Ruko)',
-          notes: 'Ambil sendiri di ruko nanti sore jam 17:00 pulang kuliah',
-          createdAt: new Date(Date.now() - 1000 * 60 * 85).toISOString()
-        },
-        {
-          id: 'ORD-SRV-103',
-          roomNumber: '105',
-          userName: 'Rian Pratama',
-          userPhone: '081298761234',
-          merchantId: 'PTR-DEF-03',
-          merchantName: 'Warung Makan & Laundry Bu Siti',
-          serviceName: 'Refill Galon Aqua Asli',
-          deliveryMode: 'delivery',
-          deliveryFee: 2000,
-          items: [
-            { id: 'p4', name: 'Refill Galon Aqua Asli 19L', price: 19000, qty: 1 }
-          ],
-          subtotal: 19000,
-          ownerCommission: 1000,
-          platformFee: 500,
-          total: 22500,
-          paymentMethod: 'cod',
-          paymentStatus: 'paid',
-          lifecycleStatus: 'completed', // ✅ Selesai
-          status: 'Pesanan Selesai (Sudah Diantar ke Kamar)',
-          notes: 'Titip depan kamar 105',
-          createdAt: new Date(Date.now() - 1000 * 3600 * 4).toISOString()
-        }
-      ];
+      // Sample orders with lifecycle status (kosong untuk persiapan mitra real)
+      const defaultSampleOrders = [];
 
       // Merge backend orders with defaults so lifecycle demo cards are always present and interactive
-      let mergedOrders = Array.isArray(ordersRes) ? [...ordersRes] : [];
+      let mergedOrders = Array.isArray(ordersRes) ? [...ordersRes].filter(o => !isDemoMerchant({ id: o.merchantId, name: o.merchantName })) : [];
       if (isMitraUser) {
-        mergedOrders = mergedOrders.filter(o => !o.merchantId || String(o.merchantId) === String(user?.merchantId || 'PTR-DEF-03'));
+        mergedOrders = mergedOrders.filter(o => !o.merchantId || String(o.merchantId) === String(user?.merchantId));
       }
       defaultSampleOrders.forEach(d => {
         if (!mergedOrders.some(m => String(m.id) === String(d.id))) {

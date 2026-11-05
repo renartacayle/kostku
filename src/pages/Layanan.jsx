@@ -299,11 +299,27 @@ export default function Layanan({ user }) {
   };
 
   // Base list of merchants without any mock demo data (kosong untuk persiapan mitra resmi)
-  const defaultUserMerchants = [];
+  const isDemoMerchant = (m) => {
+    if (!m) return true;
+    if (m.isDemo) return true;
+    const id = String(m.id || '').toUpperCase();
+    if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO')) return true;
+    const name = String(m.name || '').toLowerCase();
+    if (
+      name.includes('bu siti') || 
+      name.includes('barokah') || 
+      name.includes('mas dimas') || 
+      name.includes('melati express') || 
+      name.includes('bangka 99') || 
+      name.includes('bu dian') ||
+      name.includes('dago clean')
+    ) return true;
+    return false;
+  };
 
-  const realMerchants = (merchants || []).filter(m => !String(m.id).includes('DEF') && !m.isDemo);
+  const realMerchants = (merchants || []).filter(m => !isDemoMerchant(m));
   const baseMerged = realMerchants;
-  const rawList = [...baseMerged, ...independentMerchants.filter(im => !baseMerged.some(bm => bm.id === im.id) && !String(im.id).includes('DEF'))];
+  const rawList = [...baseMerged, ...independentMerchants.filter(im => !baseMerged.some(bm => bm.id === im.id) && !isDemoMerchant(im))];
 
   // Filter list
   let list = rawList.filter(m => {
