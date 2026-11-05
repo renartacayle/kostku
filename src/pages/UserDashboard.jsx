@@ -31,7 +31,8 @@ import {
   Eye,
   Megaphone,
   ShoppingBag,
-  Users
+  Users,
+  Store
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -235,11 +236,10 @@ const UserDashboard = ({ user }) => {
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('kostku_ordered_merchants');
         const parsed = stored ? JSON.parse(stored) : [];
-        // Default repeat order demo: Depot Barokah (PTR-DEF-01) & Warung Bu Siti (PTR-DEF-03)
-        return new Set(['PTR-DEF-01', 'PTR-DEF-03', ...parsed]);
+        return new Set(parsed);
       }
     } catch (e) {}
-    return new Set(['PTR-DEF-01', 'PTR-DEF-03']);
+    return new Set();
   });
 
   useEffect(() => {
@@ -247,7 +247,7 @@ const UserDashboard = ({ user }) => {
       try {
         const stored = localStorage.getItem('kostku_ordered_merchants');
         const parsed = stored ? JSON.parse(stored) : [];
-        setOrderedMerchantIds(new Set(['PTR-DEF-01', 'PTR-DEF-03', ...parsed]));
+        setOrderedMerchantIds(new Set(parsed));
       } catch (err) {
         console.error(err);
       }
@@ -705,6 +705,24 @@ const UserDashboard = ({ user }) => {
               >
                 <Droplets size={14} color="#38bdf8" /> Tagihan Air PDAM
               </button>
+
+              <Link
+                to="/layanan"
+                className="btn btn-secondary"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '8px 12px',
+                  gap: '6px',
+                  borderColor: 'rgba(245, 158, 11, 0.45)',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  color: '#fbbf24',
+                  textDecoration: 'none'
+                }}
+                title="Pesan galon, laundry, katering, dan camilan ke pintu kamar"
+              >
+                <Store size={14} color="#fbbf24" />
+                <span>🏪 Toko & Mitra</span>
+              </Link>
 
               <button
                 onClick={() => setShowSignatureModal(true)}
@@ -1362,6 +1380,69 @@ const UserDashboard = ({ user }) => {
             </div>
           )}
 
+          {/* Shortcut ke Halaman Dedicated Toko & Mitra Sekitar Kost */}
+          <div className="card glass-panel" style={{
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            padding: isMobileScreen ? '14px 16px' : '20px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '14px',
+            background: isLight 
+              ? 'linear-gradient(135deg, rgba(239, 246, 255, 0.95) 0%, rgba(219, 234, 254, 0.75) 100%)' 
+              : 'linear-gradient(135deg, rgba(30, 58, 138, 0.25) 0%, rgba(15, 23, 42, 0.6) 100%)',
+            borderRadius: '16px',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: isMobileScreen ? '42px' : '48px',
+                height: isMobileScreen ? '42px' : '48px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)',
+                flexShrink: 0
+              }}>
+                <Store size={isMobileScreen ? 22 : 26} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: isMobileScreen ? '0.96rem' : '1.1rem', fontWeight: 800 }}>
+                    Layanan Toko & Mitra Sekitar Kost
+                  </h3>
+                  <span style={{ fontSize: '0.65rem', background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                    Halaman Baru di Menu Kiri
+                  </span>
+                </div>
+                <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8' }}>
+                  Pesan galon, laundry kiloan, katering, dan camilan antar ke kamar di halaman khusus tanpa harus scroll ke bawah.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to="/layanan"
+              className="btn btn-primary"
+              style={{
+                fontSize: '0.82rem',
+                padding: '9px 18px',
+                borderRadius: '10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+              }}
+            >
+              Buka Katalog Toko & Mitra <ArrowRight size={15} />
+            </Link>
+          </div>
         </>
       )}
 

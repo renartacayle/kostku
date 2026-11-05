@@ -83,10 +83,10 @@ export default function Layanan({ user }) {
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('kostku_ordered_merchants');
         const parsed = stored ? JSON.parse(stored) : [];
-        return new Set(['PTR-DEF-01', 'PTR-DEF-03', ...parsed]);
+        return new Set(parsed);
       }
     } catch (e) {}
-    return new Set(['PTR-DEF-01', 'PTR-DEF-03']);
+    return new Set();
   });
 
   // Independent Stores
@@ -298,117 +298,12 @@ export default function Layanan({ user }) {
     });
   };
 
-  // Base list of merchants with fallback
-  const defaultUserMerchants = [
-    {
-      id: 'PTR-BDG-01-DEF',
-      icon: '🍱',
-      logo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=100&auto=format&fit=crop&q=80',
-      name: 'Warung Makan Bu Siti Dago',
-      category: 'makanan',
-      distanceKm: 0.08,
-      isMainPartner: true,
-      partnershipType: 'main',
-      originKostName: kostName,
-      commissionOwner: 1000,
-      products: [
-        { id: 'p1', name: 'Es Teh Manis Jumbo Segar', brand: 'Minuman', price: 5000, desc: 'Penyegar tenggorokan hemat', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=80', totalSold: 54 },
-        { id: 'p2', name: 'Nasi Goreng Spesial Telur Ceplok', brand: 'Makanan', price: 16000, desc: 'Porsi kenyang + telur mata sapi & kerupuk', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300&auto=format&fit=crop&q=80', totalSold: 78 },
-        { id: 'p3', name: 'Paket Ayam Geprek Sambal Korek + Nasi', brand: 'Makanan', price: 20000, desc: 'Ayam renyah krispi pedas level 1-5', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=300&auto=format&fit=crop&q=80', totalSold: 136, isBestSeller: true }
-      ]
-    },
-    {
-      id: 'PTR-SHARED-03-DEF',
-      icon: '🥞',
-      logo: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100&auto=format&fit=crop&q=80',
-      name: 'Martabak & Roti Bakar Bangka 99',
-      category: 'makanan',
-      distanceKm: 0.45,
-      isShared: true,
-      partnershipType: 'shared',
-      originKostName: 'Jaringan Bersama Multi-Kost',
-      commissionOwner: 1000,
-      products: [
-        { id: 'm1', name: 'Roti Bakar Coklat Susu Crispy', brand: 'Roti Bakar', price: 14000, desc: 'Roti bakar empuk selai coklat lumer', image: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=300&auto=format&fit=crop&q=80', totalSold: 42 },
-        { id: 'm2', name: 'Martabak Telur Daging Sapi Gurih', brand: 'Martabak', price: 32000, desc: 'Isi daging sapi cincang gurih', image: 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=300&auto=format&fit=crop&q=80', totalSold: 89 },
-        { id: 'm3', name: 'Martabak Manis Spesial Keju Wisman', brand: 'Martabak', price: 38000, desc: 'Mentega wisman wangi legit keju tebal', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&auto=format&fit=crop&q=80', totalSold: 154, isBestSeller: true }
-      ]
-    },
-    {
-      id: 'PTR-DEF-01',
-      icon: '💧',
-      logo: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=100&auto=format&fit=crop&q=80',
-      name: 'Depot Air & Gas Barokah',
-      category: 'galon',
-      distanceKm: 0.15,
-      isMainPartner: true,
-      partnershipType: 'main',
-      originKostName: kostName,
-      commissionOwner: 1000,
-      products: [
-        { id: 'P-GLN-03', name: 'Air Galon Vit 19L', brand: 'Vit', price: 16000, desc: 'Paling hemat & higienis', image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=300&auto=format&fit=crop&q=80', totalSold: 98 },
-        { id: 'P-GLN-01', name: 'Air Galon Aqua 19L', brand: 'Aqua', price: 19000, desc: 'Air mineral alami pegunungan', image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=300&auto=format&fit=crop&q=80', totalSold: 218, isBestSeller: true },
-        { id: 'P-GLN-02', name: 'Air Galon Le Minerale 19L', brand: 'Le Minerale', price: 21000, desc: 'Galon sekali pakai higienis', image: 'https://images.unsplash.com/photo-1560023907-5f339617ea30?w=300&auto=format&fit=crop&q=80', totalSold: 114 },
-        { id: 'P-GAS-01', name: 'Gas LPG 3kg Melon', brand: 'Pertamina', price: 23000, desc: 'Tabung gas segel resmi SNI', image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=300&auto=format&fit=crop&q=80', totalSold: 76 }
-      ]
-    },
-    {
-      id: 'PTR-DEF-02',
-      icon: '🧺',
-      logo: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=100&auto=format&fit=crop&q=80',
-      name: 'Melati Express Laundry Kiloan',
-      category: 'laundry',
-      distanceKm: 0.35,
-      isMainPartner: true,
-      partnershipType: 'main',
-      originKostName: kostName,
-      commissionOwner: 1000,
-      products: [
-        { id: 'P-LND-01', name: 'Cuci + Setrika Reguler (2 Hari)', brand: 'Reguler', price: 8000, desc: 'Harga per kg, wangi rapi', image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=300&auto=format&fit=crop&q=80', totalSold: 85 },
-        { id: 'P-LND-02', name: 'Cuci Komplit Kilat Express (1 Hari)', brand: 'Express', price: 15000, desc: 'Harga per kg, selesai 24 jam', image: 'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?w=300&auto=format&fit=crop&q=80', totalSold: 192, isBestSeller: true },
-        { id: 'P-LND-03', name: 'Cuci Sprei & Selimut Tebal', brand: 'Bedding', price: 25000, desc: 'Per set sprei + sarung bantal', image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=300&auto=format&fit=crop&q=80', totalSold: 38 }
-      ]
-    },
-    {
-      id: 'PTR-EXT-05-DEF',
-      icon: '🍱',
-      logo: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=100&auto=format&fit=crop&q=80',
-      name: 'Katering Sehat Bento Kampus Bu Dian',
-      category: 'makanan',
-      distanceKm: 1.10,
-      isMainPartner: false,
-      partnershipType: 'network',
-      originKostName: 'Binaan Kost Sekitar (Kost B)',
-      commissionOwner: 1000,
-      products: [
-        { id: 'b1', name: 'Bento Box Chicken Teriyaki + Salad', brand: 'Bento', price: 22000, desc: 'Ayam teriyaki gurih manis + nasi jepang', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300&auto=format&fit=crop&q=80', totalSold: 112, isBestSeller: true },
-        { id: 'b2', name: 'Paket Nasi Rawon Daging Komplit Telur Asin', brand: 'Tradisional', price: 28000, desc: 'Kuah kluwek gurih daging empuk', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&auto=format&fit=crop&q=80', totalSold: 64 },
-        { id: 'b3', name: 'Paket Premium Sirloin Steak Rice Bowl', brand: 'Premium', price: 42000, desc: 'Daging sapi sirloin empuk saus lada hitam', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&auto=format&fit=crop&q=80', totalSold: 46 }
-      ]
-    },
-    {
-      id: 'PTR-INDEP-01',
-      icon: '🧃',
-      logo: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=100&auto=format&fit=crop&q=80',
-      name: 'Juice Bar & Camilan Mas Dimas',
-      category: 'makanan',
-      distanceKm: 0.12,
-      isIndependent: true,
-      isNewcomer: true,
-      partnershipType: 'independent',
-      originKostName: 'UMKM Mandiri Sekitar Kost',
-      commissionOwner: 0,
-      products: [
-        { id: 'j1', name: 'Jus Alpukat Kocok Gula Aren', brand: 'Minuman', price: 12000, desc: 'Alpukat mentega kental + susu coklat', image: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=300&auto=format&fit=crop&q=80', totalSold: 18, isBestSeller: true },
-        { id: 'j2', name: 'Pisang Crispy Keju Coklat Lumer', brand: 'Camilan', price: 10000, desc: 'Porsi ngemil kenyang hemat', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?w=300&auto=format&fit=crop&q=80', totalSold: 12 }
-      ]
-    }
-  ];
+  // Base list of merchants without any mock demo data (kosong untuk persiapan mitra resmi)
+  const defaultUserMerchants = [];
 
-  const baseMerged = merchants.length > 0
-    ? [...merchants, ...defaultUserMerchants.filter(d => d.isIndependent && !merchants.some(m => m.id === d.id))]
-    : defaultUserMerchants;
-  const rawList = [...baseMerged, ...independentMerchants.filter(im => !baseMerged.some(bm => bm.id === im.id))];
+  const realMerchants = (merchants || []).filter(m => !String(m.id).includes('DEF') && !m.isDemo);
+  const baseMerged = realMerchants;
+  const rawList = [...baseMerged, ...independentMerchants.filter(im => !baseMerged.some(bm => bm.id === im.id) && !String(im.id).includes('DEF'))];
 
   // Filter list
   let list = rawList.filter(m => {
@@ -922,24 +817,57 @@ export default function Layanan({ user }) {
         {list.length === 0 ? (
           <div style={{
             textAlign: 'center',
-            padding: '2.5rem 1rem',
+            padding: '3rem 1.5rem',
             background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
-            borderRadius: '12px',
-            border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.1)'
+            borderRadius: '16px',
+            border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.12)',
+            maxWidth: '560px',
+            margin: '1.5rem auto'
           }}>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-              {partnerCategory === 'beli_lagi'
+            <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🏪</div>
+            <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
+              {rawList.length === 0 
+                ? 'Belum Ada Mitra Terdaftar di Sekitar Kost' 
+                : partnerCategory === 'beli_lagi' 
+                ? 'Belum Ada Riwayat Pesanan' 
+                : 'Tidak Ditemukan Mitra yang Cocok'}
+            </h3>
+            <p style={{ margin: '0 auto 16px', fontSize: '0.82rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.5, maxWidth: '440px' }}>
+              {rawList.length === 0
+                ? 'Pendaftaran mitra toko resmi sekitar kost sedang dibuka! Jika punya warung langganan atau usaha mandiri, pasang toko sekarang untuk melayani penghuni kost.'
+                : partnerCategory === 'beli_lagi'
                 ? '⚡ Belum ada toko yang pernah kamu beli. Pesan galon, laundry, atau makanan sekali untuk fitur re-order kilat!'
-                : 'Tidak ditemukan mitra atau toko yang cocok dengan filter pencarian ini.'}
+                : 'Coba ubah kata kunci atau kategori filter untuk menemukan toko lainnya.'}
             </p>
-            <button
-              type="button"
-              onClick={() => { setPartnerCategory('all'); setPartnerBrand('all'); setPartnerSearch(''); }}
-              className="btn btn-secondary btn-sm"
-              style={{ marginTop: '10px', fontSize: '0.75rem' }}
-            >
-              Reset Filter
-            </button>
+            {rawList.length === 0 ? (
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterIndependentModal(true)}
+                  className="btn btn-primary btn-sm"
+                  style={{ fontSize: '0.78rem', padding: '8px 16px', fontWeight: 700 }}
+                >
+                  🏪 Pasang Toko Mandiri
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCrowdsourceModal(true)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem', padding: '8px 16px' }}
+                >
+                  📍 Usulkan Warung Sekitar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setPartnerCategory('all'); setPartnerBrand('all'); setPartnerSearch(''); }}
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: '10px', fontSize: '0.75rem' }}
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
         ) : (
           <div style={{

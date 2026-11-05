@@ -165,81 +165,9 @@ export default function Mitra({ user }) {
         apiGetPartnerOrders(targetKostUid, null, isMitraUser ? (user?.merchantId || 'PTR-DEF-03') : null).catch(() => [])
       ]);
 
-      const defaultMerchants = [
-        {
-          id: 'PTR-DEF-03',
-          icon: '🍱',
-          name: 'Warung Makan & Laundry Bu Siti',
-          logo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=80',
-          category: 'Warung & Kuliner',
-          phone: '081223344556',
-          address: 'Jl. Cisitu Lama No. 8 (Sebelah Gapura Kost)',
-          distanceKm: 0.08,
-          commissionOwner: 1000,
-          platformFee: 500,
-          deliveryType: 'both', // 'both' | 'delivery' | 'pickup'
-          deliveryFee: 2000,
-          isOpen: true,
-          openingHours: '07:30 - 21:30 WIB',
-          isAffiliate: false,
-          ownerUserId: user?.role === 'mitra' ? user.id : '1792490000002',
-          products: [
-            { id: 'p0', name: 'Nasi Ayam Bakar Sambal Korek Asli Dapur', price: 21000, desc: 'Jepretan langsung dari dapur Bu Siti (Sensor Noise Terverifikasi Bebas AI)', image: typeof window !== 'undefined' ? PRESET_DETECTOR_SAMPLES.REAL_CAMERA_SHOT.getSrc() : 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=200', isAvailable: true, isBestSeller: true, isCameraVerified: true, sensorScore: 94, defectDensity: 76, aiProbability: 6, totalSold: 138 },
-            { id: 'p1', name: 'Nasi Goreng Spesial Telur Ceplok', price: 16000, desc: 'Porsi kenyang + telur mata sapi & kerupuk (Foto Katalog Web)', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=200&auto=format&fit=crop&q=80', isAvailable: true, isBestSeller: false, isCameraVerified: false, sensorScore: 18, defectDensity: 14, aiProbability: 82, totalSold: 67 },
-            { id: 'p2', name: 'Paket Ayam Geprek Sambal Korek + Es Teh', price: 20000, desc: 'Ayam renyah krispi pedas level 1-5 (Foto Katalog Web)', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=200&auto=format&fit=crop&q=80', isAvailable: true, isBestSeller: false, isCameraVerified: false, sensorScore: 22, defectDensity: 16, aiProbability: 78, totalSold: 94 },
-            { id: 'p3', name: 'Cuci Setrika Komplit Reguler (2 Hari)', price: 7000, desc: 'Harga per kg, wangi lavender tahan lama', image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80', isAvailable: true, isBestSeller: false, isCameraVerified: false, sensorScore: 15, defectDensity: 12, aiProbability: 85, totalSold: 74 },
-            { id: 'p4', name: 'Refill Galon Aqua Asli 19L', price: 19000, desc: 'Segel resmi diantar sampai depan pintu', image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200&auto=format&fit=crop&q=80', isAvailable: true, isBestSeller: false, isCameraVerified: false, sensorScore: 20, defectDensity: 15, aiProbability: 80, totalSold: 215 }
-          ]
-        },
-        {
-          id: 'PTR-DEF-01',
-          icon: '💧',
-          name: 'Depot Air & Gas Barokah',
-          logo: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200&auto=format&fit=crop&q=80',
-          category: 'Depot Air & Gas',
-          phone: '081398765432',
-          address: 'Jl. Tubagus Ismail No. 12 (Sebelah Indomaret)',
-          distanceKm: 0.15,
-          commissionOwner: 1000,
-          platformFee: 500,
-          deliveryType: 'both',
-          deliveryFee: 2000,
-          isOpen: true,
-          openingHours: '08:00 - 20:00 WIB',
-          isAffiliate: false,
-          products: [
-            { id: 'g1', name: 'Air Galon Vit 19L', price: 16000, desc: 'Paling hemat', image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200&auto=format&fit=crop&q=80', isAvailable: true },
-            { id: 'g2', name: 'Air Galon Aqua 19L', price: 19000, desc: 'Standar favorit', image: 'https://images.unsplash.com/photo-1559839914-ba2ac5cd5534?w=200&auto=format&fit=crop&q=80', isAvailable: true },
-            { id: 'g3', name: 'Gas LPG 3kg Melon', price: 23000, desc: 'Tabung tukar isi', image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=200&auto=format&fit=crop&q=80', isAvailable: true },
-            { id: 'g4', name: 'Gas Bright Gas 5.5kg Pink', price: 48000, desc: 'Tabung Bright Gas aman bersertifikat', image: 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?w=200&auto=format&fit=crop&q=80', isAvailable: true }
-          ]
-        },
-        {
-          id: 'PTR-DEF-02',
-          icon: '🧺',
-          name: 'Melati Express Laundry Kiloan',
-          logo: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=200&auto=format&fit=crop&q=80',
-          category: 'Laundry & Cuci',
-          phone: '081287654321',
-          address: 'Jl. Dago Asri I No. 4',
-          distanceKm: 0.35,
-          commissionOwner: 1000,
-          platformFee: 500,
-          deliveryType: 'delivery',
-          deliveryFee: 2000,
-          isOpen: true,
-          openingHours: '07:00 - 21:00 WIB',
-          isAffiliate: false,
-          products: [
-            { id: 'l1', name: 'Cuci Setrika Komplit Reguler (2 Hari)', price: 8000, desc: 'Wangi lavender', image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80', isAvailable: true },
-            { id: 'l2', name: 'Cuci Kering Kilat Express (6 Jam)', price: 15000, desc: 'Antar hari yang sama', image: 'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?w=200&auto=format&fit=crop&q=80', isAvailable: true },
-            { id: 'l3', name: 'Setrika Uap Saja (1 Hari)', price: 6000, desc: 'Rapi licin tanpa kusut', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200&auto=format&fit=crop&q=80', isAvailable: true },
-            { id: 'l4', name: 'Cuci Bedcover Single / Selimut Tebal', price: 25000, desc: 'Bersih tuntas tungau & debu', image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=200&auto=format&fit=crop&q=80', isAvailable: true }
-          ]
-        }
-      ];
-
-      const activeList = Array.isArray(merchRes) && merchRes.length > 0 ? merchRes : defaultMerchants;
+      const defaultMerchants = [];
+      const realMerchants = Array.isArray(merchRes) ? merchRes.filter(m => !String(m.id).includes('DEF') && !m.isDemo) : [];
+      const activeList = realMerchants;
       setMerchants(activeList);
       if (sumRes) setSummary(sumRes);
 

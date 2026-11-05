@@ -2576,10 +2576,7 @@ const OwnerDashboard = ({ user }) => {
               padding: '0.9rem 1rem',
               boxShadow: isLight ? 'var(--shadow-sm)' : 'none'
             }}>
-              {/* Fitur Mitra dinonaktifkan sementara hingga pembukaan mitra resmi */}
-              {false && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2651,11 +2648,8 @@ const OwnerDashboard = ({ user }) => {
 
               {/* Tab Filter Mitra: Pribadi vs Affiliate */}
               {(() => {
-                const defaultList = [
-                  { id: 'PTR-DEF-01', icon: '💧', name: 'Depot Air & Gas Barokah', category: 'galon', phone: '081398765432', distanceKm: 0.15, commissionOwner: 500, isAffiliate: false, products: [{ name: 'Air Galon Vit 19L', price: 16000 }, { name: 'Air Galon Aqua 19L', price: 19000 }, { name: 'Air Galon Le Minerale', price: 21000 }] },
-                  { id: 'PTR-DEF-02', icon: '🧺', name: 'Melati Express Laundry Kiloan', category: 'laundry', phone: '081287654321', distanceKm: 0.35, commissionOwner: 500, isAffiliate: false, products: [{ name: 'Cuci Setrika Reguler', price: 6000 }, { name: 'Cuci Kilat Express', price: 9000 }] }
-                ];
-                const activeList = ownerMerchants.length > 0 ? ownerMerchants : defaultList;
+                const realOwnerMerchants = (ownerMerchants || []).filter(m => !String(m.id).includes('DEF') && !m.isDemo);
+                const activeList = realOwnerMerchants;
                 const personalList = activeList.filter(m => !m.isAffiliate);
                 const affiliateList = activeList.filter(m => m.isAffiliate);
 
@@ -2739,6 +2733,31 @@ const OwnerDashboard = ({ user }) => {
                         <span style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: 600 }}>
                           ✓ Penghuni Anda saat ini tetap terlayani optimal oleh {personalList.length} Mitra Pribadi langganan Anda.
                         </span>
+                      </div>
+                    ) : displayedList.length === 0 ? (
+                      <div style={{
+                        background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255, 255, 255, 0.02)',
+                        border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.1)',
+                        borderRadius: '12px',
+                        padding: '24px 16px',
+                        textAlign: 'center',
+                        marginBottom: '8px'
+                      }}>
+                        <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>🏪</div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc', marginBottom: '4px' }}>
+                          Belum Ada Mitra Toko yang Didaftarkan
+                        </div>
+                        <p style={{ fontSize: '0.73rem', color: isLight ? '#64748b' : '#94a3b8', maxWidth: '480px', margin: '0 auto 10px auto', lineHeight: '1.4' }}>
+                          Daftarkan warung makan, depot galon, atau laundry langganan kost Anda secara resmi. Mitra yang Anda daftarkan otomatis muncul di aplikasi penghuni kost.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddMerchantModal(true)}
+                          className="btn btn-primary btn-sm"
+                          style={{ fontSize: '0.75rem', padding: '6px 14px' }}
+                        >
+                          + Tambah Mitra Pribadi Sekarang
+                        </button>
                       </div>
                     ) : (
                       /* Grid Daftar Mitra */
@@ -2856,8 +2875,6 @@ const OwnerDashboard = ({ user }) => {
                   </div>
                 );
               })()}
-                </>
-              )}
 
               {/* Inbox Obrolan Masuk Calon Penyewa */}
               <div style={{

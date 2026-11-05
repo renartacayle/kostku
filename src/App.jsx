@@ -336,10 +336,33 @@ function App() {
             )} 
           />
 
-          <Route path="/layanan" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/toko" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/toko-sekitar" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/mitra" element={<Navigate to="/dashboard" replace />} />
+          <Route 
+            path="/layanan" 
+            element={activeUser ? (
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                <Layanan user={activeUser} />
+              </MainLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
+          <Route path="/toko" element={<Navigate to="/layanan" replace />} />
+          <Route path="/toko-sekitar" element={<Navigate to="/layanan" replace />} />
+
+          <Route 
+            path="/mitra" 
+            element={activeUser ? (
+              activeUser.role === 'user' ? (
+                <Navigate to="/layanan" replace />
+              ) : (
+                <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                  <Mitra user={activeUser} />
+                </MainLayout>
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )} 
+          />
 
           <Route 
             path="/laporan" 

@@ -56,7 +56,7 @@ export default function MobileBottomNav({ user }) {
       label: isOwner ? 'My Kost' : isStaff ? 'Tugas Staf' : 'Kost Saya',
       icon: <Building size={20} strokeWidth={2} />,
       badge: isOwner ? 'Owner' : isStaff ? 'Staf' : null,
-      isActive: ['/dashboard', '/penghuni', '/keuangan', '/laporan', '/komplain', '/karyawan'].includes(location.pathname)
+      isActive: ['/dashboard', '/penghuni', '/keuangan', '/laporan', '/komplain', '/karyawan', '/mitra', '/layanan', '/toko'].includes(location.pathname)
     },
     {
       id: 'settings',
