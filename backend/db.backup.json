@@ -264,8 +264,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "4.0m x 5.0m",
-        "roomArea": "20 m²",
-        "buildingArea": "480 m² (3 Lantai)",
+        "roomArea": "20 m\u00b2",
+        "buildingArea": "480 m\u00b2 (3 Lantai)",
         "totalFloors": 3,
         "totalRooms": 12,
         "bathroomType": "Kamar Mandi Dalam (Water Heater & Kloset Duduk)",
@@ -356,7 +356,7 @@
           "active": false,
           "plan": "7d",
           "days": 7,
-          "badgeText": "🔥 Rekomendasi Utama",
+          "badgeText": "\ud83d\udd25 Rekomendasi Utama",
           "activatedAt": "2026-10-13T11:39:28.243Z",
           "expiresAt": "2026-10-20T11:39:28.243Z",
           "price": 20000,
@@ -414,7 +414,7 @@
         "active": true,
         "plan": "7d",
         "days": 7,
-        "badgeText": "🔥 Rekomendasi Utama",
+        "badgeText": "\ud83d\udd25 Rekomendasi Utama",
         "activatedAt": "2026-10-13T11:39:28.243Z",
         "expiresAt": "2026-10-20T11:39:28.243Z",
         "price": 20000,
@@ -448,8 +448,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "3.5m x 4.0m",
-        "roomArea": "14 m²",
-        "buildingArea": "320 m² (2 Lantai)",
+        "roomArea": "14 m\u00b2",
+        "buildingArea": "320 m\u00b2 (2 Lantai)",
         "totalFloors": 2,
         "totalRooms": 10,
         "bathroomType": "Kamar Mandi Dalam (Shower & Air Hangat)",
@@ -556,8 +556,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "4.0m x 4.0m (Tinggi 3.6m Mezzanine)",
-        "roomArea": "16 m² (+ Mezzanine 8 m²)",
-        "buildingArea": "520 m² (3 Lantai)",
+        "roomArea": "16 m\u00b2 (+ Mezzanine 8 m\u00b2)",
+        "buildingArea": "520 m\u00b2 (3 Lantai)",
         "totalFloors": 3,
         "totalRooms": 15,
         "bathroomType": "KM Dalam Rain Shower Minimalis",
@@ -640,8 +640,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600585152915-d208bec867a1?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "3.0m x 4.0m",
-        "roomArea": "12 m²",
-        "buildingArea": "400 m² (2 Lantai)",
+        "roomArea": "12 m\u00b2",
+        "buildingArea": "400 m\u00b2 (2 Lantai)",
         "totalFloors": 2,
         "totalRooms": 14,
         "bathroomType": "KM Dalam Kloset Duduk & Shower",
@@ -723,8 +723,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "3.0m x 3.5m",
-        "roomArea": "10.5 m²",
-        "buildingArea": "280 m² (3 Lantai)",
+        "roomArea": "10.5 m\u00b2",
+        "buildingArea": "280 m\u00b2 (3 Lantai)",
         "totalFloors": 3,
         "totalRooms": 12,
         "bathroomType": "KM Dalam Water Heater & Shower",
@@ -806,8 +806,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "3.5m x 4.0m",
-        "roomArea": "14 m²",
-        "buildingArea": "380 m² (2 Lantai)",
+        "roomArea": "14 m\u00b2",
+        "buildingArea": "380 m\u00b2 (2 Lantai)",
         "totalFloors": 2,
         "totalRooms": 12,
         "bathroomType": "KM Dalam Kloset Duduk TOTO",
@@ -889,8 +889,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "5.0m x 5.0m",
-        "roomArea": "25 m²",
-        "buildingArea": "650 m² (3 Lantai)",
+        "roomArea": "25 m\u00b2",
+        "buildingArea": "650 m\u00b2 (3 Lantai)",
         "totalFloors": 3,
         "totalRooms": 8,
         "bathroomType": "KM Dalam Bathtub, Water Heater & Marmer",
@@ -965,8 +965,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "3.0m x 4.0m",
-        "roomArea": "12 m²",
-        "buildingArea": "310 m² (2 Lantai)",
+        "roomArea": "12 m\u00b2",
+        "buildingArea": "310 m\u00b2 (2 Lantai)",
         "totalFloors": 2,
         "totalRooms": 10,
         "bathroomType": "KM Dalam Shower & Kloset Duduk",
@@ -1047,8 +1047,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600585152915-d208bec867a1?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "3.0m x 3.0m",
-        "roomArea": "9 m²",
-        "buildingArea": "260 m² (2 Lantai)",
+        "roomArea": "9 m\u00b2",
+        "buildingArea": "260 m\u00b2 (2 Lantai)",
         "totalFloors": 2,
         "totalRooms": 14,
         "bathroomType": "KM Luar Bersih (Rasio 1 KM untuk 2 Kamar)",
@@ -1128,8 +1128,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "4.5m x 5.0m",
-        "roomArea": "22.5 m²",
-        "buildingArea": "600 m² (Villa Kompleks)",
+        "roomArea": "22.5 m\u00b2",
+        "buildingArea": "600 m\u00b2 (Villa Kompleks)",
         "totalFloors": 2,
         "totalRooms": 8,
         "bathroomType": "KM Dalam Semi-Open Tropis (Batu Alam & Shower)",
@@ -1271,7 +1271,7 @@
           "active": true,
           "plan": "7d",
           "days": 7,
-          "badgeText": "🔥 Rekomendasi Utama",
+          "badgeText": "\ud83d\udd25 Rekomendasi Utama",
           "activatedAt": "2026-10-13T07:17:53.106Z",
           "expiresAt": "2026-10-20T07:17:53.106Z"
         }
@@ -1314,7 +1314,7 @@
         "active": true,
         "plan": "7d",
         "days": 7,
-        "badgeText": "🔥 Rekomendasi Utama",
+        "badgeText": "\ud83d\udd25 Rekomendasi Utama",
         "activatedAt": "2026-10-13T07:17:53.106Z",
         "expiresAt": "2026-10-20T07:17:53.106Z"
       },
@@ -1754,8 +1754,8 @@
       "layoutImage": "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&auto=format&fit=crop&q=80",
       "layoutInfo": {
         "roomDimensions": "3.5m x 4.0m",
-        "roomArea": "14 m²",
-        "buildingArea": "280 m² (2 Lantai)",
+        "roomArea": "14 m\u00b2",
+        "buildingArea": "280 m\u00b2 (2 Lantai)",
         "totalFloors": 2,
         "totalRooms": 6,
         "bathroomType": "Kamar Mandi Dalam (Shower & Kloset Duduk)",
@@ -2106,7 +2106,7 @@
       "id": "ACT-1791759350670",
       "kostUid": "KOST-JAKSEL-01",
       "type": "ulasan",
-      "text": "Testing Reviewer memberikan rating ⭐ 5 untuk Kost Taman Sukun Co-Living & Exclusive",
+      "text": "Testing Reviewer memberikan rating \u2b50 5 untuk Kost Taman Sukun Co-Living & Exclusive",
       "time": "2026-10-11T22:55:50.670Z"
     },
     {
@@ -2155,7 +2155,7 @@
       "id": "ACT-1791875873106",
       "kostUid": "KOST-K12DQR",
       "type": "pengaturan",
-      "text": "Sundul Kost aktif selama 7 hari (🔥 Rekomendasi Utama)",
+      "text": "Sundul Kost aktif selama 7 hari (\ud83d\udd25 Rekomendasi Utama)",
       "time": "2026-10-13T07:17:53.106Z"
     },
     {
@@ -2197,14 +2197,14 @@
       "id": "ACT-1791890603100",
       "kostUid": "KOST-JAKSEL-01",
       "type": "pengaturan",
-      "text": "Sundul Kost aktif selama 7 hari (🔥 Rekomendasi Utama)",
+      "text": "Sundul Kost aktif selama 7 hari (\ud83d\udd25 Rekomendasi Utama)",
       "time": "2026-10-13T11:23:23.100Z"
     },
     {
       "id": "ACT-1791891568260",
       "kostUid": "KOST-JAKSEL-01",
       "type": "pengaturan",
-      "text": "Sundul Kost aktif 7 hari (🔥 Rekomendasi Utama) - Rp 20.000 via QRIS",
+      "text": "Sundul Kost aktif 7 hari (\ud83d\udd25 Rekomendasi Utama) - Rp 20.000 via QRIS",
       "time": "2026-10-13T11:39:28.260Z"
     },
     {
@@ -33051,7 +33051,7 @@
         "recruiterKostUid": "KOST-OJN64X",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 1000,
-        "note": "🌐 Mitra Jaringan Owner Lain - Komisi 100% ke Owner Pendaftar Toko (KOST-OJN64X)"
+        "note": "\ud83c\udf10 Mitra Jaringan Owner Lain - Komisi 100% ke Owner Pendaftar Toko (KOST-OJN64X)"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33095,7 +33095,7 @@
         "recruiterKostUid": "KOST-BDG-02",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33139,7 +33139,7 @@
         "recruiterKostUid": "KOST-BDG-02",
         "hostOwnerAmount": 500,
         "recruiterOwnerAmount": 500,
-        "note": "🤝 Mitra Bersama Multi-Kost - Komisi Dibagi 50:50 (Host Kost Rp 500 & Owner Mitra Rp 500)"
+        "note": "\ud83e\udd1d Mitra Bersama Multi-Kost - Komisi Dibagi 50:50 (Host Kost Rp 500 & Owner Mitra Rp 500)"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33183,7 +33183,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33224,7 +33224,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33265,7 +33265,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33306,7 +33306,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33347,7 +33347,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33388,7 +33388,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33429,7 +33429,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -33445,665 +33445,7 @@
       "createdAt": "2026-10-26T11:23:28.068Z"
     }
   ],
-  "merchants": [
-    {
-      "id": "PTR-DEF-01-KOST-JAKSEL-01",
-      "kostUid": "KOST-JAKSEL-01",
-      "isAffiliate": false,
-      "name": "Depot Air & Gas Barokah",
-      "category": "galon",
-      "icon": "💧",
-      "phone": "081398765432",
-      "address": "Jl. Tubagus Ismail No. 12 (Sebelah Indomaret)",
-      "distanceKm": 0.65,
-      "location": {
-        "lat": -6.237299999999999,
-        "lng": 106.8542
-      },
-      "commissionOwner": 1000,
-      "platformFee": 500,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "g1",
-          "name": "Air Galon Vit 19L",
-          "brand": "Vit",
-          "price": 16000,
-          "desc": "Paling hemat & higienis",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "g2",
-          "name": "Air Galon Aqua 19L",
-          "brand": "Aqua",
-          "price": 19000,
-          "desc": "Standar favorit alami pegunungan",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1564419320461-6870880221ad?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "g3",
-          "name": "Gas LPG 3kg Melon",
-          "brand": "Pertamina",
-          "price": 23000,
-          "desc": "Tabung gas tukar isi resmi SNI",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-13T08:01:35.173Z",
-      "updatedAt": "2026-10-25T06:39:50.702Z",
-      "deliveryType": "both",
-      "deliveryFee": 2000,
-      "openingHours": "08:00 - 20:00 WIB",
-      "isOpen": true,
-      "logo": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-DEF-02-KOST-JAKSEL-01",
-      "kostUid": "KOST-JAKSEL-01",
-      "isAffiliate": false,
-      "name": "Melati Express Laundry Kiloan",
-      "category": "laundry",
-      "icon": "🧺",
-      "phone": "081287654321",
-      "address": "Jl. Tebet Barat Dalam VII No. 5",
-      "distanceKm": 0.35,
-      "location": {
-        "lat": -6.2402999999999995,
-        "lng": 106.8542
-      },
-      "commissionOwner": 500,
-      "platformFee": 200,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "P-LND-01",
-          "name": "Cuci + Setrika Reguler (2 Hari)",
-          "brand": "Reguler",
-          "price": 6000,
-          "desc": "Harga per kg, wangi rapi terbungkus plastik",
-          "image": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-LND-02",
-          "name": "Cuci Komplit Kilat Express (1 Hari)",
-          "brand": "Express",
-          "price": 9000,
-          "desc": "Harga per kg, selesai 24 jam",
-          "image": "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-LND-03",
-          "name": "Cuci Sprei & Selimut Tebal",
-          "brand": "Bedding",
-          "price": 20000,
-          "desc": "Per set sprei + sarung bantal",
-          "image": "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-13T08:01:35.173Z",
-      "logo": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-DEF-01-KOST-OJN64X",
-      "kostUid": "KOST-OJN64X",
-      "isAffiliate": false,
-      "name": "Depot Air & Gas Barokah",
-      "category": "galon",
-      "icon": "💧",
-      "phone": "081398765432",
-      "address": "Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)",
-      "distanceKm": 0.15,
-      "location": {
-        "lat": -6.237299999999999,
-        "lng": 106.8542
-      },
-      "commissionOwner": 500,
-      "platformFee": 200,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "P-GLN-03",
-          "name": "Air Galon Vit 19L",
-          "brand": "Vit",
-          "price": 16000,
-          "desc": "Paling hemat & higienis (Termurah)",
-          "image": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-GLN-01",
-          "name": "Air Galon Aqua 19L",
-          "brand": "Aqua",
-          "price": 19000,
-          "desc": "Air mineral alami pegunungan",
-          "image": "https://images.unsplash.com/photo-1564419320461-6870880221ad?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-GLN-02",
-          "name": "Air Galon Le Minerale 19L",
-          "brand": "Le Minerale",
-          "price": 21000,
-          "desc": "Galon sekali pakai higienis bebas BPA",
-          "image": "https://images.unsplash.com/photo-1559839914-17aae19cec71?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-GAS-01",
-          "name": "Gas LPG 3kg Melon",
-          "brand": "Pertamina",
-          "price": 23000,
-          "desc": "Tabung gas segel resmi SNI",
-          "image": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-13T08:10:32.550Z",
-      "logo": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-DEF-02-KOST-OJN64X",
-      "kostUid": "KOST-OJN64X",
-      "isAffiliate": false,
-      "name": "Melati Express Laundry Kiloan",
-      "category": "laundry",
-      "icon": "🧺",
-      "phone": "081287654321",
-      "address": "Jl. Tebet Barat Dalam VII No. 5",
-      "distanceKm": 0.35,
-      "location": {
-        "lat": -6.2402999999999995,
-        "lng": 106.8542
-      },
-      "commissionOwner": 500,
-      "platformFee": 200,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "P-LND-01",
-          "name": "Cuci + Setrika Reguler (2 Hari)",
-          "brand": "Reguler",
-          "price": 6000,
-          "desc": "Harga per kg, wangi rapi terbungkus plastik",
-          "image": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-LND-02",
-          "name": "Cuci Komplit Kilat Express (1 Hari)",
-          "brand": "Express",
-          "price": 9000,
-          "desc": "Harga per kg, selesai 24 jam",
-          "image": "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-LND-03",
-          "name": "Cuci Sprei & Selimut Tebal",
-          "brand": "Bedding",
-          "price": 20000,
-          "desc": "Per set sprei + sarung bantal",
-          "image": "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-13T08:10:32.550Z",
-      "logo": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-DEF-01-KOST-K12DQR",
-      "kostUid": "KOST-K12DQR",
-      "isAffiliate": false,
-      "name": "Depot Air & Gas Barokah",
-      "category": "galon",
-      "icon": "💧",
-      "phone": "081398765432",
-      "address": "Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)",
-      "distanceKm": 0.15,
-      "location": {
-        "lat": -6.237299999999999,
-        "lng": 106.8542
-      },
-      "commissionOwner": 500,
-      "platformFee": 200,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "P-GLN-03",
-          "name": "Air Galon Vit 19L",
-          "brand": "Vit",
-          "price": 16000,
-          "desc": "Paling hemat & higienis (Termurah)",
-          "image": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-GLN-01",
-          "name": "Air Galon Aqua 19L",
-          "brand": "Aqua",
-          "price": 19000,
-          "desc": "Air mineral alami pegunungan",
-          "image": "https://images.unsplash.com/photo-1564419320461-6870880221ad?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-GLN-02",
-          "name": "Air Galon Le Minerale 19L",
-          "brand": "Le Minerale",
-          "price": 21000,
-          "desc": "Galon sekali pakai higienis bebas BPA",
-          "image": "https://images.unsplash.com/photo-1559839914-17aae19cec71?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-GAS-01",
-          "name": "Gas LPG 3kg Melon",
-          "brand": "Pertamina",
-          "price": 23000,
-          "desc": "Tabung gas segel resmi SNI",
-          "image": "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-13T08:30:20.925Z",
-      "logo": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-DEF-02-KOST-K12DQR",
-      "kostUid": "KOST-K12DQR",
-      "isAffiliate": false,
-      "name": "Melati Express Laundry Kiloan",
-      "category": "laundry",
-      "icon": "🧺",
-      "phone": "081287654321",
-      "address": "Jl. Tebet Barat Dalam VII No. 5",
-      "distanceKm": 0.35,
-      "location": {
-        "lat": -6.2402999999999995,
-        "lng": 106.8542
-      },
-      "commissionOwner": 500,
-      "platformFee": 200,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "P-LND-01",
-          "name": "Cuci + Setrika Reguler (2 Hari)",
-          "brand": "Reguler",
-          "price": 6000,
-          "desc": "Harga per kg, wangi rapi terbungkus plastik",
-          "image": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-LND-02",
-          "name": "Cuci Komplit Kilat Express (1 Hari)",
-          "brand": "Express",
-          "price": 9000,
-          "desc": "Harga per kg, selesai 24 jam",
-          "image": "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "P-LND-03",
-          "name": "Cuci Sprei & Selimut Tebal",
-          "brand": "Bedding",
-          "price": 20000,
-          "desc": "Per set sprei + sarung bantal",
-          "image": "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-13T08:30:20.925Z",
-      "logo": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-BDG-01-KOST-BDG-02",
-      "kostUid": "KOST-BDG-02",
-      "isAffiliate": false,
-      "name": "Warung Makan Bu Siti Dago",
-      "category": "makanan",
-      "icon": "🍱",
-      "phone": "081223344556",
-      "address": "Jl. Cisitu Lama No. 8 (Sebelah Gapura Kost)",
-      "distanceKm": 0.08,
-      "location": {
-        "lat": -6.8792,
-        "lng": 107.6189
-      },
-      "commissionOwner": 1000,
-      "platformFee": 500,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "p1",
-          "name": "Es Teh Manis Jumbo Segar",
-          "brand": "Minuman",
-          "price": 5000,
-          "desc": "Penyegar tenggorokan hemat",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "p2",
-          "name": "Nasi Goreng Spesial Telur Ceplok",
-          "brand": "Makanan",
-          "price": 16000,
-          "desc": "Porsi kenyang + telur mata sapi & kerupuk",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "p3",
-          "name": "Paket Ayam Geprek Sambal Korek + Nasi",
-          "brand": "Makanan",
-          "price": 20000,
-          "desc": "Ayam renyah krispi pedas level 1-5",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "p4",
-          "name": "Mie Goreng Jawa Spesial Bakso",
-          "brand": "Makanan",
-          "price": 18000,
-          "desc": "Mie kenyal bumbu gurih dengan irisan bakso sapi & telur",
-          "image": "https://images.unsplash.com/photo-1612927601601-6638404737ce?w=200&auto=format&fit=crop&q=80",
-          "isAvailable": true
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-10T08:00:00.000Z",
-      "deliveryType": "both",
-      "deliveryFee": 2000,
-      "isOpen": true,
-      "openingHours": "07:30 - 21:30 WIB",
-      "logo": "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-BDG-02-KOST-BDG-02",
-      "kostUid": "KOST-BDG-02",
-      "isAffiliate": false,
-      "name": "Dago Clean Express Laundry Kiloan",
-      "category": "laundry",
-      "icon": "🧺",
-      "phone": "081287654321",
-      "address": "Jl. Dago Asri I No. 4 (200m dari kost)",
-      "distanceKm": 0.18,
-      "location": {
-        "lat": -6.8805,
-        "lng": 107.6178
-      },
-      "commissionOwner": 1000,
-      "platformFee": 500,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "l1",
-          "name": "Cuci Setrika Komplit Reguler (2 Hari)",
-          "brand": "Reguler",
-          "price": 8000,
-          "desc": "Harga per kg, wangi lavender tahan lama",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "l2",
-          "name": "Cuci Kering Kilat Express (6 Jam)",
-          "brand": "Express",
-          "price": 15000,
-          "desc": "Antar hari yang sama",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "l3",
-          "name": "Cuci Bed Cover & Selimut Tebal",
-          "brand": "Bedding",
-          "price": 25000,
-          "desc": "Pembersihan higienis deep clean",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-10T08:00:00.000Z",
-      "deliveryType": "both",
-      "deliveryFee": 2000,
-      "isOpen": true,
-      "openingHours": "07:00 - 21:00 WIB",
-      "logo": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-SHARED-03-MULTI",
-      "kostUid": "KOST-BDG-02",
-      "isShared": true,
-      "partnerKosts": [
-        "KOST-BDG-02",
-        "KOST-JAKSEL-01",
-        "KOST-OJN64X"
-      ],
-      "name": "Martabak & Roti Bakar Bangka 99",
-      "category": "makanan",
-      "icon": "🥞",
-      "phone": "081377889900",
-      "address": "Jl. Ir. H. Juanda No. 102 (Pojok Perempatan Dago)",
-      "distanceKm": 0.45,
-      "commissionOwner": 1000,
-      "platformFee": 500,
-      "deliveryType": "both",
-      "deliveryFee": 3000,
-      "isAffiliate": false,
-      "isOpen": true,
-      "openingHours": "16:00 - 23:30 WIB",
-      "products": [
-        {
-          "id": "m1",
-          "name": "Roti Bakar Coklat Susu Crispy",
-          "brand": "Roti Bakar",
-          "price": 14000,
-          "desc": "Roti bakar empuk selai coklat lumer",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1584776296944-ab6fb57b0bdd?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "m2",
-          "name": "Martabak Telur Daging Sapi Gurih",
-          "brand": "Martabak",
-          "price": 32000,
-          "desc": "Isi daging sapi cincang renyah gurih",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "m3",
-          "name": "Martabak Manis Spesial Keju Wisman",
-          "brand": "Martabak",
-          "price": 38000,
-          "desc": "Mentega wisman wangi legit keju tebal",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "m4",
-          "name": "Pisang Bakar Keju Coklat Lumer",
-          "brand": "Dessert",
-          "price": 15000,
-          "desc": "Pisang raja bakar keju cheddar & susu kental manis",
-          "image": "https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=200&auto=format&fit=crop&q=80",
-          "isAvailable": true
-        }
-      ],
-      "status": "active",
-      "logo": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-EXT-05-KOST-OJN64X",
-      "kostUid": "KOST-OJN64X",
-      "name": "Katering Sehat Bento Kampus Bu Dian",
-      "category": "makanan",
-      "icon": "🍱",
-      "phone": "081299112233",
-      "address": "Jl. Sangkuriang Barat No. 18",
-      "distanceKm": 1.1,
-      "commissionOwner": 1000,
-      "platformFee": 500,
-      "deliveryType": "delivery",
-      "deliveryFee": 4000,
-      "isAffiliate": false,
-      "isOpen": true,
-      "openingHours": "09:00 - 20:00 WIB",
-      "products": [
-        {
-          "id": "b1",
-          "name": "Bento Box Chicken Teriyaki + Salad",
-          "brand": "Bento",
-          "price": 22000,
-          "desc": "Ayam teriyaki gurih manis + nasi jepang",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "b2",
-          "name": "Paket Nasi Rawon Daging Komplit Telur Asin",
-          "brand": "Tradisional",
-          "price": 28000,
-          "desc": "Kuah kluwek gurih daging empuk",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=200&auto=format&fit=crop&q=80"
-        },
-        {
-          "id": "b3",
-          "name": "Paket Premium Sirloin Steak Rice Bowl",
-          "brand": "Premium",
-          "price": 42000,
-          "desc": "Daging sapi sirloin empuk saus lada hitam",
-          "isAvailable": true,
-          "image": "https://images.unsplash.com/photo-1544025162-d76694265947?w=200&auto=format&fit=crop&q=80"
-        }
-      ],
-      "status": "active",
-      "logo": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=80"
-    },
-    {
-      "id": "PTR-DEF-01-kost-demo-1",
-      "kostUid": "kost-demo-1",
-      "isAffiliate": false,
-      "name": "Depot Air & Gas Barokah",
-      "category": "galon",
-      "icon": "💧",
-      "phone": "081398765432",
-      "address": "Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)",
-      "distanceKm": 0.15,
-      "location": {
-        "lat": -6.237299999999999,
-        "lng": 106.8542
-      },
-      "commissionOwner": 500,
-      "platformFee": 200,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "P-GLN-03",
-          "name": "Air Galon Vit 19L",
-          "brand": "Vit",
-          "price": 16000,
-          "desc": "Paling hemat & higienis (Termurah)"
-        },
-        {
-          "id": "P-GLN-01",
-          "name": "Air Galon Aqua 19L",
-          "brand": "Aqua",
-          "price": 19000,
-          "desc": "Air mineral alami pegunungan"
-        },
-        {
-          "id": "P-GLN-02",
-          "name": "Air Galon Le Minerale 19L",
-          "brand": "Le Minerale",
-          "price": 21000,
-          "desc": "Galon sekali pakai higienis bebas BPA"
-        },
-        {
-          "id": "P-GAS-01",
-          "name": "Gas LPG 3kg Melon",
-          "brand": "Pertamina",
-          "price": 23000,
-          "desc": "Tabung gas segel SNI resmi"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-25T09:04:25.959Z"
-    },
-    {
-      "id": "PTR-DEF-02-kost-demo-1",
-      "kostUid": "kost-demo-1",
-      "isAffiliate": false,
-      "name": "Melati Express Laundry Kiloan",
-      "category": "laundry",
-      "icon": "🧺",
-      "phone": "081287654321",
-      "address": "Jl. Tebet Barat Dalam VII No. 5",
-      "distanceKm": 0.35,
-      "location": {
-        "lat": -6.2402999999999995,
-        "lng": 106.8542
-      },
-      "commissionOwner": 500,
-      "platformFee": 200,
-      "paymentMethods": [
-        "qris",
-        "monthly_bill"
-      ],
-      "products": [
-        {
-          "id": "P-LND-01",
-          "name": "Cuci + Setrika Reguler (2 Hari)",
-          "brand": "Reguler",
-          "price": 6000,
-          "desc": "Harga per kg, wangi rapi terbungkus plastik"
-        },
-        {
-          "id": "P-LND-02",
-          "name": "Cuci Komplit Kilat Express (1 Hari)",
-          "brand": "Express",
-          "price": 9000,
-          "desc": "Harga per kg, selesai 24 jam"
-        },
-        {
-          "id": "P-LND-03",
-          "name": "Cuci Sprei & Selimut Tebal",
-          "brand": "Bedding",
-          "price": 20000,
-          "desc": "Per set sprei + sarung bantal"
-        }
-      ],
-      "status": "active",
-      "createdAt": "2026-10-25T09:04:25.959Z"
-    }
-  ],
+  "merchants": [],
   "staffAttendance": [],
   "staffLeaves": [],
   "staffWorkLogs": [],
@@ -34176,7 +33518,7 @@
     {
       "id": 1792850652796,
       "title": "Fuzzing Title",
-      "content": "Z̵̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚ä̷̢̡̗̱̖̻̞̖̦̙́͌̆̍͒͆͊̀̚l̸̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚g̷̢̡̗̱̖̻̞̖̦̙̈́͌̆̍͒͆͊̀̚ơ̵̡̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚",
+      "content": "Z\u0335\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031aa\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031al\u0338\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ag\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ao\u0335\u0321\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031a",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -34189,7 +33531,7 @@
     {
       "id": 1792850652757,
       "title": "Fuzzing Title",
-      "content": "Z̵̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚ä̷̢̡̗̱̖̻̞̖̦̙́͌̆̍͒͆͊̀̚l̸̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚g̷̢̡̗̱̖̻̞̖̦̙̈́͌̆̍͒͆͊̀̚ơ̵̡̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚",
+      "content": "Z\u0335\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031aa\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031al\u0338\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ag\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ao\u0335\u0321\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031a",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -34423,7 +33765,7 @@
     {
       "id": 1792850652159,
       "title": "Fuzzing Title",
-      "content": "﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽",
+      "content": "\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -34449,7 +33791,7 @@
     {
       "id": 1792850652090,
       "title": "Fuzzing Title",
-      "content": "﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽",
+      "content": "\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -34540,7 +33882,7 @@
     {
       "id": 1792850651836,
       "title": "Fuzzing Title",
-      "content": "🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉",
+      "content": "\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -35216,7 +34558,7 @@
     {
       "id": 1792850364803,
       "title": "Fuzzing Title",
-      "content": "Z̵̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚ä̷̢̡̗̱̖̻̞̖̦̙́͌̆̍͒͆͊̀̚l̸̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚g̷̢̡̗̱̖̻̞̖̦̙̈́͌̆̍͒͆͊̀̚ơ̵̡̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚",
+      "content": "Z\u0335\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031aa\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031al\u0338\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ag\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ao\u0335\u0321\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031a",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -35320,7 +34662,7 @@
     {
       "id": 1792850364586,
       "title": "Fuzzing Title",
-      "content": "జ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞాజ్ఞా",
+      "content": "\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e\u0c1c\u0c4d\u0c1e\u0c3e",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -35528,7 +34870,7 @@
     {
       "id": 1792850364167,
       "title": "Fuzzing Title",
-      "content": "﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽",
+      "content": "\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -35970,7 +35312,7 @@
     {
       "id": 1792850363216,
       "title": "Fuzzing Title",
-      "content": "Z̵̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚ä̷̢̡̗̱̖̻̞̖̦̙́͌̆̍͒͆͊̀̚l̸̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚g̷̢̡̗̱̖̻̞̖̦̙̈́͌̆̍͒͆͊̀̚ơ̵̡̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚",
+      "content": "Z\u0335\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031aa\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031al\u0338\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ag\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ao\u0335\u0321\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031a",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -36139,7 +35481,7 @@
     {
       "id": 1792850362851,
       "title": "Fuzzing Title",
-      "content": "﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽﷽",
+      "content": "\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd\ufdfd",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -36646,7 +35988,7 @@
     {
       "id": 1792850334518,
       "title": "Fuzzing Title",
-      "content": "Z̵̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚ä̷̢̡̗̱̖̻̞̖̦̙́͌̆̍͒͆͊̀̚l̸̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚g̷̢̡̗̱̖̻̞̖̦̙̈́͌̆̍͒͆͊̀̚ơ̵̡̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚",
+      "content": "Z\u0335\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031aa\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031al\u0338\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ag\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ao\u0335\u0321\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031a",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -36724,7 +36066,7 @@
     {
       "id": 1792850334354,
       "title": "Fuzzing Title",
-      "content": "🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉",
+      "content": "\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89\ud83d\udd25\ud83d\ude80\ud83d\udea8\ud83c\udf89",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -36776,7 +36118,7 @@
     {
       "id": 1792850334260,
       "title": "Fuzzing Title",
-      "content": "Z̵̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚ä̷̢̡̗̱̖̻̞̖̦̙́͌̆̍͒͆͊̀̚l̸̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚g̷̢̡̗̱̖̻̞̖̦̙̈́͌̆̍͒͆͊̀̚ơ̵̡̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚",
+      "content": "Z\u0335\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031aa\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031al\u0338\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ag\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ao\u0335\u0321\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031a",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -36893,7 +36235,7 @@
     {
       "id": 1792850334041,
       "title": "Fuzzing Title",
-      "content": "Z̵̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚ä̷̢̡̗̱̖̻̞̖̦̙́͌̆̍͒͆͊̀̚l̸̢̛̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚g̷̢̡̗̱̖̻̞̖̦̙̈́͌̆̍͒͆͊̀̚ơ̵̡̞͈̦̖̘͖̦͙̙̤͕̗̈́͌̆̍͒͆͊̀̚",
+      "content": "Z\u0335\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031aa\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031al\u0338\u0322\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ag\u0337\u0322\u0321\u0317\u0331\u0316\u033b\u031e\u0316\u0326\u0319\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031ao\u0335\u0321\u031b\u031e\u0348\u0326\u0316\u0318\u0356\u0326\u0359\u0319\u0324\u0355\u0317\u0308\u0301\u034c\u0306\u030d\u0352\u0346\u034a\u0300\u031a",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -37259,7 +36601,7 @@
       "dutyCycle": 0.35,
       "estKwhPerMonth": 21.4,
       "defaultFeeMonthly": 45000,
-      "icon": "❄️"
+      "icon": "\u2744\ufe0f"
     },
     {
       "id": "dispenser_panas",
@@ -37269,7 +36611,7 @@
       "dutyCycle": 0.5,
       "estKwhPerMonth": 21,
       "defaultFeeMonthly": 45000,
-      "icon": "♨️"
+      "icon": "\u2668\ufe0f"
     },
     {
       "id": "pc_gaming",
@@ -37279,7 +36621,7 @@
       "dutyCycle": 0.7,
       "estKwhPerMonth": 56.7,
       "defaultFeeMonthly": 95000,
-      "icon": "🖥️"
+      "icon": "\ud83d\udda5\ufe0f"
     },
     {
       "id": "air_fryer",
@@ -37289,7 +36631,7 @@
       "dutyCycle": 0.9,
       "estKwhPerMonth": 13.2,
       "defaultFeeMonthly": 40000,
-      "icon": "🍳"
+      "icon": "\ud83c\udf73"
     },
     {
       "id": "setrika_baju",
@@ -37299,7 +36641,7 @@
       "dutyCycle": 0.8,
       "estKwhPerMonth": 3.6,
       "defaultFeeMonthly": 20000,
-      "icon": "👔"
+      "icon": "\ud83d\udc54"
     },
     {
       "id": "akuarium",
@@ -37309,7 +36651,7 @@
       "dutyCycle": 1,
       "estKwhPerMonth": 18,
       "defaultFeeMonthly": 35000,
-      "icon": "🐠"
+      "icon": "\ud83d\udc20"
     }
   ],
   "roomAppliances": [

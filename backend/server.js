@@ -4573,53 +4573,7 @@ app.put('/api/messages/mark-read', (req, res) => {
 });
 
 // ── IN-APP HYPERLOCAL MERCHANTS & PARTNER ECOSYSTEM (GPS, AFFILIATE & NON-COD) ──
-const getDefaultMerchants = (kostUid, kostLat = -6.2383, kostLng = 106.8532) => [
-  {
-    id: `PTR-DEF-01-${kostUid || 'DEF'}`,
-    kostUid: kostUid || 'KOST-JAKSEL-01',
-    isAffiliate: false,
-    name: 'Depot Air & Gas Barokah',
-    category: 'galon',
-    icon: '💧',
-    phone: '081398765432',
-    address: 'Jl. Tebet Barat Dalam Raya No. 12 (150m dari kost)',
-    distanceKm: 0.15,
-    location: { lat: kostLat + 0.001, lng: kostLng + 0.001 },
-    commissionOwner: 500,
-    platformFee: 200,
-    paymentMethods: ['qris', 'monthly_bill'],
-    products: [
-      { id: 'P-GLN-03', name: 'Air Galon Vit 19L', brand: 'Vit', price: 16000, desc: 'Paling hemat & higienis (Termurah)' },
-      { id: 'P-GLN-01', name: 'Air Galon Aqua 19L', brand: 'Aqua', price: 19000, desc: 'Air mineral alami pegunungan' },
-      { id: 'P-GLN-02', name: 'Air Galon Le Minerale 19L', brand: 'Le Minerale', price: 21000, desc: 'Galon sekali pakai higienis bebas BPA' },
-      { id: 'P-GAS-01', name: 'Gas LPG 3kg Melon', brand: 'Pertamina', price: 23000, desc: 'Tabung gas segel SNI resmi' }
-    ],
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: `PTR-DEF-02-${kostUid || 'DEF'}`,
-    kostUid: kostUid || 'KOST-JAKSEL-01',
-    isAffiliate: false,
-    name: 'Melati Express Laundry Kiloan',
-    category: 'laundry',
-    icon: '🧺',
-    phone: '081287654321',
-    address: 'Jl. Tebet Barat Dalam VII No. 5',
-    distanceKm: 0.35,
-    location: { lat: kostLat - 0.002, lng: kostLng + 0.001 },
-    commissionOwner: 500,
-    platformFee: 200,
-    paymentMethods: ['qris', 'monthly_bill'],
-    products: [
-      { id: 'P-LND-01', name: 'Cuci + Setrika Reguler (2 Hari)', brand: 'Reguler', price: 6000, desc: 'Harga per kg, wangi rapi terbungkus plastik' },
-      { id: 'P-LND-02', name: 'Cuci Komplit Kilat Express (1 Hari)', brand: 'Express', price: 9000, desc: 'Harga per kg, selesai 24 jam' },
-      { id: 'P-LND-03', name: 'Cuci Sprei & Selimut Tebal', brand: 'Bedding', price: 20000, desc: 'Per set sprei + sarung bantal' }
-    ],
-    status: 'active',
-    createdAt: new Date().toISOString()
-  }
-];
+const getDefaultMerchants = () => [];
 
 app.get('/api/merchants', (req, res) => {
   const { kostUid, scope } = req.query;
@@ -4628,16 +4582,6 @@ app.get('/api/merchants', (req, res) => {
 
   const uid = kostUid || 'KOST-JAKSEL-01';
   const targetKost = (db.kosts || []).find(k => k.uid === uid) || db.kosts?.[0] || {};
-  const lat = targetKost?.location?.lat || -6.2383;
-  const lng = targetKost?.location?.lng || 106.8532;
-
-  // Pastikan default merchants terisi jika belum ada mitra sama sekali untuk kost ini
-  const currentKostMerchants = db.merchants.filter(m => m.kostUid === uid);
-  if (currentKostMerchants.length === 0) {
-    const defaults = getDefaultMerchants(uid, lat, lng);
-    db.merchants.push(...defaults);
-    writeDB(db);
-  }
 
   // Jika dipanggil oleh Owner untuk manajemen toko milik sendiri
   if (scope === 'owner' || scope === 'mine') {
@@ -4652,7 +4596,7 @@ app.get('/api/merchants', (req, res) => {
   }
 
   // Untuk Penyewa / Marketplace Anak Kost: Tampilkan Mitra Utama + Mitra Jaringan Kost Sekitar + Shared Merchants
-  const allList = db.merchants.length > 0 ? db.merchants : getDefaultMerchants(uid, lat, lng);
+  const allList = db.merchants || [];
   const enriched = allList.map(m => {
     const isDirectMain = m.kostUid === uid;
     const isShared = Boolean(m.isShared || (Array.isArray(m.partnerKosts) && m.partnerKosts.length > 1));
