@@ -960,36 +960,13 @@ const PartnerOrderModal = ({
               </div>
             </div>
 
-            {/* Dynamic Rupee Amount Badge */}
+            {/* Dynamic Rupee Amount Badge (Clean Minimalist) */}
             <div style={{ marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-                Nominal Pas Terkunci Dinamis:
+                Nominal Pas Terkunci Dinamis
               </div>
-              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: isLight ? '#15803d' : '#22c55e', margin: '4px 0 6px 0', letterSpacing: '-0.5px' }}>
+              <div style={{ fontSize: '1.95rem', fontWeight: 900, color: isLight ? '#15803d' : '#22c55e', margin: '4px 0 0 0', letterSpacing: '-0.5px' }}>
                 Rp {grandTotal.toLocaleString('id-ID')}
-              </div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '5px',
-                flexWrap: 'wrap',
-                maxWidth: '380px',
-                margin: '0 auto'
-              }}>
-                {['BCA', 'Mandiri', 'BRI', 'BNI', 'GoPay', 'OVO', 'DANA', 'ShopeePay'].map(method => (
-                  <span key={method} style={{
-                    fontSize: '0.65rem',
-                    padding: '2px 7px',
-                    borderRadius: '5px',
-                    background: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)',
-                    border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
-                    color: isLight ? '#475569' : '#94a3b8',
-                    fontWeight: 600
-                  }}>
-                    {method}
-                  </span>
-                ))}
               </div>
             </div>
 
