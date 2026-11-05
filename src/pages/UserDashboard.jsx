@@ -362,14 +362,10 @@ const UserDashboard = ({ user }) => {
         setComplaints(Array.isArray(comps) ? comps : []);
         setInvoices(Array.isArray(invs) ? invs : []);
         setContract(ctc?.contract || null);
-        if (Array.isArray(merchList) && merchList.length > 0) {
-          setMerchants(merchList);
-        }
+        setMerchants(Array.isArray(merchList) ? merchList : []);
       } else {
         const merchList = await apiGetMerchants(currentUser?.kostUid || 'KOST-OJN64X').catch(() => []);
-        if (Array.isArray(merchList) && merchList.length > 0) {
-          setMerchants(merchList);
-        }
+        setMerchants(Array.isArray(merchList) ? merchList : []);
       }
 
       // Sync user previous partner orders for "Beli Lagi" filter

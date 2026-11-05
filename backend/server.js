@@ -4626,13 +4626,58 @@ app.get('/api/merchants', (req, res) => {
 });
 
 app.post('/api/merchants', (req, res) => {
-  const { kostUid, name, category, icon, phone, address, distanceKm, location, commissionOwner, platformFee, paymentMethods, products, isAffiliate } = req.body;
+  const { kostUid, name, category, icon, phone, address, distanceKm, location, commissionOwner, platformFee, paymentMethods, products, isAffiliate, referralCode, userId, isIndependent } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Nama toko/mitra wajib diisi' });
   }
 
   const db = getDB();
   db.merchants = db.merchants || [];
+  db.registeredPartnerHistory = db.registeredPartnerHistory || [];
+
+  const normName = name.trim().toLowerCase();
+  const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
+
+  // Cek apakah mitra/nomor ini sudah pernah didaftarkan sebelumnya
+  const isAlreadyRegistered = db.registeredPartnerHistory.some(h => {
+    const matchName = h.name && h.name.toLowerCase() === normName;
+    const matchPhone = cleanPhone && h.phone && h.phone.replace(/\D/g, '') === cleanPhone;
+    return matchName || matchPhone;
+  }) || db.merchants.some(m => {
+    const matchName = m.name && m.name.toLowerCase() === normName;
+    const matchPhone = cleanPhone && m.phone && String(m.phone).replace(/\D/g, '') === cleanPhone;
+    return matchName || matchPhone;
+  });
+
+  const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
+  let bonusAwarded = false;
+  let bonusPoints = 0;
+  let responseMsg = '';
+
+  if (cleanReferral) {
+    if (isAlreadyRegistered) {
+      // Mitra sudah pernah ada/terdaftar sebelumnya -> extra point TIDAK ter-trigger lagi!
+      bonusAwarded = false;
+      responseMsg = '⚠️ Mitra ini sudah pernah didaftarkan sebelumnya. Data mitra disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang (hanya berlaku 1x per mitra baru).';
+    } else {
+      // Mitra baru & ada kode referral -> TRIGGER BONUS POINTS!
+      bonusAwarded = true;
+      bonusPoints = 500;
+      responseMsg = `🎉 Selamat! Mitra baru berhasil didaftarkan dan bonus referral +${bonusPoints} Poin berhasil diklaim! (Kode: ${cleanReferral})`;
+
+      if (userId && Array.isArray(db.users)) {
+        const u = db.users.find(usr => String(usr.id) === String(userId));
+        if (u) {
+          u.loyalty_points = (Number(u.loyalty_points) || 0) + bonusPoints;
+        }
+      }
+
+      addActivity(db, kostUid || 'KOST-JAKSEL-01', 'mitra', `Bonus referral +${bonusPoints} Poin diberikan atas pendaftaran mitra baru: ${name.trim()} (Kode: ${cleanReferral})`);
+    }
+  } else {
+    bonusAwarded = false;
+    responseMsg = 'Mitra berhasil didaftarkan. Gunakan kode referral untuk mengaktifkan bonus poin.';
+  }
 
   // Batasi komisi maksimal 500 perak sesuai aturan
   const validCommission = Math.min(500, Math.max(0, Number(commissionOwner) >= 0 ? Number(commissionOwner) : 500));
@@ -4655,15 +4700,125 @@ app.post('/api/merchants', (req, res) => {
       { id: 'P-' + Date.now(), name: 'Layanan Utama', price: 16000, desc: 'Layanan standar siap antar' }
     ],
     isAffiliate: Boolean(isAffiliate),
+    isIndependent: Boolean(isIndependent),
+    referralCode: cleanReferral || null,
+    bonusAwarded,
     status: 'active',
     createdAt: new Date().toISOString()
   };
 
   db.merchants.push(newMerchant);
+  db.registeredPartnerHistory.push({
+    id: newMerchant.id,
+    name: normName,
+    phone: cleanPhone,
+    referralCode: cleanReferral || null,
+    bonusPoints: bonusAwarded ? bonusPoints : 0,
+    userId: userId || null,
+    claimedAt: new Date().toISOString()
+  });
+
   addActivity(db, newMerchant.kostUid, 'pengaturan', `Mitra baru didaftarkan: ${newMerchant.name} (${newMerchant.category})`);
   writeDB(db);
 
-  res.status(201).json({ success: true, merchant: newMerchant, message: 'Mitra berhasil didaftarkan' });
+  res.status(201).json({
+    success: true,
+    merchant: newMerchant,
+    bonusAwarded,
+    bonusPoints,
+    isAlreadyRegistered,
+    message: responseMsg
+  });
+});
+
+// Endpoint: Usulkan Warung / Mitra Sekitar (Crowdsourcing Anak Kost)
+app.post('/api/merchants/suggest', (req, res) => {
+  const { name, category, phone, note, referralCode, userId, kostUid } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Nama warung/mitra wajib diisi' });
+  }
+
+  const db = getDB();
+  db.merchantSuggestions = db.merchantSuggestions || [];
+  db.registeredPartnerHistory = db.registeredPartnerHistory || [];
+
+  const normName = name.trim().toLowerCase();
+  const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
+
+  // Cek apakah sudah pernah diusulkan / didaftarkan sebelumnya
+  const isAlreadyRegistered = db.registeredPartnerHistory.some(h => {
+    const matchName = h.name && h.name.toLowerCase() === normName;
+    const matchPhone = cleanPhone && h.phone && h.phone.replace(/\D/g, '') === cleanPhone;
+    return matchName || matchPhone;
+  }) || (db.merchants || []).some(m => {
+    const matchName = m.name && m.name.toLowerCase() === normName;
+    const matchPhone = cleanPhone && m.phone && String(m.phone).replace(/\D/g, '') === cleanPhone;
+    return matchName || matchPhone;
+  });
+
+  const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
+  let bonusAwarded = false;
+  let bonusPoints = 0;
+  let responseMsg = '';
+
+  if (cleanReferral) {
+    if (isAlreadyRegistered) {
+      bonusAwarded = false;
+      responseMsg = 'Usulan warung diterima. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.';
+    } else {
+      bonusAwarded = true;
+      bonusPoints = 500;
+      responseMsg = `🎉 Usulan warung "${name.trim()}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
+
+      if (userId && Array.isArray(db.users)) {
+        const u = db.users.find(usr => String(usr.id) === String(userId));
+        if (u) {
+          u.loyalty_points = (Number(u.loyalty_points) || 0) + bonusPoints;
+        }
+      }
+
+      addActivity(db, kostUid || 'KOST-JAKSEL-01', 'mitra', `Bonus usulan warung +${bonusPoints} Poin diberikan ke user untuk warung: ${name.trim()} (Kode: ${cleanReferral})`);
+    }
+  } else {
+    bonusAwarded = false;
+    responseMsg = `Usulan warung "${name.trim()}" berhasil dikirim. Gunakan kode referral untuk mendapatkan bonus poin.`;
+  }
+
+  const suggestion = {
+    id: 'SUGG-' + Date.now(),
+    name: name.trim(),
+    category: category || 'makanan',
+    phone: phone ? phone.trim() : '',
+    note: note ? note.trim() : '',
+    referralCode: cleanReferral || null,
+    bonusAwarded,
+    bonusPoints,
+    userId: userId || null,
+    kostUid: kostUid || 'KOST-JAKSEL-01',
+    createdAt: new Date().toISOString()
+  };
+
+  db.merchantSuggestions.push(suggestion);
+  db.registeredPartnerHistory.push({
+    id: suggestion.id,
+    name: normName,
+    phone: cleanPhone,
+    referralCode: cleanReferral || null,
+    bonusPoints: bonusAwarded ? bonusPoints : 0,
+    userId: userId || null,
+    claimedAt: new Date().toISOString()
+  });
+
+  writeDB(db);
+
+  res.status(201).json({
+    success: true,
+    suggestion,
+    bonusAwarded,
+    bonusPoints,
+    isAlreadyRegistered,
+    message: responseMsg
+  });
 });
 
 // Endpoint: Setting Admin / Ads Owner untuk Mitra (Owner bisa atur komisi owner, KostKu flat Rp 500)

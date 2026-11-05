@@ -803,6 +803,13 @@ export const apiCreateMerchant = (data) => {
   });
 };
 
+export const apiSuggestMerchant = (data) => {
+  return request('/merchants/suggest', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
 export const apiUpdateMerchant = (id, data) => {
   return request(`/merchants/${id}`, {
     method: 'PUT',

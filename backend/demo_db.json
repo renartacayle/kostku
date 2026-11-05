@@ -27651,5 +27651,6 @@
       "declaredAt": "2026-10-15"
     }
   ],
-  "_dbVersion": "v138_clean_dual_db"
+  "_dbVersion": "v138_clean_dual_db",
+  "registeredPartnerHistory": []
 }

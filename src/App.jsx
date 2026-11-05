@@ -352,13 +352,9 @@ function App() {
           <Route 
             path="/mitra" 
             element={activeUser ? (
-              activeUser.role === 'user' ? (
-                <Navigate to="/layanan" replace />
-              ) : (
-                <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                  <Mitra user={activeUser} />
-                </MainLayout>
-              )
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                <Mitra user={activeUser} />
+              </MainLayout>
             ) : (
               <Navigate to="/login" replace />
             )} 

@@ -22,7 +22,7 @@ import {
   Info
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { apiGetMerchants, apiGetPartnerOrders } from '../services/api';
+import { apiGetMerchants, apiGetPartnerOrders, apiCreateMerchant, apiSuggestMerchant } from '../services/api';
 import MitraGridCard from '../components/MitraGridCard';
 import PartnerOrderModal from '../components/PartnerOrderModal';
 import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
@@ -101,7 +101,7 @@ export default function Layanan({ user }) {
   });
 
   // Suggest Merchant Form
-  const [suggestForm, setSuggestForm] = useState({ name: '', category: 'makanan', phone: '', note: '' });
+  const [suggestForm, setSuggestForm] = useState({ name: '', category: 'makanan', phone: '', note: '', referralCode: '' });
   const [suggestNotice, setSuggestNotice] = useState(null);
 
   // Independent Merchant Form
@@ -110,6 +110,7 @@ export default function Layanan({ user }) {
     category: 'makanan',
     phone: '',
     address: '',
+    referralCode: '',
     firstProductName: '',
     firstProductPrice: 15000
   });
@@ -235,33 +236,60 @@ export default function Layanan({ user }) {
   };
 
   // Submit Warung Suggestion
-  const handleSuggestMerchantSubmit = (e) => {
+  const handleSuggestMerchantSubmit = async (e) => {
     e.preventDefault();
     if (!suggestForm.name.trim()) return;
 
     try {
-      const stored = localStorage.getItem('kostUser');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const currentPts = Number(parsed.loyalty_points ?? 250);
-        parsed.loyalty_points = currentPts + 500;
-        localStorage.setItem('kostUser', JSON.stringify(parsed));
-        setCurrentUser(parsed);
-        window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
-        window.dispatchEvent(new Event('kostUser_updated'));
+      const payload = {
+        name: suggestForm.name.trim(),
+        category: suggestForm.category,
+        phone: suggestForm.phone?.trim() || '',
+        note: suggestForm.note?.trim() || '',
+        referralCode: suggestForm.referralCode?.trim() || null,
+        userId: activeUserId,
+        kostUid: targetKostUid
+      };
+
+      const res = await apiSuggestMerchant(payload);
+
+      if (res?.bonusAwarded) {
+        const stored = localStorage.getItem('kostUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const currentPts = Number(parsed.loyalty_points ?? 250);
+          parsed.loyalty_points = currentPts + (res.bonusPoints || 500);
+          localStorage.setItem('kostUser', JSON.stringify(parsed));
+          setCurrentUser(parsed);
+          window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
+          window.dispatchEvent(new Event('kostUser_updated'));
+        }
+        setSuggestNotice({
+          type: 'success',
+          message: res.message || `🎉 Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
+        });
+      } else if (res?.isAlreadyRegistered) {
+        setSuggestNotice({
+          type: 'info',
+          message: `⚠️ Usulan warung "${suggestForm.name}" berhasil dikirim. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.`
+        });
+      } else {
+        setSuggestNotice({
+          type: 'info',
+          message: res?.message || `Usulan warung "${suggestForm.name}" berhasil dikirim. Gunakan kode referral untuk mengaktifkan bonus poin.`
+        });
       }
     } catch (err) {
-      console.warn('Gagal menambah poin usulan warung:', err);
+      console.warn('Gagal mengirim usulan warung:', err);
+      setSuggestNotice({
+        type: 'info',
+        message: `Usulan warung "${suggestForm.name}" berhasil dicatat!`
+      });
     }
-
-    setSuggestNotice({
-      type: 'success',
-      message: `🎉 Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
-    });
   };
 
   // Register Independent Merchant
-  const handleRegisterIndependentSubmit = (e) => {
+  const handleRegisterIndependentSubmit = async (e) => {
     e.preventDefault();
     if (!independentForm.name.trim() || !independentForm.firstProductName.trim()) return;
 
@@ -280,23 +308,17 @@ export default function Layanan({ user }) {
       ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80'
       : null;
 
-    const newMerchant = {
-      id: newMerchantId,
+    const newMerchantPayload = {
       name: independentForm.name.trim(),
       category: categoryLabel,
       icon: defaultIcon,
-      rating: 5.0,
-      soldCount: 0,
-      deliveryEstimate: '15-25 mnt',
-      deliveryFee: 2000,
-      distance: '300m',
-      phone: independentForm.phone.trim() || '6281234567890',
+      phone: independentForm.phone.trim() || '',
       address: independentForm.address.trim() || 'Sekitar Kost',
+      distanceKm: 0.3,
       isIndependent: true,
-      partnershipType: 'independent',
-      isNewcomer: true,
-      isNew: true,
-      createdAt: new Date().toISOString(),
+      referralCode: independentForm.referralCode?.trim() || null,
+      userId: activeUserId,
+      kostUid: targetKostUid,
       products: [
         {
           id: `PROD-${Date.now()}-1`,
@@ -311,19 +333,65 @@ export default function Layanan({ user }) {
     };
 
     try {
-      const stored = localStorage.getItem('kostku_independent_merchants');
-      const parsed = stored ? JSON.parse(stored) : [];
-      const updated = [newMerchant, ...parsed];
-      localStorage.setItem('kostku_independent_merchants', JSON.stringify(updated));
-      setIndependentMerchants(updated);
+      const res = await apiCreateMerchant(newMerchantPayload);
+
+      const createdMerchant = res?.merchant || {
+        ...newMerchantPayload,
+        id: newMerchantId,
+        rating: 5.0,
+        soldCount: 0,
+        deliveryEstimate: '15-25 mnt',
+        deliveryFee: 2000,
+        distance: '300m',
+        partnershipType: 'independent',
+        isNewcomer: true,
+        isNew: true,
+        createdAt: new Date().toISOString()
+      };
+
+      setMerchants(prev => [createdMerchant, ...prev]);
+
+      try {
+        const stored = localStorage.getItem('kostku_independent_merchants');
+        const parsed = stored ? JSON.parse(stored) : [];
+        const updated = [createdMerchant, ...parsed];
+        localStorage.setItem('kostku_independent_merchants', JSON.stringify(updated));
+        setIndependentMerchants(updated);
+      } catch (_) {}
+
+      if (res?.bonusAwarded) {
+        const stored = localStorage.getItem('kostUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const currentPts = Number(parsed.loyalty_points ?? 250);
+          parsed.loyalty_points = currentPts + (res.bonusPoints || 500);
+          localStorage.setItem('kostUser', JSON.stringify(parsed));
+          setCurrentUser(parsed);
+          window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
+          window.dispatchEvent(new Event('kostUser_updated'));
+        }
+        setIndependentNotice({
+          type: 'success',
+          message: `🏪 Selamat! Toko "${createdMerchant.name}" berhasil terpasang dan bonus referral +500 Poin berhasil diklaim!`
+        });
+      } else if (res?.isAlreadyRegistered) {
+        setIndependentNotice({
+          type: 'info',
+          message: `⚠️ Toko "${createdMerchant.name}" berhasil terpasang. Namun toko/nomor ini sudah pernah didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim ulang.`
+        });
+      } else {
+        setIndependentNotice({
+          type: 'success',
+          message: `🏪 Selamat! Toko "${createdMerchant.name}" berhasil terpasang. Gunakan kode referral untuk mendapatkan bonus poin.`
+        });
+      }
     } catch (err) {
       console.warn('Gagal menyimpan toko mandiri:', err);
+      setIndependentNotice({
+        type: 'info',
+        message: `Toko "${independentForm.name}" berhasil dicatat!`
+      });
     }
-
-    setIndependentNotice({
-      type: 'success',
-      message: `🏪 Selamat! Toko "${newMerchant.name}" berhasil terpasang dan langsung aktif di katalog KostKu (Masa Inkubasi Baru).`
-    });
   };
 
   // Base list of merchants without any mock demo data (kosong untuk persiapan mitra resmi)
@@ -866,46 +934,63 @@ export default function Layanan({ user }) {
         {list.length === 0 ? (
           <div style={{
             textAlign: 'center',
-            padding: '3rem 1.5rem',
+            padding: '3.5rem 1.5rem',
             background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
-            borderRadius: '16px',
-            border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.12)',
+            borderRadius: '20px',
+            border: isLight ? '2px dashed #cbd5e1' : '2px dashed rgba(255, 255, 255, 0.12)',
             maxWidth: '560px',
-            margin: '1.5rem auto'
+            margin: '2rem auto'
           }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🏪</div>
-            <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🏪</div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
               {rawList.length === 0 
-                ? 'Belum Ada Mitra Terdaftar di Sekitar Kost' 
+                ? 'Mitra Belum Ada' 
                 : partnerCategory === 'beli_lagi' 
                 ? 'Belum Ada Riwayat Pesanan' 
                 : 'Tidak Ditemukan Mitra yang Cocok'}
             </h3>
-            <p style={{ margin: '0 auto 16px', fontSize: '0.82rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.5, maxWidth: '440px' }}>
+            <p style={{ margin: '0 auto 16px', fontSize: '0.86rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.6, maxWidth: '440px' }}>
               {rawList.length === 0
-                ? 'Pendaftaran mitra toko resmi sekitar kost sedang dibuka! Jika punya warung langganan atau usaha mandiri, pasang toko sekarang untuk melayani penghuni kost.'
+                ? 'Mitra belum ada, tambahkan mitra untuk mendapat bonus poin! Masukkan kode referral saat mengusulkan atau mendaftarkan toko mitra untuk mengaktifkan extra bonus poin.'
                 : partnerCategory === 'beli_lagi'
                 ? '⚡ Belum ada toko yang pernah kamu beli. Pesan galon, laundry, atau makanan sekali untuk fitur re-order kilat!'
                 : 'Coba ubah kata kunci atau kategori filter untuk menemukan toko lainnya.'}
             </p>
             {rawList.length === 0 ? (
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowRegisterIndependentModal(true)}
-                  className="btn btn-primary btn-sm"
-                  style={{ fontSize: '0.78rem', padding: '8px 16px', fontWeight: 700 }}
-                >
-                  🏪 Pasang Toko Mandiri
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCrowdsourceModal(true)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '0.78rem', padding: '8px 16px' }}
-                >
-                  📍 Usulkan Warung Sekitar
-                </button>
+              <div>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '999px',
+                  background: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.18)',
+                  color: isLight ? '#b45309' : '#fbbf24',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  marginBottom: '18px'
+                }}>
+                  <Sparkles size={14} color="#f59e0b" />
+                  <span>Extra Poin: Wajib pakai kode referral (1x klaim per mitra baru)</span>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterIndependentModal(true)}
+                    className="btn btn-primary"
+                    style={{ fontSize: '0.82rem', padding: '9px 18px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
+                  >
+                    <Plus size={16} /> Pasang Toko Mandiri (+ Bonus Poin)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSuggestMerchantModal(true)}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '0.82rem', padding: '9px 18px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
+                  >
+                    <span>🍜</span> Usulkan Warung (+ Bonus Poin)
+                  </button>
+                </div>
               </div>
             ) : (
               <button
@@ -1082,6 +1167,33 @@ export default function Layanan({ user }) {
                     fontSize: '0.8rem'
                   }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: isLight ? '#166534' : '#86efac', marginBottom: '3px', fontWeight: 700 }}>
+                  <Sparkles size={12} color="#22c55e" />
+                  Kode Referral (Klaim Extra Poin Bonus)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: KOST-122-OSCAR"
+                  value={suggestForm.referralCode || ''}
+                  onChange={e => setSuggestForm(prev => ({ ...prev, referralCode: e.target.value.toUpperCase() }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.08)',
+                    border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#14532d' : '#86efac',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase'
+                  }}
+                />
+                <span style={{ fontSize: '0.66rem', color: isLight ? '#15803d' : '#86efac', marginTop: '2px', display: 'block' }}>
+                  💡 Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per warung baru).</em>
+                </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
@@ -1307,6 +1419,33 @@ export default function Layanan({ user }) {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: isLight ? '#166534' : '#86efac', marginBottom: '3px', fontWeight: 700 }}>
+                  <Sparkles size={12} color="#22c55e" />
+                  Kode Referral (Klaim Extra Poin Bonus)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: KOST-122-OSCAR"
+                  value={independentForm.referralCode || ''}
+                  onChange={e => setIndependentForm(prev => ({ ...prev, referralCode: e.target.value.toUpperCase() }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.08)',
+                    border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)',
+                    borderRadius: '8px',
+                    padding: '7px 10px',
+                    color: isLight ? '#14532d' : '#86efac',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase'
+                  }}
+                />
+                <span style={{ fontSize: '0.66rem', color: isLight ? '#15803d' : '#86efac', marginTop: '2px', display: 'block' }}>
+                  🎁 Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per toko baru).</em>
+                </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>

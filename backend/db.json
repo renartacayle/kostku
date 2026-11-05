@@ -6372,5 +6372,7 @@
   "prelovedItems": [],
   "roomAppliances": [],
   "google_config": {},
-  "leaveSettings": {}
+  "leaveSettings": {},
+  "registeredPartnerHistory": [],
+  "merchantSuggestions": []
 }

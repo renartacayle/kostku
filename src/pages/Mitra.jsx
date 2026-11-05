@@ -134,6 +134,7 @@ export default function Mitra({ user }) {
     logo: '',
     qrisImage: '',
     isAffiliate: false,
+    referralCode: '',
     productName: 'Paket Nasi Hemat Spesial',
     productPrice: 18000,
     productDesc: 'Porsi pas untuk anak kost',
@@ -592,6 +593,8 @@ export default function Mitra({ user }) {
         logo: newMerchant.logo?.trim() || null,
         qrisImage: newMerchant.qrisImage.trim() || null,
         isAffiliate: newMerchant.isAffiliate,
+        referralCode: newMerchant.referralCode?.trim() || null,
+        userId: user?.id || null,
         kostUid: targetKostUid,
         products: [
           {
@@ -623,12 +626,28 @@ export default function Mitra({ user }) {
           logo: '',
           qrisImage: '',
           isAffiliate: false,
+          referralCode: '',
           productName: 'Paket Nasi Hemat Spesial',
           productPrice: 18000,
           productDesc: 'Porsi pas untuk anak kost',
           productImage: ''
         });
-        showToast('✅ Mitra UMKM baru berhasil didaftarkan!');
+
+        if (res?.bonusAwarded) {
+          try {
+            const stored = localStorage.getItem('kostUser');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              parsed.loyalty_points = (Number(parsed.loyalty_points) || 0) + (res.bonusPoints || 500);
+              localStorage.setItem('kostUser', JSON.stringify(parsed));
+              window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
+              window.dispatchEvent(new Event('kostUser_updated'));
+            }
+          } catch (_) {}
+          showToast(`🎉 ${res.message || 'Mitra baru berhasil didaftarkan dan bonus +500 Poin referral berhasil diklaim!'}`);
+        } else {
+          showToast(res.message || '✅ Mitra baru berhasil didaftarkan');
+        }
       }
     } catch (err) {
       alert(err.message || 'Gagal mendaftarkan mitra baru');
@@ -1841,119 +1860,177 @@ export default function Mitra({ user }) {
               </div>
 
               {/* Merchants Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-                {filteredMerchants.map(merchant => (
-                  <div
-                    key={merchant.id}
-                    style={{
-                      background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.7)',
-                      border: isLight ? '1px solid rgba(15, 23, 42, 0.10)' : '1px solid var(--border-color)',
-                      boxShadow: isLight ? '0 2px 8px rgba(15, 23, 42, 0.05)' : 'none',
-                      borderRadius: '16px',
-                      padding: '1.25rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '1.75rem' }}>{merchant.icon || '🏪'}</span>
-                          <div>
-                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                              {merchant.name}
-                            </h4>
-                            <span style={{ fontSize: '0.72rem', color: isLight ? '#2563eb' : '#38bdf8', fontWeight: 600 }}>
-                              {merchant.category}
-                            </span>
+              {filteredMerchants.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3.5rem 1.5rem',
+                  background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.4)',
+                  borderRadius: '20px',
+                  border: isLight ? '2px dashed #cbd5e1' : '2px dashed rgba(255, 255, 255, 0.12)',
+                  maxWidth: '560px',
+                  margin: '1.5rem auto'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🏪</div>
+                  <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
+                    Mitra Belum Ada
+                  </h3>
+                  <p style={{ margin: '0 auto 18px', fontSize: '0.92rem', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.6, maxWidth: '440px', fontWeight: 600 }}>
+                    Mitra belum ada, tambahkan mitra untuk mendapat bonus poin! Masukkan kode referral saat mendaftarkan mitra baru untuk mengaktifkan extra bonus poin.
+                  </p>
+
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    background: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.18)',
+                    color: isLight ? '#b45309' : '#fbbf24',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    marginBottom: '20px'
+                  }}>
+                    <Sparkles size={15} color="#f59e0b" />
+                    <span>Extra Poin Referral: Wajib pakai kode referral (hanya berlaku 1x per mitra baru)</span>
+                  </div>
+
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(true)}
+                      className="btn btn-primary"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '11px 24px',
+                        fontWeight: 800,
+                        fontSize: '0.9rem',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={18} />
+                      Tambah Mitra Sekarang (+ Bonus Poin)
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                  {filteredMerchants.map(merchant => (
+                    <div
+                      key={merchant.id}
+                      style={{
+                        background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.7)',
+                        border: isLight ? '1px solid rgba(15, 23, 42, 0.10)' : '1px solid var(--border-color)',
+                        boxShadow: isLight ? '0 2px 8px rgba(15, 23, 42, 0.05)' : 'none',
+                        borderRadius: '16px',
+                        padding: '1.25rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '1.75rem' }}>{merchant.icon || '🏪'}</span>
+                            <div>
+                              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                {merchant.name}
+                              </h4>
+                              <span style={{ fontSize: '0.72rem', color: isLight ? '#2563eb' : '#38bdf8', fontWeight: 600 }}>
+                                {merchant.category}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            background: isLight ? 'rgba(22, 163, 74, 0.12)' : 'rgba(34, 197, 94, 0.15)',
+                            color: isLight ? '#16a34a' : '#4ade80'
+                          }}>
+                            Aktif
+                          </span>
+                        </div>
+
+                        <p style={{ margin: '4px 0 10px', fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <MapPin size={12} color={isLight ? '#2563eb' : '#60a5fa'} />
+                          {merchant.address || 'Dekat area kost'}
+                        </p>
+
+                        {/* Delivery Mode info */}
+                        <div style={{
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                          border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : 'none',
+                          fontSize: '0.74rem',
+                          color: 'var(--text-secondary)',
+                          marginBottom: '10px'
+                        }}>
+                          <span>Opsi Antar: </span>
+                          <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>
+                            {merchant.deliveryType === 'pickup' ? 'Ambil di Ruko' : merchant.deliveryType === 'delivery' ? 'Diantar ke Kamar' : 'Bisa Diantar & Ambil di Ruko'}
+                          </strong>
+                        </div>
+
+                        {/* Fee Breakdown Badge */}
+                        <div style={{
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          background: isLight ? 'rgba(37, 99, 235, 0.05)' : 'rgba(56, 189, 248, 0.06)',
+                          border: isLight ? '1px solid rgba(37, 99, 235, 0.15)' : '1px solid rgba(56, 189, 248, 0.2)',
+                          fontSize: '0.74rem',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                            <span>Komisi / Ads Owner:</span>
+                            <strong style={{ color: isLight ? '#1d4ed8' : '#38bdf8' }}>+Rp {(merchant.commissionOwner || 1000).toLocaleString('id-ID')} / trx</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                            <span>Admin KostKu:</span>
+                            <span>Flat Rp 500</span>
                           </div>
                         </div>
+                      </div>
 
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          background: isLight ? 'rgba(22, 163, 74, 0.12)' : 'rgba(34, 197, 94, 0.15)',
-                          color: isLight ? '#16a34a' : '#4ade80'
-                        }}>
-                          Aktif
+                      {/* Action Footer */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                          {merchant.products?.length || 0} Menu Aktif
                         </span>
-                      </div>
 
-                      <p style={{ margin: '4px 0 10px', fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <MapPin size={12} color={isLight ? '#2563eb' : '#60a5fa'} />
-                        {merchant.address || 'Dekat area kost'}
-                      </p>
-
-                      {/* Delivery Mode info */}
-                      <div style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
-                        border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : 'none',
-                        fontSize: '0.74rem',
-                        color: 'var(--text-secondary)',
-                        marginBottom: '10px'
-                      }}>
-                        <span>Opsi Antar: </span>
-                        <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>
-                          {merchant.deliveryType === 'pickup' ? 'Ambil di Ruko' : merchant.deliveryType === 'delivery' ? 'Diantar ke Kamar' : 'Bisa Diantar & Ambil di Ruko'}
-                        </strong>
-                      </div>
-
-                      {/* Fee Breakdown Badge */}
-                      <div style={{
-                        padding: '8px 10px',
-                        borderRadius: '10px',
-                        background: isLight ? 'rgba(37, 99, 235, 0.05)' : 'rgba(56, 189, 248, 0.06)',
-                        border: isLight ? '1px solid rgba(37, 99, 235, 0.15)' : '1px solid rgba(56, 189, 248, 0.2)',
-                        fontSize: '0.74rem',
-                        marginBottom: '12px'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                          <span>Komisi / Ads Owner:</span>
-                          <strong style={{ color: isLight ? '#1d4ed8' : '#38bdf8' }}>+Rp {(merchant.commissionOwner || 1000).toLocaleString('id-ID')} / trx</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                          <span>Admin KostKu:</span>
-                          <span>Flat Rp 500</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Footer */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                        {merchant.products?.length || 0} Menu Aktif
-                      </span>
-
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        {merchant.phone && (
-                          <a
-                            href={`https://wa.me/${merchant.phone.replace(/^0/, '62').replace(/[^0-9]/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '5px 10px', fontSize: '0.72rem' }}
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {merchant.phone && (
+                            <a
+                              href={`https://wa.me/${merchant.phone.replace(/^0/, '62').replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '5px 10px', fontSize: '0.72rem' }}
+                            >
+                              <Phone size={12} /> WA
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMerchant(merchant.id, merchant.name)}
+                            className="btn btn-danger btn-sm"
+                            style={{ padding: '5px 8px' }}
                           >
-                            <Phone size={12} /> WA
-                          </a>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteMerchant(merchant.id, merchant.name)}
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '5px 8px' }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -2700,6 +2777,30 @@ export default function Mitra({ user }) {
                   placeholder="Contoh: Depot Barokah / Melati Laundry"
                   className="input-field"
                 />
+              </div>
+
+              {/* Input Kode Referral untuk Bonus Poin */}
+              <div style={{
+                background: isLight ? 'rgba(34, 197, 94, 0.08)' : 'rgba(34, 197, 94, 0.12)',
+                border: isLight ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(34, 197, 94, 0.35)',
+                borderRadius: '12px',
+                padding: '12px'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: isLight ? '#166534' : '#86efac', marginBottom: '4px', fontWeight: 700 }}>
+                  <Sparkles size={14} color="#22c55e" />
+                  Kode Referral (Klaim Bonus Poin):
+                </label>
+                <input
+                  type="text"
+                  value={newMerchant.referralCode || ''}
+                  onChange={e => setNewMerchant({ ...newMerchant, referralCode: e.target.value.toUpperCase() })}
+                  placeholder="Contoh: KOST-122-OSCAR atau REF-MITRA"
+                  className="input-field"
+                  style={{ textTransform: 'uppercase', fontWeight: 600 }}
+                />
+                <div style={{ fontSize: '0.72rem', color: isLight ? '#15803d' : '#86efac', marginTop: '6px', lineHeight: 1.4 }}>
+                  🎁 <strong>Bonus +500 Poin:</strong> Masukkan kode referral untuk mengklaim extra poin. <em>Catatan: Jika toko/nomor ini sudah pernah didaftarkan sebelumnya, extra poin tidak akan ter-trigger lagi (1x klaim).</em>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
