@@ -5,6 +5,9 @@ User-agent: Googlebot
 Allow: /
 Disallow: /api/
 Disallow: /backend/
+Disallow: /checkout
+Disallow: /bayar
+Disallow: /pembayaran
 
 User-agent: Googlebot-Image
 Allow: /
@@ -21,11 +24,17 @@ User-agent: Bingbot
 Allow: /
 Disallow: /api/
 Disallow: /backend/
+Disallow: /checkout
+Disallow: /bayar
+Disallow: /pembayaran
 
 User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /backend/
+Disallow: /checkout
+Disallow: /bayar
+Disallow: /pembayaran
 
 # Peta Situs Resmi (Sitemap Index)
 Sitemap: https://kostku.riuph.me/sitemap.xml

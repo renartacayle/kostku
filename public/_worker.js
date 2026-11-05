@@ -24,7 +24,15 @@ export default {
       });
     }
 
-    // 2. Handle /api/* endpoints dynamically
+    // 2. Redirect direct visits to /checkout, /bayar, /pembayaran without booking/order context to Landing Page (301 Moved Permanently)
+    // Fixes Google Search indexed /checkout by immediately sending search engine bots and users to landing page /
+    const isCheckoutPath = url.pathname === '/checkout' || url.pathname === '/bayar' || url.pathname === '/pembayaran';
+    const hasBookingContext = url.searchParams.get('kostId') || url.searchParams.get('orderId') || url.searchParams.get('transactionId');
+    if (isCheckoutPath && !hasBookingContext) {
+      return Response.redirect(`${url.origin}/`, 301);
+    }
+
+    // 3. Handle /api/* endpoints dynamically
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/api')) {
       try {
         return await handleApi(request, url, env);

@@ -41,7 +41,20 @@ const ROUTE_SEO = {
   '/checkout': {
     title: 'Pembayaran Sewa & Tagihan Digital - KostKu',
     description: 'Sistem pembayaran aman dan otomatis berlisensi Bank Indonesia via QRIS Dinamis dan Virtual Account di KostKu.',
-    canonical: 'https://kostku.riuph.me/checkout'
+    canonical: 'https://kostku.riuph.me/',
+    robots: 'noindex, nofollow'
+  },
+  '/bayar': {
+    title: 'Pembayaran Sewa & Tagihan Digital - KostKu',
+    description: 'Sistem pembayaran aman dan otomatis berlisensi Bank Indonesia via QRIS Dinamis dan Virtual Account di KostKu.',
+    canonical: 'https://kostku.riuph.me/',
+    robots: 'noindex, nofollow'
+  },
+  '/pembayaran': {
+    title: 'Pembayaran Sewa & Tagihan Digital - KostKu',
+    description: 'Sistem pembayaran aman dan otomatis berlisensi Bank Indonesia via QRIS Dinamis dan Virtual Account di KostKu.',
+    canonical: 'https://kostku.riuph.me/',
+    robots: 'noindex, nofollow'
   },
   '/tentang-kami': {
     title: 'Tentang KostKu - Smart Co-Living & Kos Platform (UDINUS)',

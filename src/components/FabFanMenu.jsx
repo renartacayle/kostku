@@ -76,7 +76,20 @@ export default function FabFanMenu() {
           // Open tenant payment modal immediately on dashboard
           window.dispatchEvent(new CustomEvent('kostku:open-payment'));
         } else {
-          navigate('/checkout');
+          let hasKamar = false;
+          try {
+            const u = JSON.parse(localStorage.getItem('kostUser') || '{}');
+            if (u?.kamar) hasKamar = true;
+          } catch (_) {}
+
+          if (hasKamar) {
+            navigate('/dashboard');
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('kostku:open-payment'));
+            }, 300);
+          } else {
+            navigate('/cari-kost');
+          }
         }
       }
     },

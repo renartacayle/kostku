@@ -7791,6 +7791,12 @@ if (fs.existsSync(distPath)) {
   }));
   app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      // Redirect direct visits to /checkout without booking context to Landing Page (301 Permanent Redirect)
+      const isCheckout = req.path === '/checkout' || req.path === '/bayar' || req.path === '/pembayaran';
+      const hasBookingParam = req.query.kostId || req.query.orderId || req.query.transactionId;
+      if (isCheckout && !hasBookingParam) {
+        return res.redirect(301, '/');
+      }
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       return res.sendFile(path.join(distPath, 'index.html'));
     }

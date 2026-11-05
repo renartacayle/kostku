@@ -63,6 +63,16 @@ export default function Checkout({ user }) {
   const paramKostId = searchParams.get('kostId');
   const paramRoom = searchParams.get('room');
   const paramDuration = Number(searchParams.get('duration')) || 1;
+  const paramOrderId = searchParams.get('orderId');
+  const paramTransactionId = searchParams.get('transactionId');
+
+  // If user visits /checkout directly without booking context (e.g. from Google search result)
+  useEffect(() => {
+    if (!paramKostId && !paramOrderId && !paramTransactionId) {
+      console.log('[Checkout] Direct visit without booking context, redirecting to Landing Page (/)');
+      navigate('/', { replace: true });
+    }
+  }, [paramKostId, paramOrderId, paramTransactionId, navigate]);
 
   // Kost & Room selection state
   const [allKosts, setAllKosts] = useState([]);
@@ -393,7 +403,7 @@ export default function Checkout({ user }) {
                 } else if (selectedKost) {
                   navigate(`/kost/${selectedKost.uid}`);
                 } else {
-                  navigate('/search');
+                  navigate('/');
                 }
               }}
               style={{
