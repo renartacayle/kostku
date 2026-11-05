@@ -52,11 +52,11 @@ export default function MobileBottomNav({ user }) {
     },
     {
       id: 'kost',
-      path: user?.role === 'mitra' ? '/mitra' : (user ? '/dashboard' : '/login'),
-      label: user?.role === 'mitra' ? 'Toko Saya' : (isOwner ? 'My Kost' : isStaff ? 'Tugas Staf' : 'Kost Saya'),
+      path: user ? '/dashboard' : '/login',
+      label: isOwner ? 'My Kost' : isStaff ? 'Tugas Staf' : 'Kost Saya',
       icon: <Building size={20} strokeWidth={2} />,
-      badge: user?.role === 'mitra' ? 'Mitra' : (isOwner ? 'Owner' : isStaff ? 'Staf' : null),
-      isActive: ['/dashboard', '/penghuni', '/keuangan', '/laporan', '/komplain', '/karyawan', '/mitra', '/layanan', '/toko'].includes(location.pathname)
+      badge: isOwner ? 'Owner' : isStaff ? 'Staf' : null,
+      isActive: ['/dashboard', '/penghuni', '/keuangan', '/laporan', '/komplain', '/karyawan'].includes(location.pathname)
     },
     {
       id: 'settings',

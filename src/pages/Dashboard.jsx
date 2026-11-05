@@ -2576,7 +2576,10 @@ const OwnerDashboard = ({ user }) => {
               padding: '0.9rem 1rem',
               boxShadow: isLight ? 'var(--shadow-sm)' : 'none'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+              {/* Fitur Mitra dinonaktifkan sementara hingga pembukaan mitra resmi */}
+              {false && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2853,6 +2856,8 @@ const OwnerDashboard = ({ user }) => {
                   </div>
                 );
               })()}
+                </>
+              )}
 
               {/* Inbox Obrolan Masuk Calon Penyewa */}
               <div style={{
@@ -2860,7 +2865,7 @@ const OwnerDashboard = ({ user }) => {
                 border: '1px solid rgba(59, 130, 246, 0.18)',
                 borderRadius: '10px',
                 padding: '10px 12px',
-                marginTop: '10px'
+                marginTop: 0
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '4px' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#93c5fd', display: 'flex', alignItems: 'center', gap: '6px' }}>

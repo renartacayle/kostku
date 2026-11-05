@@ -287,14 +287,14 @@ function App() {
           <Route path="/blueprint" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />
           <Route path="/docs/blueprint" element={<Navigate to="/" replace />} />
           
-          {/* Auth Pages (redirect to /dashboard or /mitra if already logged in) */}
+          {/* Auth Pages (redirect to /dashboard if already logged in) */}
           <Route 
             path="/login" 
-            element={activeUser ? <Navigate to={activeUser.role === 'mitra' ? "/mitra" : "/dashboard"} replace /> : <Login onLogin={handleLogin} />} 
+            element={activeUser ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />} 
           />
           <Route 
             path="/register" 
-            element={activeUser ? <Navigate to={activeUser.role === 'mitra' ? "/mitra" : "/dashboard"} replace /> : <Register onLogin={handleLogin} />} 
+            element={activeUser ? <Navigate to="/dashboard" replace /> : <Register onLogin={handleLogin} />} 
           />
 
           {/* Dedicated Demo Showcase & Interactive Sandbox (Separated from Real Login) */}
@@ -306,13 +306,9 @@ function App() {
           <Route 
             path="/dashboard" 
             element={activeUser ? (
-              activeUser.role === 'mitra' ? (
-                <Navigate to="/mitra" replace />
-              ) : (
-                <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                  <Dashboard user={activeUser} />
-                </MainLayout>
-              )
+              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
+                <Dashboard user={activeUser} />
+              </MainLayout>
             ) : (
               <Navigate to="/login" replace />
             )} 
@@ -322,7 +318,7 @@ function App() {
             path="/penghuni" 
             element={activeUser ? (
               <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Penghuni user={activeUser} /> : <Navigate to={activeUser.role === 'mitra' ? "/mitra" : "/dashboard"} replace />}
+                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Penghuni user={activeUser} /> : <Navigate to="/dashboard" replace />}
               </MainLayout>
             ) : (
               <Navigate to="/login" replace />
@@ -333,40 +329,17 @@ function App() {
             path="/keuangan" 
             element={activeUser ? (
               <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Keuangan user={activeUser} /> : <Navigate to={activeUser.role === 'mitra' ? "/mitra" : "/dashboard"} replace />}
+                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Keuangan user={activeUser} /> : <Navigate to="/dashboard" replace />}
               </MainLayout>
             ) : (
               <Navigate to="/login" replace />
             )} 
           />
 
-          <Route 
-            path="/layanan" 
-            element={activeUser ? (
-              <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                <Layanan user={activeUser} />
-              </MainLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )} 
-          />
-          <Route path="/toko" element={<Navigate to="/layanan" replace />} />
-          <Route path="/toko-sekitar" element={<Navigate to="/layanan" replace />} />
-
-          <Route 
-            path="/mitra" 
-            element={activeUser ? (
-              activeUser.role === 'user' ? (
-                <Navigate to="/layanan" replace />
-              ) : (
-                <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                  <Mitra user={activeUser} />
-                </MainLayout>
-              )
-            ) : (
-              <Navigate to="/login" replace />
-            )} 
-          />
+          <Route path="/layanan" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/toko" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/toko-sekitar" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/mitra" element={<Navigate to="/dashboard" replace />} />
 
           <Route 
             path="/laporan" 
@@ -377,11 +350,7 @@ function App() {
             path="/komplain" 
             element={activeUser ? (
               <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                {activeUser.role === 'mitra' ? (
-                  <Navigate to="/mitra" replace />
-                ) : (
-                  <Komplain user={activeUser} />
-                )}
+                <Komplain user={activeUser} />
               </MainLayout>
             ) : (
               <Navigate to="/login" replace />
@@ -405,7 +374,7 @@ function App() {
                 {activeUser.role === 'owner' || activeUser.role === 'master' ? (
                   <Karyawan user={activeUser} />
                 ) : (
-                  <Navigate to={activeUser.role === 'mitra' ? "/mitra" : "/dashboard"} replace />
+                  <Navigate to="/dashboard" replace />
                 )}
               </MainLayout>
             ) : (
@@ -415,7 +384,7 @@ function App() {
           <Route path="/setting" element={<Navigate to="/pengaturan" replace />} />
 
           {/* Global Fallback Route */}
-          <Route path="*" element={<Navigate to={activeUser ? (activeUser.role === 'mitra' ? "/mitra" : "/dashboard") : "/"} replace />} />
+          <Route path="*" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>
