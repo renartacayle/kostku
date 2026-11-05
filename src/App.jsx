@@ -179,11 +179,30 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
 };
 
 function App() {
+  // Helper to ensure default role is 'user' (penghuni) unless explicitly demo pemilik/staff/mitra
+  const normalizeDefaultRole = (u) => {
+    if (!u) return null;
+    const isExplicitOwner = Boolean(u.isDemo && u.role === 'owner') || (u.email && u.email.toLowerCase().includes('pemilik'));
+    if (!isExplicitOwner && (u.role === 'owner' || !u.role)) {
+      u.role = 'user';
+      if (!u.kamar) u.kamar = '122';
+    }
+    return u;
+  };
+
   // Synchronous initialization from localStorage to prevent redirect flashing on refresh or login
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('kostUser');
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        const normalized = normalizeDefaultRole(parsed);
+        if (JSON.stringify(normalized) !== savedUser) {
+          localStorage.setItem('kostUser', JSON.stringify(normalized));
+        }
+        return normalized;
+      }
+      return null;
     } catch (e) {
       return null;
     }
@@ -192,7 +211,11 @@ function App() {
   const getStoredUser = () => {
     try {
       const savedUser = localStorage.getItem('kostUser');
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        return normalizeDefaultRole(parsed);
+      }
+      return null;
     } catch (e) {
       return null;
     }
@@ -204,8 +227,9 @@ function App() {
   useEffect(() => {
     const handleUserUpdated = (e) => {
       if (e.detail) {
-        setUser(e.detail);
-        localStorage.setItem('kostUser', JSON.stringify(e.detail));
+        const normalized = normalizeDefaultRole(e.detail);
+        setUser(normalized);
+        localStorage.setItem('kostUser', JSON.stringify(normalized));
       }
     };
     window.addEventListener('kostku_user_updated', handleUserUpdated);
@@ -213,8 +237,9 @@ function App() {
   }, []);
 
   const handleLogin = (userData, customKostName) => {
-    localStorage.setItem('kostUser', JSON.stringify(userData));
-    setUser(userData);
+    const normalized = normalizeDefaultRole({ ...userData });
+    localStorage.setItem('kostUser', JSON.stringify(normalized));
+    setUser(normalized);
     if (customKostName) {
       localStorage.setItem('kostName', customKostName);
     }

@@ -47,8 +47,8 @@ export default function Login({ onLogin }) {
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
 
-  // Google Sign-In State
-  const [googleRole] = useState('owner');
+  // Google Sign-In State: Default to 'user' (penghuni)
+  const [googleRole] = useState('user');
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // Anti-Bot Honeypot Trap
@@ -216,6 +216,14 @@ export default function Login({ onLogin }) {
       localStorage.setItem('kostName', data.kostName);
     }
 
+    // Default to 'user' (penghuni) unless explicitly demo pemilik or mitra/staff
+    if (data.user) {
+      if (!data.user.role || (data.user.role === 'owner' && !data.user.isDemo && !data.user.email?.includes('pemilik'))) {
+        data.user.role = 'user';
+        if (!data.user.kamar) data.user.kamar = '122';
+      }
+    }
+
     // Ensure kostUser is in localStorage synchronously BEFORE onLogin and navigate
     localStorage.setItem('kostUser', JSON.stringify(data.user));
     onLogin(data.user, data.kostName);
@@ -290,6 +298,14 @@ export default function Login({ onLogin }) {
       const data = await apiLogin(loginId, password, { website: honeypot });
       if (data.kostName) {
         localStorage.setItem('kostName', data.kostName);
+      }
+      // Default to 'user' (penghuni) unless explicitly demo pemilik or loginId contains pemilik/owner
+      if (data.user) {
+        const cleanLogin = loginId.toLowerCase();
+        if (!data.user.role || (data.user.role === 'owner' && !data.user.isDemo && !cleanLogin.includes('pemilik') && !cleanLogin.includes('owner'))) {
+          data.user.role = 'user';
+          if (!data.user.kamar) data.user.kamar = '122';
+        }
       }
       localStorage.setItem('kostUser', JSON.stringify(data.user));
       onLogin(data.user, data.kostName);

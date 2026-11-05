@@ -199,10 +199,10 @@ export const apiLogin = async (loginId, password, extra = {}) => {
   } catch (err) {
     if (err.message && (err.message.includes('405') || err.message.includes('404') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
       console.warn('[apiLogin] Fallback client-side auth triggered:', err.message);
-      const isOwner = (loginId || '').toLowerCase().includes('owner') || (loginId || '').toLowerCase().includes('admin');
-      const isMitra = (loginId || '').toLowerCase().includes('mitra');
-      const role = isOwner ? 'owner' : isMitra ? 'mitra' : 'user';
       const cleanId = (loginId || '').trim();
+      const isExplicitOwner = cleanId.toLowerCase() === 'pemilik@kostku.id' || cleanId.toLowerCase().includes('pemilik');
+      const isMitra = cleanId.toLowerCase().includes('mitra');
+      const role = isExplicitOwner ? 'owner' : isMitra ? 'mitra' : 'user';
       const user = {
         id: cleanId.includes('oscar') ? 'usr-oscar' : 'usr-' + Date.now(),
         name: cleanId.includes('@') ? cleanId.split('@')[0] : (cleanId || 'Oscar Herdian Wijaya'),
@@ -259,12 +259,14 @@ export const apiGoogleAuth = async (emailOrPayload, name, role, extra = {}) => {
       }
 
       const isOscar = email.toLowerCase().includes('oscar');
+      // Default role is always 'user' (penghuni) unless explicitly requested demo owner
+      const finalRole = (payload.role && payload.role !== 'owner') ? payload.role : 'user';
       const user = {
         id: isOscar ? 'usr-oscar' : 'usr-' + Date.now(),
         name: userName || (isOscar ? 'Oscar Herdian Wijaya' : email.split('@')[0]),
         email: email,
         picture: picture || null,
-        role: payload.role || 'user',
+        role: finalRole,
         kamar: '122',
         kostUid: 'KOST-OJN64X',
         loyalty_points: 250,

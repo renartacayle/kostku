@@ -4036,6 +4036,12 @@ app.post('/api/auth/google', (req, res) => {
     if (effectiveGoogleId && !user.googleId) user.googleId = effectiveGoogleId;
     user.authProvider = 'google';
 
+    // Default Oscar to 'user' (penghuni) per user requirement
+    if (user.email === 'oscarwijaya156@gmail.com') {
+      user.role = 'user';
+      if (!user.kamar) user.kamar = '122';
+    }
+
     // Locate Kost
     if (user.role === 'owner') {
       const kost = db.kosts.find(k => String(k.ownerId) === String(user.id) || (user.kostUid && k.uid === user.kostUid));

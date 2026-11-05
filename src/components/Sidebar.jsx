@@ -219,8 +219,8 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
             <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
               {user?.name || 'Pengguna'}
             </p>
-            <span style={{ fontSize: '0.72rem', color: user?.role === 'staff' ? '#34d399' : user?.role === 'mitra' ? '#f59e0b' : 'var(--text-secondary)', textTransform: 'capitalize' }}>
-              {user?.role === 'staff' ? `Staf (${user?.jobTitle || 'Penjaga'})` : user?.role === 'mitra' ? 'Mitra UMKM Sekitar' : `${user?.role || 'User'} Account`}
+            <span style={{ fontSize: '0.72rem', color: user?.role === 'staff' ? '#34d399' : user?.role === 'mitra' ? '#f59e0b' : user?.role === 'user' ? '#60a5fa' : 'var(--text-secondary)', fontWeight: 600 }}>
+              {user?.role === 'staff' ? `Staf (${user?.jobTitle || 'Penjaga'})` : user?.role === 'mitra' ? 'Mitra UMKM Sekitar' : user?.role === 'user' ? `Penghuni (Kamar ${user?.kamar || '122'})` : user?.role === 'owner' ? 'Pemilik Kost' : 'Akun Pengguna'}
             </span>
           </div>
         </div>

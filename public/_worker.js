@@ -99,12 +99,13 @@ async function handleApi(request, url, env) {
     }
 
     const isOscar = email.includes('oscar');
+    const finalRole = (body.role && body.role !== 'owner') ? body.role : 'user';
     const userObj = {
       id: isOscar ? 'usr-oscar' : 'usr-' + Date.now(),
       name: name || (isOscar ? 'Oscar Herdian Wijaya' : email.split('@')[0]),
       email: email,
       picture: picture || null,
-      role: body.role || 'user',
+      role: finalRole,
       kamar: '122',
       kostUid: 'KOST-OJN64X',
       loyalty_points: 250,
@@ -124,9 +125,9 @@ async function handleApi(request, url, env) {
   if (path === '/login' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
     const loginId = (body.loginId || '').trim();
-    const isOwner = loginId.toLowerCase().includes('owner') || loginId.toLowerCase().includes('admin');
+    const isExplicitOwner = loginId.toLowerCase() === 'pemilik@kostku.id' || loginId.toLowerCase().includes('pemilik');
     const isMitra = loginId.toLowerCase().includes('mitra');
-    const role = isOwner ? 'owner' : isMitra ? 'mitra' : 'user';
+    const role = isExplicitOwner ? 'owner' : isMitra ? 'mitra' : 'user';
 
     const userObj = {
       id: loginId.includes('oscar') ? 'usr-oscar' : 'usr-' + Date.now(),
