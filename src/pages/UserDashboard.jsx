@@ -133,7 +133,17 @@ const UserDashboard = ({ user }) => {
     try {
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('kostku_independent_merchants');
-        return stored ? JSON.parse(stored) : [];
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(m => {
+              const name = String(m?.name || '').toLowerCase();
+              const id = String(m?.id || '').toUpperCase();
+              return !id.includes('DEF') && !id.includes('DEMO') && !id.includes('SAMPLE') &&
+                     !name.includes('barokah') && !name.includes('bu siti') && !name.includes('melati');
+            });
+          }
+        }
       }
     } catch (e) {}
     return [];

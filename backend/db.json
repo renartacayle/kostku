@@ -79,76 +79,6 @@
       "type": "pengguna"
     },
     {
-      "id": "ACT-1791879099847",
-      "kostUid": "KOST-OJN64X",
-      "text": "Pesanan mitra baru: Depot Air & Gas Barokah (QRIS) dari Yes (Kamar 122) - Total Rp 20.500",
-      "time": "2026-10-13T08:11:39.847Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793335341178",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-10-30T04:42:21.178Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793501588492",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T02:53:08.492Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793501955542",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T02:59:15.542Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793501980137",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T02:59:40.137Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793502041066",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T03:00:41.066Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793502196296",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T03:03:16.296Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793505145005",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T03:52:25.005Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793506143575",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T04:09:03.575Z",
-      "type": "layanan"
-    },
-    {
-      "id": "ACT-1793507369321",
-      "kostUid": "GENERAL",
-      "text": "Pesanan mitra baru: Pesanan Layanan (COD) dari Budi alert('pwned') (Kamar 101) - Total Rp 19.500",
-      "time": "2026-11-01T04:29:29.321Z",
-      "type": "layanan"
-    },
-    {
       "id": "ACT-1793513752209",
       "kostUid": "KOST-OJN64X",
       "text": "Rena berhasil masuk via Akun Google (fox.renart.56@gmail.com)",
@@ -169,7 +99,7 @@
       "dutyCycle": 0.35,
       "estKwhPerMonth": 21.4,
       "hoursPerDay": 24,
-      "icon": "\u2744\ufe0f",
+      "icon": "❄️",
       "id": "kulkas_mini",
       "name": "Kulkas Mini / Bar Fridge",
       "watt": 85
@@ -179,7 +109,7 @@
       "dutyCycle": 0.5,
       "estKwhPerMonth": 21,
       "hoursPerDay": 4,
-      "icon": "\u2668\ufe0f",
+      "icon": "♨️",
       "id": "dispenser_panas",
       "name": "Dispenser Galon Pemanas",
       "watt": 350
@@ -189,7 +119,7 @@
       "dutyCycle": 0.7,
       "estKwhPerMonth": 56.7,
       "hoursPerDay": 6,
-      "icon": "\ud83d\udda5\ufe0f",
+      "icon": "🖥️",
       "id": "pc_gaming",
       "name": "PC Gaming High-End & Dual Monitor",
       "watt": 450
@@ -199,7 +129,7 @@
       "dutyCycle": 0.9,
       "estKwhPerMonth": 13.2,
       "hoursPerDay": 0.75,
-      "icon": "\ud83c\udf73",
+      "icon": "🍳",
       "id": "air_fryer",
       "name": "Air Fryer / Oven Mini Listrik",
       "watt": 650
@@ -209,7 +139,7 @@
       "dutyCycle": 0.8,
       "estKwhPerMonth": 3.6,
       "hoursPerDay": 0.5,
-      "icon": "\ud83d\udc54",
+      "icon": "👔",
       "id": "setrika_baju",
       "name": "Setrika Pakaian Uap / Biasa",
       "watt": 300
@@ -219,7 +149,7 @@
       "dutyCycle": 1,
       "estKwhPerMonth": 18,
       "hoursPerDay": 24,
-      "icon": "\ud83d\udc20",
+      "icon": "🐠",
       "id": "akuarium",
       "name": "Akuarium Ikan Hias (Pompa & Lampu)",
       "watt": 25
@@ -350,393 +280,7 @@
       "timestamp": "2026-11-02T01:04:55.788Z"
     }
   ],
-  "partner_orders": [
-    {
-      "createdAt": "2026-10-13T08:11:39.833Z",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1791879099833",
-      "items": [
-        {
-          "desc": "Diantar sampai depan pintu kamar",
-          "id": "P-GLN-01",
-          "name": "Air Galon Aqua 19L",
-          "price": 19000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-OJN64X",
-      "merchantId": "PTR-DEF-01-KOST-OJN64X",
-      "merchantName": "Depot Air & Gas Barokah",
-      "notes": "Waktu: Segera (15-20 Menit). Catatan: ",
-      "ownerCommission": 1000,
-      "paymentMeta": {
-        "paidAt": "2026-10-13T08:11:39.833Z",
-        "qrisTrxId": "QRIS-1791879099833"
-      },
-      "paymentMethod": "qris",
-      "paymentStatus": "paid",
-      "platformFee": 500,
-      "roomNumber": "122",
-      "serviceName": "Depot Air & Gas Barokah",
-      "status": "Lunas (QRIS Instan) - Menyiapkan Pengantaran",
-      "subtotal": 19000,
-      "total": 20500,
-      "userId": 1784987632155,
-      "userName": "Oscar Herdian Wijaya",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-10-30T04:42:21.113Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793335341113",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T02:53:08.428Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793501588428",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T02:59:15.529Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793501955529",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T02:59:40.123Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793501980123",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T03:00:41.052Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793502041052",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T03:03:16.283Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793502196283",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T03:52:24.992Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793505144992",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T04:09:03.562Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793506143562",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    },
-    {
-      "commissionSplit": {
-        "beneficiaryKostUid": "KOST-JAKSEL-01",
-        "hostKostUid": "KOST-JAKSEL-01",
-        "hostOwnerAmount": 1000,
-        "note": "\ud83d\udc51 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan",
-        "recruiterKostUid": "KOST-JAKSEL-01",
-        "recruiterOwnerAmount": 0,
-        "type": "full_main_partner"
-      },
-      "createdAt": "2026-11-01T04:29:29.308Z",
-      "deliveryFee": 0,
-      "deliveryMode": "delivery",
-      "estimatedTime": "Sesuai Jadwal",
-      "id": "ORD-SRV-1793507369307",
-      "items": [
-        {
-          "name": "Pesanan Layanan",
-          "price": 18000,
-          "qty": 1
-        }
-      ],
-      "kostUid": "KOST-JAKSEL-01",
-      "lifecycleStatus": "pending_acc",
-      "merchantName": "Pesanan Layanan",
-      "notes": "Catatan penting alert('pwned')",
-      "ownerCommission": 1000,
-      "paymentMethod": "cod",
-      "paymentStatus": "pending_cash",
-      "platformFee": 500,
-      "roomNumber": "101",
-      "serviceName": "Pesanan Layanan",
-      "status": "Bayar Tunai COD di Kamar - Menunggu Konfirmasi Mitra",
-      "subtotal": 18000,
-      "total": 19500,
-      "userId": "GUEST",
-      "userName": "Budi alert('pwned')",
-      "userPhone": "-"
-    }
-  ],
+  "partner_orders": [],
   "settings": {
     "gateway": {
       "apiKey": "88mxkhrmbFVBu0RYMxGU3ES48oT6cXSwSFtwlaTn",

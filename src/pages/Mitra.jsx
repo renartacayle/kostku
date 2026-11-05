@@ -162,15 +162,15 @@ export default function Mitra({ user }) {
       const [merchRes, sumRes, ordersRes] = await Promise.all([
         apiGetMerchants(targetKostUid).catch(() => []),
         apiGetMerchantSummary(targetKostUid).catch(() => null),
-        apiGetPartnerOrders(targetKostUid, null, isMitraUser ? (user?.merchantId || 'PTR-DEF-03') : null).catch(() => [])
+        apiGetPartnerOrders(targetKostUid, null, isMitraUser ? (user?.merchantId || null) : null).catch(() => [])
       ]);
 
       const isDemoMerchant = (m) => {
         if (!m) return true;
         if (m.isDemo) return true;
-        const id = String(m.id || '').toUpperCase();
-        if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO')) return true;
-        const name = String(m.name || '').toLowerCase();
+        const id = String(m.id || m.merchantId || '').toUpperCase();
+        if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO') || id.includes('SAMPLE') || id.includes('TEST')) return true;
+        const name = String(m.name || m.merchantName || m.serviceName || '').toLowerCase();
         if (
           name.includes('bu siti') || 
           name.includes('barokah') || 
@@ -178,7 +178,12 @@ export default function Mitra({ user }) {
           name.includes('melati express') || 
           name.includes('bangka 99') || 
           name.includes('bu dian') ||
-          name.includes('dago clean')
+          name.includes('dago clean') ||
+          name.includes('pesanan layanan') ||
+          name.includes('dummy') ||
+          name.includes('sample') ||
+          name.includes('alert') ||
+          name.includes('pwned')
         ) return true;
         return false;
       };
@@ -214,7 +219,7 @@ export default function Mitra({ user }) {
       const defaultSampleOrders = [];
 
       // Merge backend orders with defaults so lifecycle demo cards are always present and interactive
-      let mergedOrders = Array.isArray(ordersRes) ? [...ordersRes].filter(o => !isDemoMerchant({ id: o.merchantId, name: o.merchantName })) : [];
+      let mergedOrders = Array.isArray(ordersRes) ? [...ordersRes].filter(o => !isDemoMerchant(o) && !isDemoMerchant({ id: o.merchantId, name: o.merchantName, serviceName: o.serviceName })) : [];
       if (isMitraUser) {
         mergedOrders = mergedOrders.filter(o => !o.merchantId || String(o.merchantId) === String(user?.merchantId));
       }

@@ -330,9 +330,9 @@ export default function Layanan({ user }) {
   const isDemoMerchant = (m) => {
     if (!m) return true;
     if (m.isDemo) return true;
-    const id = String(m.id || '').toUpperCase();
-    if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO')) return true;
-    const name = String(m.name || '').toLowerCase();
+    const id = String(m.id || m.merchantId || '').toUpperCase();
+    if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO') || id.includes('SAMPLE') || id.includes('TEST')) return true;
+    const name = String(m.name || m.merchantName || m.serviceName || '').toLowerCase();
     if (
       name.includes('bu siti') || 
       name.includes('barokah') || 
@@ -340,7 +340,12 @@ export default function Layanan({ user }) {
       name.includes('melati express') || 
       name.includes('bangka 99') || 
       name.includes('bu dian') ||
-      name.includes('dago clean')
+      name.includes('dago clean') ||
+      name.includes('pesanan layanan') ||
+      name.includes('dummy') ||
+      name.includes('sample') ||
+      name.includes('alert') ||
+      name.includes('pwned')
     ) return true;
     return false;
   };

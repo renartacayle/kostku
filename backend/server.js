@@ -4945,24 +4945,7 @@ app.put('/api/partner-orders/:id/status', (req, res) => {
 
   let order = db.partner_orders.find(o => String(o.id) === String(id));
   if (!order) {
-    order = {
-      id,
-      kostUid: 'KOST-JAKSEL-01',
-      merchantId: 'PTR-DEF-03',
-      merchantName: 'Warung Makan & Laundry Bu Siti',
-      userName: 'Annisa Rahmawati',
-      roomNumber: '101',
-      deliveryMode: 'delivery',
-      deliveryFee: 2000,
-      subtotal: 16000,
-      total: 19500,
-      paymentMethod: 'qris',
-      paymentStatus: 'paid',
-      lifecycleStatus: lifecycleStatus || 'pending_acc',
-      status: 'Pesanan Diterima Mitra',
-      createdAt: new Date().toISOString()
-    };
-    db.partner_orders.push(order);
+    return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
   }
 
   if (lifecycleStatus) {

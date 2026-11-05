@@ -149,7 +149,7 @@
     <script type="module" src="/src/main.jsx"></script>
     <script>
       // Clear outdated caches immediately on page load
-      const CURRENT_SW_CACHE = 'kostku-cache-v140';
+      const CURRENT_SW_CACHE = 'kostku-cache-v141';
       if ('caches' in window) {
         caches.keys().then((keys) => {
           keys.forEach((key) => {
@@ -160,6 +160,14 @@
           });
         });
       }
+      try {
+        ['kostku_ordered_merchants', 'kostku_independent_merchants'].forEach(k => {
+          const val = localStorage.getItem(k);
+          if (val && (val.includes('Barokah') || val.includes('Bu Siti') || val.includes('Melati') || val.includes('pwned'))) {
+            localStorage.removeItem(k);
+          }
+        });
+      } catch (_) {}
 
       // Register PWA Service Worker with aggressive auto-update
       if ('serviceWorker' in navigator) {

@@ -2648,7 +2648,29 @@ const OwnerDashboard = ({ user }) => {
 
               {/* Tab Filter Mitra: Pribadi vs Affiliate */}
               {(() => {
-                const realOwnerMerchants = (ownerMerchants || []).filter(m => !String(m.id).includes('DEF') && !m.isDemo);
+                const isDemoMerchant = (m) => {
+                  if (!m) return true;
+                  if (m.isDemo) return true;
+                  const id = String(m.id || m.merchantId || '').toUpperCase();
+                  if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO') || id.includes('SAMPLE') || id.includes('TEST')) return true;
+                  const name = String(m.name || m.merchantName || m.serviceName || '').toLowerCase();
+                  if (
+                    name.includes('bu siti') || 
+                    name.includes('barokah') || 
+                    name.includes('mas dimas') || 
+                    name.includes('melati express') || 
+                    name.includes('bangka 99') || 
+                    name.includes('bu dian') ||
+                    name.includes('dago clean') ||
+                    name.includes('pesanan layanan') ||
+                    name.includes('dummy') ||
+                    name.includes('sample') ||
+                    name.includes('alert') ||
+                    name.includes('pwned')
+                  ) return true;
+                  return false;
+                };
+                const realOwnerMerchants = (ownerMerchants || []).filter(m => !isDemoMerchant(m));
                 const activeList = realOwnerMerchants;
                 const personalList = activeList.filter(m => !m.isAffiliate);
                 const affiliateList = activeList.filter(m => m.isAffiliate);
