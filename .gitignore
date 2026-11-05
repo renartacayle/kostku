@@ -20,3 +20,4 @@ stress_test_500/
 KostKu_StressTest_500_Kamar_Tidur_Auto2D.pdf
 __pycache__/
 *.pyc
+.wrangler/
