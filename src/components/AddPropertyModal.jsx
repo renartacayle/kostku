@@ -50,6 +50,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
     mode: 'ai'
   });
   const [description, setDescription] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -114,8 +115,13 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
         imageFront: effectiveImageFront,
         roomPhoto: validRoomPhoto,
         floorPlan,
-        description: description.trim()
+        description: description.trim(),
+        referralCode: referralCode.trim() ? referralCode.trim().toUpperCase() : null
       });
+
+      if (res?.referralMessage) {
+        alert(res.referralMessage);
+      }
 
       if (onKostAdded) {
         onKostAdded(res.kost);
@@ -603,6 +609,44 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
               onChangeFloorPlan={setFloorPlan}
               roomNumber="101"
               kostName={kostName || 'Kost Baru'}
+            />
+          </div>
+
+          {/* Kode Referral Penghuni / Rekomendasi (Dapatkan Bonus Poin) */}
+          <div style={{
+            padding: '14px 16px',
+            borderRadius: '16px',
+            background: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.05)',
+            border: isLight ? '1.5px dashed #f59e0b' : '1.5px dashed rgba(245, 158, 11, 0.45)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+              <label style={{ fontSize: '0.84rem', fontWeight: 800, color: isLight ? '#92400e' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🎁 Kode Referral Penghuni (Opsional)</span>
+              </label>
+              <span style={{ fontSize: '0.72rem', background: '#f59e0b', color: '#ffffff', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                Penghuni +1.000 Poin • Owner +500 Poin
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.76rem', color: isLight ? '#78350f' : '#cbd5e1', lineHeight: 1.45 }}>
+              Dapat rekomendasi platform KostKu dari anak kost Anda? Masukkan kode referral penghuni (contoh: <code>KOST-122-OSCAR</code>). Anak kost pereferensi akan menerima <strong>+1.000 Poin loyalty</strong> dan akun pemilik Anda mendapatkan <strong>+500 Poin bonus selamat datang</strong>!
+            </p>
+            <input
+              type="text"
+              placeholder="Contoh: KOST-122-OSCAR"
+              value={referralCode}
+              onChange={e => setReferralCode(e.target.value.toUpperCase())}
+              className="input-field"
+              style={{
+                width: '100%',
+                textTransform: 'uppercase',
+                fontWeight: 800,
+                letterSpacing: '0.8px',
+                background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)',
+                borderColor: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)'
+              }}
             />
           </div>
 

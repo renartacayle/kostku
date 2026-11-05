@@ -91,6 +91,20 @@
       "text": "Pesan baru dari Calon Penyewa: \"Halo Pemilik Kostku Residence Udinu...\"",
       "time": "2026-11-02T01:04:55.788Z",
       "type": "pesan"
+    },
+    {
+      "id": "ACT-1793881968850",
+      "kostUid": "KOST-8P1D81",
+      "type": "pengguna",
+      "text": "Pemilik mendaftarkan kost \"Kost Udinus Test Referral\" menggunakan referral penghuni Oscar Herdian Wijaya (KOST-122-OSCAR). Penghuni +1000 Poin, Pemilik +500 Poin.",
+      "time": "2026-11-05T12:32:48.850Z"
+    },
+    {
+      "id": "ACT-1793881968850",
+      "kostUid": "KOST-8P1D81",
+      "type": "pengaturan",
+      "text": "Cabang baru \"Kost Udinus Test Referral\" berhasil ditambahkan ke portofolio",
+      "time": "2026-11-05T12:32:48.850Z"
     }
   ],
   "applianceCatalog": [
@@ -6343,11 +6357,12 @@
       "id": 1784987632155,
       "isDemo": false,
       "kamar": "122",
-      "kostUid": "KOST-OJN64X",
+      "kostUid": "KOST-8P1D81",
       "name": "Oscar Herdian Wijaya",
       "password": "",
       "picture": "https://lh3.googleusercontent.com/a/ACg8ocKqN_vF0vDFL0VknL85q2Qzqpf7aJU4VX85knHd5xaLWTJIt1w=s96-c",
-      "role": "user"
+      "role": "user",
+      "loyalty_points": 1500
     }
   ],
   "expenses": [],
@@ -6374,5 +6389,6 @@
   "google_config": {},
   "leaveSettings": {},
   "registeredPartnerHistory": [],
-  "merchantSuggestions": []
+  "merchantSuggestions": [],
+  "registeredKostReferrals": []
 }

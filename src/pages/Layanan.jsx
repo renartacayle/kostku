@@ -597,7 +597,7 @@ export default function Layanan({ user }) {
             </span>
             <span style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b' }}>•</span>
             <span style={{ fontSize: '0.68rem', color: isLight ? '#475569' : '#cbd5e1' }}>
-              Referral: Teman <strong style={{ color: '#4ade80' }}>+100</strong>, Kamu <strong style={{ color: '#38bdf8' }}>+100</strong>
+              Referral: Teman <strong style={{ color: '#4ade80' }}>+100</strong>, Mitra <strong style={{ color: '#f59e0b' }}>+500</strong>, Owner Kost Baru <strong style={{ color: '#38bdf8' }}>+1.000 Poin</strong>
             </span>
           </div>
 

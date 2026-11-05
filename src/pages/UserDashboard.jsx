@@ -115,6 +115,21 @@ const UserDashboard = ({ user }) => {
   const [friendReferralInput, setFriendReferralInput] = useState('');
   const [friendReferralStatus, setFriendReferralStatus] = useState(null);
 
+  const userRefCode = currentUser?.referralCode || `KOST-${(currentUser?.kamar || '122').replace(/\s+/g, '')}-${(currentUser?.name || 'OSCAR').split(' ')[0].toUpperCase()}`;
+
+  const handleCopyReferral = () => {
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(userRefCode);
+      }
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch (_) {
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    }
+  };
+
   // Crowdsourcing ("Usulkan Warung Langganan") & Open Independent Merchant Registration
   const [showSuggestMerchantModal, setShowSuggestMerchantModal] = useState(false);
   const [showRegisterIndependentModal, setShowRegisterIndependentModal] = useState(false);
@@ -691,6 +706,42 @@ const UserDashboard = ({ user }) => {
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   {kostName && <><strong style={{ color: 'var(--accent-primary)' }}>{kostName}</strong> • </>}Kamar: <strong style={{ color: 'var(--text-primary)' }}>{currentUser.kamar}</strong> • Cuci Sprei: <strong style={{ color: 'var(--accent-success)' }}>{currentUser.bedsheets || 0}x</strong> • Poin: <strong style={{ color: 'var(--accent-warning)' }}>{currentUser?.loyalty_points || 250} Poin</strong>
                 </p>
+
+                {/* Tenant Referral Badge & Reward Info */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginTop: '8px',
+                  padding: '4px 10px',
+                  borderRadius: '10px',
+                  background: isLight ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.08)',
+                  border: isLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.25)',
+                  fontSize: '0.74rem'
+                }}>
+                  <span style={{ fontWeight: 800, color: isLight ? '#92400e' : '#fbbf24' }}>
+                    🎁 Kode Referral: <code style={{ fontFamily: 'monospace', fontWeight: 900 }}>{userRefCode}</code>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyReferral}
+                    style={{
+                      background: referralCopied ? '#22c55e' : (isLight ? '#f59e0b' : '#d97706'),
+                      border: 'none',
+                      color: '#ffffff',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {referralCopied ? '✓ Tersalin!' : 'Salin'}
+                  </button>
+                  <span style={{ color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.7rem' }}>
+                    (Owner Buat Kost: <strong style={{ color: '#38bdf8' }}>+1.000 Pts</strong> • Mitra: <strong style={{ color: '#f59e0b' }}>+500 Pts</strong> • Teman: <strong style={{ color: '#4ade80' }}>+100 Pts</strong>)
+                  </span>
+                </div>
               </div>
             </div>
 

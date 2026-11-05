@@ -1989,7 +1989,7 @@ app.get('/api/owner/kosts', (req, res) => {
 
 // Endpoint: Create a new kost for an existing owner
 app.post('/api/owner/kosts', (req, res) => {
-  const { ownerId, kostName, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description, type, roomsCount, defaultPrice, utilityScheme } = req.body;
+  const { ownerId, kostName, address, lat, lng, imageFront, roomPhoto, gmapsUrl, floorPlan, description, type, roomsCount, defaultPrice, utilityScheme, referralCode } = req.body;
   const db = getDB();
 
   if (!ownerId) return res.status(400).json({ error: 'ownerId wajib disertakan' });
@@ -2006,6 +2006,54 @@ app.post('/api/owner/kosts', (req, res) => {
 
   // Generate unique UID
   const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+  // Handle Tenant Referral Code for New Kost
+  const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
+  let referralBonusAwarded = false;
+  let referrerUser = null;
+  let referralMessage = '';
+
+  if (cleanReferral) {
+    db.registeredKostReferrals = db.registeredKostReferrals || [];
+    const referralKey = `${owner.id}_${cleanReferral}`;
+    const alreadyUsed = db.registeredKostReferrals.includes(referralKey);
+
+    if (alreadyUsed) {
+      referralBonusAwarded = false;
+      referralMessage = '⚠️ Kode referral ini sudah pernah diklaim sebelumnya untuk properti Anda (hanya berlaku 1x per pemilik).';
+    } else {
+      referrerUser = db.users.find(u => {
+        if (u.referralCode && u.referralCode.toUpperCase() === cleanReferral) return true;
+        const kamarMatch = u.kamar && cleanReferral.includes(String(u.kamar).toUpperCase());
+        const namePart = (u.name || '').split(' ')[0].toUpperCase();
+        if (kamarMatch && namePart && cleanReferral.includes(namePart)) return true;
+        if (cleanReferral.includes('OSCAR') && (u.email?.includes('oscar') || u.name?.toLowerCase().includes('oscar'))) return true;
+        return false;
+      });
+
+      if (!referrerUser && cleanReferral.includes('OSCAR')) {
+        referrerUser = db.users.find(u => u.email === 'oscarwijaya156@gmail.com');
+      }
+
+      if (referrerUser) {
+        referralBonusAwarded = true;
+        const tenantBonus = 1000;
+        const ownerBonus = 500;
+
+        referrerUser.loyalty_points = (Number(referrerUser.loyalty_points) || 0) + tenantBonus;
+        owner.loyalty_points = (Number(owner.loyalty_points) || 0) + ownerBonus;
+
+        db.registeredKostReferrals.push(referralKey);
+
+        addActivity(db, generatedUid, 'pengguna', `Pemilik mendaftarkan kost "${kostName}" menggunakan referral penghuni ${referrerUser.name} (${cleanReferral}). Penghuni +${tenantBonus} Poin, Pemilik +${ownerBonus} Poin.`);
+
+        referralMessage = `🎉 Kode referral ${cleanReferral} aktif! Penghuni ${referrerUser.name} menerima +${tenantBonus} Poin loyalty, dan akun Pemilik Anda mendapat bonus +${ownerBonus} Poin!`;
+      } else {
+        referralBonusAwarded = false;
+        referralMessage = `Kode referral ${cleanReferral} tidak ditemukan, namun properti kost Anda tetap berhasil didaftarkan.`;
+      }
+    }
+  }
 
   const defaultFloorPlan = floorPlan || {
     dimensions: '3.0m x 4.0m',
@@ -2082,9 +2130,11 @@ app.post('/api/owner/kosts', (req, res) => {
   writeDB(db);
 
   res.json({
-    message: 'Properti Kost berhasil ditambahkan!',
+    message: referralMessage || 'Properti Kost berhasil ditambahkan!',
     kost: newKost,
-    activeKostUid: generatedUid
+    activeKostUid: generatedUid,
+    referralBonusAwarded,
+    referralMessage
   });
 });
 

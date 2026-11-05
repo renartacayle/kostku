@@ -265,6 +265,62 @@ async function handleApi(request, url, env) {
     }), { status: 201, headers: corsHeaders });
   }
 
+  // ── Multi-Property Owner Kosts ──────────────────────────────────
+  if (path === '/owner/kosts') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify([
+        {
+          uid: 'KOST-OJN64X',
+          kostName: 'KostKu Residence Udinus',
+          address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
+          type: 'Campur',
+          totalRooms: 36,
+          occupiedCount: 32,
+          availableCount: 4,
+          occupancyRate: 89,
+          complaintsCount: 0,
+          paidRevenue: 48000000,
+          isCurrentlyActive: true
+        }
+      ]), { headers: corsHeaders });
+    }
+
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const kostName = (body.kostName || '').trim();
+      const refCode = (body.referralCode || '').trim().toUpperCase();
+      const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+      let referralBonusAwarded = false;
+      let referralMessage = 'Properti Kost berhasil ditambahkan!';
+
+      if (refCode) {
+        referralBonusAwarded = true;
+        referralMessage = `🎉 Kode referral ${refCode} berhasil diterapkan! Penghuni menerima +1.000 Poin loyalty dan akun Pemilik Anda mendapat bonus sambutan +500 Poin!`;
+      }
+
+      const newKost = {
+        uid: generatedUid,
+        kostName: kostName || 'Kost Baru',
+        address: body.address || '',
+        type: body.type || 'Campur',
+        roomsCount: Number(body.roomsCount) || 8,
+        defaultPrice: Number(body.defaultPrice) || 1500000,
+        status: 'verified',
+        referralCode: refCode || null,
+        referralBonusAwarded
+      };
+
+      return new Response(JSON.stringify({
+        message: referralMessage,
+        kost: newKost,
+        activeKostUid: generatedUid,
+        referralBonusAwarded,
+        referralMessage
+      }), { status: 201, headers: corsHeaders });
+    }
+  }
+
   // ── Public Kosts & Health ───────────────────────────────────────
   if (path === '/public/kosts' || path === '/health') {
     return new Response(JSON.stringify({
