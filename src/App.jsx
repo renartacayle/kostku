@@ -37,7 +37,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import CustomerServiceFloatingButton from './components/CustomerServiceFloatingButton';
 import RouteMetadataManager from './components/RouteMetadataManager';
 import { apiSwitchOwnerKost } from './services/api';
-import { lazyRetry } from './utils/lazyRetry';
+import { lazyRetry, getAdaptiveBufferTimeout } from './utils/lazyRetry';
 
 // Route-level code-splitting with resilient auto-retry across deployments
 const Login = lazyRetry(() => import('./pages/Login'), 'Login');
@@ -60,14 +60,15 @@ const TentangKami = lazyRetry(() => import('./pages/TentangKami'), 'TentangKami'
 const Checkout = lazyRetry(() => import('./pages/Checkout'), 'Checkout');
 const StressTestReport = lazyRetry(() => import('./pages/StressTestReport'), 'StressTestReport');
 
-// Lightweight, tactile loading indicator during route chunks hydration with 3s buffer feedback
+// Lightweight, tactile loading indicator during route chunks hydration with adaptive buffer feedback
 const PageLoadingFallback = () => {
   const [slowNotice, setSlowNotice] = useState(false);
 
   useEffect(() => {
+    const adaptiveBuffer = getAdaptiveBufferTimeout(0);
     const timer = setTimeout(() => {
       setSlowNotice(true);
-    }, 3000);
+    }, adaptiveBuffer);
     return () => clearTimeout(timer);
   }, []);
 
