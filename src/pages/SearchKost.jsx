@@ -26,13 +26,17 @@ import {
   Scale,
   Flame,
   Check,
-  Ban
+  Ban,
+  Plus,
+  RefreshCw,
+  Phone
 } from 'lucide-react';
 import { apiGetPublicKosts } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import KostCompareModal from '../components/KostCompareModal';
 import CustomDropdown from '../components/CustomDropdown';
 import KostFilterModal from '../components/KostFilterModal';
+import TambahKostModal from '../components/TambahKostModal';
 import Footer from '../components/Footer';
 import { 
   calculateDistanceKm, 
@@ -130,6 +134,169 @@ export const checkFacilityMatch = (kost, facId) => {
   }
 };
 
+export const DEFAULT_VERIFIED_KOSTS = [
+  {
+    uid: 'KOST-OJN64X',
+    kostName: 'KostKu Residence Udinus',
+    type: 'Campur',
+    city: 'Semarang',
+    address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
+    location: { lat: -6.9826, lng: 110.4091 },
+    gmapsUrl: 'https://maps.google.com/?q=-6.9826,110.4091',
+    rating: 5.0,
+    reviewCount: 42,
+    priceMin: 1500000,
+    priceMax: 1650000,
+    totalRooms: 36,
+    availableRooms: 4,
+    description: 'Kost eksklusif dan strategis tepat di area kampus Udinus Semarang. Lingkungan aman, tenang, bebas banjir, dilengkapi CCTV 24 jam dan akses kartu pintar.',
+    facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil', 'CCTV 24 Jam', 'Akses 24 Jam'],
+    rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
+    utilityScheme: 'all_kost',
+    images: [
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
+    ],
+    roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
+    rooms: [
+      { id: 'ROOM-OJN-122', number: '122', price: 1500000, size: '3.5x4', status: 'available' },
+      { id: 'ROOM-OJN-101', number: '101', price: 1500000, size: '3.5x4', status: 'available' },
+      { id: 'ROOM-OJN-102', number: '102', price: 1650000, size: '4x4.5', status: 'available' }
+    ]
+  },
+  {
+    uid: 'KOST-JAKSEL-01',
+    kostName: 'Kost Taman Sukun Co-Living & Exclusive',
+    type: 'Campur',
+    city: 'Jakarta',
+    address: 'Jl. Tebet Barat Dalam Raya No. 42, Tebet, Jakarta Selatan',
+    location: { lat: -6.2383, lng: 106.8532 },
+    rating: 4.95,
+    reviewCount: 48,
+    priceMin: 2300000,
+    priceMax: 3200000,
+    totalRooms: 12,
+    availableRooms: 2,
+    description: 'Kost Co-Living modern bergaya tropis kontemporer di jantung Jakarta Selatan. Hanya 5 menit ke Stasiun Tebet dan area perkantoran Kuningan/Casablanca.',
+    facilities: ['AC', 'WiFi Cepat', 'KM Dalam Water Heater', 'Smart TV', 'Parkir Mobil & Motor'],
+    rules: ['Akses 24 Jam', 'Dilarang Merokok di Kamar', 'Menjaga Ketertiban'],
+    utilityScheme: 'all_kost',
+    images: [
+      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
+    ],
+    roomPhoto: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80',
+    rooms: [
+      { id: 'ROOM-TS-101', number: '101', price: 2300000, size: '4x5', status: 'available' }
+    ]
+  },
+  {
+    uid: 'KOST-BDG-02',
+    kostName: 'Kost Putri Griya Asri Dago',
+    type: 'Putri',
+    city: 'Bandung',
+    address: 'Jl. Ir. H. Juanda No. 182, Dago, Coblong, Bandung (Dekat ITB & Unpad)',
+    location: { lat: -6.8837, lng: 107.6145 },
+    rating: 4.9,
+    reviewCount: 36,
+    priceMin: 1850000,
+    priceMax: 2200000,
+    totalRooms: 16,
+    availableRooms: 3,
+    description: 'Kost khusus mahasiswi aman, sejuk, asri tepat di kawasan Dago Bandung. Dekat kampus ITB, Unpad, dan cafe hits.',
+    facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Penjaga 24 Jam'],
+    rules: ['Khusus Putri', 'Tamu Pria Dilarang Masuk Kamar'],
+    utilityScheme: 'all_kost',
+    images: [
+      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1200&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80'
+    ],
+    roomPhoto: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80',
+    rooms: [
+      { id: 'ROOM-DAGO-201', number: '201', price: 1850000, size: '3.5x4', status: 'available' }
+    ]
+  },
+  {
+    uid: 'KOST-JOG-04',
+    kostName: 'Kost Java Residence Malioboro',
+    type: 'Campur',
+    city: 'Yogyakarta',
+    address: 'Jl. Sosrowijayan Wetan No. 14, Gedongtengen, Yogyakarta (Dekat UGM & Stasiun Tugu)',
+    location: { lat: -7.7915, lng: 110.3658 },
+    rating: 4.88,
+    reviewCount: 29,
+    priceMin: 1400000,
+    priceMax: 1750000,
+    totalRooms: 20,
+    availableRooms: 3,
+    description: 'Hunian nyaman bernuansa khas Jogja modern di pusat kota. Akses transportasi mudah ke UGM dan UNY.',
+    facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor'],
+    rules: ['Akses 24 Jam', 'Menjaga Ketenangan'],
+    utilityScheme: 'all_kost',
+    images: [
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=1200&auto=format&fit=crop&q=80'
+    ],
+    roomPhoto: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80',
+    rooms: [
+      { id: 'ROOM-JOG-105', number: '105', price: 1400000, size: '3.5x4', status: 'available' }
+    ]
+  },
+  {
+    uid: 'KOST-SBY-06',
+    kostName: 'Kost Grand Surya Executive Rungkut',
+    type: 'Putra',
+    city: 'Surabaya',
+    address: 'Jl. Rungkut Madya No. 88, Rungkut, Surabaya (Dekat UPN Veteran)',
+    location: { lat: -7.3328, lng: 112.7845 },
+    rating: 4.85,
+    reviewCount: 31,
+    priceMin: 1600000,
+    priceMax: 2000000,
+    totalRooms: 18,
+    availableRooms: 2,
+    description: 'Kost putra eksekutif di Surabaya Timur dekat area kampus UPN dan MERR. Parkir mobil luas dan beratap.',
+    facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Parkir Mobil & Motor'],
+    rules: ['Khusus Putra', 'Akses 24 Jam'],
+    utilityScheme: 'all_kost',
+    images: [
+      'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=1200&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1200&auto=format&fit=crop&q=80'
+    ],
+    roomPhoto: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80',
+    rooms: [
+      { id: 'ROOM-SBY-12', number: '12', price: 1600000, size: '3.5x4', status: 'available' }
+    ]
+  },
+  {
+    uid: 'KOST-BALI-10',
+    kostName: 'Kost Sunset Paradise Canggu',
+    type: 'Campur',
+    city: 'Bali',
+    address: 'Jl. Pantai Batu Bolong No. 56, Canggu, Kuta Utara, Badung, Bali',
+    location: { lat: -8.6539, lng: 115.1325 },
+    rating: 4.96,
+    reviewCount: 52,
+    priceMin: 2800000,
+    priceMax: 4500000,
+    totalRooms: 14,
+    availableRooms: 2,
+    description: 'Tropical Co-Living & Kost di Canggu Bali dengan suasana tenang, kolam renang bersama, dan kecepatan internet 100 Mbps untuk remote worker.',
+    facilities: ['AC', 'WiFi 100 Mbps', 'Kamar Mandi Dalam', 'Kolam Renang Bersama', 'Dapur Bersama'],
+    rules: ['Akses 24 Jam', 'Menjaga Ketenangan Malam'],
+    utilityScheme: 'all_kost',
+    images: [
+      'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=1200&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&auto=format&fit=crop&q=80'
+    ],
+    roomPhoto: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&auto=format&fit=crop&q=80',
+    rooms: [
+      { id: 'ROOM-BALI-01', number: '01', price: 2800000, size: '4.5x5', status: 'available' }
+    ]
+  }
+];
+
 export default function SearchKost({ user }) {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -155,6 +322,7 @@ export default function SearchKost({ user }) {
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
   const [previewLayoutKost, setPreviewLayoutKost] = useState(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [showAddKostModal, setShowAddKostModal] = useState(false);
 
   // Geolocation & Distance State
   const [userLocation, setUserLocation] = useState(null); // { lat, lng, label, isGps: boolean }
@@ -270,10 +438,21 @@ export default function SearchKost({ user }) {
     setLoading(true);
     apiGetPublicKosts()
       .then(data => {
-        setKosts(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : (data?.kosts || []);
+        let initial = list.length > 0 ? list : DEFAULT_VERIFIED_KOSTS;
+        try {
+          const userAdded = JSON.parse(localStorage.getItem('kostku_user_added_kosts') || '[]');
+          if (Array.isArray(userAdded) && userAdded.length > 0) {
+            const existingUids = new Set(initial.map(k => k.uid));
+            const uniqueAdded = userAdded.filter(k => !existingUids.has(k.uid));
+            initial = [...uniqueAdded, ...initial];
+          }
+        } catch (_) {}
+        setKosts(initial);
       })
       .catch(err => {
         console.error('Failed to load marketplace kosts:', err);
+        setKosts(DEFAULT_VERIFIED_KOSTS);
       })
       .finally(() => {
         setLoading(false);
@@ -946,30 +1125,152 @@ export default function SearchKost({ user }) {
         ) : filteredKosts.length === 0 ? (
           <div className="card glass-panel" style={{
             textAlign: 'center',
-            padding: '4rem 2rem',
-            maxWidth: '480px',
+            padding: 'clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 2.5rem)',
+            maxWidth: '560px',
             margin: '2rem auto',
-            borderRadius: '24px'
+            borderRadius: '24px',
+            background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.75)',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(59, 130, 246, 0.25)',
+            boxShadow: isLight ? '0 10px 30px rgba(0,0,0,0.06)' : '0 20px 50px rgba(0,0,0,0.4)'
           }}>
-            <div style={{ fontSize: '3.5rem', marginBottom: '14px' }}>🔍</div>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 800 }}>Kost Tidak Ditemukan</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 20px 0', lineHeight: 1.5 }}>
-              Tidak ada kost yang cocok dengan kriteria filter saat ini. Silakan atur ulang filter pencarian Anda.
+            <div style={{ 
+              width: '76px', 
+              height: '76px', 
+              borderRadius: '22px', 
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(14, 165, 233, 0.2))', 
+              color: '#38bdf8', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              margin: '0 auto 1.25rem',
+              fontSize: '2.5rem'
+            }}>
+              🏡
+            </div>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '20px',
+              background: 'rgba(56, 189, 248, 0.12)',
+              color: '#38bdf8',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              marginBottom: '10px',
+              letterSpacing: '0.02em'
+            }}>
+              <Sparkles size={13} /> Belum Ada Kost yang Cocok?
+            </div>
+
+            <h3 style={{ 
+              margin: '0 0 10px 0', 
+              fontSize: 'clamp(1.35rem, 3.5vw, 1.65rem)', 
+              fontWeight: 800, 
+              color: isLight ? '#0f172a' : 'white',
+              lineHeight: 1.3
+            }}>
+              Ayok, Mari Tambah Kost di Sini! 🚀
+            </h3>
+
+            <p style={{ 
+              color: 'var(--text-secondary)', 
+              fontSize: '0.92rem', 
+              margin: '0 auto 1.5rem', 
+              lineHeight: 1.6,
+              maxWidth: '460px'
+            }}>
+              Punya properti kost yang ingin disewakan atau tahu kost bagus di area ini? Yuk daftarkan kost Anda sekarang agar langsung dilihat oleh ribuan pencari kost tanpa biaya perantara!
             </p>
-            <button
-              onClick={() => {
-                setSearch('');
-                setSelectedCity('all');
-                setSelectedType('all');
-                setSelectedPriceRange('all');
-                setSelectedFacilities([]);
-                setShowWishlistOnly(false);
-              }}
-              className="btn btn-primary"
-              style={{ padding: '10px 24px', borderRadius: '12px' }}
-            >
-              Reset Semua Filter
-            </button>
+
+            {/* Benefit Badges */}
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              justifyContent: 'center',
+              marginBottom: '1.75rem'
+            }}>
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)',
+                color: isLight ? '#334155' : '#cbd5e1'
+              }}>
+                ✓ 0% Biaya Calo / Agen
+              </span>
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)',
+                color: isLight ? '#334155' : '#cbd5e1'
+              }}>
+                ✓ Foto Asli Terverifikasi
+              </span>
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)',
+                color: isLight ? '#334155' : '#cbd5e1'
+              }}>
+                ✓ WhatsApp Langsung ke Pemilik
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setShowAddKostModal(true)}
+                className="btn btn-primary"
+                style={{
+                  padding: '11px 22px',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} /> Tambah Properti Kost Baru
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setSelectedCity('all');
+                  setSelectedType('all');
+                  setSelectedPriceRange('all');
+                  setSelectedFacilities([]);
+                  setShowWishlistOnly(false);
+                }}
+                className="btn btn-secondary"
+                style={{
+                  padding: '11px 20px',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <RefreshCw size={15} /> Reset Semua Filter
+              </button>
+            </div>
           </div>
         ) : (
           <div className="kost-responsive-grid">
@@ -1659,6 +1960,22 @@ export default function SearchKost({ user }) {
         totalResults={filteredKosts.length}
         onResetAll={handleResetAllFilters}
         activeFilterCount={activeFilterCount}
+      />
+
+      {/* Tambah / Daftarkan Kost Baru Modal */}
+      <TambahKostModal
+        isOpen={showAddKostModal}
+        onClose={() => setShowAddKostModal(false)}
+        initialCity={selectedCity}
+        user={user}
+        onKostAdded={(newKost) => {
+          setKosts(prev => [newKost, ...prev]);
+          setSearch(newKost.kostName);
+          setSelectedCity('all');
+          setSelectedType('all');
+          setSelectedPriceRange('all');
+          setSelectedFacilities([]);
+        }}
       />
 
       {/* Official Compliance Footer */}

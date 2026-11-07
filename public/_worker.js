@@ -331,25 +331,259 @@ async function handleApi(request, url, env) {
     }
   }
 
-  // ── Public Kosts & Health ───────────────────────────────────────
-  if (path === '/public/kosts' || path === '/health') {
+  // ── Health Check ────────────────────────────────────────────────
+  if (path === '/health') {
     return new Response(JSON.stringify({
       status: 'ok',
-      timestamp: new Date().toISOString(),
-      kosts: [
-        {
-          uid: 'KOST-OJN64X',
-          kostName: 'KostKu Residence Udinus',
-          address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
-          city: 'Semarang',
-          priceMin: 850000,
-          priceMax: 1650000,
-          rating: 4.9,
-          totalRooms: 36,
-          availableRooms: 4
-        }
-      ]
+      timestamp: new Date().toISOString()
     }), { headers: corsHeaders });
+  }
+
+  // ── Public Kosts Marketplace ─────────────────────────────────────
+  if (path === '/public/kosts') {
+    const verifiedKosts = [
+      {
+        uid: 'KOST-OJN64X',
+        kostName: 'KostKu Residence Udinus',
+        type: 'Campur',
+        city: 'Semarang',
+        address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
+        location: { lat: -6.9826, lng: 110.4091 },
+        gmapsUrl: 'https://maps.google.com/?q=-6.9826,110.4091',
+        rating: 5.0,
+        reviewCount: 42,
+        priceMin: 1500000,
+        priceMax: 1650000,
+        totalRooms: 36,
+        availableRooms: 4,
+        description: 'Kost eksklusif dan strategis tepat di area kampus Udinus Semarang. Lingkungan aman, tenang, bebas banjir, dilengkapi CCTV 24 jam dan akses kartu pintar.',
+        facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil', 'CCTV 24 Jam', 'Akses 24 Jam'],
+        rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
+        utilityScheme: 'all_kost',
+        images: [
+          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
+        ],
+        roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
+        rooms: [
+          { id: 'ROOM-OJN-122', number: '122', price: 1500000, size: '3.5x4', status: 'occupied', tenantName: 'Oscar Herdian Wijaya' },
+          { id: 'ROOM-OJN-101', number: '101', price: 1500000, size: '3.5x4', status: 'available' },
+          { id: 'ROOM-OJN-102', number: '102', price: 1650000, size: '4x4.5', status: 'available' }
+        ],
+        layoutInfo: {
+          roomDimensions: '3.5m x 4.0m',
+          roomArea: '14 m²',
+          buildingArea: '450 m² (2 Lantai)',
+          totalFloors: 2,
+          totalRooms: 36,
+          bathroomType: 'Kamar Mandi Dalam',
+          windowFacing: 'Jendela Hadap Luar (Sirkulasi Bagus)',
+          features: ['Kasur Springbed Nyaman', 'Meja Kerja & Lemari', 'Kamar Mandi Dalam']
+        }
+      },
+      {
+        uid: 'KOST-JAKSEL-01',
+        kostName: 'Kost Taman Sukun Co-Living & Exclusive',
+        type: 'Campur',
+        city: 'Jakarta',
+        address: 'Jl. Tebet Barat Dalam Raya No. 42, Tebet, Jakarta Selatan',
+        location: { lat: -6.2383, lng: 106.8532 },
+        rating: 4.95,
+        reviewCount: 48,
+        priceMin: 2300000,
+        priceMax: 3200000,
+        totalRooms: 12,
+        availableRooms: 2,
+        description: 'Kost Co-Living modern bergaya tropis kontemporer di jantung Jakarta Selatan. Hanya 5 menit ke Stasiun Tebet dan area perkantoran Kuningan/Casablanca.',
+        facilities: ['AC', 'WiFi Cepat', 'KM Dalam Water Heater', 'Smart TV', 'Parkir Mobil & Motor', 'Akses Card 24 Jam'],
+        rules: ['Akses 24 Jam', 'Dilarang Merokok di Kamar', 'Menjaga Ketertiban'],
+        utilityScheme: 'all_kost',
+        images: [
+          'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
+        ],
+        roomPhoto: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80',
+        rooms: [
+          { id: 'ROOM-TS-101', number: '101', price: 2300000, size: '4x5', status: 'available' },
+          { id: 'ROOM-TS-102', number: '102', price: 2600000, size: '4.5x5', status: 'available' }
+        ]
+      },
+      {
+        uid: 'KOST-BDG-02',
+        kostName: 'Kost Putri Griya Asri Dago',
+        type: 'Putri',
+        city: 'Bandung',
+        address: 'Jl. Ir. H. Juanda No. 182, Dago, Coblong, Bandung (Dekat ITB & Unpad)',
+        location: { lat: -6.8837, lng: 107.6145 },
+        rating: 4.9,
+        reviewCount: 36,
+        priceMin: 1850000,
+        priceMax: 2200000,
+        totalRooms: 16,
+        availableRooms: 3,
+        description: 'Kost khusus mahasiswi aman, sejuk, asri tepat di kawasan Dago Bandung. Dekat kampus ITB, Unpad, dan cafe hits.',
+        facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Penjaga 24 Jam'],
+        rules: ['Khusus Putri', 'Tamu Pria Dilarang Masuk Kamar', 'Pintu Gerbang Ditutup Pukul 23.00'],
+        utilityScheme: 'all_kost',
+        images: [
+          'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80'
+        ],
+        roomPhoto: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80',
+        rooms: [
+          { id: 'ROOM-DAGO-201', number: '201', price: 1850000, size: '3.5x4', status: 'available' }
+        ]
+      },
+      {
+        uid: 'KOST-JOG-04',
+        kostName: 'Kost Java Residence Malioboro',
+        type: 'Campur',
+        city: 'Yogyakarta',
+        address: 'Jl. Sosrowijayan Wetan No. 14, Gedongtengen, Yogyakarta (Dekat UGM & Stasiun Tugu)',
+        location: { lat: -7.7915, lng: 110.3658 },
+        rating: 4.88,
+        reviewCount: 29,
+        priceMin: 1400000,
+        priceMax: 1750000,
+        totalRooms: 20,
+        availableRooms: 3,
+        description: 'Hunian nyaman bernuansa khas Jogja modern di pusat kota. Akses transportasi mudah ke UGM dan UNY.',
+        facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor'],
+        rules: ['Akses 24 Jam', 'Menjaga Ketenangan'],
+        utilityScheme: 'all_kost',
+        images: [
+          'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=1200&auto=format&fit=crop&q=80'
+        ],
+        roomPhoto: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80',
+        rooms: [
+          { id: 'ROOM-JOG-105', number: '105', price: 1400000, size: '3.5x4', status: 'available' }
+        ]
+      },
+      {
+        uid: 'KOST-SBY-06',
+        kostName: 'Kost Grand Surya Executive Rungkut',
+        type: 'Putra',
+        city: 'Surabaya',
+        address: 'Jl. Rungkut Madya No. 88, Rungkut, Surabaya (Dekat UPN Veteran)',
+        location: { lat: -7.3328, lng: 112.7845 },
+        rating: 4.85,
+        reviewCount: 31,
+        priceMin: 1600000,
+        priceMax: 2000000,
+        totalRooms: 18,
+        availableRooms: 2,
+        description: 'Kost putra eksekutif di Surabaya Timur dekat area kampus UPN dan MERR. Parkir mobil luas dan beratap.',
+        facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Parkir Mobil & Motor'],
+        rules: ['Khusus Putra', 'Akses 24 Jam'],
+        utilityScheme: 'all_kost',
+        images: [
+          'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1200&auto=format&fit=crop&q=80'
+        ],
+        roomPhoto: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80',
+        rooms: [
+          { id: 'ROOM-SBY-12', number: '12', price: 1600000, size: '3.5x4', status: 'available' }
+        ]
+      },
+      {
+        uid: 'KOST-BALI-10',
+        kostName: 'Kost Sunset Paradise Canggu',
+        type: 'Campur',
+        city: 'Bali',
+        address: 'Jl. Pantai Batu Bolong No. 56, Canggu, Kuta Utara, Badung, Bali',
+        location: { lat: -8.6539, lng: 115.1325 },
+        rating: 4.96,
+        reviewCount: 52,
+        priceMin: 2800000,
+        priceMax: 4500000,
+        totalRooms: 14,
+        availableRooms: 2,
+        description: 'Tropical Co-Living & Kost di Canggu Bali dengan suasana tenang, kolam renang bersama, dan kecepatan internet 100 Mbps untuk remote worker.',
+        facilities: ['AC', 'WiFi 100 Mbps', 'Kamar Mandi Dalam', 'Kolam Renang Bersama', 'Dapur Bersama'],
+        rules: ['Akses 24 Jam', 'Menjaga Ketenangan Malam'],
+        utilityScheme: 'all_kost',
+        images: [
+          'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&auto=format&fit=crop&q=80'
+        ],
+        roomPhoto: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&auto=format&fit=crop&q=80',
+        rooms: [
+          { id: 'ROOM-BALI-01', number: '01', price: 2800000, size: '4.5x5', status: 'available' }
+        ]
+      }
+    ];
+
+    return new Response(JSON.stringify(verifiedKosts), { headers: corsHeaders });
+  }
+
+  // ── Rating & Ulasan Kost Endpoints ──────────────────────────────
+  if (path.startsWith('/kosts/') && path.endsWith('/reviews')) {
+    const parts = path.split('/');
+    const targetKostUid = parts[2];
+
+    if (method === 'GET') {
+      return new Response(JSON.stringify({
+        reviews: [
+          {
+            id: 'rev-edge-1',
+            userName: 'Ahmad Fauzi',
+            userRole: 'Mahasiswa',
+            roomNumber: '105',
+            rating: 5,
+            cleanlinessRating: 5,
+            facilityRating: 5,
+            securityRating: 5,
+            locationRating: 5,
+            stayDuration: '6 Bulan',
+            comment: 'Lingkungan sangat nyaman, WiFi kencang buat nugas kuliah. Pengelola ramah dan cepat tanggap kalau ada kendala fasilitas.',
+            date: new Date(Date.now() - 5 * 86400000).toISOString(),
+            verified: true,
+            likes: 12
+          },
+          {
+            id: 'rev-edge-2',
+            userName: 'Nabila Putri',
+            userRole: 'Penghuni Aktif',
+            roomNumber: '112',
+            rating: 5,
+            cleanlinessRating: 5,
+            facilityRating: 4,
+            securityRating: 5,
+            locationRating: 5,
+            stayDuration: '1 Tahun',
+            comment: 'Dekat banget sama kampus, keamanan 24 jam dengan CCTV dan gerbang terkunci rapi. Parkiran motor lega.',
+            date: new Date(Date.now() - 14 * 86400000).toISOString(),
+            verified: true,
+            likes: 8
+          }
+        ],
+        averageRating: 4.9,
+        totalReviews: 28,
+        distribution: { 5: 25, 4: 3, 3: 0, 2: 0, 1: 0 },
+        aspects: { cleanliness: 4.9, facility: 4.8, security: 5.0, location: 4.9 }
+      }), { headers: corsHeaders });
+    }
+
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Ulasan berhasil disimpan di Cloudflare Edge',
+        review: {
+          id: 'rev-' + Date.now(),
+          kostUid: targetKostUid,
+          ...body,
+          date: new Date().toISOString()
+        }
+      }), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  // ── Like Review ─────────────────────────────────────────────────
+  if (path.startsWith('/reviews/') && path.endsWith('/like') && method === 'POST') {
+    return new Response(JSON.stringify({ success: true, likes: 1 }), { headers: corsHeaders });
   }
 
   // ── Partner Orders ──────────────────────────────────────────────

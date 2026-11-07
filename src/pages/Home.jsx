@@ -1707,23 +1707,21 @@ export default function Home({ user }) {
             border: '1px solid var(--border-color)',
             color: 'var(--text-secondary)'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏡</div>
             <h3 style={{ color: 'var(--text-primary)', fontWeight: 800, margin: '0 0 0.5rem 0' }}>
-              Tidak Menemukan Kost Sesuai Filter
+              Belum Ada Kost yang Cocok? Ayok, Mari Tambah Kost di Sini! 🚀
             </h3>
-            <p style={{ maxWidth: '460px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
-              Coba sesuaikan kata kunci lokasi, ubah tipe kost, atau perbesar batas budget pencarian Anda.
+            <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
+              Punya properti hunian di area ini atau ingin mendaftarkan kamar kost Anda secara gratis? Daftarkan properti Anda sekarang agar langsung dilihat oleh ribuan mahasiswa & pencari kost!
             </p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => setIsFilterModalOpen(true)}
+              <Link
+                to="/search"
                 className="btn btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
               >
-                <SlidersHorizontal size={16} />
-                <span>Ubah Pengaturan Filter</span>
-              </button>
+                <span>➕ Tambah / Cari Kost di Marketplace</span>
+              </Link>
               <button
                 type="button"
                 onClick={resetAllFilters}

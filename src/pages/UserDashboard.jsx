@@ -60,6 +60,7 @@ import PartnerOrderModal from '../components/PartnerOrderModal';
 import CommunityBulletinBoard from '../components/CommunityBulletinBoard';
 import PrelovedMarketplace from '../components/PrelovedMarketplace';
 import GuestRegistrationModal from '../components/GuestRegistrationModal';
+import TenantRatingModal from '../components/TenantRatingModal';
 
 const UserDashboard = ({ user }) => {
   const { theme, isLight } = useTheme();
@@ -102,6 +103,7 @@ const UserDashboard = ({ user }) => {
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showSmartLockModal, setShowSmartLockModal] = useState(false);
   const [showPdamModal, setShowPdamModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [showOwnerChat, setShowOwnerChat] = useState(false);
   const [merchants, setMerchants] = useState([]);
@@ -837,21 +839,24 @@ const UserDashboard = ({ user }) => {
               </button>
 
               {currentUser?.kostUid && (
-                <Link
-                  to={`/kost/${currentUser.kostUid}`}
+                <button
+                  type="button"
+                  onClick={() => setShowRatingModal(true)}
                   className="btn btn-secondary"
                   style={{
                     fontSize: '0.8rem',
                     padding: '8px 12px',
                     gap: '6px',
-                    textDecoration: 'none',
-                    borderColor: 'rgba(250, 204, 21, 0.4)'
+                    borderColor: 'rgba(250, 204, 21, 0.4)',
+                    background: 'rgba(250, 204, 21, 0.1)',
+                    color: '#facc15',
+                    cursor: 'pointer'
                   }}
                   title="Beri rating dan ulasan untuk kost Anda"
                 >
                   <Star size={14} color="#facc15" fill="#facc15" />
                   <span>Beri Rating Kost</span>
-                </Link>
+                </button>
               )}
 
               <button
@@ -2324,6 +2329,15 @@ const UserDashboard = ({ user }) => {
         onClose={() => setShowGuestModal(false)}
         user={currentUser}
         kostUid={currentUser?.kostUid}
+      />
+
+      {/* Tenant Rating & Review Modal */}
+      <TenantRatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        kostUid={currentUser?.kostUid || 'KOST-OJN64X'}
+        kostName={kostName || 'KostKu Residence Udinus'}
+        currentUser={currentUser}
       />
 
       {/* Partner Concierge Order Modal */}
