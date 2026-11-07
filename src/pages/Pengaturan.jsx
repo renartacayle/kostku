@@ -51,6 +51,38 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null);
 
+  // Clean neutral referral code generator that NEVER uses user name or room number
+  const getCleanRefCode = (u) => {
+    let existing = u?.referralCode;
+    if (existing && !existing.includes('OSCAR') && !existing.includes('122') && !existing.includes('ANAKKOST') && existing.startsWith('KOSTKU-')) {
+      return existing;
+    }
+    const uid = String(u?.id || 'usr-1');
+    let hash = 0;
+    for (let i = 0; i < uid.length; i++) {
+      hash = ((hash << 5) - hash) + uid.charCodeAt(i);
+      hash |= 0;
+    }
+    const codeNum = Math.abs(hash % 9000) + 1000;
+    return `KOSTKU-${codeNum}`;
+  };
+
+  const userRefCode = getCleanRefCode(user);
+  const [referralCopied, setReferralCopied] = useState(false);
+
+  const handleCopyReferral = () => {
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(userRefCode);
+      }
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch (_) {
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       setProfileName(user.name || '');
@@ -600,6 +632,39 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                 </span>
               )}
 
+              {/* Kode Referral Pengguna di Profil */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginTop: '6px',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: isLight ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.08)',
+                border: isLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.25)',
+                fontSize: '0.78rem'
+              }}>
+                <span style={{ fontWeight: 800, color: isLight ? '#92400e' : '#fbbf24' }}>
+                  🎁 Kode Referral: <code style={{ fontFamily: 'monospace', fontWeight: 900, background: isLight ? '#ffffff' : 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>{userRefCode}</code>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyReferral}
+                  style={{
+                    background: referralCopied ? '#22c55e' : (isLight ? '#f59e0b' : '#d97706'),
+                    border: 'none',
+                    color: '#ffffff',
+                    borderRadius: '5px',
+                    padding: '2px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {referralCopied ? 'Tersalin!' : 'Salin'}
+                </button>
+              </div>
+
               {/* Action Buttons to Upload / Remove */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
                 <button
@@ -676,6 +741,34 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                   className="input-field"
                   placeholder="nama@gmail.com"
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Kode Referral Akun
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="text"
+                    readOnly
+                    value={userRefCode}
+                    className="input-field"
+                    style={{
+                      fontFamily: 'monospace',
+                      fontWeight: 800,
+                      background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)',
+                      letterSpacing: '1px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyReferral}
+                    className="btn btn-secondary"
+                    style={{ whiteSpace: 'nowrap', padding: '10px 14px', fontSize: '0.82rem' }}
+                  >
+                    {referralCopied ? 'Tersalin!' : 'Salin'}
+                  </button>
+                </div>
               </div>
 
             </div>

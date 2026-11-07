@@ -683,49 +683,7 @@ export default function Layanan({ user }) {
             </span>
           </div>
 
-          {/* Baris 2 (Di bawah poin): Referral */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#cbd5e1', fontWeight: 600 }}>
-              Kode Referral:
-            </span>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              borderRadius: '6px',
-              padding: '3px 8px',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              fontFamily: 'monospace',
-              color: isLight ? '#0f172a' : '#f8fafc'
-            }}>
-              <span>{userRefCode}</span>
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                style={{
-                  background: referralCopied ? '#22c55e' : (isLight ? '#f59e0b' : '#d97706'),
-                  border: 'none',
-                  color: '#ffffff',
-                  borderRadius: '4px',
-                  padding: '2px 8px',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {referralCopied ? 'Tersalin!' : 'Salin'}
-              </button>
-            </div>
-            <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-              (Teman <strong style={{ color: '#4ade80' }}>+100</strong> • Mitra <strong style={{ color: '#f59e0b' }}>+500</strong> • Owner <strong style={{ color: '#38bdf8' }}>+1.000 Poin</strong>)
-            </span>
-          </div>
-
-          {/* Baris 3 (Bawahnya lagi): Masukin referral */}
+          {/* Baris 2: Masukkan Referral */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#cbd5e1', fontWeight: 600 }}>
               Masukkan Referral:
@@ -757,15 +715,15 @@ export default function Layanan({ user }) {
                   border: 'none',
                   color: '#ffffff',
                   borderRadius: '6px',
-                  padding: '4px 10px',
-                  fontSize: '0.72rem',
+                  padding: '4px 12px',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
                   cursor: friendReferralInput.trim() ? 'pointer' : 'default',
                   opacity: friendReferralInput.trim() ? 1 : 0.6,
                   transition: 'all 0.2s'
                 }}
               >
-                +100 Poin
+                Save
               </button>
             </div>
           </div>
