@@ -4,13 +4,19 @@
 
 const RTDB_URL = 'https://kostku-10966-default-rtdb.asia-southeast1.firebasedatabase.app';
 
+// Helper: Build auth query parameter if secret is configured in environment
+const getAuthQuery = () => {
+  const secret = process.env.FIREBASE_DATABASE_SECRET || process.env.FIREBASE_AUTH_TOKEN || '';
+  return secret ? `?auth=${encodeURIComponent(secret)}` : '';
+};
+
 // Helper: Fetch real database from Firebase Cloud
 const fetchFromFirebase = async () => {
   try {
-    const res = await fetch(`${RTDB_URL}/kostku_db.json`);
+    const res = await fetch(`${RTDB_URL}/kostku_db.json${getAuthQuery()}`);
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        console.warn('[Firebase RTDB] Permission denied. Check Rules tab on console.firebase.google.com');
+        console.warn('[Firebase RTDB] Permission denied. Check Rules tab or set FIREBASE_DATABASE_SECRET in .env');
       }
       return null;
     }
@@ -28,7 +34,7 @@ const fetchFromFirebase = async () => {
 // Helper: Save database to Firebase Cloud
 const saveToFirebase = async (data) => {
   try {
-    const res = await fetch(`${RTDB_URL}/kostku_db.json`, {
+    const res = await fetch(`${RTDB_URL}/kostku_db.json${getAuthQuery()}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
