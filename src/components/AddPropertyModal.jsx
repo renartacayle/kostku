@@ -24,10 +24,10 @@ import { isValidBuildingPhoto, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtil
 import { useTheme } from '../context/ThemeContext';
 
 const PRESET_IMAGES = [
-  { label: 'Modern Co-Living', url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80' },
-  { label: 'Griya Asri Tropis', url: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&auto=format&fit=crop&q=80' },
-  { label: 'Urban Minimalis', url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80' },
-  { label: 'Boutique Residence', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=80' }
+  { label: 'Gedung 2 Lantai', url: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&auto=format&fit=crop&q=80' },
+  { label: 'Kost Minimalis', url: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&auto=format&fit=crop&q=80' },
+  { label: 'Gedung Paviliun', url: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&auto=format&fit=crop&q=80' },
+  { label: 'Townhouse Urban', url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=800&auto=format&fit=crop&q=80' }
 ];
 
 export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded }) {

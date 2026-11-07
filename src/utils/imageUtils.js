@@ -4,13 +4,13 @@
 // Enhanced for WebP/AVIF auto compression and responsive image dimensions
 // ═══════════════════════════════════════════════════════════════════
 
-export const DEFAULT_BUILDING_PHOTO = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80&fm=webp';
+export const DEFAULT_BUILDING_PHOTO = 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&auto=format&fit=crop&q=80&fm=webp';
 
 export const BACKUP_BUILDING_PHOTOS = [
-  'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80&fm=webp',
   'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&auto=format&fit=crop&q=80&fm=webp',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop&q=80&fm=webp',
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop&q=80&fm=webp'
+  'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&auto=format&fit=crop&q=80&fm=webp',
+  'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&auto=format&fit=crop&q=80&fm=webp',
+  'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=800&auto=format&fit=crop&q=80&fm=webp'
 ];
 
 /**
