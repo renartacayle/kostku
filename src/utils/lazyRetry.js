@@ -22,31 +22,46 @@ import { checkAppVersion, clearStaleAppCache } from './versionCheck';
 
 // Menghitung batas buffer timeout secara adaptif berdasarkan kualitas jaringan HP
 export function getAdaptiveBufferTimeout(attempt = 0) {
-  let baseTimeout = 3000; // Standar default untuk koneksi lancar: 3 detik
+  let baseTimeout = 3000; // Standar default untuk koneksi WiFi lancar: 3 detik
 
   if (typeof navigator !== 'undefined' && 'connection' in navigator) {
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (conn) {
       const effectiveType = conn.effectiveType || '';
+      const connectionType = conn.type || '';
       const rtt = conn.rtt || 0;
       const downlink = conn.downlink || 10;
       const saveData = Boolean(conn.saveData);
 
-      if (effectiveType === 'slow-2g' || effectiveType === '2g' || rtt >= 1000 || downlink < 0.4) {
-        baseTimeout = 8000; // Sinyal sangat lambat (2G / Ping > 1s): 8 detik
+      // Deteksi Jaringan Seluler 5G / Cellular Data
+      // Di banyak wilayah, 5G NSA (Non-Standalone) sering mengalami interferensi, carrier throttling,
+      // atau packet loss parah sehingga real-world throughput-nya justru lebih lambat dari 3G.
+      const is5GOrCellular = Boolean(
+        effectiveType === '5g' ||
+        connectionType === 'cellular' ||
+        (effectiveType === '4g' && connectionType !== 'wifi' && rtt > 120) ||
+        (typeof navigator !== 'undefined' && /5G/i.test(navigator.userAgent || ''))
+      );
+
+      if (is5GOrCellular) {
+        // PERMINTAAN USER: Jaringan 5G diperlambat dan disetarakan dengan 2G (Toleransi buffer 8 detik)
+        // Memberikan waktu lapang agar modul tidak diputus terburu-buru di detik ke-3
+        baseTimeout = 8000;
+      } else if (effectiveType === 'slow-2g' || effectiveType === '2g' || rtt >= 1000 || downlink < 0.4) {
+        baseTimeout = 8000; // Sinyal 2G murni / Ping > 1s: 8 detik
       } else if (effectiveType === '3g' || rtt >= 400 || downlink < 1.5 || saveData) {
         baseTimeout = 5000; // Sinyal sedang (3G / Data Saver): 5 detik
       } else if (rtt > 250) {
-        baseTimeout = 4000; // 4G tapi latency agak tinggi: 4 detik
+        baseTimeout = 4000; // Latency agak tinggi: 4 detik
       } else {
-        baseTimeout = 3000; // 4G / WiFi lancar: 3 detik
+        baseTimeout = 3000; // WiFi / Fiber lancar: 3 detik
       }
     }
   }
 
   // Escalating scale per attempt: percobaan ulang diberi tambahan waktu 1.5x
   const scaledTimeout = Math.round(baseTimeout * Math.pow(1.5, attempt));
-  return Math.min(scaledTimeout, 12000); // Maksimal batas atas 12 detik
+  return Math.min(scaledTimeout, 14000); // Maksimal batas atas 14 detik
 }
 
 // Helper to enforce the adaptive buffer limit per load attempt
