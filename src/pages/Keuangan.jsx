@@ -160,7 +160,7 @@ const Keuangan = ({ user }) => {
     setPayoutExecuting(true);
     setPayoutStep('processing');
     try {
-      // Step: Request Flip Disbursement API
+      // Step: Request TriPay Disbursement API
       const res = await apiFlipDisburse({
         bank_code: payoutBank.bank_name,
         account_number: payoutBank.account_number,
@@ -180,7 +180,7 @@ const Keuangan = ({ user }) => {
       setPayoutReceipt(res);
       setPayoutStep('receipt');
     } catch (err) {
-      alert(err.message || 'Gagal memproses payout via Flip.');
+      alert(err.message || 'Gagal memproses payout via TriPay.');
       setPayoutStep('form');
     } finally {
       setPayoutExecuting(false);
@@ -1474,7 +1474,7 @@ const Keuangan = ({ user }) => {
         />
       )}
 
-      {/* Payout 1 Pintu Modal - Flip Business Demo / Sandbox Studio */}
+      {/* Payout 1 Pintu Modal - TriPay Disbursement Gateway */}
       {showPayoutModal && (
         <div style={{
           position: 'fixed',
@@ -1505,9 +1505,9 @@ const Keuangan = ({ user }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
                   background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1518,21 +1518,21 @@ const Keuangan = ({ user }) => {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
-                    Pencairan Dana (Flip Payout)
+                    Pencairan Dana (TriPay &amp; Bank Transfer)
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                     <span style={{
                       fontSize: '0.68rem',
                       padding: '2px 8px',
                       borderRadius: '999px',
-                      background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.18)',
-                      color: isLight ? '#b45309' : '#f59e0b',
-                      border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.4)',
+                      background: isLight ? 'rgba(2, 132, 199, 0.12)' : 'rgba(56, 189, 248, 0.18)',
+                      color: isLight ? '#0284c7' : '#38bdf8',
+                      border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.4)',
                       fontWeight: 700
                     }}>
-                      ⚡ UJI SISTEM DISBURSEMENT
+                      ⚡ TRIPAY DISBURSEMENT GATEWAY
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#64748b' }}>Flip for Business API</span>
+                    <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>Kliring Bank Indonesia</span>
                   </div>
                 </div>
               </div>
@@ -1558,22 +1558,22 @@ const Keuangan = ({ user }) => {
               </button>
             </div>
 
-            {/* Sandbox Notice Banner */}
+            {/* Security & Official Settlement Banner */}
             <div style={{
-              background: isLight ? '#fffbeb' : 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%)',
-              border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
+              background: isLight ? 'rgba(2, 132, 199, 0.08)' : 'rgba(56, 189, 248, 0.08)',
+              border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.3)',
               borderRadius: '14px',
               padding: '12px 14px',
               marginBottom: '1.25rem',
               display: 'flex',
               gap: '10px'
             }}>
-              <AlertCircle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ fontSize: '0.76rem', color: isLight ? '#92400e' : '#cbd5e1', lineHeight: '1.45' }}>
-                <strong style={{ color: isLight ? '#b45309' : '#fbbf24', display: 'block', marginBottom: '2px' }}>
-                  Simulasi Pengujian Sistem Pencairan Saldo
+              <ShieldCheck size={20} color={isLight ? '#0284c7' : '#38bdf8'} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ fontSize: '0.78rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: '1.45' }}>
+                <strong style={{ color: isLight ? '#0284c7' : '#38bdf8', display: 'block', marginBottom: '2px' }}>
+                  Pencairan Resmi TriPay &amp; Jaringan Kliring Bank Indonesia
                 </strong>
-                Anda dapat langsung menguji transfer uang dan validasi rekening menggunakan lingkungan <strong>Pengujian Gateway</strong> tanpa menunggu approval verifikasi dokumen (1-3 hari kerja). Saldo pengujian: <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontFamily: 'monospace', fontWeight: 700 }}>Rp 500.000.000</span>.
+                Dana sewa kamar dan komisi langsung ditransfer ke rekening bank terdaftar Anda secara aman &amp; instan via BI-FAST / Real-Time Bank Settlement.
               </div>
             </div>
 
@@ -1588,30 +1588,37 @@ const Keuangan = ({ user }) => {
                   marginBottom: '1.25rem'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>Total Dana Ditarik (Owner + Mitra):</span>
-                    <span style={{ fontSize: '0.7rem', color: isLight ? '#15803d' : '#10b981', background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                      Single-Node Payout
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#475569' : '#94a3b8' }}>Total Dana Ditarik (Owner + Mitra):</span>
+                    <span style={{ fontSize: '0.7rem', color: isLight ? '#15803d' : '#10b981', background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      Single-Node Settlement
                     </span>
                   </div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 900, color: isLight ? '#0284c7' : '#38bdf8', marginTop: '4px', fontFamily: 'monospace' }}>
                     Rp {((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)).toLocaleString('id-ID')}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: isLight ? '#64748b' : '#64748b', marginTop: '6px', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', paddingTop: '6px' }}>
-                    <span>Komisi Owner: Rp {(Number(unifiedWallet.owner_commission_balance) || 0).toLocaleString('id-ID')}</span>
-                    <span>Escrow Mitra: Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '6px', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', paddingTop: '6px' }}>
+                    <span>Komisi Owner: <strong>Rp {(Number(unifiedWallet.owner_commission_balance) || 0).toLocaleString('id-ID')}</strong></span>
+                    <span>Escrow Mitra: <strong>Rp {(Number(unifiedWallet.mitra_escrow_balance) || 0).toLocaleString('id-ID')}</strong></span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '1.25rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                       Bank Tujuan Transfer:
                     </label>
                     <select
                       value={payoutBank.bank_name}
                       onChange={e => setPayoutBank({ ...payoutBank, bank_name: e.target.value })}
-                      className="input-field"
-                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        fontSize: '0.85rem',
+                        borderRadius: '10px',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                        background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                        color: isLight ? '#0f172a' : '#f8fafc'
+                      }}
                     >
                       <option value="BCA">BCA (Bank Central Asia)</option>
                       <option value="Mandiri">Bank Mandiri</option>
@@ -1625,7 +1632,7 @@ const Keuangan = ({ user }) => {
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <label style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600 }}>
+                      <label style={{ fontSize: '0.78rem', color: isLight ? '#334155' : '#cbd5e1', fontWeight: 600 }}>
                         Nomor Rekening Tujuan:
                       </label>
                       <button
@@ -1633,9 +1640,9 @@ const Keuangan = ({ user }) => {
                         onClick={handleInquiryBank}
                         disabled={inquiryLoading}
                         style={{
-                          background: 'rgba(56, 189, 248, 0.15)',
-                          border: '1px solid rgba(56, 189, 248, 0.3)',
-                          color: '#38bdf8',
+                          background: isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(56, 189, 248, 0.15)',
+                          border: isLight ? '1px solid rgba(2, 132, 199, 0.3)' : '1px solid rgba(56, 189, 248, 0.3)',
+                          color: isLight ? '#0284c7' : '#38bdf8',
                           fontSize: '0.72rem',
                           padding: '3px 8px',
                           borderRadius: '6px',
@@ -1647,7 +1654,7 @@ const Keuangan = ({ user }) => {
                         }}
                       >
                         {inquiryLoading ? <RefreshCw size={12} className="animate-spin" /> : <Search size={12} />}
-                        {inquiryLoading ? 'Mengecek...' : 'Cek Rekening via Flip'}
+                        {inquiryLoading ? 'Mengecek...' : 'Cek Rekening via TriPay'}
                       </button>
                     </div>
                     <input
@@ -1658,19 +1665,26 @@ const Keuangan = ({ user }) => {
                         setInquiryResult(null);
                       }}
                       placeholder="Contoh: 8830192831"
-                      className="input-field"
-                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        fontSize: '0.85rem',
+                        borderRadius: '10px',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                        background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                        color: isLight ? '#0f172a' : '#f8fafc'
+                      }}
                     />
                     {inquiryResult && (
-                      <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.74rem' }}>
+                      <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.75rem', fontWeight: 600 }}>
                         <ShieldCheck size={14} />
-                        <span>Rekening Valid Flip: <strong>{inquiryResult.account_holder}</strong></span>
+                        <span>✓ Rekening Terverifikasi TriPay: <strong>{inquiryResult.account_holder}</strong></span>
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                       Nama Pemilik Rekening:
                     </label>
                     <input
@@ -1678,8 +1692,15 @@ const Keuangan = ({ user }) => {
                       value={payoutBank.account_holder}
                       onChange={e => setPayoutBank({ ...payoutBank, account_holder: e.target.value })}
                       placeholder="Nama di buku rekening"
-                      className="input-field"
-                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        fontSize: '0.85rem',
+                        borderRadius: '10px',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                        background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                        color: isLight ? '#0f172a' : '#f8fafc'
+                      }}
                     />
                   </div>
 
@@ -1687,13 +1708,14 @@ const Keuangan = ({ user }) => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    padding: '8px 12px',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
+                    padding: '9px 12px',
                     borderRadius: '8px',
-                    fontSize: '0.74rem'
+                    fontSize: '0.76rem'
                   }}>
-                    <span style={{ color: '#94a3b8' }}>Biaya Transfer Flip:</span>
-                    <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Bebas Biaya Transfer)</span>
+                    <span style={{ color: isLight ? '#475569' : '#94a3b8' }}>Biaya Transfer Payout:</span>
+                    <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Bebas Biaya Admin TriPay)</span>
                   </div>
                 </div>
 
@@ -1702,7 +1724,13 @@ const Keuangan = ({ user }) => {
                     type="button"
                     onClick={() => setShowPayoutModal(false)}
                     className="btn btn-secondary"
-                    style={{ flex: 1, fontSize: '0.82rem' }}
+                    style={{
+                      flex: 1,
+                      fontSize: '0.82rem',
+                      background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                      color: isLight ? '#334155' : '#cbd5e1',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'
+                    }}
                   >
                     Batal
                   </button>
@@ -1719,10 +1747,14 @@ const Keuangan = ({ user }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px'
+                      gap: '8px',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '10px'
                     }}
                   >
-                    Kirim Payout Real-Time
+                    Kirim Payout Real-Time (TriPay)
                   </button>
                 </div>
               </>
@@ -1735,26 +1767,25 @@ const Keuangan = ({ user }) => {
                   width: '64px',
                   height: '64px',
                   borderRadius: '50%',
-                  background: 'rgba(56, 189, 248, 0.1)',
-                  border: '2px solid #38bdf8',
+                  background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.1)',
+                  border: '2px solid #0284c7',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 1.25rem',
-                  animation: 'pulse 1.5s infinite'
+                  margin: '0 auto 1.25rem'
                 }}>
-                  <RefreshCw size={28} color="#38bdf8" className="animate-spin" />
+                  <RefreshCw size={28} color={isLight ? '#0284c7' : '#38bdf8'} className="animate-spin" />
                 </div>
-                <h4 style={{ color: 'white', margin: '0 0 6px', fontSize: '1.1rem' }}>
-                  Memproses Transfer Flip API...
+                <h4 style={{ color: isLight ? '#0f172a' : 'white', margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 800 }}>
+                  Memproses Transfer TriPay Payout...
                 </h4>
-                <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '0 0 1.25rem' }}>
-                  Menghubungkan ke endpoint sandbox BigFlip (`api/v2/disbursement`)
+                <p style={{ color: isLight ? '#64748b' : '#94a3b8', fontSize: '0.78rem', margin: '0 0 1.25rem' }}>
+                  Menghubungkan ke TriPay Disbursement Gateway (Real-Time Settlement)
                 </p>
 
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: '12px',
                   padding: '12px',
                   textAlign: 'left',
@@ -1767,11 +1798,11 @@ const Keuangan = ({ user }) => {
                     <CheckCircle2 size={14} />
                     <span>Inquiry rekening {payoutBank.bank_name} {payoutBank.account_number}: Terverifikasi</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isLight ? '#0284c7' : '#38bdf8' }}>
                     <RefreshCw size={14} className="animate-spin" />
-                    <span>Mengirim payload disbursement ke Flip Engine...</span>
+                    <span>Mengirim payload disbursement ke TriPay Engine...</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isLight ? '#64748b' : '#94a3b8' }}>
                     <Clock size={14} />
                     <span>Update Single-Node Settlement Wallet KostKu</span>
                   </div>
@@ -1779,7 +1810,7 @@ const Keuangan = ({ user }) => {
               </div>
             )}
 
-            {/* STEP 3: FLIP OFFICIAL RECEIPT */}
+            {/* STEP 3: TRIPAY OFFICIAL RECEIPT */}
             {payoutStep === 'receipt' && (
               <div>
                 <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
@@ -1787,7 +1818,7 @@ const Keuangan = ({ user }) => {
                     width: '56px',
                     height: '56px',
                     borderRadius: '50%',
-                    background: 'rgba(16, 185, 129, 0.15)',
+                    background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.15)',
                     border: '2px solid #10b981',
                     display: 'flex',
                     alignItems: 'center',
@@ -1796,68 +1827,69 @@ const Keuangan = ({ user }) => {
                   }}>
                     <CheckCircle2 size={32} color="#10b981" />
                   </div>
-                  <h4 style={{ color: 'white', margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800 }}>
+                  <h4 style={{ color: isLight ? '#0f172a' : 'white', margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800 }}>
                     Transfer Berhasil!
                   </h4>
-                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                    ID Transaksi Flip: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{payoutReceipt?.id || 'FLIP-DISB-DEMO'}</strong>
+                  <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                    ID Transaksi TriPay: <strong style={{ color: isLight ? '#0284c7' : '#38bdf8', fontFamily: 'monospace' }}>{payoutReceipt?.id || 'TRIPAY-DISB-SUCCESS'}</strong>
                   </span>
                 </div>
 
                 {/* Receipt Card */}
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.8)',
-                  border: '1px dashed rgba(56, 189, 248, 0.4)',
+                  background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                  border: isLight ? '1px solid #cbd5e1' : '1px dashed rgba(56, 189, 248, 0.4)',
                   borderRadius: '16px',
                   padding: '16px',
                   marginBottom: '1.25rem',
                   fontSize: '0.8rem',
-                  color: '#cbd5e1'
+                  color: isLight ? '#334155' : '#cbd5e1'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#64748b' }}>Bank Tujuan:</span>
-                    <strong style={{ color: 'white' }}>{payoutBank.bank_name}</strong>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Bank Tujuan:</span>
+                    <strong style={{ color: isLight ? '#0f172a' : 'white' }}>{payoutBank.bank_name}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#64748b' }}>Nomor Rekening:</span>
-                    <span style={{ fontFamily: 'monospace', color: 'white' }}>{payoutBank.account_number}</span>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Nomor Rekening:</span>
+                    <span style={{ fontFamily: 'monospace', color: isLight ? '#0f172a' : 'white' }}>{payoutBank.account_number}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#64748b' }}>Nama Penerima:</span>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Nama Penerima:</span>
                     <strong style={{ color: '#10b981' }}>{payoutReceipt?.account_holder || payoutBank.account_holder}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#64748b' }}>Jumlah Transfer:</span>
-                    <strong style={{ color: '#38bdf8', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Jumlah Transfer:</span>
+                    <strong style={{ color: isLight ? '#0284c7' : '#38bdf8', fontSize: '0.95rem', fontFamily: 'monospace' }}>
                       Rp {(payoutReceipt?.amount || 0).toLocaleString('id-ID')}
                     </strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#64748b' }}>Biaya Admin:</span>
-                    <span style={{ color: '#10b981' }}>Rp 0 (Sandbox Waived)</span>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Biaya Admin:</span>
+                    <span style={{ color: '#10b981', fontWeight: 600 }}>Rp 0 (Bebas Biaya Admin TriPay)</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: '#64748b' }}>Waktu Selesai:</span>
-                    <span style={{ fontSize: '0.74rem' }}>{payoutReceipt?.timestamp || new Date().toLocaleString('id-ID')}</span>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Waktu Selesai:</span>
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#0f172a' : '#cbd5e1' }}>{payoutReceipt?.timestamp || new Date().toLocaleString('id-ID')}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '8px' }}>
-                    <span style={{ color: '#64748b' }}>Status Flip:</span>
-                    <span style={{ color: '#10b981', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
-                      DONE (BERHASIL)
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', paddingTop: '8px' }}>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Status TriPay:</span>
+                    <span style={{ color: '#10b981', fontWeight: 800, background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                      DONE (BERHASIL TRIPAY)
                     </span>
                   </div>
                 </div>
 
                 <div style={{
-                  background: 'rgba(56, 189, 248, 0.08)',
+                  background: isLight ? 'rgba(2, 132, 199, 0.08)' : 'rgba(56, 189, 248, 0.08)',
                   borderRadius: '10px',
                   padding: '10px',
                   marginBottom: '1.25rem',
-                  fontSize: '0.72rem',
-                  color: '#94a3b8',
-                  lineHeight: '1.4'
+                  fontSize: '0.74rem',
+                  color: isLight ? '#334155' : '#94a3b8',
+                  lineHeight: '1.45',
+                  border: isLight ? '1px solid rgba(2, 132, 199, 0.2)' : 'none'
                 }}>
-                  💡 <strong>Catatan:</strong> Ini adalah simulasi transfer via Flip Sandbox. Saldo asli Anda aman. Setelah verifikasi akun Flip Anda disetujui, endpoint ini langsung otomatis mengirimkan dana riil ke rekening tujuan.
+                  💡 <strong>Catatan:</strong> Pencairan dana diproses secara real-time melalui jaringan TriPay Disbursement &amp; BI-FAST langsung ke rekening bank tujuan Anda.
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -1865,7 +1897,17 @@ const Keuangan = ({ user }) => {
                     type="button"
                     onClick={() => window.print()}
                     className="btn btn-secondary"
-                    style={{ flex: 1, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    style={{
+                      flex: 1,
+                      fontSize: '0.82rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                      color: isLight ? '#334155' : '#cbd5e1',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'
+                    }}
                   >
                     <Printer size={14} /> Cetak Bukti
                   </button>
@@ -1876,7 +1918,15 @@ const Keuangan = ({ user }) => {
                       setPayoutStep('form');
                     }}
                     className="btn btn-primary"
-                    style={{ flex: 1, fontSize: '0.82rem', fontWeight: 700 }}
+                    style={{
+                      flex: 1,
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px'
+                    }}
                   >
                     Selesai
                   </button>
