@@ -1,39 +1,103 @@
 import { lazy } from 'react';
+import { checkAppVersion, clearStaleAppCache } from './versionCheck';
 
 /**
- * Resilient multi-tier lazy loader for Vite / React Single Page Applications.
- * 1. Tier 1: In-memory dynamic import retries (3 attempts with exponential backoff).
- *    Instantly resolves 95% of transient mobile network hiccups without causing white-screens or reloads.
- * 2. Tier 2: If all attempts fail and chunk hash is invalidated due to new Cloudflare Pages deployment:
- *    Flushes CacheStorage, initiates window.location.replace, and gracefully passes control to ErrorBoundary
- *    if the reload takes longer than 1.2s, ensuring the user NEVER gets trapped in a hanging white screen.
+ * Smart Multi-Tier Lazy Loader with Version Check & 3-Second Timeout Buffer (Hemat Kuota & Anti-Macet)
+ *
+ * 1. 3-Detik Buffer Timeout:
+ *    Setiap percobaan import dibatasi maksimal 3000ms.
+ *    Jika dalam 3 detik modul macet / tidak kunjung selesai (akibat sinyal HP nge-drop/stall),
+ *    timer langsung membatalkan penantian dan memicu "try load baru".
+ *
+ * 2. Cek Versi (Hemat Kuota & Instant Loading):
+ *    - Sebelum memuat ulang, sistem memverifikasi versi app.
+ *    - Jika versi sama: Gunakan 100% cache lokal yang sudah tersimpan (0 byte kuota, instan < 30ms).
+ *    - Jika versi berbeda (ada deployment baru di Cloudflare): Bersihkan cache modul lama,
+ *      lalu muat modul versi terbaru.
+ *
+ * 3. Max Retries:
+ *    Mencoba hingga 2 kali "try load baru" dengan jeda cerdas sebelum fallback ke reload terukur.
  */
-export function lazyRetry(componentImport, componentName = 'Component', maxRetries = 3) {
+
+// Helper to enforce the 3-second buffer limit per load attempt
+function importWith3sBuffer(importFn, timeoutMs = 3000) {
+  return new Promise((resolve, reject) => {
+    let hasSettled = false;
+
+    const timer = setTimeout(() => {
+      if (!hasSettled) {
+        hasSettled = true;
+        const timeoutErr = new Error(`TIMEOUT_3S: Modul tidak merespons dalam ${timeoutMs / 1000} detik`);
+        timeoutErr.isTimeout = true;
+        reject(timeoutErr);
+      }
+    }, timeoutMs);
+
+    importFn()
+      .then((module) => {
+        if (!hasSettled) {
+          hasSettled = true;
+          clearTimeout(timer);
+          resolve(module);
+        }
+      })
+      .catch((err) => {
+        if (!hasSettled) {
+          hasSettled = true;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
+  });
+}
+
+export function lazyRetry(componentImport, componentName = 'Component', maxRetries = 2) {
   return lazy(async () => {
     let lastError = null;
 
-    // Tier 1: In-memory retry loop
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await componentImport();
+        // Jalankan import dengan batas waktu buffer 3 detik!
+        return await importWith3sBuffer(componentImport, 3000);
       } catch (error) {
         lastError = error;
-        console.warn(`[KostKu] Chunk load attempt ${attempt + 1}/${maxRetries} failed for ${componentName}:`, error);
+        const isTimeout = Boolean(error?.isTimeout || error?.message?.includes('TIMEOUT_3S'));
+        
+        if (isTimeout) {
+          console.warn(`[KostKu] ⏳ Buffer 3 detik habis untuk ${componentName}! Sinyal lambat, memicu try load baru (Percobaan ke-${attempt + 1})...`);
+        } else {
+          console.warn(`[KostKu] Percobaan memuat ${componentName} gagal (${attempt + 1}/${maxRetries + 1}):`, error);
+        }
 
-        if (attempt < maxRetries - 1) {
-          // Exponential backoff: 300ms, then 750ms
-          await new Promise((resolve) => setTimeout(resolve, 300 * Math.pow(2.2, attempt)));
+        // Cek versi jika terjadi kegagalan muat untuk mendeteksi deployment baru
+        if (attempt === 0) {
+          try {
+            const versionStatus = await checkAppVersion(true);
+            if (versionStatus.isNewVersion) {
+              console.log(`[KostKu] Versi baru terdeteksi saat load ${componentName}. Membersihkan cache usang...`);
+              await clearStaleAppCache();
+            }
+          } catch (_) {}
+        }
+
+        if (attempt < maxRetries) {
+          // Jeda singkat sebelum try load baru (350ms)
+          await new Promise((resolve) => setTimeout(resolve, 350));
         }
       }
     }
 
-    // Tier 2: Check if this was a chunk loading error
+    // Jika setelah semua retry dengan buffer 3 detik tetap gagal:
+    console.error(`[KostKu] Gagal memuat modul ${componentName} setelah beberapa kali try load:`, lastError);
+
+    // Cek apakah kesalahan karena chunk lama di-invalidasi oleh build baru
     const isChunkError = Boolean(
       lastError && (
         lastError.message?.includes('Failed to fetch dynamically imported module') ||
         lastError.message?.includes('Loading chunk') ||
         lastError.message?.includes('Importing a module script failed') ||
         lastError.message?.includes('error loading dynamically imported module') ||
+        lastError.message?.includes('TIMEOUT_3S') ||
         lastError.name === 'ChunkLoadError'
       )
     );
@@ -46,28 +110,17 @@ export function lazyRetry(componentImport, componentName = 'Component', maxRetri
         sessionStorage.setItem(storageKey, 'true');
       } catch (_) {}
 
-      console.warn(`[KostKu] All in-memory retries failed for ${componentName}. Performing clean reload...`);
+      await clearStaleAppCache();
 
-      // Flush service worker cache storage
-      if ('caches' in window) {
-        try {
-          const cacheNames = await caches.keys();
-          await Promise.all(cacheNames.map((name) => caches.delete(name)));
-        } catch (_) {}
-      }
-
-      // Hard reload with location.replace (more reliable than location.reload on mobile)
+      // Gunakan location.replace untuk memuat versi bersih terbaru
       window.location.replace(window.location.href);
-
-      // Give browser 1200ms to reload. If browser prevents reload, throw to ErrorBoundary
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     }
 
     try {
       sessionStorage.removeItem(storageKey);
     } catch (_) {}
 
-    // Never return an unresolved forever-pending promise! Always throw to ErrorBoundary
     throw lastError;
   });
 }

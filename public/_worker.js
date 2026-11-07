@@ -73,6 +73,16 @@ async function handleApi(request, url, env) {
   const path = url.pathname.replace(/^\/api/, '');
   const method = request.method.toUpperCase();
 
+  // ── Version & App Health (Hemat Kuota & Instant Load) ────────────
+  if ((path === '/app-version' || path === '/version') && method === 'GET') {
+    return new Response(JSON.stringify({
+      version: '1.3.8',
+      buildDate: '2026-11-07',
+      buildNumber: 138,
+      appId: 'id.kostku.app'
+    }), { headers: corsHeaders });
+  }
+
   // ── Auth: Google Login ──────────────────────────────────────────
   if (path === '/auth/google' && method === 'POST') {
     const body = await request.json().catch(() => ({}));

@@ -60,37 +60,69 @@ const TentangKami = lazyRetry(() => import('./pages/TentangKami'), 'TentangKami'
 const Checkout = lazyRetry(() => import('./pages/Checkout'), 'Checkout');
 const StressTestReport = lazyRetry(() => import('./pages/StressTestReport'), 'StressTestReport');
 
-// Lightweight, tactile loading indicator during route chunks hydration
-const PageLoadingFallback = () => (
-  <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    width: '100%',
-    background: 'var(--bg-main, #f1f5f9)',
-    gap: '16px',
-    color: 'var(--text-muted, #64748b)'
-  }}>
+// Lightweight, tactile loading indicator during route chunks hydration with 3s buffer feedback
+const PageLoadingFallback = () => {
+  const [slowNotice, setSlowNotice] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSlowNotice(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
     <div style={{
-      width: '42px',
-      height: '42px',
-      border: '3px solid rgba(37, 99, 235, 0.2)',
-      borderTopColor: '#2563eb',
-      borderRadius: '50%',
-      animation: 'spin 0.7s linear infinite'
-    }} />
-    <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.5px' }}>
-      Memuat modul KostKu...
-    </span>
-    <style>{`
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
-  </div>
-);
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      width: '100%',
+      background: 'var(--bg-main, #f1f5f9)',
+      gap: '16px',
+      padding: '24px',
+      textAlign: 'center',
+      color: 'var(--text-muted, #64748b)'
+    }}>
+      <div style={{
+        width: '44px',
+        height: '44px',
+        border: '3px solid rgba(37, 99, 235, 0.2)',
+        borderTopColor: '#2563eb',
+        borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite'
+      }} />
+      <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.5px' }}>
+        {slowNotice ? 'Koneksi lambat, mencoba muat ulang modul...' : 'Memuat modul KostKu...'}
+      </span>
+      {slowNotice && (
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          style={{
+            marginTop: '8px',
+            fontSize: '12px',
+            padding: '6px 14px',
+            borderRadius: '8px',
+            background: 'var(--bg-card, #ffffff)',
+            border: '1px solid var(--border-color, rgba(15, 23, 42, 0.15))',
+            color: 'var(--accent-primary, #2563eb)',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          Muat Ulang Sekarang
+        </button>
+      )}
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 // Main Layout Component for Responsive Mobile & Laptop
 const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
