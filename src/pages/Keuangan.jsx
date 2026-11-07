@@ -99,12 +99,12 @@ const Keuangan = ({ user }) => {
     account_holder: user?.name || 'Ibu Hj. Nurhasanah' 
   });
   const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const TRIPAY_DISBURSEMENT_FEE = 5000; // Biaya resmi transfer disbursement gateway TriPay per transaksi
   const [flipConfig, setFlipConfig] = useState({
-    mode: 'sandbox',
-    status: 'verifying_demo',
-    isDemo: true,
-    sandboxBalance: 500000000,
-    feePerTransfer: 0
+    mode: 'production_ready',
+    status: 'active',
+    isDemo: false,
+    feePerTransfer: 5000
   });
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquiryResult, setInquiryResult] = useState(null);
@@ -186,6 +186,8 @@ const Keuangan = ({ user }) => {
       const receiptData = {
         ...res,
         amount: Number(res?.amount || amountToWithdraw) || amountToWithdraw,
+        fee: TRIPAY_DISBURSEMENT_FEE,
+        net_amount: Math.max(0, (Number(res?.amount || amountToWithdraw) || amountToWithdraw) - TRIPAY_DISBURSEMENT_FEE),
         bank_code: res?.bank_code || payoutBank.bank_name,
         account_number: res?.account_number || payoutBank.account_number,
         account_holder: res?.account_holder || payoutBank.account_holder || 'Ibu Hj. Nurhasanah'
@@ -1845,13 +1847,15 @@ const Keuangan = ({ user }) => {
                     fontSize: '0.76rem'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: isLight ? '#475569' : '#94a3b8' }}>Biaya Transfer Payout:</span>
-                      <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Bebas Biaya Admin TriPay)</span>
+                      <span style={{ color: isLight ? '#475569' : '#94a3b8' }}>Biaya Transfer TriPay (Disbursement):</span>
+                      <span style={{ color: isLight ? '#b91c1c' : '#f87171', fontWeight: 700, fontFamily: 'monospace' }}>
+                        - Rp {TRIPAY_DISBURSEMENT_FEE.toLocaleString('id-ID')}
+                      </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
-                      <span style={{ color: isLight ? '#334155' : '#cbd5e1', fontWeight: 600 }}>Total Masuk ke Rekening:</span>
+                      <span style={{ color: isLight ? '#334155' : '#cbd5e1', fontWeight: 600 }}>Total Bersih Masuk ke Rekening:</span>
                       <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 800, fontSize: '0.95rem', fontFamily: 'monospace' }}>
-                        Rp {(Number(withdrawAmount) || 0).toLocaleString('id-ID')}
+                        Rp {Math.max(0, (Number(withdrawAmount) || 0) - TRIPAY_DISBURSEMENT_FEE).toLocaleString('id-ID')}
                       </span>
                     </div>
                   </div>
@@ -2001,14 +2005,22 @@ const Keuangan = ({ user }) => {
                     <strong style={{ color: '#10b981' }}>{payoutReceipt?.account_holder || payoutBank.account_holder}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Jumlah Transfer:</span>
-                    <strong style={{ color: isLight ? '#0284c7' : '#38bdf8', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Nominal Penarikan:</span>
+                    <strong style={{ color: isLight ? '#0f172a' : 'white', fontSize: '0.9rem', fontFamily: 'monospace' }}>
                       Rp {(payoutReceipt?.amount || 0).toLocaleString('id-ID')}
                     </strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Biaya Admin:</span>
-                    <span style={{ color: '#10b981', fontWeight: 600 }}>Rp 0 (Bebas Biaya Admin TriPay)</span>
+                    <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Biaya Transfer TriPay:</span>
+                    <span style={{ color: isLight ? '#b91c1c' : '#f87171', fontWeight: 600, fontFamily: 'monospace' }}>
+                      - Rp {(payoutReceipt?.fee !== undefined ? payoutReceipt.fee : TRIPAY_DISBURSEMENT_FEE).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.1)', paddingTop: '6px' }}>
+                    <span style={{ color: isLight ? '#334155' : '#cbd5e1', fontWeight: 700 }}>Total Bersih Diterima:</span>
+                    <strong style={{ color: isLight ? '#0284c7' : '#38bdf8', fontSize: '0.98rem', fontFamily: 'monospace' }}>
+                      Rp {Math.max(0, (payoutReceipt?.amount || 0) - (payoutReceipt?.fee !== undefined ? payoutReceipt.fee : TRIPAY_DISBURSEMENT_FEE)).toLocaleString('id-ID')}
+                    </strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Waktu Selesai:</span>

@@ -1136,7 +1136,7 @@ export const apiGetFlipConfig = async () => {
       mode: 'production_ready',
       status: 'active',
       gateway: 'TriPay & BI-FAST',
-      feePerTransfer: 0
+      feePerTransfer: 5000
     };
   }
 };
@@ -1182,7 +1182,7 @@ export const apiFlipDisburse = async (data) => {
       account_number: res?.account_number || data?.account_number || '8830192831',
       account_holder: res?.account_holder || data?.account_holder || 'IBU HJ. NURHASANAH',
       amount: Number(res?.amount || data?.amount) || 0,
-      fee: res?.fee !== undefined ? res.fee : 0,
+      fee: res?.fee !== undefined ? res.fee : 5000,
       timestamp: res?.timestamp || new Date().toLocaleString('id-ID'),
       message: res?.message || 'Disbursement berhasil diproses via TriPay Payout Gateway'
     };
@@ -1195,7 +1195,7 @@ export const apiFlipDisburse = async (data) => {
       account_number: data?.account_number || '8830192831',
       account_holder: data?.account_holder || 'IBU HJ. NURHASANAH',
       amount: Number(data?.amount) || 0,
-      fee: 0,
+      fee: 5000,
       timestamp: new Date().toLocaleString('id-ID'),
       message: 'Disbursement berhasil diproses via TriPay Payout Gateway'
     };
