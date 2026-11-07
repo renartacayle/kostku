@@ -123,22 +123,18 @@ export default function Checkout({ user }) {
         if (paramKostId) {
           target = list.find(k => k.uid === paramKostId);
         }
-        if (!target && (!paramKostId || paramKostId === 'KOST-OJN64X')) {
-          target = list.find(k => k.uid === 'KOST-OJN64X') || {
-            uid: 'KOST-OJN64X',
-            kostName: 'KostKu Residence Udinus',
-            city: 'Semarang',
-            address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
-            rooms: [
-              { id: 'ROOM-OJN-122', number: '122', price: 1500000, size: '3.5x4', status: 'available' },
-              { id: 'ROOM-OJN-101', number: '101', price: 1500000, size: '3.5x4', status: 'available' }
-            ]
-          };
+        if (!target) {
+          try {
+            const userAdded = JSON.parse(localStorage.getItem('kostku_user_added_kosts') || '[]');
+            if (Array.isArray(userAdded)) {
+              target = userAdded.find(k => k.uid === paramKostId);
+            }
+          } catch (_) {}
         }
         if (!target && list.length > 0) {
           target = list[0];
         }
-        setSelectedKost(target);
+        setSelectedKost(target || null);
 
         if (target && target.rooms && target.rooms.length > 0) {
           if (paramRoom && target.rooms.some(r => String(r.number) === String(paramRoom))) {

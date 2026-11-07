@@ -341,50 +341,7 @@ async function handleApi(request, url, env) {
 
   // ── Public Kosts Marketplace ─────────────────────────────────────
   if (path === '/public/kosts') {
-    const verifiedKosts = [
-      {
-        uid: 'KOST-OJN64X',
-        kostName: 'KostKu Residence Udinus',
-        type: 'Campur',
-        city: 'Semarang',
-        address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
-        location: { lat: -6.9826, lng: 110.4091 },
-        gmapsUrl: 'https://maps.google.com/?q=-6.9826,110.4091',
-        rating: 5.0,
-        reviewCount: 42,
-        priceMin: 1500000,
-        priceMax: 1650000,
-        totalRooms: 36,
-        availableRooms: 4,
-        description: 'Kost eksklusif dan strategis tepat di area kampus Udinus Semarang. Lingkungan aman, tenang, bebas banjir, dilengkapi CCTV 24 jam dan akses kartu pintar.',
-        facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil', 'CCTV 24 Jam', 'Akses 24 Jam'],
-        rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
-        utilityScheme: 'all_kost',
-        images: [
-          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
-        ],
-        roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
-        rooms: [
-          { id: 'ROOM-OJN-122', number: '122', price: 1500000, size: '3.5x4', status: 'occupied', tenantName: 'Oscar Herdian Wijaya' },
-          { id: 'ROOM-OJN-101', number: '101', price: 1500000, size: '3.5x4', status: 'available' },
-          { id: 'ROOM-OJN-102', number: '102', price: 1650000, size: '4x4.5', status: 'available' }
-        ],
-        layoutInfo: {
-          roomDimensions: '3.5m x 4.0m',
-          roomArea: '14 m²',
-          buildingArea: '450 m² (2 Lantai)',
-          totalFloors: 2,
-          totalRooms: 36,
-          bathroomType: 'Kamar Mandi Dalam',
-          windowFacing: 'Jendela Hadap Luar (Sirkulasi Bagus)',
-          features: ['Kasur Springbed Nyaman', 'Meja Kerja & Lemari', 'Kamar Mandi Dalam']
-        }
-      }
-    ];
-
-    return new Response(JSON.stringify(verifiedKosts), { headers: corsHeaders });
+    return new Response(JSON.stringify([]), { headers: corsHeaders });
   }
 
   // ── Rating & Ulasan Kost Endpoints ──────────────────────────────
@@ -394,44 +351,11 @@ async function handleApi(request, url, env) {
 
     if (method === 'GET') {
       return new Response(JSON.stringify({
-        reviews: [
-          {
-            id: 'rev-edge-1',
-            userName: 'Ahmad Fauzi',
-            userRole: 'Mahasiswa',
-            roomNumber: '105',
-            rating: 5,
-            cleanlinessRating: 5,
-            facilityRating: 5,
-            securityRating: 5,
-            locationRating: 5,
-            stayDuration: '6 Bulan',
-            comment: 'Lingkungan sangat nyaman, WiFi kencang buat nugas kuliah. Pengelola ramah dan cepat tanggap kalau ada kendala fasilitas.',
-            date: new Date(Date.now() - 5 * 86400000).toISOString(),
-            verified: true,
-            likes: 12
-          },
-          {
-            id: 'rev-edge-2',
-            userName: 'Nabila Putri',
-            userRole: 'Penghuni Aktif',
-            roomNumber: '112',
-            rating: 5,
-            cleanlinessRating: 5,
-            facilityRating: 4,
-            securityRating: 5,
-            locationRating: 5,
-            stayDuration: '1 Tahun',
-            comment: 'Dekat banget sama kampus, keamanan 24 jam dengan CCTV dan gerbang terkunci rapi. Parkiran motor lega.',
-            date: new Date(Date.now() - 14 * 86400000).toISOString(),
-            verified: true,
-            likes: 8
-          }
-        ],
-        averageRating: 4.9,
-        totalReviews: 28,
-        distribution: { 5: 25, 4: 3, 3: 0, 2: 0, 1: 0 },
-        aspects: { cleanliness: 4.9, facility: 4.8, security: 5.0, location: 4.9 }
+        reviews: [],
+        averageRating: 0,
+        totalReviews: 0,
+        distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+        aspects: { cleanliness: 0, facility: 0, security: 0, location: 0 }
       }), { headers: corsHeaders });
     }
 

@@ -890,46 +890,13 @@ export const apiGetKostReviews = async (kostUid) => {
     }
   } catch (_) {}
 
-  // Default verified reviews
+  // Return empty state if no reviews yet
   return {
-    reviews: [
-      {
-        id: 'rev-def-1',
-        userName: 'Ahmad Fauzi',
-        userRole: 'Mahasiswa',
-        roomNumber: '105',
-        rating: 5,
-        cleanlinessRating: 5,
-        facilityRating: 5,
-        securityRating: 5,
-        locationRating: 5,
-        stayDuration: '6 Bulan',
-        comment: 'Lingkungan sangat nyaman, WiFi kencang buat nugas kuliah. Pengelola ramah dan cepat tanggap kalau ada keluhan fasilitas.',
-        date: new Date(Date.now() - 5 * 86400000).toISOString(),
-        verifiedTenant: true,
-        likes: 12
-      },
-      {
-        id: 'rev-def-2',
-        userName: 'Nabila Putri',
-        userRole: 'Penghuni Aktif',
-        roomNumber: '112',
-        rating: 5,
-        cleanlinessRating: 5,
-        facilityRating: 4,
-        securityRating: 5,
-        locationRating: 5,
-        stayDuration: '1 Tahun',
-        comment: 'Dekat banget sama kampus, keamanan 24 jam dengan CCTV dan gerbang terkunci rapi. Parkiran motor lega.',
-        date: new Date(Date.now() - 14 * 86400000).toISOString(),
-        verifiedTenant: true,
-        likes: 7
-      }
-    ],
-    averageRating: 4.9,
-    totalReviews: 28,
-    distribution: { 5: 25, 4: 3, 3: 0, 2: 0, 1: 0 },
-    aspects: { cleanliness: 4.9, facility: 4.8, security: 5.0, location: 4.9 }
+    reviews: [],
+    averageRating: 0,
+    totalReviews: 0,
+    distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+    aspects: { cleanliness: 0, facility: 0, security: 0, location: 0 }
   };
 };
 

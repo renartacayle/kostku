@@ -574,26 +574,8 @@ export default function Home({ user }) {
     setTimeout(() => setIsBannerPaused(false), 2000);
   };
 
-  // Fallback verified real kost if backend server is sleeping or offline
-  const FALLBACK_KOSTS = [
-    {
-      uid: 'KOST-OJN64X',
-      kostName: 'Kostku Residence Udinus',
-      type: 'Campur',
-      city: 'Semarang',
-      address: 'Jl. Imam Bonjol No. 207, Pendrikan Kidul, Semarang Tengah (Dekat Udinus)',
-      location: { lat: -6.9826, lng: 110.4091 },
-      rating: 5.0,
-      facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil'],
-      rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
-      rooms: [{ id: 'ROOM-OJN-122', number: '122', price: 1500000, dimension: '3.5m x 4.0m', status: 'available' }],
-      images: [
-        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
-      ],
-      isDemo: false
-    }
-  ];
+  // Fallback verified real kost (pure empty if none registered)
+  const FALLBACK_KOSTS = [];
 
   // Fetch kost listings safely with graceful fallback
   const fetchKosts = () => {
@@ -601,15 +583,20 @@ export default function Home({ user }) {
     setLoadError(null);
     apiGetPublicKosts()
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setKosts(data);
-        } else {
-          setKosts(FALLBACK_KOSTS);
-        }
+        let list = Array.isArray(data) ? data : (data?.kosts || []);
+        try {
+          const userAdded = JSON.parse(localStorage.getItem('kostku_user_added_kosts') || '[]');
+          if (Array.isArray(userAdded) && userAdded.length > 0) {
+            const existingUids = new Set(list.map(k => k.uid));
+            const uniqueAdded = userAdded.filter(k => !existingUids.has(k.uid));
+            list = [...uniqueAdded, ...list];
+          }
+        } catch (_) {}
+        setKosts(list);
       })
       .catch(err => {
-        console.warn('API fetch fallback to seed kosts:', err);
-        setKosts(FALLBACK_KOSTS);
+        console.warn('API fetch error:', err);
+        setKosts([]);
       })
       .finally(() => setLoading(false));
   };

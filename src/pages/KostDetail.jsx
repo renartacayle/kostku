@@ -112,42 +112,13 @@ export default function KostDetail({ user }) {
       .then(data => {
         const list = Array.isArray(data) ? data : (data?.kosts || []);
         let found = list.find(k => k.uid === id);
-        if (!found && (!id || id === 'KOST-OJN64X')) {
-          found = {
-            uid: 'KOST-OJN64X',
-            kostName: 'KostKu Residence Udinus',
-            type: 'Campur',
-            city: 'Semarang',
-            address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah (Dekat Kampus Udinus)',
-            location: { lat: -6.9826, lng: 110.4091 },
-            rating: 5.0,
-            reviewCount: 42,
-            description: 'Kost eksklusif dan strategis tepat di area kampus Udinus Semarang. Lingkungan aman, tenang, bebas banjir, dilengkapi pengawasan CCTV 24 jam dan akses kartu pintar.',
-            facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil', 'CCTV 24 Jam', 'Akses 24 Jam'],
-            rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan', 'Tamu Menginap Wajib Lapor'],
-            utilityScheme: 'all_kost',
-            images: [
-              'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
-              'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
-              'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
-            ],
-            roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
-            rooms: [
-              { id: 'ROOM-OJN-122', number: '122', price: 1500000, size: '3.5m x 4.0m', status: 'occupied', tenantName: 'Oscar Herdian Wijaya' },
-              { id: 'ROOM-OJN-101', number: '101', price: 1500000, size: '3.5m x 4.0m', status: 'available' },
-              { id: 'ROOM-OJN-102', number: '102', price: 1650000, size: '4.0m x 4.5m', status: 'available' }
-            ],
-            layoutInfo: {
-              roomDimensions: '3.5m x 4.0m',
-              roomArea: '14 m²',
-              buildingArea: '450 m² (2 Lantai)',
-              totalFloors: 2,
-              totalRooms: 36,
-              bathroomType: 'Kamar Mandi Dalam',
-              windowFacing: 'Jendela Hadap Luar (Sirkulasi Bagus)',
-              features: ['Kasur Springbed Nyaman', 'Meja Kerja & Lemari', 'Kamar Mandi Dalam']
+        if (!found) {
+          try {
+            const userAdded = JSON.parse(localStorage.getItem('kostku_user_added_kosts') || '[]');
+            if (Array.isArray(userAdded)) {
+              found = userAdded.find(k => k.uid === id);
             }
-          };
+          } catch (_) {}
         }
         setKost(found || null);
         if (found && found.rooms && found.rooms.length > 0) {

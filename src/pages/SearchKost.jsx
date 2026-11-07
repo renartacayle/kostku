@@ -134,38 +134,7 @@ export const checkFacilityMatch = (kost, facId) => {
   }
 };
 
-export const DEFAULT_VERIFIED_KOSTS = [
-  {
-    uid: 'KOST-OJN64X',
-    kostName: 'KostKu Residence Udinus',
-    type: 'Campur',
-    city: 'Semarang',
-    address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
-    location: { lat: -6.9826, lng: 110.4091 },
-    gmapsUrl: 'https://maps.google.com/?q=-6.9826,110.4091',
-    rating: 5.0,
-    reviewCount: 42,
-    priceMin: 1500000,
-    priceMax: 1650000,
-    totalRooms: 36,
-    availableRooms: 4,
-    description: 'Kost eksklusif dan strategis tepat di area kampus Udinus Semarang. Lingkungan aman, tenang, bebas banjir, dilengkapi CCTV 24 jam dan akses kartu pintar.',
-    facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama', 'Parkir Motor/Mobil', 'CCTV 24 Jam', 'Akses 24 Jam'],
-    rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
-    utilityScheme: 'all_kost',
-    images: [
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
-    ],
-    roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
-    rooms: [
-      { id: 'ROOM-OJN-122', number: '122', price: 1500000, size: '3.5x4', status: 'available' },
-      { id: 'ROOM-OJN-101', number: '101', price: 1500000, size: '3.5x4', status: 'available' },
-      { id: 'ROOM-OJN-102', number: '102', price: 1650000, size: '4x4.5', status: 'available' }
-    ]
-  }
-];
+export const DEFAULT_VERIFIED_KOSTS = [];
 
 export default function SearchKost({ user }) {
   const navigate = useNavigate();
