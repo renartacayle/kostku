@@ -112,10 +112,6 @@ export default function Mitra({ user }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Owner Admin Fee Setting State (Setting admin owner untuk ads mitra, flat KostKu 500)
-  const [ownerAdsFee, setOwnerAdsFee] = useState(1000);
-  const [savingOwnerFee, setSavingOwnerFee] = useState(false);
-
   // Owner Add/Edit Mitra Modal States
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMerchantObj, setEditingMerchantObj] = useState(null);
@@ -545,28 +541,6 @@ export default function Mitra({ user }) {
       showToast('✅ Pengaturan toko & opsi pengantaran berhasil disimpan!');
     } catch (err) {
       alert(err.message || 'Gagal menyimpan pengaturan toko');
-    }
-  };
-
-  // ── OWNER VIEW: SAVE OWNER ADS / ADMIN FEE SETTING ────────────────
-  const handleSaveOwnerAdsFee = async (e) => {
-    if (e) e.preventDefault();
-    setSavingOwnerFee(true);
-    try {
-      const cleanFee = Math.max(0, Number(ownerAdsFee));
-      const res = await apiUpdateOwnerMerchantSettings({
-        kostUid: targetKostUid,
-        defaultCommissionOwner: cleanFee,
-        applyToAll: true
-      });
-
-      // Update local state
-      setMerchants(prev => prev.map(m => ({ ...m, commissionOwner: cleanFee, platformFee: 500 })));
-      showToast(res?.message || `✅ Biaya admin owner diset Rp ${cleanFee.toLocaleString('id-ID')} (KostKu flat Rp 500, admin fee dijadiin satu)!`);
-    } catch (err) {
-      alert(err.message || 'Gagal menyimpan setting biaya admin owner');
-    } finally {
-      setSavingOwnerFee(false);
     }
   };
 
@@ -2019,11 +1993,11 @@ export default function Mitra({ user }) {
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.78rem', color: '#86efac', fontWeight: 700 }}>
-                      +Rp {(order.ownerCommission || 1000).toLocaleString('id-ID')} Komisi Owner
+                    <div style={{ fontSize: '0.78rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
+                      🪙 +100 Poin (Rp 100) Reward
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                      Flat KostKu: Rp 500 (Dijadikan satu)
+                    <div style={{ fontSize: '0.7rem', color: isLight ? '#16a34a' : '#4ade80', fontWeight: 600 }}>
+                      Bebas Biaya Extra Mitra (0%)
                     </div>
                   </div>
                 </div>
