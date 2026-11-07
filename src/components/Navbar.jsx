@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Home, Download, User as UserIcon, Sun, Moon, HelpCircle, Settings } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft, Home, Download, User as UserIcon, Sun, Moon, HelpCircle } from 'lucide-react';
 import PropertySwitcher from './PropertySwitcher';
 import { useTheme } from '../context/ThemeContext';
 
@@ -13,6 +13,8 @@ export default function Navbar({
   onOpenAddKost
 }) {
   const { theme, toggleTheme, isLight } = useTheme();
+  const location = useLocation();
+
   return (
     <header className="glass-nav" style={{
       position: 'sticky',
@@ -28,16 +30,39 @@ export default function Navbar({
       boxSizing: 'border-box',
       overflow: 'hidden'
     }}>
-      {/* Property Switcher for Owners/Admins (Static logo removed to prevent duplicate headers) */}
+      {/* Property Switcher for Owners/Admins & Back Link for Layanan (Setara dengan Theme Toggle di kanan) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', minWidth: 0, flexShrink: 1 }}>
-        {(user?.role === 'owner' || user?.role === 'master') && (
-          <PropertySwitcher
-            user={user}
-            activeKostUid={user?.kostUid}
-            activeKostName={kostName}
-            onSwitchKost={onSwitchKost}
-            onOpenAddModal={onOpenAddKost}
-          />
+        {location.pathname.startsWith('/layanan') ? (
+          <Link 
+            to="/dashboard" 
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: isLight ? '#0284c7' : '#38bdf8',
+              textDecoration: 'none',
+              fontSize: '0.86rem',
+              fontWeight: 700,
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: isLight ? 'rgba(2, 132, 199, 0.08)' : 'rgba(56, 189, 248, 0.12)',
+              border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.3)',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}
+          >
+            <ArrowLeft size={16} /> Kembali ke Kost Saya
+          </Link>
+        ) : (
+          (user?.role === 'owner' || user?.role === 'master') ? (
+            <PropertySwitcher
+              user={user}
+              activeKostUid={user?.kostUid}
+              activeKostName={kostName}
+              onSwitchKost={onSwitchKost}
+              onOpenAddModal={onOpenAddKost}
+            />
+          ) : null
         )}
       </div>
 

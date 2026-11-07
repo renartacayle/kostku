@@ -211,7 +211,7 @@ export const apiLogin = async (loginId, password, extra = {}) => {
         kamar: '122',
         kostUid: 'KOST-OJN64X',
         loyalty_points: 250,
-        referralCode: 'KOST-122-OSCAR'
+        referralCode: 'KOSTKU-8821'
       };
       return {
         success: true,
@@ -271,7 +271,7 @@ export const apiGoogleAuth = async (emailOrPayload, name, role, extra = {}) => {
         kostUid: 'KOST-OJN64X',
         loyalty_points: 250,
         authProvider: 'google',
-        referralCode: 'KOST-122-OSCAR'
+        referralCode: 'KOSTKU-8821'
       };
 
       return {

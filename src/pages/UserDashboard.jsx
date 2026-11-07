@@ -115,7 +115,36 @@ const UserDashboard = ({ user }) => {
   const [friendReferralInput, setFriendReferralInput] = useState('');
   const [friendReferralStatus, setFriendReferralStatus] = useState(null);
 
-  const userRefCode = currentUser?.referralCode || `KOST-${(currentUser?.kamar || '122').replace(/\s+/g, '')}-${(currentUser?.name || 'OSCAR').split(' ')[0].toUpperCase()}`;
+  // Clean neutral referral code generator that NEVER uses user name or room number
+  const getCleanRefCode = (u) => {
+    let existing = u?.referralCode;
+    if (existing && !existing.includes('OSCAR') && !existing.includes('122') && !existing.includes('ANAKKOST') && existing.startsWith('KOSTKU-')) {
+      return existing;
+    }
+    const uid = String(u?.id || 'usr-1');
+    let hash = 0;
+    for (let i = 0; i < uid.length; i++) {
+      hash = ((hash << 5) - hash) + uid.charCodeAt(i);
+      hash |= 0;
+    }
+    const codeNum = Math.abs(hash % 9000) + 1000;
+    const cleanCode = `KOSTKU-${codeNum}`;
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('kostUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.referralCode !== cleanCode) {
+            parsed.referralCode = cleanCode;
+            localStorage.setItem('kostUser', JSON.stringify(parsed));
+          }
+        }
+      }
+    } catch (_) {}
+    return cleanCode;
+  };
+
+  const userRefCode = getCleanRefCode(currentUser);
 
   const handleCopyReferral = () => {
     try {
@@ -352,9 +381,21 @@ const UserDashboard = ({ user }) => {
             merged.kostUid = profileRes.activeApplication.kostUid;
             merged.kamar = profileRes.activeApplication.kamar;
           }
+          // Poin loyalty akun tetap ikut utuh saat pindah kamar/kost
+          const preservedPoints = Math.max(
+            Number(currentUser?.loyalty_points || 0),
+            Number(profileRes.user?.loyalty_points || 0),
+            Number(localStorage.getItem(`kostku_user_loyalty_points_${user.id}`) || 0),
+            Number(localStorage.getItem('kostku_user_loyalty_points') || 0),
+            250
+          );
+          merged.loyalty_points = preservedPoints;
+          merged.referralCode = getCleanRefCode(merged);
           setCurrentUser(merged);
           activeKostUid = merged.kostUid;
           localStorage.setItem('kostUser', JSON.stringify(merged));
+          localStorage.setItem(`kostku_user_loyalty_points_${user.id}`, String(preservedPoints));
+          localStorage.setItem('kostku_user_loyalty_points', String(preservedPoints));
         }
         if (profileRes?.activeApplication) {
           setActiveApplication(profileRes.activeApplication);

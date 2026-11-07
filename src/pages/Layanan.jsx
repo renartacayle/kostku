@@ -195,9 +195,81 @@ export default function Layanan({ user }) {
     return () => window.removeEventListener('kostku_partner_order_created', handleOrderCreated);
   }, []);
 
-  // Handle Referral Copy
-  const currentLoyaltyPoints = Number(currentUser?.loyalty_points ?? 250);
-  const userRefCode = currentUser?.referralCode || `KOST-${(currentUser?.kamar || '101').replace(/\s+/g, '')}-${(currentUser?.name || 'ANAKKOST').split(' ')[0].toUpperCase()}`;
+  // Clean neutral referral code generator that NEVER uses user name or room number
+  const getCleanRefCode = (u) => {
+    let existing = u?.referralCode;
+    if (existing && !existing.includes('OSCAR') && !existing.includes('122') && !existing.includes('ANAKKOST') && existing.startsWith('KOSTKU-')) {
+      return existing;
+    }
+    const uid = String(u?.id || 'usr-1');
+    let hash = 0;
+    for (let i = 0; i < uid.length; i++) {
+      hash = ((hash << 5) - hash) + uid.charCodeAt(i);
+      hash |= 0;
+    }
+    const codeNum = Math.abs(hash % 9000) + 1000;
+    const cleanCode = `KOSTKU-${codeNum}`;
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('kostUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.referralCode !== cleanCode) {
+            parsed.referralCode = cleanCode;
+            localStorage.setItem('kostUser', JSON.stringify(parsed));
+          }
+        }
+      }
+    } catch (_) {}
+    return cleanCode;
+  };
+
+  const userRefCode = getCleanRefCode(currentUser);
+
+  // Account-level loyalty points: follows tenant across room changes
+  const getAccountPoints = (u) => {
+    const uid = u?.id || 'usr-1';
+    let p1 = null;
+    let p2 = null;
+    try {
+      p1 = localStorage.getItem(`kostku_user_loyalty_points_${uid}`);
+      p2 = localStorage.getItem('kostku_user_loyalty_points');
+    } catch (_) {}
+    const candidateList = [
+      p1 !== null && !isNaN(Number(p1)) ? Number(p1) : -1,
+      p2 !== null && !isNaN(Number(p2)) ? Number(p2) : -1,
+      u?.loyalty_points !== undefined && !isNaN(Number(u.loyalty_points)) ? Number(u.loyalty_points) : -1
+    ];
+    const maxPts = Math.max(...candidateList, 250);
+    return maxPts;
+  };
+
+  const currentLoyaltyPoints = getAccountPoints(currentUser);
+
+  const saveAccountPoints = (newTotal) => {
+    const pts = Number(newTotal);
+    const uid = currentUser?.id || 'usr-1';
+    try {
+      localStorage.setItem(`kostku_user_loyalty_points_${uid}`, String(pts));
+      localStorage.setItem('kostku_user_loyalty_points', String(pts));
+      const stored = localStorage.getItem('kostUser');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        parsed.loyalty_points = pts;
+        parsed.referralCode = userRefCode;
+        localStorage.setItem('kostUser', JSON.stringify(parsed));
+      }
+    } catch (_) {}
+    const updated = {
+      ...currentUser,
+      loyalty_points: pts,
+      referralCode: userRefCode
+    };
+    setCurrentUser(updated);
+    window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: updated }));
+    window.dispatchEvent(new Event('kostUser_updated'));
+    return updated;
+  };
 
   const handleCopyCode = () => {
     try {
@@ -220,16 +292,10 @@ export default function Layanan({ user }) {
       return;
     }
     const newTotal = currentLoyaltyPoints + 100;
-    const updated = {
-      ...currentUser,
-      loyalty_points: newTotal,
-      claimedFriendReferral: cleanInput,
-      lastUsedReferral: cleanInput
-    };
-    setCurrentUser(updated);
-    localStorage.setItem('kostUser', JSON.stringify(updated));
-    localStorage.setItem('kostku_last_referral_code', cleanInput);
-    window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: updated }));
+    saveAccountPoints(newTotal);
+    try {
+      localStorage.setItem('kostku_last_referral_code', cleanInput);
+    } catch (_) {}
     setFriendReferralInput('');
     setFriendReferralStatus({ type: 'success', message: '🎉 +100 Poin referral tersimpan otomatis!' });
     setTimeout(() => setFriendReferralStatus(null), 3000);
@@ -273,16 +339,7 @@ export default function Layanan({ user }) {
       const res = await apiSuggestMerchant(payload);
 
       if (res?.bonusAwarded) {
-        const stored = localStorage.getItem('kostUser');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const currentPts = Number(parsed.loyalty_points ?? 250);
-          parsed.loyalty_points = currentPts + (res.bonusPoints || 500);
-          localStorage.setItem('kostUser', JSON.stringify(parsed));
-          setCurrentUser(parsed);
-          window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
-          window.dispatchEvent(new Event('kostUser_updated'));
-        }
+        saveAccountPoints(currentLoyaltyPoints + (res.bonusPoints || 500));
         setSuggestNotice({
           type: 'success',
           message: res.message || `🎉 Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
@@ -379,16 +436,7 @@ export default function Layanan({ user }) {
       } catch (_) {}
 
       if (res?.bonusAwarded) {
-        const stored = localStorage.getItem('kostUser');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const currentPts = Number(parsed.loyalty_points ?? 250);
-          parsed.loyalty_points = currentPts + (res.bonusPoints || 500);
-          localStorage.setItem('kostUser', JSON.stringify(parsed));
-          setCurrentUser(parsed);
-          window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
-          window.dispatchEvent(new Event('kostUser_updated'));
-        }
+        saveAccountPoints(currentLoyaltyPoints + (res.bonusPoints || 500));
         setIndependentNotice({
           type: 'success',
           message: `🏪 Selamat! Toko "${createdMerchant.name}" berhasil terpasang dan bonus referral +500 Poin berhasil diklaim!`
@@ -515,161 +563,140 @@ export default function Layanan({ user }) {
 
   return (
     <div style={{
+      width: '100%',
       maxWidth: '1280px',
       margin: '0 auto',
-      padding: isMobileScreen ? '1rem 0.75rem 5rem' : '2rem 1.5rem 3rem',
+      padding: isMobileScreen ? '0.75rem 0.75rem 5rem' : '1.25rem 1.5rem 3rem',
       display: 'flex',
       flexDirection: 'column',
-      gap: '1.25rem'
+      gap: '1rem'
     }}>
-      {/* Top Breadcrumb & Return to Dashboard */}
+      {/* Header Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-        <Link
-          to="/dashboard"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '0.85rem',
-            color: 'var(--accent-primary)',
-            textDecoration: 'none',
-            fontWeight: 700
-          }}
-        >
-          <ArrowLeft size={16} /> Kembali ke Kost Saya
-        </Link>
-        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+        <h2 style={{
+          margin: 0,
+          fontSize: isMobileScreen ? '1.2rem' : '1.45rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontFamily: 'var(--font-display)',
+          fontWeight: 800,
+          color: 'var(--text-primary)'
+        }}>
+          <Sparkles size={22} color="#60a5fa" /> Layanan Toko & Mitra Sekitar Kost
+        </h2>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
           Kamar: <strong style={{ color: 'var(--text-primary)' }}>{currentUser?.kamar || '122'}</strong> • {kostName}
         </span>
       </div>
 
-      {/* Main Container Card */}
-      <div className="card glass-panel" style={{
-        border: '1px solid rgba(59, 130, 246, 0.25)',
-        padding: isMobileScreen ? '12px 14px' : '20px 24px',
-        borderRadius: '20px'
-      }}>
-        {/* Header Title & Badges */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: isMobileScreen ? '1.15rem' : '1.35rem',
+      {/* Search Bar - Langsung Di Bawah Judul */}
+      <div style={{ position: 'relative' }}>
+        <div style={{
+          position: 'absolute',
+          left: '12px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          display: 'flex',
+          alignItems: 'center',
+          color: '#94a3b8',
+          pointerEvents: 'none'
+        }}>
+          <Search size={18} />
+        </div>
+        <input
+          type="text"
+          value={partnerSearch}
+          onChange={e => setPartnerSearch(e.target.value)}
+          placeholder="Cari toko, menu makanan, galon, laundry..."
+          className="input-field"
+          style={{
+            width: '100%',
+            paddingLeft: '38px',
+            paddingRight: partnerSearch ? '36px' : '14px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            fontSize: '0.9rem',
+            borderRadius: '10px',
+            background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.6)',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+            color: isLight ? '#0f172a' : '#f8fafc',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+          }}
+        />
+        {partnerSearch && (
+          <button
+            type="button"
+            onClick={() => setPartnerSearch('')}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              padding: '2px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 800
-            }}>
-              <Sparkles size={20} color="#60a5fa" /> Layanan Toko & Mitra Sekitar Kost
-            </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Bebas pilih toko langganan & bandingkan harga • Antar langsung ke pintu kamar
-              </span>
-              <div style={{ display: 'inline-flex', gap: '6px' }}>
-                <span style={{
-                  fontSize: '0.68rem',
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  background: 'rgba(34, 197, 94, 0.12)',
-                  color: '#4ade80',
-                  fontWeight: 700,
-                  border: '1px solid rgba(34, 197, 94, 0.25)'
-                }}>
-                  💳 Non-Tunai / Tagihan
-                </span>
-                <span style={{
-                  fontSize: '0.68rem',
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  color: '#93c5fd',
-                  fontWeight: 700,
-                  border: '1px solid rgba(59, 130, 246, 0.25)'
-                }}>
-                  🏷️ Fee Max Rp 500
-                </span>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={handleOpenRegisterIndependent}
-              className="btn btn-primary"
-              style={{
-                padding: '8px 14px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                borderRadius: '10px',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
-              }}
-            >
-              <Plus size={16} />
-              <span>+ Daftarkan Mitra Baru</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenSuggestMerchant}
-              className="btn btn-secondary"
-              style={{
-                padding: '8px 12px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                borderRadius: '10px'
-              }}
-            >
-              <span>🍜</span>
-              <span>Usulkan Warung</span>
-            </button>
-          </div>
-        </div>
+              justifyContent: 'center'
+            }}
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
 
-        {/* PROGRAM REFERRAL & POIN ANAK KOST */}
+      {/* Baris Di Bawah Search: Poin & Referral di Kiri, Nambah Mitra di Kanan */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: '16px',
+        flexWrap: 'wrap',
+        padding: isMobileScreen ? '12px' : '14px 18px',
+        borderRadius: '12px',
+        background: isLight ? 'rgba(245, 158, 11, 0.05)' : 'rgba(245, 158, 11, 0.03)',
+        border: isLight ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(245, 158, 11, 0.15)'
+      }}>
+        {/* SISI KIRI:
+            1. Total Poin
+            2. Kode Referral di bawah poin
+            3. Form masukkan referral di bawahnya lagi
+        */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           gap: '8px',
-          padding: '6px 12px',
-          borderRadius: '10px',
-          background: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.04)',
-          border: '1px solid rgba(245, 158, 11, 0.25)',
-          marginBottom: '10px'
+          flex: '1 1 360px',
+          minWidth: 0
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.85rem' }}>🪙</span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isLight ? '#b45309' : '#fbbf24' }}>
+          {/* Baris 1: Total Poin */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '1.25rem' }}>🪙</span>
+            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#b45309' : '#fbbf24' }}>
               {currentLoyaltyPoints} Poin
             </span>
-            <span style={{ fontSize: '0.68rem', color: isLight ? '#78350f' : '#fef3c7' }}>
+            <span style={{ fontSize: '0.85rem', color: isLight ? '#78350f' : '#fef3c7', fontWeight: 600 }}>
               (Rp {currentLoyaltyPoints.toLocaleString('id-ID')})
-            </span>
-            <span style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b' }}>•</span>
-            <span style={{ fontSize: '0.68rem', color: isLight ? '#475569' : '#cbd5e1' }}>
-              Referral: Teman <strong style={{ color: '#4ade80' }}>+100</strong>, Mitra <strong style={{ color: '#f59e0b' }}>+500</strong>, Owner Kost Baru <strong style={{ color: '#38bdf8' }}>+1.000 Poin</strong>
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            {/* Referral Code Badge */}
+          {/* Baris 2 (Di bawah poin): Referral */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#cbd5e1', fontWeight: 600 }}>
+              Kode Referral:
+            </span>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+              gap: '6px',
+              background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
               border: '1px solid rgba(245, 158, 11, 0.4)',
               borderRadius: '6px',
-              padding: '2px 6px',
-              fontSize: '0.68rem',
+              padding: '3px 8px',
+              fontSize: '0.78rem',
               fontWeight: 800,
               fontFamily: 'monospace',
               color: isLight ? '#0f172a' : '#f8fafc'
@@ -683,32 +710,42 @@ export default function Layanan({ user }) {
                   border: 'none',
                   color: '#ffffff',
                   borderRadius: '4px',
-                  padding: '1px 5px',
-                  fontSize: '0.62rem',
+                  padding: '2px 8px',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 {referralCopied ? 'Tersalin!' : 'Salin'}
               </button>
             </div>
+            <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+              (Teman <strong style={{ color: '#4ade80' }}>+100</strong> • Mitra <strong style={{ color: '#f59e0b' }}>+500</strong> • Owner <strong style={{ color: '#38bdf8' }}>+1.000 Poin</strong>)
+            </span>
+          </div>
 
-            {/* Friend Code Input */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+          {/* Baris 3 (Bawahnya lagi): Masukin referral */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', color: isLight ? '#475569' : '#cbd5e1', fontWeight: 600 }}>
+              Masukkan Referral:
+            </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <input
                 type="text"
-                placeholder="Kode teman?"
+                placeholder="Kode Teman"
                 value={friendReferralInput}
                 onChange={e => setFriendReferralInput(e.target.value)}
                 style={{
-                  width: '90px',
-                  padding: '2px 6px',
-                  fontSize: '0.68rem',
+                  width: '120px',
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
                   borderRadius: '6px',
-                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                  background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
+                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.18)',
+                  background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
                   color: isLight ? '#0f172a' : '#f8fafc',
-                  textTransform: 'uppercase'
+                  textTransform: 'uppercase',
+                  fontWeight: 700
                 }}
               />
               <button
@@ -720,164 +757,110 @@ export default function Layanan({ user }) {
                   border: 'none',
                   color: '#ffffff',
                   borderRadius: '6px',
-                  padding: '2px 7px',
-                  fontSize: '0.65rem',
+                  padding: '4px 10px',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
                   cursor: friendReferralInput.trim() ? 'pointer' : 'default',
-                  opacity: friendReferralInput.trim() ? 1 : 0.6
+                  opacity: friendReferralInput.trim() ? 1 : 0.6,
+                  transition: 'all 0.2s'
                 }}
               >
-                +100
+                +100 Poin
               </button>
             </div>
-
-            {/* Quick Token PLN Button */}
-            <button
-              type="button"
-              onClick={() => setShowSmartLockModal(true)}
-              style={{
-                background: 'none',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                borderRadius: '6px',
-                padding: '2px 7px',
-                fontSize: '0.68rem',
-                color: '#fbbf24',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px'
-              }}
-            >
-              <Zap size={12} /> Token PLN
-            </button>
           </div>
 
           {friendReferralStatus && (
-            <div style={{ fontSize: '0.65rem', color: friendReferralStatus.type === 'success' ? '#4ade80' : '#f87171', width: '100%', marginTop: '2px' }}>
+            <div style={{
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              color: friendReferralStatus.type === 'success' ? '#4ade80' : '#f87171',
+              marginTop: '2px'
+            }}>
               {friendReferralStatus.message}
             </div>
           )}
         </div>
 
-        {/* Search Bar */}
-        <div style={{ position: 'relative', marginBottom: '8px' }}>
-          <div style={{
-            position: 'absolute',
-            left: '10px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            display: 'flex',
-            alignItems: 'center',
-            color: '#94a3b8',
-            pointerEvents: 'none'
-          }}>
-            <Search size={16} />
-          </div>
-          <input
-            type="text"
-            value={partnerSearch}
-            onChange={e => setPartnerSearch(e.target.value)}
-            placeholder="Cari toko, menu makanan, galon, laundry..."
-            className="input-field"
-            style={{
-              width: '100%',
-              paddingLeft: '34px',
-              paddingRight: partnerSearch ? '32px' : '12px',
-              paddingTop: '9px',
-              paddingBottom: '9px',
-              fontSize: '0.85rem',
-              borderRadius: '8px',
-              background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.6)',
-              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-              color: isLight ? '#0f172a' : '#f8fafc'
-            }}
-          />
-          {partnerSearch && (
-            <button
-              type="button"
-              onClick={() => setPartnerSearch('')}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                padding: '2px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <X size={15} />
-            </button>
-          )}
-        </div>
-
-        {/* UMKM BANNER: Usulkan Warung & Pasang Toko Mandiri */}
+        {/* SISI KANAN (Setara Poin di Kanan, di Bawah Search): Nambah Mitra */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          flexWrap: 'wrap',
           gap: '8px',
-          background: isLight ? 'rgba(2, 132, 199, 0.06)' : 'rgba(56, 189, 248, 0.04)',
-          border: isLight ? '1px solid rgba(2, 132, 199, 0.2)' : '1px solid rgba(56, 189, 248, 0.15)',
-          borderRadius: '8px',
-          padding: '6px 10px',
-          marginBottom: '10px'
+          flexWrap: 'wrap',
+          alignSelf: isMobileScreen ? 'stretch' : 'center'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.9rem' }}>💡</span>
-            <div style={{ fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.25 }}>
-              <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>Punya usaha atau warung langganan?</strong> UMKM sekitar bebas jualan tanpa wajib kontrak kost!
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              type="button"
-              onClick={handleOpenSuggestMerchant}
-              style={{
-                background: isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(56, 189, 248, 0.15)',
-                border: isLight ? '1px solid #0284c7' : '1px solid #38bdf8',
-                color: isLight ? '#0284c7' : '#38bdf8',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '0.70rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              + Usulkan Warung (+500 Pts)
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenRegisterIndependent}
-              style={{
-                background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-                border: 'none',
-                color: '#ffffff',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '0.70rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                boxShadow: '0 2px 4px rgba(14, 165, 233, 0.3)'
-              }}
-            >
-              🏪 Pasang Toko Mandiri
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleOpenRegisterIndependent}
+            className="btn btn-primary"
+            style={{
+              padding: '9px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: '10px',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
+              cursor: 'pointer',
+              flex: isMobileScreen ? '1 1 auto' : 'initial',
+              justifyContent: 'center'
+            }}
+          >
+            <Plus size={16} />
+            <span>+ Daftarkan Mitra Baru</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenSuggestMerchant}
+            className="btn btn-secondary"
+            style={{
+              padding: '9px 14px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              flex: isMobileScreen ? '1 1 auto' : 'initial',
+              justifyContent: 'center'
+            }}
+          >
+            <span>🍜</span>
+            <span>Usulkan Warung</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSmartLockModal(true)}
+            style={{
+              background: 'none',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '10px',
+              padding: '9px 12px',
+              fontSize: '0.82rem',
+              color: '#fbbf24',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              justifyContent: 'center'
+            }}
+          >
+            <Zap size={14} /> Token PLN
+          </button>
         </div>
+      </div>
+
+      {/* Main Content Area - Full Width Borderless */}
+      <div style={{
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
 
         {/* Controls Bar: Category Tabs & Sort/Pin Controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
