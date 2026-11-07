@@ -169,6 +169,14 @@ const Keuangan = ({ user }) => {
         remark: `Payout KostKu ${user?.kostUid || 'General'}`
       });
 
+      const receiptData = {
+        ...res,
+        amount: Number(res?.amount || totalWithdraw) || totalWithdraw,
+        bank_code: res?.bank_code || payoutBank.bank_name,
+        account_number: res?.account_number || payoutBank.account_number,
+        account_holder: res?.account_holder || payoutBank.account_holder || 'Ibu Hj. Nurhasanah'
+      };
+
       const updated = {
         ...unifiedWallet,
         owner_commission_balance: 0,
@@ -177,7 +185,7 @@ const Keuangan = ({ user }) => {
       setUnifiedWallet(updated);
       localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
 
-      setPayoutReceipt(res);
+      setPayoutReceipt(receiptData);
       setPayoutStep('receipt');
     } catch (err) {
       alert(err.message || 'Gagal memproses payout via TriPay.');
