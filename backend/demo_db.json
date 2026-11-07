@@ -24378,13 +24378,13 @@
     },
     "gateway": {
       "provider": "tripay",
-      "merchantCode": "T53543",
-      "apiKey": "88mxkhrmbFVBu0RYMxGU3ES48oT6cXSwSFtwlaTn",
-      "privateKey": "RdkYh-PvymA-36ovO-stT8z-HBMjZ",
-      "isSandbox": false,
-      "isProduction": true,
-      "serverKey": "88mxkhrmbFVBu0RYMxGU3ES48oT6cXSwSFtwlaTn",
-      "merchantId": "T53543"
+      "merchantCode": "",
+      "apiKey": "",
+      "privateKey": "",
+      "isSandbox": true,
+      "isProduction": false,
+      "serverKey": "",
+      "merchantId": ""
     }
   },
   "google_config": {},

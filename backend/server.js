@@ -5536,7 +5536,7 @@ async function checkTripayTransactionStatus(reference) {
   if (!reference) return null;
   const db = getDB();
   const gwConfig = db.settings?.gateway || {};
-  const apiKey = gwConfig.apiKey || '88mxkhrmbFVBu0RYMxGU3ES48oT6cXSwSFtwlaTn';
+  const apiKey = process.env.TRIPAY_API_KEY || gwConfig.apiKey || '';
   const isProd = gwConfig.isProduction !== undefined ? gwConfig.isProduction : true;
   const baseUrl = isProd ? 'https://tripay.co.id/api' : 'https://tripay.co.id/api-sandbox';
 

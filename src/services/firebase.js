@@ -12,14 +12,14 @@ import {
 } from 'firebase/database';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyCDQKNDkPyhnwrSGY4f5FAt-1k8cCzoZJw",
-  authDomain: "kostku-10966.firebaseapp.com",
-  projectId: "kostku-10966",
-  storageBucket: "kostku-10966.firebasestorage.app",
-  messagingSenderId: "305934403602",
-  appId: "1:305934403602:web:e857ac90657f4dc4e170cb",
-  measurementId: "G-WZNNPGL437",
-  databaseURL: "https://kostku-10966-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyCDQKNDkPyhnwrSGY4f5FAt-1k8cCzoZJw",
+  authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "kostku-10966.firebaseapp.com",
+  projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "kostku-10966",
+  storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "kostku-10966.firebasestorage.app",
+  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "305934403602",
+  appId: import.meta.env?.VITE_FIREBASE_APP_ID || "1:305934403602:web:e857ac90657f4dc4e170cb",
+  measurementId: import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID || "G-WZNNPGL437",
+  databaseURL: import.meta.env?.VITE_FIREBASE_DATABASE_URL || "https://kostku-10966-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // Initialize Firebase App

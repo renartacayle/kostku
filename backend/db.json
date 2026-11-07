@@ -297,14 +297,14 @@
   "partner_orders": [],
   "settings": {
     "gateway": {
-      "apiKey": "88mxkhrmbFVBu0RYMxGU3ES48oT6cXSwSFtwlaTn",
-      "isProduction": true,
-      "isSandbox": false,
-      "merchantCode": "T53543",
-      "merchantId": "T53543",
-      "privateKey": "RdkYh-PvymA-36ovO-stT8z-HBMjZ",
+      "apiKey": "",
+      "isProduction": false,
+      "isSandbox": true,
+      "merchantCode": "",
+      "merchantId": "",
+      "privateKey": "",
       "provider": "tripay",
-      "serverKey": "88mxkhrmbFVBu0RYMxGU3ES48oT6cXSwSFtwlaTn"
+      "serverKey": ""
     },
     "wallet": {
       "history": [
