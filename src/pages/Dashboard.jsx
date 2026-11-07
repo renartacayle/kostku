@@ -220,7 +220,7 @@ const OwnerDashboard = ({ user }) => {
     phone: '',
     address: '',
     distanceKm: '0.2',
-    commissionOwner: 500,
+    commissionOwner: 0,
     platformFee: 200,
     qrisImage: '',
     isAffiliate: false,
@@ -241,7 +241,7 @@ const OwnerDashboard = ({ user }) => {
         ...newMerchantForm,
         kostUid: targetKostUid,
         distanceKm: Number(newMerchantForm.distanceKm) || 0.3,
-        commissionOwner: Math.min(500, Number(newMerchantForm.commissionOwner) || 500),
+        commissionOwner: 0,
         platformFee: 200,
         qrisImage: newMerchantForm.qrisImage?.trim() || null,
         paymentMethods: ['qris', 'monthly_bill']
@@ -254,7 +254,7 @@ const OwnerDashboard = ({ user }) => {
         phone: '',
         address: '',
         distanceKm: '0.2',
-        commissionOwner: 500,
+        commissionOwner: 0,
         platformFee: 200,
         qrisImage: '',
         isAffiliate: false,
@@ -2865,8 +2865,8 @@ const OwnerDashboard = ({ user }) => {
                               </div>
 
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
-                                <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>
-                                  +Rp {(m.commissionOwner || 500).toLocaleString('id-ID')} Komisi
+                                <span style={{ fontSize: '0.72rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
+                                  🪙 +100 Poin (Rp 100) Reward
                                 </span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {isCustomMerchant && (
@@ -4007,45 +4007,18 @@ const OwnerDashboard = ({ user }) => {
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#0284c7' : '#38bdf8', marginBottom: '4px', fontWeight: 700 }}>
-                    Komisi Pemilik (Maks. Rp 500):
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="500"
-                    step="100"
-                    placeholder="500"
-                    value={newMerchantForm.commissionOwner}
-                    onChange={e => setNewMerchantForm(prev => ({ ...prev, commissionOwner: Math.min(500, Number(e.target.value)) }))}
-                    className="input-field"
-                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem', borderColor: isLight ? '#93c5fd' : 'rgba(56, 189, 248, 0.4)' }}
-                  />
-                  <span style={{ fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '3px' }}>
-                    💡 Cukup Rp 100 - Rp 500 perak
-                  </span>
+              <div style={{
+                background: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                border: isLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.35)',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                marginBottom: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
+                  <span>🪙</span> Reward Transaksi: +100 Poin (Rp 100) per order
                 </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
-                    Biaya Admin KostKu:
-                  </label>
-                  <div style={{
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)',
-                    fontSize: '0.82rem',
-                    color: isLight ? '#334155' : '#94a3b8',
-                    fontWeight: 700
-                  }}>
-                    Rp 200 / order
-                  </div>
-                  <span style={{ fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '3px' }}>
-                    ⚡ Biaya platform non-COD
-                  </span>
+                <div style={{ fontSize: '0.72rem', color: isLight ? '#78350f' : '#fef3c7', marginTop: '3px' }}>
+                  Bebas komisi tunai dari mitra. Setiap transaksi otomatis menghasilkan reward loyalty poin.
                 </div>
               </div>
 

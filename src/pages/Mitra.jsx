@@ -127,7 +127,7 @@ export default function Mitra({ user }) {
     phone: '',
     address: '',
     distanceKm: '0.2',
-    commissionOwner: 1000,
+    commissionOwner: 0,
     platformFee: 500, // Flat Rp 500 KostKu
     deliveryType: 'both',
     deliveryFee: 2000,
@@ -586,7 +586,7 @@ export default function Mitra({ user }) {
         phone: newMerchant.phone.trim(),
         address: newMerchant.address.trim(),
         distanceKm: Number(newMerchant.distanceKm) || 0.2,
-        commissionOwner: Math.max(0, Number(newMerchant.commissionOwner) || 1000),
+        commissionOwner: 0,
         platformFee: 500, // Flat Rp 500 KostKu
         deliveryType: newMerchant.deliveryType || 'both',
         deliveryFee: Number(newMerchant.deliveryFee) || 0,
@@ -619,7 +619,7 @@ export default function Mitra({ user }) {
           phone: '',
           address: '',
           distanceKm: '0.2',
-          commissionOwner: 1000,
+          commissionOwner: 0,
           platformFee: 500,
           deliveryType: 'both',
           deliveryFee: 2000,
@@ -1674,64 +1674,6 @@ export default function Mitra({ user }) {
               </button>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════
-                SETTING ADMIN/ADS OWNER PER TRANSAKSI MITRA
-                (Permintaan User: Setting admin owner bisa diatur di mitra owner,
-                admin KostKu flat Rp 500, admin fee dijadiin satu di pemesan)
-                ═══════════════════════════════════════════════════════════ */}
-            <div style={{
-              marginTop: '1.5rem',
-              background: isLight ? 'rgba(37, 99, 235, 0.05)' : 'rgba(56, 189, 248, 0.08)',
-              border: isLight ? '1px solid rgba(37, 99, 235, 0.22)' : '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: '14px',
-              padding: '14px 16px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Settings size={18} color={isLight ? '#2563eb' : '#38bdf8'} />
-                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                      Setting Biaya Admin / Ads Owner Per Transaksi Mitra:
-                    </strong>
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '3px' }}>
-                    Biaya admin KostKu <strong style={{ color: isLight ? '#16a34a' : '#4ade80' }}>Flat Rp 500</strong>. Di sisi anak kost (checkout), admin owner & admin KostKu <strong>dijadikan satu</strong> agar transparan dan tidak membingungkan.
-                  </div>
-                </div>
-
-                {/* Setting Input */}
-                <form onSubmit={handleSaveOwnerAdsFee} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>Rp</span>
-                    <input
-                      type="number"
-                      step="100"
-                      min="0"
-                      value={ownerAdsFee}
-                      onChange={e => setOwnerAdsFee(e.target.value)}
-                      className="input-field"
-                      style={{ width: '110px', padding: '6px 10px', fontSize: '0.88rem', fontWeight: 800, color: isLight ? '#1d4ed8' : '#38bdf8' }}
-                      title="Atur komisi/ads fee owner per transaksi mitra"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={savingOwnerFee}
-                    className="btn btn-primary btn-sm"
-                    style={{ padding: '7px 12px', fontSize: '0.78rem', fontWeight: 700 }}
-                  >
-                    {savingOwnerFee ? <RefreshCw size={13} className="animate-spin" /> : 'Simpan Setting'}
-                  </button>
-                </form>
-              </div>
-
-              <div style={{ marginTop: '8px', fontSize: '0.72rem', color: isLight ? '#1d4ed8' : '#93c5fd', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                <span>✦ Komisi Owner: <strong>Rp {Number(ownerAdsFee || 0).toLocaleString('id-ID')}</strong></span>
-                <span>✦ Admin KostKu: <strong>Flat Rp 500</strong></span>
-                <span>✦ Total Admin Fee di Pemesan (Dijadikan Satu): <strong style={{ color: isLight ? '#16a34a' : '#4ade80' }}>Rp {(Number(ownerAdsFee || 0) + 500).toLocaleString('id-ID')}</strong></span>
-              </div>
-            </div>
-
             {/* Owner Stats Summary */}
             <div style={{
               display: 'grid',
@@ -1746,11 +1688,16 @@ export default function Mitra({ user }) {
                 </div>
               </div>
 
-              <div style={{ background: isLight ? 'rgba(22, 163, 74, 0.08)' : 'rgba(34, 197, 94, 0.08)', border: isLight ? '1px solid rgba(22, 163, 74, 0.25)' : '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '0.72rem', color: isLight ? '#15803d' : '#86efac' }}>Saldo Dompet Komisi Owner</div>
-                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isLight ? '#16a34a' : '#4ade80', marginTop: '2px' }}>
-                  Rp {(unifiedWallet.owner_commission_balance || 35000).toLocaleString('id-ID')}
+              <div style={{ background: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.08)', border: isLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '12px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '0.72rem', color: isLight ? '#b45309' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>🪙</span> Reward Poin Transaksi Mitra
                 </div>
+                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isLight ? '#d97706' : '#fbbf24', marginTop: '2px' }}>
+                  {((orders.length || 0) * 100).toLocaleString('id-ID')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Poin (Rp {((orders.length || 0) * 100).toLocaleString('id-ID')})</span>
+                </div>
+                <span style={{ fontSize: '0.68rem', color: isLight ? '#78350f' : '#fef3c7', display: 'block', marginTop: '2px' }}>
+                  ✦ Reward otomatis +100 Poin per transaksi (Bebas biaya komisi mitra)
+                </span>
               </div>
 
               <div style={{ background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(56, 189, 248, 0.08)', border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '12px', padding: '12px 14px' }}>
@@ -1979,22 +1926,22 @@ export default function Mitra({ user }) {
                           </strong>
                         </div>
 
-                        {/* Fee Breakdown Badge */}
+                        {/* Reward Poin Badge */}
                         <div style={{
                           padding: '8px 10px',
                           borderRadius: '10px',
-                          background: isLight ? 'rgba(37, 99, 235, 0.05)' : 'rgba(56, 189, 248, 0.06)',
-                          border: isLight ? '1px solid rgba(37, 99, 235, 0.15)' : '1px solid rgba(56, 189, 248, 0.2)',
+                          background: isLight ? 'rgba(245, 158, 11, 0.05)' : 'rgba(245, 158, 11, 0.06)',
+                          border: isLight ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(245, 158, 11, 0.25)',
                           fontSize: '0.74rem',
                           marginBottom: '12px'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                            <span>Komisi / Ads Owner:</span>
-                            <strong style={{ color: isLight ? '#1d4ed8' : '#38bdf8' }}>+Rp {(merchant.commissionOwner || 1000).toLocaleString('id-ID')} / trx</strong>
+                            <span>Reward Poin Transaksi:</span>
+                            <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>🪙 +100 Poin (Rp 100) / trx</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                            <span>Admin KostKu:</span>
-                            <span>Flat Rp 500</span>
+                            <span>Potongan Biaya Mitra:</span>
+                            <span style={{ color: isLight ? '#16a34a' : '#4ade80', fontWeight: 600 }}>0% (Bebas Biaya Extra)</span>
                           </div>
                         </div>
                       </div>
@@ -2890,41 +2837,18 @@ export default function Mitra({ user }) {
                 </select>
               </div>
 
-              {/* Setting Komisi Owner & Platform Fee */}
+              {/* Info Bebas Komisi Tunai & Reward Poin */}
               <div style={{
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
+                background: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                border: isLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.35)',
                 borderRadius: '12px',
                 padding: '12px'
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#93c5fd', marginBottom: '3px', fontWeight: 600 }}>
-                      Komisi/Ads Owner (Rp):
-                    </label>
-                    <input
-                      type="number"
-                      step="100"
-                      value={newMerchant.commissionOwner}
-                      onChange={e => setNewMerchant({ ...newMerchant, commissionOwner: Number(e.target.value) })}
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#93c5fd', marginBottom: '3px', fontWeight: 600 }}>
-                      Admin KostKu:
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value="Flat Rp 500"
-                      className="input-field"
-                      style={{ opacity: 0.8 }}
-                    />
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
+                  <span>🪙</span> Reward Poin Transaksi (Bebas Biaya Extra Owner)
                 </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '6px' }}>
-                  Total admin fee dijadiin satu di invoice pemesan: <strong>Rp {((Number(newMerchant.commissionOwner) || 1000) + 500).toLocaleString('id-ID')}</strong>
+                <div style={{ fontSize: '0.72rem', color: isLight ? '#78350f' : '#fef3c7', marginTop: '4px', lineHeight: 1.4 }}>
+                  Biaya extra owner dihapus (0% potongan ke mitra). Sebagai gantinya, Anda mendapatkan reward <strong>+100 Poin (Rp 100)</strong> per transaksi pesanan berhasil. Admin KostKu tetap Flat Rp 500.
                 </div>
               </div>
 

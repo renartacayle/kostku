@@ -28,10 +28,9 @@ export default function Navbar({
       boxSizing: 'border-box',
       overflow: 'hidden'
     }}>
-      {/* Brand / Kost Title & Property Switcher */}
+      {/* Property Switcher for Owners/Admins (Static logo removed to prevent duplicate headers) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', minWidth: 0, flexShrink: 1 }}>
-        {(user?.role === 'owner' || user?.role === 'master') ? (
-          /* For Owners/Admins: Only show the interactive PropertySwitcher dropdown, static name removed */
+        {(user?.role === 'owner' || user?.role === 'master') && (
           <PropertySwitcher
             user={user}
             activeKostUid={user?.kostUid}
@@ -39,36 +38,6 @@ export default function Navbar({
             onSwitchKost={onSwitchKost}
             onOpenAddModal={onOpenAddKost}
           />
-        ) : (
-          /* For Tenants/Staff: Show default static property badge */
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-            <img 
-              src="/logo.png" 
-              alt="Logo KostKu" 
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                objectFit: 'contain',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
-              }} 
-            />
-            <div>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                fontFamily: 'var(--font-display)',
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em'
-              }}>
-                {kostName || 'KostKu'}
-              </h2>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', lineHeight: 1 }}>
-                {user?.role === 'staff' ? `Staf Lapangan (${user?.jobTitle || 'Penjaga'})` : 'Tenant App'}
-              </span>
-            </div>
-          </Link>
         )}
       </div>
 
@@ -163,38 +132,6 @@ export default function Navbar({
             <Sun size={16} color="#f59e0b" strokeWidth={1.8} />
           )}
         </button>
-
-        {/* Pengaturan / Profil Link (Clean Template Icon or User PFP) */}
-        <Link 
-          to="/pengaturan" 
-          title={`Buka Pengaturan Akun & Profil (${user?.name || 'User'})`}
-          style={{
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.07)',
-            border: user?.picture ? '1.5px solid #3b82f6' : '1px solid var(--border-color)',
-            borderRadius: '10px',
-            color: isLight ? '#1e293b' : '#f8fafc',
-            cursor: 'pointer',
-            textDecoration: 'none',
-            transition: 'all 0.2s',
-            overflow: 'hidden',
-            flexShrink: 0
-          }}
-        >
-          {user?.picture ? (
-            <img 
-              src={user.picture} 
-              alt={user.name || 'User'} 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <Settings size={17} strokeWidth={1.8} />
-          )}
-        </Link>
       </div>
     </header>
   );

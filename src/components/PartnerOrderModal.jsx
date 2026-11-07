@@ -230,11 +230,11 @@ const PartnerOrderModal = ({
   // Ongkos kirim jika mode antar
   const deliveryFee = (selectedDeliveryMode === 'delivery') ? (Number(service?.deliveryFee) || 0) : 0;
 
-  // Biaya Layanan: Flat KostKu Rp 500 + Setting Owner Markup/Ads Fee (Admin fee dijadikan satu di invoice pemesan)
+  // Biaya Layanan: Flat KostKu Rp 500 (Biaya extra owner kost ke mitra dihapus, diganti reward poin +100 Poin)
   const platformFee = 500; // Flat Rp 500 KostKu
-  const ownerMarkupFee = Number(service?.commissionOwner ?? service?.ownerMarkupFee ?? 1000);
-  const ownerCommission = ownerMarkupFee;
-  const totalAdminFee = ownerCommission + platformFee; // Dijadikan satu
+  const ownerMarkupFee = 0; // Biaya extra owner dihapus
+  const ownerCommission = 0;
+  const totalAdminFee = platformFee; // Hanya flat Rp 500 KostKu
   const pointsDiscount = usePointsDiscount ? Math.min(userLoyaltyPoints, 100) : 0;
   const grandTotal = Math.max(0, effectiveSubtotal + totalAdminFee + deliveryFee - pointsDiscount);
   const slaMinutes = slaInitialMinutes;
@@ -1860,7 +1860,7 @@ const PartnerOrderModal = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: isLight ? '#64748b' : '#94a3b8' }}>
                 <div>
                   <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>Biaya Layanan & Admin</span>
-                  <div style={{ fontSize: '0.67rem', color: isLight ? '#94a3b8' : '#64748b' }}>Flat KostKu Rp 500 + Admin Layanan Kost</div>
+                  <div style={{ fontSize: '0.67rem', color: isLight ? '#94a3b8' : '#64748b' }}>Flat KostKu Rp 500 (Bebas Biaya Extra Owner)</div>
                 </div>
                 <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Rp {totalAdminFee.toLocaleString('id-ID')}</span>
               </div>
