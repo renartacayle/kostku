@@ -243,36 +243,6 @@ export default function Login({ onLogin }) {
     navigate(targetPath, { replace: true });
   };
 
-  // Save custom Google Client ID
-  const handleSaveClientId = async () => {
-    setSavingClientId(true);
-    setClientIdSavedMessage('');
-    try {
-      const clean = customClientIdInput.trim();
-      localStorage.setItem('kostku_google_client_id', clean);
-      setGoogleClientId(clean);
-      await apiSetGoogleClientId(clean);
-      setClientIdSavedMessage('✅ Google Client ID berhasil disimpan!');
-      setTimeout(() => setClientIdSavedMessage(''), 3000);
-    } catch (err) {
-      setClientIdSavedMessage('⚠️ Disimpan di browser lokal.');
-    } finally {
-      setSavingClientId(false);
-    }
-  };
-
-  // Clear custom Google Client ID
-  const handleClearClientId = async () => {
-    localStorage.removeItem('kostku_google_client_id');
-    setGoogleClientId('');
-    setCustomClientIdInput('');
-    try {
-      await apiSetGoogleClientId('');
-    } catch (e) {}
-    setClientIdSavedMessage('✓ Client ID dinonaktifkan.');
-    setTimeout(() => setClientIdSavedMessage(''), 3000);
-  };
-
   const handleCopyText = (text, key) => {
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(text);

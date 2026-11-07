@@ -79,11 +79,14 @@ export class ErrorBoundary extends React.Component {
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
         for (const reg of regs) {
-          await reg.update();
+          reg.active?.postMessage({ type: 'SKIP_WAITING' });
+          await reg.unregister();
         }
       }
     } catch (_) {}
-    window.location.reload();
+    const url = new URL(window.location.href);
+    url.searchParams.set('t', Date.now().toString());
+    window.location.href = url.toString();
   };
 
   handleReset = async () => {
@@ -92,9 +95,16 @@ export class ErrorBoundary extends React.Component {
         const keys = await caches.keys();
         await Promise.all(keys.map((k) => caches.delete(k)));
       }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          reg.active?.postMessage({ type: 'SKIP_WAITING' });
+          await reg.unregister();
+        }
+      }
     } catch (_) {}
     this.setState({ hasError: false, error: null, errorInfo: null, isChunkError: false });
-    window.location.href = '/';
+    window.location.href = '/?t=' + Date.now();
   };
 
   render() {
