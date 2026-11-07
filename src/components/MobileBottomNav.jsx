@@ -19,19 +19,6 @@ export default function MobileBottomNav({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // If on login, register, checkout, stress-test report, or kost detail page, hide bottom nav
-  if (
-    location.pathname === '/login' || 
-    location.pathname === '/register' || 
-    location.pathname === '/checkout' || 
-    location.pathname === '/bayar' || 
-    location.pathname === '/stress-test-report' ||
-    location.pathname.startsWith('/stress-test') ||
-    location.pathname.startsWith('/kost/')
-  ) {
-    return null;
-  }
-
   const isOwner = user?.role === 'owner' || user?.role === 'master';
   const isStaff = user?.role === 'staff';
 
@@ -111,6 +98,21 @@ export default function MobileBottomNav({ user }) {
       setIsHopping(false);
     }, 460);
   }, [location.pathname, navigate]);
+
+  // If on login, register, checkout, stress-test report, or kost detail page, hide bottom nav
+  // NOTE: This check must stay AFTER all hooks to adhere to React Rules of Hooks!
+  const shouldHide = 
+    location.pathname === '/login' || 
+    location.pathname === '/register' || 
+    location.pathname === '/checkout' || 
+    location.pathname === '/bayar' || 
+    location.pathname === '/stress-test-report' ||
+    location.pathname.startsWith('/stress-test') ||
+    location.pathname.startsWith('/kost/');
+
+  if (shouldHide) {
+    return null;
+  }
 
   return (
     <nav

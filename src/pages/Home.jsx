@@ -1977,10 +1977,10 @@ export default function Home({ user }) {
 // - Bold Monospace Tabular Pricing
 // ═══════════════════════════════════════════════════════════════════
 function KostCard({ kost, userLocation }) {
-  if (!kost) return null;
-
   const { theme } = useTheme();
   const isLight = theme === 'light';
+
+  if (!kost) return null;
 
   const minPrice = kost.rooms?.length > 0 ? Math.min(...kost.rooms.map(r => r.price)) : 0;
   const availableRoomsCount = (kost.rooms || []).filter(r => r.status === 'available' || !r.status).length;
