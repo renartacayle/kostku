@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kostku-cache-v142';
+const CACHE_NAME = 'kostku-cache-v143';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -112,7 +112,14 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => validCachedResponse);
+        .catch(() => {
+          if (validCachedResponse) return validCachedResponse;
+          return new Response('Network fetch failed or chunk unavailable', {
+            status: 408,
+            statusText: 'Request Timeout',
+            headers: { 'Content-Type': 'text/plain' }
+          });
+        });
 
       return validCachedResponse || fetchPromise;
     })

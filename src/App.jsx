@@ -11,7 +11,9 @@ import {
 function ScrollToTop() {
   const { pathname, search } = useLocation();
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    try {
+      window.scrollTo(0, 0);
+    } catch (_) {}
     // Reset any pending chunk retry flags on successful navigation
     try {
       Object.keys(sessionStorage).forEach((k) => {
@@ -65,15 +67,17 @@ const PageLoadingFallback = () => (
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '60vh',
+    minHeight: '100vh',
+    width: '100%',
+    background: 'var(--bg-main, #f1f5f9)',
     gap: '16px',
     color: 'var(--text-muted, #64748b)'
   }}>
     <div style={{
       width: '42px',
       height: '42px',
-      border: '3px solid rgba(56, 189, 248, 0.2)',
-      borderTopColor: '#38bdf8',
+      border: '3px solid rgba(37, 99, 235, 0.2)',
+      borderTopColor: '#2563eb',
       borderRadius: '50%',
       animation: 'spin 0.7s linear infinite'
     }} />
