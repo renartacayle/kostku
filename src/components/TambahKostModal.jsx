@@ -5,13 +5,6 @@ import { apiCreateOwnerKost } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { compressImage } from '../utils/imageUtils';
 
-const PRESET_BUILDING_PHOTOS = [
-  { label: 'Gedung 2 Lantai', subtitle: 'Tampak Depan Modern', url: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Kost Minimalis', subtitle: 'Fasad Depan Luar', url: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Gedung Paviliun', subtitle: 'Tampak Depan Asri', url: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Townhouse Urban', subtitle: 'Fasad Bangunan Depan', url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?w=800&auto=format&fit=crop&q=80' }
-];
-
 export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialCity = 'Semarang', user }) {
   const { isLight } = useTheme();
 
@@ -24,8 +17,7 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
   const [ownerName, setOwnerName] = useState(user?.name || '');
   const [ownerPhone, setOwnerPhone] = useState(user?.phone || '');
   const [selectedFacilities, setSelectedFacilities] = useState(['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama']);
-  const [selectedPhoto, setSelectedPhoto] = useState(PRESET_BUILDING_PHOTOS[0].url);
-  const [customPhoto, setCustomPhoto] = useState('');
+  const [photoFront, setPhotoFront] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successData, setSuccessData] = useState(null);
 
@@ -42,14 +34,12 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
     if (!file) return;
     try {
       const compressed = await compressImage(file, 1200, 1200, 0.82);
-      setCustomPhoto(compressed);
-      setSelectedPhoto(compressed);
+      setPhotoFront(compressed);
     } catch (err) {
       console.warn('Compress failed, fallback to reader:', err);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setCustomPhoto(reader.result);
-        setSelectedPhoto(reader.result);
+        setPhotoFront(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -61,14 +51,16 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
       alert('Mohon isi nama kost dan alamat lengkap!');
       return;
     }
+    if (!photoFront) {
+      alert('Wajib mengambil atau mengunggah 1 foto asli tampak depan gedung kost!');
+      return;
+    }
 
     try {
       setSubmitting(true);
       const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
       const numPrice = Number(price) || 1500000;
       const numRooms = Number(roomsCount) || 8;
-
-      const effectivePhoto = customPhoto || selectedPhoto || PRESET_BUILDING_PHOTOS[0].url;
 
       const newKost = {
         uid: generatedUid,
@@ -88,16 +80,16 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
         utilityScheme: 'all_kost',
         ownerName: ownerName.trim() || 'Pemilik Kost',
         ownerPhone: ownerPhone.trim() || '6281234567890',
-        images: [effectivePhoto, PRESET_BUILDING_PHOTOS[1].url],
-        roomPhoto: effectivePhoto,
-        imageFront: effectivePhoto,
+        images: [photoFront],
+        roomPhoto: photoFront,
+        imageFront: photoFront,
         rooms: Array.from({ length: Math.min(6, numRooms) }, (_, idx) => ({
           id: `ROOM-${generatedUid.substr(5)}-${101 + idx}`,
           number: String(101 + idx),
           price: numPrice,
           size: '3.5x4.0',
           status: idx === 0 ? 'available' : (idx === 1 ? 'occupied' : 'available'),
-          roomPhoto: effectivePhoto
+          roomPhoto: photoFront
         })),
         layoutInfo: {
           roomDimensions: '3.5m x 4.0m',
@@ -123,7 +115,8 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
           type: newKost.type,
           defaultPrice: numPrice,
           roomsCount: numRooms,
-          roomPhoto: selectedPhoto
+          imageFront: photoFront,
+          roomPhoto: photoFront
         });
       } catch (apiErr) {
         console.warn('Edge/API kost creation fallback to local persistence:', apiErr);
@@ -401,140 +394,177 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
               </div>
             </div>
 
-            {/* Foto Tampak Depan Gedung Kost (Wajib) */}
+            {/* Foto Tampak Depan Gedung Kost (Wajib - 100% Kamera / Foto Asli, Tanpa Template) */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '6px' }}>
-                <label style={{ fontSize: '0.8rem', color: isLight ? '#1e293b' : '#f1f5f9', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Building size={15} color="#3b82f6" />
-                  <span>Foto Tampak Depan Gedung Kost (Wajib)</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                <label style={{ fontSize: '0.82rem', color: isLight ? '#1e293b' : '#f1f5f9', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building size={16} color="#3b82f6" />
+                  <span>Foto Tampak Depan Gedung Kost <span style={{ color: '#ef4444' }}>*</span></span>
                 </label>
-                <label style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
-                  background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)',
-                  border: '1px dashed #3b82f6',
-                  color: '#3b82f6',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}>
-                  <Camera size={13} />
-                  <span>Ambil / Unggah Foto Gedung</span>
-                  <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{ display: 'none' }} />
-                </label>
+                <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700, background: isLight ? '#eff6ff' : 'rgba(59,130,246,0.15)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(59,130,246,0.3)' }}>
+                  Wajib Foto Asli (Tanpa Template)
+                </span>
               </div>
-              <p style={{ margin: '0 0 8px 0', fontSize: '0.73rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                Unggah foto gedung dari depan, atau pilih salah satu template fasad bangunan kost tampak depan di bawah ini:
-              </p>
 
-              {/* Custom uploaded photo preview */}
-              {customPhoto && (
+              {photoFront ? (
+                /* Preview Foto Asli Terunggah */
                 <div style={{
                   position: 'relative',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   overflow: 'hidden',
-                  height: '140px',
-                  marginBottom: '10px',
                   border: '2px solid #3b82f6',
-                  background: '#000'
+                  background: '#090d16',
+                  boxShadow: '0 8px 24px rgba(37, 99, 235, 0.2)'
                 }}>
-                  <img src={customPhoto} alt="Foto Gedung Tampak Depan" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    left: '8px',
-                    background: 'rgba(37, 99, 235, 0.95)',
-                    color: 'white',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <CheckCircle2 size={12} /> Foto Gedung Asli Anda (Tampak Depan)
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomPhoto('');
-                      setSelectedPhoto(PRESET_BUILDING_PHOTOS[0].url);
-                    }}
-                    style={{
+                  <div style={{ width: '100%', height: '180px', position: 'relative' }}>
+                    <img 
+                      src={photoFront} 
+                      alt="Foto Gedung Tampak Depan" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                    <div style={{
                       position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'rgba(0,0,0,0.65)',
-                      border: 'none',
+                      top: '10px',
+                      left: '10px',
+                      background: 'rgba(16, 185, 129, 0.95)',
                       color: 'white',
-                      borderRadius: '50%',
-                      width: '26px',
-                      height: '26px',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      gap: '5px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                    }}>
+                      <CheckCircle2 size={13} /> Foto Tampak Depan Gedung Terpasang
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPhotoFront('')}
+                      style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        background: 'rgba(0,0,0,0.7)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '30px',
+                        height: '30px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(4px)'
+                      }}
+                      title="Hapus foto"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                  <div style={{
+                    padding: '8px 12px',
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)'
+                  }}>
+                    <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                      Foto fasad fisik tampak depan terverifikasi
+                    </span>
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: isLight ? '#eff6ff' : 'rgba(59,130,246,0.18)',
+                      border: '1px solid #3b82f6',
+                      color: '#3b82f6',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
                       cursor: 'pointer'
-                    }}
-                    title="Hapus foto unggahan"
-                  >
-                    <X size={14} />
-                  </button>
+                    }}>
+                      <Camera size={12} />
+                      <span>Ganti Foto</span>
+                      <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                /* Dropzone / Upload Area Jika Belum Ada Foto (Tanpa Template Apapun) */
+                <div style={{
+                  borderRadius: '14px',
+                  border: isLight ? '2px dashed #93c5fd' : '2px dashed rgba(59, 130, 246, 0.4)',
+                  background: isLight ? 'rgba(239, 246, 255, 0.5)' : 'rgba(15, 23, 42, 0.6)',
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '50%',
+                    background: isLight ? '#dbeafe' : 'rgba(59, 130, 246, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#2563eb'
+                  }}>
+                    <Camera size={26} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#1e293b' : '#f8fafc', marginBottom: '4px' }}>
+                      Ambil Foto Asli Gedung Tampak Depan
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', maxWidth: '380px', lineHeight: 1.45 }}>
+                      Wajib memotret langsung tampak depan (fasad luar) bangunan kost Anda dari kamera atau galeri perangkat. <strong>Tanpa template foto.</strong>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '4px' }}>
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      background: '#2563eb',
+                      color: 'white',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
+                    }}>
+                      <Camera size={14} />
+                      <span>Buka Kamera (HP)</span>
+                      <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+                    </label>
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.1)',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.2)',
+                      color: isLight ? '#334155' : '#f1f5f9',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}>
+                      <Upload size={14} />
+                      <span>Pilih dari File / Galeri</span>
+                      <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
                 </div>
               )}
-
-              {/* Grid 4 Pilihan Foto Gedung dari Depan */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                {PRESET_BUILDING_PHOTOS.map((p, idx) => {
-                  const isSelected = !customPhoto && selectedPhoto === p.url;
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => {
-                        setCustomPhoto('');
-                        setSelectedPhoto(p.url);
-                      }}
-                      style={{
-                        position: 'relative',
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        border: isSelected ? '2px solid #3b82f6' : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)'),
-                        aspectRatio: '4/3',
-                        background: '#000',
-                        boxShadow: isSelected ? '0 0 0 1px #3b82f6' : 'none'
-                      }}
-                      title={`${p.label} - ${p.subtitle}`}
-                    >
-                      <img src={p.url} alt={p.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      {isSelected && (
-                        <div style={{ position: 'absolute', top: 4, right: 4, background: '#3b82f6', color: 'white', borderRadius: '50%', padding: '2px', display: 'flex' }}>
-                          <CheckCircle2 size={12} />
-                        </div>
-                      )}
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.4) 60%, transparent)',
-                        padding: '14px 4px 4px 4px',
-                        textAlign: 'center'
-                      }}>
-                        <span style={{ fontSize: '0.66rem', color: '#ffffff', fontWeight: 800, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {p.label}
-                        </span>
-                        <span style={{ fontSize: '0.58rem', color: '#cbd5e1', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {p.subtitle}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
 
             {/* Action Buttons */}
