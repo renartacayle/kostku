@@ -98,6 +98,7 @@ const Keuangan = ({ user }) => {
     account_number: '8830192831', 
     account_holder: user?.name || 'Ibu Hj. Nurhasanah' 
   });
+  const [withdrawAmount, setWithdrawAmount] = useState(0);
   const [flipConfig, setFlipConfig] = useState({
     mode: 'sandbox',
     status: 'verifying_demo',
@@ -150,10 +151,23 @@ const Keuangan = ({ user }) => {
     }
   };
 
+  const handleOpenPayoutModal = () => {
+    const total = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
+    setWithdrawAmount(total);
+    setPayoutStep('form');
+    setShowPayoutModal(true);
+  };
+
   const handleExecutePayout = async () => {
-    const totalWithdraw = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
-    if (totalWithdraw <= 0) {
-      alert('Saldo dompet tidak mencukupi untuk penarikan.');
+    const totalAvailable = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
+    const amountToWithdraw = Number(withdrawAmount) || 0;
+
+    if (amountToWithdraw < 10000) {
+      alert('Minimal penarikan dana adalah Rp 10.000.');
+      return;
+    }
+    if (amountToWithdraw > totalAvailable) {
+      alert('Nominal penarikan melebihi total saldo dompet yang tersedia.');
       return;
     }
 
@@ -165,22 +179,36 @@ const Keuangan = ({ user }) => {
         bank_code: payoutBank.bank_name,
         account_number: payoutBank.account_number,
         account_holder: payoutBank.account_holder,
-        amount: totalWithdraw,
+        amount: amountToWithdraw,
         remark: `Payout KostKu ${user?.kostUid || 'General'}`
       });
 
       const receiptData = {
         ...res,
-        amount: Number(res?.amount || totalWithdraw) || totalWithdraw,
+        amount: Number(res?.amount || amountToWithdraw) || amountToWithdraw,
         bank_code: res?.bank_code || payoutBank.bank_name,
         account_number: res?.account_number || payoutBank.account_number,
         account_holder: res?.account_holder || payoutBank.account_holder || 'Ibu Hj. Nurhasanah'
       };
 
+      // Deduct amount: first from owner commission, then escrow
+      let rem = amountToWithdraw;
+      let newOwnerComm = Number(unifiedWallet.owner_commission_balance) || 0;
+      let newMitraEscrow = Number(unifiedWallet.mitra_escrow_balance) || 0;
+
+      if (newOwnerComm >= rem) {
+        newOwnerComm -= rem;
+        rem = 0;
+      } else {
+        rem -= newOwnerComm;
+        newOwnerComm = 0;
+        newMitraEscrow = Math.max(0, newMitraEscrow - rem);
+      }
+
       const updated = {
         ...unifiedWallet,
-        owner_commission_balance: 0,
-        mitra_escrow_balance: 0
+        owner_commission_balance: newOwnerComm,
+        mitra_escrow_balance: newMitraEscrow
       };
       setUnifiedWallet(updated);
       localStorage.setItem('kostku_unified_wallet', JSON.stringify(updated));
@@ -768,7 +796,7 @@ const Keuangan = ({ user }) => {
 
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => setShowPayoutModal(true)}
+                onClick={handleOpenPayoutModal}
                 className="btn btn-primary btn-sm"
                 style={{ gap: '6px' }}
               >
@@ -1498,7 +1526,7 @@ const Keuangan = ({ user }) => {
           zIndex: 10000,
           padding: '1rem'
         }} className="animate-fade-in">
-          <div style={{
+          <div id="payout-modal-dialog" style={{
             background: isLight ? '#ffffff' : '#0a101f',
             border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(56, 189, 248, 0.35)',
             borderRadius: '24px',
@@ -1610,7 +1638,100 @@ const Keuangan = ({ user }) => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '1.25rem' }}>
+                  {/* Input Nominal Penarikan Dana (WD) */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                      <label style={{ fontSize: '0.78rem', color: isLight ? '#1e293b' : '#f1f5f9', fontWeight: 700 }}>
+                        Nominal Penarikan Dana (WD):
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setWithdrawAmount((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0))}
+                        style={{
+                          background: isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(56, 189, 248, 0.15)',
+                          border: isLight ? '1px solid rgba(2, 132, 199, 0.3)' : '1px solid rgba(56, 189, 248, 0.35)',
+                          color: isLight ? '#0284c7' : '#38bdf8',
+                          fontSize: '0.72rem',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: 700
+                        }}
+                      >
+                        ⚡ Tarik Semua (Max)
+                      </button>
+                    </div>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span style={{
+                        position: 'absolute',
+                        left: '12px',
+                        fontSize: '1rem',
+                        fontWeight: 900,
+                        color: isLight ? '#0284c7' : '#38bdf8'
+                      }}>
+                        Rp
+                      </span>
+                      <input
+                        type="number"
+                        min={10000}
+                        max={(Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)}
+                        value={withdrawAmount || ''}
+                        onChange={e => setWithdrawAmount(Math.max(0, Number(e.target.value)))}
+                        placeholder="Contoh: 100000"
+                        style={{
+                          width: '100%',
+                          padding: '11px 12px 11px 44px',
+                          fontSize: '1.05rem',
+                          fontWeight: 900,
+                          borderRadius: '10px',
+                          border: isLight ? '1px solid #94a3b8' : '1px solid rgba(56, 189, 248, 0.35)',
+                          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.9)',
+                          color: isLight ? '#0f172a' : '#ffffff',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    </div>
+
+                    {/* Quick Preset Buttons */}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                      {[50000, 100000, 200000].map(amt => {
+                        const totalAvail = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
+                        const isSelected = withdrawAmount === amt;
+                        return (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setWithdrawAmount(amt)}
+                            disabled={amt > totalAvail}
+                            style={{
+                              background: isSelected 
+                                ? (isLight ? '#0284c7' : '#38bdf8') 
+                                : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)'),
+                              color: isSelected 
+                                ? '#ffffff' 
+                                : (isLight ? '#334155' : '#cbd5e1'),
+                              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              fontSize: '0.72rem',
+                              cursor: amt > totalAvail ? 'not-allowed' : 'pointer',
+                              opacity: amt > totalAvail ? 0.4 : 1,
+                              fontWeight: 700
+                            }}
+                          >
+                            Rp {amt.toLocaleString('id-ID')}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
+                      <span>Min: <strong>Rp 10.000</strong></span>
+                      <span>Maks: <strong>Rp {((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)).toLocaleString('id-ID')}</strong></span>
+                    </div>
+                  </div>
+
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                       Bank Tujuan Transfer:
@@ -1712,18 +1833,27 @@ const Keuangan = ({ user }) => {
                     />
                   </div>
 
+                  {/* Ringkasan Penarikan Dana */}
                   <div style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column',
+                    gap: '6px',
                     background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
                     border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
                     fontSize: '0.76rem'
                   }}>
-                    <span style={{ color: isLight ? '#475569' : '#94a3b8' }}>Biaya Transfer Payout:</span>
-                    <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Bebas Biaya Admin TriPay)</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: isLight ? '#475569' : '#94a3b8' }}>Biaya Transfer Payout:</span>
+                      <span style={{ color: '#10b981', fontWeight: 700 }}>Rp 0 (Bebas Biaya Admin TriPay)</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
+                      <span style={{ color: isLight ? '#334155' : '#cbd5e1', fontWeight: 600 }}>Total Masuk ke Rekening:</span>
+                      <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 800, fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                        Rp {(Number(withdrawAmount) || 0).toLocaleString('id-ID')}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1745,7 +1875,11 @@ const Keuangan = ({ user }) => {
                   <button
                     type="button"
                     onClick={handleExecutePayout}
-                    disabled={payoutExecuting || ((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0)) <= 0}
+                    disabled={
+                      payoutExecuting || 
+                      (Number(withdrawAmount) || 0) < 10000 || 
+                      (Number(withdrawAmount) || 0) > ((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0))
+                    }
                     className="btn btn-primary"
                     style={{
                       flex: 2,
@@ -1759,7 +1893,8 @@ const Keuangan = ({ user }) => {
                       color: 'white',
                       border: 'none',
                       borderRadius: '10px',
-                      padding: '10px'
+                      padding: '10px',
+                      opacity: (payoutExecuting || (Number(withdrawAmount) || 0) < 10000 || (Number(withdrawAmount) || 0) > ((Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0))) ? 0.6 : 1
                     }}
                   >
                     Kirim Payout Real-Time (TriPay)
