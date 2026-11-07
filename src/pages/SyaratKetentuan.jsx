@@ -366,14 +366,43 @@ export default function SyaratKetentuan() {
           </ul>
         </section>
 
-        {/* Pasal 9: KEWAJIBAN PERPAJAKAN */}
+        {/* Pasal 9: KEWAJIBAN PERPAJAKAN & PELEPASAN PEMUNGUTAN PAJAK */}
         <section style={{ marginBottom: '2.5rem' }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#60a5fa', marginBottom: '0.75rem' }}>
-            Pasal 9: Kepatuhan Pajak Penghasilan Sewa (PPh Final Pasal 4 ayat 2)
-          </h2>
-          <p style={{ color: '#cbd5e1', fontSize: '0.92rem' }}>
-            Sesuai peraturan perpajakan yang berlaku di Indonesia, pemenuhan kewajiban perpajakan atas penerimaan sewa tanah dan/atau bangunan (PPh Final Pasal 4 ayat 2 sebesar 10%) merupakan <strong>tanggung jawab pribadi masing-masing Pemilik Kost</strong>. KostKu tidak bertindak sebagai wajib pungut pajak penghasilan atas sewa kamar milik mitra.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
+            <Scale size={20} color="#60a5fa" />
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#60a5fa', margin: 0 }}>
+              Pasal 9: Kebijakan Perpajakan, Pelepasan Pemungutan Pajak, & Pelaporan Mandiri
+            </h2>
+          </div>
+          <div style={{ color: '#cbd5e1', fontSize: '0.92rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ padding: '12px 16px', background: 'rgba(37, 99, 235, 0.1)', borderRadius: '12px', borderLeft: '3px solid #3b82f6' }}>
+              <strong style={{ color: '#93c5fd' }}>9.1. KostKu Tidak Memotong / Menarik Pajak (Bukan Pemungut Pajak):</strong>
+              <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
+                Platform KostKu beroperasi murni sebagai penyedia teknologi informasi dan sarana transaksi elektronik (PMSE/SaaS). <strong>KostKu TIDAK menarik, memotong, menahan, atau memungut pajak dalam bentuk apa pun</strong>—termasuk Pajak Pertambahan Nilai (PPN), Pajak Restoran / Makanan dan Minuman (PBJT), Pajak Penghasilan (PPh), maupun pajak daerah lainnya—baik dari transaksi sewa kamar maupun transaksi pembelian produk/layanan toko mitra. Seluruh dana transaksi disalurkan utuh kepada pihak penerima hak setelah dikurangi biaya platform operasional yang disepakati.
+              </p>
+            </div>
+
+            <div style={{ padding: '12px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', borderLeft: '3px solid #10b981' }}>
+              <strong style={{ color: '#6ee7b7' }}>9.2. Kewajiban Penyetoran & Pelaporan Mandiri Pemilik Kost (Owner):</strong>
+              <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
+                Seluruh pemenuhan kewajiban perpajakan atas penerimaan sewa kamar kost merupakan <strong>tanggung jawab pribadi dan mandiri masing-masing Pemilik Kost</strong>. Pemilik Kost wajib menghitung, melaporkan, dan menyetorkan kewajiban pajak penghasilannya secara mandiri kepada Direktorat Jenderal Pajak (KPP / Kantor Pajak Pratama) sesuai ketentuan hukum yang berlaku di Indonesia (seperti PPh Final UMKM 0,5% berdasarkan PP No. 55 Tahun 2022, PPh Final Pasal 4 ayat 2, atau ketentuan tarif PPh Badan/Orang Pribadi lainnya).
+              </p>
+            </div>
+
+            <div style={{ padding: '12px 16px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px', borderLeft: '3px solid #f59e0b' }}>
+              <strong style={{ color: '#fde68a' }}>9.3. Kewajiban Penyetoran & Pelaporan Mandiri Mitra Toko & Layanan (UMKM & Non-UMKM):</strong>
+              <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
+                Seluruh Mitra Toko, Warung Makan/Katering, Jasa Laundry, Depot Air Minum Galon, dan penyedia layanan komersial lainnya (baik berstatus skala mikro/UMKM maupun Non-UMKM / badan hukum ber-PKP) <strong>bertanggung jawab penuh secara mandiri</strong> untuk menghitung, memungut (apabila usahanya berstatus Pengusaha Kena Pajak atau wajib pungut PBJT Pemda), menyetorkan, serta melaporkan kewajiban perpajakannya kepada Kantor Pajak atau Badan Pendapatan Daerah (Bapenda) setempat.
+              </p>
+            </div>
+
+            <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '12px', borderLeft: '3px solid #ef4444' }}>
+              <strong style={{ color: '#fca5a5' }}>9.4. Pembebasan Tanggung Jawab Hukum Platform (Indemnifikasi):</strong>
+              <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
+                Pemilik Kost dan Mitra Usaha dengan ini membebaskan serta melepaskan KostKu, pengembang sistem, pemilik platform, dan afiliasinya dari segala bentuk tuntutan hukum, klaim penagihan pajak, sanksi administrasi, denda keterlambatan, atau pemeriksaan perpajakan yang diakibatkan oleh kelalaian, kegagalan, atau ketidakpatuhan Pemilik Kost atau Mitra Usaha dalam melaporkan atau membayarkan kewajiban perpajakan pribadinya kepada instansi pemerintah berwenang.
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* Pasal 10: FORCE MAJEURE (KEADAAN KAHAR) */}
