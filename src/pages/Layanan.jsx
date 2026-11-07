@@ -235,6 +235,25 @@ export default function Layanan({ user }) {
     setTimeout(() => setFriendReferralStatus(null), 3000);
   };
 
+  // Open modals with prefilled referral code
+  const handleOpenRegisterIndependent = () => {
+    setIndependentNotice(null);
+    setIndependentForm(prev => ({
+      ...prev,
+      referralCode: prev.referralCode || userRefCode
+    }));
+    setShowRegisterIndependentModal(true);
+  };
+
+  const handleOpenSuggestMerchant = () => {
+    setSuggestNotice(null);
+    setSuggestForm(prev => ({
+      ...prev,
+      referralCode: prev.referralCode || userRefCode
+    }));
+    setShowSuggestMerchantModal(true);
+  };
+
   // Submit Warung Suggestion
   const handleSuggestMerchantSubmit = async (e) => {
     e.preventDefault();
@@ -531,7 +550,7 @@ export default function Layanan({ user }) {
         borderRadius: '20px'
       }}>
         {/* Header Title & Badges */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h2 style={{
               margin: 0,
@@ -544,33 +563,72 @@ export default function Layanan({ user }) {
             }}>
               <Sparkles size={20} color="#60a5fa" /> Layanan Toko & Mitra Sekitar Kost
             </h2>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Bebas pilih toko langganan & bandingkan harga • Antar langsung ke pintu kamar
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Bebas pilih toko langganan & bandingkan harga • Antar langsung ke pintu kamar
+              </span>
+              <div style={{ display: 'inline-flex', gap: '6px' }}>
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(34, 197, 94, 0.12)',
+                  color: '#4ade80',
+                  fontWeight: 700,
+                  border: '1px solid rgba(34, 197, 94, 0.25)'
+                }}>
+                  💳 Non-Tunai / Tagihan
+                </span>
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  color: '#93c5fd',
+                  fontWeight: 700,
+                  border: '1px solid rgba(59, 130, 246, 0.25)'
+                }}>
+                  🏷️ Fee Max Rp 500
+                </span>
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{
-              fontSize: '0.68rem',
-              padding: '3px 8px',
-              borderRadius: '999px',
-              background: 'rgba(34, 197, 94, 0.12)',
-              color: '#4ade80',
-              fontWeight: 700,
-              border: '1px solid rgba(34, 197, 94, 0.25)'
-            }}>
-              💳 Non-Tunai / Tagihan
-            </span>
-            <span style={{
-              fontSize: '0.68rem',
-              padding: '3px 8px',
-              borderRadius: '999px',
-              background: 'rgba(59, 130, 246, 0.12)',
-              color: '#93c5fd',
-              fontWeight: 700,
-              border: '1px solid rgba(59, 130, 246, 0.25)'
-            }}>
-              🏷️ Fee Max Rp 500
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleOpenRegisterIndependent}
+              className="btn btn-primary"
+              style={{
+                padding: '8px 14px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderRadius: '10px',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
+              }}
+            >
+              <Plus size={16} />
+              <span>+ Daftarkan Mitra Baru</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenSuggestMerchant}
+              className="btn btn-secondary"
+              style={{
+                padding: '8px 12px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderRadius: '10px'
+              }}
+            >
+              <span>🍜</span>
+              <span>Usulkan Warung</span>
+            </button>
           </div>
         </div>
 
@@ -781,7 +839,7 @@ export default function Layanan({ user }) {
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
               type="button"
-              onClick={() => { setShowSuggestMerchantModal(true); setSuggestNotice(null); }}
+              onClick={handleOpenSuggestMerchant}
               style={{
                 background: isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(56, 189, 248, 0.15)',
                 border: isLight ? '1px solid #0284c7' : '1px solid #38bdf8',
@@ -800,7 +858,7 @@ export default function Layanan({ user }) {
             </button>
             <button
               type="button"
-              onClick={() => { setShowRegisterIndependentModal(true); setIndependentNotice(null); }}
+              onClick={handleOpenRegisterIndependent}
               style={{
                 background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
                 border: 'none',
@@ -976,7 +1034,7 @@ export default function Layanan({ user }) {
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    onClick={() => setShowRegisterIndependentModal(true)}
+                    onClick={handleOpenRegisterIndependent}
                     className="btn btn-primary"
                     style={{ fontSize: '0.82rem', padding: '9px 18px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
                   >
@@ -984,7 +1042,7 @@ export default function Layanan({ user }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowSuggestMerchantModal(true)}
+                    onClick={handleOpenSuggestMerchant}
                     className="btn btn-secondary"
                     style={{ fontSize: '0.82rem', padding: '9px 18px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
                   >

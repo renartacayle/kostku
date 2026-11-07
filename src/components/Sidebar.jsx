@@ -32,7 +32,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
     { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} />, roles: ['owner', 'master', 'staff'] },
     { path: '/keuangan', name: user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan & Laporan', icon: <DollarSign size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/mitra', name: user?.role === 'mitra' ? 'Portal Toko & Menu' : user?.role === 'user' ? 'Kemitraan & Toko' : 'Kelola Mitra Toko', icon: <Store size={20} />, roles: ['owner', 'master', 'staff', 'mitra', 'user'] },
+    { path: '/mitra', name: user?.role === 'mitra' ? 'Portal Toko & Menu' : 'Kelola Mitra Toko', icon: <Store size={20} />, roles: ['owner', 'master', 'staff', 'mitra'] },
     { path: '/karyawan', name: 'Pengaturan Karyawan', icon: <UserCheck size={20} />, roles: ['owner', 'master'] }
   ];
 
