@@ -294,7 +294,7 @@ export default function SyaratKetentuan() {
               <strong style={{ color: '#6ee7b7' }}>6.3. Penyaluran Dana Sewa (Payout / Settlement TriPay) & Akun Bank Mitra:</strong>
               <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
                 (a) Pembayaran sewa dari penyewa diproses secara terenkripsi melalui Payment Gateway TriPay dan dicatatkan pada saldo dompet digital sistem KostKu setelah dikurangi biaya transaksi (*MDR*) serta komisi layanan platform resmi.<br />
-                (b) Penarikan dana (*payout*) hanya dapat dikirimkan ke rekening bank resmi di Indonesia dengan nama pemilik rekening yang sesuai dengan data KTP terdaftar Mitra.<br />
+                (b) Penarikan dana (*payout*) hanya dapat dikirimkan ke rekening bank resmi di Indonesia dengan nama pemilik rekening yang sesuai dengan nama akun terdaftar Mitra.<br />
                 (c) Kesalahan pengetikan nomor rekening atau nama bank tujuan penarikan oleh Mitra sepenuhnya merupakan kelalaian pribadi Mitra dan di luar tanggung jawab KostKu.<br />
                 (d) <strong>Hak Penahanan Dana Sementara (Escrow Hold):</strong> KostKu berhak menahan pencairan dana sewa sementara apabila terdapat: laporan dugaan penipuan, sengketa aktif antara pemilik dan penyewa yang sedang dimediasi, indikasi transaksi mencurigakan, atau instruksi resmi dari aparat penegak hukum.
               </p>

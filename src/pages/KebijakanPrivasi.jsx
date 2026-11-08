@@ -117,7 +117,7 @@ export default function KebijakanPrivasi() {
             Kami hanya mengumpulkan data yang relevan dan dibutuhkan untuk menjalankan transaksi hunian serta operasional kost:
           </p>
           <ul style={{ color: '#cbd5e1', fontSize: '0.92rem', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <li><strong>Data Identitas Diri:</strong> Nama lengkap, alamat email aktif, nomor telepon/WhatsApp, dan informasi identitas pendukung (KTP/KTM) untuk verifikasi legalitas calon penghuni.</li>
+            <li><strong>Data Identitas Diri:</strong> Nama lengkap, alamat email aktif, dan nomor telepon/WhatsApp untuk keperluan konfirmasi reservasi hunian dan komunikasi layanan.</li>
             <li><strong>Data Transaksi Pembayaran:</strong> Riwayat tagihan sewa, nominal pembayaran, metode pembayaran yang dipilih (QRIS Dinamis, Virtual Account), status pembayaran (Pending/Paid), serta nomor seri kuitansi digital yang diterbitkan. Kami <em>tidak pernah</em> menyimpan nomor kartu debit, PIN, atau kredensial perbankan pribadi Anda.</li>
             <li><strong>Data Properti & Kamar (Bagi Pemilik):</strong> Nama kost, alamat lokasi, nomor rekening/e-wallet pencairan, daftar fasilitas, foto kamar asli, dan peraturan tata tertib kost.</li>
             <li><strong>Data Teknis:</strong> Alamat IP, jenis peramban (browser), informasi log aktivitas, dan data geolokasi GPS (hanya jika Anda secara eksplisit mengizinkan fitur "Gunakan Lokasi GPS Saya" untuk mencari kost terdekat).</li>

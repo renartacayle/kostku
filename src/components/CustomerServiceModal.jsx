@@ -85,7 +85,7 @@ const FAQ_DATA = [
       },
       {
         q: 'Kapan jam check-in dan serah terima kunci?',
-        a: 'Check-in dapat dilakukan mulai pukul 13.00 WIB pada hari pertama masa sewa. Staf kost akan menyambut Anda untuk verifikasi identitas (KTP) dan penyerahan kunci kamar / kartu akses.'
+        a: 'Check-in dapat dilakukan mulai pukul 13.00 WIB pada hari pertama masa sewa. Staf kost akan menyambut Anda untuk konfirmasi pemesanan dan penyerahan kunci kamar / kartu akses.'
       }
     ]
   },

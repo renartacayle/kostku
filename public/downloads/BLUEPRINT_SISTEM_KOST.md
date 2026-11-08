@@ -14,7 +14,7 @@
 
 Aplikasi ini menggunakan strategi **B2B2C** dengan pendekatan **Freemium SaaS Hook**:
 
-* **Manajemen Sewa Kamar (Gratis 0% Komisi):** Digunakan sebagai *hook* utama untuk mengunci Owner properti agar beralih dari pencatatan manual ke platform. Mewajibkan seluruh penghuni (Tenant) mendaftar serta mengunggah KTP saat Check-in untuk validasi identitas hukum.
+* **Manajemen Sewa Kamar (Gratis 0% Komisi):** Digunakan sebagai *hook* utama untuk mengunci Owner properti agar beralih dari pencatatan manual ke platform. Memfasilitasi pendaftaran penghuni (Tenant) secara ringkas dan verifikasi kontak WhatsApp saat Check-in tanpa formulir berbelit.
 * **Monetisasi Harian (Hyperlocal UMKM):** Mengambil Platform Fee tetap sebesar **Rp500/transaksi** dari pemenuhan kebutuhan harian penghuni (Galon, Makanan, Laundry, Token Listrik) yang dipasok oleh Mitra UMKM sekitar lingkungan properti.
 * **Pencairan Satu Pintu (Single-Node Settlement):** Seluruh perputaran dana (komisi Owner & uang titipan UMKM) dipusatkan pada **1 Dompet Terpadu (Unified Wallet)** milik Owner. Skema ini mengeliminasi beban biaya transfer bank ganda (multi-payout fees) dan memfasilitasi warung/mitra UMKM yang belum memiliki rekening bank (*unbanked*).
 
@@ -51,15 +51,15 @@ Sistem memiliki 4 role utama dengan kesiapan skalabilitas untuk tipe properti: *
 
 1. **`super_admin` (Platform Owner):**
    * Memantau seluruh metrik operasional dan rekapitulasi Platform Fee Rp500.
-   * Mengaudit kepatuhan KYC KTP dan mengawasi kesehatan transaksi global.
+   * Mengaudit kepatuhan akun pengguna dan mengawasi kesehatan transaksi global.
    * Memvalidasi dan memproses pencairan dana (*withdraw*) ke rekening bank Owner.
 2. **`owner` (Pemilik Kost/Properti):**
-   * Mengelola unit kamar, inventaris, dan memvalidasi keaslian data KTP penghuni.
+   * Mengelola unit kamar, inventaris, dan memvalidasi data kontak penghuni.
    * Mendaftarkan dan mengunci harga Mitra UMKM (*Price Lock*).
    * Mengatur *markup fee* komisi tambahan sesuai kebijakan pemilik.
    * Memantau saldo *Unified Wallet* (komisi bersih dan escrow mitra) serta mencairkan dana.
 3. **`tenant` (Penghuni Kost):**
-   * Melakukan proses *onboarding check-in* mandiri (input 16 digit NIK & unggah foto KTP).
+   * Melakukan proses *onboarding check-in* mandiri (input nama, nomor WhatsApp, & nomor kamar).
    * Menjelajahi katalog produk/jasa UMKM sekitar kos.
    * Melakukan transaksi pembayaran via QRIS dinamis atau Tunai (COD).
    * Mengumpulkan poin loyalitas dan memberikan rating ulasan kepada Mitra.
@@ -86,11 +86,10 @@ Menyimpan data akun seluruh entitas pengguna lintas peran (*cross-role identity*
   "property_id": "string (referensi ke collection properties)",
   "room_number": "string (khusus tenant, contoh: A01, B02)",
   "loyalty_points": "number (default: 0, khusus tenant)",
-  "kyc_data": {
-    "nik": "string (16 digit angka tervalidasi)",
-    "ktp_image_url": "string (path berkas di Firebase Storage)",
-    "verified_status": "pending | verified | rejected",
-    "rtrw_sync_status": "boolean (persiapan integrasi ekspor API RT/RW)"
+  "tenant_profile": {
+    "contact_verified": true,
+    "checkin_date": "timestamp",
+    "emergency_contact": "string (opsional)"
   },
   "created_at": "timestamp"
 }
@@ -188,31 +187,27 @@ Menyimpan transaksi pemesanan kebutuhan harian penghuni dari pembuatan hingga pe
 
 ## 4. STEP-BY-STEP IMPLEMENTASI FITUR (UNTUK WORKER & DEVELOPER)
 
-### TAHAP 1: Autentikasi, Upload KTP, & Firebase Security Rules
+### TAHAP 1: Autentikasi, Profil Kontak Penyewa, & Firebase Security Rules
 
 #### 1.1 Alur Registrasi & Check-in Tenant:
-* Saat tenant pertama kali masuk ke kamar kost, formulir onboarding mewajibkan pengisian:
-  * Nama Lengkap (sesuai KTP).
+* Saat tenant pertama kali masuk ke kamar kost, formulir onboarding memfasilitasi pengisian praktis:
+  * Nama Lengkap.
   * Nomor WhatsApp aktif.
   * Nomor Kamar yang dihuni.
-  * 16 Digit Nomor Induk Kependudukan (NIK).
-  * Unggah foto fisik KTP asli.
-* **Validasi NIK:**
-  * Wajib berupa 16 digit angka numerik murni.
-  * Regex pattern: `^[0-9]{16}$`.
+  * Kontak darurat (opsional).
 
-#### 1.2 Keamanan Data KTP (Storage & Firestore Security Rules):
-* Berkas foto KTP disimpan pada path terisolasi: `ktp_uploads/{property_id}/{tenant_uid}.jpg`.
-* Berkas KTP bersifat rahasia tingkat tinggi (*strictly confidential*). Hanya boleh dibaca oleh Tenant pemilik berkas dan Owner yang memiliki `property_id` terkait.
+#### 1.2 Keamanan Data Profil (Storage & Firestore Security Rules):
+* Data profil kontak disimpan pada path terisolasi: `users/{tenant_uid}`.
+* Data profil bersifat rahasia tingkat tinggi (*strictly confidential*). Hanya boleh dibaca oleh Tenant pemilik akun dan Owner yang memiliki `property_id` terkait.
 
 ```javascript
 rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /ktp_uploads/{propertyId}/{tenantUid}.jpg {
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{tenantUid} {
       allow read, write: if request.auth != null && 
         (request.auth.uid == tenantUid || 
-         firestore.get(/databases/(default)/documents/properties/$(propertyId)).data.owner_uid == request.auth.uid);
+         resource.data.property_id in request.auth.token.owned_properties);
     }
   }
 }
@@ -251,7 +246,7 @@ flowchart TD
 3. **Mekanisme Proteksi Overdraft Limit (-15000):**
    * Saldo Owner Rp0 atau minus **TIDAK BOLEH** memblokir pesanan penghuni secara sepihak!
    * Sistem mengizinkan saldo komisi menjadi minus hingga batas toleransi `overdraft_limit` (**-Rp15.000**), setara dengan kuota 30 pesanan COD talangan.
-   * **Sanksi Akhir Bulan:** Jika saldo masih minus saat rekapitulasi akhir bulan tiba, sistem mengunci sementara fitur cetak kuitansi sewa kamar dan blokir buka data KTP penghuni baru hingga Owner melunasi saldo minus via transfer/QRIS top-up.
+   * **Sanksi Akhir Bulan:** Jika saldo masih minus saat rekapitulasi akhir bulan tiba, sistem mengunci sementara fitur cetak kuitansi sewa kamar dan fitur onboarding kamar baru hingga Owner melunasi saldo minus via transfer/QRIS top-up.
 
 ---
 
@@ -282,7 +277,7 @@ Mekanisme pencairan terpadu untuk efisiensi biaya perbankan:
 ## 5. CHECKLIST HALAMAN UI
 
 ### A. Tenant (Anak Kost)
-* [x] **Onboarding & Check-in Modal:** Formulir input Nama, No WA, Nomor Kamar, validasi NIK 16 digit, dan upload KTP.
+* [x] **Onboarding & Check-in Modal:** Formulir input Nama, No WA, Nomor Kamar, dan konfirmasi reservasi hunian.
 * [x] **Home Dashboard:** Banner kost, katalog dinamis produk UMKM sekitar, saldo poin loyalitas, dan status kamar.
 * [x] **Katalog & Checkout Modal:** Pilihan jumlah pesanan, opsi metode bayar (QRIS Dinamis / Tunai COD), dan rincian biaya.
 * [x] **Tracking Order & SLA Timer:** Progress bar pengantaran real-time dan hitung mundur SLA.
@@ -290,7 +285,7 @@ Mekanisme pencairan terpadu untuk efisiensi biaya perbankan:
 
 ### B. Owner (Pemilik Kost)
 * [x] **Manajemen Kamar & Hunian:** Pemetaan nomor kamar, status terisi/kosong, dan daftar data penghuni.
-* [x] **Verifikasi KTP & Export RT/RW:** Pratinjau aman berkas KTP dan tombol 1-klik `[Export Data Wajib Lapor RT/RW]`.
+* [x] **Konfirmasi Kontak & Riwayat Sewa:** Pratinjau kontak penghuni dan catatan masa sewa kamar rapi.
 * [x] **Kemitraan UMKM & Price Lock:** Pendaftaran warung sekitar, penguncian harga dasar (`base_price`), dan pengaturan `owner_markup_fee`.
 * [x] **Unified Wallet Dashboard:** Tampilan grafik saldo komisi, saldo escrow mitra, histori mutasi QRIS/COD, indikator batas minus overdraft (-15.000), tombol `[Tarik Dana ke Rekening]`, dan tombol `[Tandai Sudah Disetor ke Mitra]`.
 

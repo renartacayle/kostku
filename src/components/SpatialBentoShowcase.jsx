@@ -99,9 +99,9 @@ export default function SpatialBentoShowcase() {
       badgeColor: '#818CF8',
       badgeBg: 'rgba(129, 140, 248, 0.15)',
       title: 'Sewa Langsung ke Pemilik Sah Tanpa Calo',
-      description: 'Semua pemilik kost wajib lolos verifikasi identitas fisik. Uang muka (DP) kamu terlindungi dengan garansi uang kembali jika kamar tidak sesuai.',
+      description: 'Semua properti kost terdaftar melalui konfirmasi kepemilikan dan kontak resmi. Uang muka (DP) kamu terlindungi dengan garansi uang kembali jika kamar tidak sesuai.',
       perks: [
-        '100% pemilik sah dan pengelola terverifikasi identitas resmi',
+        '100% pemilik sah dan pengelola terverifikasi langsung di lokasi',
         'Hubungi langsung via WhatsApp resmi tanpa perantara liar',
         'Bantuan mediasi customer support responsif 24 jam'
       ],
@@ -158,22 +158,22 @@ export default function SpatialBentoShowcase() {
     },
     {
       id: 'penyewa-terverifikasi',
-      badge: '🔒 SCREENING PENYEWA AMAN',
+      badge: '✨ DATA PENYEWA TERTIB & AMAN',
       badgeColor: '#818CF8',
       badgeBg: 'rgba(129, 140, 248, 0.15)',
-      title: 'Penyewa Terverifikasi Resmi, Kost Lebih Aman & Tertib',
-      description: 'Hindari penyewa bermasalah atau fiktif. Setiap calon penghuni melalui proses validasi identitas resmi sehingga lingkungan kost Anda tetap aman dan kondusif.',
+      title: 'Data Kontak Tertib, Komunikasi Penghuni Lancar & Nyaman',
+      description: 'Hindari kontak palsu atau reservasi fiktif. Profil penyewa terhubung dengan nomor WhatsApp aktif sehingga komunikasi sewa dan konfirmasi kamar selalu transparan.',
       perks: [
-        'Penyimpanan arsip identitas penyewa terenkripsi aman',
-        'Pemberlakuan peraturan kost digital yang mengikat',
-        'Riwayat masa sewa & catatan kedisiplinan penghuni'
+        'Penyimpanan kontak dan riwayat sewa tersusun rapi',
+        'Pemberlakuan peraturan tata tertib kost digital yang jelas',
+        'Riwayat masa sewa & perpanjangan kamar otomatis'
       ],
       statNumber: '99.9%',
-      statLabel: 'Bebas Masalah & Kondusif',
-      ctaText: 'Dapatkan Penyewa Berkualitas →',
+      statLabel: 'Komunikasi Lancar & Tertib',
+      ctaText: 'Kelola Penyewa Praktis →',
       ctaLink: '/register?role=owner',
-      floatingBadge: '🔒 Verifikasi Identitas Sah',
-      floatingIcon: '🔒',
+      floatingBadge: '✨ Profil Penyewa Rapi & Jelas',
+      floatingIcon: '✨',
       image: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1000&auto=format&fit=crop&q=80'
     },
     {

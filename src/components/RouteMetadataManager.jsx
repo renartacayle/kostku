@@ -78,7 +78,7 @@ const ROUTE_SEO = {
   },
   '/penghuni': {
     title: 'Data Penghuni & Manajemen Kamar - KostKu',
-    description: 'Kelola database penyewa kost, durasi sewa, tanggal jatuh tempo, dan dokumen verifikasi KTP secara aman.',
+    description: 'Kelola database penyewa kost, durasi sewa, tanggal jatuh tempo, dan kontak profil penyewa secara aman.',
     canonical: 'https://kostku.riuph.me/penghuni'
   },
   '/keuangan': {

@@ -118,10 +118,10 @@ const DEMO_ACCOUNTS = [
     email: 'calon@kostku.id',
     password: 'password123',
     targetKost: 'Belum Terikat Kost (Eksplorasi Pencarian Bebas)',
-    desc: 'Simulasi calon penghuni baru: cari kost radius kampus, filter fasilitas/tipe, hitung sewa, upload e-KTP KYC, dan ajukan sewa kamar online.',
+    desc: 'Simulasi calon penghuni baru: cari kost radius kampus, filter fasilitas/tipe, hitung sewa, isi data penyewa, dan ajukan sewa kamar online.',
     features: [
       '🔍 Jelajah Kost & Filter Kampus Terdekat',
-      '📋 Form Pengajuan Sewa & Verifikasi KYC',
+      '📋 Form Pengajuan Sewa & Konfirmasi Kamar',
       '✍️ Tanda Tangan E-Kontrak Digital',
       '💳 Simulasi Pembayaran Uang Muka / Booking'
     ]
