@@ -140,7 +140,7 @@ export default function SearchKost({ user }) {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get('q') || searchParams.get('search') || '';
   const initialCity = searchParams.get('city') || 'all';
   const initialType = searchParams.get('type') || 'all';
@@ -162,6 +162,18 @@ export default function SearchKost({ user }) {
   const [previewLayoutKost, setPreviewLayoutKost] = useState(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [showAddKostModal, setShowAddKostModal] = useState(false);
+
+  // Automatically open TambahKostModal if redirected from login with action=add-kost
+  useEffect(() => {
+    if (searchParams.get('action') === 'add-kost') {
+      if (user) {
+        setShowAddKostModal(true);
+      }
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('action');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, user]);
 
   // Geolocation & Distance State
   const [userLocation, setUserLocation] = useState(null); // { lat, lng, label, isGps: boolean }
@@ -1074,7 +1086,13 @@ export default function SearchKost({ user }) {
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => setShowAddKostModal(true)}
+                onClick={() => {
+                  if (!user) {
+                    navigate('/login?redirect=search&action=add-kost&role=owner');
+                  } else {
+                    setShowAddKostModal(true);
+                  }
+                }}
                 className="btn btn-primary"
                 style={{
                   padding: '11px 22px',

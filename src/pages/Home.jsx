@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
   MapPin, 
@@ -21,6 +21,7 @@ import {
   Filter, 
   SlidersHorizontal,
   PlusCircle,
+  Plus,
   Play,
   Pause,
   Zap,
@@ -39,6 +40,7 @@ import VideoScroll from '../components/VideoScroll';
 import InstallModal from '../components/InstallModal';
 import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
 import KostFilterModal from '../components/KostFilterModal';
+import TambahKostModal from '../components/TambahKostModal';
 import Footer from '../components/Footer';
 import { TactileButton } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
@@ -454,11 +456,26 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
 // 2. MAIN HOME COMPONENT (SEARCH-FIRST MARKETPLACE ARCHITECTURE)
 // ═══════════════════════════════════════════════════════════════════
 export default function Home({ user }) {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { theme, toggleTheme, isLight } = useTheme();
   const [kosts, setKosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
+  const [showAddKostModal, setShowAddKostModal] = useState(false);
+
+  // Automatically open TambahKostModal if redirected from login with action=add-kost
+  useEffect(() => {
+    if (searchParams.get('action') === 'add-kost') {
+      if (user) {
+        setShowAddKostModal(true);
+      }
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('action');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, user]);
 
   // Search & Filter Multivariable States
   const [searchLocation, setSearchLocation] = useState('');
@@ -907,14 +924,21 @@ export default function Home({ user }) {
             <span>Cari Kost</span>
           </Link>
 
-          <Link
-            to="/register?role=owner"
+          <button
+            type="button"
+            onClick={() => {
+              if (!user) {
+                navigate('/login?redirect=home&action=add-kost&role=owner');
+              } else {
+                setShowAddKostModal(true);
+              }
+            }}
             className="btn btn-secondary btn-sm desktop-only"
-            style={{ gap: '6px' }}
+            style={{ gap: '6px', cursor: 'pointer' }}
           >
             <PlusCircle size={14} color="#60a5fa" />
             <span>Pasang Kost</span>
-          </Link>
+          </button>
 
           {user ? (
             <Link to="/dashboard" className="btn btn-primary btn-sm" style={{ gap: '6px' }}>
@@ -1702,13 +1726,34 @@ export default function Home({ user }) {
               Punya properti hunian di area ini atau ingin mendaftarkan kamar kost Anda secara gratis? Daftarkan properti Anda sekarang agar langsung dilihat oleh ribuan mahasiswa & pencari kost!
             </p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <Link
-                to="/search"
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user) {
+                    navigate('/login?redirect=home&action=add-kost&role=owner');
+                  } else {
+                    setShowAddKostModal(true);
+                  }
+                }}
                 className="btn btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '11px 22px',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                  boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)',
+                  color: '#ffffff'
+                }}
               >
-                <span>➕ Tambah / Cari Kost di Marketplace</span>
-              </Link>
+                <Plus size={16} />
+                <span>Tambah Properti Kost Baru</span>
+              </button>
               <button
                 type="button"
                 onClick={resetAllFilters}
@@ -1947,6 +1992,18 @@ export default function Home({ user }) {
         totalResults={filtered.length}
         onResetAll={resetAllFilters}
         activeFilterCount={activeFilterCount}
+      />
+
+      {/* Tambah / Daftarkan Kost Baru Modal */}
+      <TambahKostModal
+        isOpen={showAddKostModal}
+        onClose={() => setShowAddKostModal(false)}
+        initialCity={searchLocation || (selectedCity !== 'all' ? selectedCity : 'Semarang')}
+        user={user}
+        onKostAdded={(newKost) => {
+          setKosts(prev => [newKost, ...prev]);
+          setShowAddKostModal(false);
+        }}
       />
     </div>
   );

@@ -210,6 +210,21 @@ export default function Login({ onLogin }) {
     }
   }, [googleClientId]);
 
+  // Helper to determine destination path based on redirect & action URL query params
+  const getDestinationPath = (userData) => {
+    const searchParams = new URLSearchParams(location.search);
+    const redirect = searchParams.get('redirect');
+    const action = searchParams.get('action');
+
+    if (redirect === 'home' || redirect === '/') {
+      return action ? `/?action=${action}` : '/';
+    }
+    if (redirect === 'search') {
+      return action ? `/search?action=${action}` : '/search';
+    }
+    return userData?.role === 'mitra' ? '/mitra' : '/dashboard';
+  };
+
   // Success handler for Google auth flow
   const handleSuccessfulGoogleLogin = (data) => {
     if (data.kostName) {
@@ -227,8 +242,7 @@ export default function Login({ onLogin }) {
     // Ensure kostUser is in localStorage synchronously BEFORE onLogin and navigate
     localStorage.setItem('kostUser', JSON.stringify(data.user));
     onLogin(data.user, data.kostName);
-    const targetPath = data.user?.role === 'mitra' ? '/mitra' : '/dashboard';
-    navigate(targetPath, { replace: true });
+    navigate(getDestinationPath(data.user), { replace: true });
   };
 
   // Handler for successful account recovery
@@ -239,8 +253,7 @@ export default function Login({ onLogin }) {
     localStorage.setItem('kostUser', JSON.stringify(userData));
     setShowRecoveryModal(false);
     onLogin(userData, customKostName);
-    const targetPath = userData?.role === 'mitra' ? '/mitra' : '/dashboard';
-    navigate(targetPath, { replace: true });
+    navigate(getDestinationPath(userData), { replace: true });
   };
 
   const handleCopyText = (text, key) => {
@@ -279,8 +292,7 @@ export default function Login({ onLogin }) {
       }
       localStorage.setItem('kostUser', JSON.stringify(data.user));
       onLogin(data.user, data.kostName);
-      const targetPath = data.user?.role === 'mitra' ? '/mitra' : '/dashboard';
-      navigate(targetPath, { replace: true });
+      navigate(getDestinationPath(data.user), { replace: true });
     } catch (err) {
       setError(err.message || 'Login gagal. Periksa kembali email/nama dan password Anda.');
     } finally {
@@ -404,6 +416,27 @@ export default function Login({ onLogin }) {
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.75rem' }}>
               Platform Manajemen & Marketplace Kost Terverifikasi
             </p>
+
+            {new URLSearchParams(location.search).get('action') === 'add-kost' && (
+              <div style={{
+                background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.18)',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                color: isLight ? '#1d4ed8' : '#93c5fd',
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                marginBottom: '1.25rem',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                lineHeight: 1.4
+              }}>
+                <Sparkles size={18} style={{ flexShrink: 0 }} />
+                <span>
+                  <strong>Akses Tambah Kost:</strong> Silakan masuk terlebih dahulu. Setelah berhasil masuk, Anda akan langsung diarahkan untuk mendaftarkan properti kost baru Anda!
+                </span>
+              </div>
+            )}
 
             {error && (
               <div style={{
