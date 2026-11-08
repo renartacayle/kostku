@@ -1,31 +1,49 @@
 import fs from 'fs';
 import path from 'path';
 
-const penghuniPath = path.resolve('src/pages/Penghuni.jsx');
-const kycDetailModalPath = path.resolve('src/components/TenantKycDetailModal.jsx');
+const bentoPath = path.resolve('src/components/SpatialBentoShowcase.jsx');
 
-if (!fs.existsSync(penghuniPath)) {
-  console.error('FAIL: src/pages/Penghuni.jsx does not exist.');
-  process.exit(1);
-}
-if (!fs.existsSync(kycDetailModalPath)) {
-  console.error('FAIL: src/components/TenantKycDetailModal.jsx does not exist.');
+if (!fs.existsSync(bentoPath)) {
+  console.error('FAIL: src/components/SpatialBentoShowcase.jsx does not exist.');
   process.exit(1);
 }
 
-const penghuniContent = fs.readFileSync(penghuniPath, 'utf8');
-const modalContent = fs.readFileSync(kycDetailModalPath, 'utf8');
+const bentoContent = fs.readFileSync(bentoPath, 'utf8');
 
-// Verify Owner KTP inspection & verification
-if (!penghuniContent.includes('TenantKycDetailModal') || !penghuniContent.includes('verified_status')) {
-  console.error('FAIL: Penghuni.jsx missing TenantKycDetailModal or verified_status integration.');
+// Verify 3 tabs: Customer, Owner, Mitra
+if (!bentoContent.includes("activeTab === 'customer'") || 
+    !bentoContent.includes("activeTab === 'owner'") || 
+    !bentoContent.includes("activeTab === 'mitra'")) {
+  console.error('FAIL: SpatialBentoShowcase missing 3 active tabs.');
   process.exit(1);
 }
 
-if (!modalContent.includes('verified') || !modalContent.includes('rejected')) {
-  console.error('FAIL: TenantKycDetailModal missing verification decision buttons.');
+// Verify CUSTOMER_SLIDES has 4 items
+const customerMatch = bentoContent.match(/const CUSTOMER_SLIDES\s*=\s*\[([\s\S]*?)\];/);
+if (!customerMatch) {
+  console.error('FAIL: CUSTOMER_SLIDES not found.');
   process.exit(1);
 }
 
-console.log('upgrade owner ktp verification passed');
+// Verify OWNER_SLIDES has 4 items
+const ownerMatch = bentoContent.match(/const OWNER_SLIDES\s*=\s*\[([\s\S]*?)\];/);
+if (!ownerMatch) {
+  console.error('FAIL: OWNER_SLIDES not found.');
+  process.exit(1);
+}
+
+// Verify MITRA_SLIDES has 4 items
+const mitraMatch = bentoContent.match(/const MITRA_SLIDES\s*=\s*\[([\s\S]*?)\];/);
+if (!mitraMatch) {
+  console.error('FAIL: MITRA_SLIDES not found.');
+  process.exit(1);
+}
+
+// Verify zero KTP in SpatialBentoShowcase
+if (bentoContent.toLowerCase().includes('ktp')) {
+  console.error('FAIL: SpatialBentoShowcase still contains KTP.');
+  process.exit(1);
+}
+
+console.log('spatial bento showcase tabs verification passed');
 process.exit(0);

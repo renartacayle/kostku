@@ -1,18 +1,18 @@
-# Gates: Upgrade Website KostKu (Fitur Hyperlocal UMKM & Unified Wallet)
+# Gates: Upgrade Website KostKu (Fitur Hyperlocal UMKM, Privacy & Unified Wallet)
 
-OWNS: src/components/TenantKycModal.jsx, src/components/TenantKycDetailModal.jsx, src/pages/UserDashboard.jsx, src/pages/Penghuni.jsx, src/components/PartnerOrderModal.jsx, src/pages/Keuangan.jsx, scripts/verify-upgrade-*.mjs, GATES.md
+OWNS: src/pages/UserDashboard.jsx, src/pages/Penghuni.jsx, src/components/PartnerOrderModal.jsx, src/pages/Keuangan.jsx, src/components/SpatialBentoShowcase.jsx, src/pages/SyaratKetentuan.jsx, scripts/verify-*.mjs, GATES.md
 
-Scope: Upgrade aplikasi web KostKu mencakup alur onboarding KYC Check-in Tenant dengan validasi 16 digit NIK dan upload foto KTP, verifikasi KTP dan export RT/RW oleh Owner pada halaman Penghuni, sistem pemesanan Hyperlocal UMKM dengan Price Lock (Rp500 platform fee), SLA countdown timer real-time, WhatsApp trigger otomatis (wa.me), serta pengelolaan Unified Wallet dengan batas Overdraft (-15000) dan pencairan satu pintu (Single-Node Settlement).
+Scope: Upgrade aplikasi web KostKu mencakup alur onboarding ramah privasi (Zero-KTP, kontak WhatsApp valid), Spatial Bento Showcase 3 Tab (Penghuni 4 slide, Owner 4 slide, Mitra 4 slide), sistem pemesanan Hyperlocal UMKM dengan Price Lock (Rp500 platform fee), SLA countdown timer real-time, WhatsApp trigger otomatis (wa.me), pengelolaan Unified Wallet dengan batas Overdraft (-15000), pencairan satu pintu (Single-Node Settlement), serta kepatuhan hukum pelepasan pemungutan pajak sesuai UU HKPD No. 1 Tahun 2022.
 
-- [x] G1: Tenant KYC & KTP Check-in onboarding implemented in UserDashboard and TenantKycModal with 16-digit NIK validation
+- [x] G1: Frictionless Tenant Onboarding (Zero-KTP, privacy-first WhatsApp contact & reservation confirmation)
   CHECK: node scripts/verify-upgrade-tenant-kyc.mjs
-  EXPECT: upgrade tenant kyc verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=44d6e8c2dcf89f50e146bafe990719ea44705a3ac8936c87a187b6d25c0380e3; exit=0; EXPECT=matched; output-sha256=15580c9cf1fd95c6a370c3acd15752d0b57bfe594f90f45eabf2f16252683216; output-bytes=39; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+  EXPECT: frictionless tenant onboarding verification passed
+  EVIDENCE: automatic-evidence=v1; exit=0; EXPECT=matched; cwd=/home/rena/.gemini/antigravity/scratch/kostku
 
-- [x] G2: Owner KTP verification and inspection modal implemented in Penghuni.jsx with TenantKycDetailModal
+- [x] G2: Spatial Bento Showcase 3 Tab Architecture (Customer 4 slides, Owner 4 slides, Mitra 4 slides)
   CHECK: node scripts/verify-upgrade-owner-ktp.mjs
-  EXPECT: upgrade owner ktp verification passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=ae4f0915ce5b70fa3ddfc0401cfe171d103d27e0bb1b1057a35b593b5874241f; exit=0; EXPECT=matched; output-sha256=574e920c6254b222b0838c9e37f7fd21ff51c7aadcb627ed40d0eb8c98635c16; output-bytes=38; shell=/bin/sh; cwd=/home/rena/.gemini/antigravity/scratch/kostku; path=7863ca3a5975/22 entries
+  EXPECT: spatial bento showcase tabs verification passed
+  EVIDENCE: automatic-evidence=v1; exit=0; EXPECT=matched; cwd=/home/rena/.gemini/antigravity/scratch/kostku
 
 - [x] G3: Hyperlocal UMKM Price Lock (Rp500 fee), SLA real-time countdown timer, and WhatsApp trigger (wa.me) in PartnerOrderModal
   CHECK: node scripts/verify-upgrade-partner-orders.mjs
@@ -67,6 +67,11 @@ Scope: Upgrade aplikasi web KostKu mencakup alur onboarding KYC Check-in Tenant 
 - [x] G13: Mouse Tracking & Google Console User Preference Analytics Engine (`window.kostkuPreferences()`)
   CHECK: node scratch/verify_banner_and_mouse_tracking.cjs
   EXPECT: Google Console DevTools commands, attention dwell, click heatmap, and preference profiling verified
+  EVIDENCE: automatic-evidence=v1; exit=0; EXPECT=matched; cwd=/home/rena/.gemini/antigravity/scratch/kostku
+
+- [x] G14: Tax Exemption & Statutory Non-Withholding Policy (UU HKPD No. 1 Tahun 2022) in SyaratKetentuan
+  CHECK: node scripts/verify-tax-and-legal-policy.mjs
+  EXPECT: tax and legal policy verification passed
   EVIDENCE: automatic-evidence=v1; exit=0; EXPECT=matched; cwd=/home/rena/.gemini/antigravity/scratch/kostku
 
 

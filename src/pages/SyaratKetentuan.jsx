@@ -378,7 +378,7 @@ export default function SyaratKetentuan() {
             <div style={{ padding: '12px 16px', background: 'rgba(37, 99, 235, 0.1)', borderRadius: '12px', borderLeft: '3px solid #3b82f6' }}>
               <strong style={{ color: '#93c5fd' }}>9.1. KostKu Tidak Memotong / Menarik Pajak (Bukan Pemungut Pajak):</strong>
               <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
-                Platform KostKu beroperasi murni sebagai penyedia teknologi informasi dan sarana transaksi elektronik (PMSE/SaaS). <strong>KostKu TIDAK menarik, memotong, menahan, atau memungut pajak dalam bentuk apa pun</strong>—termasuk Pajak Pertambahan Nilai (PPN), Pajak Restoran / Makanan dan Minuman (PBJT), Pajak Penghasilan (PPh), maupun pajak daerah lainnya—baik dari transaksi sewa kamar maupun transaksi pembelian produk/layanan toko mitra. Seluruh dana transaksi disalurkan utuh kepada pihak penerima hak setelah dikurangi biaya platform operasional yang disepakati.
+                Platform KostKu beroperasi murni sebagai penyedia teknologi informasi dan sarana transaksi elektronik (PMSE/SaaS). Sesuai ketentuan hukum perpajakan dan UU HKPD No. 1 Tahun 2022 (tentang Hubungan Keuangan antara Pemerintah Pusat dan Pemerintahan Daerah), <strong>KostKu TIDAK menarik, memotong, menahan, atau memungut pajak dalam bentuk apa pun</strong>—termasuk Pajak Pertambahan Nilai (PPN), Pajak Barang dan Jasa Tertentu (PBJT Restoran/Makanan & Minuman), Pajak Penghasilan (PPh), maupun retribusi daerah lainnya—baik dari transaksi sewa kamar maupun transaksi pembelian produk/layanan toko mitra. Seluruh dana transaksi disalurkan utuh kepada pihak penerima hak setelah dikurangi biaya platform operasional yang disepakati.
               </p>
             </div>
 

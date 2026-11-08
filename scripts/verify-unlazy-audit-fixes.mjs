@@ -37,10 +37,10 @@ console.log('\n--- 2. FRONTEND CODE-SPLITTING & SUSPENSE ---');
 const appJsxPath = path.join(rootDir, 'src/App.jsx');
 const appJsxContent = fs.readFileSync(appJsxPath, 'utf8');
 assert(appJsxContent.includes('import React, { useState, useEffect, Suspense, lazy }'), 'App.jsx: Suspense & lazy imported');
-assert(appJsxContent.includes('const Dashboard = lazy('), 'App.jsx: Dashboard route is lazy loaded');
-assert(appJsxContent.includes('const Mitra = lazy('), 'App.jsx: Mitra route is lazy loaded');
-assert(appJsxContent.includes('const Checkout = lazy('), 'App.jsx: Checkout route is lazy loaded');
-assert(appJsxContent.includes('const Keuangan = lazy('), 'App.jsx: Keuangan route is lazy loaded');
+assert(appJsxContent.includes('const Dashboard = lazyRetry(') || appJsxContent.includes('const Dashboard = lazy('), 'App.jsx: Dashboard route is lazy loaded');
+assert(appJsxContent.includes('const Mitra = lazyRetry(') || appJsxContent.includes('const Mitra = lazy('), 'App.jsx: Mitra route is lazy loaded');
+assert(appJsxContent.includes('const Checkout = lazyRetry(') || appJsxContent.includes('const Checkout = lazy('), 'App.jsx: Checkout route is lazy loaded');
+assert(appJsxContent.includes('const Keuangan = lazyRetry(') || appJsxContent.includes('const Keuangan = lazy('), 'App.jsx: Keuangan route is lazy loaded');
 assert(appJsxContent.includes('<Suspense fallback={<PageLoadingFallback'), 'App.jsx: Routes wrapped in Suspense with fallback');
 
 // ── TEST 3: Vite Build & Manual Chunks ──
