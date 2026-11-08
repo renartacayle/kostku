@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Building2, 
+  Store,
   ChevronLeft, 
   ChevronRight, 
   CheckCircle2, 
@@ -197,7 +198,94 @@ export default function SpatialBentoShowcase() {
     }
   ];
 
-  const slides = activeTab === 'customer' ? CUSTOMER_SLIDES : OWNER_SLIDES;
+  const MITRA_SLIDES = [
+    {
+      id: 'pasar-hyperlocal',
+      badge: '🏪 PASAR TETAP HYPERLOCAL',
+      badgeColor: '#F59E0B',
+      badgeBg: 'rgba(245, 158, 11, 0.15)',
+      title: 'Pasar Pasti Ratusan Penghuni Kost di Radius Dekat',
+      description: 'Usaha warung makan, laundry kiloan, atau depot galon Anda langsung terhubung ke ratusan anak kost di sekeliling hunian tanpa perlu sewa ruko baru.',
+      perks: [
+        'Radius hyperlocal 50–500 meter langsung menjangkau anak kost aktif',
+        'Pesanan rutin kebutuhan pokok harian (makan, minum, cuci baju)',
+        'Etalase menu & layanan resmi tampil langsung di aplikasi penghuni'
+      ],
+      statNumber: '100%',
+      statLabel: 'Pasar Rutin Harian',
+      ctaText: 'Daftarkan Toko Mitra Gratis →',
+      ctaLink: '/mitra',
+      floatingBadge: '🏪 Captive Market Kost',
+      floatingIcon: '🏪',
+      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'bebas-komisi-20',
+      badge: '💸 TANPA POTONGAN BESAR',
+      badgeColor: '#10B981',
+      badgeBg: 'rgba(16, 185, 129, 0.15)',
+      title: 'Margin Penuh Milik Mitra, Tanpa Potongan Ojol 20%',
+      description: 'Beda dengan platform pesan antar lain yang memotong 20% keuntungan Anda. Di KostKu harga jual tetap harga asli warung dan keuntungan 100% milik Anda.',
+      perks: [
+        'Bebas potongan komisi 20% yang membebani keuntungan pedagang kecil',
+        'Platform fee super mikro (maks. Rp 500 flat per transaksi pesanan)',
+        'Harga menu sama dengan harga offline, pelanggan kost jauh lebih loyal'
+      ],
+      statNumber: '0%',
+      statLabel: 'Potongan Komisi Ojol',
+      ctaText: 'Mulai Jualan di KostKu →',
+      ctaLink: '/mitra',
+      floatingBadge: '✓ Margin Bersih 100%',
+      floatingIcon: '💰',
+      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'qris-dan-kasir',
+      badge: '💳 KASIR & QRIS OTOMATIS',
+      badgeColor: '#38BDF8',
+      badgeBg: 'rgba(56, 189, 248, 0.15)',
+      title: 'Terima QRIS Otomatis & Tarik Saldo Fleksibel',
+      description: 'Anak kost bayar instan via Dynamic QRIS berlisensi Bank Indonesia (TriPay). Saldo tercatat otomatis tanpa repot uang kembalian dan bisa ditarik kapan saja ke rekening atau e-wallet.',
+      perks: [
+        'Bebas risiko uang palsu dan tidak pusing mencari uang receh kembalian',
+        'Pencairan dana fleksibel ke BCA, BRI, Mandiri, DANA, OVO, GoPay via TriPay',
+        'Rekap transaksi harian dan laporan mutasi saldo tersusun rapi otomatis'
+      ],
+      statNumber: 'Instan',
+      statLabel: 'Pencairan Saldo Fleksibel',
+      ctaText: 'Lihat Integrasi QRIS Mitra →',
+      ctaLink: '/mitra',
+      floatingBadge: '⚡ QRIS Resmi Bank Indonesia',
+      floatingIcon: '⚡',
+      image: 'https://images.unsplash.com/photo-1556742049-0a67e557224f?w=1000&auto=format&fit=crop&q=80'
+    },
+    {
+      id: 'referral-loyalty',
+      badge: '🎁 REFERRAL & LOYALTY WARUNG',
+      badgeColor: '#8B5CF6',
+      badgeBg: 'rgba(139, 92, 246, 0.15)',
+      title: 'Dipromosikan Langsung oleh Anak Kost & Pengelola',
+      description: 'Penghuni kost mendapatkan bonus +500 Poin loyalty saat merekomendasikan warung langganan mereka, menciptakan promosi getok tular organik antar mahasiswa sekampus.',
+      perks: [
+        'Program referral aktif: anak kost mengajak teman-teman kos belanja di warung Anda',
+        'Rekomendasi langsung dari pemilik kost kepada seluruh penyewa baru',
+        'Fitur pesan ulang kilat (1-click reorder) untuk pelanggan langganan setia'
+      ],
+      statNumber: '+500',
+      statLabel: 'Poin Loyalty Referral',
+      ctaText: 'Gabung Jaringan Mitra Sekarang →',
+      ctaLink: '/mitra',
+      floatingBadge: '🎁 Bonus Referral Komunitas',
+      floatingIcon: '🎁',
+      image: 'https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=1000&auto=format&fit=crop&q=80'
+    }
+  ];
+
+  const slides = activeTab === 'customer' 
+    ? CUSTOMER_SLIDES 
+    : activeTab === 'owner' 
+      ? OWNER_SLIDES 
+      : MITRA_SLIDES;
   const currentItem = slides[currentSlide] || slides[0];
 
   // Auto-scroll Timer: advances slide every 5 seconds unless paused
@@ -284,7 +372,9 @@ export default function SpatialBentoShowcase() {
         height: '500px',
         background: activeTab === 'customer' 
           ? 'radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%)'
-          : 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)',
+          : activeTab === 'owner'
+            ? 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)'
+            : 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%)',
         pointerEvents: 'none',
         transition: 'all 0.5s ease',
         zIndex: 0
@@ -293,7 +383,7 @@ export default function SpatialBentoShowcase() {
       <div style={{ position: 'relative', zIndex: 1, maxWidth: '1160px', margin: '0 auto' }}>
         
         {/* ═══════════════════════════════════════════════════════════════════
-            TOP BAR: AUDIENCE SEGMENTED TAB SWITCHER (CUSTOMER VS OWNER)
+            TOP BAR: AUDIENCE SEGMENTED TAB SWITCHER (CUSTOMER, OWNER, MITRA)
             ═══════════════════════════════════════════════════════════════════ */}
         <div className="spatial-bento-header-wrapper" style={{
           display: 'flex',
@@ -330,14 +420,22 @@ export default function SpatialBentoShowcase() {
             color: isLight ? '#0f172a' : '#FFFFFF'
           }}>
             Fitur Cerdas untuk{' '}
-            <span style={{ color: activeTab === 'customer' ? (isLight ? '#0284c7' : '#38BDF8') : (isLight ? '#059669' : '#34D399') }}>
-              {activeTab === 'customer' ? 'Pencari Kost' : 'Pemilik Kost'}
+            <span style={{ 
+              color: activeTab === 'customer' 
+                ? (isLight ? '#0284c7' : '#38BDF8') 
+                : activeTab === 'owner' 
+                  ? (isLight ? '#059669' : '#34D399') 
+                  : (isLight ? '#d97706' : '#F59E0B') 
+            }}>
+              {activeTab === 'customer' ? 'Pencari Kost' : activeTab === 'owner' ? 'Pemilik Kost' : 'Mitra Toko & Warung'}
             </span>
           </h2>
 
           {/* Interactive Toggle Switcher */}
           <div className="spatial-bento-tabs-container" style={{
             display: 'inline-flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
             background: isLight ? '#e2e8f0' : 'rgba(15, 23, 42, 0.85)',
             border: isLight ? '1px solid rgba(15, 23, 42, 0.08)' : '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '100px',
@@ -354,7 +452,7 @@ export default function SpatialBentoShowcase() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '9px 20px',
+                padding: '9px 18px',
                 borderRadius: '100px',
                 border: 'none',
                 background: activeTab === 'customer' ? '#2563EB' : 'transparent',
@@ -379,7 +477,7 @@ export default function SpatialBentoShowcase() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '9px 20px',
+                padding: '9px 18px',
                 borderRadius: '100px',
                 border: 'none',
                 background: activeTab === 'owner' ? '#059669' : 'transparent',
@@ -393,6 +491,31 @@ export default function SpatialBentoShowcase() {
             >
               <Building2 size={16} />
               <span>Untuk Pemilik Kost</span>
+            </button>
+
+            {/* Tab Mitra */}
+            <button
+              type="button"
+              className="spatial-bento-tab-btn"
+              onClick={() => handleTabChange('mitra')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                borderRadius: '100px',
+                border: 'none',
+                background: activeTab === 'mitra' ? '#D97706' : 'transparent',
+                color: activeTab === 'mitra' ? '#FFFFFF' : (isLight ? '#475569' : '#94A3B8'),
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)',
+                boxShadow: activeTab === 'mitra' ? '0 4px 15px rgba(217, 119, 6, 0.4)' : 'none'
+              }}
+            >
+              <Store size={16} />
+              <span>Untuk Mitra UMKM</span>
             </button>
           </div>
         </div>
@@ -503,14 +626,20 @@ export default function SpatialBentoShowcase() {
                     gap: '8px',
                     padding: '12px 24px',
                     borderRadius: '14px',
-                    background: activeTab === 'customer' ? '#2563EB' : '#059669',
+                    background: activeTab === 'customer' 
+                      ? '#2563EB' 
+                      : activeTab === 'owner' 
+                        ? '#059669' 
+                        : '#D97706',
                     color: 'white',
                     fontWeight: 700,
                     fontSize: '0.92rem',
                     textDecoration: 'none',
                     boxShadow: activeTab === 'customer' 
                       ? '0 4px 16px rgba(37, 99, 235, 0.4)' 
-                      : '0 4px 16px rgba(5, 150, 105, 0.4)',
+                      : activeTab === 'owner'
+                        ? '0 4px 16px rgba(5, 150, 105, 0.4)'
+                        : '0 4px 16px rgba(217, 119, 6, 0.4)',
                     transition: 'all 0.15s ease'
                   }}
                   onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
@@ -662,7 +791,11 @@ export default function SpatialBentoShowcase() {
                       width: active ? '28px' : '8px',
                       borderRadius: '100px',
                       background: active 
-                        ? (activeTab === 'customer' ? '#2563EB' : '#059669')
+                        ? (activeTab === 'customer' 
+                            ? '#2563EB' 
+                            : activeTab === 'owner' 
+                              ? '#059669' 
+                              : '#D97706')
                         : (isLight ? 'rgba(15, 23, 42, 0.15)' : 'rgba(255, 255, 255, 0.2)'),
                       border: 'none',
                       cursor: 'pointer',
