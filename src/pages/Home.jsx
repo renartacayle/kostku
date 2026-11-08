@@ -42,7 +42,7 @@ import KostFilterModal from '../components/KostFilterModal';
 import Footer from '../components/Footer';
 import { TactileButton } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
-import { FACILITY_OPTIONS, checkFacilityMatch } from './SearchKost';
+import { FACILITY_OPTIONS, checkFacilityMatch, DEFAULT_VERIFIED_KOSTS } from './SearchKost';
 import { 
   calculateDistanceKm, 
   formatDistance, 
@@ -584,6 +584,9 @@ export default function Home({ user }) {
     apiGetPublicKosts()
       .then(data => {
         let list = Array.isArray(data) ? data : (data?.kosts || []);
+        if (list.length === 0) {
+          list = DEFAULT_VERIFIED_KOSTS;
+        }
         try {
           const userAdded = JSON.parse(localStorage.getItem('kostku_user_added_kosts') || '[]');
           if (Array.isArray(userAdded) && userAdded.length > 0) {
@@ -596,7 +599,7 @@ export default function Home({ user }) {
       })
       .catch(err => {
         console.warn('API fetch error:', err);
-        setKosts([]);
+        setKosts(DEFAULT_VERIFIED_KOSTS);
       })
       .finally(() => setLoading(false));
   };
@@ -1863,13 +1866,6 @@ export default function Home({ user }) {
               </div>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════════
-                BENTO FEATURE GRID (4 KARTU: STANDAR NYAMAN & AMAN KOSTKU)
-                ═══════════════════════════════════════════════════════════════════ */}
-            <div className="spatial-bento-section-wrapper" style={{ margin: 'clamp(2rem, 5vw, 4rem) 0' }}>
-              <SpatialBentoShowcase />
-            </div>
-
             {/* ── ALL LISTINGS: EXPANDED DIRECTORY (Below Bento, Desktop only) ── */}
             {filtered.length > 8 && (
               <div className="desktop-koleksi-carousel">
@@ -1907,7 +1903,13 @@ export default function Home({ user }) {
           </>
         )}
 
-
+        {/* ═══════════════════════════════════════════════════════════════════
+            BENTO FEATURE SHOWCASE (3 TAB: PENCARI KOST, PEMILIK, MITRA UMKM)
+            Selalu dirender di halaman utama sebagai etalase produk resmi
+            ═══════════════════════════════════════════════════════════════════ */}
+        <div className="spatial-bento-section-wrapper" id="solusi-kostku" style={{ margin: 'clamp(2rem, 5vw, 4rem) 0' }}>
+          <SpatialBentoShowcase />
+        </div>
 
       </main>
       
