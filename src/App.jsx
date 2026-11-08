@@ -12,6 +12,9 @@ function ScrollToTop() {
   const { pathname, search } = useLocation();
   useEffect(() => {
     try {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
       window.scrollTo(0, 0);
     } catch (_) {}
     // Reset any pending chunk retry flags on successful navigation

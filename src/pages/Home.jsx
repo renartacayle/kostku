@@ -40,7 +40,7 @@ import InstallModal from '../components/InstallModal';
 import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
 import KostFilterModal from '../components/KostFilterModal';
 import Footer from '../components/Footer';
-import { TactileButton, KitchenShowcaseSection } from '../components/kitchen';
+import { TactileButton } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
 import { FACILITY_OPTIONS, checkFacilityMatch } from './SearchKost';
 import { 
@@ -1907,8 +1907,7 @@ export default function Home({ user }) {
           </>
         )}
 
-        {/* KostKu Micro-Interactions & Motion Labs Showcase */}
-        <KitchenShowcaseSection />
+
 
       </main>
       
