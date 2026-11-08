@@ -42,7 +42,7 @@ import KostFilterModal from '../components/KostFilterModal';
 import Footer from '../components/Footer';
 import { TactileButton } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
-import { FACILITY_OPTIONS, checkFacilityMatch, DEFAULT_VERIFIED_KOSTS } from './SearchKost';
+import { FACILITY_OPTIONS, checkFacilityMatch } from './SearchKost';
 import { 
   calculateDistanceKm, 
   formatDistance, 
@@ -584,9 +584,6 @@ export default function Home({ user }) {
     apiGetPublicKosts()
       .then(data => {
         let list = Array.isArray(data) ? data : (data?.kosts || []);
-        if (list.length === 0) {
-          list = DEFAULT_VERIFIED_KOSTS;
-        }
         try {
           const userAdded = JSON.parse(localStorage.getItem('kostku_user_added_kosts') || '[]');
           if (Array.isArray(userAdded) && userAdded.length > 0) {
@@ -599,7 +596,7 @@ export default function Home({ user }) {
       })
       .catch(err => {
         console.warn('API fetch error:', err);
-        setKosts(DEFAULT_VERIFIED_KOSTS);
+        setKosts([]);
       })
       .finally(() => setLoading(false));
   };

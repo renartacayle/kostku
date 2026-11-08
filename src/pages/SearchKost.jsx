@@ -134,89 +134,7 @@ export const checkFacilityMatch = (kost, facId) => {
   }
 };
 
-export const DEFAULT_VERIFIED_KOSTS = [
-  {
-    uid: 'KOST-OJN64X',
-    kostName: 'KostKu Residence Udinus',
-    type: 'Campur',
-    city: 'Semarang',
-    address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah (Area Kampus UDINUS)',
-    location: { lat: -6.9826, lng: 110.4091 },
-    gmapsUrl: 'https://maps.google.com/?q=-6.9826,110.4091',
-    rating: 5.0,
-    reviewCount: 42,
-    priceMin: 1500000,
-    priceMax: 1650000,
-    totalRooms: 36,
-    availableRooms: 4,
-    description: 'Kost eksklusif dan strategis tepat di area kampus UDINUS Semarang. Lingkungan aman, tenang, bebas banjir, dilengkapi CCTV 24 jam dan akses smart card.',
-    facilities: ['AC', 'WiFi', 'KMDalam', 'Dapur', 'Parkir', 'CCTV', 'Kasur'],
-    rules: ['Akses 24 Jam', 'Dilarang Merokok di Dalam Kamar', 'Menjaga Ketenangan'],
-    utilityScheme: 'all_kost',
-    images: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80'
-    ],
-    roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
-    rooms: [
-      { id: 'ROOM-OJN-101', number: '101', price: 1500000, size: '3.5x4', status: 'available' },
-      { id: 'ROOM-OJN-102', number: '102', price: 1650000, size: '4x4.5', status: 'available' }
-    ]
-  },
-  {
-    uid: 'KOST-UNDIP-01',
-    kostName: 'Kost Eksklusif Melati Indah Undip',
-    type: 'Putri',
-    city: 'Semarang',
-    address: 'Jl. Banjarsari No. 18, Tembalang, Semarang (Dekat Kampus UNDIP & Polines)',
-    location: { lat: -7.0526, lng: 110.4382 },
-    rating: 4.9,
-    reviewCount: 38,
-    priceMin: 1250000,
-    priceMax: 1400000,
-    totalRooms: 20,
-    availableRooms: 3,
-    description: 'Kost khusus mahasiswi aman, sejuk, dan asri di Tembalang Semarang. Hanya 3 menit dari gerbang Undip Tembalang, dekat warung makan dan laundry.',
-    facilities: ['AC', 'WiFi', 'KMDalam', 'AirPanas', 'Dapur', 'Parkir', 'CCTV'],
-    rules: ['Khusus Putri', 'Tamu Pria Dilarang Masuk Kamar', 'Pukul 22.00 Portal Ditutup'],
-    utilityScheme: 'all_kost',
-    images: [
-      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1200&auto=format&fit=crop&q=80'
-    ],
-    roomPhoto: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80',
-    rooms: [
-      { id: 'ROOM-MI-201', number: '201', price: 1250000, size: '3.5x3.5', status: 'available' }
-    ]
-  },
-  {
-    uid: 'KOST-BDG-02',
-    kostName: 'Kost Putri Griya Asri Dago',
-    type: 'Putri',
-    city: 'Bandung',
-    address: 'Jl. Ir. H. Juanda No. 182, Dago, Coblong, Bandung (Dekat ITB & Unpad)',
-    location: { lat: -6.8837, lng: 107.6145 },
-    rating: 4.95,
-    reviewCount: 52,
-    priceMin: 1850000,
-    priceMax: 2200000,
-    totalRooms: 16,
-    availableRooms: 2,
-    description: 'Kost nyaman, asri, dan eksklusif di Dago Bandung. Akses mudah ke ITB Ganesha dan UNPAD Dipatiukur, dikelilingi mitra laundry dan kuliner lokal.',
-    facilities: ['AC', 'WiFi', 'KMDalam', 'AirPanas', 'Dapur', 'Parkir', 'CCTV', 'Kasur'],
-    rules: ['Khusus Putri', 'Bebas Jam Malam Khusus Penghuni'],
-    utilityScheme: 'all_kost',
-    images: [
-      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1200&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80'
-    ],
-    roomPhoto: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80',
-    rooms: [
-      { id: 'ROOM-GA-101', number: '101', price: 1850000, size: '4x4', status: 'available' }
-    ]
-  }
-];
+export const DEFAULT_VERIFIED_KOSTS = [];
 
 export default function SearchKost({ user }) {
   const navigate = useNavigate();
@@ -360,7 +278,7 @@ export default function SearchKost({ user }) {
     apiGetPublicKosts()
       .then(data => {
         const list = Array.isArray(data) ? data : (data?.kosts || []);
-        let initial = list.length > 0 ? list : DEFAULT_VERIFIED_KOSTS;
+        let initial = list.length > 0 ? list : [];
         try {
           const userAdded = JSON.parse(localStorage.getItem('kostku_user_added_kosts') || '[]');
           if (Array.isArray(userAdded) && userAdded.length > 0) {
@@ -380,7 +298,7 @@ export default function SearchKost({ user }) {
       })
       .catch(err => {
         console.error('Failed to load marketplace kosts:', err);
-        setKosts(DEFAULT_VERIFIED_KOSTS);
+        setKosts([]);
       })
       .finally(() => {
         setLoading(false);
