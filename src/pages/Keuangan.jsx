@@ -42,7 +42,9 @@ import {
   ExternalLink,
   ShieldCheck,
   Search,
-  Zap
+  Zap,
+  Gift,
+  Info
 } from 'lucide-react';
 import { 
   apiGetInvoices, 
@@ -256,8 +258,8 @@ const Keuangan = ({ user }) => {
     alert(`Titipan dana UMKM sebesar Rp ${escrowAmt.toLocaleString('id-ID')} telah ditandai lunas disetor ke mitra secara fisik/offline.`);
   };
 
-  // Tabs: 'laporan' | 'tagihan' | 'pengeluaran' | 'dunning'
-  const allowedTabs = ['laporan', 'tagihan', 'pengeluaran', 'dunning'];
+  // Tabs: 'laporan' | 'tagihan' | 'pengeluaran' | 'dunning' | 'escrow'
+  const allowedTabs = ['laporan', 'tagihan', 'pengeluaran', 'dunning', 'escrow'];
   const defaultTab = user?.role === 'staff' 
     ? 'pengeluaran' 
     : (allowedTabs.includes(requestedTab) ? requestedTab : 'laporan');
@@ -268,6 +270,67 @@ const Keuangan = ({ user }) => {
   // Expense form
   const [newExp, setNewExp] = useState({ title: '', amount: '', category: 'Operasional' });
   const [submitting, setSubmitting] = useState(false);
+
+  // Hybrid Loyalty & Escrow Promo State
+  const [escrowWallet, setEscrowWallet] = useState({
+    available_balance: 100000,
+    held_promo_balance: 75,
+    pendingClaimsCount: 1,
+    claimedCount: 1,
+    expiredCount: 1
+  });
+  const [escrowClaims, setEscrowClaims] = useState([]);
+  const [escrowMutations, setEscrowMutations] = useState([]);
+  const [escrowLoading, setEscrowLoading] = useState(false);
+  const [settlementExecuting, setSettlementExecuting] = useState(false);
+  const [settlementFeedback, setSettlementFeedback] = useState('');
+  const [claimFilter, setClaimFilter] = useState('ALL');
+  const [showEscrowTooltip, setShowEscrowTooltip] = useState(false);
+
+  const fetchEscrowWallet = async () => {
+    setEscrowLoading(true);
+    try {
+      const res = await fetch('/api/merchant/wallet');
+      const data = await res.json();
+      if (res.ok && data.wallet) {
+        setEscrowWallet(data.wallet);
+        setEscrowClaims(data.claims || []);
+        setEscrowMutations(data.mutations || []);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch escrow wallet:', err);
+    } finally {
+      setEscrowLoading(false);
+    }
+  };
+
+  const handleRunBatchSettlement = async () => {
+    setSettlementExecuting(true);
+    setSettlementFeedback('');
+    try {
+      const res = await fetch('/api/admin/run-batch-settlement', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.processedCount > 0) {
+          setSettlementFeedback(`✅ Sukses! ${data.processedCount} nota kadaluarsa berhasil diselesaikan (+Rp ${(data.totalRefunded || 0).toLocaleString('id-ID')} dikembalikan ke saldo aktif).`);
+        } else {
+          setSettlementFeedback('ℹ️ Tidak ada nota pending yang telah melewati batas deadline klaim (D+1 23:59 WIB).');
+        }
+        fetchEscrowWallet();
+        setTimeout(() => setSettlementFeedback(''), 6000);
+      } else {
+        setSettlementFeedback('❌ Gagal menjalankan settlement: ' + (data.error || 'Server error'));
+      }
+    } catch (err) {
+      setSettlementFeedback('❌ Terjadi kesalahan jaringan saat settlement.');
+    } finally {
+      setSettlementExecuting(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEscrowWallet();
+  }, []);
 
   // Synchronize tab with query param if requestedTab changes
   useEffect(() => {
@@ -970,6 +1033,26 @@ const Keuangan = ({ user }) => {
             <Zap size={16} color={activeTab === 'dunning' ? 'white' : '#f59e0b'} /> Otomasi Penagihan & Bank
           </button>
         )}
+
+        <button
+          onClick={() => handleTabChange('escrow')}
+          style={{
+            padding: '8px 18px',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            background: activeTab === 'escrow' ? 'var(--accent-primary)' : 'transparent',
+            color: activeTab === 'escrow' ? 'white' : 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.2s'
+          }}
+        >
+          <Gift size={16} color={activeTab === 'escrow' ? 'white' : '#10b981'} /> Dompet & Escrow Promo
+        </button>
       </div>
 
       {/* Tab Content 1: Analisis & Laporan */}
@@ -1393,6 +1476,527 @@ const Keuangan = ({ user }) => {
           invoices={invoices}
           onRefreshInvoices={fetchData}
         />
+      )}
+
+      {/* Tab Content 5: Dompet & Escrow Promo Kasir (Hybrid Loyalty) */}
+      {activeTab === 'escrow' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Header Banner */}
+          <div style={{
+            background: isLight ? '#ffffff' : '#1e293b',
+            border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: '16px',
+            padding: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '14px',
+            boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : '0 4px 16px rgba(0,0,0,0.2)'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #86efac'
+                }}>
+                  HYBRID ESCROW ENGINE
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Mitra: <strong>{escrowWallet.name || 'KostKu Cafe & Resto (Pusat)'}</strong>
+                </span>
+              </div>
+              <h2 style={{ margin: '0 0 6px', fontSize: '1.25rem', fontWeight: 800 }}>
+                Dompet & Escrow Promo Kasir
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '640px', lineHeight: 1.4 }}>
+                Sistem mengelola pemotongan biaya admin berjenjang (Rp 25 flat dasar + Rp 75 dana promo tertahan). Dana promo yang tidak diklaim pelanggan hingga batas waktu (D+1 23:59 WIB) otomatis dikembalikan ke saldo aktif Anda setiap pukul 00:01 WIB.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                disabled={escrowLoading}
+                onClick={fetchEscrowWallet}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <RefreshCw size={14} className={escrowLoading ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={settlementExecuting}
+                onClick={handleRunBatchSettlement}
+                style={{
+                  padding: '9px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: settlementExecuting ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                <Clock size={15} />
+                <span>{settlementExecuting ? 'Memproses Settlement...' : 'Jalankan Batch Settlement (Cron 00:01)'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Feedback Alert Banner */}
+          {settlementFeedback && (
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              background: settlementFeedback.startsWith('✅') ? '#dcfce7' : settlementFeedback.startsWith('ℹ️') ? '#eff6ff' : '#fee2e2',
+              color: settlementFeedback.startsWith('✅') ? '#166534' : settlementFeedback.startsWith('ℹ️') ? '#1e40af' : '#991b1b',
+              border: `1px solid ${settlementFeedback.startsWith('✅') ? '#86efac' : settlementFeedback.startsWith('ℹ️') ? '#bfdbfe' : '#fca5a5'}`
+            }}>
+              {settlementFeedback}
+            </div>
+          )}
+
+          {/* 3 Top Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '16px'
+          }}>
+            {/* Card 1: Saldo Aktif (Bisa Ditarik Kapan Saja) */}
+            <div style={{
+              background: isLight ? '#ffffff' : '#1e293b',
+              border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: '16px',
+              padding: '18px',
+              boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : '0 4px 16px rgba(0,0,0,0.2)',
+              position: 'relative'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  Saldo Aktif (Bisa Ditarik)
+                </span>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: '#dcfce7',
+                  color: '#16a34a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Wallet size={18} />
+                </div>
+              </div>
+
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#16a34a', marginBottom: '4px' }}>
+                {formatRupiah(escrowWallet.available_balance)}
+              </div>
+
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+                Dapat ditarik kapan saja ke rekening bank mitra tanpa batas penahanan.
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenPayoutModal}
+                style={{
+                  width: '100%',
+                  padding: '9px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ArrowUpRight size={15} />
+                <span>Tarik Dana ke Rekening Bank</span>
+              </button>
+            </div>
+
+            {/* Card 2: Dana Promo Tertahan (Rp 75/nota) with Tooltip */}
+            <div style={{
+              background: isLight ? '#ffffff' : '#1e293b',
+              border: `1.5px solid #f59e0b`,
+              borderRadius: '16px',
+              padding: '18px',
+              boxShadow: isLight ? '0 2px 8px rgba(245, 158, 11, 0.08)' : '0 4px 16px rgba(0,0,0,0.2)',
+              position: 'relative'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#d97706' }}>
+                    Dana Promo Tertahan
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowEscrowTooltip(!showEscrowTooltip)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: '#d97706',
+                      display: 'flex'
+                    }}
+                    title="Penjelasan Dana Promo Tertahan"
+                  >
+                    <Info size={14} />
+                  </button>
+                </div>
+
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: '#fef3c7',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Clock size={18} />
+                </div>
+              </div>
+
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#d97706', marginBottom: '4px' }}>
+                {formatRupiah(escrowWallet.held_promo_balance)}
+              </div>
+
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                Total: <strong>{escrowWallet.pendingClaimsCount || 0} nota pending</strong> x Rp 75
+              </div>
+
+              {/* Tooltip Box */}
+              <div style={{
+                background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)',
+                border: '1px solid #fde68a',
+                borderRadius: '10px',
+                padding: '9px 12px',
+                fontSize: '0.72rem',
+                color: isLight ? '#92400e' : '#fde68a',
+                lineHeight: 1.4
+              }}>
+                ℹ️ <strong>Aturan Escrow:</strong> Dana Rp 75/nota ditahan sementara selama masa klaim pelanggan. Jika pelanggan tidak mengklaim poin sampai besok 23:59 WIB, dana ini otomatis dikembalikan ke saldo aktif Anda pada pukul 00:01 WIB.
+              </div>
+            </div>
+
+            {/* Card 3: Ringkasan Klaim Struk */}
+            <div style={{
+              background: isLight ? '#ffffff' : '#1e293b',
+              border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: '16px',
+              padding: '18px',
+              boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : '0 4px 16px rgba(0,0,0,0.2)'
+            }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '12px' }}>
+                Statistik Klaim Struk Kasir
+              </span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '7px 10px',
+                  background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)',
+                  borderRadius: '8px',
+                  fontSize: '0.76rem'
+                }}>
+                  <span style={{ color: '#d97706', fontWeight: 700 }}>⏳ Menunggu Klaim (Pending):</span>
+                  <strong>{escrowWallet.pendingClaimsCount || 0} Nota</strong>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '7px 10px',
+                  background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)',
+                  borderRadius: '8px',
+                  fontSize: '0.76rem'
+                }}>
+                  <span style={{ color: '#16a34a', fontWeight: 700 }}>🎁 Poin Diklaim Pelanggan:</span>
+                  <strong>{escrowWallet.claimedCount || 0} Nota</strong>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '7px 10px',
+                  background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)',
+                  borderRadius: '8px',
+                  fontSize: '0.76rem'
+                }}>
+                  <span style={{ color: '#2563eb', fontWeight: 700 }}>↩️ Tidak Diklaim (Refund Saldo):</span>
+                  <strong>{escrowWallet.expiredCount || 0} Nota</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Table: Riwayat Nota & Status Klaim */}
+          <div style={{
+            background: isLight ? '#ffffff' : '#1e293b',
+            border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: '16px',
+            padding: '18px',
+            boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : '0 4px 16px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '10px',
+              marginBottom: '14px'
+            }}>
+              <div>
+                <h3 style={{ margin: '0 0 3px', fontSize: '1.05rem', fontWeight: 800 }}>
+                  Riwayat Nota & Status Escrow
+                </h3>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                  Daftar transaksi kasir dengan kode unik QR klaim poin loyalitas.
+                </span>
+              </div>
+
+              {/* Status Filter Chips */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  { id: 'ALL', label: `Semua (${escrowClaims.length})` },
+                  { id: 'PENDING', label: `Menunggu Klaim (${escrowClaims.filter(c => c.status === 'PENDING').length})` },
+                  { id: 'CLAIMED', label: `Diklaim (${escrowClaims.filter(c => c.status === 'CLAIMED').length})` },
+                  { id: 'EXPIRED', label: `Tidak Diklaim / Refund (${escrowClaims.filter(c => c.status === 'EXPIRED').length})` }
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setClaimFilter(f.id)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: claimFilter === f.id ? 'var(--accent-primary)' : isLight ? '#f1f5f9' : '#334155',
+                      color: claimFilter === f.id ? '#ffffff' : 'var(--text-secondary)',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Claims Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                <thead>
+                  <tr style={{
+                    borderBottom: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+                    color: 'var(--text-secondary)',
+                    textAlign: 'left'
+                  }}>
+                    <th style={{ padding: '10px 12px' }}>Faktur & Waktu</th>
+                    <th style={{ padding: '10px 12px' }}>Total Belanja</th>
+                    <th style={{ padding: '10px 12px' }}>Biaya Admin</th>
+                    <th style={{ padding: '10px 12px' }}>Batas Klaim (D+1 23:59)</th>
+                    <th style={{ padding: '10px 12px' }}>Status Klaim & Escrow</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {escrowClaims
+                    .filter(c => claimFilter === 'ALL' || c.status === claimFilter)
+                    .map((claim, idx) => (
+                      <tr
+                        key={idx}
+                        style={{
+                          borderBottom: `1px solid ${isLight ? '#f1f5f9' : 'rgba(255,255,255,0.04)'}`
+                        }}
+                      >
+                        <td style={{ padding: '10px 12px' }}>
+                          <strong style={{ color: 'var(--text-primary)' }}>{claim.invoice_number}</strong>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                            {new Date(claim.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '10px 12px', fontWeight: 800 }}>
+                          {formatRupiah(claim.total_amount)}
+                        </td>
+
+                        <td style={{ padding: '10px 12px' }}>
+                          <div style={{ fontSize: '0.74rem' }}>
+                            Rp 25 (Platform) + <span style={{ color: '#d97706', fontWeight: 700 }}>Rp 75 (Promo)</span>
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '10px 12px' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                            {new Date(claim.claim_deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} WIB
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '10px 12px' }}>
+                          {claim.status === 'PENDING' && (
+                            <span style={{
+                              background: '#fef3c7',
+                              color: '#92400e',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 800,
+                              fontSize: '0.68rem',
+                              border: '1px solid #fde68a'
+                            }}>
+                              ⏳ Menunggu Klaim Pelanggan
+                            </span>
+                          )}
+                          {claim.status === 'CLAIMED' && (
+                            <span style={{
+                              background: '#dcfce7',
+                              color: '#15803d',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 800,
+                              fontSize: '0.68rem',
+                              border: '1px solid #86efac'
+                            }}>
+                              🎁 Poin Diklaim (Rp 100)
+                            </span>
+                          )}
+                          {claim.status === 'EXPIRED' && (
+                            <span style={{
+                              background: '#eff6ff',
+                              color: '#1e40af',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 800,
+                              fontSize: '0.68rem',
+                              border: '1px solid #bfdbfe'
+                            }}>
+                              ↩️ Poin Tidak Diklaim (Kembali Rp 75)
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <Link
+                            to={`/claim?token=${claim.claim_token}`}
+                            target="_blank"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              background: isLight ? '#f1f5f9' : '#334155',
+                              color: 'var(--accent-primary)',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              textDecoration: 'none'
+                            }}
+                          >
+                            <span>Test Klaim</span>
+                            <ExternalLink size={12} />
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  {escrowClaims.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        Belum ada transaksi struk kasir yang diterbitkan.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Table: Mutasi Saldo & Refund Ledger */}
+          <div style={{
+            background: isLight ? '#ffffff' : '#1e293b',
+            border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: '16px',
+            padding: '18px',
+            boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : '0 4px 16px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1rem', fontWeight: 800 }}>
+              Mutasi Saldo Escrow & Refund
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {escrowMutations.map((mut, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255,255,255,0.05)'}`,
+                    fontSize: '0.76rem'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {mut.description}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                      {new Date(mut.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} • ID: {mut.id}
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      fontWeight: 900,
+                      fontSize: '0.85rem',
+                      color: mut.amount > 0 ? '#16a34a' : '#d97706'
+                    }}>
+                      {mut.amount > 0 ? `+${formatRupiah(mut.amount)}` : formatRupiah(mut.amount)}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                      Saldo: {formatRupiah(mut.balance_after)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {escrowMutations.length === 0 && (
+                <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Belum ada catatan mutasi saldo promo.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Expense Modal */}

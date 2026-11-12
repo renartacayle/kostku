@@ -1980,20 +1980,29 @@ export default function Kasir({ user }) {
                     }
 
                     // Auto Print Thermal Receipt if configured
+                    const receiptData = {
+                      id: newO.id,
+                      invoice_number: newO.invoice || newO.invoice_number || newO.id,
+                      totalAmount: posFinalTotal,
+                      subtotal: posCartSubtotal,
+                      paymentMethod: 'TUNAI (CASH)',
+                      tableNumber: selectedTable,
+                      claimToken: newO.claim_token || newO.claimToken,
+                      qrClaimUrl: newO.qr_claim_url || newO.qrClaimUrl,
+                      claimDeadline: newO.claim_deadline || newO.claimDeadline,
+                      storeName: storeInfo.storeName || 'KostKu Cafe & Resto',
+                      createdAt: new Date().toISOString(),
+                      items: items.map(it => {
+                        const p = Object.values(posCart).find(c => c.product.id === it.productId)?.product;
+                        return { name: p?.name || 'Menu', qty: it.qty, subtotal: (p?.price || 0) * it.qty };
+                      })
+                    };
+
                     try {
-                      printReceipt({
-                        id: newO.id,
-                        totalAmount: posFinalTotal,
-                        subtotal: posCartSubtotal,
-                        paymentMethod: 'TUNAI (CASH)',
-                        tableNumber: selectedTable,
-                        items: items.map(it => {
-                          const p = Object.values(posCart).find(c => c.product.id === it.productId)?.product;
-                          return { name: p?.name || 'Menu', qty: it.qty, subtotal: (p?.price || 0) * it.qty };
-                        })
-                      }, { openDrawer: false }).catch(console.warn);
+                      printReceipt(receiptData, { openDrawer: false }).catch(console.warn);
                     } catch (_) {}
 
+                    setReceiptOrder(receiptData);
                     alert('✅ Transaksi Tunai Berhasil! Laci uang kasir terbuka otomatis & nota masuk antrean dapur.');
                   } else {
                     const err = await res.json();
@@ -5867,6 +5876,55 @@ export default function Kasir({ user }) {
                 <span style={{ fontWeight: 700 }}>{receiptOrder.paymentMethod || 'TUNAI'}</span>
               </div>
             </div>
+
+            {/* Loyalty QR Code & Claim Section */}
+            {(() => {
+              const claimToken = receiptOrder.claimToken || receiptOrder.claim_token || receiptOrder.id;
+              const claimUrl = receiptOrder.qrClaimUrl || receiptOrder.qr_claim_url || `https://kostku.riuph.me/claim?token=${claimToken}`;
+              const claimDeadline = receiptOrder.claimDeadline || receiptOrder.claim_deadline;
+              const deadlineStr = claimDeadline
+                ? new Date(claimDeadline).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }) + ' 23:59 WIB'
+                : 'Besok 23:59 WIB';
+              
+              return (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '10px',
+                  background: '#f8fafc',
+                  border: '1px dashed #94a3b8',
+                  borderRadius: '10px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b', letterSpacing: '0.5px' }}>
+                    🎁 SCAN QR KLAIM POIN
+                  </div>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(claimUrl)}`}
+                    alt="QR Code Klaim Poin"
+                    style={{ width: '110px', height: '110px', borderRadius: '6px', background: '#fff', padding: '4px', border: '1px solid #e2e8f0' }}
+                  />
+                  <div style={{ fontSize: '0.7rem', color: '#475569', lineHeight: 1.3 }}>
+                    Scan QR ini untuk <strong>KLAIM POIN</strong>!<br />
+                    Dapatkan diskon & makan gratis di kost.
+                  </div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '2px 8px', borderRadius: '4px' }}>
+                    *Batas Klaim: {deadlineStr}
+                  </div>
+                  <a
+                    href={claimUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: '0.64rem', color: '#2563eb', textDecoration: 'none', wordBreak: 'break-all' }}
+                  >
+                    {claimUrl}
+                  </a>
+                </div>
+              );
+            })()}
 
             {/* Printer Status Banner */}
             {printerFeedback && (

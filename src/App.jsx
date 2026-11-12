@@ -64,6 +64,7 @@ const Checkout = lazyRetry(() => import('./pages/Checkout'), 'Checkout');
 const StressTestReport = lazyRetry(() => import('./pages/StressTestReport'), 'StressTestReport');
 const Kasir = lazyRetry(() => import('./pages/Kasir'), 'Kasir');
 const OrderMeja = lazyRetry(() => import('./pages/OrderMeja'), 'OrderMeja');
+const ClaimPoin = lazyRetry(() => import('./pages/ClaimPoin'), 'ClaimPoin');
 
 // Lightweight, tactile loading indicator during route chunks hydration with adaptive buffer feedback
 const PageLoadingFallback = () => {
@@ -392,6 +393,12 @@ function App() {
           <Route path="/order/:tableToken" element={<OrderMeja />} />
           <Route path="/order" element={<OrderMeja />} />
           <Route path="/meja/:tableToken" element={<OrderMeja />} />
+
+          {/* Hybrid Loyalty Receipt Claim Page (Passwordless Instant Claim) */}
+          <Route path="/claim" element={<ClaimPoin />} />
+          <Route path="/klaim" element={<Navigate to="/claim" replace />} />
+          <Route path="/loyalty" element={<Navigate to="/claim" replace />} />
+          <Route path="/klaim-poin" element={<Navigate to="/claim" replace />} />
           
           {/* Redirect legacy /blueprint routes */}
           <Route path="/blueprint" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />

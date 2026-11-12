@@ -449,6 +449,100 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
         { id: 'tbl-5', number: 'Meja 05', qrToken: 'MEJA-05-TKN885' }
       ];
     }
+
+    // Hybrid Loyalty & Escrow Models
+    db.merchant_wallets = db.merchant_wallets || {};
+    db.receipt_claims = db.receipt_claims || [];
+    db.customers = db.customers || {};
+    db.points_ledger = db.points_ledger || [];
+    db.wallet_mutations = db.wallet_mutations || [];
+  };
+
+  const calculateWibClaimDeadline = (transDate = new Date()) => {
+    const wibOffsetMs = 7 * 60 * 60 * 1000;
+    const wibTime = new Date(transDate.getTime() + wibOffsetMs);
+    const year = wibTime.getUTCFullYear();
+    const month = wibTime.getUTCMonth();
+    const date = wibTime.getUTCDate();
+    return new Date(Date.UTC(year, month, date + 1, 16, 59, 59, 999));
+  };
+
+  const executeBatchSettlement = (db) => {
+    const now = new Date();
+    const claims = db.receipt_claims || [];
+    const expiredPending = claims.filter(c => c.status === 'PENDING' && new Date(c.claim_deadline) < now);
+
+    if (expiredPending.length === 0) {
+      return { success: true, processedCount: 0, totalRefunded: 0, affectedMerchants: [] };
+    }
+
+    const merchantRefundMap = {};
+    expiredPending.forEach(c => {
+      c.status = 'EXPIRED';
+      c.refunded_at = now.toISOString();
+
+      const mId = c.merchant_id || 'MTR-KASIR-MASTER';
+      if (!merchantRefundMap[mId]) {
+        merchantRefundMap[mId] = { count: 0, totalRefund: 0, claims: [] };
+      }
+      merchantRefundMap[mId].count += 1;
+      merchantRefundMap[mId].totalRefund += 75.00;
+      merchantRefundMap[mId].claims.push(c.id);
+    });
+
+    const affectedMerchants = [];
+
+    Object.entries(merchantRefundMap).forEach(([mId, data]) => {
+      db.merchant_wallets = db.merchant_wallets || {};
+      let wallet = db.merchant_wallets[mId];
+      if (!wallet) {
+        wallet = {
+          merchant_id: mId,
+          available_balance: 0.00,
+          held_promo_balance: 0.00,
+          updated_at: now.toISOString()
+        };
+        db.merchant_wallets[mId] = wallet;
+      }
+
+      wallet.held_promo_balance = Math.max(0, (wallet.held_promo_balance || 0) - data.totalRefund);
+      wallet.available_balance = (wallet.available_balance || 0) + data.totalRefund;
+      wallet.updated_at = now.toISOString();
+
+      const m = (db.merchants || []).find(x => String(x.id) === String(mId));
+      if (m) {
+        m.saldoNota = wallet.available_balance;
+        m.kuotaNota = Math.floor(wallet.available_balance / 100);
+      }
+
+      db.wallet_mutations = db.wallet_mutations || [];
+      const mutation = {
+        id: 'MUT-REF-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+        merchant_id: mId,
+        type: 'REFUND_PROMO',
+        amount: data.totalRefund,
+        unclaimed_count: data.count,
+        description: `Pengembalian Dana Promo (${data.count} nota kadaluarsa): +Rp ${data.totalRefund.toLocaleString('id-ID')}`,
+        balance_after: wallet.available_balance,
+        createdAt: now.toISOString()
+      };
+      db.wallet_mutations.unshift(mutation);
+
+      affectedMerchants.push({
+        merchantId: mId,
+        unclaimedCount: data.count,
+        totalRefund: data.totalRefund,
+        newAvailableBalance: wallet.available_balance,
+        remainingHeldBalance: wallet.held_promo_balance
+      });
+    });
+
+    return {
+      success: true,
+      processedCount: expiredPending.length,
+      totalRefunded: expiredPending.length * 75.00,
+      affectedMerchants
+    };
   };
 
   // ── 0. STORE & CASHIER LOCATION (STORE VALIDITY ENGINE) ───────────────
@@ -1385,9 +1479,75 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     });
 
     const orderId = 'POS-' + Date.now().toString().slice(-6) + '-' + Math.floor(100 + Math.random() * 900);
+    const invoiceNumber = 'INV-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + orderId.slice(-4);
+    const claimDeadline = calculateWibClaimDeadline(new Date());
+    const claimToken = 'clm_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    const qrClaimUrl = `https://kostku.riuph.me/claim?token=${claimToken}`;
+
+    const BASE_ADMIN_FEE = 25.00;
+    const HELD_PROMO_FEE = 75.00;
+    const TOTAL_ADMIN_DEDUCT = 100.00;
+
+    // Update merchant escrow wallet
+    db.merchant_wallets = db.merchant_wallets || {};
+    if (!db.merchant_wallets[storeId]) {
+      db.merchant_wallets[storeId] = {
+        merchant_id: storeId,
+        available_balance: 100000.00,
+        held_promo_balance: 0.00,
+        updated_at: new Date().toISOString()
+      };
+    }
+    const mWallet = db.merchant_wallets[storeId];
+    mWallet.available_balance = Math.max(0, (mWallet.available_balance || 100000) - TOTAL_ADMIN_DEDUCT);
+    mWallet.held_promo_balance = (mWallet.held_promo_balance || 0) + HELD_PROMO_FEE;
+    mWallet.updated_at = new Date().toISOString();
+
+    // Mirror to merchant saldoNota
+    if (currentActiveStore && (currentActiveStore.merchantId === storeId || currentActiveStore.uid === storeId)) {
+      currentActiveStore.saldoNota = mWallet.available_balance;
+      currentActiveStore.kuotaNota = Math.floor(mWallet.available_balance / 100);
+    }
+
+    // Record receipt claim
+    const claimRecord = {
+      id: 'CLM-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      order_id: orderId,
+      merchant_id: storeId,
+      merchant_name: storeName,
+      invoice_number: invoiceNumber,
+      total_amount: totalAmount,
+      claim_token: claimToken,
+      qr_claim_url: qrClaimUrl,
+      status: 'PENDING',
+      claimed_by_whatsapp: null,
+      points_awarded: 0,
+      claim_deadline: claimDeadline.toISOString(),
+      claimed_at: null,
+      refunded_at: null,
+      createdAt: new Date().toISOString()
+    };
+    db.receipt_claims = db.receipt_claims || [];
+    db.receipt_claims.unshift(claimRecord);
+
+    // Record wallet mutation
+    db.wallet_mutations = db.wallet_mutations || [];
+    db.wallet_mutations.unshift({
+      id: 'MUT-DED-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      merchant_id: storeId,
+      type: 'FEE_DEDUCT',
+      amount: -TOTAL_ADMIN_DEDUCT,
+      base_admin_fee: BASE_ADMIN_FEE,
+      held_promo_fee: HELD_PROMO_FEE,
+      description: `Biaya Nota #${invoiceNumber} (Rp 25 Platform + Rp 75 Dana Promo Ditahan)`,
+      balance_after: mWallet.available_balance,
+      createdAt: new Date().toISOString()
+    });
 
     const newOrder = {
       id: orderId,
+      invoice_number: invoiceNumber,
+      invoice: invoiceNumber,
       tableNumber: table.number,
       tableToken: tableToken || null,
       customerName: cleanCustomerName,
@@ -1411,6 +1571,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
       pointsRedeemed: redeemAmount,
       platformFee: 0,
       adminFee,
+      base_admin_fee: BASE_ADMIN_FEE,
+      held_promo_fee: HELD_PROMO_FEE,
+      claim_token: claimToken,
+      claimToken: claimToken,
+      qr_claim_url: qrClaimUrl,
+      qrClaimUrl: qrClaimUrl,
+      claim_deadline: claimDeadline.toISOString(),
+      claimDeadline: claimDeadline.toISOString(),
       feeBorneBy: 'owner',
       ownerDeduction,
       netRevenue: Math.max(0, totalAmount - ownerDeduction),
@@ -1427,7 +1595,24 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     db.pos_orders.unshift(newOrder);
     writeDB(db, req);
 
-    res.json(newOrder);
+    res.json({
+      ...newOrder,
+      invoice: invoiceNumber,
+      total: totalAmount,
+      qr_claim_url: qrClaimUrl,
+      claim_token: claimToken,
+      claim_deadline: claimDeadline.toISOString()
+    });
+  });
+
+  // Alias POST /checkout
+  router.post('/checkout', (req, res, next) => {
+    // Re-use order logic
+    const ordersHandler = router.stack.find(s => s.route && s.route.path === '/orders' && s.route.methods.post);
+    if (ordersHandler) {
+      return ordersHandler.handle(req, res, next);
+    }
+    res.status(404).json({ error: 'Handler not found' });
   });
 
   // ── 5. GET ORDERS & SINGLE ORDER DETAILS ──────────────────────────────
@@ -2120,6 +2305,216 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
       maxStamps,
       rewardReady: record.stamps >= maxStamps
     });
+  });
+
+  // ── 9B. HYBRID LOYALTY & ESCROW REFUND ENDPOINTS ──────────────────────
+  // 1. Claim info check for customer claim page (/api/pos/loyalty/claim-info?token=...)
+  router.get('/loyalty/claim-info', (req, res) => {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ error: 'Token struk QR wajib disertakan' });
+    }
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const claim = (db.receipt_claims || []).find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    if (!claim) {
+      return res.status(404).json({ error: 'Data struk tidak ditemukan atau token tidak valid' });
+    }
+    const now = new Date();
+    const isDeadlinePassed = now > new Date(claim.claim_deadline);
+    let resolvedStatus = claim.status;
+    if (claim.status === 'PENDING' && isDeadlinePassed) {
+      resolvedStatus = 'EXPIRED';
+    }
+    res.json({
+      id: claim.id,
+      token: claim.claim_token,
+      invoice: claim.invoice_number,
+      merchantId: claim.merchant_id,
+      merchantName: claim.merchant_name || 'KostKu Cafe & Resto',
+      totalAmount: claim.total_amount,
+      potentialPoints: Math.max(1, Math.floor(claim.total_amount / 1000)),
+      status: resolvedStatus,
+      claimDeadline: claim.claim_deadline,
+      claimedBy: claim.claimed_by_whatsapp ? claim.claimed_by_whatsapp.replace(/(\d{4})\d+(\d{3})/, '$1****$2') : null,
+      claimedAt: claim.claimed_at,
+      refundedAt: claim.refunded_at,
+      createdAt: claim.createdAt,
+      isExpired: resolvedStatus === 'EXPIRED',
+      isClaimed: resolvedStatus === 'CLAIMED'
+    });
+  });
+
+  // 2. Customer claims points (/api/pos/loyalty/claim)
+  router.post('/loyalty/claim', (req, res) => {
+    const { token, whatsapp, phone, name } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Token struk tidak boleh kosong' });
+    }
+
+    let cleanPhone = String(whatsapp || phone || '').replace(/\D/g, '');
+    if (cleanPhone.startsWith('62')) {
+      cleanPhone = '0' + cleanPhone.slice(2);
+    }
+    if (!cleanPhone.startsWith('08') || cleanPhone.length < 10 || cleanPhone.length > 15) {
+      return res.status(400).json({ error: 'Nomor WhatsApp tidak valid. Masukkan nomor WhatsApp aktif (contoh: 081234567890).' });
+    }
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const claim = (db.receipt_claims || []).find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    if (!claim) {
+      return res.status(404).json({ error: 'Struk belanja tidak ditemukan atau token QR tidak valid.' });
+    }
+
+    // Anti Double-Claim Check
+    if (claim.status === 'CLAIMED') {
+      const redacted = claim.claimed_by_whatsapp ? claim.claimed_by_whatsapp.replace(/(\d{4})\d+(\d{3})/, '$1****$2') : 'nomor lain';
+      return res.status(400).json({
+        error: `Struk ini sudah pernah diklaim sebelumnya oleh ${redacted} pada ${new Date(claim.claimed_at || Date.now()).toLocaleString('id-ID')}.`,
+        alreadyClaimed: true,
+        claimedAt: claim.claimed_at
+      });
+    }
+
+    // Expiry check
+    const now = new Date();
+    if (claim.status === 'EXPIRED' || now > new Date(claim.claim_deadline)) {
+      claim.status = 'EXPIRED';
+      writeDB(db, req);
+      return res.status(400).json({
+        error: `Masa klaim struk ini telah berakhir pada ${new Date(claim.claim_deadline).toLocaleString('id-ID')} WIB.`,
+        isExpired: true,
+        claimDeadline: claim.claim_deadline
+      });
+    }
+
+    // ATOMIC MUTATION (Idempotent 1-time claim)
+    claim.status = 'CLAIMED';
+    claim.claimed_by_whatsapp = cleanPhone;
+    const pointsAwarded = Math.max(1, Math.floor(claim.total_amount / 1000));
+    claim.points_awarded = pointsAwarded;
+    claim.claimed_at = now.toISOString();
+
+    // Silent Registration for Customer
+    db.customers = db.customers || {};
+    if (!db.customers[cleanPhone]) {
+      db.customers[cleanPhone] = {
+        whatsapp_number: cleanPhone,
+        name: name || 'Pelanggan KostKu',
+        total_points: 0,
+        createdAt: now.toISOString()
+      };
+    }
+    db.customers[cleanPhone].total_points += pointsAwarded;
+    if (name) db.customers[cleanPhone].name = name;
+
+    // Sync to customer_points
+    db.customer_points[cleanPhone] = (db.customer_points[cleanPhone] || 0) + pointsAwarded;
+
+    // Audit Ledger Entry
+    db.points_ledger = db.points_ledger || [];
+    db.points_ledger.unshift({
+      id: 'LEDGER-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      whatsapp_number: cleanPhone,
+      order_id: claim.order_id,
+      invoice_number: claim.invoice_number,
+      change_type: 'EARN',
+      points: pointsAwarded,
+      notes: `Klaim poin struk #${claim.invoice_number} (Belanja Rp ${claim.total_amount?.toLocaleString('id-ID')})`,
+      createdAt: now.toISOString()
+    });
+
+    // Deduct held promo balance from merchant escrow (official platform/promo fee)
+    const mId = claim.merchant_id || 'MTR-KASIR-MASTER';
+    if (db.merchant_wallets && db.merchant_wallets[mId]) {
+      db.merchant_wallets[mId].held_promo_balance = Math.max(0, (db.merchant_wallets[mId].held_promo_balance || 0) - 75.00);
+      db.merchant_wallets[mId].updated_at = now.toISOString();
+    }
+
+    writeDB(db, req);
+    res.json({
+      success: true,
+      message: `🎉 Selamat! +${pointsAwarded} Poin loyalitas berhasil ditambahkan ke akun WhatsApp ${cleanPhone}.`,
+      pointsAwarded,
+      totalPoints: db.customers[cleanPhone].total_points,
+      invoice: claim.invoice_number,
+      merchantName: claim.merchant_name,
+      claimedAt: claim.claimed_at
+    });
+  });
+
+  // 3. Customer Points Lookup (/api/pos/loyalty/customer/:phone)
+  router.get('/loyalty/customer/:phone', (req, res) => {
+    let phone = String(req.params.phone || '').replace(/\D/g, '');
+    if (phone.startsWith('62')) phone = '0' + phone.slice(2);
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const account = (db.customers && db.customers[phone]) || {
+      whatsapp_number: phone,
+      name: 'Pelanggan Baru',
+      total_points: db.customer_points[phone] || 0
+    };
+    const history = (db.points_ledger || []).filter(l => l.whatsapp_number === phone);
+    res.json({ account, history });
+  });
+
+  // 4. Merchant Wallet & Escrow Ledger (/api/pos/merchant/wallet)
+  router.get('/merchant/wallet', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const mId = req.query.merchantId || db.settings?.posStore?.merchantId || 'MTR-KASIR-MASTER';
+
+    // Opportunistic settlement check
+    executeBatchSettlement(db);
+
+    if (!db.merchant_wallets[mId]) {
+      db.merchant_wallets[mId] = {
+        merchant_id: mId,
+        name: db.settings?.posStore?.storeName || 'KostKu Cafe & Resto (Pusat)',
+        whatsapp_number: db.settings?.posStore?.phone || '081234567890',
+        available_balance: db.settings?.posStore?.saldoNota || 100000.00,
+        held_promo_balance: 0.00,
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    const wallet = db.merchant_wallets[mId];
+    const claims = (db.receipt_claims || []).filter(c => c.merchant_id === mId || !c.merchant_id);
+    const pendingCount = claims.filter(c => c.status === 'PENDING').length;
+    wallet.held_promo_balance = pendingCount * 75.00;
+
+    const mutations = (db.wallet_mutations || []).filter(m => m.merchant_id === mId || !m.merchant_id);
+    writeDB(db, req);
+
+    res.json({
+      success: true,
+      wallet: {
+        merchantId: wallet.merchant_id,
+        name: wallet.name || 'KostKu Cafe & Resto (Pusat)',
+        whatsappNumber: wallet.whatsapp_number || '081234567890',
+        available_balance: wallet.available_balance,
+        held_promo_balance: wallet.held_promo_balance,
+        pendingClaimsCount: pendingCount,
+        claimedCount: claims.filter(c => c.status === 'CLAIMED').length,
+        expiredCount: claims.filter(c => c.status === 'EXPIRED').length,
+        updatedAt: wallet.updated_at
+      },
+      claims,
+      mutations
+    });
+  });
+
+  // 5. Batch Settlement Worker (/api/pos/admin/run-batch-settlement)
+  router.post('/admin/run-batch-settlement', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const result = executeBatchSettlement(db);
+    writeDB(db, req);
+    res.json(result);
   });
 
   // ── 10. GUDANG & BAHAN BAKU (INVENTORY & STOCK ENGINE) ──────────────────

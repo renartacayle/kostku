@@ -128,6 +128,30 @@ function textToBytes(text) {
 }
 
 /**
+ * Helper to encode URL as native ESC/POS QR Code bytes (Model 2)
+ */
+function buildEscPosQrCode(url) {
+  const bytes = [];
+  const urlBytes = textToBytes(url);
+  const len = urlBytes.length + 3;
+  const pL = len % 256;
+  const pH = Math.floor(len / 256);
+
+  // 1. Select QR Model 2: GS ( k 04 00 31 41 32 00
+  bytes.push(0x1D, 0x28, 0x6B, 0x04, 0x00, 0x31, 0x41, 0x32, 0x00);
+  // 2. Set module size (dot size 4): GS ( k 03 00 31 43 04
+  bytes.push(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x43, 0x04);
+  // 3. Set error correction level M (15%): GS ( k 03 00 31 45 31
+  bytes.push(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x45, 0x31);
+  // 4. Store data: GS ( k pL pH 31 50 30 d1...dk
+  bytes.push(0x1D, 0x28, 0x6B, pL, pH, 0x31, 0x50, 0x30, ...urlBytes);
+  // 5. Print QR: GS ( k 03 00 31 51 30
+  bytes.push(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30);
+  bytes.push(0x0A); // line feed
+  return bytes;
+}
+
+/**
  * Build Raw ESC/POS Binary Buffer for thermal printer
  */
 export function buildEscPosBuffer(order, options = {}) {
@@ -232,9 +256,31 @@ export function buildEscPosBuffer(order, options = {}) {
 
   // 7. Footer - Centered
   bytes.push(0x1B, 0x61, 0x01); // Center align
-  bytes.push(...textToBytes('\n' + (settings.footerText || 'Terima kasih atas kunjungan Anda!') + '\n'));
-  bytes.push(...textToBytes('KostKu Smart Cashier Ecosystem\n'));
-  bytes.push(...textToBytes('https://kostku.riuph.me/kasir\n\n\n'));
+  bytes.push(...textToBytes('\n' + divider + '\n'));
+  bytes.push(...textToBytes('TERIMA KASIH ATAS KUNJUNGANNYA\n'));
+  bytes.push(...textToBytes(divider + '\n'));
+
+  // Loyalty QR Claim Section
+  const claimUrl = order.qr_claim_url || order.qrClaimUrl || (order.claimToken || order.claim_token ? `https://kostku.riuph.me/claim?token=${order.claimToken || order.claim_token}` : null);
+  const claimDeadline = order.claimDeadline || order.claim_deadline;
+  const deadlineStr = claimDeadline
+    ? new Date(claimDeadline).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }) + ' 23:59 WIB'
+    : 'Besok 23:59 WIB';
+
+  if (claimUrl) {
+    bytes.push(...textToBytes('[ QR CODE KLAIM POIN ]\n'));
+    try {
+      bytes.push(...buildEscPosQrCode(claimUrl));
+    } catch (_) {}
+    bytes.push(...textToBytes('Scan QR ini untuk KLAIM POIN!\n'));
+    bytes.push(...textToBytes('Dapatkan diskon & makan gratis di kost.\n'));
+    bytes.push(...textToBytes(`*Batas Klaim: ${deadlineStr}\n`));
+    bytes.push(...textToBytes(`Atau buka: ${claimUrl}\n`));
+    bytes.push(...textToBytes(divider + '\n'));
+  }
+
+  bytes.push(...textToBytes((settings.footerText || 'KostKu Smart Cashier Ecosystem') + '\n'));
+  bytes.push(...textToBytes('https://kostku.riuph.me\n\n\n'));
 
   // 8. Auto Cut Paper if enabled (GS V 66 0)
   if (settings.autoCut) {

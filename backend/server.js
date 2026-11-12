@@ -8402,7 +8402,61 @@ app.post('/api/restore', verifySuperAdmin, (req, res) => {
 
 // ── KASIR POS & TABLE QR ORDERING (kasir.riuph.me & api.riuph.me) ──
 const createPosRouter = require('./pos_routes');
-app.use('/api/pos', createPosRouter({ getDB, writeDB, createTripayClosedTransaction }));
+const posRouterInstance = createPosRouter({ getDB, writeDB, createTripayClosedTransaction });
+app.use('/api/pos', posRouterInstance);
+
+// Hybrid Loyalty & Escrow Alias Routes
+app.use('/api/loyalty', (req, res, next) => {
+  req.url = '/loyalty' + req.url;
+  posRouterInstance(req, res, next);
+});
+app.use('/api/merchant', (req, res, next) => {
+  req.url = '/merchant' + req.url;
+  posRouterInstance(req, res, next);
+});
+app.use('/api/admin', (req, res, next) => {
+  req.url = '/admin' + req.url;
+  posRouterInstance(req, res, next);
+});
+
+// ── EOD BATCH SETTLEMENT WORKER (DAILY AT 00:01:00 WIB) ──
+let _lastSettledWibDay = null;
+setInterval(() => {
+  try {
+    const now = new Date();
+    // WIB is UTC+7
+    const wib = new Date(now.getTime() + 7 * 3600 * 1000);
+    const hour = wib.getUTCHours();
+    const minute = wib.getUTCMinutes();
+    const currentDayStr = wib.toISOString().slice(0, 10);
+
+    // Run at 00:01 WIB once per day
+    if (hour === 0 && minute === 1 && _lastSettledWibDay !== currentDayStr) {
+      _lastSettledWibDay = currentDayStr;
+      console.log(`[BATCH SETTLEMENT] Triggering EOD Escrow Refund for WIB Date: ${currentDayStr}...`);
+      const db = getDB(false);
+      const claims = db.receipt_claims || [];
+      const expiredPending = claims.filter(c => c.status === 'PENDING' && new Date(c.claim_deadline) < now);
+      if (expiredPending.length > 0) {
+        expiredPending.forEach(c => {
+          c.status = 'EXPIRED';
+          c.refunded_at = now.toISOString();
+          const mId = c.merchant_id || 'MTR-KASIR-MASTER';
+          if (db.merchant_wallets && db.merchant_wallets[mId]) {
+            const w = db.merchant_wallets[mId];
+            w.held_promo_balance = Math.max(0, (w.held_promo_balance || 0) - 75.00);
+            w.available_balance = (w.available_balance || 0) + 75.00;
+            w.updated_at = now.toISOString();
+          }
+        });
+        writeDB(db, false);
+        console.log(`[BATCH SETTLEMENT] Successfully refunded ${expiredPending.length} expired receipts.`);
+      }
+    }
+  } catch (err) {
+    console.error('[BATCH SETTLEMENT CRON ERROR]:', err);
+  }
+}, 30000); // Check every 30 seconds
 
 // Serve built SPA static files if dist folder exists (Item #27: Browser caching for static files)
 const distPath = path.join(__dirname, '../dist');

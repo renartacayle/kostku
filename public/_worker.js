@@ -516,6 +516,217 @@ function calculateAnalytics() {
   };
 }
 
+// ============================================================================
+// HYBRID LOYALTY & DYNAMIC ADMIN FEE WITH EOD BATCH ESCROW DATA MODELS
+// ============================================================================
+function calculateWibClaimDeadline(transDate = new Date()) {
+  const wibOffsetMs = 7 * 60 * 60 * 1000;
+  const wibTime = new Date(transDate.getTime() + wibOffsetMs);
+  const year = wibTime.getUTCFullYear();
+  const month = wibTime.getUTCMonth();
+  const date = wibTime.getUTCDate();
+  // Hari D + 1 jam 23:59:59.999 WIB (= 16:59:59.999 UTC)
+  return new Date(Date.UTC(year, month, date + 1, 16, 59, 59, 999));
+}
+
+const merchantWallets = {
+  'MTR-KASIR-MASTER': {
+    merchantId: 'MTR-KASIR-MASTER',
+    name: 'KostKu Cafe & Resto (Pusat)',
+    whatsappNumber: '081234567890',
+    available_balance: 100000.00,
+    held_promo_balance: 75.00, // 1 pending demo claim * 75
+    updatedAt: new Date().toISOString()
+  },
+  'MTR-CABANG-TEMBALANG': {
+    merchantId: 'MTR-CABANG-TEMBALANG',
+    name: 'KostKu Kitchen & Coffee Tembalang',
+    whatsappNumber: '081234567891',
+    available_balance: 25000.00,
+    held_promo_balance: 0.00,
+    updatedAt: new Date().toISOString()
+  },
+  'MTR-CABANG-SEKARAN': {
+    merchantId: 'MTR-CABANG-SEKARAN',
+    name: 'KostKu Food Corner Unnes Sekaran',
+    whatsappNumber: '081234567892',
+    available_balance: 15000.00,
+    held_promo_balance: 0.00,
+    updatedAt: new Date().toISOString()
+  }
+};
+
+const _initNow = new Date();
+const _initTodayDeadline = calculateWibClaimDeadline(_initNow);
+const _initYesterday = new Date(_initNow.getTime() - 24 * 3600 * 1000);
+const _initYesterdayDeadline = calculateWibClaimDeadline(_initYesterday);
+const _initThreeDaysAgo = new Date(_initNow.getTime() - 3 * 24 * 3600 * 1000);
+const _initThreeDaysAgoDeadline = calculateWibClaimDeadline(_initThreeDaysAgo);
+
+let receiptClaims = [
+  {
+    id: 'CLM-DEMO-001',
+    order_id: 'ORD-DEMO-001',
+    merchant_id: 'MTR-KASIR-MASTER',
+    merchant_name: 'KostKu Cafe & Resto (Pusat)',
+    invoice_number: 'INV-20261112-001',
+    total_amount: 35000,
+    claim_token: 'demo-claim-today',
+    qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-today',
+    status: 'PENDING',
+    claimed_by_whatsapp: null,
+    points_awarded: 0,
+    claim_deadline: _initTodayDeadline.toISOString(),
+    claimed_at: null,
+    refunded_at: null,
+    createdAt: _initNow.toISOString()
+  },
+  {
+    id: 'CLM-DEMO-002',
+    order_id: 'ORD-DEMO-002',
+    merchant_id: 'MTR-KASIR-MASTER',
+    merchant_name: 'KostKu Cafe & Resto (Pusat)',
+    invoice_number: 'INV-20261111-002',
+    total_amount: 28000,
+    claim_token: 'demo-claim-claimed',
+    qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-claimed',
+    status: 'CLAIMED',
+    claimed_by_whatsapp: '081234567890',
+    points_awarded: 28,
+    claim_deadline: _initYesterdayDeadline.toISOString(),
+    claimed_at: _initYesterday.toISOString(),
+    refunded_at: null,
+    createdAt: _initYesterday.toISOString()
+  },
+  {
+    id: 'CLM-DEMO-003',
+    order_id: 'ORD-DEMO-003',
+    merchant_id: 'MTR-KASIR-MASTER',
+    merchant_name: 'KostKu Cafe & Resto (Pusat)',
+    invoice_number: 'INV-20261109-003',
+    total_amount: 45000,
+    claim_token: 'demo-claim-expired',
+    qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-expired',
+    status: 'EXPIRED',
+    claimed_by_whatsapp: null,
+    points_awarded: 0,
+    claim_deadline: _initThreeDaysAgoDeadline.toISOString(),
+    claimed_at: null,
+    refunded_at: new Date(_initThreeDaysAgo.getTime() + 2 * 24 * 3600 * 1000).toISOString(),
+    createdAt: _initThreeDaysAgo.toISOString()
+  }
+];
+
+const customerLoyaltyAccounts = {
+  '081234567890': {
+    whatsapp_number: '081234567890',
+    name: 'Oscar Herdian Wijaya',
+    total_points: 250,
+    createdAt: new Date().toISOString()
+  }
+};
+
+let pointsLedger = [
+  {
+    id: 'LEDGER-DEMO-01',
+    whatsapp_number: '081234567890',
+    order_id: 'ORD-DEMO-002',
+    invoice_number: 'INV-20261111-002',
+    change_type: 'EARN',
+    points: 28,
+    notes: 'Klaim Poin Struk #INV-20261111-002 (Belanja Rp 28.000)',
+    createdAt: _initYesterday.toISOString()
+  }
+];
+
+let walletMutations = [
+  {
+    id: 'MUT-REF-DEMO-01',
+    merchant_id: 'MTR-KASIR-MASTER',
+    type: 'REFUND_PROMO',
+    amount: 75.00,
+    unclaimed_count: 1,
+    description: 'Pengembalian Dana Promo (1 nota kadaluarsa): +Rp 75',
+    balance_after: 100000.00,
+    createdAt: new Date(_initThreeDaysAgo.getTime() + 2 * 24 * 3600 * 1000).toISOString()
+  }
+];
+
+function executeBatchSettlement() {
+  const now = new Date();
+  const expiredPending = receiptClaims.filter(c => c.status === 'PENDING' && new Date(c.claim_deadline) < now);
+  
+  if (expiredPending.length === 0) {
+    return { success: true, processedCount: 0, totalRefunded: 0, affectedMerchants: [] };
+  }
+
+  const merchantRefundMap = {};
+  expiredPending.forEach(c => {
+    c.status = 'EXPIRED';
+    c.refunded_at = now.toISOString();
+    
+    const mId = c.merchant_id || 'MTR-KASIR-MASTER';
+    if (!merchantRefundMap[mId]) {
+      merchantRefundMap[mId] = { count: 0, totalRefund: 0, claims: [] };
+    }
+    merchantRefundMap[mId].count += 1;
+    merchantRefundMap[mId].totalRefund += 75.00;
+    merchantRefundMap[mId].claims.push(c.id);
+  });
+
+  const affectedMerchants = [];
+
+  Object.entries(merchantRefundMap).forEach(([mId, data]) => {
+    if (!merchantWallets[mId]) {
+      merchantWallets[mId] = {
+        merchantId: mId,
+        name: 'Mitra KostKu',
+        whatsappNumber: '081234567890',
+        available_balance: 0.00,
+        held_promo_balance: 0.00,
+        updatedAt: now.toISOString()
+      };
+    }
+    
+    const wallet = merchantWallets[mId];
+    wallet.held_promo_balance = Math.max(0, (wallet.held_promo_balance || 0) - data.totalRefund);
+    wallet.available_balance = (wallet.available_balance || 0) + data.totalRefund;
+    wallet.updatedAt = now.toISOString();
+
+    if (posStore.merchantId === mId || posStore.uid === mId) {
+      posStore.saldoNota = wallet.available_balance;
+      posStore.kuotaNota = Math.floor(wallet.available_balance / 100);
+    }
+
+    const mutation = {
+      id: 'MUT-REF-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      merchant_id: mId,
+      type: 'REFUND_PROMO',
+      amount: data.totalRefund,
+      unclaimed_count: data.count,
+      description: `Pengembalian Dana Promo (${data.count} nota kadaluarsa): +Rp ${data.totalRefund.toLocaleString('id-ID')}`,
+      balance_after: wallet.available_balance,
+      createdAt: now.toISOString()
+    };
+    walletMutations.unshift(mutation);
+
+    affectedMerchants.push({
+      merchantId: mId,
+      unclaimedCount: data.count,
+      totalRefund: data.totalRefund,
+      newAvailableBalance: wallet.available_balance,
+      remainingHeldBalance: wallet.held_promo_balance
+    });
+  });
+
+  return {
+    success: true,
+    processedCount: expiredPending.length,
+    totalRefunded: expiredPending.length * 75.00,
+    affectedMerchants
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -583,6 +794,201 @@ async function handleApi(request, url, env) {
       buildNumber: 157,
       appId: 'id.kostku.app'
     }), { headers: corsHeaders });
+  }
+
+  // ── HYBRID LOYALTY CLAIM & ESCROW ENDPOINTS ─────────────────────
+  // 1. Claim info check for customer claim page (/api/loyalty/claim-info?token=...)
+  if ((path === '/loyalty/claim-info' || path === '/pos/claim-info') && method === 'GET') {
+    const token = url.searchParams.get('token') || '';
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Token struk QR wajib disertakan' }), { status: 400, headers: corsHeaders });
+    }
+    const claim = receiptClaims.find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    if (!claim) {
+      return new Response(JSON.stringify({ error: 'Data struk tidak ditemukan atau token tidak valid' }), { status: 404, headers: corsHeaders });
+    }
+    const now = new Date();
+    const isDeadlinePassed = now > new Date(claim.claim_deadline);
+    let resolvedStatus = claim.status;
+    if (claim.status === 'PENDING' && isDeadlinePassed) {
+      resolvedStatus = 'EXPIRED';
+    }
+    return new Response(JSON.stringify({
+      id: claim.id,
+      token: claim.claim_token,
+      invoice: claim.invoice_number,
+      merchantId: claim.merchant_id,
+      merchantName: claim.merchant_name || 'KostKu Cafe & Resto',
+      totalAmount: claim.total_amount,
+      potentialPoints: Math.max(1, Math.floor(claim.total_amount / 1000)),
+      status: resolvedStatus,
+      claimDeadline: claim.claim_deadline,
+      claimedBy: claim.claimed_by_whatsapp ? claim.claimed_by_whatsapp.replace(/(\d{4})\d+(\d{3})/, '$1****$2') : null,
+      claimedAt: claim.claimed_at,
+      refundedAt: claim.refunded_at,
+      createdAt: claim.createdAt,
+      isExpired: resolvedStatus === 'EXPIRED',
+      isClaimed: resolvedStatus === 'CLAIMED'
+    }), { headers: corsHeaders });
+  }
+
+  // 2. Customer claims points (/api/loyalty/claim or /api/pos/claim)
+  if ((path === '/loyalty/claim' || path === '/pos/claim') && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const token = (body.token || '').trim();
+    let rawPhone = String(body.whatsapp || body.phone || '').trim();
+    const customerName = (body.name || '').trim();
+
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Token struk tidak boleh kosong' }), { status: 400, headers: corsHeaders });
+    }
+
+    let cleanPhone = rawPhone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('62')) {
+      cleanPhone = '0' + cleanPhone.slice(2);
+    }
+    if (!cleanPhone.startsWith('08') || cleanPhone.length < 10 || cleanPhone.length > 15) {
+      return new Response(JSON.stringify({ error: 'Nomor WhatsApp tidak valid. Masukkan nomor WhatsApp aktif (contoh: 081234567890).' }), { status: 400, headers: corsHeaders });
+    }
+
+    const claim = receiptClaims.find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    if (!claim) {
+      return new Response(JSON.stringify({ error: 'Struk belanja tidak ditemukan atau token QR tidak valid.' }), { status: 404, headers: corsHeaders });
+    }
+
+    // Anti Double-Claim Check
+    if (claim.status === 'CLAIMED') {
+      const redacted = claim.claimed_by_whatsapp ? claim.claimed_by_whatsapp.replace(/(\d{4})\d+(\d{3})/, '$1****$2') : 'nomor lain';
+      return new Response(JSON.stringify({
+        error: `Struk ini sudah pernah diklaim sebelumnya oleh ${redacted} pada ${new Date(claim.claimed_at || Date.now()).toLocaleString('id-ID')}.`,
+        alreadyClaimed: true,
+        claimedAt: claim.claimed_at
+      }), { status: 400, headers: corsHeaders });
+    }
+
+    // Expiry check
+    const now = new Date();
+    if (claim.status === 'EXPIRED' || now > new Date(claim.claim_deadline)) {
+      claim.status = 'EXPIRED';
+      return new Response(JSON.stringify({
+        error: `Masa klaim struk ini telah berakhir pada ${new Date(claim.claim_deadline).toLocaleString('id-ID')} WIB.`,
+        isExpired: true,
+        claimDeadline: claim.claim_deadline
+      }), { status: 400, headers: corsHeaders });
+    }
+
+    // ATOMIC MUTATION (Idempotent 1-time claim)
+    claim.status = 'CLAIMED';
+    claim.claimed_by_whatsapp = cleanPhone;
+    const pointsAwarded = Math.max(1, Math.floor(claim.total_amount / 1000));
+    claim.points_awarded = pointsAwarded;
+    claim.claimed_at = now.toISOString();
+
+    // Silent Registration for Customer
+    if (!customerLoyaltyAccounts[cleanPhone]) {
+      customerLoyaltyAccounts[cleanPhone] = {
+        whatsapp_number: cleanPhone,
+        name: customerName || 'Pelanggan KostKu',
+        total_points: 0,
+        createdAt: now.toISOString()
+      };
+    }
+    customerLoyaltyAccounts[cleanPhone].total_points += pointsAwarded;
+    if (customerName) {
+      customerLoyaltyAccounts[cleanPhone].name = customerName;
+    }
+
+    // Audit Ledger Entry
+    pointsLedger.unshift({
+      id: 'LEDGER-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      whatsapp_number: cleanPhone,
+      order_id: claim.order_id,
+      invoice_number: claim.invoice_number,
+      change_type: 'EARN',
+      points: pointsAwarded,
+      notes: `Klaim poin struk #${claim.invoice_number} (Belanja Rp ${claim.total_amount?.toLocaleString('id-ID')})`,
+      createdAt: now.toISOString()
+    });
+
+    // Deduct held promo balance from merchant escrow (official platform/promo fee)
+    const mId = claim.merchant_id || 'MTR-KASIR-MASTER';
+    if (merchantWallets[mId]) {
+      merchantWallets[mId].held_promo_balance = Math.max(0, (merchantWallets[mId].held_promo_balance || 0) - 75.00);
+      merchantWallets[mId].updatedAt = now.toISOString();
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: `🎉 Selamat! +${pointsAwarded} Poin loyalitas berhasil ditambahkan ke akun WhatsApp ${cleanPhone}.`,
+      pointsAwarded,
+      totalPoints: customerLoyaltyAccounts[cleanPhone].total_points,
+      invoice: claim.invoice_number,
+      merchantName: claim.merchant_name,
+      claimedAt: claim.claimed_at
+    }), { headers: corsHeaders });
+  }
+
+  // 3. Customer Points Lookup (/api/loyalty/customer/:phone)
+  if (path.startsWith('/loyalty/customer/') && method === 'GET') {
+    let phone = path.replace('/loyalty/customer/', '').replace(/\D/g, '');
+    if (phone.startsWith('62')) phone = '0' + phone.slice(2);
+    const account = customerLoyaltyAccounts[phone] || { whatsapp_number: phone, name: 'Pelanggan Baru', total_points: 0 };
+    const history = pointsLedger.filter(l => l.whatsapp_number === phone);
+    return new Response(JSON.stringify({
+      account,
+      history
+    }), { headers: corsHeaders });
+  }
+
+  // 4. Merchant Wallet & Escrow Ledger (/api/merchant/wallet or /api/pos/wallet)
+  if (path.startsWith('/merchant/wallet') || path.startsWith('/pos/wallet')) {
+    const mId = url.searchParams.get('merchantId') || posStore.activeBranch || 'MTR-KASIR-MASTER';
+    
+    // Opportunistic settlement check: if any overdue claims exist, auto settle them
+    executeBatchSettlement();
+
+    if (!merchantWallets[mId]) {
+      merchantWallets[mId] = {
+        merchantId: mId,
+        name: posStore.storeName || 'KostKu Cafe & Resto (Pusat)',
+        whatsappNumber: posStore.phone || '081234567890',
+        available_balance: posStore.saldoNota || 100000.00,
+        held_promo_balance: 0.00,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    const wallet = merchantWallets[mId];
+    const claims = receiptClaims.filter(c => c.merchant_id === mId || !c.merchant_id);
+    const pendingCount = claims.filter(c => c.status === 'PENDING').length;
+    
+    // Recalculate held_promo_balance strictly: pendingCount * 75
+    wallet.held_promo_balance = pendingCount * 75.00;
+
+    const mutations = walletMutations.filter(m => m.merchant_id === mId || !m.merchant_id);
+
+    return new Response(JSON.stringify({
+      success: true,
+      wallet: {
+        merchantId: wallet.merchantId,
+        name: wallet.name,
+        whatsappNumber: wallet.whatsappNumber,
+        available_balance: wallet.available_balance,
+        held_promo_balance: wallet.held_promo_balance,
+        pendingClaimsCount: pendingCount,
+        claimedCount: claims.filter(c => c.status === 'CLAIMED').length,
+        expiredCount: claims.filter(c => c.status === 'EXPIRED').length,
+        updatedAt: wallet.updatedAt
+      },
+      claims,
+      mutations
+    }), { headers: corsHeaders });
+  }
+
+  // 5. Batch Settlement Worker (Cron 00:01 WIB / Manual Admin Trigger)
+  if ((path === '/admin/run-batch-settlement' || path === '/pos/run-batch-settlement') && method === 'POST') {
+    const result = executeBatchSettlement();
+    return new Response(JSON.stringify(result), { headers: corsHeaders });
   }
 
   // ── POS & TABLE QR ENGINE ENDPOINTS (/api/pos/*) ─────────────────
@@ -1117,8 +1523,8 @@ async function handlePosApi(request, path, method, url) {
     return new Response(JSON.stringify(calculateAnalytics()), { headers: corsHeaders });
   }
 
-  // 19. GET & POST /pos/orders
-  if (path === '/orders') {
+  // 19. GET & POST /pos/orders or /pos/checkout
+  if (path === '/orders' || path === '/checkout') {
     if (method === 'GET') {
       return new Response(JSON.stringify(posOrders), { headers: corsHeaders });
     }
@@ -1147,13 +1553,78 @@ async function handlePosApi(request, path, method, url) {
         });
       });
 
-      // Deduct 1 nota quota
-      if (posStore.kuotaNota > 0) {
-        posStore.kuotaNota -= 1;
+      const storeId = body.storeId || posStore.activeBranch || 'MTR-KASIR-MASTER';
+      const storeName = body.storeName || posStore.storeName || 'KostKu Cafe & Resto (Pusat)';
+      const now = new Date();
+      const orderId = 'POS-' + Date.now().toString().slice(-6) + '-' + Math.floor(100 + Math.random() * 900);
+      const invoiceNumber = 'INV-' + now.toISOString().slice(0, 10).replace(/-/g, '') + '-' + orderId.slice(-4);
+      const claimDeadline = calculateWibClaimDeadline(now);
+      const claimToken = 'clm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      const qrClaimUrl = `https://kostku.riuph.me/claim?token=${claimToken}`;
+
+      // HYBRID ADMIN FEE DEDUCTION: Rp 25 Flat Platform Base + Rp 75 Held Promo Escrow
+      const BASE_ADMIN_FEE = 25.00;
+      const HELD_PROMO_FEE = 75.00;
+      const TOTAL_ADMIN_DEDUCT = 100.00;
+
+      if (!merchantWallets[storeId]) {
+        merchantWallets[storeId] = {
+          merchantId: storeId,
+          name: storeName,
+          whatsappNumber: '081234567890',
+          available_balance: 100000.00,
+          held_promo_balance: 0.00,
+          updatedAt: now.toISOString()
+        };
       }
 
+      const wallet = merchantWallets[storeId];
+      wallet.available_balance = Math.max(0, (wallet.available_balance || 100000) - TOTAL_ADMIN_DEDUCT);
+      wallet.held_promo_balance = (wallet.held_promo_balance || 0) + HELD_PROMO_FEE;
+      wallet.updatedAt = now.toISOString();
+
+      if (posStore.merchantId === storeId || posStore.uid === storeId) {
+        posStore.saldoNota = wallet.available_balance;
+        posStore.kuotaNota = Math.floor(wallet.available_balance / 100);
+      }
+
+      // Record 1-time single use receipt claim
+      const claimRecord = {
+        id: 'CLM-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+        order_id: orderId,
+        merchant_id: storeId,
+        merchant_name: storeName,
+        invoice_number: invoiceNumber,
+        total_amount: totalAmount,
+        claim_token: claimToken,
+        qr_claim_url: qrClaimUrl,
+        status: 'PENDING',
+        claimed_by_whatsapp: null,
+        points_awarded: 0,
+        claim_deadline: claimDeadline.toISOString(),
+        claimed_at: null,
+        refunded_at: null,
+        createdAt: now.toISOString()
+      };
+      receiptClaims.unshift(claimRecord);
+
+      // Record wallet mutation
+      walletMutations.unshift({
+        id: 'MUT-DED-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+        merchant_id: storeId,
+        type: 'FEE_DEDUCT',
+        amount: -TOTAL_ADMIN_DEDUCT,
+        base_admin_fee: BASE_ADMIN_FEE,
+        held_promo_fee: HELD_PROMO_FEE,
+        description: `Biaya Nota #${invoiceNumber} (Rp 25 Platform + Rp 75 Dana Promo Ditahan)`,
+        balance_after: wallet.available_balance,
+        createdAt: now.toISOString()
+      });
+
       const newOrder = {
-        id: 'ORD-' + Date.now(),
+        id: orderId,
+        invoice_number: invoiceNumber,
+        invoice: invoiceNumber,
         customerName: body.customerName || 'Tamu Resto',
         customerPhone: body.customerPhone || '',
         tableNumber: body.tableNumber || 'Takeaway',
@@ -1163,13 +1634,30 @@ async function handlePosApi(request, path, method, url) {
         totalAmount,
         paymentMethod: body.paymentMethod || 'CASH',
         status: body.status || 'PENDING_CONFIRMATION',
-        storeId: body.storeId || posStore.activeBranch || 'MTR-KASIR-MASTER',
+        storeId,
+        storeName,
         cashierId: body.cashierId || 'KSR-01',
-        createdAt: new Date().toISOString()
+        cashierName: body.cashierName || 'Siti Rahmawati (Kasir)',
+        base_admin_fee: BASE_ADMIN_FEE,
+        held_promo_fee: HELD_PROMO_FEE,
+        claim_token: claimToken,
+        claimToken: claimToken,
+        qr_claim_url: qrClaimUrl,
+        qrClaimUrl: qrClaimUrl,
+        claim_deadline: claimDeadline.toISOString(),
+        claimDeadline: claimDeadline.toISOString(),
+        createdAt: now.toISOString()
       };
 
       posOrders.unshift(newOrder);
-      return new Response(JSON.stringify(newOrder), { status: 200, headers: corsHeaders });
+      return new Response(JSON.stringify({
+        ...newOrder,
+        invoice: invoiceNumber,
+        total: totalAmount,
+        qr_claim_url: qrClaimUrl,
+        claim_token: claimToken,
+        claim_deadline: claimDeadline.toISOString()
+      }), { status: 200, headers: corsHeaders });
     }
   }
 

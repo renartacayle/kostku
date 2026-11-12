@@ -13,7 +13,11 @@ import {
   Percent,
   CheckCircle2,
   ChevronRight,
-  Info
+  Info,
+  Gift,
+  ExternalLink,
+  Clock,
+  Wallet
 } from 'lucide-react';
 
 export default function KasirAnalyticsModal({
@@ -299,7 +303,8 @@ export default function KasirAnalyticsModal({
               { id: 'perMenu', label: '🍜 Per Menu (Omset & HPP)', count: perMenu.length },
               { id: 'perStore', label: '🏪 Per Cabang / Toko', count: perStore.length },
               { id: 'crossBranch', label: '🌐 Semua Cabang per Menu (Matriks)', count: crossBranch.length },
-              { id: 'perCashier', label: '👨‍💼 Per Karyawan / Kasir', count: perCashier.length }
+              { id: 'perCashier', label: '👨‍💼 Per Karyawan / Kasir', count: perCashier.length },
+              { id: 'escrowPromo', label: '🎁 Escrow & Loyalty (Rp 75 Promo)', count: 'Live' }
             ].map(tab => {
               const active = activeTab === tab.id;
               return (
@@ -658,6 +663,160 @@ export default function KasirAnalyticsModal({
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: ESCROW & LOYALTY (RP 75 PROMO) */}
+          {activeTab === 'escrowPromo' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                background: bgCard,
+                borderRadius: '12px',
+                border: `1px solid ${borderColor}`,
+                padding: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <span style={{
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '2px 7px',
+                      borderRadius: '5px'
+                    }}>
+                      ESCROW PROMO ENGINE
+                    </span>
+                    <span style={{ fontSize: '0.74rem', color: textSecondary }}>
+                      Skema Biaya Admin Kasir POS
+                    </span>
+                  </div>
+                  <h4 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: textPrimary }}>
+                    Potongan Admin Berjenjang (Rp 25 Platform + Rp 75 Promo Ditahan)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: textSecondary, maxWidth: '600px', lineHeight: 1.4 }}>
+                    Setiap struk kasir diterbitkan dengan QR unik 1x pakai. Jika pelanggan tidak mengklaim poin hingga <strong>Hari D+1 jam 23:59 WIB</strong>, dana Rp 75/nota otomatis di-refund kembali ke Saldo Aktif Anda pada pukul 00:01 WIB.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <a
+                    href="/keuangan?tab=escrow"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)'
+                    }}
+                  >
+                    <span>Buka Menu Keuangan</span>
+                    <ExternalLink size={13} />
+                  </a>
+
+                  <a
+                    href="/claim"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <span>Laman Klaim Pelanggan</span>
+                    <ExternalLink size={13} />
+                  </a>
+                </div>
+              </div>
+
+              {/* 3 Metric Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '12px'
+              }}>
+                <div style={{
+                  background: bgCard,
+                  borderRadius: '12px',
+                  border: `1px solid ${borderColor}`,
+                  padding: '14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary }}>
+                      Biaya Admin Dasar
+                    </span>
+                    <DollarSign size={16} color="#4f46e5" />
+                  </div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#4f46e5' }}>
+                    Rp 25 <span style={{ fontSize: '0.72rem', fontWeight: 600, color: textSecondary }}>/ nota</span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: textSecondary }}>
+                    Biaya operasional server & platform cloud.
+                  </span>
+                </div>
+
+                <div style={{
+                  background: bgCard,
+                  borderRadius: '12px',
+                  border: '1.5px solid #f59e0b',
+                  padding: '14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706' }}>
+                      Dana Promo Tertahan (Held)
+                    </span>
+                    <Clock size={16} color="#d97706" />
+                  </div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#d97706' }}>
+                    Rp 75 <span style={{ fontSize: '0.72rem', fontWeight: 600, color: textSecondary }}>/ nota</span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: textSecondary }}>
+                    Ditahan selama masa klaim (Refund jika unclaimed).
+                  </span>
+                </div>
+
+                <div style={{
+                  background: bgCard,
+                  borderRadius: '12px',
+                  border: `1px solid ${borderColor}`,
+                  padding: '14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary }}>
+                      Batas Waktu Klaim (Deadline)
+                    </span>
+                    <Gift size={16} color="#10b981" />
+                  </div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#10b981' }}>
+                    Hari D+1 23:59 WIB
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: textSecondary }}>
+                    Batch settlement cron otomatis jam 00:01 WIB.
+                  </span>
+                </div>
               </div>
             </div>
           )}
