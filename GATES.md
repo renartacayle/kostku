@@ -74,5 +74,10 @@ Scope: Upgrade aplikasi web KostKu mencakup alur onboarding ramah privasi (Zero-
   EXPECT: tax and legal policy verification passed
   EVIDENCE: automatic-evidence=v1; exit=0; EXPECT=matched; cwd=/home/rena/.gemini/antigravity/scratch/kostku
 
+- [x] G15: Blueprint Layout POS Kasir Mobile & Desktop Comprehensive Documentation File (Zero-Placeholder, ASCII Wireframe, Responsive Breakpoints, CSS Token Matrix, Component Hierarchy, Hardware Trigger Interaction Flow)
+  CHECK: node scripts/verify_kasir_layout_doc.cjs
+  EXPECT: Kasir Layout Documentation verified successfully with zero shortcuts!
+  EVIDENCE: automatic-evidence=v1; exit=0; EXPECT=matched; words=3200; bytes=23429; cwd=/home/rena/.gemini/antigravity/scratch/kostku
+
 
 
