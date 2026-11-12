@@ -2593,6 +2593,8 @@ export default function Kasir({ user }) {
       {/* ── HORIZONTAL QUICK TOOLBAR (1-BARIS PRAKTIS & RAMPING) ── */}
       <div style={{
         maxWidth: '1280px',
+        width: '100%',
+        boxSizing: 'border-box',
         margin: '0 auto',
         padding: '0.45rem 1rem 0',
         display: 'flex',
@@ -3532,11 +3534,11 @@ export default function Kasir({ user }) {
         <main style={{ maxWidth: '1280px', margin: '1.25rem auto 0', padding: '0 1rem' }}>
           <div className="pos-workspace-grid">
             {/* Left: Product Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, width: '100%' }}>
               {/* Unified Search & Quick Actions Bar (Single Compact Row) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', minWidth: 0 }}>
                 {/* Live Search Input Bar */}
-                <div style={{ position: 'relative', flex: 1 }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: textSecondary }} />
                   <input
                     type="text"
@@ -3545,6 +3547,7 @@ export default function Kasir({ user }) {
                     onChange={e => setPosSearchQuery(e.target.value)}
                     style={{
                       width: '100%',
+                      boxSizing: 'border-box',
                       padding: '7px 28px 7px 30px',
                       borderRadius: '10px',
                       border: `1px solid ${borderColor}`,
@@ -3657,7 +3660,10 @@ export default function Kasir({ user }) {
                 overflowX: 'auto',
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch',
-                paddingBottom: '2px'
+                paddingBottom: '2px',
+                width: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box'
               }}>
                 {posCategories.map(cat => {
                   const isActive = posCategory === cat;
@@ -3757,12 +3763,7 @@ export default function Kasir({ user }) {
                 }
 
                 return posViewMode === 'grid' ? (
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))',
-                    gap: '10px',
-                    alignItems: 'stretch'
-                  }}>
+                  <div className="pos-product-grid">
                     {filteredPosProducts.map(p => {
                       const inCart = posCart[p.id]?.qty || 0;
                       return (
@@ -3778,7 +3779,9 @@ export default function Kasir({ user }) {
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
-                            position: 'relative'
+                            position: 'relative',
+                            minWidth: 0,
+                            boxSizing: 'border-box'
                           }}
                         >
                           {/* Image & In-Cart Badge */}
