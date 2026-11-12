@@ -120,6 +120,10 @@ export default function Kasir({ user }) {
   const [posPaymentMethod, setPosPaymentMethod] = useState('CASH'); // 'CASH' | 'QRIS' | 'TRANSFER'
   const [posCashReceived, setPosCashReceived] = useState('');
 
+  // Post-Payment Walk-in Table Assignment State (Tanyakan nomor meja setelah pembayaran tuntas)
+  const [walkinTableModalOrder, setWalkinTableModalOrder] = useState(null);
+  const [customWalkinTable, setCustomWalkinTable] = useState('');
+
   // Quick Quantity Modal State (Atur Banyaknya Porsi Menu Ditambahkan)
   const [quickQtyProduct, setQuickQtyProduct] = useState(null);
   const [quickQtyValue, setQuickQtyValue] = useState(1);
@@ -1747,6 +1751,46 @@ export default function Kasir({ user }) {
     transition: 'all 0.15s ease'
   });
 
+  const assignTableToOrder = async (chosenTableNumber) => {
+    if (!walkinTableModalOrder) return;
+    const { orderId, receiptData, methodLabel } = walkinTableModalOrder;
+    const finalTable = chosenTableNumber || 'Takeaway';
+    const finalCustomerName = `Kasir Walk-in (${finalTable})`;
+
+    try {
+      await fetch(`/api/pos/orders/${orderId}/table`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableNumber: finalTable,
+          customerName: finalCustomerName
+        })
+      });
+    } catch (err) {
+      console.error('Failed to update table number:', err);
+    }
+
+    // Update receipt data with final table
+    const updatedReceipt = {
+      ...receiptData,
+      tableNumber: finalTable
+    };
+
+    // Auto Print Thermal Receipt
+    try {
+      printReceipt(updatedReceipt, { openDrawer: false }).catch(console.warn);
+    } catch (_) {}
+
+    setReceiptOrder(updatedReceipt);
+    setWalkinTableModalOrder(null);
+    setCustomWalkinTable('');
+    fetchData();
+
+    try {
+      playChime(660, 0.12);
+    } catch (_) {}
+  };
+
   const renderCartSummaryContent = () => {
     const posCartItems = Object.values(posCart);
     const posCartSubtotal = posCartItems.reduce((s, it) => s + (it.product.price * it.qty), 0);
@@ -1757,28 +1801,23 @@ export default function Kasir({ user }) {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div>
-          <label style={{ fontSize: '0.76rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
-            Pilih Nomor Meja:
-          </label>
-          <select
-            value={selectedTable}
-            onChange={e => setSelectedTable(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 10px',
-              borderRadius: '10px',
-              border: `1px solid ${borderColor}`,
-              background: isLight ? '#f8fafc' : '#1e293b',
-              color: textPrimary,
-              fontSize: '0.85rem',
-              fontWeight: 700
-            }}
-          >
-            {tables.map(t => (
-              <option key={t.id} value={t.number}>{t.number}</option>
-            ))}
-          </select>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)',
+          borderRadius: '10px',
+          border: `1px dashed ${borderColor}`,
+          fontSize: '0.76rem'
+        }}>
+          <span style={{ color: textSecondary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ShoppingBag size={14} color="#2563eb" />
+            <span>Tipe Pesanan:</span>
+          </span>
+          <span style={{ fontWeight: 800, color: '#2563eb' }}>
+            Kasir Walk-in Counter
+          </span>
         </div>
 
         {/* Items in Cart */}
@@ -2299,13 +2338,14 @@ export default function Kasir({ user }) {
                     qty: it.qty,
                     notes: it.notes || ''
                   }));
-                  const tbl = tables.find(t => t.number === selectedTable) || tables[0];
+                  const cartSnapshot = { ...posCart };
                   const res = await fetch('/api/pos/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      tableToken: tbl?.qrToken,
-                      customerName: 'Kasir Walk-in (' + selectedTable + ')',
+                      tableToken: null,
+                      tableNumber: 'Menunggu Meja',
+                      customerName: 'Kasir Walk-in',
                       items,
                       promoId: activeCartPromo?.id,
                       promoCode: activeCartPromo?.code,
@@ -2350,7 +2390,7 @@ export default function Kasir({ user }) {
                       } catch (_) {}
                     }
 
-                    // Auto Print Thermal Receipt
+                    // Prepare receipt base data
                     const receiptData = {
                       id: newO.id,
                       invoice_number: newO.invoice || newO.invoice_number || newO.id,
@@ -2359,14 +2399,14 @@ export default function Kasir({ user }) {
                       paymentMethod: posPaymentMethod === 'CASH' ? 'TUNAI (CASH)' : posPaymentMethod === 'QRIS' ? 'QRIS DINAMIS' : 'TRANSFER BANK',
                       cashReceived: effectiveCashReceived,
                       cashChange: effectiveChange,
-                      tableNumber: selectedTable,
+                      tableNumber: 'Menunggu Meja',
                       claimToken: newO.claim_token || newO.claimToken,
                       qrClaimUrl: newO.qr_claim_url || newO.qrClaimUrl,
                       claimDeadline: newO.claim_deadline || newO.claimDeadline,
                       storeName: storeInfo.storeName || 'KostKu Cafe & Resto',
                       createdAt: new Date().toISOString(),
                       items: items.map(it => {
-                        const p = Object.values(posCart).find(c => c.product.id === it.productId)?.product;
+                        const p = Object.values(cartSnapshot).find(c => c.product.id === it.productId)?.product;
                         return {
                           name: p?.name || 'Menu',
                           qty: it.qty,
@@ -2376,13 +2416,15 @@ export default function Kasir({ user }) {
                       })
                     };
 
-                    try {
-                      printReceipt(receiptData, { openDrawer: false }).catch(console.warn);
-                    } catch (_) {}
+                    const methodLabel = posPaymentMethod === 'CASH' ? 'Tunai' : posPaymentMethod === 'QRIS' ? 'QRIS Dinamis' : 'Transfer Bank';
 
-                    setReceiptOrder(receiptData);
-                    const methodLabel = posPaymentMethod === 'CASH' ? 'Tunai (Laci Uang Terbuka)' : posPaymentMethod === 'QRIS' ? 'QRIS Dinamis' : 'Transfer Bank';
-                    alert(`✅ Transaksi ${methodLabel} Berhasil! Nota telah diproses & masuk antrean dapur.`);
+                    // Buka dialog untuk menanyakan nomor meja ke pelanggan
+                    setWalkinTableModalOrder({
+                      orderId: newO.id,
+                      order: newO,
+                      receiptData,
+                      methodLabel
+                    });
                   } else {
                     const err = await res.json();
                     alert(err.error || 'Gagal membuat pesanan');
@@ -2406,10 +2448,10 @@ export default function Kasir({ user }) {
                 {Number(storeInfo.saldoNota ?? 5000) < 100 
                   ? '⚠️ Top Up Nota' 
                   : posPaymentMethod === 'CASH'
-                    ? 'Bayar Tunai & Cetak Struk'
+                    ? `Bayar Tunai Rp ${posFinalTotal.toLocaleString('id-ID')}`
                     : posPaymentMethod === 'QRIS'
-                      ? 'Verifikasi QRIS & Cetak Struk'
-                      : 'Konfirmasi Transfer & Cetak Struk'}
+                      ? `Validasi QRIS Rp ${posFinalTotal.toLocaleString('id-ID')}`
+                      : `Validasi Transfer Rp ${posFinalTotal.toLocaleString('id-ID')}`}
               </button>
             </div>
           </div>
@@ -4597,7 +4639,7 @@ export default function Kasir({ user }) {
             </div>
             <div>
               <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                {selectedTable ? `Meja: ${selectedTable}` : 'Kasir Walk-in'}
+                Order Kasir Walk-in
               </div>
               <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
                 Rp {Math.max(0, Object.values(posCart).reduce((s, it) => s + (it.product.price * it.qty), 0) - (activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0)).toLocaleString('id-ID')}
@@ -9783,6 +9825,299 @@ export default function Kasir({ user }) {
                 }}
               >
                 Terapkan {quickQtyValue} Pcs
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL PASCA-BAYAR: PILIH NOMOR MEJA ORDER KASIR WALK-IN ── */}
+      {walkinTableModalOrder && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: bgCard,
+            border: `1px solid ${borderColor}`,
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '520px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: `1px solid ${borderColor}`,
+              background: isLight ? '#f8fafc' : '#0f172a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  fontSize: '1.2rem',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                }}>
+                  ✅
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: textPrimary }}>
+                    Pembayaran Berhasil!
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
+                    {walkinTableModalOrder.methodLabel} • Rp {walkinTableModalOrder.receiptData?.totalAmount?.toLocaleString('id-ID')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => assignTableToOrder('Bungkus (Takeaway)')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: textSecondary,
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '6px'
+                }}
+                title="Bungkus / Lewati"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{
+                background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '1.4rem' }}>🪑</span>
+                <div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#065f46' : '#34d399' }}>
+                    Tanyakan ke Tamu: &ldquo;Duduk di Meja Berapa, Kak?&rdquo;
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: isLight ? '#047857' : '#94a3b8' }}>
+                    Ketuk nomor meja untuk memasukkan ke antrean dapur & cetak struk:
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid Meja */}
+              <div>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, display: 'block', marginBottom: '8px' }}>
+                  PILIH MEJA DINE-IN ({tables.length} MEJA):
+                </label>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                  gap: '8px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  padding: '2px'
+                }}>
+                  {tables.map(tbl => {
+                    const isOccupied = orders.some(o => 
+                      o.status !== 'COMPLETED' && 
+                      o.status !== 'CANCELLED' && 
+                      o.tableNumber === tbl.number
+                    );
+                    return (
+                      <button
+                        key={tbl.id}
+                        type="button"
+                        onClick={() => assignTableToOrder(tbl.number)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '12px 8px',
+                          borderRadius: '12px',
+                          border: isOccupied 
+                            ? (isLight ? '1px solid #fed7aa' : '1px solid #78350f')
+                            : `1px solid ${borderColor}`,
+                          background: isOccupied
+                            ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.12)')
+                            : (isLight ? '#ffffff' : '#1e293b'),
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          gap: '4px'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.88rem', fontWeight: 900, color: textPrimary }}>
+                          {tbl.number}
+                        </span>
+                        <span style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '999px',
+                          background: isOccupied 
+                            ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.25)')
+                            : (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)'),
+                          color: isOccupied ? '#d97706' : '#10b981'
+                        }}>
+                          {isOccupied ? 'Terisi' : 'Kosong'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Opsi Bungkus & Area Lain */}
+              <div>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, display: 'block', marginBottom: '8px' }}>
+                  OPSI LAIN:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => assignTableToOrder('Bungkus (Takeaway)')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>🛍️</span>
+                    <span>Bungkus / Takeaway</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => assignTableToOrder('Bar / Counter')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>🍸</span>
+                    <span>Duduk di Bar / Kasir</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Input Manual Nomor / Lokasi Khusus */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Atau ketik meja lain (cth: Meja Luar 2, VIP)..."
+                  value={customWalkinTable}
+                  onChange={e => setCustomWalkinTable(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && customWalkinTable.trim()) {
+                      assignTableToOrder(customWalkinTable.trim());
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#0f172a',
+                    color: textPrimary,
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={!customWalkinTable.trim()}
+                  onClick={() => {
+                    if (customWalkinTable.trim()) {
+                      assignTableToOrder(customWalkinTable.trim());
+                    }
+                  }}
+                  style={{
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: customWalkinTable.trim()
+                      ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                      : (isLight ? '#e2e8f0' : '#334155'),
+                    color: customWalkinTable.trim() ? '#ffffff' : textSecondary,
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    cursor: customWalkinTable.trim() ? 'pointer' : 'not-allowed',
+                    flexShrink: 0
+                  }}
+                >
+                  Terapkan
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '12px 20px',
+              borderTop: `1px solid ${borderColor}`,
+              background: isLight ? '#f8fafc' : '#0f172a',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '0.7rem', color: textSecondary }}>
+                Nota #{walkinTableModalOrder.orderId?.slice(-6)} telah lunas
+              </span>
+              <button
+                type="button"
+                onClick={() => assignTableToOrder('Bungkus (Takeaway)')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563eb',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  padding: '4px 8px'
+                }}
+              >
+                Bungkus / Lewati &rarr;
               </button>
             </div>
           </div>

@@ -2139,6 +2139,28 @@ async function handlePosApi(request, path, method, url) {
       return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
 
+    if (subAction === 'table' && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+      const body = await request.json().catch(() => ({}));
+      if (order) {
+        if (body.tableNumber) order.tableNumber = body.tableNumber;
+        if (body.customerName) order.customerName = body.customerName;
+        syncDeltaToFirebaseAsync(`pos_orders/${orderId}`, { tableNumber: order.tableNumber, customerName: order.customerName }, 'PATCH');
+        return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
+    if (!subAction && method === 'PATCH') {
+      const body = await request.json().catch(() => ({}));
+      if (order) {
+        if (body.tableNumber !== undefined) order.tableNumber = body.tableNumber;
+        if (body.customerName !== undefined) order.customerName = body.customerName;
+        syncDeltaToFirebaseAsync(`pos_orders/${orderId}`, { tableNumber: order.tableNumber, customerName: order.customerName }, 'PATCH');
+        return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
     if (subAction === 'acc' && method === 'POST') {
       if (order) {
         order.status = 'CONFIRMED';

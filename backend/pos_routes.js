@@ -1948,7 +1948,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       id: orderId,
       invoice_number: invoiceNumber,
       invoice: invoiceNumber,
-      tableNumber: table.number,
+      tableNumber: req.body.tableNumber || table.number || 'Walk-in',
       tableToken: tableToken || null,
       customerName: cleanCustomerName,
       customerPhone: cleanPhone,
@@ -2065,6 +2065,49 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
 
     res.json(order);
+  });
+
+  // ── UPDATE TABLE NUMBER OR CUSTOMER NAME ──────────────────────────────
+  router.post('/orders/:id/table', (req, res) => {
+    const { id } = req.params;
+    const { tableNumber, customerName } = req.body;
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const order = db.pos_orders.find(o => o.id === id);
+    if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+
+    if (tableNumber) {
+      order.tableNumber = tableNumber;
+      const matchTable = (db.pos_tables || []).find(t => t.number === tableNumber);
+      if (matchTable) order.tableToken = matchTable.qrToken;
+    }
+    if (customerName) order.customerName = customerName;
+
+    writeDB(db, req);
+    syncDelta(`pos_orders/${order.id}`, order, 'PATCH');
+    res.json({ success: true, message: 'Nomor meja berhasil diperbarui', order });
+  });
+
+  router.patch('/orders/:id', (req, res) => {
+    const { id } = req.params;
+    const { tableNumber, customerName } = req.body;
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const order = db.pos_orders.find(o => o.id === id);
+    if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+
+    if (tableNumber !== undefined) {
+      order.tableNumber = tableNumber;
+      const matchTable = (db.pos_tables || []).find(t => t.number === tableNumber);
+      if (matchTable) order.tableToken = matchTable.qrToken;
+    }
+    if (customerName !== undefined) order.customerName = customerName;
+
+    writeDB(db, req);
+    syncDelta(`pos_orders/${order.id}`, order, 'PATCH');
+    res.json({ success: true, message: 'Pesanan berhasil diperbarui', order });
   });
 
   // ── 6. KITCHEN / CASHIER ACTION: ACC OR REJECT PESANAN ─────────────────
