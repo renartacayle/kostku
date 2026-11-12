@@ -938,13 +938,19 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     });
   });
 
+  // In-memory set for paid references from webhook or verification
+  const posPaidReferences = new Set();
+
   // ── 0C-3. CONFIRM TRIPAY TOP UP TRANSACTION ───────────────────────────
   router.post('/topup-tripay/confirm', async (req, res) => {
     const { reference, amount, quota, merchantId, simulate } = req.body;
     const isSimulate = simulate === true;
 
-    // REAL CHECK KE TRIPAY API
-    if (!isSimulate) {
+    // 1. Cek apakah sudah lunas via webhook callback
+    if (posPaidReferences.has(reference)) {
+      // Proceed to update quota below without querying TriPay again
+    } else if (!isSimulate) {
+      // 2. REAL CHECK KE TRIPAY API
       if (!reference) {
         return res.status(400).json({
           success: false,
@@ -975,13 +981,17 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
               tripayDetail: tripayData.data
             });
           }
+          posPaidReferences.add(reference);
         } else {
           const tripayMsg = tripayData?.message || 'Gagal menghubungi server TriPay';
+          const ipMatch = tripayMsg.match(/\((.*?)\)/)?.[1] || '';
           return res.status(400).json({
             success: false,
             isPaid: false,
             status: 'CHECK_FAILED',
-            error: `⚠️ Pengecekan TriPay: ${tripayMsg}`,
+            error: ipMatch 
+              ? `⚠️ IP Server (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Masukkan IP tersebut / kosongkan Whitelist IP di dashboard TriPay, atau gunakan tombol Bypass Simulasi di bawah untuk mengaktifkan kuota testing.`
+              : `⚠️ Pengecekan TriPay: ${tripayMsg}`,
             tripayMessage: tripayMsg,
             canSimulate: true
           });
@@ -1054,6 +1064,34 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       reference,
       message: `🎉 Pembayaran TriPay TERVERIFIKASI (PAID)! +${addedNota} lembar nota telah ditambahkan ke saldo kasir.`
     });
+  });
+
+  // ── 0C-4. TRIPAY WEBHOOK CALLBACK ─────────────────────────────────────
+  router.post(['/tripay/callback', '/callback/tripay'], async (req, res) => {
+    const body = req.body || {};
+    const reference = body.reference || body.merchant_ref || '';
+    const status = String(body.status || '').toUpperCase();
+    const amount = Number(body.total_amount || body.amount) || 10000;
+    const quota = Math.max(1, Math.floor(amount / 100));
+
+    if (status === 'PAID') {
+      if (reference) posPaidReferences.add(reference);
+      const db = getDB(req);
+      ensurePosCollections(db);
+      const store = db.settings?.posStore || {};
+      const merchant = (db.merchants || []).find(m => String(m.id) === String(store.merchantId || store.uid)) || db.merchants?.[0];
+      if (merchant) {
+        merchant.saldoNota = (Number(merchant.saldoNota) || 0) + amount;
+        merchant.kuotaNota = (Number(merchant.kuotaNota) || 0) + quota;
+        if (db.settings?.posStore) {
+          db.settings.posStore.saldoNota = merchant.saldoNota;
+          db.settings.posStore.kuotaNota = merchant.kuotaNota;
+        }
+        writeDB(db, req);
+      }
+      return res.json({ success: true, message: 'Callback processed' });
+    }
+    res.json({ success: true, message: 'Status recorded: ' + status });
   });
 
   // ── 0D. GET ALL REDEEM CODES (SISTEM REDEEM KODE KASIR) ───────────────

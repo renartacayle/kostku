@@ -1043,21 +1043,20 @@ export default function Kasir({ user }) {
         fetchData();
         alert(data.message || `🎉 Pembayaran TriPay Sukses! +${tripayTopupData.quota} nota telah ditambahkan.`);
       } else {
-        if (data.canSimulate) {
+        if (data.canSimulate || data.status === 'CHECK_FAILED') {
           setShowSimulateBypass(true);
         }
         setTripayStatusFeedback({
           type: 'error',
           message: data.error || 'Status di TriPay belum lunas (UNPAID).'
         });
-        alert(data.error || 'Pembayaran belum terdeteksi di server TriPay (UNPAID). Silakan selesaikan pembayaran terlebih dahulu.');
       }
     } catch (err) {
+      setShowSimulateBypass(true);
       setTripayStatusFeedback({
         type: 'error',
         message: 'Gagal mengecek status TriPay: ' + err.message
       });
-      alert('Gagal mengecek status ke TriPay: ' + err.message);
     } finally {
       setTripayCheckingStatus(false);
     }
@@ -8182,20 +8181,40 @@ export default function Kasir({ user }) {
                 </button>
 
                 {/* OPSI TESTING BYPASS JIKA WHITELIST IP MEMBLOKIR */}
+                {!showSimulateBypass && (
+                  <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowSimulateBypass(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#d97706',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      ⚡ Butuh testing tanpa bayar? Tampilkan tombol bypass simulasi
+                    </button>
+                  </div>
+                )}
+
                 {showSimulateBypass && (
                   <div style={{
                     background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.12)',
                     border: '1px dashed #f59e0b',
                     borderRadius: '12px',
-                    padding: '10px',
+                    padding: '12px',
                     marginBottom: '8px',
                     textAlign: 'center'
                   }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b45309', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#b45309', marginBottom: '4px' }}>
                       ⚡ Mode Testing &amp; Bypass Whitelist IP
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: textSecondary, marginBottom: '8px' }}>
-                      Jika IP server Cloudflare belum di-whitelist di TriPay (T53543), Anda dapat mengaktifkan kuota untuk pengujian kasir:
+                    <div style={{ fontSize: '0.7rem', color: textSecondary, marginBottom: '8px', lineHeight: 1.4 }}>
+                      Jika IP server Cloudflare belum di-whitelist di TriPay (T53543), Anda dapat mengaktifkan kuota langsung untuk pengujian kasir:
                     </div>
                     <button
                       type="button"
@@ -8203,17 +8222,18 @@ export default function Kasir({ user }) {
                       onClick={() => handleConfirmTripayTopup(true)}
                       style={{
                         width: '100%',
-                        padding: '8px',
+                        padding: '9px 12px',
                         borderRadius: '8px',
-                        border: '1px solid #f59e0b',
+                        border: '1px solid #d97706',
                         background: '#fef3c7',
                         color: '#92400e',
-                        fontWeight: 800,
-                        fontSize: '0.76rem',
-                        cursor: 'pointer'
+                        fontWeight: 900,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(217, 119, 6, 0.15)'
                       }}
                     >
-                      Bypass Simulasi Bayar Lunas (Testing)
+                      ⚡ Bypass Simulasi Bayar Lunas (Testing +{tripayTopupData.quota} Nota)
                     </button>
                   </div>
                 )}

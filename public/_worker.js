@@ -15,6 +15,7 @@ const registeredMerchants = [];
 // ============================================================================
 // IN-MEMORY POS STORE ON CLOUDFLARE EDGE
 // ============================================================================
+const posPaidReferences = new Set();
 const posStore = {
   storeName: 'KostKu Cafe & Resto (Pusat)',
   location: 'Kawasan KostKu Residence Udinus',
@@ -1545,6 +1546,20 @@ async function handlePosApi(request, path, method, url) {
         }), { status: 400, headers: corsHeaders });
       }
 
+      // 1. Cek apakah sudah lunas via webhook callback sebelumnya
+      if (posPaidReferences.has(reference)) {
+        return new Response(JSON.stringify({
+          success: true,
+          isPaid: true,
+          status: 'PAID',
+          message: `🎉 Pembayaran TriPay TERVERIFIKASI (PAID via Webhook)! +${addQuota} kuota nota telah aktif.`,
+          saldoNota: posStore.saldoNota,
+          kuotaNota: posStore.kuotaNota,
+          reference
+        }), { headers: corsHeaders });
+      }
+
+      // 2. Cek langsung ke TriPay Transaction Detail API
       const apiKey = '8lgqWBCHk8xLycXV3aRjfn5YBrDUZtJCe13muUy5';
       const detailUrl = `https://tripay.co.id/api/transaction/detail?reference=${encodeURIComponent(reference)}`;
 
@@ -1559,7 +1574,9 @@ async function handlePosApi(request, path, method, url) {
 
         if (tripayData && tripayData.success && tripayData.data) {
           const status = String(tripayData.data.status || '').toUpperCase();
-          if (status !== 'PAID') {
+          if (status === 'PAID') {
+            posPaidReferences.add(reference);
+          } else {
             return new Response(JSON.stringify({
               success: false,
               isPaid: false,
@@ -1571,11 +1588,14 @@ async function handlePosApi(request, path, method, url) {
         } else {
           // TriPay returned notice/error (e.g. Unauthorized IP or not found)
           const tripayMsg = tripayData?.message || 'Gagal menghubungi server TriPay';
+          const ipMatch = tripayMsg.match(/\((.*?)\)/)?.[1] || '';
           return new Response(JSON.stringify({
             success: false,
             isPaid: false,
             status: 'CHECK_FAILED',
-            error: `⚠️ Pengecekan TriPay: ${tripayMsg}`,
+            error: ipMatch 
+              ? `⚠️ IP Server Cloudflare (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Masukkan IP tersebut di dashboard TriPay atau gunakan tombol Bypass Simulasi di bawah untuk mengaktifkan kuota testing.`
+              : `⚠️ Pengecekan TriPay: ${tripayMsg}`,
             tripayMessage: tripayMsg,
             canSimulate: true
           }), { status: 400, headers: corsHeaders });
@@ -1591,6 +1611,7 @@ async function handlePosApi(request, path, method, url) {
     }
 
     // Hanya jika TriPay terverifikasi PAID (atau eksplisit simulate = true)
+    posPaidReferences.add(reference);
     posStore.kuotaNota = (Number(posStore.kuotaNota) || 0) + addQuota;
     posStore.saldoNota = (Number(posStore.saldoNota) || 0) + addSaldo;
     if (Array.isArray(posStore.branches)) {
@@ -1610,6 +1631,23 @@ async function handlePosApi(request, path, method, url) {
       kuotaNota: posStore.kuotaNota,
       reference: reference || 'TRIPAY-VERIFIED'
     }), { headers: corsHeaders });
+  }
+
+  // 3D. POST /pos/tripay/callback (Official Webhook Callback dari TriPay)
+  if ((path === '/tripay/callback' || path === '/callback/tripay') && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const reference = body.reference || body.merchant_ref || '';
+    const status = String(body.status || '').toUpperCase();
+    const amount = Number(body.total_amount || body.amount) || 10000;
+    const quota = Math.max(1, Math.floor(amount / 100));
+
+    if (status === 'PAID') {
+      if (reference) posPaidReferences.add(reference);
+      posStore.kuotaNota = (Number(posStore.kuotaNota) || 0) + quota;
+      posStore.saldoNota = (Number(posStore.saldoNota) || 0) + amount;
+      return new Response(JSON.stringify({ success: true, message: 'Callback processed' }), { headers: corsHeaders });
+    }
+    return new Response(JSON.stringify({ success: true, message: 'Status recorded: ' + status }), { headers: corsHeaders });
   }
 
   // 4. GET /pos/redeem-codes
