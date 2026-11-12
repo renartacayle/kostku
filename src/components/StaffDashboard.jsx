@@ -33,7 +33,8 @@ import PackageLockerCard from './PackageLockerCard';
 import RoomInspectionModal from './RoomInspectionModal';
 import SmartLockAndTokenModal from './SmartLockAndTokenModal';
 
-export default function StaffDashboard({ user }) {
+export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner }) {
+  const isOwner = user?.role === 'owner' || user?.role === 'master' || isOwnerDelegate;
   const [rooms, setRooms] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [complaints, setComplaints] = useState([]);
@@ -152,39 +153,61 @@ export default function StaffDashboard({ user }) {
             width: '54px',
             height: '54px',
             borderRadius: '16px',
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            background: isOwner 
+              ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
+              : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
+            boxShadow: isOwner 
+              ? '0 4px 14px rgba(245, 158, 11, 0.4)' 
+              : '0 4px 14px rgba(16, 185, 129, 0.4)',
+            fontSize: isOwner ? '24px' : 'inherit'
           }}>
-            <Wrench size={26} />
+            {isOwner ? '👑' : <Wrench size={26} />}
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
-                Halo, {user?.name || 'Staf Operasional'}! 👋
+                Halo, {user?.name || (isOwner ? 'Juragan' : 'Staf Operasional')}! {isOwner ? '👑' : '👋'}
               </h2>
               <span style={{
-                background: 'rgba(16, 185, 129, 0.2)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                color: '#6ee7b7',
+                background: isOwner ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.2)',
+                border: isOwner ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(16, 185, 129, 0.4)',
+                color: isOwner ? '#fbbf24' : '#6ee7b7',
                 padding: '3px 10px',
                 borderRadius: '999px',
                 fontSize: '0.75rem',
                 fontWeight: 700
               }}>
-                👷 {user?.jobTitle || 'Penjaga Kost'}
+                {isOwner ? '👑 Mode Ambil Alih Juragan' : `👷 ${user?.jobTitle || 'Penjaga Kost'}`}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.88rem' }}>
-              Bertugas di: <strong style={{ color: '#f1f5f9' }}>{user?.kostName || 'Cabang Kost'}</strong> • {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {isOwner 
+                ? `Mengambil alih tugas staf • Properti: ${user?.kostName || user?.kostUid || 'Kost Utama'} • Hak akses catat meteran, paket, & inspeksi`
+                : `Bertugas di: ${user?.kostName || 'Cabang Kost'} • ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
             </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {onBackToOwner && (
+            <button 
+              onClick={onBackToOwner}
+              className="btn btn-secondary btn-sm"
+              style={{ 
+                borderRadius: '12px',
+                background: 'rgba(245, 158, 11, 0.2)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                color: '#fbbf24',
+                fontWeight: 700
+              }}
+            >
+              ← Ringkasan Juragan
+            </button>
+          )}
           <button 
             onClick={loadData}
             className="btn btn-secondary btn-sm"

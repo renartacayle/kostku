@@ -39,7 +39,7 @@ const NOMINAL_OPTIONS = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'QRIS', name: 'QRIS Realtime (Semua E-Wallet & Mobile Banking)', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, DANA', fee: 500, badge: 'Rp 500' }
+  { id: 'QRIS', name: 'QRIS Realtime (Semua E-Wallet & Mobile Banking)', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, DANA', fee: 100, badge: 'Rp 100' }
 ];
 
 const SmartLockAndTokenModal = ({ 
@@ -169,6 +169,19 @@ const SmartLockAndTokenModal = ({
     };
   }, [isOpen, step, activeOrder]);
 
+  const awardPlnPoints = () => {
+    try {
+      const stored = localStorage.getItem('kostUser');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const currentPts = Number(parsed.loyalty_points ?? 250);
+        parsed.loyalty_points = currentPts + 100;
+        localStorage.setItem('kostUser', JSON.stringify(parsed));
+        window.dispatchEvent(new Event('kostUser_updated'));
+      }
+    } catch (_) {}
+  };
+
   const handleProceedPayment = async () => {
     setLoadingOrder(true);
     try {
@@ -225,6 +238,7 @@ const SmartLockAndTokenModal = ({
         subscriberName: inquiryData.subscriberName,
         receiptNumber: direct.receiptNumber
       });
+      awardPlnPoints();
       setStep('success');
     } finally {
       setLoadingOrder(false);
@@ -245,6 +259,7 @@ const SmartLockAndTokenModal = ({
           receiptNumber: res.receiptNumber,
           paymentMethod: res.paymentMethod
         });
+        awardPlnPoints();
         setStep('success');
       }
     } catch (err) {
@@ -270,6 +285,7 @@ const SmartLockAndTokenModal = ({
           receiptNumber: res.receiptNumber,
           paymentMethod: res.transaction?.paymentMethod || activeOrder.paymentMethod
         });
+        awardPlnPoints();
         setStep('success');
       } else {
         setShowUnpaidModal(true);
@@ -1013,9 +1029,27 @@ const SmartLockAndTokenModal = ({
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', display: 'block', letterSpacing: '1px' }}>
                 ✓ PEMBAYARAN LUNAS (TRIPAY PPOB)
               </span>
-              <h3 style={{ margin: '4px 0 12px', fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white', fontWeight: 900 }}>
+              <h3 style={{ margin: '4px 0 8px', fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white', fontWeight: 900 }}>
                 Token Listrik Berhasil Diterbitkan!
               </h3>
+
+              {/* Loyalty Reward Banner (Tanpa Referral) */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.15)',
+                border: '1px solid #86efac',
+                borderRadius: '10px',
+                padding: '6px 14px',
+                color: isLight ? '#166534' : '#86efac',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                marginBottom: '12px'
+              }}>
+                <span>🎁</span>
+                <span>+100 Poin Loyalty Berhasil Dikreditkan! (Otomatis Tanpa Referral)</span>
+              </div>
 
               {/* 20 Digit Monospace Box */}
               <div style={{

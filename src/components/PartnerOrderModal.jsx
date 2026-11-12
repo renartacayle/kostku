@@ -23,7 +23,9 @@ import {
   ExternalLink,
   Zap,
   Check,
-  Download
+  Download,
+  Bike,
+  Copy
 } from 'lucide-react';
 import {
   apiCreatePartnerOrder,
@@ -34,6 +36,8 @@ import {
 } from '../services/api';
 import { generateQrisDataUrl, getGatewayConfig, saveGatewayConfig } from '../utils/qrisEngine';
 import { useTheme } from '../context/ThemeContext';
+import { triggerCometArc } from '../utils/cometArc';
+import { checkDeliveryHoursActive, calculateDeliveryFee } from '../utils/deliveryUtils';
 
 const PartnerOrderModal = ({
   isOpen,
@@ -51,7 +55,8 @@ const PartnerOrderModal = ({
   const [selectedDeliveryMode, setSelectedDeliveryMode] = useState(() => {
     return service?.deliveryType === 'pickup' ? 'pickup' : 'delivery';
   });
-  const [paymentMethod, setPaymentMethod] = useState('qris'); // 'qris' (default non-cod), 'monthly_bill', 'cod'
+  const [paymentMethod, setPaymentMethod] = useState('qris'); // 'qris' (default), 'custom_qris', 'custom_bank_transfer', 'cod'
+  const [copiedAccount, setCopiedAccount] = useState(false);
   const [showQrisScreen, setShowQrisScreen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -72,24 +77,8 @@ const PartnerOrderModal = ({
   // Products quantity state
   const [quantities, setQuantities] = useState({});
 
-  // Auto-load last used referral code so anak kost doesn't have to re-enter it each order
-  const getInitialReferral = () => {
-    try {
-      if (typeof window !== 'undefined') {
-        const storedRef = localStorage.getItem('kostku_last_referral_code');
-        if (storedRef && storedRef.trim()) return storedRef.trim().toUpperCase();
-        const storedUser = localStorage.getItem('kostUser');
-        if (storedUser) {
-          const u = JSON.parse(storedUser);
-          if (u.lastUsedReferral) return u.lastUsedReferral.toUpperCase();
-          if (u.claimedFriendReferral) return u.claimedFriendReferral.toUpperCase();
-        }
-      }
-    } catch (e) {}
-    return (user?.lastUsedReferral || user?.claimedFriendReferral || '').toUpperCase();
-  };
-
-  const [friendReferralCode, setFriendReferralCode] = useState(getInitialReferral());
+  // Strict per-transaction referral input (no auto-fill from previous orders, must be copied fresh)
+  const [friendReferralCode, setFriendReferralCode] = useState('');
   const [isEditingReferral, setIsEditingReferral] = useState(false);
   const [usePointsDiscount, setUsePointsDiscount] = useState(false);
   const userLoyaltyPoints = Number(user?.loyalty_points ?? 250);
@@ -145,11 +134,8 @@ const PartnerOrderModal = ({
       setRating(5);
       setRatingSubmitted(false);
 
-      // Re-sync referral from storage if current input is empty
-      const savedRef = getInitialReferral();
-      if (savedRef) {
-        setFriendReferralCode(savedRef);
-      }
+      // Referral is never auto-filled; start fresh per transaction
+      setFriendReferralCode('');
     }
   }, [service]);
 
@@ -227,8 +213,24 @@ const PartnerOrderModal = ({
   const subtotal = selectedItems.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
   const effectiveSubtotal = subtotal > 0 ? subtotal : (productsList[0]?.price || 16000);
   
-  // Ongkos kirim jika mode antar
-  const deliveryFee = (selectedDeliveryMode === 'delivery') ? (Number(service?.deliveryFee) || 0) : 0;
+  // Ongkos kirim dinamis (per km vs flat & threshold bebas ongkir)
+  const distanceKm = Number(service?.distanceKm) || 0.8;
+  const deliveryFee = calculateDeliveryFee({
+    mode: selectedDeliveryMode,
+    distanceKm,
+    subtotal: effectiveSubtotal,
+    feeType: service?.deliveryFeeType || 'per_km',
+    feePerKm: service?.deliveryFeePerKm ?? 2500,
+    baseFare: service?.deliveryBaseFare ?? 2000,
+    flatFee: service?.deliveryFee ?? 2000,
+    minOrderFree: service?.deliveryMinOrderFree ?? 35000
+  });
+
+  // Status Jam Kirim Kurir Toko
+  const isWithinDeliveryHours = checkDeliveryHoursActive(
+    service?.deliveryStartTime || '07:30',
+    service?.deliveryEndTime || '21:00'
+  );
 
   // Biaya Layanan: Flat KostKu Rp 500 (Biaya extra owner kost ke mitra dihapus, diganti reward poin +100 Poin)
   const platformFee = 500; // Flat Rp 500 KostKu
@@ -252,7 +254,7 @@ const PartnerOrderModal = ({
         current.owner_commission_balance = (Number(current.owner_commission_balance) || 0) + markupAmt;
         current.mitra_escrow_balance = (Number(current.mitra_escrow_balance) || 0) + subtotalAmt;
       } else if (method === 'cod') {
-        current.owner_commission_balance = (Number(current.owner_commission_balance) || 0) - 500; // Fixed Rp 500 platform fee
+        current.owner_commission_balance = (Number(current.owner_commission_balance) || 0) - 100; // Fixed Rp 100 platform fee
       }
       
       localStorage.setItem('kostku_unified_wallet', JSON.stringify(current));
@@ -358,6 +360,7 @@ const PartnerOrderModal = ({
         deliveryFee,
         total: grandTotal,
         paymentMethod: activeMethod,
+        friendReferralCode: friendReferralCode.trim() || undefined,
         notes: `Metode: ${selectedDeliveryMode === 'pickup' ? 'Ambil di Ruko' : 'Diantar ke Kamar'}. Waktu: ${preferredTime}. Catatan: ${notes.trim()}`
       };
 
@@ -366,18 +369,20 @@ const PartnerOrderModal = ({
         id: orderIdOverride || `TKT-ORD-${Date.now()}`,
         total: grandTotal,
         paymentMethod: activeMethod,
-        status: activeMethod === 'qris' ? 'Lunas (QRIS Terverifikasi Real-Time)' : activeMethod === 'monthly_bill' ? 'Masuk Tagihan Sewa' : 'Tunai COD'
+        status: activeMethod === 'qris' 
+          ? 'Lunas (QRIS Platform KostKu)' 
+          : activeMethod === 'custom_qris'
+          ? 'Lunas (QRIS Mandiri Mitra)'
+          : activeMethod === 'custom_bank_transfer'
+          ? 'Lunas (Transfer Rekening Pribadi Mitra)'
+          : 'Tunai COD'
       });
       
       mutateUnifiedWallet(activeMethod, effectiveSubtotal, ownerCommission);
       apiMutateWallet({ method: activeMethod, subtotalAmt: effectiveSubtotal, markupAmt: ownerCommission }).catch(() => {});
 
-      // Referral & Points Reward (+100 Poin otomatis sesuai arahan Mbak Rena)
+      // Referral & Points Reward (+100 Poin loyalty)
       try {
-        const cleanRef = friendReferralCode.trim().toUpperCase();
-        if (cleanRef) {
-          localStorage.setItem('kostku_last_referral_code', cleanRef);
-        }
         const stored = localStorage.getItem('kostUser');
         if (stored) {
           const parsed = JSON.parse(stored);
@@ -386,9 +391,6 @@ const PartnerOrderModal = ({
           const earnedPts = isNewcomerMerchant ? 150 : 100;
           const nextPts = Math.max(0, currentPts - pointsDiscount) + earnedPts;
           parsed.loyalty_points = nextPts;
-          if (cleanRef) {
-            parsed.lastUsedReferral = cleanRef;
-          }
           localStorage.setItem('kostUser', JSON.stringify(parsed));
           window.dispatchEvent(new Event('kostUser_updated'));
         }
@@ -670,9 +672,11 @@ const PartnerOrderModal = ({
             </h2>
             <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1.25rem 0' }}>
               {paymentMethod === 'qris' 
-                ? 'Pembayaran QRIS terverifikasi lunas. Mitra sedang menyiapkan barang pesanan Anda.'
-                : paymentMethod === 'monthly_bill'
-                ? 'Pesanan telah dicatat dan digabung ke tagihan sewa kamar bulan depan.'
+                ? 'Pembayaran QRIS Platform terverifikasi lunas. Mitra sedang menyiapkan barang pesanan Anda.'
+                : paymentMethod === 'custom_qris'
+                ? 'Pembayaran via QRIS Mandiri Mitra dicatat. Mitra akan memverifikasi dan menyiapkan pesanan.'
+                : paymentMethod === 'custom_bank_transfer'
+                ? 'Pembayaran via Transfer Rekening Mitra dicatat. Mitra akan memverifikasi dan menyiapkan pesanan.'
                 : 'Pesanan telah diterima. Mohon siapkan uang tunai pas saat barang diantar.'}
             </p>
 
@@ -696,10 +700,22 @@ const PartnerOrderModal = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Metode Pembayaran:</span>
                 <span style={{
-                  color: paymentMethod === 'qris' ? (isLight ? '#15803d' : '#22c55e') : paymentMethod === 'monthly_bill' ? (isLight ? '#2563eb' : '#60a5fa') : (isLight ? '#b45309' : '#facc15'),
+                  color: paymentMethod === 'qris' 
+                    ? (isLight ? '#15803d' : '#22c55e') 
+                    : paymentMethod === 'custom_qris'
+                    ? (isLight ? '#0284c7' : '#38bdf8')
+                    : paymentMethod === 'custom_bank_transfer'
+                    ? (isLight ? '#7c3aed' : '#a78bfa')
+                    : (isLight ? '#b45309' : '#facc15'),
                   fontWeight: 700
                 }}>
-                  {paymentMethod === 'qris' ? '🟢 Lunas (QRIS Non-Tunai)' : paymentMethod === 'monthly_bill' ? '🔵 Masuk Tagihan Sewa' : '⚪ Tunai COD'}
+                  {paymentMethod === 'qris' 
+                    ? '🟢 Lunas (QRIS Platform)' 
+                    : paymentMethod === 'custom_qris'
+                    ? '🔵 QRIS Mandiri Mitra'
+                    : paymentMethod === 'custom_bank_transfer'
+                    ? '🟣 Transfer Rekening Pribadi Mitra'
+                    : '⚪ Tunai COD'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', borderTop: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px' }}>
@@ -1377,7 +1393,16 @@ const PartnerOrderModal = ({
                         </span>
                         <button
                           type="button"
-                          onClick={() => updateQty(prod.id, 1)}
+                          onClick={(e) => {
+                            const targetEl = document.querySelector('[data-cart-target="partner-checkout-btn"]');
+                            triggerCometArc({
+                              startEl: e.currentTarget,
+                              targetEl,
+                              color: '#38bdf8',
+                              duration: 560
+                            });
+                            updateQty(prod.id, 1);
+                          }}
                           style={{
                             width: '24px',
                             height: '24px',
@@ -1400,11 +1425,54 @@ const PartnerOrderModal = ({
               </div>
             </div>
 
-            {/* 2. Opsi Pengantaran & Pengambilan */}
+            {/* 2. Opsi Pengantaran & Jam Kirim */}
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
-                Metode Pengantaran / Pengambilan:
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                <label style={{ fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', margin: 0, fontWeight: 700 }}>
+                  Metode Pengantaran / Pengambilan:
+                </label>
+
+                {/* Jam Kirim Pill */}
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: '100px',
+                  background: isWithinDeliveryHours ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  border: isWithinDeliveryHours ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(245, 158, 11, 0.35)',
+                  color: isWithinDeliveryHours ? (isLight ? '#15803d' : '#34d399') : (isLight ? '#b45309' : '#fbbf24')
+                }}>
+                  <Clock size={11} />
+                  <span>
+                    Jam Kirim: {service?.deliveryStartTime || '07:30'} - {service?.deliveryEndTime || '21:00'}
+                  </span>
+                  <span>{isWithinDeliveryHours ? '🟢' : '🟠'}</span>
+                </span>
+              </div>
+
+              {!isWithinDeliveryHours && selectedDeliveryMode === 'delivery' && (
+                <div style={{
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)',
+                  border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
+                  color: isLight ? '#b45309' : '#fbbf24',
+                  fontSize: '0.72rem',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}>
+                  <span>⚠️</span>
+                  <span>
+                    Di luar jam pengantaran kurir ({service?.deliveryStartTime || '07:30'} - {service?.deliveryEndTime || '21:00'} WIB). Pesanan tetap bisa dibuat dan diantar saat jam buka kirim.
+                  </span>
+                </div>
+              )}
+
               {service?.deliveryType === 'pickup' ? (
                 <div style={{
                   padding: '9px 12px',
@@ -1431,7 +1499,10 @@ const PartnerOrderModal = ({
                   alignItems: 'center',
                   gap: '6px'
                 }}>
-                  🛵 <strong>Diantar ke Kamar:</strong> Pesanan diantar sampai depan pintu kamar Anda {deliveryFee > 0 ? `(Ongkir Rp ${deliveryFee.toLocaleString('id-ID')})` : '(Gratis Ongkir)'}.
+                  <Bike size={16} />
+                  <span>
+                    <strong>Diantar ke Kamar:</strong> {deliveryFee === 0 ? '🎉 Gratis Ongkir' : `Rp ${deliveryFee.toLocaleString('id-ID')} (Jarak ~${distanceKm.toFixed(1)} km)`}.
+                  </span>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -1454,12 +1525,19 @@ const PartnerOrderModal = ({
                       fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '2px'
                     }}
                   >
-                    🛵 Bisa Diantar ke Kamar
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Bike size={14} />
+                      <span style={{ fontWeight: 700 }}>Diantar ke Kamar</span>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: selectedDeliveryMode === 'delivery' ? (isLight ? '#1e40af' : '#93c5fd') : (isLight ? '#64748b' : '#94a3b8') }}>
+                      {deliveryFee === 0 ? '🎉 Gratis Ongkir' : `Rp ${deliveryFee.toLocaleString('id-ID')} (~${distanceKm.toFixed(1)} km)`}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -1474,18 +1552,22 @@ const PartnerOrderModal = ({
                         ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.2)') 
                         : (isLight ? '#ffffff' : 'rgba(255,255,255,0.03)'),
                       color: selectedDeliveryMode === 'pickup' 
-                        ? (isLight ? '#b45309' : '#fff') 
+                        ? (isLight ? '#b45309' : '#fbbf24') 
                         : (isLight ? '#475569' : '#94a3b8'),
                       fontSize: '0.78rem',
                       fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '2px'
                     }}
                   >
-                    🏪 Ambil Sendiri di Ruko
+                    <span style={{ fontWeight: 700 }}>🏪 Ambil Sendiri di Ruko</span>
+                    <span style={{ fontSize: '0.68rem', color: selectedDeliveryMode === 'pickup' ? (isLight ? '#b45309' : '#fbbf24') : (isLight ? '#64748b' : '#94a3b8') }}>
+                      Rp 0 (Bebas Ongkir)
+                    </span>
                   </button>
                 </div>
               )}
@@ -1609,55 +1691,139 @@ const PartnerOrderModal = ({
                   />
                 </div>
 
-                {/* Opsi 2: GABUNG KE TAGIHAN SEWA BULAN DEPAN */}
-                <div
-                  onClick={() => setPaymentMethod('monthly_bill')}
-                  style={{
-                    cursor: 'pointer',
-                    background: paymentMethod === 'monthly_bill' 
-                      ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.12)') 
-                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'),
-                    border: paymentMethod === 'monthly_bill' 
-                      ? (isLight ? '1.5px solid #2563eb' : '1.5px solid #3b82f6') 
-                      : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
-                    borderRadius: '12px',
-                    padding: '10px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: 'rgba(59, 130, 246, 0.2)',
-                      color: isLight ? '#1d4ed8' : '#60a5fa',
+                {/* Opsi 2A: QRIS Mandiri Mitra (Jika diaktifkan & Saldo Nota Cukup) */}
+                {Boolean(service?.customPaymentEnabled) && (Number(service?.saldoNota ?? 5000) >= 100) && service?.customQrisImage && (
+                  <div
+                    onClick={() => setPaymentMethod('custom_qris')}
+                    style={{
+                      cursor: 'pointer',
+                      background: paymentMethod === 'custom_qris' 
+                        ? (isLight ? '#eff6ff' : 'rgba(2, 132, 199, 0.15)') 
+                        : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'),
+                      border: paymentMethod === 'custom_qris' 
+                        ? (isLight ? '1.5px solid #0284c7' : '1.5px solid #38bdf8') 
+                        : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
+                      borderRadius: '12px',
+                      padding: '10px 12px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Receipt size={18} />
+                      justifyContent: 'space-between',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: 'rgba(2, 132, 199, 0.2)',
+                        color: isLight ? '#0369a1' : '#38bdf8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <QrCode size={18} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc' }}>
+                            QRIS Mandiri Mitra Toko
+                          </span>
+                          <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px', background: '#0284c7', color: '#ffffff', fontWeight: 700 }}>
+                            LANGSUNG KE TOKO
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                          Scan QRIS barcode milik toko {service?.name || 'mitra'}.
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc', display: 'block' }}>
-                        Titip ke Tagihan Sewa Bulan Depan
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                        Praktis, langsung digabung ke invoice sewa kamar tanpa keluar uang sekarang.
-                      </span>
-                    </div>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === 'custom_qris'}
+                      onChange={() => setPaymentMethod('custom_qris')}
+                      style={{ accentColor: '#0284c7' }}
+                    />
                   </div>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    checked={paymentMethod === 'monthly_bill'}
-                    onChange={() => setPaymentMethod('monthly_bill')}
-                    style={{ accentColor: '#3b82f6' }}
-                  />
-                </div>
+                )}
+
+                {/* Opsi 2B: Transfer Rekening Pribadi Mitra (Jika diaktifkan & Saldo Nota Cukup) */}
+                {Boolean(service?.customPaymentEnabled) && (Number(service?.saldoNota ?? 5000) >= 100) && service?.customBankAccountNumber && (
+                  <div
+                    onClick={() => setPaymentMethod('custom_bank_transfer')}
+                    style={{
+                      cursor: 'pointer',
+                      background: paymentMethod === 'custom_bank_transfer' 
+                        ? (isLight ? '#faf5ff' : 'rgba(139, 92, 246, 0.15)') 
+                        : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'),
+                      border: paymentMethod === 'custom_bank_transfer' 
+                        ? (isLight ? '1.5px solid #7c3aed' : '1.5px solid #a78bfa') 
+                        : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
+                      borderRadius: '12px',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: 'rgba(139, 92, 246, 0.2)',
+                        color: isLight ? '#6d28d9' : '#c084fc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <CreditCard size={18} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc' }}>
+                            Transfer Rekening Pribadi Mitra
+                          </span>
+                          <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px', background: '#7c3aed', color: '#ffffff', fontWeight: 700 }}>
+                            {service?.customBankName || 'BANK'}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                          Transfer ke rekening {service?.customBankName || 'Bank'} a.n {service?.customBankAccountHolder || service?.name}.
+                        </span>
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === 'custom_bank_transfer'}
+                      onChange={() => setPaymentMethod('custom_bank_transfer')}
+                      style={{ accentColor: '#7c3aed' }}
+                    />
+                  </div>
+                )}
+
+                {/* Notice jika Mitra aktifkan pembayaran mandiri tapi kehabisan Saldo Nota */}
+                {Boolean(service?.customPaymentEnabled) && (Number(service?.saldoNota ?? 0) < 100) && (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    fontSize: '0.72rem',
+                    color: isLight ? '#b45309' : '#fbbf24',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>⚠️</span>
+                    <span>
+                      Mitra ini mengaktifkan QRIS/transfer mandiri, namun Saldo Kuota Nota sedang habis (&lt; Rp 100). Pembayaran dialihkan ke QRIS Platform / Tunai.
+                    </span>
+                  </div>
+                )}
 
                 {/* Opsi 3: BAYAR TUNAI SAAT DIANTAR (COD) - OPSIONAL CADANGAN */}
                 <div
@@ -1698,6 +1864,112 @@ const PartnerOrderModal = ({
                   />
                 </div>
               </div>
+
+              {/* RINCIAN INSTRUKSI PEMBAYARAN MANDIRI MITRA */}
+              {paymentMethod === 'custom_qris' && service?.customQrisImage && (
+                <div style={{
+                  marginTop: '10px',
+                  background: isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.08)',
+                  border: isLight ? '1.5px solid #bae6fd' : '1.5px solid rgba(2, 132, 199, 0.35)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#0369a1' : '#38bdf8', marginBottom: '8px' }}>
+                    📱 Barcode QRIS Resmi Milik {service?.name || 'Mitra Toko'}
+                  </div>
+                  <div style={{
+                    background: '#ffffff',
+                    padding: '8px',
+                    borderRadius: '10px',
+                    display: 'inline-block',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }}>
+                    <img
+                      src={service.customQrisImage}
+                      alt="QRIS Mandiri Mitra"
+                      style={{ maxWidth: '170px', maxHeight: '170px', objectFit: 'contain', display: 'block' }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc', marginTop: '8px' }}>
+                    Total Transfer: Rp {grandTotal.toLocaleString('id-ID')}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
+                    Silakan scan dengan BCA, GoPay, Dana, Ovo, atau m-Banking Anda. 100% dana langsung masuk ke rekening toko.
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === 'custom_bank_transfer' && service?.customBankAccountNumber && (
+                <div style={{
+                  marginTop: '10px',
+                  background: isLight ? '#faf5ff' : 'rgba(139, 92, 246, 0.08)',
+                  border: isLight ? '1.5px solid #e9d5ff' : '1.5px solid rgba(139, 92, 246, 0.35)',
+                  borderRadius: '12px',
+                  padding: '12px'
+                }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#6d28d9' : '#c084fc', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CreditCard size={16} />
+                    <span>Rekening Pribadi {service?.name || 'Mitra Toko'}</span>
+                  </div>
+
+                  <div style={{ background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.6)', border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.74rem' }}>
+                      <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Nama Bank / E-Wallet:</span>
+                      <strong style={{ color: isLight ? '#0f172a' : '#f8fafc' }}>{service?.customBankName || 'Bank Mandiri / BCA'}</strong>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>No. Rekening:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.92rem', color: isLight ? '#2563eb' : '#60a5fa' }}>
+                          {service?.customBankAccountNumber}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (service?.customBankAccountNumber) {
+                              navigator.clipboard.writeText(service.customBankAccountNumber);
+                              setCopiedAccount(true);
+                              setTimeout(() => setCopiedAccount(false), 2000);
+                            }
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: copiedAccount ? '#10b981' : (isLight ? '#e2e8f0' : '#334155'),
+                            color: copiedAccount ? '#ffffff' : (isLight ? '#1e293b' : '#f8fafc'),
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Copy size={11} />
+                          <span>{copiedAccount ? 'Tersalin!' : 'Salin'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.74rem' }}>
+                      <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Atas Nama:</span>
+                      <strong style={{ color: isLight ? '#0f172a' : '#f8fafc' }}>{service?.customBankAccountHolder || service?.name}</strong>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '6px', marginTop: '6px', fontSize: '0.78rem' }}>
+                      <span style={{ color: isLight ? '#64748b' : '#94a3b8' }}>Nominal Transfer:</span>
+                      <strong style={{ color: '#10b981', fontSize: '0.88rem' }}>Rp {grandTotal.toLocaleString('id-ID')}</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 3.5. REFERRAL CODE & DISKON POIN (KHUSUS MITRA - SESUAI ARAHAN MBAK RENA) */}
@@ -1717,82 +1989,47 @@ const PartnerOrderModal = ({
                 </span>
               </div>
 
-              {/* Status / Input Kode Referral Teman (Otomatis Terpakai dari Terakhir Digunakan) */}
-              {friendReferralCode && !isEditingReferral ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: isLight ? '#ecfdf5' : 'rgba(34, 197, 94, 0.1)',
-                  border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)',
-                  borderRadius: '6px',
-                  padding: '5px 8px',
-                  marginBottom: '5px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.76rem', color: '#16a34a' }}>✓</span>
-                    <div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: isLight ? '#15803d' : '#4ade80' }}>
-                        Kode Otomatis Aktif: <strong style={{ color: isLight ? '#0f172a' : '#fff', letterSpacing: '0.5px' }}>{friendReferralCode}</strong>
-                      </span>
-                      <div style={{ fontSize: '0.58rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                        (Tersimpan otomatis • Teman +100, Kamu +100)
-                      </div>
-                    </div>
-                  </div>
+              {/* Input Kode Referral Teman (Copas Manual Per Transaksi - Tidak Auto-Isi) */}
+              <div style={{ display: 'flex', gap: '5px', marginBottom: '5px' }}>
+                <input
+                  type="text"
+                  value={friendReferralCode}
+                  onChange={e => setFriendReferralCode(e.target.value.toUpperCase())}
+                  placeholder="Tempel / Copas Kode Teman (e.g. KOST-102)"
+                  style={{
+                    flex: 1,
+                    background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.35)',
+                    border: friendReferralCode ? '1.5px solid #2563eb' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
+                    borderRadius: '6px',
+                    padding: '6px 8px',
+                    fontSize: '0.72rem',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontFamily: friendReferralCode ? 'var(--font-mono)' : 'inherit',
+                    fontWeight: friendReferralCode ? 700 : 400
+                  }}
+                />
+                {friendReferralCode && (
                   <button
                     type="button"
-                    onClick={() => setIsEditingReferral(true)}
+                    onClick={() => setFriendReferralCode('')}
                     style={{
-                      background: 'none',
+                      background: isLight ? '#f1f5f9' : '#334155',
+                      color: isLight ? '#64748b' : '#94a3b8',
                       border: 'none',
-                      color: isLight ? '#0284c7' : '#38bdf8',
-                      fontSize: '0.64rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textDecoration: 'underline'
-                    }}
-                  >
-                    Ganti
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: '5px', marginBottom: '5px' }}>
-                  <input
-                    type="text"
-                    value={friendReferralCode}
-                    onChange={e => setFriendReferralCode(e.target.value.toUpperCase())}
-                    placeholder="Punya Kode Teman? (e.g. KOST-102)"
-                    style={{
-                      flex: 1,
-                      background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.35)',
-                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: '6px',
                       padding: '4px 8px',
-                      fontSize: '0.7rem',
-                      color: isLight ? '#0f172a' : '#f8fafc'
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
                     }}
-                  />
-                  {isEditingReferral && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingReferral(false)}
-                      style={{
-                        background: '#2563eb',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '3px 8px',
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Simpan
-                    </button>
-                  )}
-                </div>
-              )}
+                  >
+                    Hapus
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: '0.6rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '6px' }}>
+                💡 {friendReferralCode ? `Kode referral "${friendReferralCode}" aktif: Kamu dapat +100 Poin, Pemilik Kode ("orangnya") dapat 1/2 dari pembeli = +50 Poin.` : 'Copas kode referral teman per transaksi jika ingin mengklaim bonus poin bersama.'}
+              </div>
 
               {/* Checkbox Tukar Poin Diskon */}
               {userLoyaltyPoints >= 100 && (
@@ -1889,6 +2126,7 @@ const PartnerOrderModal = ({
 
             {/* ACTION BUTTON */}
             <button
+              data-cart-target="partner-checkout-btn"
               type="submit"
               disabled={submitting}
               className="btn btn-primary"
@@ -1906,12 +2144,17 @@ const PartnerOrderModal = ({
               {paymentMethod === 'qris' ? (
                 <>
                   <QrCode size={18} />
-                  <span>Lanjut Bayar via QRIS Instan (Rp {grandTotal.toLocaleString('id-ID')})</span>
+                  <span>Lanjut Bayar via QRIS Platform (Rp {grandTotal.toLocaleString('id-ID')})</span>
                 </>
-              ) : paymentMethod === 'monthly_bill' ? (
+              ) : paymentMethod === 'custom_qris' ? (
                 <>
-                  <Receipt size={18} />
-                  <span>Catat ke Tagihan Sewa Bulan Depan</span>
+                  <QrCode size={18} />
+                  <span>Konfirmasi Pesanan (QRIS Mandiri Toko)</span>
+                </>
+              ) : paymentMethod === 'custom_bank_transfer' ? (
+                <>
+                  <CreditCard size={18} />
+                  <span>Konfirmasi Pesanan (Transfer Rekening Mitra)</span>
                 </>
               ) : (
                 <span>Konfirmasi Pesanan (Bayar Tunai COD)</span>

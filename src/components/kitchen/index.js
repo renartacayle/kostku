@@ -8,3 +8,4 @@ export { default as ShineSweepButton } from './ShineSweepButton';
 export { default as ScrambleText } from './ScrambleText';
 export { default as ReceiptPrinter } from './ReceiptPrinter';
 export { default as KitchenShowcaseSection } from './KitchenShowcaseSection';
+export { default as CometArcCartShowcase } from './CometArcCartShowcase';

@@ -119,6 +119,19 @@
       "isDemo": true
     },
     {
+      "id": 1790948804999,
+      "name": "Bu Siti (Warung & Laundry)",
+      "email": "mitra@kostku.id",
+      "role": "mitra",
+      "storeName": "Warung Makan & Laundry Bu Siti",
+      "businessCategory": "Kantin & Kuliner",
+      "kostUid": "KOST-BDG-02",
+      "password": "password123",
+      "phone": "081398765432",
+      "picture": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+      "isDemo": true
+    },
+    {
       "id": 1790948803888,
       "name": "Rizky Ramadhan (Calon Penghuni)",
       "email": "calon@kostku.id",
@@ -188,6 +201,108 @@
       "authProvider": "local",
       "created_at": "2026-10-21T07:05:52.008Z",
       "isDemo": true
+    },
+    {
+      "id": 1794126789533,
+      "name": "Ahmad Faisal (Kasir)",
+      "email": "karyawan.kasir.1794126789426@gmail.com",
+      "password": "kostku123",
+      "phone": "08123334445",
+      "role": "staff",
+      "roles": [
+        "Kasir Toko / Kantin",
+        "Penjaga Kost"
+      ],
+      "jobTitle": "Kasir Toko / Kantin, Penjaga Kost",
+      "salary": 0,
+      "kostUid": "KOST-JAKSEL-01",
+      "ownerId": "1784987558042",
+      "createdAt": "2026-11-08T08:33:09.533Z"
+    },
+    {
+      "id": 1794126890162,
+      "name": "Ahmad Faisal (Kasir)",
+      "email": "karyawan.kasir.1794126890067@gmail.com",
+      "password": "kostku123",
+      "phone": "08123334445",
+      "role": "staff",
+      "roles": [
+        "Kasir Toko / Kantin",
+        "Penjaga Kost"
+      ],
+      "jobTitle": "Kasir Toko / Kantin, Penjaga Kost",
+      "salary": 0,
+      "kostUid": "KOST-JAKSEL-01",
+      "ownerId": "1794126889973",
+      "createdAt": "2026-11-08T08:34:50.162Z"
+    },
+    {
+      "id": 1794126949344,
+      "name": "Ahmad Faisal (Kasir)",
+      "email": "karyawan.kasir.1794126949344@gmail.com",
+      "password": "kostku123",
+      "phone": "08123334445",
+      "role": "staff",
+      "roles": [
+        "Kasir Toko / Kantin",
+        "Penjaga Kost"
+      ],
+      "jobTitle": "Kasir Toko / Kantin, Penjaga Kost",
+      "salary": 0,
+      "kostUid": "KOST-JAKSEL-01",
+      "ownerId": "1794126949265",
+      "createdAt": "2026-11-08T08:35:49.344Z"
+    },
+    {
+      "id": "1794408375835",
+      "name": "Pemilik Kode Referral",
+      "email": "referrer_1794408375706@example.com",
+      "phone": "081247002589",
+      "password": "Password123!",
+      "role": "user",
+      "kostUid": "KOST-JAKSEL-01",
+      "kamar": "102",
+      "bedsheets": 0,
+      "verifiedOtp": true,
+      "otpChannel": "whatsapp",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "verifiedAt": "2026-11-11T14:46:15.835Z",
+      "createdAt": "2026-11-11T14:46:15.835Z"
+    },
+    {
+      "id": "1794408418873",
+      "name": "Pemilik Kode Referral",
+      "email": "referrer_1794408418743@example.com",
+      "phone": "081297869544",
+      "password": "Password123!",
+      "role": "user",
+      "kostUid": "KOST-JAKSEL-01",
+      "kamar": "102",
+      "bedsheets": 0,
+      "verifiedOtp": true,
+      "otpChannel": "whatsapp",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "verifiedAt": "2026-11-11T14:46:58.873Z",
+      "createdAt": "2026-11-11T14:46:58.874Z"
+    },
+    {
+      "id": "1794408500026",
+      "name": "Pemilik Kode Referral",
+      "email": "referrer_1794408499896@example.com",
+      "phone": "081224709341",
+      "password": "Password123!",
+      "role": "user",
+      "kostUid": "KOST-JAKSEL-01",
+      "kamar": "102",
+      "bedsheets": 0,
+      "verifiedOtp": true,
+      "otpChannel": "whatsapp",
+      "phoneVerified": true,
+      "emailVerified": true,
+      "verifiedAt": "2026-11-11T14:48:20.026Z",
+      "createdAt": "2026-11-11T14:48:20.026Z"
     }
   ],
   "kosts": [
@@ -279,9 +394,11 @@
             "price": 2400000,
             "size": "4x5",
             "capacity": 1,
-            "status": "available",
+            "status": "occupied",
             "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
-            "photo": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80"
+            "photo": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
+            "tenantId": "1794408500026",
+            "tenantName": "Pemilik Kode Referral"
           },
           {
             "id": "RM-JKT-201",
@@ -314,6 +431,33 @@
             "salary": 2500000,
             "phone": "081234567890",
             "email": "joko.penjaga@kostku.id",
+            "hasLogin": true
+          },
+          {
+            "id": "1794126789533",
+            "name": "Ahmad Faisal (Kasir)",
+            "role": "Kasir Toko / Kantin, Penjaga Kost",
+            "salary": 0,
+            "phone": "08123334445",
+            "email": "karyawan.kasir.1794126789426@gmail.com",
+            "hasLogin": true
+          },
+          {
+            "id": "1794126890162",
+            "name": "Ahmad Faisal (Kasir)",
+            "role": "Kasir Toko / Kantin, Penjaga Kost",
+            "salary": 0,
+            "phone": "08123334445",
+            "email": "karyawan.kasir.1794126890067@gmail.com",
+            "hasLogin": true
+          },
+          {
+            "id": "1794126949344",
+            "name": "Ahmad Faisal (Kasir)",
+            "role": "Kasir Toko / Kantin, Penjaga Kost",
+            "salary": 0,
+            "phone": "08123334445",
+            "email": "karyawan.kasir.1794126949344@gmail.com",
             "hasLogin": true
           }
         ],
@@ -350,9 +494,11 @@
           "price": 2400000,
           "size": "4x5",
           "capacity": 1,
-          "status": "available",
+          "status": "occupied",
           "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
-          "photo": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80"
+          "photo": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
+          "tenantId": "1794408500026",
+          "tenantName": "Pemilik Kode Referral"
         },
         {
           "id": "RM-JKT-201",
@@ -1195,12 +1341,13 @@
           "label": "Promo Spesial"
         },
         "promoted": {
-          "active": true,
+          "active": false,
           "plan": "7d",
           "days": 7,
           "badgeText": "🔥 Rekomendasi Utama",
           "activatedAt": "2026-10-13T07:17:53.106Z",
-          "expiresAt": "2026-10-20T07:17:53.106Z"
+          "expiresAt": "2026-10-20T07:17:53.106Z",
+          "expired": true
         }
       },
       "rating": 4.7,
@@ -3657,6 +3804,48 @@
       "type": "transaksi",
       "text": "Pembayaran resmi RCP-KST-2026151448 (102) sebesar Rp 1.500.000 LUNAS via QRIS",
       "time": "2026-10-26T06:45:51.449Z"
+    },
+    {
+      "id": "ACT-1794126789533",
+      "kostUid": "KOST-JAKSEL-01",
+      "type": "pengaturan",
+      "text": "Akun staf karyawan \"Ahmad Faisal (Kasir)\" (Kasir Toko / Kantin, Penjaga Kost) berhasil ditambahkan dengan Gmail karyawan.kasir.1794126789426@gmail.com",
+      "time": "2026-11-08T08:33:09.533Z"
+    },
+    {
+      "id": "ACT-1794126890162",
+      "kostUid": "KOST-G05UCH",
+      "type": "pengaturan",
+      "text": "Akun staf karyawan \"Ahmad Faisal (Kasir)\" (Kasir Toko / Kantin, Penjaga Kost) berhasil ditambahkan dengan Gmail karyawan.kasir.1794126890067@gmail.com",
+      "time": "2026-11-08T08:34:50.162Z"
+    },
+    {
+      "id": "ACT-1794126949344",
+      "kostUid": "KOST-U8BFJA",
+      "type": "pengaturan",
+      "text": "Akun staf karyawan \"Ahmad Faisal (Kasir)\" (Kasir Toko / Kantin, Penjaga Kost) berhasil ditambahkan dengan Gmail karyawan.kasir.1794126949344@gmail.com",
+      "time": "2026-11-08T08:35:49.344Z"
+    },
+    {
+      "id": "ACT-1794408375835",
+      "kostUid": "KOST-JAKSEL-01",
+      "type": "pengguna",
+      "text": "Penghuni baru Pemilik Kode Referral (Kamar 102) telah didaftarkan",
+      "time": "2026-11-11T14:46:15.835Z"
+    },
+    {
+      "id": "ACT-1794408418874",
+      "kostUid": "KOST-JAKSEL-01",
+      "type": "pengguna",
+      "text": "Penghuni baru Pemilik Kode Referral (Kamar 102) telah didaftarkan",
+      "time": "2026-11-11T14:46:58.874Z"
+    },
+    {
+      "id": "ACT-1794408500026",
+      "kostUid": "KOST-JAKSEL-01",
+      "type": "pengguna",
+      "text": "Penghuni baru Pemilik Kode Referral (Kamar 102) telah didaftarkan",
+      "time": "2026-11-11T14:48:20.026Z"
     }
   ],
   "invoices": [
@@ -3869,6 +4058,15 @@
       "value": 8.4,
       "month": "2026-10",
       "lastUpdate": "2026-10-18T08:00:00.000Z"
+    },
+    {
+      "id": "METER-1794281107962",
+      "kostUid": "KOST-K12DQR",
+      "kamar": "A01",
+      "type": "listrik",
+      "month": "2026-11",
+      "value": 348,
+      "lastUpdate": "2026-11-10T03:25:07.962Z"
     }
   ],
   "applications": [
@@ -23659,6 +23857,30 @@
       "status": "pending",
       "createdAt": "2026-10-26T11:23:43.869Z",
       "expiryTime": "2026-10-26T11:38:43.869Z"
+    },
+    {
+      "id": 1794127726557,
+      "orderId": "ORDER-1794127726237-9516",
+      "invoiceId": "INV-DEMO-TEST",
+      "kostUid": "KOST-JAKSEL-01",
+      "userId": "1784987558042",
+      "customerName": "Andi Pratama",
+      "customerEmail": "",
+      "customerPhone": "",
+      "roomNumber": "101",
+      "amount": 1500500,
+      "paymentMethod": "QRIS",
+      "vaNumber": null,
+      "paymentCode": null,
+      "tripayReference": null,
+      "tripayCheckoutUrl": null,
+      "qrString": null,
+      "qrCodeUrl": null,
+      "instructions": [],
+      "bookingData": null,
+      "status": "pending",
+      "createdAt": "2026-11-08T08:48:46.557Z",
+      "expiryTime": "2026-11-08T09:03:46.237Z"
     }
   ],
   "contracts": [
@@ -27652,5 +27874,6 @@
     }
   ],
   "_dbVersion": "v138_clean_dual_db",
-  "registeredPartnerHistory": []
+  "registeredPartnerHistory": [],
+  "unified_wallets": {}
 }

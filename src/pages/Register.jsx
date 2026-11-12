@@ -22,7 +22,12 @@ import {
   Smartphone,
   KeyRound,
   Send,
-  X
+  X,
+  FileText,
+  Building,
+  Building2,
+  Briefcase,
+  Store
 } from 'lucide-react';
 import { apiRegister, apiSendOtp, apiVerifyOtp, apiGoogleAuth, apiCheckEmail } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -35,8 +40,14 @@ const Register = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // Role default is 'user' (Anak Kost / Pencari Sewa)
-  const role = 'user';
+  // Role Selection: 'owner' (Pemilik Kost) | 'mitra' (Pemilik Bisnis) | 'staff' (Karyawan) | 'user' (Penghuni)
+  const searchParams = new URLSearchParams(location.search);
+  const initialRole = searchParams.get('role') || 'owner';
+  const [selectedRole, setSelectedRole] = useState(initialRole);
+  const [kostName, setKostName] = useState('');
+  const [storeName, setStoreName] = useState('');
+  const [businessCategory, setBusinessCategory] = useState('Kantin & Kuliner');
+  const [showTermsModal, setShowTermsModal] = useState(false);
   
   // Step Workflow: 'form' | 'otp' | 'success'
   const [step, setStep] = useState('form');
@@ -104,6 +115,22 @@ const Register = () => {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+      return false;
+    }
+
+    if (selectedRole === 'owner' && !kostName.trim()) {
+      setError('Nama properti kost wajib diisi untuk Akun Pemilik Kost.');
+      return false;
+    }
+
+    if (selectedRole === 'mitra' && !storeName.trim()) {
+      setError('Nama usaha / bisnis / toko wajib diisi untuk Akun Pemilik Bisnis.');
+      return false;
+    }
+
+    if ((selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && (!email || !email.includes('@'))) {
+      const roleLabel = selectedRole === 'owner' ? 'Pemilik Kost' : selectedRole === 'mitra' ? 'Pemilik Bisnis' : 'Karyawan';
+      setError(`Alamat Gmail wajib diisi untuk pendaftaran akun ${roleLabel}.`);
       return false;
     }
 
@@ -233,13 +260,16 @@ const Register = () => {
       const effectiveToken = verifyRes.verifiedToken || 'TOKEN_OTP_VALID';
       setVerifiedToken(effectiveToken);
 
-      // 2. Finalisasi pendaftaran akun (default role: user / anak kost)
+      // 2. Finalisasi pendaftaran akun
       const payload = {
-        role: 'user',
+        role: selectedRole,
         name: name.trim(), // Nama lengkap tersimpan resmi
         email: email.trim(),
         phone: phone.trim(),
         password,
+        kostName: selectedRole === 'owner' ? kostName.trim() : undefined,
+        storeName: selectedRole === 'mitra' ? storeName.trim() : undefined,
+        category: selectedRole === 'mitra' ? businessCategory : undefined,
         otpCode: cleanCode,
         otpChannel,
         otpTarget: target,
@@ -250,7 +280,15 @@ const Register = () => {
 
       const regRes = await apiRegister(payload);
       setStep('success');
-      setMessage('Pendaftaran Berhasil! Akun Anda aktif dan siap digunakan.');
+      setMessage(
+        selectedRole === 'owner'
+          ? 'Pendaftaran Pemilik Kost Berhasil! Properti kost dan akses operasional Anda siap digunakan.'
+          : selectedRole === 'mitra'
+          ? 'Pendaftaran Pemilik Bisnis Berhasil! Profil usaha dan sistem Kasir POS Anda siap digunakan.'
+          : selectedRole === 'staff'
+          ? 'Pendaftaran Karyawan Berhasil! Akun Gmail Anda aktif dan siap dihubungkan oleh Pemilik Kost atau Pemilik Bisnis.'
+          : 'Pendaftaran Berhasil! Akun Anda aktif dan siap digunakan.'
+      );
       setTimeout(() => navigate('/login'), 2200);
     } catch (err) {
       setOtpError(err.message || 'Verifikasi OTP gagal. Silakan periksa kembali kode Anda.');
@@ -269,14 +307,18 @@ const Register = () => {
 
       const data = await apiGoogleAuth({
         credential: response.credential,
-        role: 'user'
+        role: selectedRole,
+        storeName: selectedRole === 'mitra' ? storeName.trim() : undefined,
+        category: selectedRole === 'mitra' ? businessCategory : undefined,
+        kostName: selectedRole === 'owner' ? kostName.trim() : undefined
       });
 
       if (data.user) {
         localStorage.setItem('kostUser', JSON.stringify(data.user));
         if (data.kostName) localStorage.setItem('kostName', data.kostName);
         setShowGoogleModal(false);
-        navigate('/dashboard', { replace: true });
+        const targetPath = data.user.role === 'mitra' ? '/mitra' : data.user.role === 'staff' ? '/kasir' : '/dashboard';
+        navigate(targetPath, { replace: true });
       }
     } catch (err) {
       setError(err.message || 'Gagal mendaftar dengan akun Google resmi.');
@@ -318,14 +360,18 @@ const Register = () => {
                 name: profile.name,
                 picture: profile.picture,
                 googleId: profile.sub,
-                role: 'user'
+                role: selectedRole,
+                storeName: selectedRole === 'mitra' ? storeName.trim() : undefined,
+                category: selectedRole === 'mitra' ? businessCategory : undefined,
+                kostName: selectedRole === 'owner' ? kostName.trim() : undefined
               });
 
               if (data.user) {
                 localStorage.setItem('kostUser', JSON.stringify(data.user));
                 if (data.kostName) localStorage.setItem('kostName', data.kostName);
                 setShowGoogleModal(false);
-                navigate('/dashboard', { replace: true });
+                const targetPath = data.user.role === 'mitra' ? '/mitra' : data.user.role === 'staff' ? '/kasir' : '/dashboard';
+                navigate(targetPath, { replace: true });
               }
             } catch (err) {
               setError(err.message || 'Gagal mendaftar dengan akun Google.');
@@ -406,7 +452,7 @@ const Register = () => {
       const data = await apiGoogleAuth({
         email: googleEmail.trim().toLowerCase(),
         name: effectiveName,
-        role: 'user'
+        role: selectedRole
       });
 
       if (data.user) {
@@ -426,6 +472,10 @@ const Register = () => {
   const isSubmitDisabled = () => {
     if (otpSending) return true;
     if (!name.trim()) return true;
+    if (!agreedTerms) return true;
+    if (selectedRole === 'owner' && !kostName.trim()) return true;
+    if (selectedRole === 'mitra' && !storeName.trim()) return true;
+    if ((selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && (!email || !email.includes('@'))) return true;
     if (password.length < 6 || password !== confirmPassword) return true;
     if (otpChannel === 'whatsapp' && (!phone || phone.trim().length < 8)) return true;
     if (otpChannel === 'email' && (!email || !email.includes('@'))) return true;
@@ -528,28 +578,203 @@ const Register = () => {
           </p>
         </div>
 
-        {/* 4-Pilar Anti-Bot Trust Badge */}
+        {/* Program Jaminan & Fitur "Pelindung KostKu" Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
-          borderRadius: '14px',
-          padding: '12px 14px',
+          background: isLight 
+            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(37, 99, 235, 0.08) 100%)' 
+            : 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(37, 99, 235, 0.15) 100%)',
+          border: isLight ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(16, 185, 129, 0.4)',
+          borderRadius: '16px',
+          padding: '14px 16px',
           marginBottom: '1.5rem',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px',
-          fontSize: '0.82rem',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.5
+          boxShadow: isLight ? '0 4px 15px rgba(16, 185, 129, 0.1)' : '0 4px 20px rgba(0, 0, 0, 0.25)'
         }}>
-          <Sparkles size={18} color="#60a5fa" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div>
-            <strong style={{ color: isLight ? '#1d4ed8' : '#93c5fd' }}>🛡️ Pendaftaran Akun Terproteksi:</strong> Cloudflare Turnstile, Verifikasi OTP WhatsApp, Google Sign-In, &amp; Honeypot Trap menjamin keamanan akun nyata. Mode peran (Pemilik Kost, Mitra UMKM, atau Staf) dapat disesuaikan di menu Pengaturan setelah masuk.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <div style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)',
+              flexShrink: 0
+            }}>
+              <ShieldCheck size={16} />
+            </div>
+            <strong style={{ color: isLight ? '#065f46' : '#6ee7b7', fontSize: '0.88rem' }}>
+              🛡️ Dilindungi oleh Program Pelindung KostKu
+            </strong>
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Setiap akun terdaftar otomatis tercakup dalam jaminan keamanan resmi platform:
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '8px', fontSize: '0.74rem' }}>
+              <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                🏢 <strong>Owner Kost:</strong> Uang sewa aman &amp; anti-penunggak
+              </div>
+              <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                🏪 <strong>Bisnis Mitra:</strong> Anti-fake order &amp; kasir tercatat
+              </div>
+              <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                👷 <strong>Karyawan:</strong> Akun Gmail &amp; jam kerja sah
+              </div>
+              <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                🏠 <strong>Penghuni:</strong> Garansi 100% anti-kost fiktif
+              </div>
+            </div>
           </div>
         </div>
 
         {step === 'form' && (
           <>
+            {/* ═════════════════════════════════════════════════════
+                PILIHAN PERAN AKUN: PEMILIK KOST vs PEMILIK BISNIS vs KARYAWAN vs PENGHUNI
+                ═════════════════════════════════════════════════════ */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                Pilih Tipe Akun Anda <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
+                gap: '8px'
+              }}>
+                {/* 1. Pemilik Kost (Owner) */}
+                <div 
+                  onClick={() => setSelectedRole('owner')}
+                  style={{
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    border: selectedRole === 'owner' 
+                      ? '2px solid #3b82f6' 
+                      : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
+                    background: selectedRole === 'owner' 
+                      ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.18)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
+                    boxShadow: selectedRole === 'owner' ? '0 4px 15px rgba(59, 130, 246, 0.25)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>🏢</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'owner' ? '#3b82f6' : 'var(--text-primary)' }}>
+                    Pemilik Kost
+                  </div>
+                  <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Properti &amp; Kamar
+                  </div>
+                </div>
+
+                {/* 2. Pemilik Bisnis (Mitra UMKM / Kantin / Cafe / Toko) */}
+                <div 
+                  onClick={() => setSelectedRole('mitra')}
+                  style={{
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    border: selectedRole === 'mitra' 
+                      ? '2px solid #f59e0b' 
+                      : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
+                    background: selectedRole === 'mitra' 
+                      ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.18)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
+                    boxShadow: selectedRole === 'mitra' ? '0 4px 15px rgba(245, 158, 11, 0.25)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>🏪</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'mitra' ? '#f59e0b' : 'var(--text-primary)' }}>
+                    Pemilik Bisnis
+                  </div>
+                  <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Kantin, Cafe &amp; Toko
+                  </div>
+                </div>
+
+                {/* 3. Karyawan / Staf (Staff) */}
+                <div 
+                  onClick={() => setSelectedRole('staff')}
+                  style={{
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    border: selectedRole === 'staff' 
+                      ? '2px solid #10b981' 
+                      : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
+                    background: selectedRole === 'staff' 
+                      ? (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.18)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
+                    boxShadow: selectedRole === 'staff' ? '0 4px 15px rgba(16, 185, 129, 0.25)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>👷</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'staff' ? '#10b981' : 'var(--text-primary)' }}>
+                    Karyawan
+                  </div>
+                  <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Staf Operasional
+                  </div>
+                </div>
+
+                {/* 4. Penghuni / Penyewa (User) */}
+                <div 
+                  onClick={() => setSelectedRole('user')}
+                  style={{
+                    padding: '12px 6px',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    border: selectedRole === 'user' 
+                      ? '2px solid #8b5cf6' 
+                      : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
+                    background: selectedRole === 'user' 
+                      ? (isLight ? '#f5f3ff' : 'rgba(139, 92, 246, 0.18)') 
+                      : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
+                    boxShadow: selectedRole === 'user' ? '0 4px 15px rgba(139, 92, 246, 0.25)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>🏠</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'user' ? '#8b5cf6' : 'var(--text-primary)' }}>
+                    Penghuni
+                  </div>
+                  <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Penyewa Kamar
+                  </div>
+                </div>
+              </div>
+
+              {/* Penjelasan Peran Terpilih */}
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                fontSize: '0.76rem',
+                lineHeight: 1.45,
+                background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)'
+              }}>
+                {selectedRole === 'owner' && (
+                  <span>🏢 <strong>Akun Pemilik Kost (Owner):</strong> Kelola properti kost, kamar sewa, tagihan penghuni, pantau kasir, &amp; daftarkan akun staf karyawan menggunakan Gmail mereka masing-masing.</span>
+                )}
+                {selectedRole === 'mitra' && (
+                  <span>🏪 <strong>Akun Pemilik Bisnis (Mitra UMKM / Kantin / Cafe / Toko):</strong> Kelola usaha komersial, katalog menu &amp; foto produk, meja barcode QR self-order, dapur KDS, pembukuan kasir POS, &amp; staf kasir.</span>
+                )}
+                {selectedRole === 'staff' && (
+                  <span>👷 <strong>Akun Karyawan / Staf:</strong> Masuk menggunakan akun Gmail Anda sendiri untuk operasional kasir POS, dapur, dan absensi yang dihubungkan oleh Pemilik Kost atau Pemilik Bisnis.</span>
+                )}
+                {selectedRole === 'user' && (
+                  <span>🏠 <strong>Akun Penghuni Kost:</strong> Cari kamar kost, ajukan sewa, pesan menu kantin meja QR, dan bayar tagihan sewa kamar secara online.</span>
+                )}
+              </div>
+            </div>
 
             {/* ═════════════════════════════════════════════════════
                 PILIHAN 1: DAFTAR RESMI DENGAN GOOGLE (100% REAL)
@@ -567,10 +792,10 @@ const Register = () => {
               />
               <div style={{ textAlign: 'center', marginTop: '6px' }}>
                 <span style={{ fontSize: '0.75rem', color: isLight ? '#2563eb' : '#60a5fa', fontWeight: 600 }}>
-                  ✦ Registrasi resmi Google: 1-klik terverifikasi otomatis
+                  ✦ Masuk cepat Google sebagai {selectedRole === 'owner' ? 'Pemilik Kost' : selectedRole === 'mitra' ? 'Pemilik Bisnis' : selectedRole === 'staff' ? 'Karyawan' : 'Penghuni'}: 1-klik terverifikasi
                 </span>
                 <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '3px' }}>
-                  Dengan mendaftar via Google, Anda menyetujui S&K & Kebijakan Privasi KostKu.
+                  Dengan mendaftar via Google, Anda menyetujui S&amp;K &amp; Kebijakan Privasi KostKu.
                 </div>
               </div>
             </div>
@@ -641,31 +866,90 @@ const Register = () => {
                 {/* Nama Lengkap Pengguna */}
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    Nama Lengkap <span style={{ color: '#ef4444' }}>*</span>
+                    {selectedRole === 'owner' ? 'Nama Lengkap Pemilik Kost' : selectedRole === 'mitra' ? 'Nama Lengkap Pemilik Bisnis' : selectedRole === 'staff' ? 'Nama Lengkap Karyawan' : 'Nama Lengkap'} <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input 
                     type="text" 
                     required 
                     value={name} 
                     onChange={e => setName(e.target.value)} 
-                    placeholder="Contoh: Budi Santoso" 
+                    placeholder={selectedRole === 'owner' ? 'Contoh: H. Ahmad Supriyadi' : selectedRole === 'mitra' ? 'Contoh: Ibu Siti Rahayu' : selectedRole === 'staff' ? 'Contoh: Budi Santoso (Kasir)' : 'Contoh: Budi Santoso'} 
                     className="input-field" 
                   />
                 </div>
+
+                {/* Nama Properti Kost (Khusus Pemilik Kost / Owner) */}
+                {selectedRole === 'owner' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Nama Properti Kost <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={kostName} 
+                      onChange={e => setKostName(e.target.value)} 
+                      placeholder="Contoh: Kost Griya Harmoni 1" 
+                      className="input-field" 
+                    />
+                  </div>
+                )}
+
+                {/* Nama Usaha & Kategori (Khusus Pemilik Bisnis / Mitra UMKM) */}
+                {selectedRole === 'mitra' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Nama Usaha / Bisnis / Toko <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={storeName} 
+                        onChange={e => setStoreName(e.target.value)} 
+                        placeholder="Contoh: Kantin Riuh Barokah, Cafe Kopi Senja, Laundry Kilat" 
+                        className="input-field" 
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Kategori Bisnis / Usaha <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <select
+                        value={businessCategory}
+                        onChange={e => setBusinessCategory(e.target.value)}
+                        className="input-field"
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <option value="Kantin & Kuliner">🍱 Kantin, Warung Makan & Kuliner</option>
+                        <option value="Cafe & Minuman">☕ Cafe, Coffee Shop & Minuman Kekinian</option>
+                        <option value="Laundry & Cuci Pakaian">🧺 Laundry & Cuci Pakaian Express</option>
+                        <option value="Toko Kelontong & Minimarket">🏪 Minimarket, Sembako & Toko Kelontong</option>
+                        <option value="Jasa & Lain-lain">✨ Jasa Fotokopi, Servis & Lainnya</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 {/* Email & No WhatsApp */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Email (Opsional)
+                      {selectedRole === 'owner' ? 'Akun Gmail Pemilik Kost' : selectedRole === 'mitra' ? 'Akun Gmail Pemilik Bisnis' : selectedRole === 'staff' ? 'Akun Gmail Pribadi Karyawan' : 'Email (Opsional)'} {(selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && <span style={{ color: '#ef4444' }}>*</span>}
                     </label>
                     <input 
                       type="email" 
+                      required={selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff'}
                       value={email} 
                       onChange={e => setEmail(e.target.value)} 
-                      placeholder="nama@email.com" 
+                      placeholder={selectedRole === 'staff' ? 'karyawan@gmail.com' : selectedRole === 'mitra' ? 'bisnis@gmail.com' : 'owner@gmail.com'} 
                       className="input-field" 
                     />
+                    {(selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && (
+                      <span style={{ fontSize: '0.68rem', color: selectedRole === 'staff' ? '#10b981' : selectedRole === 'mitra' ? '#f59e0b' : '#3b82f6', display: 'block', marginTop: '3px' }}>
+                        * Gunakan Gmail aktif Anda
+                      </span>
+                    )}
                   </div>
 
                   <div>
@@ -912,6 +1196,33 @@ const Register = () => {
                   </Link>
                   , serta <strong>Perjanjian Sewa-Menyewa & Kemitraan Layanan KostKu</strong>. <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>
                 </label>
+
+                {/* Tombol Cepat Baca Syarat & Ketentuan Pop-up */}
+                <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowTermsModal(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
+                      border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.3)',
+                      color: isLight ? '#0284c7' : '#38bdf8',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <FileText size={13} />
+                    <span>Baca Ringkasan Syarat &amp; Ketentuan</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1355,9 +1666,13 @@ const Register = () => {
           flexWrap: 'wrap',
           gap: '12px'
         }}>
-          <Link to="/syarat-ketentuan" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-            📜 Syarat & Ketentuan
-          </Link>
+          <button 
+            type="button" 
+            onClick={() => setShowTermsModal(true)}
+            style={{ background: 'none', border: 'none', padding: 0, color: isLight ? '#475569' : '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+          >
+            📜 Syarat &amp; Ketentuan
+          </button>
           <span>•</span>
           <Link to="/kebijakan-privasi" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
             🛡️ Kebijakan Privasi
@@ -1369,6 +1684,187 @@ const Register = () => {
         </div>
 
       </div>
+
+      {/* ═════════════════════════════════════════════════════
+          MODAL POPUP: SYARAT & KETENTUAN RESMI KOSTKU
+          ═════════════════════════════════════════════════════ */}
+      {showTermsModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: isLight ? '#ffffff' : '#0f172a',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '20px',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+            overflow: 'hidden'
+          }}>
+            {/* Header Modal */}
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Syarat &amp; Ketentuan Layanan KostKu
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    Pembaruan Resmi • Berlaku untuk Pemilik Kost, Karyawan, dan Penghuni
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '6px'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content Scroll */}
+            <div style={{ padding: '20px', overflowY: 'auto', fontSize: '0.85rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+              <div style={{ marginBottom: '14px', padding: '12px', borderRadius: '12px', background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                <strong style={{ color: isLight ? '#1d4ed8' : '#93c5fd', display: 'block', marginBottom: '4px' }}>
+                  📌 Ringkasan Ketentuan Akun &amp; Peran:
+                </strong>
+                Platform KostKu memfasilitasi pengelolaan kost mandiri, keuangan, kasir kantin/POS, dan manajemen karyawan menggunakan akun Gmail masing-masing pihak demi transparansi dan keamanan.
+              </div>
+
+              <h4 style={{ color: 'var(--text-primary)', margin: '14px 0 6px 0', fontSize: '0.9rem' }}>
+                1. Akun Pemilik Kost (Owner)
+              </h4>
+              <p style={{ margin: '0 0 10px 0' }}>
+                Pemilik Kost memiliki hak penuh untuk mengelola properti kost, kamar, tarif sewa, penagihan penghuni, pembukuan keuangan properti, serta mendaftarkan dan menghapus akun staf karyawan/penjaga kost. Pemilik bertanggung jawab penuh atas kebenaran legalitas properti dan pemenuhan hak karyawan.
+              </p>
+
+              <h4 style={{ color: 'var(--text-primary)', margin: '14px 0 6px 0', fontSize: '0.9rem' }}>
+                2. Akun Pemilik Bisnis (Mitra UMKM / Kantin / Cafe / Toko)
+              </h4>
+              <p style={{ margin: '0 0 10px 0' }}>
+                Pemilik Bisnis memiliki hak independen untuk mengelola profil usaha, katalog produk &amp; menu makanan, meja QR self-order, dapur KDS, pembukuan kasir POS mandiri, serta mendaftarkan dan menghapus staf kasir mereka menggunakan akun Gmail pribadi karyawan.
+              </p>
+
+              <h4 style={{ color: 'var(--text-primary)', margin: '14px 0 6px 0', fontSize: '0.9rem' }}>
+                3. Akun Karyawan &amp; Staf Operasional (Staff)
+              </h4>
+              <p style={{ margin: '0 0 10px 0' }}>
+                Karyawan login menggunakan akun Gmail pribadi masing-masing yang telah didaftarkan oleh Pemilik Kost atau Pemilik Bisnis. Karyawan memiliki akses operasional yang didelegasikan (Kasir POS, Dapur KDS, Absensi GPS) dan dilarang menyalahgunakan data pesanan pelanggan.
+              </p>
+
+              <h4 style={{ color: 'var(--text-primary)', margin: '14px 0 6px 0', fontSize: '0.9rem' }}>
+                4. Hak Pengelolaan &amp; Penghapusan Akun Karyawan
+              </h4>
+              <p style={{ margin: '0 0 10px 0' }}>
+                Pemilik Kost dan Pemilik Bisnis berhak setiap saat menambahkan akun staf baru atau menghapus akun staf karyawan dari sistem properti atau toko mereka. Saat akun karyawan dihapus oleh Owner/Mitra, hak akses login Gmail staf tersebut ke sistem cabang akan dicabut seketika.
+              </p>
+
+              <h4 style={{ color: 'var(--text-primary)', margin: '14px 0 6px 0', fontSize: '0.9rem' }}>
+                5. Pembayaran, Biaya Layanan &amp; TriPay Gateway
+              </h4>
+              <p style={{ margin: '0 0 10px 0' }}>
+                Sistem mengintegrasikan pembayaran QRIS &amp; Virtual Account otomatis melalui TriPay Gateway resmi dengan skema biaya admin transparan:
+                <br />• <strong>Transaksi Mitra (Kantin/Toko):</strong> Biaya admin flat Rp 100 per transaksi pesanan/nota.
+                <br />• <strong>Transaksi Kost (Sewa Kamar):</strong> Biaya admin flat Rp 500 dibebankan ke Pelanggan/Penghuni sehingga Pemilik Kost menerima pelunasan sewa kamar secara penuh 100% tanpa potongan.
+              </p>
+
+              <h4 style={{ color: 'var(--text-primary)', margin: '14px 0 6px 0', fontSize: '0.9rem' }}>
+                6. Privasi &amp; Perlindungan Data
+              </h4>
+              <p style={{ margin: '0 0 10px 0' }}>
+                Data identitas, nomor kontak WhatsApp, dan akun Gmail pengguna dienkripsi secara aman dan tidak akan dialihkan ke pihak lain tanpa persetujuan sah.
+              </p>
+
+              <h4 style={{ color: '#10b981', margin: '14px 0 6px 0', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={16} color="#10b981" /> 7. Program Jaminan "Pelindung KostKu"
+              </h4>
+              <p style={{ margin: '0 0 10px 0' }}>
+                Seluruh pengguna terikat dan dilindungi oleh ekosistem <strong>Pelindung KostKu</strong> yang mencakup:
+                <br />• <strong>Jaminan Pemilik Kost:</strong> Pembayaran sewa aman terverifikasi otomatis (anti-bukti transfer palsu), pencatatan deposit jaminan kerusakan, dan pengingat jatuh tempo WhatsApp.
+                <br />• <strong>Jaminan Pemilik Bisnis:</strong> Validasi pesanan meja QR fisik (anti-fake order) dan audit trail kasir POS real-time.
+                <br />• <strong>Jaminan Penghuni:</strong> Garansi 100% kamar riil terverifikasi (anti-kost fiktif), jaminan uang kembali 1x24 jam jika kamar zonk/fiktif, dan perlindungan privasi UU PDP.
+                <br />• <strong>Jaminan Karyawan:</strong> Otoritas akun Gmail pribadi staf dan keabsahan jam kerja berbasis absensi geolocation GPS.
+              </p>
+            </div>
+
+            {/* Footer Modal Actions */}
+            <div style={{
+              padding: '14px 20px',
+              borderTop: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="btn btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAgreedTerms(true);
+                  setShowTermsModal(false);
+                }}
+                className="btn btn-primary"
+                style={{
+                  padding: '8px 18px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: 'none',
+                  color: '#ffffff'
+                }}
+              >
+                <Check size={16} />
+                <span>Saya Membaca &amp; Menyetujui</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

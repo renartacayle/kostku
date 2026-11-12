@@ -15,7 +15,8 @@ import {
   Store,
   Sun,
   Moon,
-  Sparkles
+  Sparkles,
+  Wrench
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -24,19 +25,45 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
   const { theme, toggleTheme, isLight } = useTheme();
   const isDemoSession = Boolean(user?.isDemo || user?.email?.endsWith('@kostku.id'));
 
-  const menuItems = [
-    { path: '/', name: 'Halaman Utama', icon: <Home size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
-    { path: '/search', name: 'Cari Kost', icon: <Search size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
-    { path: '/dashboard', name: user?.role === 'staff' ? 'Dashboard Staf' : user?.role === 'owner' ? 'My Kost (Overview)' : 'Kost Saya', icon: <LayoutDashboard size={20} />, roles: ['owner', 'master', 'user', 'staff'] },
-    { path: '/layanan', name: 'Toko & Mitra Sekitar', icon: <Store size={20} />, roles: ['user', 'owner', 'master', 'staff'] },
-    { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/keuangan', name: user?.role === 'staff' ? 'Pengeluaran Lapangan' : 'Keuangan & Laporan', icon: <DollarSign size={20} />, roles: ['owner', 'master', 'staff'] },
-    { path: '/mitra', name: user?.role === 'mitra' ? 'Portal Toko & Menu' : 'Kelola Mitra Toko', icon: <Store size={20} />, roles: ['owner', 'master', 'staff', 'mitra'] },
-    { path: '/karyawan', name: 'Pengaturan Karyawan', icon: <UserCheck size={20} />, roles: ['owner', 'master'] }
-  ];
+  const getRoleSpecificMenus = (role) => {
+    if (role === 'owner' || role === 'master') {
+      return [
+        { path: '/dashboard', name: 'Kamar & Overview', icon: <LayoutDashboard size={20} /> },
+        { path: '/dashboard?view=staff', name: '🛠️ Tugas & Meteran Staf', icon: <Wrench size={20} /> },
+        { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} /> },
+        { path: '/keuangan', name: 'Keuangan & Laporan', icon: <DollarSign size={20} /> },
+        { path: '/kasir', name: 'Terminal Kasir POS', icon: <Store size={20} /> },
+        { path: '/karyawan', name: 'Karyawan & Staf', icon: <UserCheck size={20} /> },
+        { path: '/mitra', name: 'Mitra UMKM Sekitar', icon: <Store size={20} /> },
+        { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} /> }
+      ];
+    }
+    if (role === 'mitra') {
+      return [
+        { path: '/mitra', name: 'Katalog & Menu Toko', icon: <Store size={20} /> },
+        { path: '/kasir', name: 'Terminal Kasir POS', icon: <Store size={20} /> },
+        { path: '/order', name: 'Pesanan Meja QR', icon: <LayoutDashboard size={20} /> },
+        { path: '/keuangan', name: 'Omset & Settlement', icon: <DollarSign size={20} /> }
+      ];
+    }
+    if (role === 'staff') {
+      return [
+        { path: '/dashboard', name: 'Tugas & Meteran', icon: <LayoutDashboard size={20} /> },
+        { path: '/komplain', name: 'Komplain Lapangan', icon: <AlertCircle size={20} /> },
+        { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} /> }
+      ];
+    }
+    // Default: Pencari Kost / Penghuni
+    return [
+      { path: '/', name: 'Halaman Utama', icon: <Home size={20} /> },
+      { path: '/search', name: 'Cari & Filter Kost', icon: <Search size={20} /> },
+      { path: '/layanan', name: 'Toko & Mitra Sekitar', icon: <Store size={20} /> },
+      { path: '/dashboard', name: 'Kost Saya / Sewa', icon: <LayoutDashboard size={20} /> },
+      { path: '/komplain', name: 'Komplain & Bantuan', icon: <AlertCircle size={20} /> }
+    ];
+  };
 
-  const allowedMenus = menuItems.filter(item => item.roles.includes(user?.role));
+  const allowedMenus = getRoleSpecificMenus(user?.role);
 
   return (
     <aside style={{
@@ -87,8 +114,12 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
       {/* Navigation List */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
         {allowedMenus.map((item) => {
-          const isActive = location.pathname === item.path || 
-            (item.path === '/karyawan' && (location.pathname === '/karyawan' || (location.pathname === '/pengaturan' && location.search.includes('tab=karyawan'))));
+          const isStaffView = item.path === '/dashboard?view=staff';
+          const isActive = isStaffView
+            ? location.pathname === '/dashboard' && location.search.includes('view=staff')
+            : (item.path === '/dashboard'
+                ? location.pathname === '/dashboard' && !location.search.includes('view=staff')
+                : (location.pathname === item.path || (item.path === '/karyawan' && (location.pathname === '/karyawan' || (location.pathname === '/pengaturan' && location.search.includes('tab=karyawan'))))));
           return (
             <Link
               key={item.path}

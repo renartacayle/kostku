@@ -254,6 +254,24 @@ export default function SyaratKetentuan() {
             <p style={{ margin: 0 }}>
               5.4. <strong>Kuitansi Digital Resmi:</strong> Sistem KostKu menerbitkan kuitansi digital otomatis saat status transaksi dinyatakan `PAID` oleh gateway. Kuitansi ini berlaku sebagai bukti pembayaran yang sah antara penyewa dan pemilik properti.
             </p>
+
+            <div style={{
+              marginTop: '10px',
+              padding: '12px 16px',
+              background: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '12px'
+            }}>
+              <strong style={{ color: '#93c5fd', display: 'block', marginBottom: '6px' }}>
+                5.5. Kebijakan Biaya Administrasi Layanan Platform &amp; Gateway (Di Bawah 1K: Mitra Rp 100 &amp; Sewa Kost Rp 500):
+              </strong>
+              <p style={{ margin: '0 0 6px 0', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                (a) <strong>Transaksi Bisnis / Mitra UMKM (Kantin POS, Cafe, Laundry, Toko &amp; Meja QR):</strong> Biaya administrasi sistem ditetapkan <strong>flat sebesar Rp 100,- per transaksi dan dibebankan sepenuhnya kepada Pemilik Bisnis (Owner/Mitra)</strong>. Konsumen, pelanggan, atau tamu meja membayar harga bersih pas sesuai daftar menu tanpa pungutan biaya admin tambahan (Rp 0). Biaya Rp 100,- ini dipotong secara otomatis dari omset pencairan (settlement) saldo mitra atau pemotongan Saldo Kuota Nota saat transaksi mandiri.
+              </p>
+              <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.6 }}>
+                (b) <strong>Transaksi Properti Kost (Pembayaran Sewa Kamar &amp; Booking Properti):</strong> Biaya administrasi sistem ditetapkan <strong>flat sebesar Rp 500,- per transaksi dan dibebankan kepada Pelanggan/Penyewa/Penghuni</strong>. Pemilik Kost berhak menerima pelunasan sewa kamar secara penuh dan utuh 100% tanpa potongan biaya administrasi gateway. Biaya Rp 500,- ini tercantum transparan pada rincian tagihan digital penghuni.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -415,7 +433,95 @@ export default function SyaratKetentuan() {
           </p>
         </section>
 
-        {/* Pasal 11: YURISDIKSI HUKUM & PENYELESAIAN SENGKETA */}
+        {/* Pasal 11: PROGRAM JAMINAN "PELINDUNG KOSTKU" (KOSTKU SHIELD) */}
+        <section style={{
+          marginBottom: '2.5rem',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)',
+          border: '1.5px solid rgba(16, 185, 129, 0.35)',
+          borderRadius: '18px',
+          padding: '1.5rem',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.75rem' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+            }}>
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                Pasal 11: Program Jaminan &amp; Fitur "Pelindung KostKu" (KostKu Protection Shield)
+              </h2>
+              <span style={{ fontSize: '0.75rem', color: '#6ee7b7', fontWeight: 600 }}>
+                Protokol Keamanan Transaksi, Garansi Anti-Penipuan &amp; Kepastian Hak Seluruh Pihak
+              </span>
+            </div>
+          </div>
+          
+          <p style={{ color: '#cbd5e1', fontSize: '0.9rem', margin: '0 0 1.25rem', lineHeight: 1.6 }}>
+            Program <strong>Pelindung KostKu</strong> adalah ekosistem proteksi digital resmi yang mengintegrasikan verifikasi identitas, enkripsi gerbang pembayaran, audit trail waktu nyata, dan mediasi sengketa demi menjamin keamanan 4 pihak:
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+            {/* 1. Pelindung Pemilik Kost */}
+            <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #3b82f6' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#93c5fd', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
+                <span>🏢 Pelindung Pemilik Kost</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li><strong>Anti-Bukti Transfer Palsu:</strong> Seluruh pembayaran sewa terverifikasi otomatis via sistem bank/QRIS TriPay tanpa risiko struk editan.</li>
+                <li><strong>Proteksi Kamar &amp; Deposit:</strong> Riwayat serah terima kamar tercatat digital untuk klaim kompensasi kerusakan fasilitas kamar.</li>
+                <li><strong>Sistem Penegakan Jatuh Tempo:</strong> Pengingat otomatis WhatsApp H-3 dan manajemen token akses kamar untuk mencegah penyewa kabur tanpa bayar.</li>
+              </ul>
+            </div>
+
+            {/* 2. Pelindung Pemilik Bisnis / Mitra */}
+            <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #f59e0b' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fde68a', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
+                <span>🏪 Pelindung Pemilik Bisnis (Mitra)</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li><strong>Anti-Fake Order Meja:</strong> Pemesanan menu hanya sah bila dipicu melalui token barcode QR fisik meja yang aktif.</li>
+                <li><strong>Audit Kasir Anti-Selisih:</strong> Seluruh transaksi tercatat otomatis detik demi detik (<em>immutable audit log</em>), mencegah manipulasi setoran staf kasir.</li>
+                <li><strong>Jaminan Escrow 1x24 Jam:</strong> Penyelesaian sengketa transaksi pembayaran dibantu mediasi tim operasional KostKu.</li>
+              </ul>
+            </div>
+
+            {/* 3. Pelindung Penghuni / Penyewa */}
+            <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #8b5cf6' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#d8b4fe', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
+                <span>🏠 Pelindung Penghuni &amp; Penyewa</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li><strong>Garansi 100% Anti-Kost Fiktif:</strong> Setiap listing telah melewati kurasi titik koordinat GPS dan verifikasi foto bangunan asli.</li>
+                <li><strong>Jaminan Uang Kembali (Money-Back Guarantee 1x24 Jam):</strong> Pengembalian dana penuh jika saat check-in kamar terbukti fiktif atau tidak dapat diakses.</li>
+                <li><strong>Kerahasiaan Data (UU PDP):</strong> Nomor WhatsApp dan identitas penyewa dienkripsi aman tanpa disalahgunakan untuk spam atau pihak ketiga.</li>
+              </ul>
+            </div>
+
+            {/* 4. Pelindung Karyawan &amp; Staf */}
+            <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #10b981' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6ee7b7', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
+                <span>👷 Pelindung Karyawan &amp; Staf</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li><strong>Login Mandiri Gmail Pribadi:</strong> Hak akses operasional kasir/dapur melekat pada akun Gmail staf masing-masing secara transparan.</li>
+                <li><strong>Absensi Geolocation Digital Sah:</strong> Catatan kehadiran radius GPS menjadi bukti tak terbantahkan atas jam kerja nyata karyawan.</li>
+                <li><strong>Proteksi Reputasi Kerja:</strong> Histori kinerja pesanan dapur/kasir terdokumentasi rapi untuk transparansi insentif performa.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Pasal 12: YURISDIKSI HUKUM & PENYELESAIAN SENGKETA */}
         <section style={{
           marginTop: '2.5rem',
           paddingTop: '1.5rem',
@@ -424,18 +530,18 @@ export default function SyaratKetentuan() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
             <Gavel size={20} color="#34d399" />
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-              Pasal 11: Hukum yang Berlaku & Domisili Hukum Eksklusif
+              Pasal 12: Hukum yang Berlaku &amp; Domisili Hukum Eksklusif
             </h2>
           </div>
           <div style={{ color: '#cbd5e1', fontSize: '0.92rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <p style={{ margin: 0 }}>
-              11.1. Syarat dan Ketentuan ini diatur, ditafsirkan, dan tunduk secara mutlak pada <strong>hukum positif Negara Kesatuan Republik Indonesia</strong>.
+              12.1. Syarat dan Ketentuan ini diatur, ditafsirkan, dan tunduk secara mutlak pada <strong>hukum positif Negara Kesatuan Republik Indonesia</strong>.
             </p>
             <p style={{ margin: 0 }}>
-              11.2. Apabila terjadi sengketa atau perselisihan hukum yang timbul dari atau sehubungan dengan penafsiran atau pelaksanaan Syarat & Ketentuan ini, para pihak sepakat untuk menyelesaikannya secara musyawarah untuk mufakat dalam waktu 30 (tiga puluh) hari kalender.
+              12.2. Apabila terjadi sengketa atau perselisihan hukum yang timbul dari atau sehubungan dengan penafsiran atau pelaksanaan Syarat &amp; Ketentuan ini, para pihak sepakat untuk menyelesaikannya secara musyawarah untuk mufakat dalam waktu 30 (tiga puluh) hari kalender.
             </p>
             <p style={{ margin: 0 }}>
-              11.3. Apabila musyawarah tidak mencapai mufakat, para pihak sepakat untuk memilih domisili hukum yang tetap dan tidak berubah di <strong>Kepaniteraan Pengadilan Negeri Semarang, Jawa Tengah</strong>, dengan mengesampingkan forum pengadilan di wilayah hukum lainnya.
+              12.3. Apabila musyawarah tidak mencapai mufakat, para pihak sepakat untuk memilih domisili hukum yang tetap dan tidak berubah di <strong>Kepaniteraan Pengadilan Negeri Semarang, Jawa Tengah</strong>, dengan mengesampingkan forum pengadilan di wilayah hukum lainnya.
             </p>
           </div>
         </section>

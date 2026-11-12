@@ -222,7 +222,9 @@ export default function Login({ onLogin }) {
     if (redirect === 'search') {
       return action ? `/search?action=${action}` : '/search';
     }
-    return userData?.role === 'mitra' ? '/mitra' : '/dashboard';
+    if (userData?.role === 'mitra') return '/mitra';
+    if (userData?.role === 'staff') return '/kasir';
+    return '/dashboard';
   };
 
   // Success handler for Google auth flow
@@ -231,12 +233,10 @@ export default function Login({ onLogin }) {
       localStorage.setItem('kostName', data.kostName);
     }
 
-    // Default to 'user' (penghuni) unless explicitly demo pemilik or mitra/staff
-    if (data.user) {
-      if (!data.user.role || (data.user.role === 'owner' && !data.user.isDemo && !data.user.email?.includes('pemilik'))) {
-        data.user.role = 'user';
-        if (!data.user.kamar) data.user.kamar = '122';
-      }
+    // Default to 'user' (penghuni) only if role is missing
+    if (data.user && !data.user.role) {
+      data.user.role = 'user';
+      if (!data.user.kamar) data.user.kamar = '122';
     }
 
     // Ensure kostUser is in localStorage synchronously BEFORE onLogin and navigate
@@ -282,13 +282,10 @@ export default function Login({ onLogin }) {
       if (data.kostName) {
         localStorage.setItem('kostName', data.kostName);
       }
-      // Default to 'user' (penghuni) unless explicitly demo pemilik or loginId contains pemilik/owner
-      if (data.user) {
-        const cleanLogin = loginId.toLowerCase();
-        if (!data.user.role || (data.user.role === 'owner' && !data.user.isDemo && !cleanLogin.includes('pemilik') && !cleanLogin.includes('owner'))) {
-          data.user.role = 'user';
-          if (!data.user.kamar) data.user.kamar = '122';
-        }
+      // Default to 'user' (penghuni) only if role is missing
+      if (data.user && !data.user.role) {
+        data.user.role = 'user';
+        if (!data.user.kamar) data.user.kamar = '122';
       }
       localStorage.setItem('kostUser', JSON.stringify(data.user));
       onLogin(data.user, data.kostName);

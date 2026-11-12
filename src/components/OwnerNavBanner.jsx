@@ -10,7 +10,8 @@ import {
   Users,
   UserCheck,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Wrench
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { apiGetSettings, apiGetUsers, apiGetComplaints } from '../services/api';
@@ -44,8 +45,10 @@ export default function OwnerNavBanner({
   let currentNav = propActiveNav;
   if (!currentNav) {
     if (location.pathname === '/dashboard') {
+      const view = searchParams.get('view');
       const tab = searchParams.get('tab');
-      if (tab === 'komunitas') currentNav = 'mading';
+      if (view === 'staff') currentNav = 'staff';
+      else if (tab === 'komunitas') currentNav = 'mading';
       else if (tab === 'pengaturan') currentNav = 'pengaturan';
       else currentNav = 'overview';
     } else if (location.pathname === '/keuangan') {
@@ -107,7 +110,8 @@ export default function OwnerNavBanner({
     keuangan: 'Keuangan & Laporan Kost',
     penghuni: 'Data & Kelola Penghuni',
     komplain: 'Pusat Keluhan & Komplain',
-    karyawan: 'Pengaturan Karyawan & Staf'
+    karyawan: 'Pengaturan Karyawan & Staf',
+    staff: 'Operasional Staf (Ambil Alih Juragan)'
   };
 
   const handleRefreshClick = () => {
@@ -326,6 +330,15 @@ export default function OwnerNavBanner({
             </div>
             <span style={getLabelStyle(currentNav === 'karyawan', '#8b5cf6', isLight)}>Karyawan</span>
             {currentNav === 'karyawan' && <span style={getActiveDotStyle('#8b5cf6')} />}
+          </Link>
+
+          {/* 9. Tugas & Meteran Staf (Ambil Alih) */}
+          <Link to="/dashboard?view=staff" style={getItemLinkStyle()} title="Ambil alih tugas operasional staf: catat meteran, terima paket, dan inspeksi kamar">
+            <div style={getIconBoxStyle(currentNav === 'staff', '#10b981', '#059669', '#f0fdf4', isLight)}>
+              <Wrench size={20} strokeWidth={2.2} />
+            </div>
+            <span style={getLabelStyle(currentNav === 'staff', '#10b981', isLight)}>Tugas Staf</span>
+            {currentNav === 'staff' && <span style={getActiveDotStyle('#10b981')} />}
           </Link>
         </div>
       </div>

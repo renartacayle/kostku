@@ -39,9 +39,12 @@ import {
   Store,
   QrCode,
   Megaphone,
-  ShoppingBag
+  ShoppingBag,
+  Coins,
+  Receipt,
+  Wallet
 } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, Navigate } from 'react-router-dom';
 import { 
   apiGetActivities, 
   apiGetSettings, 
@@ -72,7 +75,7 @@ import OwnerNavBanner from '../components/OwnerNavBanner';
 import AddPropertyModal from '../components/AddPropertyModal';
 import { useTheme } from '../context/ThemeContext';
 
-const OwnerDashboard = ({ user }) => {
+const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
   const { isLight } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
@@ -113,6 +116,11 @@ const OwnerDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [roomFilter, setRoomFilter] = useState('all'); // 'all', 'empty', 'occupied'
   const [selectedRoomDetail, setSelectedRoomDetail] = useState(null);
+
+  // POS Kantin & Kasir State
+  const [posStore, setPosStore] = useState(null);
+  const [posOrders, setPosOrders] = useState([]);
+  const [unifiedWalletData, setUnifiedWalletData] = useState(null);
 
   // Active Kost UID Resolver & Multi-Property State
   const [ownerKosts, setOwnerKosts] = useState([]);
@@ -328,6 +336,8 @@ const OwnerDashboard = ({ user }) => {
       setInboxMessages([]);
       setOwnerMerchants([]);
       setMerchantSummary(null);
+      setPosStore(null);
+      setPosOrders([]);
       setSettings({
         rooms: [],
         employees: [],
@@ -400,6 +410,17 @@ const OwnerDashboard = ({ user }) => {
       if (Array.isArray(apps)) {
         setPendingApplications(apps.filter(a => a.status === 'pending'));
       }
+
+      // Fetch POS Kantin & Kasir Data
+      fetch('/api/pos/store').then(r => r.json()).then(st => {
+        if (st) setPosStore(st);
+      }).catch(() => {});
+      fetch('/api/pos/orders').then(r => r.json()).then(ord => {
+        if (Array.isArray(ord)) setPosOrders(ord);
+      }).catch(() => {});
+      fetch('/api/wallet/account/pos').then(r => r.json()).then(wRes => {
+        if (wRes?.wallet) setUnifiedWalletData(wRes.wallet);
+      }).catch(() => {});
     } catch (err) {
       console.error('Error loading dashboard:', err);
     } finally {
@@ -672,9 +693,105 @@ const OwnerDashboard = ({ user }) => {
   const totalCapacity = rooms.reduce((acc, r) => acc + (Number(r.capacity) || 1), 0);
   const occupancyRate = totalCapacity > 0 ? Math.round((tenants.length / totalCapacity) * 100) : 0;
 
+  // POS Canteen & Cashier Calculations
+  const validPosOrders = Array.isArray(posOrders) ? posOrders.filter(o => o.status !== 'REJECTED') : [];
+  const paidPosOrders = validPosOrders.filter(o => o.paymentStatus === 'PAID' || o.status === 'COMPLETED' || o.status === 'PREPARING' || o.status === 'READY');
+  const posGrossOmset = paidPosOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  const posQrisAmount = paidPosOrders.filter(o => o.paymentMethod === 'TRIPAY').reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  const posCashAmount = paidPosOrders.filter(o => o.paymentMethod === 'CASH').reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  const posPlatformFee = paidPosOrders.length * 100; // Flat Rp 100 platform fee
+  const posNettoOmset = Math.max(0, posGrossOmset - posPlatformFee);
+  const posCompletedOrders = validPosOrders.filter(o => o.status === 'COMPLETED').length;
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
+      {/* Role Dual-Capability Switcher: Ambil Alih Tugas Staf */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        padding: '12px 18px',
+        borderRadius: '16px',
+        background: isLight 
+          ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)' 
+          : 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%)',
+        border: '1px solid rgba(245, 158, 11, 0.3)',
+        boxShadow: isLight ? '0 2px 8px rgba(245, 158, 11, 0.08)' : '0 4px 16px rgba(0, 0, 0, 0.2)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            color: '#fff',
+            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)',
+            flexShrink: 0
+          }}>
+            👑
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.94rem', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                Hak Akses Penuh Juragan
+              </span>
+              <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '999px',
+                background: '#f59e0b',
+                color: '#ffffff'
+              }}>
+                Siap Ambil Alih
+              </span>
+            </div>
+            <p style={{ margin: '3px 0 0 0', fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+              Pegawai/staf sedang cuti atau berhalangan? Anda dapat mengambil alih pencatatan meteran listrik & air, penerimaan paket kurir, inspeksi kamar, dan komplain lapangan.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onSwitchToStaffView}
+          style={{
+            padding: '9px 16px',
+            borderRadius: '11px',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            border: 'none',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: '0.84rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+            transition: 'all 0.2s ease'
+          }}
+          title="Buka panel operasional staf untuk catat meteran, terima paket, dan inspeksi kamar"
+        >
+          <span>🛠️ Ambil Alih Tugas & Meteran Staf</span>
+          <span style={{
+            background: 'rgba(255, 255, 255, 0.25)',
+            padding: '2px 7px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            fontWeight: 800
+          }}>
+            Buka Panel Staf →
+          </span>
+        </button>
+      </div>
+
       {/* Persistent Shopee-style Owner Navigation Banner */}
       <OwnerNavBanner
         user={user}
@@ -1177,6 +1294,312 @@ const OwnerDashboard = ({ user }) => {
               </div>
             </div>
 
+          </div>
+
+          {/* Keuangan & Rekapan Kantin & Kasir Kost */}
+          <div className="card glass-panel" style={{
+            padding: '1.25rem 1.5rem',
+            borderRadius: '20px',
+            marginBottom: '1.5rem',
+            background: isLight 
+              ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)' 
+              : 'linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)',
+            border: isLight ? '1px solid rgba(226, 232, 240, 0.8)' : '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: isLight ? '0 10px 25px -5px rgba(0, 0, 0, 0.05)' : '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
+          }}>
+            {/* Header: Title, store info, and quick actions */}
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              paddingBottom: '1rem',
+              borderBottom: isLight ? '1px solid rgba(226, 232, 240, 0.8)' : '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 8px 16px rgba(245, 158, 11, 0.25)'
+                }}>
+                  <Store size={22} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Keuangan Kantin & Kasir Kost
+                    </h3>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '100px',
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      color: '#10b981',
+                      border: '1px solid rgba(16, 185, 129, 0.25)'
+                    }}>
+                      {posStore?.storeName || 'Kantin Kost Aktif'}
+                    </span>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '100px',
+                      background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.2)',
+                      color: isLight ? '#2563eb' : '#93c5fd'
+                    }}>
+                      TriPay Centralized KostKu
+                    </span>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '100px',
+                      background: 'rgba(139, 92, 246, 0.15)',
+                      color: '#a855f7',
+                      border: '1px solid rgba(139, 92, 246, 0.3)'
+                    }}>
+                      1 UID Terpadu: {posStore?.uid || unifiedWalletData?.uid || '-'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '3px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Rekap transaksi kasir POS & mitra UMKM • 1 UID & 1 Dompet Terpadu • Biaya admin flat Rp 100 (&lt; 1K)
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Action Links */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <Link
+                  to="/kasir"
+                  className="btn"
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+                  }}
+                >
+                  <Receipt size={14} /> Buka POS Kasir <ArrowUpRight size={13} />
+                </Link>
+                <Link
+                  to="/pesan"
+                  className="btn"
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    borderRadius: '12px',
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                    color: 'var(--text-primary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  <QrCode size={14} /> Menu QR <ExternalLink size={13} />
+                </Link>
+                <Link
+                  to="/mitra"
+                  className="btn"
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    borderRadius: '12px',
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                    color: 'var(--text-primary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  <ShoppingBag size={14} /> Portal Mitra
+                </Link>
+              </div>
+            </div>
+
+            {/* 4 POS Stat Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '12px',
+              marginTop: '1.25rem'
+            }}>
+              {/* Stat 1: Total Omset Kasir */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: '16px',
+                background: isLight ? 'rgba(241, 245, 249, 0.6)' : 'rgba(15, 23, 42, 0.4)',
+                border: isLight ? '1px solid rgba(226, 232, 240, 0.8)' : '1px solid rgba(255, 255, 255, 0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Total Omset Kasir
+                  </span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <DollarSign size={16} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-success)' }}>
+                  {formatRupiah(posGrossOmset)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  <span>{paidPosOrders.length} transaksi</span>
+                  <span>•</span>
+                  <span style={{ color: isLight ? '#1e293b' : '#cbd5e1', fontWeight: 600 }}>Netto: {formatRupiah(posNettoOmset)}</span>
+                </div>
+              </div>
+
+              {/* Stat 2: QRIS Realtime TriPay (Unified Wallet Kasir & Mitra) */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: '16px',
+                background: isLight ? 'rgba(241, 245, 249, 0.6)' : 'rgba(15, 23, 42, 0.4)',
+                border: isLight ? '1px solid rgba(226, 232, 240, 0.8)' : '1px solid rgba(255, 255, 255, 0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Saldo Dompet Terpadu
+                  </span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: 'rgba(139, 92, 246, 0.15)',
+                    color: '#8b5cf6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Wallet size={16} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: isLight ? '#7c3aed' : '#a78bfa' }}>
+                  {formatRupiah(unifiedWalletData?.balance ?? posQrisAmount)}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  1 Dompet Terpadu (Kasir &amp; Mitra)
+                </div>
+              </div>
+
+              {/* Stat 3: Kasir Tunai COD */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: '16px',
+                background: isLight ? 'rgba(241, 245, 249, 0.6)' : 'rgba(15, 23, 42, 0.4)',
+                border: isLight ? '1px solid rgba(226, 232, 240, 0.8)' : '1px solid rgba(255, 255, 255, 0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Tunai di Kasir
+                  </span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    color: '#f59e0b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Coins size={16} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: isLight ? '#d97706' : '#fbbf24' }}>
+                  {formatRupiah(posCashAmount)}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Uang tunai fisik di kasir
+                </div>
+              </div>
+
+              {/* Stat 4: Pesanan Selesai */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: '16px',
+                background: isLight ? 'rgba(241, 245, 249, 0.6)' : 'rgba(15, 23, 42, 0.4)',
+                border: isLight ? '1px solid rgba(226, 232, 240, 0.8)' : '1px solid rgba(255, 255, 255, 0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Pesanan Selesai
+                  </span>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <CheckCircle size={16} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: isLight ? '#059669' : '#34d399' }}>
+                  {posCompletedOrders} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Transaksi</span>
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Pesanan sukses tersajikan
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom info footer */}
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '1rem',
+              paddingTop: '0.85rem',
+              borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255, 255, 255, 0.08)',
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981', fontWeight: 600 }}>
+                  <CheckCircle2 size={13} /> {posCompletedOrders} Pesanan Selesai Disajikan
+                </span>
+                <span>•</span>
+                <span>Biaya platform kasir: <strong style={{ color: 'var(--text-primary)' }}>Rp 100/trx</strong> (bebas biaya bulanan)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Status Gateway:</span>
+                <span style={{ fontWeight: 700, color: '#10b981' }}>TriPay KostKu Terhubung</span>
+              </div>
+            </div>
           </div>
 
           {/* Main Content Grid: Rooms Status (2fr) + Activity Feed (1fr) */}
@@ -4148,17 +4571,141 @@ const OwnerDashboard = ({ user }) => {
 };
 
 const Dashboard = ({ user }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentView = searchParams.get('view');
+
   // If role is tenant / penghuni, show UserDashboard
   if (user?.role === 'user' || user?.role === 'penghuni' || user?.role === 'tenant') {
     return <UserDashboard user={user} />;
   }
 
-  // If role is staff / penjaga kost, show StaffDashboard
-  if (user?.role === 'staff' || user?.role === 'karyawan') {
+  // If role is mitra, redirect to /mitra (Portal UMKM & Kasir POS)
+  if (user?.role === 'mitra' || user?.role === 'bisnis' || user?.role === 'merchant') {
+    return <Navigate to="/mitra" replace />;
+  }
+
+  // If role is staff / penjaga kost, show StaffDashboard directly
+  if (user?.role === 'staff' || user?.role === 'karyawan' || user?.role === 'pegawai') {
     return <StaffDashboard user={user} />;
   }
 
-  return <OwnerDashboard user={user} />;
+  // Owner / Master: Check if in Staff Operations Mode (Mode Ambil Alih Juragan)
+  if (currentView === 'staff') {
+    const activeKostUid = user?.kostUid || localStorage.getItem('kostUid') || 'KOST-OJN64X';
+    return (
+      <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Delegation Control Header Banner */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '14px 20px',
+          borderRadius: '18px',
+          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%)',
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          boxShadow: '0 8px 24px rgba(245, 158, 11, 0.12)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontSize: '24px',
+              boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+              flexShrink: 0
+            }}>
+              👑
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Operasional Staf Lapangan
+                </h3>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: '999px',
+                  background: '#f59e0b',
+                  color: '#ffffff'
+                }}>
+                  👑 Mode Ambil Alih Juragan
+                </span>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '999px',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  color: '#10b981',
+                  border: '1px solid rgba(16, 185, 129, 0.4)'
+                }}>
+                  ✓ Hak Akses Penuh Aktif
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                Sebagai Pemilik Kost, Anda berhak penuh mencatat meteran (listrik & air), mengelola paket kurir, inspeksi kamar, dan menyelesaikan tiket staf.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams);
+              next.delete('view');
+              setSearchParams(next);
+            }}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '12px',
+              background: 'var(--card-bg, #ffffff)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              color: 'var(--text-primary)',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            ← Kembali ke Ringkasan Juragan
+          </button>
+        </div>
+
+        <StaffDashboard 
+          user={{ ...user, kostUid: activeKostUid }} 
+          isOwnerDelegate={true}
+          onBackToOwner={() => {
+            const next = new URLSearchParams(searchParams);
+            next.delete('view');
+            setSearchParams(next);
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <OwnerDashboard 
+      user={user} 
+      onSwitchToStaffView={() => {
+        const next = new URLSearchParams(searchParams);
+        next.set('view', 'staff');
+        setSearchParams(next);
+      }}
+    />
+  );
 };
 
 export default Dashboard;

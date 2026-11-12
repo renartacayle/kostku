@@ -42,14 +42,14 @@ const PAYMENT_CATEGORIES = [
     title: 'QRIS Dinamis (Khusus Pembayaran Instan)',
     subtitle: 'BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay & Seluruh m-Banking',
     icon: QrCode,
-    badge: 'Bebas Biaya Admin',
-    badgeColor: '#10b981',
+    badge: 'Biaya Flat Rp 100',
+    badgeColor: '#0284c7',
     methods: [
       {
         id: 'QRIS',
         name: 'QRIS Dinamis Nasional',
-        desc: 'Scan dari seluruh m-Banking & e-Wallet di Indonesia tanpa biaya admin',
-        fee: 0,
+        desc: 'Scan dari seluruh m-Banking & e-Wallet di Indonesia (Biaya layanan flat Rp 500)',
+        fee: 500,
         logoText: 'QRIS'
       }
     ]
@@ -167,10 +167,10 @@ export default function Checkout({ user }) {
       const found = cat.methods.find(m => m.id === selectedMethodId);
       if (found) return { ...found, category: cat.id };
     }
-    return { id: 'QRIS', name: 'QRIS Dinamis', fee: 0, category: 'qris' };
+    return { id: 'QRIS', name: 'QRIS Dinamis', fee: 500, category: 'qris' };
   }, [selectedMethodId]);
 
-  const gatewayFee = currentMethod?.fee || 0;
+  const gatewayFee = currentMethod?.fee !== undefined ? currentMethod.fee : 500;
   const grandTotal = subtotalRent + gatewayFee;
 
   // 15-minute countdown during payment step

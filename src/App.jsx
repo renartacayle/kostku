@@ -39,7 +39,7 @@ import AddPropertyModal from './components/AddPropertyModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import CustomerServiceFloatingButton from './components/CustomerServiceFloatingButton';
 import RouteMetadataManager from './components/RouteMetadataManager';
-import { apiSwitchOwnerKost } from './services/api';
+import { apiSwitchOwnerKost, apiGetUserProfile } from './services/api';
 import { lazyRetry, getAdaptiveBufferTimeout } from './utils/lazyRetry';
 
 // Route-level code-splitting with resilient auto-retry across deployments
@@ -62,6 +62,8 @@ const SyaratKetentuan = lazyRetry(() => import('./pages/SyaratKetentuan'), 'Syar
 const TentangKami = lazyRetry(() => import('./pages/TentangKami'), 'TentangKami');
 const Checkout = lazyRetry(() => import('./pages/Checkout'), 'Checkout');
 const StressTestReport = lazyRetry(() => import('./pages/StressTestReport'), 'StressTestReport');
+const Kasir = lazyRetry(() => import('./pages/Kasir'), 'Kasir');
+const OrderMeja = lazyRetry(() => import('./pages/OrderMeja'), 'OrderMeja');
 
 // Lightweight, tactile loading indicator during route chunks hydration with adaptive buffer feedback
 const PageLoadingFallback = () => {
@@ -219,11 +221,13 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
 };
 
 function App() {
-  // Helper to ensure default role is 'user' (penghuni) unless explicitly demo pemilik/staff/mitra
+  // Helper to ensure role integrity (preserves owner, mitra, staff, master)
   const normalizeDefaultRole = (u) => {
     if (!u) return null;
-    const isExplicitOwner = Boolean(u.isDemo && u.role === 'owner') || (u.email && u.email.toLowerCase().includes('pemilik'));
-    if (!isExplicitOwner && (u.role === 'owner' || !u.role)) {
+    if (u.role === 'owner' || u.role === 'mitra' || u.role === 'staff' || u.role === 'master') {
+      return u;
+    }
+    if (!u.role) {
       u.role = 'user';
       if (!u.kamar) u.kamar = '122';
     }
@@ -262,6 +266,31 @@ function App() {
   };
 
   const activeUser = user || getStoredUser();
+
+  // Fetch fresh user profile & category directly from database on mount
+  useEffect(() => {
+    let isMounted = true;
+    const syncUserFromDB = async () => {
+      const stored = getStoredUser();
+      if (!stored?.id) return;
+      try {
+        const res = await apiGetUserProfile(stored.id);
+        const dbUser = res?.user || (res?.id ? res : null);
+        if (dbUser && dbUser.role && isMounted) {
+          const merged = normalizeDefaultRole({ ...stored, ...dbUser });
+          setUser(merged);
+          localStorage.setItem('kostUser', JSON.stringify(merged));
+          if (res.kostName) {
+            localStorage.setItem('kostName', res.kostName);
+          }
+        }
+      } catch (err) {
+        console.warn('[App] Gagal fetch profil user dari database:', err);
+      }
+    };
+    syncUserFromDB();
+    return () => { isMounted = false; };
+  }, []);
 
   // Listen for user profile updates across all pages (PFP, name, phone, etc.)
   useEffect(() => {
@@ -356,6 +385,13 @@ function App() {
           <Route path="/stress-test-report" element={<StressTestReport />} />
           <Route path="/stress-test" element={<Navigate to="/stress-test-report" replace />} />
           <Route path="/denah-500" element={<Navigate to="/stress-test-report" replace />} />
+
+          {/* Kasir POS & Table Self-Ordering (kasir.riuph.me) */}
+          <Route path="/kasir" element={<Kasir user={activeUser} />} />
+          <Route path="/pos" element={<Navigate to="/kasir" replace />} />
+          <Route path="/order/:tableToken" element={<OrderMeja />} />
+          <Route path="/order" element={<OrderMeja />} />
+          <Route path="/meja/:tableToken" element={<OrderMeja />} />
           
           {/* Redirect legacy /blueprint routes */}
           <Route path="/blueprint" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />

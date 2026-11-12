@@ -130,6 +130,8 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
   return (
     <div
       ref={cardRef}
+      className="mitra-grid-card"
+      data-testid="mitra-card"
       onClick={() => onSelect(item)}
       style={{
         background: isLight 
@@ -528,10 +530,22 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             </div>
           </div>
 
-          <div style={{ fontSize: isMobileScreen ? '0.58rem' : '0.64rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px' }}>
+          <div style={{ fontSize: isMobileScreen ? '0.56rem' : '0.62rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap' }}>
             <span>⭐ 4.8</span>
             <span>•</span>
             <span>📍 {item.distanceKm || 0.2} km</span>
+            <span>•</span>
+            <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>
+              🛵 {item.deliveryFeeType === 'per_km' ? `Rp ${(item.deliveryFeePerKm || 2500).toLocaleString('id-ID')}/km` : `Rp ${(item.deliveryFee || 2000).toLocaleString('id-ID')}`}
+            </span>
+            {item.deliveryStartTime && item.deliveryEndTime && (
+              <>
+                <span>•</span>
+                <span style={{ color: isLight ? '#059669' : '#34d399', fontWeight: 600 }}>
+                  🕒 {item.deliveryStartTime}-{item.deliveryEndTime}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

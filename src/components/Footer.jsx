@@ -133,21 +133,28 @@ export default function Footer() {
           </button>
         </nav>
 
-        {/* Security & License Badge (Subtle Pill) */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '7px',
-          padding: '5px 12px',
-          borderRadius: '100px',
-          background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.04)',
-          border: `1px solid ${borderColor}`,
-          fontSize: '0.74rem',
-          color: mutedColor
-        }}>
-          <ShieldCheck size={14} color="#10b981" />
-          <span>Pembayaran Digital Aman QRIS Dinamis & VA didukung TriPay</span>
-        </div>
+        {/* Pelindung KostKu Trust Shield Badge */}
+        <Link 
+          to="/syarat-ketentuan"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '6px 14px',
+            borderRadius: '100px',
+            background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.1)',
+            border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.3)',
+            fontSize: '0.76rem',
+            color: isLight ? '#1d4ed8' : '#93c5fd',
+            textDecoration: 'none',
+            fontWeight: 600,
+            transition: 'all 0.2s'
+          }}
+          title="Lihat Program Jaminan Pelindung KostKu"
+        >
+          <ShieldCheck size={15} color="#10b981" />
+          <span>🛡️ Dilindungi Program Pelindung KostKu • Jaminan Transaksi Aman &amp; Anti-Zonk</span>
+        </Link>
 
         {/* Copyright & Location (Clean Single Line) */}
         <div style={{

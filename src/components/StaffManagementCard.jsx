@@ -101,8 +101,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
   const handleCreateStaff = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.password || !formData.kostUid) {
-      setErrorMsg('Harap lengkapi semua bidang wajib.');
+    if (!formData.name || !formData.email || !formData.kostUid) {
+      setErrorMsg('Harap lengkapi nama, alamat Gmail, dan cabang penempatan karyawan.');
       return;
     }
     if (formSelectedRoles.length === 0) {
@@ -113,8 +113,10 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     setSubmitting(true);
     setErrorMsg('');
     try {
+      const effectivePassword = formData.password && formData.password.trim() ? formData.password.trim() : 'kostku123';
       const res = await apiCreateStaff({
         ...formData,
+        password: effectivePassword,
         roles: formSelectedRoles,
         jobTitle: formSelectedRoles.join(', '),
         ownerId: user.id
@@ -485,9 +487,22 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                 {/* Contact info & salary */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                   <div style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <Mail size={12} color="#60a5fa" />
-                      <span>{staff.email}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        color: '#f87171',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700
+                      }}>
+                        Gmail
+                      </span>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{staff.email}</span>
                     </div>
                     {staff.phone && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
@@ -570,19 +585,22 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                   <button
                     type="button"
                     onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                    className="btn btn-secondary btn-sm"
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      padding: '6px 8px',
+                      gap: '5px',
+                      fontSize: '0.78rem',
+                      padding: '6px 12px',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      color: '#f87171',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
                       borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center'
+                      fontWeight: 700,
+                      cursor: 'pointer'
                     }}
-                    title="Hapus akun staf"
+                    title="Hapus akun karyawan dan cabut hak akses dari sistem kost"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={13} />
+                    <span>Hapus Akses</span>
                   </button>
                 </div>
               </div>
@@ -631,8 +649,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                   <Users size={18} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)' }}>Buat Akun Staf Lapangan</h3>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Staf bisa login langsung di aplikasi KostKu</span>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)' }}>Tambah Akun Karyawan</h3>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Karyawan login pakai akun Gmail pribadi mereka sendiri</span>
                 </div>
               </div>
               <button
@@ -661,12 +679,12 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
             <form onSubmit={handleCreateStaff} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                  Nama Lengkap Staf *
+                  Nama Lengkap Karyawan *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Pak Joko Santoso"
+                  placeholder="Contoh: Budi Santoso (Kasir / Koki)"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   className="input-field"
@@ -676,29 +694,34 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                    Email Login *
+                    Alamat Akun Gmail Karyawan *
                   </label>
                   <input
                     type="email"
                     required
-                    placeholder="joko.penjaga@kostku.id"
+                    placeholder="budi.karyawan@gmail.com"
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                     className="input-field"
                   />
+                  <span style={{ fontSize: '0.68rem', color: '#10b981', display: 'block', marginTop: '3px' }}>
+                    * Karyawan dapat 1-klik login Google
+                  </span>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                    Password Awal *
+                    Password Awal (Opsional)
                   </label>
                   <input
                     type="text"
-                    required
-                    placeholder="Minimal 6 karakter"
+                    placeholder="Default: kostku123"
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                     className="input-field"
                   />
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                    * Jika login manual tanpa Google
+                  </span>
                 </div>
               </div>
 

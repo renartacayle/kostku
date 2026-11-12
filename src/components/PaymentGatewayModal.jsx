@@ -91,7 +91,8 @@ const PaymentGatewayModal = ({
   }, [isOpen, invoice]);
 
   const baseRentAmount = Number(invoice?.total || invoice?.amount || 0);
-  const convenienceFee = 0;
+  // Kebijakan: Transaksi Kost dibebankan ke Pelanggan / Penyewa flat Rp 500 (Owner terima sewa utuh 100%)
+  const convenienceFee = 500;
   const totalWithFee = baseRentAmount + convenienceFee;
 
   const initTransaction = async () => {
@@ -418,7 +419,7 @@ const PaymentGatewayModal = ({
                   <div style={{ marginTop: '4px', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1' }}>
                     <span>Sewa: {formatRupiah(baseRentAmount)} (100% ke Pemilik)</span>
                     <span style={{ margin: '0 6px', color: isLight ? '#94a3b8' : '#64748b' }}>•</span>
-                    <span style={{ color: isLight ? '#059669' : '#34d399', fontWeight: 600 }}>Biaya Admin: Bebas Biaya Admin (QRIS)</span>
+                    <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Biaya Layanan: +Rp 500 (Flat)</span>
                   </div>
                   <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '2px' }}>
                     Sewa Kamar {invoice.kamar || user?.kamar} • Order ID: {transaction?.orderId || `ORD-${invoice.id}`}

@@ -26,6 +26,7 @@ import { apiGetMerchants, apiGetPartnerOrders, apiCreateMerchant, apiSuggestMerc
 import MitraGridCard from '../components/MitraGridCard';
 import PartnerOrderModal from '../components/PartnerOrderModal';
 import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
+import { CometArcCartShowcase } from '../components/kitchen';
 
 export default function Layanan({ user }) {
   const { isLight } = useTheme();
@@ -293,9 +294,6 @@ export default function Layanan({ user }) {
     }
     const newTotal = currentLoyaltyPoints + 100;
     saveAccountPoints(newTotal);
-    try {
-      localStorage.setItem('kostku_last_referral_code', cleanInput);
-    } catch (_) {}
     setFriendReferralInput('');
     setFriendReferralStatus({ type: 'success', message: '🎉 +100 Poin referral tersimpan otomatis!' });
     setTimeout(() => setFriendReferralStatus(null), 3000);
@@ -465,6 +463,7 @@ export default function Layanan({ user }) {
   const isDemoMerchant = (m) => {
     if (!m) return true;
     if (m.isDemo) return true;
+    if (m.ownerUserId && !m.isDemo) return false; // Authentic registered merchant from DB
     const id = String(m.id || m.merchantId || '').toUpperCase();
     if (id.includes('DEF') || id.includes('BDG') || id.includes('SHARED') || id.includes('EXT') || id.includes('DEMO') || id.includes('SAMPLE') || id.includes('TEST')) return true;
     const name = String(m.name || m.merchantName || m.serviceName || '').toLowerCase();
@@ -819,6 +818,9 @@ export default function Layanan({ user }) {
         flexDirection: 'column',
         gap: '12px'
       }}>
+
+        {/* Comet Arc Add To Cart Micro-Interaction Showcase (Inspired by UI Motion Prompts) */}
+        <CometArcCartShowcase />
 
         {/* Controls Bar: Category Tabs & Sort/Pin Controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>

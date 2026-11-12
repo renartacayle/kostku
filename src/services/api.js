@@ -738,6 +738,17 @@ export const apiGetWallet = () => {
   return request('/wallet');
 };
 
+export const apiGetAccountWallet = (uid) => {
+  return request(`/wallet/account/${uid}`);
+};
+
+export const apiMutateAccountWallet = (uid, data) => {
+  return request(`/wallet/account/${uid}/mutate`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
 export const apiMutateWallet = (data) => {
   return request('/wallet/mutate', {
     method: 'POST',
@@ -1017,9 +1028,11 @@ export const apiCreatePartnerOrder = (data) => {
   });
 };
 
-export const apiGetMerchants = async (kostUid = null) => {
+export const apiGetMerchants = async (kostUid = null, scope = null, ownerUserId = null) => {
   const params = new URLSearchParams();
   if (kostUid) params.append('kostUid', kostUid);
+  if (scope) params.append('scope', scope);
+  if (ownerUserId) params.append('ownerUserId', ownerUserId);
   try {
     const res = await request(`/merchants?${params.toString()}`);
     return Array.isArray(res) ? res : [];
@@ -1217,6 +1230,34 @@ export const apiGetMerchantSummary = (kostUid = null) => {
   const params = new URLSearchParams();
   if (kostUid) params.append('kostUid', kostUid);
   return request(`/merchants/summary?${params.toString()}`);
+};
+
+export const apiTopupMerchantNota = (merchantId, data) => {
+  return request(`/merchants/${merchantId}/topup-nota`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiUpdateMerchantCustomPayment = (merchantId, data) => {
+  return request(`/merchants/${merchantId}/custom-payment`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiSwitchPosStore = (merchantId) => {
+  return request('/pos/store/switch', {
+    method: 'POST',
+    body: JSON.stringify({ merchantId })
+  });
+};
+
+export const apiTopupPosNota = (data) => {
+  return request('/pos/topup-nota', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
 };
 
 // ── TriPay & Bank Transfer Payout & Disbursement API ──────────────────

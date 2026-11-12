@@ -62,7 +62,75 @@ export default function Navbar({
               onSwitchKost={onSwitchKost}
               onOpenAddModal={onOpenAddKost}
             />
-          ) : null
+          ) : user?.role === 'mitra' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isLight ? 'rgba(236, 72, 153, 0.1)' : 'rgba(236, 72, 153, 0.16)',
+                border: '1px solid rgba(236, 72, 153, 0.35)',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                color: isLight ? '#be185d' : '#f472b6',
+                fontWeight: 700,
+                fontSize: '0.82rem'
+              }}>
+                <span>🏪 {user?.storeName || 'Kantin Barokah UMKM'}</span>
+                <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800 }}>Buka</span>
+              </div>
+              <Link
+                to="/kasir"
+                className="desktop-only"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: isLight ? '#fce7f3' : 'rgba(236, 72, 153, 0.22)',
+                  color: isLight ? '#9d174d' : '#f472b6',
+                  border: '1px solid rgba(236, 72, 153, 0.3)',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textDecoration: 'none'
+                }}
+              >
+                Kasir POS ↗
+              </Link>
+            </div>
+          ) : user?.role === 'staff' ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.16)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              borderRadius: '8px',
+              padding: '4px 10px',
+              color: isLight ? '#065f46' : '#34d399',
+              fontWeight: 700,
+              fontSize: '0.82rem'
+            }}>
+              <span>👔 Staf: {user?.name || 'Pak Joko'}</span>
+              <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800 }}>Shift Aktif</span>
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: isLight ? 'rgba(2, 132, 199, 0.08)' : 'rgba(56, 189, 248, 0.14)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              borderRadius: '8px',
+              padding: '4px 10px',
+              color: isLight ? '#0369a1' : '#38bdf8',
+              fontWeight: 700,
+              fontSize: '0.82rem'
+            }}>
+              <span>🔍 {user?.name ? `Penghuni: ${user.name}` : 'Pencari Kost: Cari & Sewa'}</span>
+            </div>
+          )
         )}
       </div>
 

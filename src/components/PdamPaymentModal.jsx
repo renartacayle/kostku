@@ -34,7 +34,7 @@ import { useTheme } from '../context/ThemeContext';
 import UnpaidNoticeModal from './UnpaidNoticeModal';
 
 const PAYMENT_METHODS = [
-  { id: 'QRIS', name: 'QRIS Realtime (Semua E-Wallet & Bank)', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, DANA', fee: 500, badge: 'Rp 500' }
+  { id: 'QRIS', name: 'QRIS Realtime (Semua E-Wallet & Bank)', desc: 'Scan via BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, DANA', fee: 100, badge: 'Rp 100' }
 ];
 
 const PdamPaymentModal = ({ 
@@ -201,6 +201,19 @@ const PdamPaymentModal = ({
     }
   };
 
+  const awardPdamPoints = () => {
+    try {
+      const stored = localStorage.getItem('kostUser');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const currentPts = Number(parsed.loyalty_points ?? 250);
+        parsed.loyalty_points = currentPts + 100;
+        localStorage.setItem('kostUser', JSON.stringify(parsed));
+        window.dispatchEvent(new Event('kostUser_updated'));
+      }
+    } catch (_) {}
+  };
+
   const handleProceedPayment = async () => {
     if (!inquiryResult) return;
     setLoadingOrder(true);
@@ -264,6 +277,7 @@ const PdamPaymentModal = ({
         receiptNumber: direct.receiptNumber,
         billerRef: direct.billerRef
       });
+      awardPdamPoints();
       setStep('success');
     } finally {
       setLoadingOrder(false);
@@ -285,6 +299,7 @@ const PdamPaymentModal = ({
           receiptNumber: res.pdamReceipt || res.receiptNumber,
           billerRef: res.billerRef || `TRP-PDAM-${Date.now()}`
         });
+        awardPdamPoints();
         setStep('success');
       }
     } catch (err) {
@@ -311,6 +326,7 @@ const PdamPaymentModal = ({
           receiptNumber: res.pdamReceipt || res.receiptNumber,
           billerRef: res.billerRef || `TRP-PDAM-${Date.now()}`
         });
+        awardPdamPoints();
         setStep('success');
       } else {
         setShowUnpaidModal(true);
@@ -1164,9 +1180,27 @@ const PdamPaymentModal = ({
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', display: 'block', letterSpacing: '1px' }}>
                 ✓ TAGIHAN AIR PDAM LUNAS TERVERIFIKASI
               </span>
-              <h3 style={{ margin: '4px 0 12px', fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white', fontWeight: 900 }}>
+              <h3 style={{ margin: '4px 0 8px', fontSize: '1.2rem', color: isLight ? '#0f172a' : 'white', fontWeight: 900 }}>
                 Pembayaran Berhasil!
               </h3>
+
+              {/* Loyalty Reward Banner (Tanpa Referral) */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.15)',
+                border: '1px solid #86efac',
+                borderRadius: '10px',
+                padding: '6px 14px',
+                color: isLight ? '#166534' : '#86efac',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                marginBottom: '12px'
+              }}>
+                <span>🎁</span>
+                <span>+100 Poin Loyalty Berhasil Dikreditkan! (Otomatis Tanpa Referral)</span>
+              </div>
 
               {/* Rincian Resi PDAM */}
               <div style={{

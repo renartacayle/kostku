@@ -25,6 +25,12 @@ import {
   Play,
   Pause,
   Zap,
+  Store,
+  Droplets,
+  Shirt,
+  Flame,
+  CreditCard,
+  ShoppingBag,
   LayoutGrid,
   Map as MapIcon,
   Ruler,
@@ -41,6 +47,8 @@ import InstallModal from '../components/InstallModal';
 import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
 import KostFilterModal from '../components/KostFilterModal';
 import TambahKostModal from '../components/TambahKostModal';
+import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
+import PdamPaymentModal from '../components/PdamPaymentModal';
 import Footer from '../components/Footer';
 import { TactileButton } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
@@ -100,10 +108,10 @@ export const MARKETING_BANNERS = [
     borderColor: '#2563EB',
     badgeColor: '#2563EB',
     badge: '⚡ BIAYA TRANSPARAN',
-    titleMain: 'Rp 0',
+    titleMain: '< 1K',
     titleAccent: 'Biaya Admin',
     accentColor: '#2563EB',
-    desc: 'Bebas komisi perantara. Dilengkapi simulasi estimasi token listrik PLN yang transparan.'
+    desc: 'Biaya admin di bawah 1k (Mitra Rp 100, Sewa Rp 500). Bebas komisi perantara & anti biaya siluman.'
   },
   {
     id: 'rating',
@@ -464,6 +472,18 @@ export default function Home({ user }) {
   const [loadError, setLoadError] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showAddKostModal, setShowAddKostModal] = useState(false);
+  const [isPlnModalOpen, setIsPlnModalOpen] = useState(false);
+  const [isPdamModalOpen, setIsPdamModalOpen] = useState(false);
+
+  // Authenticated user resolution
+  const activeUser = user || (() => {
+    try {
+      return JSON.parse(localStorage.getItem('kostUser') || 'null');
+    } catch (_) {
+      return null;
+    }
+  })();
+  const isGuest = !activeUser || !activeUser.id;
 
   // Automatically open TambahKostModal if redirected from login with action=add-kost
   useEffect(() => {
@@ -979,28 +999,117 @@ export default function Home({ user }) {
 
         <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 1, textAlign: 'center' }}>
           
-          {/* Main Display Headline */}
-          <h1 style={{
-            fontSize: 'clamp(1.45rem, 4.2vw, 3.2rem)',
-            fontWeight: 800,
-            lineHeight: 1.2,
-            letterSpacing: '-0.03em',
-            margin: '0 0 0.65rem 0',
-            color: 'var(--text-primary)'
-          }}>
-            Cari Kosan Nyaman Dekat Kampus <br className="desktop-only" />
-            <span style={{ color: 'var(--accent-primary)' }}>Bebas Calo, Foto Asli Tanpa Tipu-Tipu</span>
-          </h1>
+          {/* Main Display Headline: Khusus Guest (Belum Login) vs User Terverifikasi (Sudah Login) */}
+          {isGuest ? (
+            <>
+              <h1 style={{
+                fontSize: 'clamp(1.45rem, 4.2vw, 3.2rem)',
+                fontWeight: 800,
+                lineHeight: 1.2,
+                letterSpacing: '-0.03em',
+                margin: '0 0 0.65rem 0',
+                color: 'var(--text-primary)'
+              }}>
+                Cari Kosan Nyaman Dekat Kampus <br className="desktop-only" />
+                <span style={{ color: 'var(--accent-primary)' }}>Bebas Calo, Foto Asli Tanpa Tipu-Tipu</span>
+              </h1>
 
-          <p style={{
-            fontSize: 'clamp(0.85rem, 2vw, 1.05rem)',
-            color: 'var(--text-secondary)',
-            maxWidth: '680px',
-            margin: '0 auto 1.5rem',
-            lineHeight: 1.5
-          }}>
-            Temukan kamar kosan bersih dan terpercaya di Semarang & kota kampus ternama. Disurvei langsung ke lokasi, harga transparan tanpa biaya siluman, dan bisa langsung tanya pemilik via WhatsApp.
-          </p>
+              <p style={{
+                fontSize: 'clamp(0.85rem, 2vw, 1.05rem)',
+                color: 'var(--text-secondary)',
+                maxWidth: '680px',
+                margin: '0 auto 1.5rem',
+                lineHeight: 1.5
+              }}>
+                Temukan kamar kosan bersih dan terpercaya di Semarang & kota kampus ternama. Disurvei langsung ke lokasi, harga transparan tanpa biaya siluman, dan bisa langsung tanya pemilik via WhatsApp.
+              </p>
+            </>
+          ) : (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h1 style={{
+                fontSize: 'clamp(1.35rem, 3.8vw, 2.7rem)',
+                fontWeight: 800,
+                lineHeight: 1.25,
+                letterSpacing: '-0.025em',
+                margin: '0 0 0.65rem 0',
+                color: 'var(--text-primary)'
+              }}>
+                {activeUser.role === 'owner' || activeUser.role === 'master' ? (
+                  <>
+                    Selamat Datang Kembali, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Juragan'}</span> 👋
+                  </>
+                ) : activeUser.role === 'mitra' ? (
+                  <>
+                    Selamat Datang, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Mitra Usaha'}</span> 🏪
+                  </>
+                ) : activeUser.role === 'staff' ? (
+                  <>
+                    Semangat Bertugas, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Staf Operasional'}</span> 👷
+                  </>
+                ) : (
+                  <>
+                    Halo, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Sobat Kost'}</span> 👋
+                  </>
+                )}
+              </h1>
+
+              <p style={{
+                fontSize: 'clamp(0.85rem, 1.8vw, 1rem)',
+                color: 'var(--text-secondary)',
+                maxWidth: '680px',
+                margin: '0 auto 1.25rem',
+                lineHeight: 1.5
+              }}>
+                {activeUser.role === 'owner' || activeUser.role === 'master'
+                  ? 'Kelola unit kamar, pantau arus kas sewa, data penghuni, atau ambil alih operasional meteran staf kost Anda.'
+                  : activeUser.role === 'mitra'
+                  ? 'Kelola transaksi kasir POS, pantau pesanan meja QR, dan atur katalog menu toko Anda.'
+                  : activeUser.role === 'staff'
+                  ? 'Catat meteran listrik & air kamar, kelola paket kurir di loker, dan cek tiket komplain lapangan.'
+                  : 'Cari kamar kosan impian baru atau akses tagihan dan layanan pesan antar makanan langsung ke kamarmu.'}
+              </p>
+
+              {/* Quick Navigation Action Pill for Logged-in Users */}
+              <div style={{ display: 'inline-flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Link
+                  to={
+                    activeUser.role === 'owner' || activeUser.role === 'master'
+                      ? '/dashboard'
+                      : activeUser.role === 'mitra'
+                      ? '/mitra'
+                      : activeUser.role === 'staff'
+                      ? '/dashboard'
+                      : '/dashboard'
+                  }
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '12px',
+                    background: 'var(--accent-primary)',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span>
+                    {activeUser.role === 'owner' || activeUser.role === 'master'
+                      ? '🏢 Buka Dashboard Juragan'
+                      : activeUser.role === 'mitra'
+                      ? '🏪 Buka Portal Toko & Kasir'
+                      : activeUser.role === 'staff'
+                      ? '🛠️ Buka Tugas & Meteran'
+                      : '🏢 Ke Kost Saya'}
+                  </span>
+                  <ChevronRight size={14} />
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* ── STREAMLINED SEARCH BAR & POP-UP FILTER COCKPIT ── */}
           <div 
@@ -1333,6 +1442,190 @@ export default function Home({ user }) {
             </div>
           )}
 
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              QUICK DIGITAL & MITRA SERVICES BAR (Pilihan Layanan Digital & Mitra Kosan)
+              - Mitra UMKM: Warung, kantin & kuliner ruko sekitar kosan
+              - Token PLN: Pembelian token listrik mandiri 24 jam dengan kalkulator kWh
+              - Air PDAM: Cek & bayar tagihan air PDAM resmi (30+ kota)
+              - Laundry Kost: Jasa cuci kiloan & satuan antar-jemput
+              - Galon & Gas: Pesan air minum galon & LPG diantar ke kamar
+              - Bayar Sewa: Bayar tagihan sewa bulanan QRIS / VA otomatis
+              ═══════════════════════════════════════════════════════════════════ */}
+          <div className="home-quick-services-grid" aria-label="Pilihan Layanan Digital dan Mitra KostKu">
+            {[
+              {
+                id: 'mitra',
+                title: 'Mitra UMKM',
+                subtitle: 'Warung & Kuliner',
+                badge: 'Kantin',
+                icon: Store,
+                color: '#10b981',
+                bgGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.28) 100%)',
+                glowColor: 'rgba(16, 185, 129, 0.25)',
+                action: () => navigate('/layanan')
+              },
+              {
+                id: 'pln',
+                title: 'Token PLN',
+                subtitle: 'Listrik Prabayar 24 Jam',
+                badge: 'Instan',
+                icon: Zap,
+                color: '#f59e0b',
+                bgGradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%)',
+                glowColor: 'rgba(245, 158, 11, 0.25)',
+                action: () => setIsPlnModalOpen(true)
+              },
+              {
+                id: 'pdam',
+                title: 'Air PDAM',
+                subtitle: 'Cek & Bayar Tagihan',
+                badge: '30+ Kota',
+                icon: Droplets,
+                color: '#06b6d4',
+                bgGradient: 'linear-gradient(135deg, rgba(6, 182, 212, 0.16) 0%, rgba(8, 145, 178, 0.28) 100%)',
+                glowColor: 'rgba(6, 182, 212, 0.25)',
+                action: () => setIsPdamModalOpen(true)
+              },
+              {
+                id: 'laundry',
+                title: 'Laundry Kost',
+                subtitle: 'Antar Jemput Cepat',
+                badge: 'Kiloan',
+                icon: Shirt,
+                color: '#8b5cf6',
+                bgGradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.16) 0%, rgba(109, 40, 217, 0.28) 100%)',
+                glowColor: 'rgba(139, 92, 246, 0.25)',
+                action: () => navigate('/layanan?category=laundry')
+              },
+              {
+                id: 'galon',
+                title: 'Galon & Gas',
+                subtitle: 'Air Minum & LPG 3Kg',
+                badge: 'Diantar',
+                icon: Flame,
+                color: '#3b82f6',
+                bgGradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(29, 78, 216, 0.28) 100%)',
+                glowColor: 'rgba(59, 130, 246, 0.25)',
+                action: () => navigate('/layanan?category=galon')
+              },
+              {
+                id: 'sewa',
+                title: 'Bayar Sewa',
+                subtitle: 'QRIS / VA Otomatis',
+                badge: 'Resmi',
+                icon: CreditCard,
+                color: '#f43f5e',
+                bgGradient: 'linear-gradient(135deg, rgba(244, 63, 94, 0.16) 0%, rgba(225, 29, 72, 0.28) 100%)',
+                glowColor: 'rgba(244, 63, 94, 0.25)',
+                action: () => {
+                  if (activeUser) {
+                    navigate('/dashboard');
+                  } else {
+                    navigate('/login?redirect=/dashboard');
+                  }
+                }
+              }
+            ].map((service) => {
+              const ServiceIcon = service.icon;
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={service.action}
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
+                    padding: '12px 6px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: 'var(--shadow-sm)',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    position: 'relative',
+                    outline: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.borderColor = service.color;
+                    e.currentTarget.style.boxShadow = `0 8px 20px ${service.glowColor}`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                  }}
+                  onMouseDown={e => {
+                    e.currentTarget.style.transform = 'scale(0.96)';
+                  }}
+                  onMouseUp={e => {
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                  }}
+                >
+                  <div style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '14px',
+                    background: service.bgGradient,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: service.color,
+                    position: 'relative',
+                    marginBottom: '8px'
+                  }}>
+                    <ServiceIcon size={22} strokeWidth={2.2} />
+                    {service.badge && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '-5px',
+                        right: '-6px',
+                        fontSize: '0.58rem',
+                        fontWeight: 800,
+                        background: service.color,
+                        color: '#ffffff',
+                        padding: '1px 5px',
+                        borderRadius: '6px',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
+                        lineHeight: 1.2,
+                        letterSpacing: '0.02em'
+                      }}>
+                        {service.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    color: 'var(--text-primary)',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.2
+                  }}>
+                    {service.title}
+                  </span>
+                  <span style={{
+                    fontSize: '0.64rem',
+                    color: 'var(--text-muted)',
+                    marginTop: '2px',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%',
+                    lineHeight: 1.2
+                  }}>
+                    {service.subtitle}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
           {/* ═══════════════════════════════════════════════════════════════════
               SECTION 2: KEUNGGULAN UTAMA KOSTKU (Marketing Value Props)
@@ -2004,6 +2297,22 @@ export default function Home({ user }) {
           setKosts(prev => [newKost, ...prev]);
           setShowAddKostModal(false);
         }}
+      />
+
+      {/* Quick Token PLN Modal */}
+      <SmartLockAndTokenModal
+        isOpen={isPlnModalOpen}
+        onClose={() => setIsPlnModalOpen(false)}
+        user={activeUser}
+        roomNumber="101"
+      />
+
+      {/* Quick PDAM Payment Modal */}
+      <PdamPaymentModal
+        isOpen={isPdamModalOpen}
+        onClose={() => setIsPdamModalOpen(false)}
+        user={activeUser}
+        roomNumber="101"
       />
     </div>
   );

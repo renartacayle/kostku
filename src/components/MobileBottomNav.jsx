@@ -1,114 +1,239 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, Building, Settings } from 'lucide-react';
+import { 
+  Home, 
+  Search, 
+  Store, 
+  Building, 
+  Users, 
+  DollarSign, 
+  UserCheck, 
+  Receipt, 
+  QrCode, 
+  Wrench, 
+  Zap, 
+  ClipboardCheck, 
+  AlertCircle, 
+  Sparkles,
+  ChevronRight
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 /**
- * MobileBottomNav - Pure CSS & SVG "Floating Notch" Tab Bar
- * Inspired by Instagram Reel (ui_motion_prompts: Tab Bar Part 1 — Option 3 "Floating Notch")
- * "A floating ball rides a curved notch to the new tab, hopping on the way."
+ * MobileBottomNav - Dedicated Navbars for Each User Category
+ * 1. Owner: Kamar, Penghuni, Keuangan, Karyawan
+ * 2. Mitra: Katalog, Kasir POS, Meja QR, Omset
+ * 3. Pegawai: Tugas, Meteran, Inspeksi, Komplain
+ * 4. Pencari Kost: Beranda, Cari Kost, Layanan, Kost Saya
  *
- * Implements:
- * 1. Immediate touch/click reactivity (no lag, no delayed useEffect transition).
- * 2. High parabolic leap animation (translateY -26px with vertical stretch and squish landing).
- * 3. Physical curved notch cutout that moves horizontally with 100% percentage scaling.
- * 4. Concentric cyan glow contour underneath the floating ball.
- * 5. Dynamic pop-in icon rotation upon landing.
+ * Plus: Integrated Category Capsule Switcher with signature SVG Floating Notch & Jumping Ball physics!
  */
 export default function MobileBottomNav({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
-
-  const isOwner = user?.role === 'owner' || user?.role === 'master';
-  const isStaff = user?.role === 'staff';
-
-  const navItems = [
-    {
-      id: 'home',
-      path: '/',
-      label: 'Utama',
-      icon: <Home size={20} strokeWidth={2} />,
-      isActive: location.pathname === '/'
-    },
-    {
-      id: 'search',
-      path: '/search',
-      label: 'Cari Kost',
-      icon: <Search size={20} strokeWidth={2} />,
-      isActive: location.pathname === '/search' || location.pathname === '/cari-kost'
-    },
-    {
-      id: 'kost',
-      path: user ? '/dashboard' : '/login',
-      label: isOwner ? 'My Kost' : isStaff ? 'Tugas Staf' : 'Kost Saya',
-      icon: <Building size={20} strokeWidth={2} />,
-      badge: isOwner ? 'Owner' : isStaff ? 'Staf' : null,
-      isActive: ['/dashboard', '/penghuni', '/keuangan', '/laporan', '/komplain', '/karyawan', '/mitra', '/layanan', '/toko'].includes(location.pathname)
-    },
-    {
-      id: 'settings',
-      path: user ? '/pengaturan' : '/login',
-      label: 'Setting',
-      icon: <Settings size={20} strokeWidth={2} />,
-      isActive: location.pathname === '/pengaturan' || location.pathname === '/setting'
-    }
-  ];
-
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  const activeIndex = navItems.findIndex((item) => item.isActive);
-  const isAnyActive = activeIndex >= 0;
-  const validIndex = isAnyActive ? activeIndex : 0;
+  // Role Metadata & Visual Branding
+  const ROLE_METAS = {
+    user: {
+      key: 'user',
+      label: 'Pencari',
+      emoji: '🔍',
+      title: 'Pencari Kost',
+      rootPath: '/search',
+      color: '#38bdf8',
+      glowColor: 'rgba(56, 189, 248, 0.45)',
+      activeBg: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)'
+    },
+    owner: {
+      key: 'owner',
+      label: 'Owner',
+      emoji: '👑',
+      title: 'Pemilik Kost (Juragan)',
+      rootPath: '/dashboard',
+      color: '#f59e0b',
+      glowColor: 'rgba(245, 158, 11, 0.45)',
+      activeBg: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+    },
+    mitra: {
+      key: 'mitra',
+      label: 'Mitra',
+      emoji: '🏪',
+      title: 'Mitra UMKM / Kantin',
+      rootPath: '/mitra',
+      color: '#ec4899',
+      glowColor: 'rgba(236, 72, 153, 0.45)',
+      activeBg: 'linear-gradient(135deg, #db2777 0%, #ec4899 100%)'
+    },
+    staff: {
+      key: 'staff',
+      label: 'Pegawai',
+      emoji: '👔',
+      title: 'Pegawai / Staf Lapangan',
+      rootPath: '/dashboard',
+      color: '#10b981',
+      glowColor: 'rgba(16, 185, 129, 0.45)',
+      activeBg: 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+    }
+  };
 
-  const [currentIdx, setCurrentIdx] = useState(validIndex);
+  // Dedicated Navbars for each Category (Exactly 4 items each for SVG Floating Notch physics)
+  const CATEGORY_NAV_ITEMS = {
+    user: [
+      { id: 'user-home', label: 'Beranda', path: '/', icon: <Home size={20} strokeWidth={2.2} /> },
+      { id: 'user-search', label: 'Cari Kost', path: '/search', icon: <Search size={20} strokeWidth={2.2} /> },
+      { id: 'user-layanan', label: 'Layanan', path: '/layanan', icon: <Store size={20} strokeWidth={2.2} /> },
+      { id: 'user-kost', label: 'Kost Saya', path: '/dashboard', icon: <Building size={20} strokeWidth={2.2} /> }
+    ],
+    owner: [
+      { id: 'owner-kamar', label: 'Kamar', path: '/dashboard', icon: <Building size={20} strokeWidth={2.2} /> },
+      { id: 'owner-penghuni', label: 'Penghuni', path: '/penghuni', icon: <Users size={20} strokeWidth={2.2} /> },
+      { id: 'owner-keuangan', label: 'Keuangan', path: '/keuangan', icon: <DollarSign size={20} strokeWidth={2.2} /> },
+      { id: 'owner-karyawan', label: 'Karyawan', path: '/karyawan', icon: <UserCheck size={20} strokeWidth={2.2} /> }
+    ],
+    mitra: [
+      { id: 'mitra-katalog', label: 'Katalog', path: '/mitra', icon: <Store size={20} strokeWidth={2.2} /> },
+      { id: 'mitra-kasir', label: 'Kasir POS', path: '/kasir', icon: <Receipt size={20} strokeWidth={2.2} /> },
+      { id: 'mitra-meja', label: 'Meja QR', path: '/order', icon: <QrCode size={20} strokeWidth={2.2} /> },
+      { id: 'mitra-omset', label: 'Omset', path: '/keuangan', icon: <DollarSign size={20} strokeWidth={2.2} /> }
+    ],
+    staff: [
+      { id: 'staff-tugas', label: 'Tugas', path: '/dashboard', icon: <Wrench size={20} strokeWidth={2.2} /> },
+      { id: 'staff-meteran', label: 'Meteran', path: '/dashboard', action: 'meteran', icon: <Zap size={20} strokeWidth={2.2} /> },
+      { id: 'staff-inspeksi', label: 'Inspeksi', path: '/dashboard', action: 'inspeksi', icon: <ClipboardCheck size={20} strokeWidth={2.2} /> },
+      { id: 'staff-komplain', label: 'Komplain', path: '/komplain', icon: <AlertCircle size={20} strokeWidth={2.2} /> }
+    ]
+  };
+
+  // Determine active category directly from authenticated user role (fetched from database)
+  const getActiveCategory = useCallback(() => {
+    const role = (user?.role || '').toLowerCase();
+    if (role === 'owner' || role === 'master') return 'owner';
+    if (role === 'mitra' || role === 'bisnis' || role === 'merchant') return 'mitra';
+    if (role === 'staff' || role === 'karyawan' || role === 'pegawai') return 'staff';
+    return 'user'; // default: Pencari Kost (Anak Kost / Calon Penghuni / Pengunjung)
+  }, [user?.role]);
+
+  const activeCategory = getActiveCategory();
+  const currentNavItems = CATEGORY_NAV_ITEMS[activeCategory] || CATEGORY_NAV_ITEMS.user;
+  const currentMeta = ROLE_METAS[activeCategory] || ROLE_METAS.user;
+
+  // Compute active tab index within current category
+  const getActiveItemIdx = useCallback(() => {
+    const p = location.pathname;
+    if (activeCategory === 'owner') {
+      if (p === '/karyawan') return 3;
+      if (p === '/keuangan' || p === '/laporan') return 2;
+      if (p === '/penghuni') return 1;
+      if (p === '/dashboard' || p === '/pengaturan') return 0;
+    } else if (activeCategory === 'mitra') {
+      if (p === '/keuangan') return 3;
+      if (p.startsWith('/order') || p.startsWith('/meja')) return 2;
+      if (p.startsWith('/kasir') || p.startsWith('/pos')) return 1;
+      if (p === '/mitra') return 0;
+    } else if (activeCategory === 'staff') {
+      if (p === '/komplain') return 3;
+      if (p === '/dashboard') return 0;
+    } else {
+      // user (Pencari Kost)
+      if (p === '/dashboard') return 3;
+      if (p === '/layanan') return 2;
+      if (p === '/search' || p === '/cari-kost' || p.startsWith('/kost/')) return 1;
+      if (p === '/') return 0;
+    }
+
+    const foundIdx = currentNavItems.findIndex(it => it.path === p);
+    return foundIdx >= 0 ? foundIdx : 0;
+  }, [activeCategory, location.pathname, currentNavItems]);
+
+  const activeIndex = getActiveItemIdx();
+  const [currentIdx, setCurrentIdx] = useState(activeIndex);
   const [isHopping, setIsHopping] = useState(false);
   const hoppingTimerRef = useRef(null);
 
-  // Sync index on external route changes (e.g. browser back/forward)
+  // Sync index on route or category change
   useEffect(() => {
-    if (isAnyActive && activeIndex !== currentIdx && !isHopping) {
+    const newIdx = getActiveItemIdx();
+    if (newIdx !== currentIdx && !isHopping) {
       setIsHopping(true);
-      setCurrentIdx(activeIndex);
+      setCurrentIdx(newIdx);
       if (hoppingTimerRef.current) clearTimeout(hoppingTimerRef.current);
       hoppingTimerRef.current = setTimeout(() => {
         setIsHopping(false);
       }, 460);
     }
-  }, [activeIndex, isAnyActive, currentIdx, isHopping]);
+  }, [getActiveItemIdx, currentIdx, isHopping]);
 
-  // Immediate Click/Touch Trigger: Start animation on first millisecond of touch
+  // Handle tab click within the active category navbar
   const handleTabClick = useCallback((e, item, idx) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Prevent re-navigation only if user is already on the exact target path
-    if (location.pathname === item.path) return;
-
-    if (hoppingTimerRef.current) clearTimeout(hoppingTimerRef.current);
-
     // Trigger hop animation immediately!
+    if (hoppingTimerRef.current) clearTimeout(hoppingTimerRef.current);
     setIsHopping(true);
     setCurrentIdx(idx);
-
-    // Start router transition immediately
-    navigate(item.path);
 
     hoppingTimerRef.current = setTimeout(() => {
       setIsHopping(false);
     }, 460);
-  }, [location.pathname, navigate]);
 
-  // If on login, register, checkout, stress-test report, or kost detail page, hide bottom nav
-  // NOTE: This check must stay AFTER all hooks to adhere to React Rules of Hooks!
+    // If already on path and action specified, scroll or trigger action
+    if (item.action === 'meteran') {
+      navigate('/dashboard');
+      setTimeout(() => {
+        const el = document.getElementById('meteran-section') || document.querySelector('[data-section="meteran"]');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return;
+    }
+
+    if (item.action === 'inspeksi') {
+      navigate('/dashboard');
+      setTimeout(() => {
+        const btn = document.querySelector('[data-action="open-inspection"]');
+        if (btn) btn.click();
+      }, 100);
+      return;
+    }
+
+    navigate(item.path);
+  }, [navigate]);
+
+  // Responsive Screen Check: Khusus Mobile Only (<= 900px)
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth <= 900 : true;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 900);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Sembunyikan navbar bawah pada:
+  // 1. Desktop (> 900px, navigasi menggunakan Sidebar & Top Navbar)
+  // 2. Auth Flow (Login, Register, Demo, Sandbox)
+  // 3. Checkout & Payment flow (/checkout, /bayar, /pembayaran)
+  // 4. Meja / QR Self-Ordering (/order/*, /meja/*)
+  // 5. Stress test / diagnostik teknis
   const shouldHide = 
-    location.pathname === '/login' || 
-    location.pathname === '/register' || 
+    !isMobileScreen ||
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/demo' ||
+    location.pathname === '/sandbox' ||
+    location.pathname === '/demo-showcase' ||
     location.pathname === '/checkout' || 
     location.pathname === '/bayar' || 
+    location.pathname === '/pembayaran' ||
     location.pathname === '/stress-test-report' ||
     location.pathname.startsWith('/stress-test') ||
-    location.pathname.startsWith('/kost/');
+    location.pathname.startsWith('/order/') ||
+    location.pathname.startsWith('/meja/');
 
   if (shouldHide) {
     return null;
@@ -116,7 +241,8 @@ export default function MobileBottomNav({ user }) {
 
   return (
     <nav
-      className="mobile-only"
+      className="role-bottom-nav mobile-only"
+      aria-label="Navigasi Halaman Utama Mobile KostKu"
       style={{
         position: 'fixed',
         bottom: 0,
@@ -128,16 +254,18 @@ export default function MobileBottomNav({ user }) {
       }}
     >
       <div
+        className="role-nav-inner"
         style={{
           position: 'relative',
-          maxWidth: '480px',
+          maxWidth: '520px',
           margin: '0 auto',
           pointerEvents: 'auto',
-          filter: 'drop-shadow(0 -10px 28px rgba(0, 0, 0, 0.35))'
+          filter: 'drop-shadow(0 -8px 24px rgba(0, 0, 0, 0.35))'
         }}
       >
-        {/* Main Tab Bar Body */}
+        {/* DEDICATED CATEGORY TAB BAR (Exactly 4 items for SVG Floating Notch) */}
         <div
+          className="role-nav-bar"
           style={{
             position: 'relative',
             background: 'var(--bg-glass, rgba(14, 23, 38, 0.95))',
@@ -150,64 +278,63 @@ export default function MobileBottomNav({ user }) {
           }}
         >
           {/* SLIDING NOTCH & FLOATING BALL UNIT */}
-          {isAnyActive && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '-18px',
+              left: 0,
+              width: '25%',
+              height: '80px',
+              transform: `translateX(${currentIdx * 100}%)`,
+              transition: 'transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              pointerEvents: 'none',
+              zIndex: 10
+            }}
+          >
+            {/* Curved Notch Cutout Shape */}
             <div
               style={{
                 position: 'absolute',
-                top: '-18px',
-                left: 0,
-                width: '25%',
-                height: '80px',
-                transform: `translateX(${currentIdx * 100}%)`,
-                transition: 'transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                top: '17px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '74px',
+                height: '24px',
                 pointerEvents: 'none',
-                zIndex: 10
+                overflow: 'visible'
               }}
             >
-              {/* Curved Notch Cutout Shape (Visually dips into the tab bar) */}
-              <div
+              <svg
+                viewBox="0 0 74 24"
                 style={{
-                  position: 'absolute',
-                  top: '17px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '74px',
-                  height: '24px',
-                  pointerEvents: 'none',
-                  overflow: 'visible'
+                  width: '100%',
+                  height: '100%',
+                  display: 'block'
                 }}
               >
-                <svg
-                  viewBox="0 0 74 24"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'block'
-                  }}
-                >
-                  {/* Physical Notch Fill that matches page background */}
-                  <path
-                    d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0 L 74,24 L 0,24 Z"
-                    fill={isLight ? '#f1f5f9' : 'var(--bg-main, #080d1a)'}
-                  />
-                  {/* Notch Rim Border */}
-                  <path
-                    d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0"
-                    fill="none"
-                    stroke={isLight ? 'rgba(15, 23, 42, 0.12)' : 'var(--border-color, rgba(255, 255, 255, 0.15))'}
-                    strokeWidth="1.5"
-                  />
-                {/* Concentric Cyan Glow Contour (from Reel 4 Option 3) */}
+                {/* Physical Notch Fill */}
+                <path
+                  d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0 L 74,24 L 0,24 Z"
+                  fill={isLight ? '#f1f5f9' : 'var(--bg-main, #080d1a)'}
+                />
+                {/* Notch Rim Border */}
+                <path
+                  d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0"
+                  fill="none"
+                  stroke={isLight ? 'rgba(15, 23, 42, 0.12)' : 'var(--border-color, rgba(255, 255, 255, 0.15))'}
+                  strokeWidth="1.5"
+                />
+                {/* Concentric Glow Contour (Dynamic Category Color) */}
                 <path
                   d="M 14,2 C 22,2 27,18 37,18 C 47,18 52,2 60,2"
                   fill="none"
-                  stroke="var(--accent-primary, #38bdf8)"
+                  stroke={currentMeta.color}
                   strokeWidth="2.5"
-                  opacity="0.85"
+                  opacity="0.9"
                 />
               </svg>
 
-              {/* Small glowing dot indicator inside notch cutout */}
+              {/* Glowing dot indicator inside notch */}
               <div
                 style={{
                   position: 'absolute',
@@ -217,13 +344,13 @@ export default function MobileBottomNav({ user }) {
                   width: '4px',
                   height: '4px',
                   borderRadius: '50%',
-                  backgroundColor: '#38bdf8',
-                  boxShadow: '0 0 8px #38bdf8'
+                  backgroundColor: currentMeta.color,
+                  boxShadow: `0 0 8px ${currentMeta.color}`
                 }}
               />
             </div>
 
-            {/* THE FLOATING BALL (Hopper that rides the notch) */}
+            {/* THE FLOATING BALL (Hopper with Role Gradient) */}
             <div
               style={{
                 position: 'absolute',
@@ -240,15 +367,15 @@ export default function MobileBottomNav({ user }) {
               }}
             >
               <div
-                key={`ball-${currentIdx}`}
+                key={`ball-${activeCategory}-${currentIdx}`}
                 className={isHopping ? 'notch-ball-hopping' : 'notch-ball-idle'}
                 style={{
                   width: '48px',
                   height: '48px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--accent-primary, #2563eb) 0%, #38bdf8 100%)',
+                  background: currentMeta.activeBg,
                   border: '2.5px solid #ffffff',
-                  boxShadow: '0 8px 24px rgba(37, 99, 235, 0.6), 0 0 16px rgba(56, 189, 248, 0.5)',
+                  boxShadow: `0 8px 24px ${currentMeta.glowColor}, 0 0 16px ${currentMeta.glowColor}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -257,7 +384,7 @@ export default function MobileBottomNav({ user }) {
               >
                 {/* Active Icon with pop-in rotation */}
                 <div
-                  key={`icon-${navItems[currentIdx].id}`}
+                  key={`icon-${activeCategory}-${currentNavItems[currentIdx]?.id}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -265,14 +392,13 @@ export default function MobileBottomNav({ user }) {
                     animation: 'popIconIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                   }}
                 >
-                  {navItems[currentIdx].icon}
+                  {currentNavItems[currentIdx]?.icon}
                 </div>
               </div>
             </div>
           </div>
-        )}
 
-          {/* TAB BUTTONS ROW */}
+          {/* TAB BUTTONS ROW (Category-Specific) */}
           <div
             style={{
               position: 'relative',
@@ -283,8 +409,8 @@ export default function MobileBottomNav({ user }) {
               zIndex: 5
             }}
           >
-            {navItems.map((item, idx) => {
-              const active = isAnyActive && idx === currentIdx;
+            {currentNavItems.map((item, idx) => {
+              const active = idx === currentIdx;
               return (
                 <button
                   type="button"
@@ -303,12 +429,13 @@ export default function MobileBottomNav({ user }) {
                     cursor: 'pointer',
                     outline: 'none',
                     position: 'relative',
-                    color: active ? 'var(--accent-primary, #38bdf8)' : 'var(--text-secondary, #94a3b8)',
+                    color: active ? currentMeta.color : 'var(--text-secondary, #94a3b8)',
                     transition: 'color 0.2s ease',
                     WebkitTapHighlightColor: 'transparent'
                   }}
+                  title={`Menu ${currentMeta.label}: ${item.label}`}
                 >
-                  {/* Inactive Icon Slot (Fades out when active as it elevates into Floating Ball) */}
+                  {/* Inactive Icon Slot */}
                   <div
                     style={{
                       height: '24px',
@@ -321,26 +448,6 @@ export default function MobileBottomNav({ user }) {
                     }}
                   >
                     {item.icon}
-
-                    {/* Badge if present */}
-                    {item.badge && !active && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: '2px',
-                          right: '20%',
-                          fontSize: '0.52rem',
-                          fontWeight: 800,
-                          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                          color: 'white',
-                          padding: '1px 4px',
-                          borderRadius: '4px',
-                          lineHeight: 1
-                        }}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
                   </div>
 
                   {/* Tab Label Text */}
@@ -364,7 +471,7 @@ export default function MobileBottomNav({ user }) {
         </div>
       </div>
 
-      {/* Physics Keyframe Animations for Floating Notch */}
+      {/* Physics Keyframe Animations */}
       <style>{`
         .notch-ball-hopping {
           animation: ballHopLeap 0.44s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -403,6 +510,17 @@ export default function MobileBottomNav({ user }) {
           100% {
             transform: scale(1) rotate(0deg);
             opacity: 1;
+          }
+        }
+
+        @keyframes fadeInUpToast {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, 10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(-50%, 0);
           }
         }
       `}</style>
