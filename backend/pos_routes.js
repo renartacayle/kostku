@@ -985,13 +985,17 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         } else {
           const tripayMsg = tripayData?.message || 'Gagal menghubungi server TriPay';
           const ipMatch = tripayMsg.match(/\((.*?)\)/)?.[1] || '';
+          let userError = `⚠️ Pengecekan TriPay: ${tripayMsg}`;
+          if (ipMatch) {
+            userError = `⚠️ IP Server (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Masukkan IP tersebut / kosongkan Whitelist IP di dashboard TriPay, atau gunakan tombol Bypass Simulasi di bawah untuk mengaktifkan kuota testing.`;
+          } else if (tripayMsg.toLowerCase().includes('undefined parameter') || tripayMsg.toLowerCase().includes('tidak ditemukan')) {
+            userError = `ℹ️ Status TriPay: Pembayaran QRIS belum terdeteksi masuk (UNPAID). Silakan selesaikan pembayaran QRIS di e-wallet/m-banking Anda atau gunakan tombol Bypass Simulasi di bawah untuk testing kuota.`;
+          }
           return res.status(400).json({
             success: false,
             isPaid: false,
             status: 'CHECK_FAILED',
-            error: ipMatch 
-              ? `⚠️ IP Server (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Masukkan IP tersebut / kosongkan Whitelist IP di dashboard TriPay, atau gunakan tombol Bypass Simulasi di bawah untuk mengaktifkan kuota testing.`
-              : `⚠️ Pengecekan TriPay: ${tripayMsg}`,
+            error: userError,
             tripayMessage: tripayMsg,
             canSimulate: true
           });
