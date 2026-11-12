@@ -1531,8 +1531,66 @@ async function handlePosApi(request, path, method, url) {
   // 3C. POST /pos/topup-tripay/confirm
   if (path === '/topup-tripay/confirm' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
+    const reference = body.reference || '';
     const addSaldo = Number(body.amount) || 10000;
     const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / 100));
+    const isSimulate = body.simulate === true;
+
+    // REAL CHECK KE SERVER TRIPAY API
+    if (!isSimulate) {
+      if (!reference) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Nomor referensi TriPay wajib disertakan untuk verifikasi status.'
+        }), { status: 400, headers: corsHeaders });
+      }
+
+      const apiKey = '8lgqWBCHk8xLycXV3aRjfn5YBrDUZtJCe13muUy5';
+      const detailUrl = `https://tripay.co.id/api/transaction/detail?reference=${encodeURIComponent(reference)}`;
+
+      try {
+        const tripayRes = await fetch(detailUrl, {
+          headers: {
+            'Authorization': 'Bearer ' + apiKey,
+            'Accept': 'application/json'
+          }
+        });
+        const tripayData = await tripayRes.json().catch(() => ({}));
+
+        if (tripayData && tripayData.success && tripayData.data) {
+          const status = String(tripayData.data.status || '').toUpperCase();
+          if (status !== 'PAID') {
+            return new Response(JSON.stringify({
+              success: false,
+              isPaid: false,
+              status,
+              error: `⚠️ Status di TriPay masih ${status || 'UNPAID'} (Belum Dibayar). Sistem telah mengecek ke TriPay namun dana belum masuk. Silakan selesaikan pembayaran QRIS terlebih dahulu.`,
+              tripayDetail: tripayData.data
+            }), { status: 400, headers: corsHeaders });
+          }
+        } else {
+          // TriPay returned notice/error (e.g. Unauthorized IP or not found)
+          const tripayMsg = tripayData?.message || 'Gagal menghubungi server TriPay';
+          return new Response(JSON.stringify({
+            success: false,
+            isPaid: false,
+            status: 'CHECK_FAILED',
+            error: `⚠️ Pengecekan TriPay: ${tripayMsg}`,
+            tripayMessage: tripayMsg,
+            canSimulate: true
+          }), { status: 400, headers: corsHeaders });
+        }
+      } catch (err) {
+        return new Response(JSON.stringify({
+          success: false,
+          isPaid: false,
+          error: `Gagal memverifikasi ke TriPay: ${err.message}`,
+          canSimulate: true
+        }), { status: 502, headers: corsHeaders });
+      }
+    }
+
+    // Hanya jika TriPay terverifikasi PAID (atau eksplisit simulate = true)
     posStore.kuotaNota = (Number(posStore.kuotaNota) || 0) + addQuota;
     posStore.saldoNota = (Number(posStore.saldoNota) || 0) + addSaldo;
     if (Array.isArray(posStore.branches)) {
@@ -1545,10 +1603,12 @@ async function handlePosApi(request, path, method, url) {
     }
     return new Response(JSON.stringify({
       success: true,
-      message: `🎉 Pembayaran TriPay Berhasil! +${addQuota} kuota nota telah aktif.`,
+      isPaid: true,
+      status: 'PAID',
+      message: `🎉 Pembayaran TriPay TERVERIFIKASI (PAID)! +${addQuota} kuota nota telah aktif.`,
       saldoNota: posStore.saldoNota,
       kuotaNota: posStore.kuotaNota,
-      reference: body.reference || 'TRIPAY-VERIFIED'
+      reference: reference || 'TRIPAY-VERIFIED'
     }), { headers: corsHeaders });
   }
 
