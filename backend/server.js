@@ -665,7 +665,7 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
 
 // ── Dual-Database Engine (Strict Isolation: Live Production vs Sandbox Demo) ──
 const DB_VERSION = 'v138_clean_dual_db';
-const { RTDB_URL, fetchFromFirebase, saveToFirebase } = require('./firebase_sync');
+const { RTDB_URL, fetchFromFirebase, saveToFirebase, syncDeltaToFirebase, scheduleFullBackupDebounced } = require('./firebase_sync');
 
 let _realDbCache = null;
 let _demoDbCache = null;
@@ -901,8 +901,9 @@ const writeDB = (data, target) => {
   _scheduleAtomicWrite(dbFile, jsonPayload);
 
   // Asynchronously propagate real production mutations to Google Cloud Firebase
+  // Cold snapshot: debounced 10 menit (anti-lag & zero quota waste, tidak dump 4 MB per transaksi)
   if (!isDemo) {
-    saveToFirebase(data).catch(e => console.warn('[Firebase RTDB Sync Error]:', e.message));
+    scheduleFullBackupDebounced(() => _realDbCache || data, 10 * 60 * 1000);
   }
 };
 
@@ -4930,32 +4931,72 @@ app.post('/api/merchants', (req, res) => {
 
   if (cleanReferral) {
     if (isAlreadyRegistered) {
-      // Mitra sudah pernah ada/terdaftar sebelumnya -> extra point TIDAK ter-trigger lagi!
+      // Mitra sudah pernah ada/terdaftar sebelumnya -> extra point & 500 kuota TIDAK ter-trigger lagi!
       bonusAwarded = false;
-      responseMsg = '⚠️ Nama/nomor mitra ini sudah pernah didaftarkan. Toko baru berhasil disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang.';
+      responseMsg = '⚠️ Nama/nomor mitra ini sudah pernah didaftarkan sebelumnya. Toko baru disimpan dengan kuota reguler 50 nota.';
     } else {
-      // Mitra baru & ada kode referral -> TRIGGER BONUS POINTS!
+      // Mitra baru & ada kode referral -> TWO-SIDED INCENTIVE!
       bonusAwarded = true;
       bonusPoints = 500;
-      responseMsg = `🎉 Selamat! Toko mitra baru berhasil didaftarkan dan bonus referral +${bonusPoints} Poin berhasil diklaim! (Kode: ${cleanReferral})`;
+      responseMsg = `🎉 Selamat! Toko mitra baru berhasil didaftarkan via referral. Anda mendapatkan BONUS 500 Transaksi Kasir GRATIS (Hemat Rp 50.000)! (Kode: ${cleanReferral})`;
 
-      if (resolvedOwnerUserId && Array.isArray(db.users)) {
-        const u = db.users.find(usr => String(usr.id) === String(resolvedOwnerUserId));
-        if (u) {
-          u.loyalty_points = (Number(u.loyalty_points) || 0) + bonusPoints;
+      // 2. Cari Akun Referrer & Berikan +500 Poin Loyalitas
+      const referrerUser = (db.users || []).find(u => 
+        (u.referralCode && u.referralCode.toUpperCase() === cleanReferral) ||
+        (u.whatsapp && u.whatsapp.replace(/\D/g, '') === cleanReferral.replace(/\D/g, '')) ||
+        (u.phone && u.phone.replace(/\D/g, '') === cleanReferral.replace(/\D/g, ''))
+      ) || (db.customers && Object.values(db.customers).find(c => 
+        c && c.referral_code && c.referral_code.toUpperCase() === cleanReferral
+      ));
+
+      if (referrerUser) {
+        const refPhone = referrerUser.whatsapp || referrerUser.phone || referrerUser.whatsapp_number;
+        if (referrerUser.loyalty_points !== undefined) {
+          referrerUser.loyalty_points = (Number(referrerUser.loyalty_points) || 0) + bonusPoints;
+        }
+        if (referrerUser.total_points !== undefined) {
+          referrerUser.total_points = (Number(referrerUser.total_points) || 0) + bonusPoints;
+        }
+        if (refPhone) {
+          db.customer_points = db.customer_points || {};
+          db.customer_points[refPhone] = (db.customer_points[refPhone] || 0) + bonusPoints;
+        }
+
+        // Catat ke ledger poin
+        db.points_ledger = db.points_ledger || [];
+        db.points_ledger.unshift({
+          id: 'REF-MITRA-' + Date.now(),
+          whatsapp_number: refPhone || 'REFERRER',
+          change_type: 'EARN_REFERRAL_MERCHANT',
+          points: bonusPoints,
+          notes: `Bonus pendaftaran mitra baru: ${name.trim()} (Kode: ${cleanReferral})`,
+          createdAt: new Date().toISOString()
+        });
+
+        addActivity(db, referrerUser.kostUid || 'GLOBAL', 'mitra', 
+          `🎉 Bonus Referral Mitra: ${referrerUser.name || 'Teman KostKu'} mendapatkan +500 Poin atas pendaftaran toko "${name.trim()}"!`
+        );
+
+        if (refPhone) {
+          syncDeltaToFirebase(`customer_points/${refPhone}`, db.customer_points[refPhone], 'PUT');
+          if (db.customers && db.customers[refPhone]) {
+            syncDeltaToFirebase(`customers/${refPhone}`, db.customers[refPhone], 'PATCH');
+          }
         }
       }
-
-      addActivity(db, kostUid || 'KOST-JAKSEL-01', 'mitra', `Bonus referral +${bonusPoints} Poin diberikan atas pendaftaran mitra baru: ${name.trim()} (Kode: ${cleanReferral})`);
     }
   } else {
     bonusAwarded = false;
-    responseMsg = 'Toko mitra berhasil didaftarkan dan siap beroperasi.';
+    responseMsg = 'Toko mitra berhasil didaftarkan dengan kuota awal 50 nota.';
   }
 
   // Batasi komisi maksimal 500 perak sesuai aturan
   const validCommission = Math.min(500, Math.max(0, Number(commissionOwner) >= 0 ? Number(commissionOwner) : 500));
   const validPlatformFee = Math.min(500, Math.max(0, Number(platformFee) >= 0 ? Number(platformFee) : 200));
+
+  // Two-Sided Referral: 500 Kuota Nota (Rp 50.000 saldo non-withdrawable) jika pakai referral, 50 jika tanpa
+  const initialSaldoNota = bonusAwarded ? 50000 : (Number(req.body.saldoNota) > 0 ? Number(req.body.saldoNota) : 5000);
+  const initialKuotaNota = bonusAwarded ? 500 : (Number(req.body.kuotaNota) > 0 ? Number(req.body.kuotaNota) : 50);
 
   const newMerchant = {
     id: 'PTR-' + Date.now(),
@@ -4976,16 +5017,20 @@ app.post('/api/merchants', (req, res) => {
     ],
     deliveryType: deliveryType || 'both',
     deliveryFee: deliveryFee !== undefined ? Number(deliveryFee) : 2000,
-    saldoNota: Number(req.body.saldoNota) > 0 ? Number(req.body.saldoNota) : 5000, // 50 lembar nota kuota awal
-    kuotaNota: Number(req.body.kuotaNota) > 0 ? Number(req.body.kuotaNota) : 50,
+    saldoNota: initialSaldoNota,
+    kuotaNota: initialKuotaNota,
+    isReferralPromoActive: bonusAwarded,
+    referredByCode: bonusAwarded ? cleanReferral : null,
     notaHistory: [
       {
-        id: 'NOTA-WELCOME-' + Date.now(),
-        type: 'welcome_quota',
-        amount: 5000,
-        addedNota: 50,
-        balanceAfter: 5000,
-        description: 'Bonus kuota selamat datang (50 lembar nota @ Rp 100)',
+        id: 'NOTA-WELCOME-' + (bonusAwarded ? '500-' : '50-') + Date.now(),
+        type: bonusAwarded ? 'referral_welcome_500' : 'welcome_quota',
+        amount: initialSaldoNota,
+        addedNota: initialKuotaNota,
+        balanceAfter: initialSaldoNota,
+        description: bonusAwarded 
+          ? 'Bonus Referral Selamat Datang: 500 Kuota Nota Kasir Gratis (Rp 50.000)' 
+          : 'Bonus kuota selamat datang (50 lembar nota @ Rp 100)',
         createdAt: new Date().toISOString()
       }
     ],
@@ -5011,13 +5056,29 @@ app.post('/api/merchants', (req, res) => {
     name: normName,
     phone: cleanPhone,
     referralCode: cleanReferral || null,
+    bonusAwarded,
     bonusPoints: bonusAwarded ? bonusPoints : 0,
     userId: resolvedOwnerUserId,
     claimedAt: new Date().toISOString()
   });
 
-  addActivity(db, newMerchant.kostUid, 'pengaturan', `Toko mitra baru didaftarkan: ${newMerchant.name} (${newMerchant.category}) oleh owner ${resolvedOwnerUserId}`);
+  // Mirror into merchant escrow wallets
+  db.merchant_wallets = db.merchant_wallets || {};
+  db.merchant_wallets[newMerchant.id] = {
+    merchant_id: newMerchant.id,
+    name: newMerchant.name,
+    whatsapp_number: cleanPhone,
+    available_balance: initialSaldoNota,
+    held_promo_balance: 0.00,
+    updated_at: new Date().toISOString()
+  };
+
+  addActivity(db, newMerchant.kostUid, 'pengaturan', `Toko mitra baru didaftarkan: ${newMerchant.name} (${newMerchant.category}) oleh owner ${resolvedOwnerUserId}${bonusAwarded ? ' (Bonus 500 Nota Referral Aktif!)' : ''}`);
   writeDB(db);
+
+  // Non-blocking granular delta sync
+  syncDeltaToFirebase(`merchants/${newMerchant.id}`, newMerchant, 'PUT');
+  syncDeltaToFirebase(`merchant_wallets/${newMerchant.id}`, db.merchant_wallets[newMerchant.id], 'PUT');
 
   res.status(201).json({
     success: true,
@@ -5027,6 +5088,16 @@ app.post('/api/merchants', (req, res) => {
     isAlreadyRegistered,
     message: responseMsg
   });
+});
+
+// Alias POST /api/merchants/create
+app.post('/api/merchants/create', (req, res, next) => {
+  const handler = app._router.stack.find(s => s.route && s.route.path === '/api/merchants' && s.route.methods.post);
+  if (handler) {
+    return handler.handle(req, res, next);
+  }
+  res.status(404).json({ error: 'Endpoint not found' });
+});
 });
 
 // Endpoint: Usulkan Warung / Mitra Sekitar (Crowdsourcing Anak Kost)
@@ -8402,7 +8473,7 @@ app.post('/api/restore', verifySuperAdmin, (req, res) => {
 
 // ── KASIR POS & TABLE QR ORDERING (kasir.riuph.me & api.riuph.me) ──
 const createPosRouter = require('./pos_routes');
-const posRouterInstance = createPosRouter({ getDB, writeDB, createTripayClosedTransaction });
+const posRouterInstance = createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDeltaToFirebase });
 app.use('/api/pos', posRouterInstance);
 
 // Hybrid Loyalty & Escrow Alias Routes
@@ -8438,17 +8509,53 @@ setInterval(() => {
       const claims = db.receipt_claims || [];
       const expiredPending = claims.filter(c => c.status === 'PENDING' && new Date(c.claim_deadline) < now);
       if (expiredPending.length > 0) {
+        const merchantRefundMap = {};
         expiredPending.forEach(c => {
           c.status = 'EXPIRED';
           c.refunded_at = now.toISOString();
+          const refundAmount = c.held_promo_fee || 60.00;
           const mId = c.merchant_id || 'MTR-KASIR-MASTER';
-          if (db.merchant_wallets && db.merchant_wallets[mId]) {
-            const w = db.merchant_wallets[mId];
-            w.held_promo_balance = Math.max(0, (w.held_promo_balance || 0) - 75.00);
-            w.available_balance = (w.available_balance || 0) + 75.00;
-            w.updated_at = now.toISOString();
+          if (!merchantRefundMap[mId]) {
+            merchantRefundMap[mId] = { count: 0, totalRefund: 0, claims: [] };
           }
+          merchantRefundMap[mId].count += 1;
+          merchantRefundMap[mId].totalRefund += refundAmount;
+          merchantRefundMap[mId].claims.push(c.id);
         });
+
+        db.merchant_wallets = db.merchant_wallets || {};
+        db.wallet_mutations = db.wallet_mutations || [];
+
+        Object.entries(merchantRefundMap).forEach(([mId, data]) => {
+          if (!db.merchant_wallets[mId]) {
+            db.merchant_wallets[mId] = {
+              merchant_id: mId,
+              name: 'Mitra KostKu',
+              available_balance: 0.00,
+              held_promo_balance: 0.00,
+              updated_at: now.toISOString()
+            };
+          }
+          const w = db.merchant_wallets[mId];
+          w.held_promo_balance = Math.max(0, (w.held_promo_balance || 0) - data.totalRefund);
+          w.available_balance = (w.available_balance || 0) + data.totalRefund;
+          w.updated_at = now.toISOString();
+
+          db.wallet_mutations.unshift({
+            id: 'MUT-REF-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+            merchant_id: mId,
+            type: 'REFUND_PROMO',
+            amount: data.totalRefund,
+            unclaimed_count: data.count,
+            description: `Pengembalian Deposit Promo (${data.count} nota tidak diklaim): +Rp ${data.totalRefund.toLocaleString('id-ID')}`,
+            balance_after: w.available_balance,
+            createdAt: now.toISOString()
+          });
+
+          // Non-blocking granular delta sync
+          syncDeltaToFirebase(`merchant_wallets/${mId}`, w, 'PATCH');
+        });
+
         writeDB(db, false);
         console.log(`[BATCH SETTLEMENT] Successfully refunded ${expiredPending.length} expired receipts.`);
       }

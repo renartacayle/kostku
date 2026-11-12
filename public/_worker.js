@@ -535,7 +535,7 @@ const merchantWallets = {
     name: 'KostKu Cafe & Resto (Pusat)',
     whatsappNumber: '081234567890',
     available_balance: 100000.00,
-    held_promo_balance: 75.00, // 1 pending demo claim * 75
+    held_promo_balance: 60.00, // 1 pending demo claim * 60
     updatedAt: new Date().toISOString()
   },
   'MTR-CABANG-TEMBALANG': {
@@ -556,68 +556,8 @@ const merchantWallets = {
   }
 };
 
-const _initNow = new Date();
-const _initTodayDeadline = calculateWibClaimDeadline(_initNow);
-const _initYesterday = new Date(_initNow.getTime() - 24 * 3600 * 1000);
-const _initYesterdayDeadline = calculateWibClaimDeadline(_initYesterday);
-const _initThreeDaysAgo = new Date(_initNow.getTime() - 3 * 24 * 3600 * 1000);
-const _initThreeDaysAgoDeadline = calculateWibClaimDeadline(_initThreeDaysAgo);
-
-let receiptClaims = [
-  {
-    id: 'CLM-DEMO-001',
-    order_id: 'ORD-DEMO-001',
-    merchant_id: 'MTR-KASIR-MASTER',
-    merchant_name: 'KostKu Cafe & Resto (Pusat)',
-    invoice_number: 'INV-20261112-001',
-    total_amount: 35000,
-    claim_token: 'demo-claim-today',
-    qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-today',
-    status: 'PENDING',
-    claimed_by_whatsapp: null,
-    points_awarded: 0,
-    claim_deadline: _initTodayDeadline.toISOString(),
-    claimed_at: null,
-    refunded_at: null,
-    createdAt: _initNow.toISOString()
-  },
-  {
-    id: 'CLM-DEMO-002',
-    order_id: 'ORD-DEMO-002',
-    merchant_id: 'MTR-KASIR-MASTER',
-    merchant_name: 'KostKu Cafe & Resto (Pusat)',
-    invoice_number: 'INV-20261111-002',
-    total_amount: 28000,
-    claim_token: 'demo-claim-claimed',
-    qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-claimed',
-    status: 'CLAIMED',
-    claimed_by_whatsapp: '081234567890',
-    points_awarded: 28,
-    claim_deadline: _initYesterdayDeadline.toISOString(),
-    claimed_at: _initYesterday.toISOString(),
-    refunded_at: null,
-    createdAt: _initYesterday.toISOString()
-  },
-  {
-    id: 'CLM-DEMO-003',
-    order_id: 'ORD-DEMO-003',
-    merchant_id: 'MTR-KASIR-MASTER',
-    merchant_name: 'KostKu Cafe & Resto (Pusat)',
-    invoice_number: 'INV-20261109-003',
-    total_amount: 45000,
-    claim_token: 'demo-claim-expired',
-    qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-expired',
-    status: 'EXPIRED',
-    claimed_by_whatsapp: null,
-    points_awarded: 0,
-    claim_deadline: _initThreeDaysAgoDeadline.toISOString(),
-    claimed_at: null,
-    refunded_at: new Date(_initThreeDaysAgo.getTime() + 2 * 24 * 3600 * 1000).toISOString(),
-    createdAt: _initThreeDaysAgo.toISOString()
-  }
-];
-
-const customerLoyaltyAccounts = {
+let receiptClaims = [];
+let customerLoyaltyAccounts = {
   '081234567890': {
     whatsapp_number: '081234567890',
     name: 'Oscar Herdian Wijaya',
@@ -625,32 +565,182 @@ const customerLoyaltyAccounts = {
     createdAt: new Date().toISOString()
   }
 };
+let pointsLedger = [];
+let walletMutations = [];
 
-let pointsLedger = [
-  {
-    id: 'LEDGER-DEMO-01',
-    whatsapp_number: '081234567890',
-    order_id: 'ORD-DEMO-002',
-    invoice_number: 'INV-20261111-002',
-    change_type: 'EARN',
-    points: 28,
-    notes: 'Klaim Poin Struk #INV-20261111-002 (Belanja Rp 28.000)',
-    createdAt: _initYesterday.toISOString()
-  }
+let _isEscrowInitialized = false;
+function ensureEscrowCollections() {
+  if (_isEscrowInitialized) return;
+  _isEscrowInitialized = true;
+
+  const now = new Date();
+  const todayDeadline = calculateWibClaimDeadline(now);
+  const yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
+  const yesterdayDeadline = calculateWibClaimDeadline(yesterday);
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 3600 * 1000);
+  const threeDaysAgoDeadline = calculateWibClaimDeadline(threeDaysAgo);
+
+  receiptClaims = [
+    {
+      id: 'CLM-DEMO-001',
+      order_id: 'ORD-DEMO-001',
+      merchant_id: 'MTR-KASIR-MASTER',
+      merchant_name: 'KostKu Cafe & Resto (Pusat)',
+      invoice_number: 'INV-' + now.toISOString().slice(0, 10).replace(/-/g, '') + '-001',
+      total_amount: 35000,
+      claim_token: 'demo-claim-today',
+      qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-today',
+      status: 'PENDING',
+      claimed_by_whatsapp: null,
+      points_awarded: 0,
+      claim_deadline: todayDeadline.toISOString(),
+      claimed_at: null,
+      refunded_at: null,
+      createdAt: now.toISOString()
+    },
+    {
+      id: 'CLM-DEMO-002',
+      order_id: 'ORD-DEMO-002',
+      merchant_id: 'MTR-KASIR-MASTER',
+      merchant_name: 'KostKu Cafe & Resto (Pusat)',
+      invoice_number: 'INV-' + yesterday.toISOString().slice(0, 10).replace(/-/g, '') + '-002',
+      total_amount: 28000,
+      claim_token: 'demo-claim-claimed',
+      qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-claimed',
+      status: 'CLAIMED',
+      claimed_by_whatsapp: '081234567890',
+      points_awarded: 28,
+      claim_deadline: yesterdayDeadline.toISOString(),
+      claimed_at: yesterday.toISOString(),
+      refunded_at: null,
+      createdAt: yesterday.toISOString()
+    },
+    {
+      id: 'CLM-DEMO-003',
+      order_id: 'ORD-DEMO-003',
+      merchant_id: 'MTR-KASIR-MASTER',
+      merchant_name: 'KostKu Cafe & Resto (Pusat)',
+      invoice_number: 'INV-' + threeDaysAgo.toISOString().slice(0, 10).replace(/-/g, '') + '-003',
+      total_amount: 45000,
+      claim_token: 'demo-claim-expired',
+      qr_claim_url: 'https://kostku.riuph.me/claim?token=demo-claim-expired',
+      status: 'EXPIRED',
+      claimed_by_whatsapp: null,
+      points_awarded: 0,
+      claim_deadline: threeDaysAgoDeadline.toISOString(),
+      claimed_at: null,
+      refunded_at: new Date(threeDaysAgo.getTime() + 2 * 24 * 3600 * 1000).toISOString(),
+      createdAt: threeDaysAgo.toISOString()
+    }
+  ];
+
+  walletMutations = [
+    {
+      id: 'MUT-REF-DEMO-01',
+      merchant_id: 'MTR-KASIR-MASTER',
+      type: 'REFUND_PROMO',
+      amount: 60.00,
+      unclaimed_count: 1,
+      description: 'Pengembalian Deposit Promo (1 nota tidak diklaim): +Rp 60',
+      balance_after: 100000.00,
+      createdAt: new Date(threeDaysAgo.getTime() + 2 * 24 * 3600 * 1000).toISOString()
+    }
+  ];
+
+  pointsLedger = [
+    {
+      id: 'LEDGER-DEMO-01',
+      whatsapp_number: '081234567890',
+      order_id: 'ORD-DEMO-002',
+      invoice_number: 'INV-' + yesterday.toISOString().slice(0, 10).replace(/-/g, '') + '-002',
+      change_type: 'EARN',
+      points: 25,
+      notes: 'Putar Lucky Spin Struk (Dapat 25 Poin)',
+      createdAt: yesterday.toISOString()
+    }
+  ];
+}
+
+// ── LUCKY SPIN WHEEL CONFIGURATION (8 EQUAL SLICES - 45° EACH) ──
+const WHEEL_SLICES = [
+  { index: 0, points: 100, label: '100 Poin Emas', isJackpot: true, color: '#F59E0B' },
+  { index: 1, points: 25, label: '25 Poin', isJackpot: false, color: '#3B82F6' },
+  { index: 2, points: 50, label: '50 Poin', isJackpot: false, color: '#8B5CF6' },
+  { index: 3, points: 10, label: '10 Poin', isJackpot: false, color: '#10B981' },
+  { index: 4, points: 25, label: '25 Poin', isJackpot: false, color: '#06B6D4' },
+  { index: 5, points: 50, label: '50 Poin', isJackpot: false, color: '#EC4899' },
+  { index: 6, points: 10, label: '10 Poin', isJackpot: false, color: '#10B981' },
+  { index: 7, points: 25, label: '25 Poin', isJackpot: false, color: '#3B82F6' }
 ];
 
-let walletMutations = [
-  {
-    id: 'MUT-REF-DEMO-01',
-    merchant_id: 'MTR-KASIR-MASTER',
-    type: 'REFUND_PROMO',
-    amount: 75.00,
-    unclaimed_count: 1,
-    description: 'Pengembalian Dana Promo (1 nota kadaluarsa): +Rp 75',
-    balance_after: 100000.00,
-    createdAt: new Date(_initThreeDaysAgo.getTime() + 2 * 24 * 3600 * 1000).toISOString()
+function rollLuckySpin(customer) {
+  const spinsWithoutJackpot = customer.spins_without_jackpot || 0;
+
+  // Trik C: Pity System (Hard Pity Trigger di putaran ke-5 jika 4 putaran berturut-turut belum jackpot)
+  if (spinsWithoutJackpot >= 4) {
+    customer.spins_without_jackpot = 0;
+    return {
+      pointsWon: 100,
+      sliceIndex: 0,
+      slice: WHEEL_SLICES[0],
+      isPity: true,
+      isNearMiss: false,
+      spinsWithoutJackpot: 0
+    };
   }
-];
+
+  // Decoupled Server RNG:
+  // 100 Poin: 15% | 50 Poin: 35% | 25 Poin: 35% | 10 Poin: 15%
+  const rand = Math.random();
+  let pointsWon = 25;
+  let sliceIndex = 1;
+  let isNearMiss = false;
+
+  if (rand < 0.15) {
+    pointsWon = 100;
+    sliceIndex = 0;
+    customer.spins_without_jackpot = 0;
+  } else if (rand < 0.50) {
+    pointsWon = 50;
+    sliceIndex = Math.random() < 0.5 ? 2 : 5;
+    customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+  } else if (rand < 0.85) {
+    pointsWon = 25;
+    sliceIndex = 1; // Near-miss adjacent to 100
+    isNearMiss = true;
+    customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+  } else {
+    pointsWon = 10;
+    sliceIndex = Math.random() < 0.5 ? 3 : 6;
+    customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+  }
+
+  return {
+    pointsWon,
+    sliceIndex,
+    slice: WHEEL_SLICES[sliceIndex],
+    isPity: false,
+    isNearMiss,
+    spinsWithoutJackpot: customer.spins_without_jackpot
+  };
+}
+
+function getWibDateString(date = new Date()) {
+  const wibOffsetMs = 7 * 60 * 60 * 1000;
+  return new Date(date.getTime() + wibOffsetMs).toISOString().slice(0, 10);
+}
+
+const FIREBASE_RTDB_URL = 'https://kostku-10966-default-rtdb.asia-southeast1.firebasedatabase.app';
+function syncDeltaToFirebaseAsync(nodePath, payload, method = 'PATCH') {
+  try {
+    const cleanPath = String(nodePath).replace(/^\//, '');
+    fetch(`${FIREBASE_RTDB_URL}/kostku_db/${cleanPath}.json`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  } catch (_) {}
+}
 
 function executeBatchSettlement() {
   const now = new Date();
@@ -661,16 +751,19 @@ function executeBatchSettlement() {
   }
 
   const merchantRefundMap = {};
+  let grandTotalRefund = 0;
   expiredPending.forEach(c => {
     c.status = 'EXPIRED';
     c.refunded_at = now.toISOString();
     
+    const refundPerNote = Number(c.held_promo_fee) || 60.00;
+    grandTotalRefund += refundPerNote;
     const mId = c.merchant_id || 'MTR-KASIR-MASTER';
     if (!merchantRefundMap[mId]) {
       merchantRefundMap[mId] = { count: 0, totalRefund: 0, claims: [] };
     }
     merchantRefundMap[mId].count += 1;
-    merchantRefundMap[mId].totalRefund += 75.00;
+    merchantRefundMap[mId].totalRefund += refundPerNote;
     merchantRefundMap[mId].claims.push(c.id);
   });
 
@@ -704,11 +797,13 @@ function executeBatchSettlement() {
       type: 'REFUND_PROMO',
       amount: data.totalRefund,
       unclaimed_count: data.count,
-      description: `Pengembalian Dana Promo (${data.count} nota kadaluarsa): +Rp ${data.totalRefund.toLocaleString('id-ID')}`,
+      description: `Pengembalian Deposit Promo (${data.count} nota tidak diklaim): +Rp ${data.totalRefund.toLocaleString('id-ID')}`,
       balance_after: wallet.available_balance,
       createdAt: now.toISOString()
     };
     walletMutations.unshift(mutation);
+
+    syncDeltaToFirebaseAsync(`merchant_wallets/${mId}`, wallet, 'PATCH');
 
     affectedMerchants.push({
       merchantId: mId,
@@ -722,7 +817,7 @@ function executeBatchSettlement() {
   return {
     success: true,
     processedCount: expiredPending.length,
-    totalRefunded: expiredPending.length * 75.00,
+    totalRefunded: grandTotalRefund,
     affectedMerchants
   };
 }
@@ -786,6 +881,9 @@ async function handleApi(request, url, env) {
   const path = url.pathname.replace(/^\/api/, '');
   const method = request.method.toUpperCase();
 
+  // Lazy runtime initialization for Escrow collections with real runtime Date
+  ensureEscrowCollections();
+
   // ── Version & App Health ─────────────────────────────────────────
   if ((path === '/app-version' || path === '/version') && method === 'GET') {
     return new Response(JSON.stringify({
@@ -832,8 +930,8 @@ async function handleApi(request, url, env) {
     }), { headers: corsHeaders });
   }
 
-  // 2. Customer claims points (/api/loyalty/claim or /api/pos/claim)
-  if ((path === '/loyalty/claim' || path === '/pos/claim') && method === 'POST') {
+  // 2. Customer claims points with Lucky Spin Wheel (/api/loyalty/claim, /api/pos/claim, /api/loyalty/spin)
+  if ((path === '/loyalty/claim' || path === '/pos/claim' || path === '/loyalty/spin' || path === '/pos/loyalty/claim' || path === '/pos/loyalty/spin') && method === 'POST') {
     const body = await request.json().catch(() => ({}));
     const token = (body.token || '').trim();
     let rawPhone = String(body.whatsapp || body.phone || '').trim();
@@ -877,28 +975,42 @@ async function handleApi(request, url, env) {
       }), { status: 400, headers: corsHeaders });
     }
 
-    // ATOMIC MUTATION (Idempotent 1-time claim)
-    claim.status = 'CLAIMED';
-    claim.claimed_by_whatsapp = cleanPhone;
-    const pointsAwarded = Math.max(1, Math.floor(claim.total_amount / 1000));
-    claim.points_awarded = pointsAwarded;
-    claim.claimed_at = now.toISOString();
-
-    // Silent Registration for Customer
+    // ── SILENT REGISTRATION FOR CUSTOMER & PITY TRACKER ──
     if (!customerLoyaltyAccounts[cleanPhone]) {
+      const uniqueCode = 'KST' + cleanPhone.slice(-4) + Math.random().toString(36).substring(2, 5).toUpperCase();
       customerLoyaltyAccounts[cleanPhone] = {
         whatsapp_number: cleanPhone,
         name: customerName || 'Pelanggan KostKu',
         total_points: 0,
+        spins_without_jackpot: 0,
+        referral_code: uniqueCode,
+        daily_referral_count: 0,
+        last_referral_date: getWibDateString(now),
         createdAt: now.toISOString()
       };
     }
-    customerLoyaltyAccounts[cleanPhone].total_points += pointsAwarded;
-    if (customerName) {
-      customerLoyaltyAccounts[cleanPhone].name = customerName;
+    const customer = customerLoyaltyAccounts[cleanPhone];
+    if (customerName) customer.name = customerName;
+    if (!customer.referral_code) {
+      customer.referral_code = 'KST' + cleanPhone.slice(-4) + Math.random().toString(36).substring(2, 5).toUpperCase();
+    }
+    if (customer.spins_without_jackpot === undefined) {
+      customer.spins_without_jackpot = 0;
     }
 
-    // Audit Ledger Entry
+    // ── SERVER-SIDE RNG LUCKY SPIN WHEEL (DECOUPLED PROBABILITY) ──
+    const spinOutcome = rollLuckySpin(customer);
+    const pointsAwarded = spinOutcome.pointsWon;
+
+    // ATOMIC MUTATION (Idempotent 1-time claim)
+    claim.status = 'CLAIMED';
+    claim.claimed_by_whatsapp = cleanPhone;
+    claim.points_awarded = pointsAwarded;
+    claim.claimed_at = now.toISOString();
+
+    customer.total_points = (customer.total_points || 0) + pointsAwarded;
+
+    // Audit Ledger Entry for Spinner
     pointsLedger.unshift({
       id: 'LEDGER-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
       whatsapp_number: cleanPhone,
@@ -906,22 +1018,116 @@ async function handleApi(request, url, env) {
       invoice_number: claim.invoice_number,
       change_type: 'EARN',
       points: pointsAwarded,
-      notes: `Klaim poin struk #${claim.invoice_number} (Belanja Rp ${claim.total_amount?.toLocaleString('id-ID')})`,
+      notes: `Putar Lucky Spin Struk #${claim.invoice_number} (Dapat ${pointsAwarded} Poin)${spinOutcome.isPity ? ' [Pity Guarantee]' : ''}`,
       createdAt: now.toISOString()
     });
 
-    // Deduct held promo balance from merchant escrow (official platform/promo fee)
+    // ── ATURAN REFERRAL DINAMIS & 3 REM PENGAMAN ──
+    let referralResult = { success: false, status: 'NO_CODE', bonusAwarded: 0 };
+    const rawRefCode = (body.referral_code || body.referralCode || '').trim().toUpperCase();
+
+    if (rawRefCode) {
+      // Rem Pengaman 2: Anti Self-Referral
+      if (customer.referral_code && customer.referral_code.toUpperCase() === rawRefCode) {
+        referralResult = { success: false, status: 'SELF_REFERRAL_BLOCKED', message: 'Dilarang menggunakan kode referral milik sendiri!' };
+      } else {
+        const referrer = Object.values(customerLoyaltyAccounts).find(c => c && c.referral_code && c.referral_code.toUpperCase() === rawRefCode);
+        if (!referrer) {
+          referralResult = { success: false, status: 'INVALID_CODE', message: 'Kode referral tidak ditemukan.' };
+        } else if (referrer.whatsapp_number === cleanPhone) {
+          referralResult = { success: false, status: 'SELF_REFERRAL_BLOCKED', message: 'Dilarang menggunakan kode referral milik sendiri!' };
+        } else {
+          // Rem Pengaman 3: Daily Cap (Maksimal 3 komisi per hari kalender WIB)
+          const todayWib = getWibDateString(now);
+          if (referrer.last_referral_date !== todayWib) {
+            referrer.daily_referral_count = 0;
+            referrer.last_referral_date = todayWib;
+          }
+
+          if ((referrer.daily_referral_count || 0) >= 3) {
+            referralResult = {
+              success: false,
+              status: 'DAILY_CAP_REACHED',
+              message: 'Batas komisi referral teman hari ini sudah tercapai (Maks 3x/hari). Poin putaran Anda tetap masuk 100%!',
+              bonusAwarded: 0,
+              referrerWhatsapp: referrer.whatsapp_number
+            };
+          } else {
+            // Pembagian Dinamis 50% dari hasil angka roda pemutar:
+            // 100 -> +50, 50 -> +25, 25 -> +12, 10 -> +5
+            const referrerBonus = Math.floor(pointsAwarded * 0.5);
+            referrer.total_points = (referrer.total_points || 0) + referrerBonus;
+            referrer.daily_referral_count = (referrer.daily_referral_count || 0) + 1;
+
+            claim.referral_code_used = rawRefCode;
+            claim.referrer_whatsapp = referrer.whatsapp_number;
+            claim.referrer_points_awarded = referrerBonus;
+
+            pointsLedger.unshift({
+              id: 'LEDGER-REF-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+              whatsapp_number: referrer.whatsapp_number,
+              order_id: claim.order_id,
+              invoice_number: claim.invoice_number,
+              change_type: 'REFERRAL_BONUS',
+              points: referrerBonus,
+              notes: `Bonus Referral 50% dari struk #${claim.invoice_number} (Pemutar dapat ${pointsAwarded} Poin)`,
+              createdAt: now.toISOString()
+            });
+
+            referralResult = {
+              success: true,
+              status: 'BONUS_AWARDED',
+              bonusAwarded: referrerBonus,
+              referrerWhatsapp: referrer.whatsapp_number,
+              referrerName: referrer.name || 'Teman KostKu'
+            };
+
+            syncDeltaToFirebaseAsync(`customers/${referrer.whatsapp_number}`, referrer, 'PUT');
+          }
+        }
+      }
+    }
+
+    // Deduct held promo balance from merchant escrow (official platform/promo fee: Rp 60.00)
     const mId = claim.merchant_id || 'MTR-KASIR-MASTER';
     if (merchantWallets[mId]) {
-      merchantWallets[mId].held_promo_balance = Math.max(0, (merchantWallets[mId].held_promo_balance || 0) - 75.00);
+      merchantWallets[mId].held_promo_balance = Math.max(0, (merchantWallets[mId].held_promo_balance || 0) - 60.00);
       merchantWallets[mId].updatedAt = now.toISOString();
+      syncDeltaToFirebaseAsync(`merchant_wallets/${mId}`, merchantWallets[mId], 'PATCH');
     }
+
+    // Granular non-blocking delta sync to Firebase RTDB (< 5 KB)
+    syncDeltaToFirebaseAsync(`customers/${cleanPhone}`, customer, 'PUT');
+    syncDeltaToFirebaseAsync(`receipt_claims/${claim.id}`, {
+      status: 'CLAIMED',
+      claimed_by_whatsapp: cleanPhone,
+      claimed_at: claim.claimed_at,
+      points_awarded: claim.points_awarded,
+      referral_code_used: claim.referral_code_used || null,
+      referrer_whatsapp: claim.referrer_whatsapp || null,
+      referrer_points_awarded: claim.referrer_points_awarded || 0
+    }, 'PATCH');
 
     return new Response(JSON.stringify({
       success: true,
-      message: `🎉 Selamat! +${pointsAwarded} Poin loyalitas berhasil ditambahkan ke akun WhatsApp ${cleanPhone}.`,
+      message: pointsAwarded === 100
+        ? `🎉 JACKPOT! Selamat Anda memenangkan 100 Poin Emas!`
+        : `🎉 Selamat! Roda berhenti di ${pointsAwarded} Poin loyalitas.`,
       pointsAwarded,
-      totalPoints: customerLoyaltyAccounts[cleanPhone].total_points,
+      sliceIndex: spinOutcome.sliceIndex,
+      slice: spinOutcome.slice,
+      isNearMiss: spinOutcome.isNearMiss,
+      isPity: spinOutcome.isPity,
+      spinsWithoutJackpot: customer.spins_without_jackpot,
+      totalPoints: customer.total_points,
+      customer: {
+        whatsapp_number: cleanPhone,
+        name: customer.name,
+        total_points: customer.total_points,
+        referral_code: customer.referral_code,
+        spins_without_jackpot: customer.spins_without_jackpot
+      },
+      referralResult,
       invoice: claim.invoice_number,
       merchantName: claim.merchant_name,
       claimedAt: claim.claimed_at
@@ -962,8 +1168,8 @@ async function handleApi(request, url, env) {
     const claims = receiptClaims.filter(c => c.merchant_id === mId || !c.merchant_id);
     const pendingCount = claims.filter(c => c.status === 'PENDING').length;
     
-    // Recalculate held_promo_balance strictly: pendingCount * 75
-    wallet.held_promo_balance = pendingCount * 75.00;
+    // Recalculate held_promo_balance strictly: pendingCount * 60
+    wallet.held_promo_balance = pendingCount * 60.00;
 
     const mutations = walletMutations.filter(m => m.merchant_id === mId || !m.merchant_id);
 
@@ -1071,8 +1277,8 @@ async function handleApi(request, url, env) {
     }), { headers: corsHeaders });
   }
 
-  // ── Merchants Catalog ───────────────────────────────────────────
-  if (path === '/merchants') {
+  // ── Merchants Catalog & Registration (/merchants or /merchants/create) ──
+  if (path === '/merchants' || path === '/merchants/create') {
     if (method === 'GET') {
       return new Response(JSON.stringify(registeredMerchants), { headers: corsHeaders });
     }
@@ -1080,13 +1286,55 @@ async function handleApi(request, url, env) {
       const body = await request.json().catch(() => ({}));
       const name = (body.name || '').trim();
       const phone = (body.phone || '').replace(/\D/g, '');
-      const refCode = (body.referralCode || '').trim().toUpperCase();
+      const refCode = (body.referralCode || body.friendReferralCode || '').trim().toUpperCase();
 
       if (!name) {
         return new Response(JSON.stringify({ error: 'Nama toko/mitra wajib diisi' }), {
           status: 400,
           headers: corsHeaders
         });
+      }
+
+      const normName = name.toLowerCase();
+      // Deduplication check
+      const isAlreadyRegistered = registeredMerchants.some(m => 
+        (m.name && m.name.toLowerCase() === normName) ||
+        (phone && m.phone && m.phone.replace(/\D/g, '') === phone)
+      );
+
+      let bonusAwarded = false;
+      let bonusPoints = 0;
+      let initialSaldoNota = 5000;
+      let initialKuotaNota = 50;
+
+      if (refCode) {
+        if (isAlreadyRegistered) {
+          bonusAwarded = false;
+        } else {
+          bonusAwarded = true;
+          bonusPoints = 500;
+          initialSaldoNota = 50000; // 500 Nota Gratis (Rp 50.000 non-withdrawable)
+          initialKuotaNota = 500;
+
+          // Award +500 Poin to Referrer
+          const referrer = Object.values(customerLoyaltyAccounts).find(c => 
+            (c.referral_code && c.referral_code.toUpperCase() === refCode) ||
+            (c.whatsapp_number && c.whatsapp_number.replace(/\D/g, '') === refCode.replace(/\D/g, ''))
+          );
+
+          if (referrer) {
+            referrer.total_points = (referrer.total_points || 0) + bonusPoints;
+            pointsLedger.unshift({
+              id: 'REF-MITRA-' + Date.now(),
+              whatsapp_number: referrer.whatsapp_number,
+              change_type: 'EARN_REFERRAL_MERCHANT',
+              points: bonusPoints,
+              notes: `Bonus pendaftaran mitra baru: ${name} (Kode: ${refCode})`,
+              createdAt: new Date().toISOString()
+            });
+            syncDeltaToFirebaseAsync(`customers/${referrer.whatsapp_number}`, referrer, 'PUT');
+          }
+        }
       }
 
       const newMerchant = {
@@ -1099,15 +1347,37 @@ async function handleApi(request, url, env) {
         distanceKm: Number(body.distanceKm) || 0.2,
         isIndependent: Boolean(body.isIndependent),
         status: 'active',
-        bonusAwarded: Boolean(refCode),
-        products: body.products || []
+        saldoNota: initialSaldoNota,
+        kuotaNota: initialKuotaNota,
+        bonusAwarded,
+        referredByCode: bonusAwarded ? refCode : null,
+        products: body.products || [],
+        createdAt: new Date().toISOString()
       };
 
       registeredMerchants.push(newMerchant);
+      
+      merchantWallets[newMerchant.id] = {
+        merchantId: newMerchant.id,
+        name: newMerchant.name,
+        whatsappNumber: phone,
+        available_balance: initialSaldoNota,
+        held_promo_balance: 0.00,
+        updatedAt: new Date().toISOString()
+      };
+
+      syncDeltaToFirebaseAsync(`merchants/${newMerchant.id}`, newMerchant, 'PUT');
+      syncDeltaToFirebaseAsync(`merchant_wallets/${newMerchant.id}`, merchantWallets[newMerchant.id], 'PUT');
+
       return new Response(JSON.stringify({
         success: true,
         merchant: newMerchant,
-        message: 'Mitra berhasil didaftarkan'
+        bonusAwarded,
+        bonusPoints,
+        isAlreadyRegistered,
+        message: bonusAwarded
+          ? `🎉 Selamat! Toko berhasil didaftarkan via referral. Anda mendapatkan 500 Transaksi Kasir GRATIS (Rp 50.000)!`
+          : 'Toko mitra berhasil didaftarkan dengan kuota awal 50 nota.'
       }), { status: 201, headers: corsHeaders });
     }
   }
@@ -1562,9 +1832,9 @@ async function handlePosApi(request, path, method, url) {
       const claimToken = 'clm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
       const qrClaimUrl = `https://kostku.riuph.me/claim?token=${claimToken}`;
 
-      // HYBRID ADMIN FEE DEDUCTION: Rp 25 Flat Platform Base + Rp 75 Held Promo Escrow
-      const BASE_ADMIN_FEE = 25.00;
-      const HELD_PROMO_FEE = 75.00;
+      // HYBRID DYNAMIC FEE: Rp 40 Flat Platform Base + Rp 60 Held Promo Escrow
+      const BASE_ADMIN_FEE = 40.00;
+      const HELD_PROMO_FEE = 60.00;
       const TOTAL_ADMIN_DEDUCT = 100.00;
 
       if (!merchantWallets[storeId]) {
@@ -1579,14 +1849,35 @@ async function handlePosApi(request, path, method, url) {
       }
 
       const wallet = merchantWallets[storeId];
+      const effectiveKuota = (posStore.merchantId === storeId || posStore.uid === storeId)
+        ? (posStore.kuotaNota ?? 50)
+        : Math.floor((wallet.available_balance || 0) / 100);
+
+      if (effectiveKuota <= 0 && (wallet.available_balance || 0) < TOTAL_ADMIN_DEDUCT) {
+        return new Response(JSON.stringify({
+          error: '⚠️ Kuota nota kasir habis! Silakan lakukan Top Up Saldo Nota untuk melanjutkan pencetakan struk transaksi.',
+          requiresTopupNota: true,
+          kuotaNota: 0,
+          saldoNota: wallet.available_balance || 0
+        }), { status: 402, headers: corsHeaders });
+      }
+
       wallet.available_balance = Math.max(0, (wallet.available_balance || 100000) - TOTAL_ADMIN_DEDUCT);
       wallet.held_promo_balance = (wallet.held_promo_balance || 0) + HELD_PROMO_FEE;
       wallet.updatedAt = now.toISOString();
 
       if (posStore.merchantId === storeId || posStore.uid === storeId) {
         posStore.saldoNota = wallet.available_balance;
-        posStore.kuotaNota = Math.floor(wallet.available_balance / 100);
+        posStore.kuotaNota = Math.max(0, (posStore.kuotaNota !== undefined ? posStore.kuotaNota - 1 : Math.floor(wallet.available_balance / 100)));
       }
+
+      const remainingKuotaNota = (posStore.merchantId === storeId || posStore.uid === storeId)
+        ? posStore.kuotaNota
+        : Math.floor(wallet.available_balance / 100);
+      const isLowQuota = remainingKuotaNota <= 15;
+      const lowQuotaWarning = isLowQuota
+        ? `⚠️ Kuota nota gratis Anda tersisa ${remainingKuotaNota} transaksi. Lakukan top up agar operasional kasir tetap lancar.`
+        : null;
 
       // Record 1-time single use receipt claim
       const claimRecord = {
@@ -1596,11 +1887,16 @@ async function handlePosApi(request, path, method, url) {
         merchant_name: storeName,
         invoice_number: invoiceNumber,
         total_amount: totalAmount,
+        base_admin_fee: BASE_ADMIN_FEE,
+        held_promo_fee: HELD_PROMO_FEE,
         claim_token: claimToken,
         qr_claim_url: qrClaimUrl,
         status: 'PENDING',
         claimed_by_whatsapp: null,
         points_awarded: 0,
+        referral_code_used: null,
+        referrer_whatsapp: null,
+        referrer_points_awarded: 0,
         claim_deadline: claimDeadline.toISOString(),
         claimed_at: null,
         refunded_at: null,
@@ -1616,10 +1912,15 @@ async function handlePosApi(request, path, method, url) {
         amount: -TOTAL_ADMIN_DEDUCT,
         base_admin_fee: BASE_ADMIN_FEE,
         held_promo_fee: HELD_PROMO_FEE,
-        description: `Biaya Nota #${invoiceNumber} (Rp 25 Platform + Rp 75 Dana Promo Ditahan)`,
+        description: `Biaya Nota #${invoiceNumber} (Rp 40 Platform & Server + Rp 60 Deposit Promo Tertahan)`,
         balance_after: wallet.available_balance,
         createdAt: now.toISOString()
       });
+
+      // Granular Delta Sync ke Firebase RTDB (< 5 KB payload)
+      syncDeltaToFirebaseAsync(`pos_orders/${orderId}`, { id: orderId, invoice_number: invoiceNumber, totalAmount }, 'PUT');
+      syncDeltaToFirebaseAsync(`receipt_claims/${claimRecord.id}`, claimRecord, 'PUT');
+      syncDeltaToFirebaseAsync(`merchant_wallets/${storeId}`, wallet, 'PATCH');
 
       const newOrder = {
         id: orderId,
@@ -1646,6 +1947,9 @@ async function handlePosApi(request, path, method, url) {
         qrClaimUrl: qrClaimUrl,
         claim_deadline: claimDeadline.toISOString(),
         claimDeadline: claimDeadline.toISOString(),
+        kuotaNota: remainingKuotaNota,
+        isLowQuota,
+        lowQuotaWarning,
         createdAt: now.toISOString()
       };
 
@@ -1656,7 +1960,10 @@ async function handlePosApi(request, path, method, url) {
         total: totalAmount,
         qr_claim_url: qrClaimUrl,
         claim_token: claimToken,
-        claim_deadline: claimDeadline.toISOString()
+        claim_deadline: claimDeadline.toISOString(),
+        kuotaNota: remainingKuotaNota,
+        isLowQuota,
+        lowQuotaWarning
       }), { status: 200, headers: corsHeaders });
     }
   }

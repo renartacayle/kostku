@@ -268,14 +268,15 @@ export function buildEscPosBuffer(order, options = {}) {
     : 'Besok 23:59 WIB';
 
   if (claimUrl) {
+    bytes.push(...textToBytes('KLAIM DISKON MAKAN ANDA!\n'));
     bytes.push(...textToBytes('[ QR CODE KLAIM POIN ]\n'));
     try {
       bytes.push(...buildEscPosQrCode(claimUrl));
     } catch (_) {}
-    bytes.push(...textToBytes('Scan QR ini untuk KLAIM POIN!\n'));
-    bytes.push(...textToBytes('Dapatkan diskon & makan gratis di kost.\n'));
-    bytes.push(...textToBytes(`*Batas Klaim: ${deadlineStr}\n`));
-    bytes.push(...textToBytes(`Atau buka: ${claimUrl}\n`));
+    bytes.push(...textToBytes('Scan QR ini & Putar Roda Hadiah!\n'));
+    bytes.push(...textToBytes('Dapatkan Poin s/d 100 Poin Belanja.\n'));
+    bytes.push(...textToBytes(`*Batas Waktu Klaim: ${deadlineStr}\n`));
+    bytes.push(...textToBytes(`Link: ${claimUrl}\n`));
     bytes.push(...textToBytes(divider + '\n'));
   }
 

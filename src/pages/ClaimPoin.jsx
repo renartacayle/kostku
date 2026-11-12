@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   Gift,
@@ -15,8 +15,24 @@ import {
   Receipt,
   Award,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Zap,
+  Users
 } from 'lucide-react';
+
+// ── 8 EQUAL SLICES (45° EACH) ──
+// Layout strategis: Slice 0 (100 Poin Emas) bersebelahan langsung dengan Slice 1 (25 Poin) & Slice 7 (25 Poin)
+const WHEEL_SLICES = [
+  { index: 0, points: 100, label: '100 POIN', sub: 'JACKPOT', color: '#F59E0B', text: '#FFFFFF', isJackpot: true },
+  { index: 1, points: 25, label: '25 POIN', sub: 'Hemat', color: '#3B82F6', text: '#FFFFFF', isJackpot: false },
+  { index: 2, points: 50, label: '50 POIN', sub: 'Medium', color: '#8B5CF6', text: '#FFFFFF', isJackpot: false },
+  { index: 3, points: 10, label: '10 POIN', sub: 'Mini', color: '#10B981', text: '#FFFFFF', isJackpot: false },
+  { index: 4, points: 25, label: '25 POIN', sub: 'Hemat', color: '#06B6D4', text: '#FFFFFF', isJackpot: false },
+  { index: 5, points: 50, label: '50 POIN', sub: 'Medium', color: '#EC4899', text: '#FFFFFF', isJackpot: false },
+  { index: 6, points: 10, label: '10 POIN', sub: 'Mini', color: '#10B981', text: '#FFFFFF', isJackpot: false },
+  { index: 7, points: 25, label: '25 POIN', sub: 'Hemat', color: '#3B82F6', text: '#FFFFFF', isJackpot: false }
+];
 
 export default function ClaimPoin() {
   const [searchParams] = useSearchParams();
@@ -30,9 +46,18 @@ export default function ClaimPoin() {
   // Form State
   const [whatsapp, setWhatsapp] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const [claiming, setClaiming] = useState(false);
+  // Rem Pengaman 1: Wajib Copas Manual (Kolom kosong by default, no localStorage auto-fill)
+  const [referralCode, setReferralCode] = useState('');
+
+  // Gamification Wheel State
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [spinPhase, setSpinPhase] = useState('idle'); // 'idle' | 'spinning' | 'stopped'
+  const [nearMissAlert, setNearMissAlert] = useState(false);
+  const [pityAlert, setPityAlert] = useState(false);
   const [claimResult, setClaimResult] = useState(null);
   const [claimError, setClaimError] = useState('');
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Tab State: 'claim' | 'check'
   const [activeTab, setActiveTab] = useState('claim');
@@ -71,12 +96,14 @@ export default function ClaimPoin() {
     }
   }, [tokenParam]);
 
-  // Submit Claim Handler
-  const handleClaimSubmit = async (e) => {
-    e.preventDefault();
+  // Handle Lucky Spin Wheel Claim
+  const handleSpinAndClaim = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isSpinning) return;
+
     const cleanPhone = whatsapp.replace(/\D/g, '');
-    if (!cleanPhone) {
-      setClaimError('Silakan masukkan nomor WhatsApp Anda.');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setClaimError('Silakan masukkan nomor WhatsApp aktif Anda.');
       return;
     }
     if (!tokenInput.trim()) {
@@ -84,8 +111,11 @@ export default function ClaimPoin() {
       return;
     }
 
-    setClaiming(true);
+    setIsSpinning(true);
     setClaimError('');
+    setNearMissAlert(false);
+    setPityAlert(false);
+
     try {
       const res = await fetch('/api/loyalty/claim', {
         method: 'POST',
@@ -93,21 +123,61 @@ export default function ClaimPoin() {
         body: JSON.stringify({
           token: tokenInput.trim(),
           whatsapp: cleanPhone,
-          name: customerName.trim() || undefined
+          name: customerName.trim() || undefined,
+          referral_code: referralCode.trim() || undefined
         })
       });
       const data = await res.json();
+
       if (!res.ok) {
-        setClaimError(data.error || 'Gagal mengklaim poin struk.');
-      } else {
-        setClaimResult(data);
-        // Refresh claim info to reflect CLAIMED status
-        fetchClaimInfo(tokenInput.trim());
+        setClaimError(data.error || 'Gagal memproses klaim struk.');
+        setIsSpinning(false);
+        return;
       }
+
+      // Hitung derajat target rotasi agar jarum (di posisi 12 o'clock / atas) mendarat presisi di slice pemenang
+      const targetSliceIndex = data.sliceIndex ?? 0;
+      const isNearMiss = Boolean(data.isNearMiss);
+      const isPity = Boolean(data.isPity);
+
+      if (isPity) setPityAlert(true);
+
+      // Slices: 8 juring = 45° per slice.
+      // 0° berada di arah atas (12 o'clock).
+      // Slice i berada di rentang [i * 45°, (i + 1) * 45°].
+      // Sudut tengah slice i = i * 45° + 22.5°.
+      let targetCenterAngle = targetSliceIndex * 45 + 22.5;
+
+      // Trik B: Near-Miss Illusion jika dapat 25 Poin (Slice 1)
+      // Roda melambat saat melintasi 100 Poin Emas (Slice 0), lalu berdetik lambat 1.2 milimeter melewati garis pembatas (45°) ke Slice 1
+      if (isNearMiss && targetSliceIndex === 1) {
+        targetCenterAngle = 45 + 1.8; // Hanya 1.8° melewati garis pembatas 100 Poin!
+      }
+
+      // Roda berputar minimal 6 putaran penuh (2160°) + penyesuaian sudut jarum
+      const extraRotations = 360 * 6;
+      const finalWheelRotation = wheelRotation + extraRotations + (360 - (targetCenterAngle % 360));
+      setWheelRotation(finalWheelRotation);
+      setSpinPhase('spinning');
+
+      // Tampilkan banner near-miss sedikit sebelum berhenti jika terpilih
+      if (isNearMiss) {
+        setTimeout(() => {
+          setNearMissAlert(true);
+        }, 3600);
+      }
+
+      // Tunggu hingga animasi selesai (4.6 detik)
+      setTimeout(() => {
+        setIsSpinning(false);
+        setSpinPhase('stopped');
+        setClaimResult(data);
+        fetchClaimInfo(tokenInput.trim());
+      }, 4800);
+
     } catch (err) {
-      setClaimError('Terjadi kesalahan jaringan. Silakan coba kembali.');
-    } finally {
-      setClaiming(false);
+      setClaimError('Terjadi gangguan jaringan saat memutar roda. Silakan coba lagi.');
+      setIsSpinning(false);
     }
   };
 
@@ -138,7 +208,127 @@ export default function ClaimPoin() {
     }
   };
 
+  const copyToClipboard = (text) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(text);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2500);
+  };
+
   const formatRupiah = (num) => 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+
+  // Generator SVG Path untuk Juring Lingkaran Simetris (45° per slice)
+  const renderWheelSvg = () => {
+    const size = 300;
+    const center = size / 2;
+    const radius = 135;
+
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <defs>
+          <radialGradient id="goldGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="70%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#B45309" />
+          </radialGradient>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        {/* Outer Shadow Ring */}
+        <circle cx={center} cy={center} r={radius + 8} fill="#0f172a" opacity="0.1" />
+        <circle cx={center} cy={center} r={radius + 4} fill="#ffffff" stroke="#e2e8f0" strokeWidth="3" />
+
+        {/* Slices Group with CSS rotation */}
+        <g
+          style={{
+            transformOrigin: `${center}px ${center}px`,
+            transform: `rotate(${wheelRotation}deg)`,
+            transition: isSpinning
+              ? 'transform 4.7s cubic-bezier(0.12, 0.8, 0.15, 1.0)'
+              : 'none'
+          }}
+        >
+          {WHEEL_SLICES.map((slice, i) => {
+            // Sudut awal dan akhir slice (0° = 12 o'clock)
+            const startAngle = i * 45;
+            const endAngle = (i + 1) * 45;
+            const midAngle = i * 45 + 22.5;
+
+            // Konversi derajat ke koordinat polar (0° di atas)
+            const radStart = ((startAngle - 90) * Math.PI) / 180;
+            const radEnd = ((endAngle - 90) * Math.PI) / 180;
+            const radMid = ((midAngle - 90) * Math.PI) / 180;
+
+            const x1 = center + radius * Math.cos(radStart);
+            const y1 = center + radius * Math.sin(radStart);
+            const x2 = center + radius * Math.cos(radEnd);
+            const y2 = center + radius * Math.sin(radEnd);
+
+            const textRadius = radius * 0.68;
+            const tx = center + textRadius * Math.cos(radMid);
+            const ty = center + textRadius * Math.sin(radMid);
+
+            const isGold = slice.index === 0;
+
+            return (
+              <g key={slice.index + '-' + i}>
+                <path
+                  d={`M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`}
+                  fill={isGold ? 'url(#goldGradient)' : slice.color}
+                  stroke="#ffffff"
+                  strokeWidth="2.5"
+                />
+                {/* Text Label */}
+                <text
+                  x={tx}
+                  y={ty}
+                  fill={isGold ? '#78350F' : '#ffffff'}
+                  fontSize={isGold ? '11px' : '10px'}
+                  fontWeight="900"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}
+                  style={{ textShadow: isGold ? '0 1px 2px rgba(255,255,255,0.8)' : '0 1px 3px rgba(0,0,0,0.4)' }}
+                >
+                  {slice.label}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Center Hub Outer Ring */}
+          <circle cx={center} cy={center} r="28" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
+          <circle cx={center} cy={center} r="22" fill="#0f172a" />
+          <circle cx={center} cy={center} r="18" fill="url(#goldGradient)" />
+          <text
+            x={center}
+            y={center}
+            fill="#78350F"
+            fontSize="10px"
+            fontWeight="900"
+            textAnchor="middle"
+            dominantBaseline="central"
+          >
+            SPIN
+          </text>
+        </g>
+
+        {/* Top Fixed Needle Pointer (Points down to 12 o'clock) */}
+        <g filter="url(#glow)">
+          <polygon
+            points={`${center - 12},8 ${center + 12},8 ${center},36`}
+            fill="#DC2626"
+            stroke="#FFFFFF"
+            strokeWidth="2.5"
+          />
+          <circle cx={center} cy="10" r="4" fill="#FFFFFF" />
+        </g>
+      </svg>
+    );
+  };
 
   return (
     <div style={{
@@ -183,10 +373,10 @@ export default function ClaimPoin() {
             </div>
             <div>
               <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
-                KostKu Loyalty
+                KostKu Lucky Spin
               </div>
               <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                Klaim Poin Struk & Hadiah
+                Klaim Diskon &amp; Roda Hadiah
               </div>
             </div>
           </Link>
@@ -242,7 +432,7 @@ export default function ClaimPoin() {
               transition: 'all 0.15s ease'
             }}
           >
-            🎁 Klaim Poin Struk
+            🎡 Putar Roda &amp; Klaim
           </button>
           <button
             type="button"
@@ -261,77 +451,75 @@ export default function ClaimPoin() {
               transition: 'all 0.15s ease'
             }}
           >
-            ⭐ Cek Poin Saya
+            🔍 Cek Saldo Poin WA
           </button>
         </div>
 
-        {/* ================================================================ */}
-        {/* TAB 1: KLAIM POIN STRUK                                         */}
-        {/* ================================================================ */}
+        {/* TAB 1: KLAIM POIN STRUK & LUCKY SPIN WHEEL */}
         {activeTab === 'claim' && (
           <div>
-            {/* SUCCESS MODAL / CARD */}
-            {claimResult ? (
+            {/* SUCCESS BANNER AFTER SPIN */}
+            {claimResult && !isSpinning && (
               <div style={{
                 background: '#ffffff',
-                borderRadius: '16px',
-                border: '1px solid #86efac',
-                padding: '24px 18px',
+                borderRadius: '18px',
+                border: '1.5px solid #86efac',
+                padding: '22px 18px',
                 textAlign: 'center',
-                boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.15)',
+                boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.2)',
                 marginBottom: '16px'
-              }}>
+              }} className="animate-fade-in">
                 <div style={{
                   width: '64px',
                   height: '64px',
                   borderRadius: '50%',
-                  background: '#dcfce7',
-                  color: '#16a34a',
+                  background: claimResult.pointsAwarded === 100 ? '#fef3c7' : '#dcfce7',
+                  color: claimResult.pointsAwarded === 100 ? '#d97706' : '#16a34a',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 14px',
-                  boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)'
+                  margin: '0 auto 12px',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.1)'
                 }}>
-                  <Sparkles size={32} />
+                  {claimResult.pointsAwarded === 100 ? '👑' : <Sparkles size={32} />}
                 </div>
 
                 <div style={{
                   display: 'inline-block',
-                  background: '#f0fdf4',
-                  border: '1px solid #bbf7d0',
-                  color: '#15803d',
+                  background: claimResult.pointsAwarded === 100 ? '#fef3c7' : '#f0fdf4',
+                  border: claimResult.pointsAwarded === 100 ? '1px solid #fde68a' : '1px solid #bbf7d0',
+                  color: claimResult.pointsAwarded === 100 ? '#b45309' : '#15803d',
                   padding: '4px 12px',
                   borderRadius: '20px',
                   fontSize: '0.75rem',
-                  fontWeight: 800,
+                  fontWeight: 900,
                   marginBottom: '8px'
                 }}>
-                  KLAIM POIN SUKSES
+                  {claimResult.pointsAwarded === 100 ? '⭐ JACKPOT EMAS' : 'KLAIM POIN SUKSES'}
                 </div>
 
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
-                  +{claimResult.pointsAwarded} Poin Berhasil Diklaim!
+                <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
+                  +{claimResult.pointsAwarded} Poin Berhasil Didapatkan!
                 </h2>
 
                 <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0 0 16px', lineHeight: 1.4 }}>
-                  Poin telah dikreditkan ke nomor WhatsApp Anda tanpa ribet login.
+                  Poin telah langsung dikreditkan ke WhatsApp <strong>{claimResult.customer?.whatsapp_number}</strong> tanpa repot registrasi.
                 </p>
 
                 {/* Points Balance Highlight */}
                 <div style={{
                   background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)',
-                  borderRadius: '12px',
-                  padding: '14px',
+                  borderRadius: '14px',
+                  padding: '14px 16px',
                   color: '#ffffff',
-                  marginBottom: '16px',
+                  marginBottom: '14px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#a7f3d0' }}>Total Poin Anda Saat Ini</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900 }}>
+                    <div style={{ fontSize: '0.72rem', color: '#a7f3d0' }}>Total Saldo Poin Anda</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900 }}>
                       {claimResult.totalPoints?.toLocaleString('id-ID')} Poin
                     </div>
                   </div>
@@ -339,86 +527,124 @@ export default function ClaimPoin() {
                     background: 'rgba(255, 255, 255, 0.15)',
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700
+                    fontSize: '0.78rem',
+                    fontWeight: 800
                   }}>
-                    ≈ {formatRupiah(Math.floor((claimResult.totalPoints || 0) / 100) * 1000)}
+                    Diskon: Rp {claimResult.totalPoints?.toLocaleString('id-ID')}
                   </div>
                 </div>
 
-                {/* Receipt Details Box */}
+                {/* Referral Status Banner if applied */}
+                {claimResult.referralResult && claimResult.referralResult.status === 'BONUS_AWARDED' && (
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#1e40af',
+                    fontSize: '0.76rem',
+                    marginBottom: '14px',
+                    textAlign: 'left',
+                    lineHeight: 1.4
+                  }}>
+                    🤝 <strong>Bonus Referral Terkirim:</strong> Teman Anda ({claimResult.referralResult.referrerName}) berhasil mendapatkan komisi <strong>+{claimResult.referralResult.bonusAwarded} Poin</strong> (50% dari hasil putaran Anda)!
+                  </div>
+                )}
+
+                {/* Customer's Own Referral Sharing Card */}
+                {claimResult.customer?.referral_code && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px dashed #3b82f6',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    marginBottom: '16px',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e40af', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Users size={14} color="#3b82f6" />
+                      <span>Bagikan Kode Referral Anda &amp; Raih 50% Poin Teman!</span>
+                    </div>
+                    <p style={{ fontSize: '0.72rem', color: '#475569', margin: '0 0 8px', lineHeight: 1.35 }}>
+                      Setiap kali teman kost memasukkan kode ini saat klaim struk belanja, Anda otomatis menerima <strong>50%</strong> dari hasil angka roda pemutar mereka!
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <code style={{
+                        flex: 1,
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        fontWeight: 900,
+                        fontSize: '0.88rem',
+                        letterSpacing: '1px',
+                        color: '#0f172a'
+                      }}>
+                        {claimResult.customer.referral_code}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(claimResult.customer.referral_code)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          background: copiedCode ? '#16a34a' : '#2563eb',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontWeight: 800,
+                          fontSize: '0.76rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {copiedCode ? <CheckCircle size={14} /> : <Copy size={14} />}
+                        <span>{copiedCode ? 'Tersalin' : 'Salin'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Economics rule note */}
                 <div style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                  fontSize: '0.75rem',
-                  color: '#475569',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  marginBottom: '18px'
+                  fontSize: '0.7rem',
+                  color: '#64748b',
+                  background: '#f1f5f9',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  lineHeight: 1.35
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Nomor Faktur:</span>
-                    <strong style={{ color: '#0f172a' }}>{claimResult.invoice}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Mitra / Resto:</span>
-                    <strong style={{ color: '#0f172a' }}>{claimResult.merchantName}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Waktu Klaim:</span>
-                    <span>{new Date(claimResult.claimedAt || Date.now()).toLocaleString('id-ID')}</span>
-                  </div>
+                  💡 <strong>Nilai Tukar Poin:</strong> 1 Poin = Rp 1.00 diskon langsung. Minimal 100 Poin untuk aktivasi penukaran diskon belanja di kasir.
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <Link
-                    to="/layanan"
-                    style={{
-                      padding: '12px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.85rem',
-                      textDecoration: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                    }}
-                  >
-                    <Gift size={16} />
-                    <span>Tukar Hadiah di KostKu</span>
-                  </Link>
-
                   <button
                     type="button"
                     onClick={() => {
                       setClaimResult(null);
                       setTokenInput('');
                       setClaimInfo(null);
+                      setReferralCode('');
                     }}
                     style={{
-                      padding: '10px',
+                      padding: '11px',
                       borderRadius: '10px',
                       border: '1px solid #cbd5e1',
                       background: '#ffffff',
-                      color: '#475569',
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
+                      color: '#334155',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
                       cursor: 'pointer'
                     }}
                   >
-                    Klaim Struk Lainnya
+                    Klaim Struk Belanja Lainnya
                   </button>
                 </div>
               </div>
-            ) : null}
+            )}
 
             {/* MANUAL TOKEN INPUT IF EMPTY */}
             {!tokenParam && !claimInfo && !claimResult && (
@@ -434,7 +660,7 @@ export default function ClaimPoin() {
                   🔍 Masukkan Kode Token Struk
                 </div>
                 <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.4 }}>
-                  Jika kamera Anda tidak otomatis membuka tautan klaim, ketik atau tempelkan token yang tertera di bagian bawah struk fisik kasir Anda.
+                  Ketik atau tempelkan token yang tertera di bagian bawah struk fisik kasir Anda.
                 </p>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -492,11 +718,11 @@ export default function ClaimPoin() {
               </div>
             )}
 
-            {/* CLAIM INFO DETAILS CARD */}
+            {/* CLAIM & WHEEL SECTION (IF CLAIM INFO LOADED & NOT COMPLETED) */}
             {claimInfo && !claimResult && (
               <div style={{
                 background: '#ffffff',
-                borderRadius: '16px',
+                borderRadius: '18px',
                 border: '1px solid #e2e8f0',
                 padding: '18px',
                 boxShadow: '0 4px 16px -2px rgba(0,0,0,0.06)',
@@ -568,32 +794,6 @@ export default function ClaimPoin() {
                   </div>
                 </div>
 
-                {/* Potential Reward Banner */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  color: '#ffffff',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '16px',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: '#d1fae5', fontWeight: 600 }}>Total Belanja Nota</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900 }}>
-                      {formatRupiah(claimInfo.totalAmount)}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#d1fae5', fontWeight: 600 }}>Poin Diperoleh</div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 900 }}>
-                      +{claimInfo.potentialPoints} Poin
-                    </div>
-                  </div>
-                </div>
-
                 {/* Expiration Notice */}
                 <div style={{
                   background: '#f8fafc',
@@ -605,15 +805,15 @@ export default function ClaimPoin() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  marginBottom: '16px'
+                  marginBottom: '14px'
                 }}>
                   <Clock size={14} color="#f59e0b" style={{ flexShrink: 0 }} />
                   <span>
-                    Batas Klaim: <strong>{new Date(claimInfo.claimDeadline).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })} WIB</strong> (Hari D+1 23:59)
+                    Batas Klaim: <strong>{new Date(claimInfo.claimDeadline).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })} WIB</strong>
                   </span>
                 </div>
 
-                {/* STATUS ALERT IF ALREADY CLAIMED OR EXPIRED */}
+                {/* ALREADY CLAIMED NOTIFICATION */}
                 {claimInfo.status === 'CLAIMED' && (
                   <div style={{
                     padding: '12px',
@@ -625,17 +825,17 @@ export default function ClaimPoin() {
                     lineHeight: 1.4,
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '8px',
-                    marginBottom: '16px'
+                    gap: '8px'
                   }}>
                     <CheckCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div>
                       <strong>Struk Sudah Pernah Diklaim!</strong><br />
-                      Poin pada nota ini telah diklaim oleh nomor {claimInfo.claimedBy || 'pelanggan'} pada {claimInfo.claimedAt ? new Date(claimInfo.claimedAt).toLocaleString('id-ID') : '-'}. Token QR unik hanya berlaku 1 kali pakai.
+                      Poin pada nota ini telah diklaim oleh {claimInfo.claimedBy || 'pelanggan'}. Token QR unik struk hanya berlaku 1 kali pakai.
                     </div>
                   </div>
                 )}
 
+                {/* EXPIRED NOTIFICATION */}
                 {claimInfo.status === 'EXPIRED' && (
                   <div style={{
                     padding: '12px',
@@ -647,136 +847,227 @@ export default function ClaimPoin() {
                     lineHeight: 1.4,
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '8px',
-                    marginBottom: '16px'
+                    gap: '8px'
                   }}>
                     <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div>
                       <strong>Masa Berlaku Klaim Telah Berakhir!</strong><br />
-                      Sesuai aturan operasional, poin struk wajib diklaim sebelum {new Date(claimInfo.claimDeadline).toLocaleDateString('id-ID')} pukul 23:59 WIB. Dana promo sebesar Rp 75 telah dikembalikan ke saldo mitra penjual.
+                      Sesuai aturan platform, poin wajib diklaim sebelum batas deadline. Deposit promo sebesar Rp 60 telah otomatis dikembalikan utuh ke saldo mitra kasir.
                     </div>
                   </div>
                 )}
 
-                {/* CLAIM FORM (ONLY SHOWN IF PENDING) */}
+                {/* LUCKY SPIN WHEEL UI & FORM (PENDING STATUS) */}
                 {claimInfo.status === 'PENDING' && (
-                  <form onSubmit={handleClaimSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
-                        Nomor WhatsApp Penerima Poin <span style={{ color: '#dc2626' }}>*</span>
-                      </label>
-                      <div style={{ position: 'relative' }}>
+                  <div>
+                    {/* WHEEL CANVAS / SVG CONTAINER */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '10px 0 16px'
+                    }}>
+                      <div style={{ position: 'relative', width: '300px', height: '300px' }}>
+                        {renderWheelSvg()}
+                      </div>
+
+                      {/* Near-Miss Alert Banner */}
+                      {nearMissAlert && (
                         <div style={{
-                          position: 'absolute',
-                          left: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          fontSize: '0.78rem',
+                          marginTop: '8px',
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          background: '#fffbeb',
+                          border: '1.5px solid #f59e0b',
+                          color: '#b45309',
                           fontWeight: 800,
-                          color: '#64748b',
-                          background: '#f1f5f9',
-                          padding: '3px 6px',
-                          borderRadius: '4px'
-                        }}>
-                          🇮🇩 +62
+                          fontSize: '0.76rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }} className="animate-bounce">
+                          <span>⚡</span>
+                          <span>Nyaris Menang Jackpot 100 Poin Emas!</span>
                         </div>
+                      )}
+
+                      {/* Hard Pity Notification */}
+                      {pityAlert && (
+                        <div style={{
+                          marginTop: '8px',
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          background: '#fef3c7',
+                          border: '1.5px solid #d97706',
+                          color: '#92400e',
+                          fontWeight: 800,
+                          fontSize: '0.76rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span>🔥</span>
+                          <span>Garansi Hard Pity Aktif: 100 Poin Emas Dijamin!</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* INPUT FORM */}
+                    <form onSubmit={handleSpinAndClaim} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
+                          Nomor WhatsApp Penerima Poin <span style={{ color: '#dc2626' }}>*</span>
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <div style={{
+                            position: 'absolute',
+                            left: '10px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            color: '#64748b',
+                            background: '#f1f5f9',
+                            padding: '3px 6px',
+                            borderRadius: '4px'
+                          }}>
+                            🇮🇩 +62
+                          </div>
+                          <input
+                            type="tel"
+                            required
+                            disabled={isSpinning}
+                            value={whatsapp}
+                            onChange={(e) => setWhatsapp(e.target.value)}
+                            placeholder="0812-3456-7890"
+                            style={{
+                              width: '100%',
+                              boxSizing: 'border-box',
+                              padding: '11px 12px 11px 72px',
+                              borderRadius: '10px',
+                              border: '1.5px solid #cbd5e1',
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                          Akun otomatis dibuat tanpa password. Poin langsung tersimpan di nomor WA ini.
+                        </span>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
+                          Nama Panggilan (Opsional)
+                        </label>
                         <input
-                          type="tel"
-                          required
-                          value={whatsapp}
-                          onChange={(e) => setWhatsapp(e.target.value)}
-                          placeholder="0812-3456-7890"
+                          type="text"
+                          disabled={isSpinning}
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder="Contoh: Oscar, Rian, atau Meita"
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
-                            padding: '11px 12px 11px 72px',
+                            padding: '10px 12px',
                             borderRadius: '10px',
-                            border: '1.5px solid #cbd5e1',
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
-                            outline: 'none',
-                            transition: 'border 0.2s'
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.82rem',
+                            outline: 'none'
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                        Akun otomatis dibuat tanpa password. Poin langsung tersimpan di nomor WA ini.
-                      </span>
-                    </div>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '5px' }}>
-                        Nama Panggilan (Opsional)
-                      </label>
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Contoh: Oscar, Rian, atau Meita"
-                        style={{
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '10px 12px',
-                          borderRadius: '10px',
-                          border: '1px solid #cbd5e1',
-                          fontSize: '0.82rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-
-                    {claimError && (
+                      {/* Rem Pengaman 1: Wajib Copas Manual (Kolom kosong by default, no localStorage auto-fill) */}
                       <div style={{
-                        padding: '8px 10px',
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        borderRadius: '8px',
-                        fontSize: '0.74rem',
-                        color: '#991b1b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '10px 12px'
                       }}>
-                        <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                        <span>{claimError}</span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 800, color: '#1e40af', marginBottom: '4px' }}>
+                          <Users size={14} color="#3b82f6" />
+                          <span>Kode Referral Teman (Wajib Copas Manual):</span>
+                        </label>
+                        <input
+                          type="text"
+                          disabled={isSpinning}
+                          value={referralCode}
+                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                          placeholder="Contoh: KST7890X4B (Kosongkan jika tidak ada)"
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.5px',
+                            outline: 'none',
+                            textTransform: 'uppercase'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px', display: 'block', lineHeight: 1.3 }}>
+                          🎁 Teman Anda akan menerima komisi <strong>50%</strong> dari total angka poin yang Anda putar!
+                        </span>
                       </div>
-                    )}
 
-                    <button
-                      type="submit"
-                      disabled={claiming}
-                      style={{
-                        marginTop: '4px',
-                        padding: '12px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        background: claiming
-                          ? '#94a3b8'
-                          : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        color: '#ffffff',
-                        fontWeight: 900,
-                        fontSize: '0.9rem',
-                        cursor: claiming ? 'not-allowed' : 'pointer',
-                        boxShadow: claiming ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.35)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      {claiming ? (
-                        <>
-                          <RefreshCw size={16} className="animate-spin" />
-                          <span>Memproses Klaim Poin...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Gift size={18} />
-                          <span>Klaim +{claimInfo.potentialPoints} Poin Sekarang</span>
-                        </>
+                      {claimError && (
+                        <div style={{
+                          padding: '8px 10px',
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          borderRadius: '8px',
+                          fontSize: '0.74rem',
+                          color: '#991b1b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                          <span>{claimError}</span>
+                        </div>
                       )}
-                    </button>
-                  </form>
+
+                      <button
+                        type="submit"
+                        disabled={isSpinning}
+                        style={{
+                          marginTop: '6px',
+                          padding: '14px',
+                          borderRadius: '14px',
+                          border: 'none',
+                          background: isSpinning
+                            ? '#94a3b8'
+                            : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          fontWeight: 900,
+                          fontSize: '0.95rem',
+                          cursor: isSpinning ? 'not-allowed' : 'pointer',
+                          boxShadow: isSpinning ? 'none' : '0 4px 16px rgba(16, 185, 129, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        {isSpinning ? (
+                          <>
+                            <RefreshCw size={18} className="animate-spin" />
+                            <span>Roda Sedang Berputar...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🎡</span>
+                            <span>Putar Roda &amp; Klaim Poin Sekarang</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </div>
                 )}
               </div>
             )}
@@ -800,15 +1091,20 @@ export default function ClaimPoin() {
                     width: '20px',
                     height: '20px',
                     borderRadius: '50%',
-                    background: '#f0fdf4',
-                    color: '#15803d',
-                    fontWeight: 800,
+                    background: '#ecfdf5',
+                    color: '#059669',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.7rem',
                     flexShrink: 0
-                  }}>1</div>
-                  <div>Setiap pembelanjaan <strong>Rp 1.000</strong> mendapatkan <strong>1 Poin</strong> loyalitas.</div>
+                  }}>
+                    1
+                  </div>
+                  <div>
+                    <strong>Roda Keberuntungan &amp; Poin Acak:</strong> Putar roda hadiah setiap kali belanja untuk mendapatkan 10, 25, 50, s/d 100 Poin Emas!
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -816,15 +1112,20 @@ export default function ClaimPoin() {
                     width: '20px',
                     height: '20px',
                     borderRadius: '50%',
-                    background: '#f0fdf4',
-                    color: '#15803d',
-                    fontWeight: 800,
+                    background: '#ecfdf5',
+                    color: '#059669',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.7rem',
                     flexShrink: 0
-                  }}>2</div>
-                  <div>QR Code struk unik 1x pakai dengan batas klaim hingga <strong>Hari D+1 pukul 23:59 WIB</strong>.</div>
+                  }}>
+                    2
+                  </div>
+                  <div>
+                    <strong>Pity System (Anti-Apes):</strong> Jika 4 kali berturut-turut belum mendapatkan jackpot, putaran ke-5 dijamin <strong>100 Poin Emas</strong>!
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -832,24 +1133,48 @@ export default function ClaimPoin() {
                     width: '20px',
                     height: '20px',
                     borderRadius: '50%',
-                    background: '#f0fdf4',
-                    color: '#15803d',
-                    fontWeight: 800,
+                    background: '#ecfdf5',
+                    color: '#059669',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.7rem',
                     flexShrink: 0
-                  }}>3</div>
-                  <div>Poin dapat ditukarkan dengan diskon makanan, kupon sewa kost, atau gratis laundry di merchant mitra.</div>
+                  }}>
+                    3
+                  </div>
+                  <div>
+                    <strong>Bonus Referral 50%:</strong> Bagikan kode referral ke teman kost. Setiap teman memutar roda, Anda otomatis menerima 50% poin mereka (Maks. 3x komisi/hari).
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.7rem',
+                    flexShrink: 0
+                  }}>
+                    4
+                  </div>
+                  <div>
+                    <strong>Penukaran Diskon:</strong> 1 Poin = Rp 1.00 diskon belanja langsung. Minimal penukaran adalah 100 Poin di kasir toko.
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* ================================================================ */}
-        {/* TAB 2: CEK POIN SAYA                                             */}
-        {/* ================================================================ */}
+        {/* TAB 2: CEK SALDO POIN WHATSAPP */}
         {activeTab === 'check' && (
           <div>
             <div style={{
@@ -857,160 +1182,237 @@ export default function ClaimPoin() {
               borderRadius: '16px',
               border: '1px solid #e2e8f0',
               padding: '18px',
-              boxShadow: '0 4px 16px -2px rgba(0,0,0,0.06)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
               marginBottom: '16px'
             }}>
-              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                ⭐ Cek Saldo & Riwayat Poin
-              </div>
-              <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '0 0 12px' }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                Periksa Saldo &amp; Riwayat Poin
+              </h3>
+              <p style={{ margin: '0 0 14px', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
                 Masukkan nomor WhatsApp yang pernah Anda gunakan saat klaim struk belanja.
               </p>
 
-              <form onSubmit={handleCheckPoints} style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  type="tel"
-                  required
-                  value={checkPhone}
-                  onChange={(e) => setCheckPhone(e.target.value)}
-                  placeholder="081234567890"
-                  style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    outline: 'none'
-                  }}
-                />
+              <form onSubmit={handleCheckPoints} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: '#64748b',
+                    background: '#f1f5f9',
+                    padding: '3px 6px',
+                    borderRadius: '4px'
+                  }}>
+                    🇮🇩 +62
+                  </div>
+                  <input
+                    type="tel"
+                    required
+                    value={checkPhone}
+                    onChange={(e) => setCheckPhone(e.target.value)}
+                    placeholder="0812-3456-7890"
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px 12px 10px 72px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                {checkError && (
+                  <div style={{
+                    padding: '8px 10px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '8px',
+                    fontSize: '0.74rem',
+                    color: '#991b1b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>{checkError}</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={checkingPoints}
                   style={{
-                    padding: '10px 16px',
+                    padding: '10px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    background: '#2563eb',
                     color: '#ffffff',
                     fontWeight: 800,
                     fontSize: '0.82rem',
                     cursor: checkingPoints ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
                   }}
                 >
-                  {checkingPoints ? '...' : 'Cek'}
+                  {checkingPoints ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Memeriksa...</span>
+                    </>
+                  ) : (
+                    <span>Cari Saldo Poin</span>
+                  )}
                 </button>
               </form>
+            </div>
 
-              {checkError && (
-                <div style={{
-                  padding: '8px 10px',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '8px',
-                  fontSize: '0.74rem',
-                  color: '#991b1b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                  <span>{checkError}</span>
-                </div>
-              )}
-
-              {customerAccount && (
-                <div style={{ marginTop: '16px' }}>
-                  {/* Account Card */}
+            {/* ACCOUNT SUMMARY CARD */}
+            {customerAccount && (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                border: '1px solid #e2e8f0',
+                padding: '18px',
+                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.06)',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                      {customerAccount.name || 'Pelanggan KostKu'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      WA: {customerAccount.whatsapp_number}
+                    </div>
+                  </div>
                   <div style={{
-                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    borderRadius: '14px',
-                    padding: '16px',
-                    color: '#ffffff',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    border: '1px solid #a7f3d0',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800
+                  }}>
+                    Member Aktif
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  color: '#ffffff',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '14px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#bfdbfe' }}>Saldo Poin Anda</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900 }}>
+                      {(customerAccount.total_points || 0).toLocaleString('id-ID')} Poin
+                    </div>
+                  </div>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 800
+                  }}>
+                    Diskon: Rp {(customerAccount.total_points || 0).toLocaleString('id-ID')}
+                  </div>
+                </div>
+
+                {/* Referral Code Share Box */}
+                {customerAccount.referral_code && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px dashed #3b82f6',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
                     marginBottom: '14px'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Akun Pelanggan</div>
-                        <div style={{ fontSize: '1rem', fontWeight: 800 }}>
-                          {customerAccount.name || 'Member KostKu'}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>
-                          WA: {customerAccount.whatsapp_number}
-                        </div>
-                      </div>
-                      <div style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        color: '#38bdf8'
-                      }}>
-                        Member Aktif
-                      </div>
+                    <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: '4px' }}>
+                      Kode Referral Anda:
                     </div>
-
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <div>
-                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Total Poin Terkumpul</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#34d399' }}>
-                          {(customerAccount.total_points || 0).toLocaleString('id-ID')} Poin
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
-                        ≈ {formatRupiah(Math.floor((customerAccount.total_points || 0) / 100) * 1000)}
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <code style={{ flex: 1, fontWeight: 900, color: '#1e40af', fontSize: '0.85rem' }}>
+                        {customerAccount.referral_code}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(customerAccount.referral_code)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          background: copiedCode ? '#16a34a' : '#2563eb',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {copiedCode ? 'Tersalin' : 'Salin'}
+                      </button>
                     </div>
                   </div>
+                )}
 
-                  {/* History List */}
-                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-                    Riwayat Perolehan Poin
-                  </div>
-
-                  {customerHistory.length === 0 ? (
-                    <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
-                      Belum ada mutasi poin di nomor ini.
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {customerHistory.map((item, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '8px 10px',
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px',
-                            fontSize: '0.74rem'
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                              {item.notes || 'Klaim Poin Struk'}
-                            </div>
-                            <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
-                              {new Date(item.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                            </div>
-                          </div>
-                          <div style={{
-                            fontWeight: 900,
-                            color: item.change_type === 'EARN' ? '#16a34a' : '#dc2626'
-                          }}>
-                            {item.change_type === 'EARN' ? '+' : '-'}{item.points} Poin
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* History Ledger List */}
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                  📜 Riwayat Poin ({customerHistory.length})
                 </div>
-              )}
-            </div>
+
+                {customerHistory.length === 0 ? (
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', padding: '16px 0' }}>
+                    Belum ada catatan mutasi poin.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {customerHistory.map(item => (
+                      <div
+                        key={item.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          background: '#f8fafc',
+                          border: '1px solid #f1f5f9',
+                          fontSize: '0.74rem'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#334155' }}>{item.notes || 'Klaim Poin'}</div>
+                          <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                            {new Date(item.createdAt).toLocaleString('id-ID')}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontWeight: 900,
+                          color: item.points > 0 ? '#16a34a' : '#dc2626',
+                          fontSize: '0.82rem'
+                        }}>
+                          {item.points > 0 ? `+${item.points}` : item.points}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>

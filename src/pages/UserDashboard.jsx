@@ -895,6 +895,87 @@ const UserDashboard = ({ user }) => {
             </div>
           </div>
 
+          {/* ── BANNER DUA ARAH: AJAK MITRA (ANAK KOST DAPAT +500 POIN & WARUNG DAPAT 500 NOTA GRATIS) ── */}
+          <div style={{
+            background: isLight 
+              ? 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)' 
+              : 'linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, rgba(15, 23, 42, 0.85) 100%)',
+            border: isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            boxShadow: isLight ? '0 4px 14px rgba(16, 185, 129, 0.12)' : '0 4px 14px rgba(0, 0, 0, 0.35)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: '#10b981',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.35rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.35)'
+              }}>
+                🍱
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: isLight ? '#064e3b' : '#6ee7b7' }}>
+                  Mau Makan Gratis di Kantin?
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: isLight ? '#047857' : '#d1fae5', lineHeight: 1.4 }}>
+                  Ajak warung makan atau laundry langgananmu jadi Mitra KostKu! Kamu dapat <strong>+500 Poin Belanja</strong>, dan warung dapat <strong>500 Transaksi Kasir Gratis</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Halo! Yuk pakai aplikasi kasir & pemesanan online KostKu untuk tokomu. Masukkan kode referral *${userRefCode}* saat daftar dan dapatkan 500 Kuota Transaksi Kasir GRATIS (hemat Rp 50.000)! Daftar di: https://kostku.riuph.me/mitra`)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: '#25D366',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(37, 211, 102, 0.35)'
+                }}
+              >
+                <span>📲</span>
+                <span>Bagikan Link &amp; Kode via WhatsApp</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={handleCopyReferral}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.1)',
+                  border: `1px solid ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.2)'}`,
+                  color: isLight ? '#334155' : '#f8fafc',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {referralCopied ? '✓ Kode Tersalin!' : `Salin Kode: ${userRefCode}`}
+              </button>
+            </div>
+          </div>
+
           {/* Approved Application Alert Banner if applicable */}
           {activeApplication?.status === 'approved' && (
             <div style={{

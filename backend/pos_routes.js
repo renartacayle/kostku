@@ -7,8 +7,94 @@ const express = require('express');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 
-function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
+function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDeltaToFirebase }) {
   const router = express.Router();
+
+  // Non-blocking Granular Delta Sync Helper (< 5 KB payload)
+  let syncDelta = syncDeltaToFirebase;
+  if (!syncDelta) {
+    try {
+      const fbSync = require('./firebase_sync');
+      syncDelta = fbSync.syncDeltaToFirebase;
+    } catch (_) {
+      syncDelta = () => Promise.resolve(false);
+    }
+  }
+
+  // ── LUCKY SPIN WHEEL CONFIGURATION (8 EQUAL SLICES - 45° EACH) ──
+  // Layout strategis: Slice 0 (100 Poin Emas) bersebelahan langsung dengan Slice 1 (25 Poin) & Slice 7 (25 Poin)
+  const WHEEL_SLICES = [
+    { index: 0, points: 100, label: '100 Poin Emas', isJackpot: true, color: '#F59E0B' },
+    { index: 1, points: 25, label: '25 Poin', isJackpot: false, color: '#3B82F6' },
+    { index: 2, points: 50, label: '50 Poin', isJackpot: false, color: '#8B5CF6' },
+    { index: 3, points: 10, label: '10 Poin', isJackpot: false, color: '#10B981' },
+    { index: 4, points: 25, label: '25 Poin', isJackpot: false, color: '#06B6D4' },
+    { index: 5, points: 50, label: '50 Poin', isJackpot: false, color: '#EC4899' },
+    { index: 6, points: 10, label: '10 Poin', isJackpot: false, color: '#10B981' },
+    { index: 7, points: 25, label: '25 Poin', isJackpot: false, color: '#3B82F6' }
+  ];
+
+  const rollLuckySpin = (customer) => {
+    const spinsWithoutJackpot = customer.spins_without_jackpot || 0;
+
+    // Trik C: Pity System (Hard Pity Trigger di putaran ke-5 jika 4 putaran apes berturut-turut)
+    if (spinsWithoutJackpot >= 4) {
+      customer.spins_without_jackpot = 0;
+      return {
+        pointsWon: 100,
+        sliceIndex: 0,
+        slice: WHEEL_SLICES[0],
+        isPity: true,
+        isNearMiss: false,
+        spinsWithoutJackpot: 0
+      };
+    }
+
+    // Decoupled Server RNG:
+    // 100 Poin (Jackpot Emas): 15%
+    // 50 Poin (Medium): 35%
+    // 25 Poin (Small): 35%
+    // 10 Poin (Mini): 15%
+    // Expected Value: 42.75 Poin (Aman terkontrol di bawah budget Rp 60)
+    const rand = Math.random();
+    let pointsWon = 25;
+    let sliceIndex = 1;
+    let isNearMiss = false;
+
+    if (rand < 0.15) {
+      pointsWon = 100;
+      sliceIndex = 0;
+      customer.spins_without_jackpot = 0;
+    } else if (rand < 0.50) {
+      pointsWon = 50;
+      sliceIndex = Math.random() < 0.5 ? 2 : 5;
+      customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+    } else if (rand < 0.85) {
+      pointsWon = 25;
+      // Trik B: Near-Miss Illusion! Target Slice 1 (bersebelahan dengan Slice 0)
+      sliceIndex = 1;
+      isNearMiss = true;
+      customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+    } else {
+      pointsWon = 10;
+      sliceIndex = Math.random() < 0.5 ? 3 : 6;
+      customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+    }
+
+    return {
+      pointsWon,
+      sliceIndex,
+      slice: WHEEL_SLICES[sliceIndex],
+      isPity: false,
+      isNearMiss,
+      spinsWithoutJackpot: customer.spins_without_jackpot
+    };
+  };
+
+  const getWibDateString = (date = new Date()) => {
+    const wibOffsetMs = 7 * 60 * 60 * 1000;
+    return new Date(date.getTime() + wibOffsetMs).toISOString().slice(0, 10);
+  };
 
   // Helper to ensure collections exist in DB
   const ensurePosCollections = (db) => {
@@ -477,16 +563,19 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     }
 
     const merchantRefundMap = {};
+    let grandTotalRefund = 0;
     expiredPending.forEach(c => {
       c.status = 'EXPIRED';
       c.refunded_at = now.toISOString();
 
+      const refundPerNote = Number(c.held_promo_fee) || 60.00;
+      grandTotalRefund += refundPerNote;
       const mId = c.merchant_id || 'MTR-KASIR-MASTER';
       if (!merchantRefundMap[mId]) {
         merchantRefundMap[mId] = { count: 0, totalRefund: 0, claims: [] };
       }
       merchantRefundMap[mId].count += 1;
-      merchantRefundMap[mId].totalRefund += 75.00;
+      merchantRefundMap[mId].totalRefund += refundPerNote;
       merchantRefundMap[mId].claims.push(c.id);
     });
 
@@ -522,11 +611,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
         type: 'REFUND_PROMO',
         amount: data.totalRefund,
         unclaimed_count: data.count,
-        description: `Pengembalian Dana Promo (${data.count} nota kadaluarsa): +Rp ${data.totalRefund.toLocaleString('id-ID')}`,
+        description: `Pengembalian Deposit Promo (${data.count} nota tidak diklaim): +Rp ${data.totalRefund.toLocaleString('id-ID')}`,
         balance_after: wallet.available_balance,
         createdAt: now.toISOString()
       };
       db.wallet_mutations.unshift(mutation);
+
+      // Granular delta sync ke Firebase RTDB
+      syncDelta(`merchant_wallets/${mId}`, wallet, 'PATCH');
 
       affectedMerchants.push({
         merchantId: mId,
@@ -540,7 +632,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     return {
       success: true,
       processedCount: expiredPending.length,
-      totalRefunded: expiredPending.length * 75.00,
+      totalRefunded: grandTotalRefund,
       affectedMerchants
     };
   };
@@ -1355,11 +1447,22 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     let redeemAmount = 0;
 
     if (userIsLoggedIn && cleanPhone) {
-      const userPoints = db.customer_points[cleanPhone] || 0;
-      redeemAmount = Math.min(Number(pointsToRedeem) || 0, userPoints);
-      if (redeemAmount > 0) {
-        pointsDiscount = Math.floor(redeemAmount / 100) * 1000;
+      const userPoints = db.customer_points[cleanPhone] || (db.customers && db.customers[cleanPhone]?.total_points) || 0;
+      const requestedRedeem = Number(pointsToRedeem) || 0;
+      if (requestedRedeem > 0) {
+        if (userPoints < 100) {
+          return res.status(400).json({ error: `Penukaran poin minimal 100 Poin. Poin pelanggan saat ini: ${userPoints} Poin.` });
+        }
+        if (requestedRedeem < 100) {
+          return res.status(400).json({ error: 'Penukaran poin minimal 100 Poin (Rp 100).' });
+        }
+        redeemAmount = Math.min(requestedRedeem, userPoints);
+        // 1 Poin = Rp 1.00 diskon langsung
+        pointsDiscount = redeemAmount;
         db.customer_points[cleanPhone] = Math.max(0, userPoints - redeemAmount);
+        if (db.customers && db.customers[cleanPhone]) {
+          db.customers[cleanPhone].total_points = db.customer_points[cleanPhone];
+        }
       }
     }
 
@@ -1484,12 +1587,27 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     const claimToken = 'clm_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
     const qrClaimUrl = `https://kostku.riuph.me/claim?token=${claimToken}`;
 
-    const BASE_ADMIN_FEE = 25.00;
-    const HELD_PROMO_FEE = 75.00;
+    const BASE_ADMIN_FEE = 40.00;
+    const HELD_PROMO_FEE = 60.00;
     const TOTAL_ADMIN_DEDUCT = 100.00;
 
-    // Update merchant escrow wallet
+    // Periksa sisa kuota nota toko sebelum transaksi diproses
     db.merchant_wallets = db.merchant_wallets || {};
+    const existingWallet = db.merchant_wallets[storeId] || { available_balance: 100000.00 };
+    const effectiveKuota = (currentActiveStore && currentActiveStore.kuotaNota !== undefined)
+      ? currentActiveStore.kuotaNota
+      : Math.floor((existingWallet.available_balance || 0) / 100);
+
+    if (effectiveKuota <= 0 && (existingWallet.available_balance || 0) < TOTAL_ADMIN_DEDUCT) {
+      return res.status(402).json({
+        error: '⚠️ Kuota nota kasir habis! Silakan lakukan Top Up Saldo Nota untuk melanjutkan transaksi pencetakan struk.',
+        requiresTopupNota: true,
+        kuotaNota: 0,
+        saldoNota: existingWallet.available_balance || 0
+      });
+    }
+
+    // Update merchant escrow wallet
     if (!db.merchant_wallets[storeId]) {
       db.merchant_wallets[storeId] = {
         merchant_id: storeId,
@@ -1503,11 +1621,19 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     mWallet.held_promo_balance = (mWallet.held_promo_balance || 0) + HELD_PROMO_FEE;
     mWallet.updated_at = new Date().toISOString();
 
-    // Mirror to merchant saldoNota
+    // Mirror to merchant saldoNota & kurangi kuotaNota
     if (currentActiveStore && (currentActiveStore.merchantId === storeId || currentActiveStore.uid === storeId)) {
       currentActiveStore.saldoNota = mWallet.available_balance;
-      currentActiveStore.kuotaNota = Math.floor(mWallet.available_balance / 100);
+      currentActiveStore.kuotaNota = Math.max(0, (currentActiveStore.kuotaNota !== undefined ? currentActiveStore.kuotaNota - 1 : Math.floor(mWallet.available_balance / 100)));
     }
+
+    const remainingKuotaNota = (currentActiveStore && currentActiveStore.kuotaNota !== undefined)
+      ? currentActiveStore.kuotaNota
+      : Math.floor(mWallet.available_balance / 100);
+    const isLowQuota = remainingKuotaNota <= 15;
+    const lowQuotaWarning = isLowQuota
+      ? `⚠️ Kuota nota gratis Anda tersisa ${remainingKuotaNota} transaksi. Lakukan top up agar operasional kasir tetap lancar.`
+      : null;
 
     // Record receipt claim
     const claimRecord = {
@@ -1517,11 +1643,16 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
       merchant_name: storeName,
       invoice_number: invoiceNumber,
       total_amount: totalAmount,
+      base_admin_fee: BASE_ADMIN_FEE,
+      held_promo_fee: HELD_PROMO_FEE,
       claim_token: claimToken,
       qr_claim_url: qrClaimUrl,
       status: 'PENDING',
       claimed_by_whatsapp: null,
       points_awarded: 0,
+      referral_code_used: null,
+      referrer_whatsapp: null,
+      referrer_points_awarded: 0,
       claim_deadline: claimDeadline.toISOString(),
       claimed_at: null,
       refunded_at: null,
@@ -1539,7 +1670,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
       amount: -TOTAL_ADMIN_DEDUCT,
       base_admin_fee: BASE_ADMIN_FEE,
       held_promo_fee: HELD_PROMO_FEE,
-      description: `Biaya Nota #${invoiceNumber} (Rp 25 Platform + Rp 75 Dana Promo Ditahan)`,
+      description: `Biaya Nota #${invoiceNumber} (Rp 40 Platform & Server + Rp 60 Deposit Promo Tertahan)`,
       balance_after: mWallet.available_balance,
       createdAt: new Date().toISOString()
     });
@@ -1595,13 +1726,36 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     db.pos_orders.unshift(newOrder);
     writeDB(db, req);
 
+    // Non-blocking Granular Delta Sync ke Firebase RTDB (< 5 KB payload, zero latency)
+    setImmediate(() => {
+      try {
+        syncDelta(`pos_orders/${newOrder.id}`, newOrder, 'PUT');
+        syncDelta(`receipt_claims/${claimRecord.id}`, claimRecord, 'PUT');
+        syncDelta(`merchant_wallets/${storeId}`, mWallet, 'PATCH');
+        if (cleanPhone && redeemAmount > 0) {
+          syncDelta(`customer_points/${cleanPhone}`, db.customer_points[cleanPhone], 'PUT');
+          if (db.customers && db.customers[cleanPhone]) {
+            syncDelta(`customers/${cleanPhone}`, db.customers[cleanPhone], 'PATCH');
+          }
+        }
+        if (currentActiveStore && currentActiveStore.inventory) {
+          syncDelta(`pos_stores/${storeId}/inventory`, currentActiveStore.inventory, 'PUT');
+        }
+      } catch (err) {
+        console.warn('[Firebase RTDB Delta Sync Error]:', err.message);
+      }
+    });
+
     res.json({
       ...newOrder,
       invoice: invoiceNumber,
       total: totalAmount,
       qr_claim_url: qrClaimUrl,
       claim_token: claimToken,
-      claim_deadline: claimDeadline.toISOString()
+      claim_deadline: claimDeadline.toISOString(),
+      kuotaNota: remainingKuotaNota,
+      isLowQuota,
+      lowQuotaWarning
     });
   });
 
@@ -2346,8 +2500,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     });
   });
 
-  // 2. Customer claims points (/api/pos/loyalty/claim)
-  router.post('/loyalty/claim', (req, res) => {
+  // 2. Customer claims points with Lucky Spin Wheel (/api/pos/loyalty/claim & /api/pos/loyalty/spin)
+  const handleLoyaltySpinClaim = (req, res) => {
     const { token, whatsapp, phone, name } = req.body;
     if (!token) {
       return res.status(400).json({ error: 'Token struk tidak boleh kosong' });
@@ -2391,30 +2545,44 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
       });
     }
 
-    // ATOMIC MUTATION (Idempotent 1-time claim)
-    claim.status = 'CLAIMED';
-    claim.claimed_by_whatsapp = cleanPhone;
-    const pointsAwarded = Math.max(1, Math.floor(claim.total_amount / 1000));
-    claim.points_awarded = pointsAwarded;
-    claim.claimed_at = now.toISOString();
-
-    // Silent Registration for Customer
+    // ── SILENT REGISTRATION FOR CUSTOMER & PITY TRACKER ──
     db.customers = db.customers || {};
     if (!db.customers[cleanPhone]) {
+      const uniqueCode = 'KST' + cleanPhone.slice(-4) + Math.random().toString(36).substring(2, 5).toUpperCase();
       db.customers[cleanPhone] = {
         whatsapp_number: cleanPhone,
         name: name || 'Pelanggan KostKu',
         total_points: 0,
+        spins_without_jackpot: 0,
+        referral_code: uniqueCode,
+        daily_referral_count: 0,
+        last_referral_date: getWibDateString(now),
         createdAt: now.toISOString()
       };
     }
-    db.customers[cleanPhone].total_points += pointsAwarded;
-    if (name) db.customers[cleanPhone].name = name;
+    const customer = db.customers[cleanPhone];
+    if (name) customer.name = name;
+    if (!customer.referral_code) {
+      customer.referral_code = 'KST' + cleanPhone.slice(-4) + Math.random().toString(36).substring(2, 5).toUpperCase();
+    }
+    if (customer.spins_without_jackpot === undefined) {
+      customer.spins_without_jackpot = 0;
+    }
 
-    // Sync to customer_points
-    db.customer_points[cleanPhone] = (db.customer_points[cleanPhone] || 0) + pointsAwarded;
+    // ── SERVER-SIDE RNG LUCKY SPIN WHEEL (DECOUPLED PROBABILITY) ──
+    const spinOutcome = rollLuckySpin(customer);
+    const pointsAwarded = spinOutcome.pointsWon;
 
-    // Audit Ledger Entry
+    // ATOMIC MUTATION (Idempotent 1-time claim)
+    claim.status = 'CLAIMED';
+    claim.claimed_by_whatsapp = cleanPhone;
+    claim.points_awarded = pointsAwarded;
+    claim.claimed_at = now.toISOString();
+
+    customer.total_points = (customer.total_points || 0) + pointsAwarded;
+    db.customer_points[cleanPhone] = customer.total_points;
+
+    // Audit Ledger Entry for Spinner
     db.points_ledger = db.points_ledger || [];
     db.points_ledger.unshift({
       id: 'LEDGER-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
@@ -2423,28 +2591,138 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
       invoice_number: claim.invoice_number,
       change_type: 'EARN',
       points: pointsAwarded,
-      notes: `Klaim poin struk #${claim.invoice_number} (Belanja Rp ${claim.total_amount?.toLocaleString('id-ID')})`,
+      notes: `Putar Lucky Spin Struk #${claim.invoice_number} (Dapat ${pointsAwarded} Poin)${spinOutcome.isPity ? ' [Pity Guarantee]' : ''}`,
       createdAt: now.toISOString()
     });
 
-    // Deduct held promo balance from merchant escrow (official platform/promo fee)
+    // ── ATURAN REFERRAL DINAMIS & 3 REM PENGAMAN ──
+    let referralResult = { success: false, status: 'NO_CODE', bonusAwarded: 0 };
+    const rawRefCode = (req.body.referral_code || req.body.referralCode || '').trim().toUpperCase();
+
+    if (rawRefCode) {
+      // Rem Pengaman 2: Anti Self-Referral
+      if (customer.referral_code && customer.referral_code.toUpperCase() === rawRefCode) {
+        referralResult = { success: false, status: 'SELF_REFERRAL_BLOCKED', message: 'Dilarang menggunakan kode referral milik sendiri!' };
+      } else {
+        const referrer = Object.values(db.customers).find(c => c && c.referral_code && c.referral_code.toUpperCase() === rawRefCode);
+        if (!referrer) {
+          referralResult = { success: false, status: 'INVALID_CODE', message: 'Kode referral tidak ditemukan.' };
+        } else if (referrer.whatsapp_number === cleanPhone) {
+          referralResult = { success: false, status: 'SELF_REFERRAL_BLOCKED', message: 'Dilarang menggunakan kode referral milik sendiri!' };
+        } else {
+          // Rem Pengaman 3: Daily Cap (Maksimal 3 komisi per hari kalender WIB)
+          const todayWib = getWibDateString(now);
+          if (referrer.last_referral_date !== todayWib) {
+            referrer.daily_referral_count = 0;
+            referrer.last_referral_date = todayWib;
+          }
+
+          if ((referrer.daily_referral_count || 0) >= 3) {
+            referralResult = {
+              success: false,
+              status: 'DAILY_CAP_REACHED',
+              message: 'Batas komisi referral teman hari ini sudah tercapai (Maks 3x/hari). Poin putaran Anda tetap masuk 100%!',
+              bonusAwarded: 0,
+              referrerWhatsapp: referrer.whatsapp_number
+            };
+          } else {
+            // Pembagian Dinamis 50% dari hasil angka roda pemutar:
+            // 100 -> +50, 50 -> +25, 25 -> +12, 10 -> +5
+            const referrerBonus = Math.floor(pointsAwarded * 0.5);
+            referrer.total_points = (referrer.total_points || 0) + referrerBonus;
+            db.customer_points[referrer.whatsapp_number] = referrer.total_points;
+            referrer.daily_referral_count = (referrer.daily_referral_count || 0) + 1;
+
+            claim.referral_code_used = rawRefCode;
+            claim.referrer_whatsapp = referrer.whatsapp_number;
+            claim.referrer_points_awarded = referrerBonus;
+
+            db.points_ledger.unshift({
+              id: 'LEDGER-REF-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+              whatsapp_number: referrer.whatsapp_number,
+              order_id: claim.order_id,
+              invoice_number: claim.invoice_number,
+              change_type: 'REFERRAL_BONUS',
+              points: referrerBonus,
+              notes: `Bonus Referral 50% dari struk #${claim.invoice_number} (Pemutar dapat ${pointsAwarded} Poin)`,
+              createdAt: now.toISOString()
+            });
+
+            referralResult = {
+              success: true,
+              status: 'BONUS_AWARDED',
+              bonusAwarded: referrerBonus,
+              referrerWhatsapp: referrer.whatsapp_number,
+              referrerName: referrer.name || 'Teman KostKu'
+            };
+          }
+        }
+      }
+    }
+
+    // Deduct held promo balance from merchant escrow (official platform/promo fee: Rp 60.00)
     const mId = claim.merchant_id || 'MTR-KASIR-MASTER';
     if (db.merchant_wallets && db.merchant_wallets[mId]) {
-      db.merchant_wallets[mId].held_promo_balance = Math.max(0, (db.merchant_wallets[mId].held_promo_balance || 0) - 75.00);
+      db.merchant_wallets[mId].held_promo_balance = Math.max(0, (db.merchant_wallets[mId].held_promo_balance || 0) - 60.00);
       db.merchant_wallets[mId].updated_at = now.toISOString();
     }
 
     writeDB(db, req);
+
+    // Non-blocking Granular Delta Sync ke Firebase RTDB (< 5 KB payload)
+    setImmediate(() => {
+      try {
+        syncDelta(`customer_points/${cleanPhone}`, customer.total_points, 'PUT');
+        syncDelta(`customers/${cleanPhone}`, customer, 'PUT');
+        syncDelta(`receipt_claims/${claim.id}`, {
+          status: 'CLAIMED',
+          claimed_by_whatsapp: cleanPhone,
+          claimed_at: claim.claimed_at,
+          points_awarded: claim.points_awarded,
+          referral_code_used: claim.referral_code_used || null,
+          referrer_whatsapp: claim.referrer_whatsapp || null,
+          referrer_points_awarded: claim.referrer_points_awarded || 0
+        }, 'PATCH');
+        if (db.merchant_wallets && db.merchant_wallets[mId]) {
+          syncDelta(`merchant_wallets/${mId}`, db.merchant_wallets[mId], 'PATCH');
+        }
+        if (referralResult.referrerWhatsapp && db.customers[referralResult.referrerWhatsapp]) {
+          syncDelta(`customers/${referralResult.referrerWhatsapp}`, db.customers[referralResult.referrerWhatsapp], 'PUT');
+          syncDelta(`customer_points/${referralResult.referrerWhatsapp}`, db.customer_points[referralResult.referrerWhatsapp], 'PUT');
+        }
+      } catch (err) {
+        console.warn('[Firebase RTDB Delta Sync Error]:', err.message);
+      }
+    });
+
     res.json({
       success: true,
-      message: `🎉 Selamat! +${pointsAwarded} Poin loyalitas berhasil ditambahkan ke akun WhatsApp ${cleanPhone}.`,
+      message: pointsAwarded === 100
+        ? `🎉 JACKPOT! Selamat Anda memenangkan 100 Poin Emas!`
+        : `🎉 Selamat! Roda berhenti di ${pointsAwarded} Poin loyalitas.`,
       pointsAwarded,
-      totalPoints: db.customers[cleanPhone].total_points,
+      sliceIndex: spinOutcome.sliceIndex,
+      slice: spinOutcome.slice,
+      isNearMiss: spinOutcome.isNearMiss,
+      isPity: spinOutcome.isPity,
+      spinsWithoutJackpot: customer.spins_without_jackpot,
+      totalPoints: customer.total_points,
+      customer: {
+        whatsapp_number: cleanPhone,
+        name: customer.name,
+        total_points: customer.total_points,
+        referral_code: customer.referral_code,
+        spins_without_jackpot: customer.spins_without_jackpot
+      },
+      referralResult,
       invoice: claim.invoice_number,
       merchantName: claim.merchant_name,
       claimedAt: claim.claimed_at
     });
-  });
+  };
+
+  router.post('/loyalty/claim', handleLoyaltySpinClaim);
+  router.post('/loyalty/spin', handleLoyaltySpinClaim);
 
   // 3. Customer Points Lookup (/api/pos/loyalty/customer/:phone)
   router.get('/loyalty/customer/:phone', (req, res) => {
@@ -2485,7 +2763,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
     const wallet = db.merchant_wallets[mId];
     const claims = (db.receipt_claims || []).filter(c => c.merchant_id === mId || !c.merchant_id);
     const pendingCount = claims.filter(c => c.status === 'PENDING').length;
-    wallet.held_promo_balance = pendingCount * 75.00;
+    wallet.held_promo_balance = pendingCount * 60.00;
 
     const mutations = (db.wallet_mutations || []).filter(m => m.merchant_id === mId || !m.merchant_id);
     writeDB(db, req);
@@ -2991,5 +3269,78 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction }) {
 
   return router;
 }
+
+createPosRouter.BASE_ADMIN_FEE = 40.00;
+createPosRouter.HELD_PROMO_FEE = 60.00;
+createPosRouter.TOTAL_ADMIN_DEDUCT = 100.00;
+createPosRouter.WHEEL_SLICES = [
+  { index: 0, points: 100, label: '100 Poin Emas', isJackpot: true, color: '#F59E0B' },
+  { index: 1, points: 25, label: '25 Poin', isJackpot: false, color: '#3B82F6' },
+  { index: 2, points: 50, label: '50 Poin', isJackpot: false, color: '#8B5CF6' },
+  { index: 3, points: 10, label: '10 Poin', isJackpot: false, color: '#10B981' },
+  { index: 4, points: 25, label: '25 Poin', isJackpot: false, color: '#06B6D4' },
+  { index: 5, points: 50, label: '50 Poin', isJackpot: false, color: '#EC4899' },
+  { index: 6, points: 10, label: '10 Poin', isJackpot: false, color: '#10B981' },
+  { index: 7, points: 25, label: '25 Poin', isJackpot: false, color: '#3B82F6' }
+];
+
+createPosRouter.rollLuckySpin = (customer = {}) => {
+  const spinsWithoutJackpot = customer.spins_without_jackpot !== undefined 
+    ? customer.spins_without_jackpot 
+    : (customer.consecutiveNoJackpotSpins || 0);
+  if (spinsWithoutJackpot >= 4) {
+    customer.spins_without_jackpot = 0;
+    customer.consecutiveNoJackpotSpins = 0;
+    return {
+      pointsWon: 100,
+      points: 100,
+      sliceIndex: 0,
+      slice: createPosRouter.WHEEL_SLICES[0],
+      isPity: true,
+      isPityTriggered: true,
+      isNearMiss: false,
+      targetDegrees: 22.5,
+      spinsWithoutJackpot: 0
+    };
+  }
+
+  const rand = Math.random();
+  let pointsWon = 25;
+  let sliceIndex = 1;
+  let isNearMiss = false;
+
+  if (rand < 0.15) {
+    pointsWon = 100;
+    sliceIndex = 0;
+    customer.spins_without_jackpot = 0;
+  } else if (rand < 0.50) {
+    pointsWon = 50;
+    sliceIndex = Math.random() < 0.5 ? 2 : 5;
+    customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+  } else if (rand < 0.85) {
+    pointsWon = 25;
+    sliceIndex = 1;
+    isNearMiss = true;
+    customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+  } else {
+    pointsWon = 10;
+    sliceIndex = Math.random() < 0.5 ? 3 : 6;
+    customer.spins_without_jackpot = spinsWithoutJackpot + 1;
+  }
+
+  const targetDegrees = isNearMiss ? 46.8 : (sliceIndex * 45 + 22.5);
+
+  return {
+    pointsWon,
+    points: pointsWon,
+    sliceIndex,
+    slice: createPosRouter.WHEEL_SLICES[sliceIndex],
+    isPity: false,
+    isPityTriggered: false,
+    isNearMiss,
+    targetDegrees,
+    spinsWithoutJackpot: customer.spins_without_jackpot
+  };
+};
 
 module.exports = createPosRouter;

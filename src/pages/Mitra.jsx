@@ -4875,28 +4875,56 @@ export default function Mitra({ user }) {
                 />
               </div>
 
-              {/* Input Kode Referral untuk Bonus Poin */}
+              {/* Input Kode Referral Dua Arah: 500 Kuota Nota Gratis untuk Toko + 500 Poin untuk Pengajak */}
               <div style={{
-                background: isLight ? 'rgba(34, 197, 94, 0.08)' : 'rgba(34, 197, 94, 0.12)',
-                border: isLight ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(34, 197, 94, 0.35)',
-                borderRadius: '12px',
-                padding: '12px'
+                background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.12)',
+                border: isLight ? '1.5px solid #86efac' : '1px solid rgba(34, 197, 94, 0.35)',
+                borderRadius: '14px',
+                padding: '14px'
               }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: isLight ? '#166534' : '#86efac', marginBottom: '4px', fontWeight: 700 }}>
-                  <Sparkles size={14} color="#22c55e" />
-                  Kode Referral (Klaim Bonus Poin):
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: isLight ? '#166534' : '#86efac', marginBottom: '5px', fontWeight: 800 }}>
+                  <Sparkles size={15} color="#22c55e" />
+                  Punya Kode Referral Teman / Anak Kost?
                 </label>
                 <input
                   type="text"
                   value={newMerchant.referralCode || ''}
                   onChange={e => setNewMerchant({ ...newMerchant, referralCode: e.target.value.toUpperCase() })}
-                  placeholder="Contoh: KOST-122-OSCAR atau REF-MITRA"
+                  placeholder="Contoh: KOST-RYAN7"
                   className="input-field"
-                  style={{ textTransform: 'uppercase', fontWeight: 600 }}
+                  style={{ textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}
                 />
-                <div style={{ fontSize: '0.72rem', color: isLight ? '#15803d' : '#86efac', marginTop: '6px', lineHeight: 1.4 }}>
-                  🎁 <strong>Bonus +500 Poin:</strong> Masukkan kode referral untuk mengklaim extra poin. <em>Catatan: Jika toko/nomor ini sudah pernah didaftarkan sebelumnya, extra poin tidak akan ter-trigger lagi (1x klaim).</em>
+                
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.2)',
+                  color: isLight ? '#15803d' : '#86efac',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  marginTop: '6px',
+                  lineHeight: 1.3
+                }}>
+                  🎁 Masukkan kode referral untuk mendapatkan <strong>500 Kuota Transaksi Kasir GRATIS</strong> (Hemat Rp 50.000)!
                 </div>
+
+                {newMerchant.referralCode && newMerchant.referralCode.trim().length >= 3 && (
+                  <div style={{
+                    fontSize: '0.74rem',
+                    color: '#16a34a',
+                    fontWeight: 800,
+                    marginTop: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <CheckCircle size={14} color="#16a34a" />
+                    <span>[✓] Kode Referral Aktif! 500 Kuota Nota Siap Diklaim.</span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

@@ -2270,6 +2270,53 @@ export default function Kasir({ user }) {
         </div>
       </header>
 
+      {/* ── PERINGATAN KUOTA MENIPIS (THRESHOLD ALERT <= 15 NOTA) ── */}
+      {(storeInfo.kuotaNota ?? 50) <= 15 && (
+        <div style={{
+          maxWidth: '1280px',
+          margin: '0.5rem auto 0',
+          padding: '0 1rem'
+        }}>
+          <div style={{
+            padding: '10px 14px',
+            borderRadius: '12px',
+            background: (storeInfo.kuotaNota ?? 50) <= 5 ? '#fef2f2' : '#fffbeb',
+            border: (storeInfo.kuotaNota ?? 50) <= 5 ? '1px solid #fecaca' : '1px solid #fde68a',
+            color: (storeInfo.kuotaNota ?? 50) <= 5 ? '#991b1b' : '#92400e',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+              <div style={{ fontSize: '0.76rem', lineHeight: 1.35 }}>
+                <strong>Kuota nota gratis Anda tersisa {storeInfo.kuotaNota ?? 0} transaksi.</strong><br />
+                <span style={{ fontSize: '0.7rem', opacity: 0.9 }}>Lakukan top up agar operasional kasir tetap lancar.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPosTopupModal(true)}
+              style={{
+                flexShrink: 0,
+                padding: '5px 12px',
+                borderRadius: '8px',
+                background: (storeInfo.kuotaNota ?? 50) <= 5 ? '#dc2626' : '#d97706',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.72rem',
+                cursor: 'pointer'
+              }}
+            >
+              Top Up
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── HORIZONTAL QUICK TOOLBAR (1-BARIS PRAKTIS & RAMPING) ── */}
       <div style={{
         maxWidth: '1280px',
@@ -5899,20 +5946,23 @@ export default function Kasir({ user }) {
                   alignItems: 'center',
                   gap: '6px'
                 }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b', letterSpacing: '0.5px' }}>
-                    🎁 SCAN QR KLAIM POIN
+                  <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#1e293b', letterSpacing: '0.5px' }}>
+                    KLAIM DISKON MAKAN ANDA!
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: '4px' }}>
+                    [ QR CODE KLAIM POIN ]
                   </div>
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(claimUrl)}`}
                     alt="QR Code Klaim Poin"
                     style={{ width: '110px', height: '110px', borderRadius: '6px', background: '#fff', padding: '4px', border: '1px solid #e2e8f0' }}
                   />
-                  <div style={{ fontSize: '0.7rem', color: '#475569', lineHeight: 1.3 }}>
-                    Scan QR ini untuk <strong>KLAIM POIN</strong>!<br />
-                    Dapatkan diskon & makan gratis di kost.
+                  <div style={{ fontSize: '0.7rem', color: '#475569', lineHeight: 1.35 }}>
+                    <strong>Scan QR ini & Putar Roda Hadiah!</strong><br />
+                    Dapatkan Poin s/d 100 Poin Belanja.
                   </div>
-                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '2px 8px', borderRadius: '4px' }}>
-                    *Batas Klaim: {deadlineStr}
+                  <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#dc2626', background: '#fef2f2', padding: '2px 8px', borderRadius: '4px' }}>
+                    *Batas Waktu Klaim: {deadlineStr}
                   </div>
                   <a
                     href={claimUrl}
@@ -7272,27 +7322,64 @@ export default function Kasir({ user }) {
               </button>
             </div>
 
+            {/* ── STATUS KUOTA KASIR (PROMO REFERRAL) CARD ── */}
             <div style={{
-              background: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'rgba(239, 68, 68, 0.12)' : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)'),
-              border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(16, 185, 129, 0.25)',
-              borderRadius: '14px',
-              padding: '12px 14px',
+              background: isLight ? '#f8fafc' : '#1e293b',
+              border: '1.5px solid #3b82f6',
+              borderRadius: '16px',
+              padding: '14px 16px',
               marginBottom: '1rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.12)'
             }}>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: textSecondary }}>Saldo Nota Saat Ini</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981' }}>
-                  Rp {(storeInfo.saldoNota || 0).toLocaleString('id-ID')}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', letterSpacing: '0.5px' }}>
+                  STATUS KUOTA KASIR (PROMO REFERRAL)
+                </span>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#16a34a',
+                  background: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#fee2e2' : '#dcfce7',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  border: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '1px solid #fca5a5' : '1px solid #86efac'
+                }}>
+                  {Number(storeInfo.kuotaNota ?? 50) <= 15 ? '⚠️ Kuota Menipis' : '✓ 500 Kuota Aktif'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: textPrimary }}>
+                  Sisa Kuota: <span style={{ color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#10b981' }}>{storeInfo.kuotaNota ?? 50}</span> / 500 Nota
+                </div>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary }}>
+                  {Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100))).toFixed(1)}% Tersedia
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.72rem', color: textSecondary }}>Sisa Kuota Nota</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: textPrimary }}>
-                  {storeInfo.kuotaNota || 0} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Lembar</span>
-                </div>
+
+              {/* Progress Bar */}
+              <div style={{
+                width: '100%',
+                height: '8px',
+                background: isLight ? '#e2e8f0' : '#334155',
+                borderRadius: '999px',
+                overflow: 'hidden',
+                marginBottom: '8px'
+              }}>
+                <div style={{
+                  width: `${Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100)))}%`,
+                  height: '100%',
+                  background: Number(storeInfo.kuotaNota ?? 50) <= 15 
+                    ? '#ef4444' 
+                    : 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)',
+                  borderRadius: '999px',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: textSecondary, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Nilai Manfaat: <strong>Gratis Biaya Transaksi s/d Habis</strong></span>
+                <span>Saldo: <strong>Rp {(storeInfo.saldoNota || 0).toLocaleString('id-ID')}</strong></span>
               </div>
             </div>
 
