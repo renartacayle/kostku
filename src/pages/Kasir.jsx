@@ -162,13 +162,20 @@ export default function Kasir({ user }) {
   const [storeSaveMsg, setStoreSaveMsg] = useState('');
 
   // Hardware Thermal Printer & Cash Drawer (Laci Kasir) Settings State
-  const [printerSettings, setPrinterSettings] = useState(() => getSavedPrinterSettings());
+  const [hardwareCaps, setHardwareCaps] = useState(() => getHardwareCapabilities());
+  const [printerSettings, setPrinterSettings] = useState(() => {
+    const saved = getSavedPrinterSettings();
+    const caps = getHardwareCapabilities();
+    if (saved.connectionType === 'bluetooth' && !caps.bluetooth) {
+      return { ...saved, connectionType: 'browser' };
+    }
+    return saved;
+  });
   const [showHardwareModal, setShowHardwareModal] = useState(false);
   const [hardwareModalTab, setHardwareModalTab] = useState('drawer'); // 'drawer' | 'printer'
   const [drawerKicking, setDrawerKicking] = useState(false);
   const [printerFeedback, setPrinterFeedback] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
-  const [hardwareCaps, setHardwareCaps] = useState(() => getHardwareCapabilities());
 
   // Admin Custom Discount Modal State
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -1776,9 +1783,14 @@ export default function Kasir({ user }) {
       tableNumber: finalTable
     };
 
-    // Auto Print Thermal Receipt
+    // Auto Print Thermal Receipt (Hanya jika hardware siap & didukung)
     try {
-      printReceipt(updatedReceipt, { openDrawer: false }).catch(console.warn);
+      const caps = getHardwareCapabilities();
+      if (printerSettings.connectionType === 'bluetooth' && caps.bluetooth) {
+        printReceipt(updatedReceipt, { openDrawer: false }).catch(console.warn);
+      } else if (printerSettings.connectionType === 'usb' && (caps.usb || caps.serial)) {
+        printReceipt(updatedReceipt, { openDrawer: false }).catch(console.warn);
+      }
     } catch (_) {}
 
     setReceiptOrder(updatedReceipt);
@@ -6711,36 +6723,44 @@ export default function Kasir({ user }) {
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569' }}>Koneksi Printer:</span>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {[
-                    { id: 'bluetooth', label: 'BT', icon: <Bluetooth size={11} /> },
-                    { id: 'usb', label: 'USB', icon: <Usb size={11} /> },
-                    { id: 'browser', label: 'OS', icon: <Printer size={11} /> }
-                  ].map(m => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => {
-                        const next = { ...printerSettings, connectionType: m.id };
-                        setPrinterSettings(next);
-                        savePrinterSettings(next);
-                      }}
-                      style={{
-                        padding: '3px 7px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: (printerSettings.connectionType || 'browser') === m.id ? '#2563eb' : '#e2e8f0',
-                        color: (printerSettings.connectionType || 'browser') === m.id ? '#fff' : '#475569',
-                        fontSize: '0.68rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}
-                    >
-                      {m.icon}
-                      <span>{m.label}</span>
-                    </button>
-                  ))}
+                    { id: 'bluetooth', label: 'BT', icon: <Bluetooth size={11} />, supported: hardwareCaps.bluetooth },
+                    { id: 'usb', label: 'USB', icon: <Usb size={11} />, supported: (hardwareCaps.usb || hardwareCaps.serial) },
+                    { id: 'browser', label: 'OS', icon: <Printer size={11} />, supported: true }
+                  ].map(m => {
+                    const isActive = (printerSettings.connectionType || 'browser') === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          if (m.id === 'bluetooth' && !hardwareCaps.bluetooth) {
+                            setPrinterFeedback('ℹ️ Web Bluetooth tidak didukung di browser ini. Buka via Google Chrome Android atau gunakan mode OS.');
+                            setTimeout(() => setPrinterFeedback(''), 5000);
+                          }
+                          const next = { ...printerSettings, connectionType: m.id };
+                          setPrinterSettings(next);
+                          savePrinterSettings(next);
+                        }}
+                        style={{
+                          padding: '3px 7px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: isActive ? '#2563eb' : '#e2e8f0',
+                          color: isActive ? '#fff' : '#475569',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        title={m.supported ? `${m.label} didukung` : `${m.label} tidak didukung browser ini`}
+                      >
+                        {m.icon}
+                        <span>{m.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -6797,7 +6817,13 @@ export default function Kasir({ user }) {
               }}
             >
               <Printer size={16} />
-              <span>{isPrinting ? 'Mencetak ke Thermal...' : `Cetak Thermal ESC/POS (${printerSettings.connectionType?.toUpperCase() || 'BROWSER'})`}</span>
+              <span>
+                {isPrinting 
+                  ? 'Mencetak ke Thermal...' 
+                  : (printerSettings.connectionType === 'browser' 
+                      ? 'Cetak Struk (Driver OS / PDF)' 
+                      : `Cetak Thermal ESC/POS (${printerSettings.connectionType?.toUpperCase() || 'OS'})`)}
+              </span>
             </button>
 
             <button
