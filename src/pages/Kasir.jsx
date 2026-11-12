@@ -143,6 +143,8 @@ export default function Kasir({ user }) {
   const [showPosTopupModal, setShowPosTopupModal] = useState(false);
   const [posTopupAmount, setPosTopupAmount] = useState(10000);
   const [posTopupLoading, setPosTopupLoading] = useState(false);
+  const [tripayTopupData, setTripayTopupData] = useState(null);
+  const [tripayCheckingStatus, setTripayCheckingStatus] = useState(false);
   const [showStoreModal, setShowStoreModal] = useState(false);
   const [storeForm, setStoreForm] = useState({
     storeName: '',
@@ -969,6 +971,78 @@ export default function Kasir({ user }) {
       }
     } catch (err) {
       alert('Gagal beralih toko: ' + err.message);
+    }
+  };
+
+  const handleInitiateTripayTopup = async (nominal) => {
+    try {
+      setPosTopupLoading(true);
+      const chosenAmount = nominal || posTopupAmount || 10000;
+      const chosenQuota = Math.max(1, Math.floor(chosenAmount / 100));
+      const res = await fetch('/api/pos/topup-tripay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: chosenAmount,
+          quota: chosenQuota,
+          merchantId: storeInfo?.merchantId
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        let qrDataUrl = data.qrUrl || data.qrDataUrl || '';
+        if (!qrDataUrl && data.qrString) {
+          try {
+            qrDataUrl = await QRCode.toDataURL(data.qrString, { width: 320 });
+          } catch (_) {}
+        }
+        setTripayTopupData({
+          ...data,
+          qrDataUrl
+        });
+      } else {
+        alert(data.error || 'Gagal membuat tagihan pembayaran TriPay');
+      }
+    } catch (err) {
+      alert('Terjadi kesalahan koneksi TriPay: ' + err.message);
+    } finally {
+      setPosTopupLoading(false);
+    }
+  };
+
+  const handleConfirmTripayTopup = async () => {
+    if (!tripayTopupData) return;
+    try {
+      setTripayCheckingStatus(true);
+      const res = await fetch('/api/pos/topup-tripay/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reference: tripayTopupData.reference,
+          amount: tripayTopupData.amount,
+          quota: tripayTopupData.quota,
+          merchantId: storeInfo?.merchantId
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        try { playChime(880, 0.2); } catch (_) {}
+        setStoreInfo(prev => ({
+          ...prev,
+          saldoNota: data.saldoNota ?? ((prev.saldoNota || 0) + tripayTopupData.amount),
+          kuotaNota: data.kuotaNota ?? ((prev.kuotaNota || 0) + tripayTopupData.quota)
+        }));
+        setShowPosTopupModal(false);
+        setTripayTopupData(null);
+        fetchData();
+        alert(data.message || `🎉 Pembayaran TriPay Sukses! +${tripayTopupData.quota} nota telah ditambahkan.`);
+      } else {
+        alert(data.error || 'Pembayaran belum terdeteksi. Silakan coba beberapa saat lagi.');
+      }
+    } catch (err) {
+      alert('Gagal konfirmasi pembayaran: ' + err.message);
+    } finally {
+      setTripayCheckingStatus(false);
     }
   };
 
@@ -7917,252 +7991,418 @@ export default function Kasir({ user }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Zap size={22} color="#3b82f6" />
+                  {tripayTopupData ? (
+                    <CreditCard size={22} color="#2563eb" />
+                  ) : (
+                    <Zap size={22} color="#3b82f6" />
+                  )}
                   <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: textPrimary }}>
-                    Top Up Saldo Kuota Nota Kasir
+                    {tripayTopupData ? 'Pembayaran TriPay Gateway' : 'Top Up Saldo Kuota Nota Kasir'}
                   </h3>
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: textSecondary }}>
-                  Harga flat: <strong>Rp 100 / Lembar Nota</strong> (Dibutuhkan untuk transaksi kasir tunai).
+                  {tripayTopupData 
+                    ? 'Pindai barcode QRIS resmi atau buka halaman checkout TriPay (T53543).'
+                    : 'Harga flat: Rp 100 / Lembar Nota (Dibutuhkan untuk transaksi kasir tunai).'}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowPosTopupModal(false)}
+                onClick={() => {
+                  setShowPosTopupModal(false);
+                  setTripayTopupData(null);
+                }}
                 style={{ background: 'none', border: 'none', color: textSecondary, cursor: 'pointer', padding: '4px' }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            {/* ── STATUS KUOTA KASIR (PROMO REFERRAL) CARD ── */}
-            <div style={{
-              background: isLight ? '#f8fafc' : '#1e293b',
-              border: '1.5px solid #3b82f6',
-              borderRadius: '16px',
-              padding: '14px 16px',
-              marginBottom: '1rem',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.12)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', letterSpacing: '0.5px' }}>
-                  STATUS KUOTA KASIR (PROMO REFERRAL)
-                </span>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#16a34a',
-                  background: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#fee2e2' : '#dcfce7',
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  border: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '1px solid #fca5a5' : '1px solid #86efac'
-                }}>
-                  {Number(storeInfo.kuotaNota ?? 50) <= 15 ? '⚠️ Kuota Menipis' : '✓ 500 Kuota Aktif'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: textPrimary }}>
-                  Sisa Kuota: <span style={{ color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#10b981' }}>{storeInfo.kuotaNota ?? 50}</span> / 500 Nota
-                </div>
-                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary }}>
-                  {Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100))).toFixed(1)}% Tersedia
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div style={{
-                width: '100%',
-                height: '8px',
-                background: isLight ? '#e2e8f0' : '#334155',
-                borderRadius: '999px',
-                overflow: 'hidden',
-                marginBottom: '8px'
-              }}>
+            {tripayTopupData ? (
+              /* ── TRIPAY PAYMENT SCREEN (QRIS & CHECKOUT REDIRECT) ── */
+              <div>
                 <div style={{
-                  width: `${Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100)))}%`,
-                  height: '100%',
-                  background: Number(storeInfo.kuotaNota ?? 50) <= 15 
-                    ? '#ef4444' 
-                    : 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)',
-                  borderRadius: '999px',
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
-
-              <div style={{ fontSize: '0.72rem', color: textSecondary, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Nilai Manfaat: <strong>Gratis Biaya Transaksi s/d Habis</strong></span>
-                <span>Saldo: <strong>Rp {(storeInfo.saldoNota || 0).toLocaleString('id-ID')}</strong></span>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: textSecondary, marginBottom: '8px' }}>
-                Pilih Paket Top Up:
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {[
-                  { amount: 5000, label: '50 Nota', sub: 'Rp 5.000' },
-                  { amount: 10000, label: '100 Nota', sub: 'Rp 10.000' },
-                  { amount: 25000, label: '250 Nota', sub: 'Rp 25.000' }
-                ].map(pkg => (
-                  <button
-                    key={pkg.amount}
-                    type="button"
-                    onClick={() => setPosTopupAmount(pkg.amount)}
-                    style={{
-                      padding: '10px 8px',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      border: posTopupAmount === pkg.amount ? '2px solid #3b82f6' : `1px solid ${borderColor}`,
-                      background: posTopupAmount === pkg.amount ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)') : (isLight ? '#f8fafc' : '#1e293b'),
-                      textAlign: 'center',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: posTopupAmount === pkg.amount ? '#3b82f6' : textPrimary }}>
-                      {pkg.label}
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.15)',
+                  border: '1.5px solid #3b82f6',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>
+                      🔒 TriPay Official Gateway (T53543)
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: textSecondary, marginTop: '2px' }}>
-                      {pkg.sub}
+                    <div style={{ fontSize: '0.92rem', fontWeight: 900, color: textPrimary, marginTop: '2px' }}>
+                      +{tripayTopupData.quota} Lembar Nota Kasir
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Section: Klaim Kode Redeem dari Owner */}
-            <div style={{
-              background: isLight ? '#fdf2f8' : 'rgba(236, 72, 153, 0.1)',
-              border: isLight ? '1px dashed #f472b6' : '1px dashed rgba(236, 72, 153, 0.4)',
-              borderRadius: '14px',
-              padding: '12px',
-              marginBottom: '1.25rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Gift size={16} color="#ec4899" />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: textPrimary }}>
-                    Punya Kode Redeem dari Owner?
-                  </span>
+                    <div style={{ fontSize: '0.68rem', color: textSecondary, fontFamily: 'monospace' }}>
+                      Ref: {tripayTopupData.reference}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.68rem', color: textSecondary }}>Total Bayar:</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#16a34a', fontFamily: 'var(--font-mono)' }}>
+                      Rp {tripayTopupData.amount.toLocaleString('id-ID')}
+                    </div>
+                  </div>
                 </div>
+
+                {/* QRIS BARCODE DISPLAY */}
+                <div style={{
+                  textAlign: 'center',
+                  background: isLight ? '#f8fafc' : '#1e293b',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '16px',
+                  padding: '1rem',
+                  marginBottom: '1rem'
+                }}>
+                  <div style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    color: '#2563eb',
+                    marginBottom: '8px',
+                    letterSpacing: '0.5px'
+                  }}>
+                    PINDAI QRIS TRIPAY REAL-TIME
+                  </div>
+
+                  {tripayTopupData.qrDataUrl ? (
+                    <div style={{
+                      display: 'inline-block',
+                      background: '#ffffff',
+                      padding: '10px',
+                      borderRadius: '16px',
+                      border: '2px solid #e2e8f0',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                    }}>
+                      <img
+                        src={tripayTopupData.qrDataUrl}
+                        alt="QRIS TriPay"
+                        style={{ width: '190px', height: '190px', display: 'block' }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ padding: '2rem', color: textSecondary, fontSize: '0.8rem' }}>
+                      Memuat barcode QRIS TriPay...
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: '0.72rem', color: textSecondary, marginTop: '8px' }}>
+                    Bisa discan via <strong>BCA, Mandiri Livin, BRImo, GoPay, OVO, Dana, ShopeePay</strong>
+                  </div>
+                </div>
+
+                {/* ACTION 1: BUKA HALAMAN CHECKOUT TRIPAY (OFFICIAL REDIRECT) */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowRedeemManagerModal(true);
-                    loadRedeemCodes();
-                  }}
+                  onClick={() => window.open(tripayTopupData.checkoutUrl, '_blank')}
                   style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    color: '#ec4899',
-                    background: 'none',
-                    border: 'none',
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    border: '1.5px solid #2563eb',
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.15)',
+                    color: '#2563eb',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
                     cursor: 'pointer',
-                    textDecoration: 'underline'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    marginBottom: '8px'
                   }}
                 >
-                  Lihat / Kelola Kode ↗
+                  <ExternalLink size={15} />
+                  <span>Buka Halaman Checkout TriPay Resmi ↗</span>
                 </button>
-              </div>
 
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <input
-                  type="text"
-                  placeholder="Contoh: KASIRBONUS50"
-                  value={redeemCodeInput}
-                  onChange={e => setRedeemCodeInput(e.target.value.toUpperCase())}
-                  style={{
-                    flex: 1,
-                    boxSizing: 'border-box',
-                    padding: '8px 10px',
-                    borderRadius: '10px',
-                    border: isLight ? '1px solid #fbcfe8' : '1px solid rgba(236, 72, 153, 0.3)',
-                    background: bgCard,
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.5px',
-                    textTransform: 'uppercase'
-                  }}
-                />
+                {/* ACTION 2: KONFIRMASI SUDAH BAYAR */}
                 <button
                   type="button"
-                  disabled={redeemLoading || !redeemCodeInput.trim()}
-                  onClick={() => handleClaimRedeemCode()}
+                  disabled={tripayCheckingStatus}
+                  onClick={handleConfirmTripayTopup}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '10px',
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     color: '#ffffff',
                     fontWeight: 800,
-                    fontSize: '0.8rem',
+                    fontSize: '0.88rem',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(236, 72, 153, 0.3)'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                    marginBottom: '8px'
                   }}
                 >
-                  {redeemLoading ? 'Mengecek...' : 'Klaim'}
+                  <CheckCircle2 size={16} />
+                  <span>{tripayCheckingStatus ? 'Memverifikasi Pembayaran...' : 'Saya Sudah Bayar (Konfirmasi Kuota)'}</span>
+                </button>
+
+                {/* ACTION 3: KEMBALI / GANTI PAKET */}
+                <button
+                  type="button"
+                  onClick={() => setTripayTopupData(null)}
+                  style={{
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    color: textSecondary,
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '6px',
+                    textAlign: 'center'
+                  }}
+                >
+                  ← Kembali / Pilih Nominal Lain
                 </button>
               </div>
-
-              {redeemFeedback && (
+            ) : (
+              /* ── NORMAL PACKAGE SELECTOR (DENGAN TOMBOL BAYAR TRIPAY) ── */
+              <div>
+                {/* ── STATUS KUOTA KASIR (PROMO REFERRAL) CARD ── */}
                 <div style={{
-                  marginTop: '8px',
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  background: redeemFeedback.type === 'success' ? '#dcfce7' : '#fee2e2',
-                  color: redeemFeedback.type === 'success' ? '#15803d' : '#b91c1c'
+                  background: isLight ? '#f8fafc' : '#1e293b',
+                  border: '1.5px solid #3b82f6',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  marginBottom: '1rem',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.12)'
                 }}>
-                  {redeemFeedback.message}
-                </div>
-              )}
-            </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', letterSpacing: '0.5px' }}>
+                      STATUS KUOTA KASIR (PROMO REFERRAL)
+                    </span>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#16a34a',
+                      background: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#fee2e2' : '#dcfce7',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      border: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '1px solid #fca5a5' : '1px solid #86efac'
+                    }}>
+                      {Number(storeInfo.kuotaNota ?? 50) <= 15 ? '⚠️ Kuota Menipis' : '✓ 500 Kuota Aktif'}
+                    </span>
+                  </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setShowPosTopupModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: '12px',
-                  border: `1px solid ${borderColor}`,
-                  background: 'transparent',
-                  color: textSecondary,
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={posTopupLoading}
-                onClick={() => handleTopupPosNota(posTopupAmount)}
-                style={{
-                  flex: 2,
-                  padding: '10px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Zap size={16} />
-                <span>{posTopupLoading ? 'Memproses...' : `Top Up +${Math.floor(posTopupAmount / 100)} Nota (Rp ${posTopupAmount.toLocaleString('id-ID')})`}</span>
-              </button>
-            </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: textPrimary }}>
+                      Sisa Kuota: <span style={{ color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#10b981' }}>{storeInfo.kuotaNota ?? 50}</span> / 500 Nota
+                    </div>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary }}>
+                      {Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100))).toFixed(1)}% Tersedia
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    background: isLight ? '#e2e8f0' : '#334155',
+                    borderRadius: '999px',
+                    overflow: 'hidden',
+                    marginBottom: '8px'
+                  }}>
+                    <div style={{
+                      width: `${Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100)))}%`,
+                      height: '100%',
+                      background: Number(storeInfo.kuotaNota ?? 50) <= 15 
+                        ? '#ef4444' 
+                        : 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)',
+                      borderRadius: '999px',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+
+                  <div style={{ fontSize: '0.72rem', color: textSecondary, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Nilai Manfaat: <strong>Gratis Biaya Transaksi s/d Habis</strong></span>
+                    <span>Saldo: <strong>Rp {(storeInfo.saldoNota || 0).toLocaleString('id-ID')}</strong></span>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: textSecondary, marginBottom: '8px' }}>
+                    Pilih Paket Top Up:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {[
+                      { amount: 5000, label: '50 Nota', sub: 'Rp 5.000' },
+                      { amount: 10000, label: '100 Nota', sub: 'Rp 10.000' },
+                      { amount: 25000, label: '250 Nota', sub: 'Rp 25.000' }
+                    ].map(pkg => (
+                      <button
+                        key={pkg.amount}
+                        type="button"
+                        onClick={() => setPosTopupAmount(pkg.amount)}
+                        style={{
+                          padding: '10px 8px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          border: posTopupAmount === pkg.amount ? '2px solid #3b82f6' : `1px solid ${borderColor}`,
+                          background: posTopupAmount === pkg.amount ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.2)') : (isLight ? '#f8fafc' : '#1e293b'),
+                          textAlign: 'center',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: posTopupAmount === pkg.amount ? '#3b82f6' : textPrimary }}>
+                          {pkg.label}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: textSecondary, marginTop: '2px' }}>
+                          {pkg.sub}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section: Klaim Kode Redeem dari Owner */}
+                <div style={{
+                  background: isLight ? '#fdf2f8' : 'rgba(236, 72, 153, 0.1)',
+                  border: isLight ? '1px dashed #f472b6' : '1px dashed rgba(236, 72, 153, 0.4)',
+                  borderRadius: '14px',
+                  padding: '12px',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Gift size={16} color="#ec4899" />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: textPrimary }}>
+                        Punya Kode Redeem dari Owner?
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRedeemManagerModal(true);
+                        loadRedeemCodes();
+                      }}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#ec4899',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Lihat / Kelola Kode ↗
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input
+                      type="text"
+                      placeholder="Contoh: KASIRBONUS50"
+                      value={redeemCodeInput}
+                      onChange={e => setRedeemCodeInput(e.target.value.toUpperCase())}
+                      style={{
+                        flex: 1,
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: isLight ? '1px solid #fbcfe8' : '1px solid rgba(236, 72, 153, 0.3)',
+                        background: bgCard,
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.5px',
+                        textTransform: 'uppercase'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={redeemLoading || !redeemCodeInput.trim()}
+                      onClick={() => handleClaimRedeemCode()}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(236, 72, 153, 0.3)'
+                      }}
+                    >
+                      {redeemLoading ? 'Mengecek...' : 'Klaim'}
+                    </button>
+                  </div>
+
+                  {redeemFeedback && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      background: redeemFeedback.type === 'success' ? '#dcfce7' : '#fee2e2',
+                      color: redeemFeedback.type === 'success' ? '#15803d' : '#b91c1c'
+                    }}>
+                      {redeemFeedback.message}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPosTopupModal(false);
+                      setTripayTopupData(null);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '12px',
+                      border: `1px solid ${borderColor}`,
+                      background: 'transparent',
+                      color: textSecondary,
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={posTopupLoading}
+                    onClick={() => handleInitiateTripayTopup(posTopupAmount)}
+                    style={{
+                      flex: 2,
+                      padding: '11px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                    }}
+                  >
+                    <CreditCard size={16} />
+                    <span>{posTopupLoading ? 'Menghubungkan TriPay...' : `Bayar via TriPay (Rp ${posTopupAmount.toLocaleString('id-ID')})`}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

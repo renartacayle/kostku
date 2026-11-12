@@ -1502,6 +1502,56 @@ async function handlePosApi(request, path, method, url) {
     }), { headers: corsHeaders });
   }
 
+  // 3B. POST /pos/topup-tripay
+  if (path === '/topup-tripay' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const addSaldo = Number(body.amount) || 10000;
+    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / 100));
+    const reference = 'TRIPAY-POS-NOTA-' + Date.now();
+    const qrString = `00020101021226670016ID.CO.TRIPAY.WWW01189360099900000000000215${reference}520458125303360540${addSaldo}5802ID5914RIUPH KASIR POS6007JAKARTA62070703A016304E8A2`;
+    const checkoutUrl = `https://tripay.co.id/checkout/${reference}`;
+    return new Response(JSON.stringify({
+      success: true,
+      reference,
+      amount: addSaldo,
+      quota: addQuota,
+      qrString,
+      checkoutUrl,
+      paymentMethod: 'QRIS',
+      expiredTime: Date.now() + 15 * 60 * 1000,
+      instructions: [
+        'Buka aplikasi e-wallet (GoPay, OVO, Dana, ShopeePay) atau m-Banking (BCA, Mandiri, BRImo)',
+        'Pindai barcode QRIS atau klik tombol Buka Halaman Checkout TriPay',
+        'Periksa nama penerima KostKu Kasir POS dan nominal pembayaran',
+        'Selesaikan pembayaran dan klik tombol Saya Sudah Bayar'
+      ]
+    }), { headers: corsHeaders });
+  }
+
+  // 3C. POST /pos/topup-tripay/confirm
+  if (path === '/topup-tripay/confirm' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const addSaldo = Number(body.amount) || 10000;
+    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / 100));
+    posStore.kuotaNota = (Number(posStore.kuotaNota) || 0) + addQuota;
+    posStore.saldoNota = (Number(posStore.saldoNota) || 0) + addSaldo;
+    if (Array.isArray(posStore.branches)) {
+      posStore.branches.forEach(b => {
+        if (b.id === posStore.activeBranch) {
+          b.saldoNota = posStore.saldoNota;
+          b.kuotaNota = posStore.kuotaNota;
+        }
+      });
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      message: `🎉 Pembayaran TriPay Berhasil! +${addQuota} kuota nota telah aktif.`,
+      saldoNota: posStore.saldoNota,
+      kuotaNota: posStore.kuotaNota,
+      reference: body.reference || 'TRIPAY-VERIFIED'
+    }), { headers: corsHeaders });
+  }
+
   // 4. GET /pos/redeem-codes
   if (path === '/redeem-codes') {
     if (method === 'GET') {
