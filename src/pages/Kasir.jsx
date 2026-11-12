@@ -1969,27 +1969,45 @@ export default function Kasir({ user }) {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {/* Logo, Store Name & Live Status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-            <Link to="/dashboard" title="Kembali ke Dashboard KostKu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              <img 
-                src="/logo.png" 
-                alt="Logo KostKu" 
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '10px',
-                  objectFit: 'contain',
-                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                  cursor: 'pointer'
-                }} 
-              />
+          {/* Left: Back Arrow + Logo + Store Name + Live Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+            <Link 
+              to="/dashboard" 
+              title="Kembali ke Dashboard KostKu" 
+              style={{
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : '#1e293b',
+                border: `1px solid ${borderColor}`,
+                color: textPrimary,
+                flexShrink: 0
+              }}
+            >
+              <ArrowLeft size={16} />
             </Link>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+
+            <img 
+              src="/logo.png" 
+              alt="Logo KostKu" 
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
+                objectFit: 'contain',
+                flexShrink: 0
+              }} 
+            />
+
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <h1 style={{
                   margin: 0,
-                  fontSize: '0.92rem',
+                  fontSize: '0.86rem',
                   fontWeight: 800,
                   color: textPrimary,
                   letterSpacing: '-0.3px',
@@ -1997,27 +2015,27 @@ export default function Kasir({ user }) {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'
                 }}>
-                  {storeInfo.storeName || 'KostKu POS Kasir'}
+                  {storeInfo.storeName || 'KostKu POS'}
                 </h1>
                 {storeInfo.isValidated ? (
                   <span style={{
-                    fontSize: '0.6rem',
+                    fontSize: '0.58rem',
                     fontWeight: 800,
-                    padding: '1px 6px',
+                    padding: '1px 5px',
                     borderRadius: '999px',
                     background: '#16a34a',
                     color: '#ffffff',
                     flexShrink: 0
                   }}>
-                    ✓ Resmi
+                    ✓
                   </span>
                 ) : (
                   <span 
                     onClick={() => setShowStoreModal(true)}
                     style={{
-                      fontSize: '0.6rem',
+                      fontSize: '0.58rem',
                       fontWeight: 800,
-                      padding: '1px 6px',
+                      padding: '1px 5px',
                       borderRadius: '999px',
                       background: '#d97706',
                       color: '#ffffff',
@@ -2025,21 +2043,21 @@ export default function Kasir({ user }) {
                       flexShrink: 0
                     }}
                   >
-                    ⚠️ Validasi
+                    ⚠️
                   </span>
                 )}
               </div>
-              <p style={{ margin: 0, fontSize: '0.68rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span>{storeInfo.location || 'Kantin KostKu'}</span>
-                <span>•</span>
+              <p style={{ margin: 0, fontSize: '0.64rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span>{storeInfo.location || 'Kantin'}</span>
+                <span> • </span>
                 <span style={{ color: user?.role === 'mitra' ? '#ec4899' : '#10b981', fontWeight: 600 }}>
-                  {user ? (user.role === 'mitra' ? `👑 ${user.name}` : `👤 ${user.name}`) : 'Kasir'}
+                  {user ? (user.name.split(' ')[0]) : 'Kasir'}
                 </span>
               </p>
             </div>
           </div>
 
-          {/* Quick Controls: Sisa Nota, Kelola Modal, Theme, Sound, Refresh */}
+          {/* Right: Sisa Nota + Kelola Modal + Desktop-Only Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
             {/* Saldo Kuota Nota Chip */}
             <button
@@ -2063,7 +2081,7 @@ export default function Kasir({ user }) {
               title="Klik untuk Top Up Saldo Kuota Nota Kasir"
             >
               <span>🪙</span>
-              <span>{storeInfo.kuotaNota ?? 50} nota</span>
+              <span>{storeInfo.kuotaNota ?? 50}</span>
             </button>
 
             {/* Tombol Pusat Kelola Kasir (Semua Fitur) */}
@@ -2101,82 +2119,62 @@ export default function Kasir({ user }) {
               )}
             </button>
 
-            {/* Back to Dashboard */}
-            <Link
-              to="/dashboard"
-              style={{
-                background: isLight ? '#f1f5f9' : '#1e293b',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                padding: '5px 7px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: textSecondary,
-                textDecoration: 'none'
-              }}
-              title="Kembali ke Dashboard KostKu"
-            >
-              <ArrowLeft size={14} />
-            </Link>
+            {/* Desktop-Only Secondary Controls: Theme, Sound, Refresh */}
+            <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '5px' }}>
+              <button
+                onClick={toggleTheme}
+                style={{
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  padding: '5px 7px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: textSecondary
+                }}
+                title="Ganti Tema Terang/Gelap"
+              >
+                {isLight ? <Moon size={14} /> : <Sun size={14} color="#f59e0b" />}
+              </button>
 
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              style={{
-                background: isLight ? '#f1f5f9' : '#1e293b',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                padding: '5px 7px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: textSecondary
-              }}
-              title="Ganti Tema Terang/Gelap"
-            >
-              {isLight ? <Moon size={14} /> : <Sun size={14} color="#f59e0b" />}
-            </button>
+              <button
+                onClick={() => setAudioAlert(!audioAlert)}
+                style={{
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  padding: '5px 7px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: audioAlert ? '#10b981' : textSecondary
+                }}
+                title={audioAlert ? 'Suara Aktif' : 'Suara Mati'}
+              >
+                {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              </button>
 
-            {/* Audio Toggle */}
-            <button
-              onClick={() => setAudioAlert(!audioAlert)}
-              style={{
-                background: isLight ? '#f1f5f9' : '#1e293b',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                padding: '5px 7px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: audioAlert ? '#10b981' : textSecondary
-              }}
-              title={audioAlert ? 'Suara Aktif' : 'Suara Mati'}
-            >
-              {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />}
-            </button>
-
-            {/* Refresh */}
-            <button
-              onClick={fetchData}
-              style={{
-                background: isLight ? '#f1f5f9' : '#1e293b',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                padding: '5px 7px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: textSecondary
-              }}
-              title="Refresh Data"
-            >
-              <RefreshCw size={14} />
-            </button>
+              <button
+                onClick={fetchData}
+                style={{
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  padding: '5px 7px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: textSecondary
+                }}
+                title="Refresh Data"
+              >
+                <RefreshCw size={14} />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -3107,136 +3105,122 @@ export default function Kasir({ user }) {
         <main style={{ maxWidth: '1280px', margin: '1.25rem auto 0', padding: '0 1rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
             {/* Left: Product Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Catalog Controls: Title, View Toggle & Add Menu */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div>
-                  <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: textPrimary, margin: 0 }}>
-                    Katalog Menu Kasir
-                  </h2>
-                  <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: textSecondary }}>
-                    Cari &amp; ketuk menu untuk dimasukkan ke keranjang kasir.
-                  </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Unified Search & Quick Actions Bar (Single Compact Row) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                {/* Live Search Input Bar */}
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: textSecondary }} />
+                  <input
+                    type="text"
+                    placeholder="Cari menu makanan, minuman..."
+                    value={posSearchQuery}
+                    onChange={e => setPosSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '7px 28px 7px 30px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#ffffff' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.78rem',
+                      outline: 'none',
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                    }}
+                  />
+                  {posSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setPosSearchQuery('')}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: textSecondary,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: 0
+                      }}
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {/* Grid vs List View Toggle */}
-                  <div style={{
+
+                {/* Grid / List Toggle */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  padding: '2px',
+                  borderRadius: '8px',
+                  border: `1px solid ${borderColor}`,
+                  flexShrink: 0
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setPosViewMode('grid')}
+                    title="Tampilan Grid"
+                    style={{
+                      padding: '5px 7px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: posViewMode === 'grid' ? '#2563eb' : 'transparent',
+                      color: posViewMode === 'grid' ? '#ffffff' : textSecondary,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <LayoutGrid size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPosViewMode('list')}
+                    title="Tampilan List"
+                    style={{
+                      padding: '5px 7px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: posViewMode === 'list' ? '#2563eb' : 'transparent',
+                      color: posViewMode === 'list' ? '#ffffff' : textSecondary,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <List size={13} />
+                  </button>
+                </div>
+
+                {/* + Menu Baru (Compact Button) */}
+                <button
+                  type="button"
+                  onClick={handleOpenAddMenu}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    background: isLight ? '#f1f5f9' : '#1e293b',
-                    padding: '2px',
-                    borderRadius: '8px',
-                    border: `1px solid ${borderColor}`
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => setPosViewMode('grid')}
-                      title="Tampilan Grid Kartu"
-                      style={{
-                        padding: '5px 8px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: posViewMode === 'grid' ? '#2563eb' : 'transparent',
-                        color: posViewMode === 'grid' ? '#ffffff' : textSecondary,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700
-                      }}
-                    >
-                      <LayoutGrid size={13} />
-                      <span>Grid</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPosViewMode('list')}
-                      title="Tampilan List Kompak"
-                      style={{
-                        padding: '5px 8px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: posViewMode === 'list' ? '#2563eb' : 'transparent',
-                        color: posViewMode === 'list' ? '#ffffff' : textSecondary,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700
-                      }}
-                    >
-                      <List size={13} />
-                      <span>List</span>
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenAddMenu}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.76rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
-                    }}
-                  >
-                    <Plus size={14} strokeWidth={2.5} />
-                    <span>Menu Baru</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Live Search Input Bar */}
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: textSecondary }} />
-                <input
-                  type="text"
-                  placeholder="Cari menu makanan, minuman, cemilan..."
-                  value={posSearchQuery}
-                  onChange={e => setPosSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 32px 8px 34px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#ffffff' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.8rem',
-                    outline: 'none',
-                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                    gap: '4px',
+                    flexShrink: 0,
+                    boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
                   }}
-                />
-                {posSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setPosSearchQuery('')}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: textSecondary,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: 0
-                    }}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+                  title="Tambah Menu Baru"
+                >
+                  <Plus size={13} strokeWidth={2.5} />
+                  <span>Menu</span>
+                </button>
               </div>
 
               {/* Category Filter Pills: HORIZONTAL SLEEK SCROLL (NO CLUTTER) */}
@@ -4098,32 +4082,117 @@ export default function Kasir({ user }) {
               ))}
             </div>
 
+            {/* Quick System Controls: Theme, Sound, Refresh, Dashboard */}
             <div style={{
-              padding: '10px 1.25rem',
+              padding: '12px 1.25rem',
               borderTop: `1px solid ${borderColor}`,
               background: isLight ? '#f8fafc' : '#0f172a',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '0.74rem',
-              color: textSecondary
+              flexDirection: 'column',
+              gap: '10px'
             }}>
-              <span>Toko: {storeInfo.storeName || 'KostKu POS'}</span>
-              <button
-                type="button"
-                onClick={() => setShowToolsDrawer(false)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  border: `1px solid ${borderColor}`,
-                  background: 'transparent',
-                  color: textPrimary,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Tutup
-              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  {isLight ? <Moon size={14} /> : <Sun size={14} color="#f59e0b" />}
+                  <span>{isLight ? 'Dark Mode' : 'Light Mode'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAudioAlert(!audioAlert)}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    color: audioAlert ? '#10b981' : textSecondary,
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                  <span>{audioAlert ? 'Suara ON' : 'Suara OFF'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { fetchData(); setShowToolsDrawer(false); }}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <RefreshCw size={14} />
+                  <span>Refresh</span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                <Link
+                  to="/dashboard"
+                  style={{
+                    color: textSecondary,
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <ArrowLeft size={13} />
+                  <span>Dashboard KostKu</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setShowToolsDrawer(false)}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: '8px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    color: textPrimary,
+                    fontWeight: 800,
+                    fontSize: '0.76rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>
