@@ -12,6 +12,510 @@ const corsHeaders = {
 const registeredPartnerHistory = new Set();
 const registeredMerchants = [];
 
+// ============================================================================
+// IN-MEMORY POS STORE ON CLOUDFLARE EDGE
+// ============================================================================
+const posStore = {
+  storeName: 'KostKu Cafe & Resto (Pusat)',
+  location: 'Kawasan KostKu Residence Udinus',
+  address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
+  city: 'Semarang',
+  phone: '081234567890',
+  isValidated: true,
+  saldoNota: 100000,
+  kuotaNota: 1000,
+  uid: 'MTR-KASIR-MASTER',
+  merchantId: 'MTR-KASIR-MASTER',
+  activeBranch: 'MTR-KASIR-MASTER',
+  branches: [
+    {
+      id: 'MTR-KASIR-MASTER',
+      name: 'KostKu Cafe & Resto (Pusat)',
+      address: 'Jl. Nakula I No. 5-11, Semarang',
+      saldoNota: 100000,
+      kuotaNota: 1000
+    },
+    {
+      id: 'MTR-CABANG-TEMBALANG',
+      name: 'KostKu Kitchen & Coffee Tembalang',
+      address: 'Jl. Prof. Soedarto No. 12, Tembalang, Semarang',
+      saldoNota: 25000,
+      kuotaNota: 250
+    },
+    {
+      id: 'MTR-CABANG-SEKARAN',
+      name: 'KostKu Food Corner Unnes Sekaran',
+      address: 'Jl. Taman Siswa No. 8, Sekaran, Gunungpati',
+      saldoNota: 15000,
+      kuotaNota: 150
+    }
+  ]
+};
+
+let posProducts = [
+  {
+    id: 'prod-1',
+    name: 'Mie Gacoan Level 2',
+    category: 'Makanan',
+    price: 13000,
+    stock: 99,
+    isAvailable: true,
+    description: 'Mie pedas gurih manis dengan topping ayam cincang dan pangsit goreng renyah.',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80'
+  },
+  {
+    id: 'prod-2',
+    name: 'Nasi Goreng Spesial Kost',
+    category: 'Makanan',
+    price: 18000,
+    stock: 50,
+    isAvailable: true,
+    description: 'Nasi goreng dengan telur mata sapi, sosis, dan suwiran ayam.',
+    image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80'
+  },
+  {
+    id: 'prod-3',
+    name: 'Pangsit Goreng Crispy (3 pcs)',
+    category: 'Snack',
+    price: 10000,
+    stock: 60,
+    isAvailable: true,
+    description: 'Pangsit isi ayam udang digoreng renyah dengan saus asam manis.',
+    image: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=500&q=80'
+  },
+  {
+    id: 'prod-4',
+    name: 'Es Teh Manis Jumbo',
+    category: 'Minuman',
+    price: 4000,
+    stock: 200,
+    isAvailable: true,
+    description: 'Teh melati wangi dingin segar porsi besar.',
+    image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80'
+  },
+  {
+    id: 'prod-5',
+    name: 'Es Kopi Susu Gula Aren',
+    category: 'Minuman',
+    price: 12000,
+    stock: 80,
+    isAvailable: true,
+    description: 'Espresso robusta mantap dengan susu segar dan gula aren murni.',
+    image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&q=80'
+  }
+];
+
+let posTables = [
+  { id: 'tbl-1', number: 'Meja 01', qrToken: 'MEJA-01-TKN881' },
+  { id: 'tbl-2', number: 'Meja 02', qrToken: 'MEJA-02-TKN882' },
+  { id: 'tbl-3', number: 'Meja 03', qrToken: 'MEJA-03-TKN883' },
+  { id: 'tbl-4', number: 'Meja 04', qrToken: 'MEJA-04-TKN884' },
+  { id: 'tbl-5', number: 'Meja 05', qrToken: 'MEJA-05-TKN885' }
+];
+
+let posInventory = [
+  { id: 'INV-MIE', name: 'Mie Basah Telur Segar', category: 'Bahan Pokok', unit: 'porsi', currentStock: 25, minAlertStock: 15, costPerUnit: 2500, supplier: 'CV Berkah Pangan Mandiri', lastRestocked: new Date().toISOString() },
+  { id: 'INV-AYAM', name: 'Daging Ayam Cincang Marinasi', category: 'Protein & Daging', unit: 'gram', currentStock: 450, minAlertStock: 500, costPerUnit: 45, supplier: 'Rumah Potong Unggas Sejahtera', lastRestocked: new Date().toISOString() },
+  { id: 'INV-PANGSIT', name: 'Kulit & Pangsit Goreng Crispy', category: 'Topping & Snack', unit: 'pcs', currentStock: 35, minAlertStock: 20, costPerUnit: 800, supplier: 'UMKM Keripik Barokah', lastRestocked: new Date().toISOString() },
+  { id: 'INV-MINYAK-CABAI', name: 'Minyak Cabai & Sambal Level', category: 'Bumbu & Saus', unit: 'ml', currentStock: 180, minAlertStock: 200, costPerUnit: 25, supplier: 'Dapur Rempah KostKu', lastRestocked: new Date().toISOString() },
+  { id: 'INV-BERAS', name: 'Beras Ramos Premium', category: 'Bahan Pokok', unit: 'gram', currentStock: 5000, minAlertStock: 2000, costPerUnit: 14, supplier: 'Gudang Beras Delanggu', lastRestocked: new Date().toISOString() },
+  { id: 'INV-TELUR', name: 'Telur Ayam Negeri Segar', category: 'Protein & Daging', unit: 'butir', currentStock: 18, minAlertStock: 10, costPerUnit: 2000, supplier: 'Peternakan Ayam Makmur', lastRestocked: new Date().toISOString() },
+  { id: 'INV-SOSIS', name: 'Sosis Sapi Panggang', category: 'Protein & Daging', unit: 'pcs', currentStock: 24, minAlertStock: 15, costPerUnit: 1500, supplier: 'Distributor Frozen Food', lastRestocked: new Date().toISOString() },
+  { id: 'INV-AYAM-POTONG', name: 'Ayam Potong Marinasi Madu', category: 'Protein & Daging', unit: 'potong', currentStock: 12, minAlertStock: 15, costPerUnit: 8000, supplier: 'Rumah Potong Unggas Sejahtera', lastRestocked: new Date().toISOString() },
+  { id: 'INV-MADU', name: 'Madu Alami Murni', category: 'Bumbu & Saus', unit: 'ml', currentStock: 350, minAlertStock: 200, costPerUnit: 50, supplier: 'Peternak Lebah Nusantara', lastRestocked: new Date().toISOString() },
+  { id: 'INV-KOPI', name: 'Biji Kopi Robusta Blend', category: 'Kopi & Minuman', unit: 'gram', currentStock: 850, minAlertStock: 300, costPerUnit: 150, supplier: 'Roastery Kopi Temanggung', lastRestocked: new Date().toISOString() },
+  { id: 'INV-SUSU', name: 'Susu Segar Fresh Milk', category: 'Kopi & Minuman', unit: 'ml', currentStock: 420, minAlertStock: 500, costPerUnit: 20, supplier: 'Koperasi Susu Boyolali', lastRestocked: new Date().toISOString() },
+  { id: 'INV-GULA-AREN', name: 'Sirup Gula Aren Organik', category: 'Kopi & Minuman', unit: 'ml', currentStock: 650, minAlertStock: 250, costPerUnit: 35, supplier: 'Produsen Gula Semut Cilacap', lastRestocked: new Date().toISOString() },
+  { id: 'INV-TEH', name: 'Daun Teh Melati Wangi', category: 'Kopi & Minuman', unit: 'gram', currentStock: 600, minAlertStock: 200, costPerUnit: 40, supplier: 'Perkebunan Teh Pagilaran', lastRestocked: new Date().toISOString() },
+  { id: 'INV-BOX-KERTAS', name: 'Box Kraft Food Grade', category: 'Kemasan & Packaging', unit: 'pcs', currentStock: 80, minAlertStock: 30, costPerUnit: 1200, supplier: 'Pabrik Kemasan Paperindo', lastRestocked: new Date().toISOString() },
+  { id: 'INV-CUP-PLASTIK', name: 'Cup Plastik 16oz + Tutup', category: 'Kemasan & Packaging', unit: 'pcs', currentStock: 55, minAlertStock: 25, costPerUnit: 900, supplier: 'Distributor Plastik Semarang', lastRestocked: new Date().toISOString() },
+  { id: 'INV-SEDOTAN', name: 'Sedotan Steril Higienis', category: 'Kemasan & Packaging', unit: 'pcs', currentStock: 120, minAlertStock: 50, costPerUnit: 150, supplier: 'Distributor Plastik Semarang', lastRestocked: new Date().toISOString() }
+];
+
+let posRecipes = {
+  'prod-1': [
+    { inventoryId: 'INV-MIE', amount: 1, name: 'Mie Basah Telur Segar', unit: 'porsi' },
+    { inventoryId: 'INV-AYAM', amount: 40, name: 'Daging Ayam Cincang Marinasi', unit: 'gram' },
+    { inventoryId: 'INV-PANGSIT', amount: 2, name: 'Kulit & Pangsit Goreng Crispy', unit: 'pcs' },
+    { inventoryId: 'INV-MINYAK-CABAI', amount: 15, name: 'Minyak Cabai & Sambal Level', unit: 'ml' },
+    { inventoryId: 'INV-BOX-KERTAS', amount: 1, name: 'Box Kraft Food Grade', unit: 'pcs' }
+  ],
+  'prod-2': [
+    { inventoryId: 'INV-BERAS', amount: 150, name: 'Beras Ramos Premium', unit: 'gram' },
+    { inventoryId: 'INV-TELUR', amount: 1, name: 'Telur Ayam Negeri Segar', unit: 'butir' },
+    { inventoryId: 'INV-SOSIS', amount: 1, name: 'Sosis Sapi Panggang', unit: 'pcs' },
+    { inventoryId: 'INV-AYAM', amount: 25, name: 'Daging Ayam Cincang Marinasi', unit: 'gram' },
+    { inventoryId: 'INV-BOX-KERTAS', amount: 1, name: 'Box Kraft Food Grade', unit: 'pcs' }
+  ],
+  'prod-3': [
+    { inventoryId: 'INV-PANGSIT', amount: 3, name: 'Kulit & Pangsit Goreng Crispy', unit: 'pcs' },
+    { inventoryId: 'INV-BOX-KERTAS', amount: 1, name: 'Box Kraft Food Grade', unit: 'pcs' }
+  ],
+  'prod-4': [
+    { inventoryId: 'INV-TEH', amount: 10, name: 'Daun Teh Melati Wangi', unit: 'gram' },
+    { inventoryId: 'INV-CUP-PLASTIK', amount: 1, name: 'Cup Plastik 16oz + Tutup', unit: 'pcs' },
+    { inventoryId: 'INV-SEDOTAN', amount: 1, name: 'Sedotan Steril Higienis', unit: 'pcs' }
+  ],
+  'prod-5': [
+    { inventoryId: 'INV-KOPI', amount: 18, name: 'Biji Kopi Robusta Blend', unit: 'gram' },
+    { inventoryId: 'INV-SUSU', amount: 150, name: 'Susu Segar Fresh Milk', unit: 'ml' },
+    { inventoryId: 'INV-GULA-AREN', amount: 25, name: 'Sirup Gula Aren Organik', unit: 'ml' },
+    { inventoryId: 'INV-CUP-PLASTIK', amount: 1, name: 'Cup Plastik 16oz + Tutup', unit: 'pcs' },
+    { inventoryId: 'INV-SEDOTAN', amount: 1, name: 'Sedotan Steril Higienis', unit: 'pcs' }
+  ]
+};
+
+let posFoodPromos = [
+  {
+    id: 'PROMO-FOOD-01',
+    title: 'Promo Mie Gacoan Hemat (Diskon Rp 3.000)',
+    code: 'GACOANHEMAT',
+    scope: 'SPECIFIC_ITEM',
+    targetProductId: 'prod-1',
+    targetProductName: 'Mie Gacoan Level 2',
+    discountType: 'FIXED',
+    discountValue: 3000,
+    minOrder: 0,
+    limitType: 'QUOTA',
+    maxQuota: 25,
+    usedCount: 4,
+    startDate: new Date().toISOString().slice(0, 10),
+    expiryDate: null,
+    isActive: true,
+    createdByRole: 'owner',
+    description: 'Diskon Rp 3.000 per porsi untuk 25 pemesan pertama',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'PROMO-FOOD-02',
+    title: 'Promo Diskon 15% Semua Menu',
+    code: 'WEEKENDSERU',
+    scope: 'ALL',
+    targetProductId: null,
+    targetProductName: null,
+    discountType: 'PERCENT',
+    discountValue: 15,
+    minOrder: 25000,
+    limitType: 'DATE',
+    maxQuota: null,
+    usedCount: 2,
+    startDate: new Date().toISOString().slice(0, 10),
+    expiryDate: '2026-11-30',
+    isActive: true,
+    createdByRole: 'mitra',
+    description: 'Diskon 15% semua menu min. belanja Rp 25.000 berlaku s/d 30 November 2026',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'PROMO-FOOD-03',
+    title: 'Super Kenyang Hemat Rp 5.000',
+    code: 'KENYANG5K',
+    scope: 'ALL',
+    targetProductId: null,
+    targetProductName: null,
+    discountType: 'FIXED',
+    discountValue: 5000,
+    minOrder: 20000,
+    limitType: 'BOTH',
+    maxQuota: 50,
+    usedCount: 8,
+    startDate: new Date().toISOString().slice(0, 10),
+    expiryDate: '2026-11-25',
+    isActive: true,
+    createdByRole: 'admin',
+    description: 'Potongan Rp 5.000 untuk 50 porsi atau s/d 25 November 2026',
+    createdAt: new Date().toISOString()
+  }
+];
+
+let posRedeemCodes = [
+  {
+    id: 'REDEEM-KASIR-50',
+    code: 'KASIRBONUS50',
+    type: 'KUOTA_NOTA',
+    quotaNota: 50,
+    saldoBonus: 5000,
+    maxQuota: 20,
+    usedCount: 0,
+    usedBy: [],
+    description: 'Bonus 50 Kuota Nota Kasir (Rp 5.000)',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'REDEEM-KASIR-100',
+    code: 'KOSTKUMERDEKA',
+    type: 'KUOTA_NOTA',
+    quotaNota: 100,
+    saldoBonus: 10000,
+    maxQuota: 10,
+    usedCount: 0,
+    usedBy: [],
+    description: 'Bonus Spesial 100 Kuota Nota Kasir (Rp 10.000)',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'REDEEM-KASIR-VIP',
+    code: 'VIPKASIR250',
+    type: 'KUOTA_NOTA',
+    quotaNota: 250,
+    saldoBonus: 25000,
+    maxQuota: 5,
+    usedCount: 0,
+    usedBy: [],
+    description: 'Bonus Kuota Mitra Prioritas 250 Nota (Rp 25.000)',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  }
+];
+
+let posOrders = [];
+
+function getInventoryAlerts() {
+  return posInventory
+    .filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0))
+    .map(i => ({
+      id: i.id,
+      name: i.name,
+      category: i.category,
+      unit: i.unit,
+      currentStock: Number(i.currentStock) || 0,
+      minAlertStock: Number(i.minAlertStock) || 0,
+      deficit: Math.max(0, (Number(i.minAlertStock) || 0) - (Number(i.currentStock) || 0)),
+      status: (Number(i.currentStock) || 0) === 0 ? 'HABIS' : 'MENIPIS',
+      costPerUnit: i.costPerUnit || 0
+    }));
+}
+
+function getRecipesList() {
+  return posProducts.map(p => {
+    const ingredients = posRecipes[p.id] || [];
+    const totalHPP = ingredients.reduce((sum, ing) => {
+      const inv = posInventory.find(i => i.id === ing.inventoryId);
+      return sum + ((inv ? Number(inv.costPerUnit || 0) : 0) * (Number(ing.amount) || 0));
+    }, 0);
+    const grossProfit = Math.max(0, p.price - totalHPP);
+    const marginPct = p.price > 0 ? Number(((grossProfit / p.price) * 100).toFixed(1)) : 0;
+    return {
+      productId: p.id,
+      productName: p.name,
+      category: p.category,
+      price: p.price,
+      image: p.image,
+      ingredients,
+      totalHPP,
+      grossProfit,
+      marginPct
+    };
+  });
+}
+
+function calculateAnalytics() {
+  const activeOrders = posOrders.filter(o => o.status !== 'CANCELLED');
+
+  // 1. Per Menu Stats
+  const menuStatsMap = {};
+  posProducts.forEach(p => {
+    const ingList = posRecipes[p.id] || [];
+    const hppPerPortion = ingList.reduce((sum, ing) => {
+      const inv = posInventory.find(i => i.id === ing.inventoryId);
+      return sum + ((inv ? Number(inv.costPerUnit || 0) : 0) * (Number(ing.amount) || 0));
+    }, 0);
+    menuStatsMap[p.id] = {
+      productId: p.id,
+      name: p.name,
+      category: p.category,
+      price: p.price,
+      image: p.image,
+      totalQtySold: 0,
+      totalRevenue: 0,
+      orderCount: 0,
+      hppPerPortion,
+      totalHPP: 0,
+      grossProfit: 0,
+      marginPct: 0,
+      ingredientsConsumed: ingList
+    };
+  });
+
+  activeOrders.forEach(order => {
+    (order.items || []).forEach(it => {
+      const pid = it.productId || it.id;
+      if (menuStatsMap[pid]) {
+        const qty = Number(it.qty) || 1;
+        const subtotal = Number(it.subtotal) || (menuStatsMap[pid].price * qty);
+        menuStatsMap[pid].totalQtySold += qty;
+        menuStatsMap[pid].totalRevenue += subtotal;
+        menuStatsMap[pid].orderCount += 1;
+      }
+    });
+  });
+
+  const perMenu = Object.values(menuStatsMap).map(m => {
+    m.totalHPP = m.totalQtySold * m.hppPerPortion;
+    m.grossProfit = Math.max(0, m.totalRevenue - m.totalHPP);
+    m.marginPct = m.totalRevenue > 0 ? ((m.grossProfit / m.totalRevenue) * 100).toFixed(1) : 0;
+    return m;
+  }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+  // 2. Per Branch / Store Stats
+  const storesList = posStore.branches || [
+    { id: 'MTR-KASIR-MASTER', name: 'KostKu Cafe & Resto (Pusat)', address: 'Semarang', saldoNota: 100000, kuotaNota: 1000 }
+  ];
+
+  const perStoreMap = {};
+  storesList.forEach(s => {
+    perStoreMap[s.id] = {
+      storeId: s.id,
+      storeName: s.name,
+      address: s.address,
+      saldoNota: s.saldoNota,
+      totalOrders: 0,
+      grossRevenue: 0,
+      qrisRevenue: 0,
+      cashRevenue: 0,
+      notaFees: 0,
+      netRevenue: 0,
+      topMenuItems: {}
+    };
+  });
+
+  const primaryStoreId = storesList[0].id;
+  activeOrders.forEach(o => {
+    const sid = o.storeId && perStoreMap[o.storeId] ? o.storeId : primaryStoreId;
+    const target = perStoreMap[sid];
+    if (target) {
+      target.totalOrders += 1;
+      const total = Number(o.totalAmount || o.subtotal || 0);
+      target.grossRevenue += total;
+
+      const pm = String(o.paymentMethod || '').toUpperCase();
+      if (pm.includes('CASH') || pm.includes('TUNAI')) {
+        target.cashRevenue += total;
+      } else {
+        target.qrisRevenue += total;
+      }
+      const fee = Number(o.adminFee || 100);
+      target.notaFees += fee;
+
+      (o.items || []).forEach(it => {
+        target.topMenuItems[it.name] = (target.topMenuItems[it.name] || 0) + (Number(it.qty) || 1);
+      });
+    }
+  });
+
+  const perStore = Object.values(perStoreMap).map(s => {
+    s.netRevenue = Math.max(0, s.grossRevenue - s.notaFees);
+    s.aov = s.totalOrders > 0 ? Math.round(s.grossRevenue / s.totalOrders) : 0;
+    return s;
+  }).sort((a, b) => b.grossRevenue - a.grossRevenue);
+
+  // 3. Cross-Branch Matrix Per Menu
+  const crossBranchPerMenu = posProducts.map(prod => {
+    const branchBreakdown = {};
+    let totalAllBranchesQty = 0;
+    let totalAllBranchesRevenue = 0;
+
+    storesList.forEach(st => {
+      branchBreakdown[st.id] = {
+        storeId: st.id,
+        storeName: st.name,
+        qty: 0,
+        revenue: 0
+      };
+    });
+
+    activeOrders.forEach(ord => {
+      const sid = ord.storeId && branchBreakdown[ord.storeId] ? ord.storeId : primaryStoreId;
+      (ord.items || []).forEach(it => {
+        const pid = it.productId || it.id;
+        if (pid === prod.id) {
+          const q = Number(it.qty) || 1;
+          const rev = Number(it.subtotal) || (prod.price * q);
+          if (branchBreakdown[sid]) {
+            branchBreakdown[sid].qty += q;
+            branchBreakdown[sid].revenue += rev;
+          }
+          totalAllBranchesQty += q;
+          totalAllBranchesRevenue += rev;
+        }
+      });
+    });
+
+    let topBranchName = '-';
+    let maxQty = -1;
+    Object.values(branchBreakdown).forEach(b => {
+      if (b.qty > maxQty && b.qty > 0) {
+        maxQty = b.qty;
+        topBranchName = b.storeName;
+      }
+    });
+
+    return {
+      productId: prod.id,
+      productName: prod.name,
+      category: prod.category,
+      price: prod.price,
+      image: prod.image,
+      branches: branchBreakdown,
+      totalAllBranchesQty,
+      totalAllBranchesRevenue,
+      topBranchName
+    };
+  }).sort((a, b) => b.totalAllBranchesRevenue - a.totalAllBranchesRevenue);
+
+  // 4. Per Cashier Stats
+  const cashierMap = {
+    'KSR-01': { cashierId: 'KSR-01', cashierName: 'Siti Rahmawati (Kasir Shift Pagi)', role: 'Kasir Pagi', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 },
+    'KSR-02': { cashierId: 'KSR-02', cashierName: 'Budi Santoso (Kasir Shift Siang)', role: 'Kasir Siang', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 },
+    'KSR-03': { cashierId: 'KSR-03', cashierName: 'Rian Pratama (Kasir Shift Malam)', role: 'Kasir Malam', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 },
+    'KSR-STF': { cashierId: 'KSR-STF', cashierName: 'Pak Joko (Staf Operasional)', role: 'Staf & Runner', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 }
+  };
+
+  activeOrders.forEach(o => {
+    const cid = o.cashierId && cashierMap[o.cashierId] ? o.cashierId : 'KSR-01';
+    const c = cashierMap[cid];
+    c.ordersCount += 1;
+    const amt = Number(o.totalAmount || o.subtotal || 0);
+    c.revenue += amt;
+
+    const pm = String(o.paymentMethod || '').toUpperCase();
+    if (pm.includes('CASH') || pm.includes('TUNAI')) {
+      c.cashHandled += amt;
+    } else {
+      c.qrisProcessed += amt;
+    }
+  });
+
+  const perCashier = Object.values(cashierMap).map((c, idx) => {
+    c.rank = idx + 1;
+    c.avgOrderValue = c.ordersCount > 0 ? Math.round(c.revenue / c.ordersCount) : 0;
+    c.performanceRating = c.ordersCount >= 20 ? 'Performa Unggul (Bintang 5 ★★★★★)' : c.ordersCount >= 10 ? 'Sangat Baik (Bintang 4 ★★★★☆)' : 'Baik (Bintang 3 ★★★☆☆)';
+    return c;
+  }).sort((a, b) => b.revenue - a.revenue);
+
+  const alerts = getInventoryAlerts();
+  const totalGrossOmset = perStore.reduce((sum, s) => sum + s.grossRevenue, 0);
+
+  return {
+    success: true,
+    perMenu,
+    perStore,
+    crossBranchPerMenu,
+    perCashier,
+    inventoryAlerts: alerts,
+    summary: {
+      totalGrossOmset,
+      totalOrdersCount: activeOrders.length,
+      activeBranchesCount: storesList.length,
+      totalLowStockAlerts: alerts.length,
+      topPerformingBranch: perStore[0]?.storeName || '-',
+      topSellingProduct: perMenu[0]?.name || '-'
+    }
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -25,7 +529,6 @@ export default {
     }
 
     // 2. Redirect direct visits to /checkout, /bayar, /pembayaran without booking/order context to Landing Page (301 Moved Permanently)
-    // Fixes Google Search indexed /checkout by immediately sending search engine bots and users to landing page /
     const isCheckoutPath = url.pathname === '/checkout' || url.pathname === '/bayar' || url.pathname === '/pembayaran';
     const hasBookingContext = url.searchParams.get('kostId') || url.searchParams.get('orderId') || url.searchParams.get('transactionId');
     if (isCheckoutPath && !hasBookingContext) {
@@ -44,12 +547,11 @@ export default {
       }
     }
 
-    // 3. Serve static assets (HTML, JS, CSS, Media) via Cloudflare Pages
+    // 4. Serve static assets via Cloudflare Pages
     if (env.ASSETS) {
       if (url.pathname.startsWith('/assets/')) {
         const assetRes = await env.ASSETS.fetch(request);
         const cType = assetRes.headers.get('content-type') || '';
-        // If chunk is missing on server and Cloudflare Pages SPA fallback returned index.html, force real 404
         if (assetRes.status === 404 || cType.includes('text/html')) {
           return new Response('Asset chunk not found', {
             status: 404,
@@ -73,14 +575,20 @@ async function handleApi(request, url, env) {
   const path = url.pathname.replace(/^\/api/, '');
   const method = request.method.toUpperCase();
 
-  // ── Version & App Health (Hemat Kuota & Instant Load) ────────────
+  // ── Version & App Health ─────────────────────────────────────────
   if ((path === '/app-version' || path === '/version') && method === 'GET') {
     return new Response(JSON.stringify({
-      version: '1.3.8',
-      buildDate: '2026-11-07',
-      buildNumber: 138,
+      version: '1.5.0',
+      buildDate: '2026-11-12',
+      buildNumber: 155,
       appId: 'id.kostku.app'
     }), { headers: corsHeaders });
+  }
+
+  // ── POS & TABLE QR ENGINE ENDPOINTS (/api/pos/*) ─────────────────
+  if (path.startsWith('/pos/')) {
+    const posPath = path.replace(/^\/pos/, '');
+    return await handlePosApi(request, posPath, method, url);
   }
 
   // ── Auth: Google Login ──────────────────────────────────────────
@@ -90,7 +598,6 @@ async function handleApi(request, url, env) {
     let name = (body.name || '').trim();
     let picture = body.picture || '';
 
-    // Decode JWT credential if provided
     if (body.credential && typeof body.credential === 'string') {
       try {
         const parts = body.credential.split('.');
@@ -158,13 +665,11 @@ async function handleApi(request, url, env) {
     }), { headers: corsHeaders });
   }
 
-  // ── Merchants Catalog (Katalog Mitra) ───────────────────────────
+  // ── Merchants Catalog ───────────────────────────────────────────
   if (path === '/merchants') {
     if (method === 'GET') {
-      // Sesuai permintaan pengguna: Data mitra dikosongkan []
       return new Response(JSON.stringify(registeredMerchants), { headers: corsHeaders });
     }
-
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const name = (body.name || '').trim();
@@ -178,30 +683,6 @@ async function handleApi(request, url, env) {
         });
       }
 
-      const normKey = `${name.toLowerCase()}_${phone}`;
-      const isAlreadyRegistered = Boolean(body.isAlreadyRegisteredClient) ||
-        registeredPartnerHistory.has(normKey) ||
-        registeredMerchants.some(m => m.name.toLowerCase() === name.toLowerCase());
-
-      let bonusAwarded = false;
-      let bonusPoints = 0;
-      let responseMsg = '';
-
-      if (refCode) {
-        if (isAlreadyRegistered) {
-          bonusAwarded = false;
-          responseMsg = '⚠️ Mitra ini sudah pernah didaftarkan sebelumnya. Data mitra disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang (hanya berlaku 1x per mitra baru).';
-        } else {
-          bonusAwarded = true;
-          bonusPoints = 500;
-          responseMsg = `🎉 Selamat! Mitra baru berhasil didaftarkan dan bonus referral +${bonusPoints} Poin berhasil diklaim! (Kode: ${refCode})`;
-          registeredPartnerHistory.add(normKey);
-        }
-      } else {
-        bonusAwarded = false;
-        responseMsg = 'Mitra berhasil didaftarkan. Gunakan kode referral untuk mengaktifkan bonus poin.';
-      }
-
       const newMerchant = {
         id: 'PTR-' + Date.now(),
         name,
@@ -212,67 +693,17 @@ async function handleApi(request, url, env) {
         distanceKm: Number(body.distanceKm) || 0.2,
         isIndependent: Boolean(body.isIndependent),
         status: 'active',
-        bonusAwarded,
+        bonusAwarded: Boolean(refCode),
         products: body.products || []
       };
 
       registeredMerchants.push(newMerchant);
-      registeredPartnerHistory.add(normKey);
-
       return new Response(JSON.stringify({
         success: true,
         merchant: newMerchant,
-        bonusAwarded,
-        bonusPoints,
-        isAlreadyRegistered,
-        message: responseMsg
+        message: 'Mitra berhasil didaftarkan'
       }), { status: 201, headers: corsHeaders });
     }
-  }
-
-  // ── Suggest Warung / Crowdsourcing ──────────────────────────────
-  if (path === '/merchants/suggest' && method === 'POST') {
-    const body = await request.json().catch(() => ({}));
-    const name = (body.name || '').trim();
-    const phone = (body.phone || '').replace(/\D/g, '');
-    const refCode = (body.referralCode || '').trim().toUpperCase();
-
-    if (!name) {
-      return new Response(JSON.stringify({ error: 'Nama warung wajib diisi' }), {
-        status: 400,
-        headers: corsHeaders
-      });
-    }
-
-    const normKey = `${name.toLowerCase()}_${phone}`;
-    const isAlreadyRegistered = Boolean(body.isAlreadyRegisteredClient) || registeredPartnerHistory.has(normKey);
-
-    let bonusAwarded = false;
-    let bonusPoints = 0;
-    let responseMsg = '';
-
-    if (refCode) {
-      if (isAlreadyRegistered) {
-        bonusAwarded = false;
-        responseMsg = 'Usulan warung diterima. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.';
-      } else {
-        bonusAwarded = true;
-        bonusPoints = 500;
-        responseMsg = `🎉 Usulan warung "${name}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
-        registeredPartnerHistory.add(normKey);
-      }
-    } else {
-      bonusAwarded = false;
-      responseMsg = `Usulan warung "${name}" berhasil dikirim. Gunakan kode referral untuk mendapatkan bonus poin.`;
-    }
-
-    return new Response(JSON.stringify({
-      success: true,
-      bonusAwarded,
-      bonusPoints,
-      isAlreadyRegistered,
-      message: responseMsg
-    }), { status: 201, headers: corsHeaders });
   }
 
   // ── Multi-Property Owner Kosts ──────────────────────────────────
@@ -294,41 +725,6 @@ async function handleApi(request, url, env) {
         }
       ]), { headers: corsHeaders });
     }
-
-    if (method === 'POST') {
-      const body = await request.json().catch(() => ({}));
-      const kostName = (body.kostName || '').trim();
-      const refCode = (body.referralCode || '').trim().toUpperCase();
-      const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-
-      let referralBonusAwarded = false;
-      let referralMessage = 'Properti Kost berhasil ditambahkan!';
-
-      if (refCode) {
-        referralBonusAwarded = true;
-        referralMessage = `🎉 Kode referral ${refCode} berhasil diterapkan! Penghuni menerima +1.000 Poin loyalty dan akun Pemilik Anda mendapat bonus sambutan +500 Poin!`;
-      }
-
-      const newKost = {
-        uid: generatedUid,
-        kostName: kostName || 'Kost Baru',
-        address: body.address || '',
-        type: body.type || 'Campur',
-        roomsCount: Number(body.roomsCount) || 8,
-        defaultPrice: Number(body.defaultPrice) || 1500000,
-        status: 'verified',
-        referralCode: refCode || null,
-        referralBonusAwarded
-      };
-
-      return new Response(JSON.stringify({
-        message: referralMessage,
-        kost: newKost,
-        activeKostUid: generatedUid,
-        referralBonusAwarded,
-        referralMessage
-      }), { status: 201, headers: corsHeaders });
-    }
   }
 
   // ── Health Check ────────────────────────────────────────────────
@@ -344,56 +740,6 @@ async function handleApi(request, url, env) {
     return new Response(JSON.stringify([]), { headers: corsHeaders });
   }
 
-  // ── Rating & Ulasan Kost Endpoints ──────────────────────────────
-  if (path.startsWith('/kosts/') && path.endsWith('/reviews')) {
-    const parts = path.split('/');
-    const targetKostUid = parts[2];
-
-    if (method === 'GET') {
-      return new Response(JSON.stringify({
-        reviews: [],
-        averageRating: 0,
-        totalReviews: 0,
-        distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-        aspects: { cleanliness: 0, facility: 0, security: 0, location: 0 }
-      }), { headers: corsHeaders });
-    }
-
-    if (method === 'POST') {
-      const body = await request.json().catch(() => ({}));
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Ulasan berhasil disimpan di Cloudflare Edge',
-        review: {
-          id: 'rev-' + Date.now(),
-          kostUid: targetKostUid,
-          ...body,
-          date: new Date().toISOString()
-        }
-      }), { status: 201, headers: corsHeaders });
-    }
-  }
-
-  // ── Like Review ─────────────────────────────────────────────────
-  if (path.startsWith('/reviews/') && path.endsWith('/like') && method === 'POST') {
-    return new Response(JSON.stringify({ success: true, likes: 1 }), { headers: corsHeaders });
-  }
-
-  // ── Partner Orders ──────────────────────────────────────────────
-  if (path === '/partner-orders') {
-    return new Response(JSON.stringify([]), { headers: corsHeaders });
-  }
-
-  // ── Invoices ────────────────────────────────────────────────────
-  if (path.startsWith('/invoices')) {
-    return new Response(JSON.stringify([]), { headers: corsHeaders });
-  }
-
-  // ── Complaints ──────────────────────────────────────────────────
-  if (path.startsWith('/complaints')) {
-    return new Response(JSON.stringify([]), { headers: corsHeaders });
-  }
-
   // ── Google Client ID ────────────────────────────────────────────
   if (path === '/google-client-id') {
     return new Response(JSON.stringify({
@@ -401,12 +747,525 @@ async function handleApi(request, url, env) {
     }), { headers: corsHeaders });
   }
 
-  // Default Fallback for other GET /api routes
+  // Fallback GET
   if (method === 'GET') {
     return new Response(JSON.stringify([]), { headers: corsHeaders });
   }
 
   return new Response(JSON.stringify({ success: true, message: 'Operasi berhasil diproses di Cloudflare Edge' }), {
+    headers: corsHeaders
+  });
+}
+
+// ============================================================================
+// POS ROUTER HANDLER FOR CLOUDFLARE EDGE
+// ============================================================================
+async function handlePosApi(request, path, method, url) {
+  // 1. GET /pos/store
+  if (path === '/store') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify({
+        storeName: posStore.storeName,
+        location: posStore.location,
+        address: posStore.address,
+        city: posStore.city,
+        phone: posStore.phone,
+        isValidated: posStore.isValidated,
+        saldoNota: posStore.saldoNota,
+        kuotaNota: posStore.kuotaNota,
+        uid: posStore.uid,
+        merchantId: posStore.merchantId,
+        activeBranch: posStore.activeBranch,
+        branches: posStore.branches
+      }), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      Object.assign(posStore, body);
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Pengaturan toko kasir berhasil disimpan di Cloudflare Edge',
+        store: posStore
+      }), { headers: corsHeaders });
+    }
+  }
+
+  // 2. POST /pos/store/switch
+  if (path === '/store/switch' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    if (body.storeId) {
+      posStore.activeBranch = body.storeId;
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      activeBranch: posStore.activeBranch,
+      message: 'Cabang berhasil dialihkan'
+    }), { headers: corsHeaders });
+  }
+
+  // 3. POST /pos/topup-nota
+  if (path === '/topup-nota' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const addQuota = Number(body.quota) || 100;
+    const addSaldo = Number(body.amount) || 10000;
+    posStore.kuotaNota += addQuota;
+    posStore.saldoNota += addSaldo;
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Top up kuota kasir berhasil (+${addQuota} nota)`,
+      saldoNota: posStore.saldoNota,
+      kuotaNota: posStore.kuotaNota
+    }), { headers: corsHeaders });
+  }
+
+  // 4. GET /pos/redeem-codes
+  if (path === '/redeem-codes') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify(posRedeemCodes), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const code = (body.code || '').trim().toUpperCase();
+      if (!code) {
+        return new Response(JSON.stringify({ error: 'Kode redeem wajib diisi' }), { status: 400, headers: corsHeaders });
+      }
+      const newRedeem = {
+        id: 'REDEEM-' + Date.now(),
+        code,
+        type: 'KUOTA_NOTA',
+        quotaNota: Number(body.quotaNota) || 50,
+        saldoBonus: Number(body.saldoBonus) || 5000,
+        maxQuota: Number(body.maxQuota) || 10,
+        usedCount: 0,
+        usedBy: [],
+        description: body.description || `Bonus ${body.quotaNota || 50} Nota Kasir`,
+        isActive: true,
+        createdAt: new Date().toISOString()
+      };
+      posRedeemCodes.unshift(newRedeem);
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Kode redeem kustom berhasil dibuat',
+        redeemCode: newRedeem
+      }), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  // 5. POST /pos/redeem-code/claim
+  if (path === '/redeem-code/claim' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const code = (body.code || '').trim().toUpperCase();
+    const item = posRedeemCodes.find(r => r.code === code && r.isActive);
+    if (!item) {
+      return new Response(JSON.stringify({ error: 'Kode redeem tidak valid atau sudah tidak aktif' }), { status: 400, headers: corsHeaders });
+    }
+    if (item.maxQuota && item.usedCount >= item.maxQuota) {
+      return new Response(JSON.stringify({ error: 'Kuota penukaran kode redeem ini sudah habis' }), { status: 400, headers: corsHeaders });
+    }
+    item.usedCount += 1;
+    posStore.kuotaNota += item.quotaNota;
+    posStore.saldoNota += item.saldoBonus;
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Selamat! Anda mendapatkan tambahan ${item.quotaNota} Kuota Nota Kasir!`,
+      addedQuota: item.quotaNota,
+      addedSaldo: item.saldoBonus,
+      newQuotaNota: posStore.kuotaNota,
+      newSaldoNota: posStore.saldoNota
+    }), { headers: corsHeaders });
+  }
+
+  // 6. GET & POST /pos/promos
+  if (path === '/promos') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify({ success: true, promos: posFoodPromos }), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const newPromo = {
+        id: 'PROMO-FOOD-' + Date.now(),
+        title: body.title || 'Promo Baru',
+        code: (body.code || 'PROMO' + Math.floor(Math.random() * 9000 + 1000)).toUpperCase(),
+        scope: body.scope || 'ALL',
+        targetProductId: body.targetProductId || null,
+        targetProductName: body.targetProductName || null,
+        discountType: body.discountType || 'FIXED',
+        discountValue: Number(body.discountValue) || 2000,
+        minOrder: Number(body.minOrder) || 0,
+        limitType: body.limitType || 'QUOTA',
+        maxQuota: body.maxQuota ? Number(body.maxQuota) : null,
+        usedCount: 0,
+        startDate: body.startDate || new Date().toISOString().slice(0, 10),
+        expiryDate: body.expiryDate || null,
+        isActive: true,
+        createdByRole: body.createdByRole || 'owner',
+        description: body.description || '',
+        createdAt: new Date().toISOString()
+      };
+      posFoodPromos.unshift(newPromo);
+      return new Response(JSON.stringify({ success: true, promo: newPromo }), { status: 200, headers: corsHeaders });
+    }
+  }
+
+  // 7. PUT /pos/promos/:id/toggle
+  if (path.startsWith('/promos/') && path.endsWith('/toggle') && method === 'PUT') {
+    const id = path.replace('/promos/', '').replace('/toggle', '');
+    const p = posFoodPromos.find(x => x.id === id);
+    if (p) {
+      p.isActive = !p.isActive;
+      return new Response(JSON.stringify({ success: true, promo: p }), { headers: corsHeaders });
+    }
+    return new Response(JSON.stringify({ error: 'Promo tidak ditemukan' }), { status: 404, headers: corsHeaders });
+  }
+
+  // 8. DELETE /pos/promos/:id
+  if (path.startsWith('/promos/') && method === 'DELETE') {
+    const id = path.replace('/promos/', '');
+    posFoodPromos = posFoodPromos.filter(x => x.id !== id);
+    return new Response(JSON.stringify({ success: true, message: 'Promo berhasil dihapus' }), { headers: corsHeaders });
+  }
+
+  // 9. POST /pos/promos/validate
+  if (path === '/promos/validate' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const code = (body.code || '').trim().toUpperCase();
+    const orderTotal = Number(body.orderTotal) || 0;
+    const promo = posFoodPromos.find(p => p.code === code && p.isActive);
+
+    if (!promo) {
+      return new Response(JSON.stringify({ valid: false, message: 'Kode promo tidak valid atau tidak aktif' }), { headers: corsHeaders });
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (promo.limitType === 'DATE' || promo.limitType === 'BOTH') {
+      if (promo.expiryDate && todayStr > promo.expiryDate) {
+        return new Response(JSON.stringify({ valid: false, message: 'Masa berlaku promo ini telah berakhir' }), { headers: corsHeaders });
+      }
+    }
+    if (promo.limitType === 'QUOTA' || promo.limitType === 'BOTH') {
+      if (promo.maxQuota !== null && promo.usedCount >= promo.maxQuota) {
+        return new Response(JSON.stringify({ valid: false, message: 'Kuota pemakaian promo ini telah habis' }), { headers: corsHeaders });
+      }
+    }
+    if (orderTotal < (promo.minOrder || 0)) {
+      return new Response(JSON.stringify({
+        valid: false,
+        message: `Minimal belanja Rp ${promo.minOrder.toLocaleString('id-ID')} untuk menggunakan promo ini`
+      }), { headers: corsHeaders });
+    }
+
+    let discountAmount = 0;
+    if (promo.discountType === 'PERCENT') {
+      discountAmount = Math.round((orderTotal * promo.discountValue) / 100);
+    } else {
+      discountAmount = Number(promo.discountValue) || 0;
+    }
+
+    return new Response(JSON.stringify({
+      valid: true,
+      discountAmount,
+      promo,
+      message: `Promo ${promo.title} berhasil diterapkan! Hemat Rp ${discountAmount.toLocaleString('id-ID')}`
+    }), { headers: corsHeaders });
+  }
+
+  // 10. GET & POST /pos/products
+  if (path === '/products') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify(posProducts), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const newProduct = {
+        id: 'prod-' + Date.now(),
+        name: body.name || 'Produk Baru',
+        category: body.category || 'Makanan',
+        price: Number(body.price) || 10000,
+        stock: Number(body.stock) || 99,
+        isAvailable: body.isAvailable !== false,
+        description: body.description || '',
+        image: body.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'
+      };
+      posProducts.push(newProduct);
+      return new Response(JSON.stringify(newProduct), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  // 11. PUT & DELETE /pos/products/:id
+  if (path.startsWith('/products/')) {
+    const id = path.replace('/products/', '');
+    if (method === 'PUT') {
+      const body = await request.json().catch(() => ({}));
+      const p = posProducts.find(x => x.id === id);
+      if (p) {
+        Object.assign(p, body);
+        return new Response(JSON.stringify(p), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Produk tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+    if (method === 'DELETE') {
+      posProducts = posProducts.filter(x => x.id !== id);
+      return new Response(JSON.stringify({ success: true, message: 'Produk berhasil dihapus' }), { headers: corsHeaders });
+    }
+  }
+
+  // 12. GET & POST /pos/tables
+  if (path === '/tables') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify(posTables), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const newTable = {
+        id: 'tbl-' + Date.now(),
+        number: body.number || `Meja ${posTables.length + 1}`,
+        qrToken: `MEJA-${posTables.length + 1}-TKN${Math.floor(Math.random() * 900 + 100)}`
+      };
+      posTables.push(newTable);
+      return new Response(JSON.stringify(newTable), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  // 13. GET & POST /pos/inventory
+  if (path === '/inventory') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify({
+        success: true,
+        inventory: posInventory,
+        alerts: getInventoryAlerts()
+      }), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const newItem = {
+        id: 'INV-' + (body.name || 'BAHAN').replace(/\s+/g, '-').toUpperCase().slice(0, 8) + '-' + Date.now().toString().slice(-4),
+        name: body.name || 'Bahan Baru',
+        category: body.category || 'Bahan Pokok',
+        unit: body.unit || 'pcs',
+        currentStock: Number(body.currentStock) || 0,
+        minAlertStock: Number(body.minAlertStock) || 10,
+        costPerUnit: Number(body.costPerUnit) || 1000,
+        supplier: body.supplier || 'Pemasok Lokal',
+        lastRestocked: new Date().toISOString()
+      };
+      posInventory.push(newItem);
+      return new Response(JSON.stringify({ success: true, item: newItem }), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  // 14. PUT & DELETE /pos/inventory/:id
+  if (path.startsWith('/inventory/') && !path.includes('/restock')) {
+    const id = path.replace('/inventory/', '');
+    if (method === 'PUT') {
+      const body = await request.json().catch(() => ({}));
+      const item = posInventory.find(x => x.id === id);
+      if (item) {
+        Object.assign(item, body);
+        return new Response(JSON.stringify({ success: true, item }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Item gudang tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+    if (method === 'DELETE') {
+      posInventory = posInventory.filter(x => x.id !== id);
+      return new Response(JSON.stringify({ success: true, message: 'Item berhasil dihapus dari gudang' }), { headers: corsHeaders });
+    }
+  }
+
+  // 15. POST /pos/inventory/restock
+  if (path === '/inventory/restock' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const item = posInventory.find(x => x.id === body.inventoryId);
+    if (!item) {
+      return new Response(JSON.stringify({ error: 'Item bahan baku tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+    const addQty = Number(body.addQty) || 0;
+    item.currentStock = (Number(item.currentStock) || 0) + addQty;
+    item.lastRestocked = new Date().toISOString();
+    return new Response(JSON.stringify({
+      success: true,
+      newStock: item.currentStock,
+      item,
+      message: `Berhasil restock ${item.name} (+${addQty} ${item.unit})`
+    }), { headers: corsHeaders });
+  }
+
+  // 16. GET /pos/recipes
+  if (path === '/recipes') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify({
+        success: true,
+        recipes: getRecipesList()
+      }), { headers: corsHeaders });
+    }
+  }
+
+  // 17. PUT /pos/recipes/:productId
+  if (path.startsWith('/recipes/') && method === 'PUT') {
+    const pid = path.replace('/recipes/', '');
+    const body = await request.json().catch(() => ({}));
+    posRecipes[pid] = body.ingredients || [];
+    return new Response(JSON.stringify({
+      success: true,
+      productId: pid,
+      ingredients: posRecipes[pid],
+      message: 'Resep bahan baku menu berhasil diperbarui'
+    }), { headers: corsHeaders });
+  }
+
+  // 18. GET /pos/analytics
+  if (path === '/analytics' && method === 'GET') {
+    return new Response(JSON.stringify(calculateAnalytics()), { headers: corsHeaders });
+  }
+
+  // 19. GET & POST /pos/orders
+  if (path === '/orders') {
+    if (method === 'GET') {
+      return new Response(JSON.stringify(posOrders), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const items = (body.items || []).map(it => ({
+        ...it,
+        productId: it.productId || it.id,
+        isReady: false
+      }));
+
+      const subtotal = items.reduce((sum, it) => sum + ((Number(it.price) || 0) * (Number(it.qty) || 1)), 0);
+      const discount = Number(body.discountAmount || 0);
+      const totalAmount = Math.max(0, subtotal - discount);
+
+      // AUTOMATIC INVENTORY DEDUCTION FROM RECIPES
+      items.forEach(it => {
+        const pid = it.productId;
+        const qty = Number(it.qty) || 1;
+        const ingredients = posRecipes[pid] || [];
+        ingredients.forEach(ing => {
+          const inv = posInventory.find(i => i.id === ing.inventoryId);
+          if (inv) {
+            inv.currentStock = Math.max(0, (Number(inv.currentStock) || 0) - ((Number(ing.amount) || 0) * qty));
+          }
+        });
+      });
+
+      // Deduct 1 nota quota
+      if (posStore.kuotaNota > 0) {
+        posStore.kuotaNota -= 1;
+      }
+
+      const newOrder = {
+        id: 'ORD-' + Date.now(),
+        customerName: body.customerName || 'Tamu Resto',
+        customerPhone: body.customerPhone || '',
+        tableNumber: body.tableNumber || 'Takeaway',
+        items,
+        subtotal,
+        discountAmount: discount,
+        totalAmount,
+        paymentMethod: body.paymentMethod || 'CASH',
+        status: body.status || 'PENDING_CONFIRMATION',
+        storeId: body.storeId || posStore.activeBranch || 'MTR-KASIR-MASTER',
+        cashierId: body.cashierId || 'KSR-01',
+        createdAt: new Date().toISOString()
+      };
+
+      posOrders.unshift(newOrder);
+      return new Response(JSON.stringify(newOrder), { status: 200, headers: corsHeaders });
+    }
+  }
+
+  // 20. Single Order Operations (/pos/orders/:id/*)
+  if (path.startsWith('/orders/')) {
+    const parts = path.replace('/orders/', '').split('/');
+    const orderId = parts[0];
+    const subAction = parts[1];
+
+    const order = posOrders.find(o => o.id === orderId);
+
+    if (!subAction && method === 'GET') {
+      if (order) return new Response(JSON.stringify(order), { headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
+    if (subAction === 'acc' && method === 'POST') {
+      if (order) {
+        order.status = 'CONFIRMED';
+        return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
+    if (subAction === 'reject' && method === 'POST') {
+      if (order) {
+        order.status = 'CANCELLED';
+        // RESTORE INVENTORY
+        (order.items || []).forEach(it => {
+          const pid = it.productId || it.id;
+          const qty = Number(it.qty) || 1;
+          const ingredients = posRecipes[pid] || [];
+          ingredients.forEach(ing => {
+            const inv = posInventory.find(i => i.id === ing.inventoryId);
+            if (inv) {
+              inv.currentStock = (Number(inv.currentStock) || 0) + ((Number(ing.amount) || 0) * qty);
+            }
+          });
+        });
+        return new Response(JSON.stringify({ success: true, order, message: 'Order dibatalkan dan stok gudang dipulihkan' }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
+    if (subAction === 'pay' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      if (order) {
+        order.status = 'PAID';
+        order.paymentMethod = body.paymentMethod || order.paymentMethod || 'CASH';
+        return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
+    if (subAction === 'confirm-payment' && method === 'POST') {
+      if (order) {
+        order.status = 'PAID';
+        return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
+    if (subAction === 'complete' && method === 'POST') {
+      if (order) {
+        order.status = 'COMPLETED';
+        return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+
+    if (subAction === 'toggle-item' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      if (order && order.items) {
+        const item = order.items.find(i => (i.productId || i.id) === body.productId);
+        if (item) {
+          item.isReady = !item.isReady;
+          return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
+        }
+      }
+      return new Response(JSON.stringify({ error: 'Item order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+  }
+
+  // 21. Config Tripay
+  if (path === '/config/tripay') {
+    return new Response(JSON.stringify({ success: true, isConfigured: true }), { headers: corsHeaders });
+  }
+
+  // 22. Loyalty & Points
+  if (path.startsWith('/loyalty/') || path.startsWith('/points/')) {
+    const phone = path.split('/')[2] || '';
+    return new Response(JSON.stringify({ phone, points: 250, stamps: 3 }), { headers: corsHeaders });
+  }
+
+  // Default fallback
+  return new Response(JSON.stringify({ success: true, message: 'Operasi POS berhasil di Cloudflare Edge' }), {
     headers: corsHeaders
   });
 }

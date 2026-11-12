@@ -25688,6 +25688,15 @@
           "createdAt": "2026-11-11T15:29:11.367Z"
         }
       ]
+    },
+    "PTR-1794447017666": {
+      "uid": "PTR-1794447017666",
+      "name": "Kantin Berkah Kost",
+      "balance": 0,
+      "totalEarned": 0,
+      "totalSettled": 0,
+      "gateway": "TriPay Master KostKu (T53543)",
+      "history": []
     }
   },
   "pos_redeem_codes": [
