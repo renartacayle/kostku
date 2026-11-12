@@ -3805,7 +3805,14 @@ export default function Kasir({ user }) {
                           }}
                         >
                           {/* Image & In-Cart Badge */}
-                          <div style={{ position: 'relative', width: '100%', marginBottom: '6px' }}>
+                          <div 
+                            onClick={() => {
+                              setQuickQtyProduct(p);
+                              setQuickQtyValue(inCart > 0 ? inCart : (cardSelectedQty[p.id] || 1));
+                            }}
+                            title="Klik untuk opsi berapa pcs"
+                            style={{ position: 'relative', width: '100%', marginBottom: '6px', cursor: 'pointer' }}
+                          >
                             <img
                               src={p.image}
                               alt={p.name}
@@ -3870,14 +3877,21 @@ export default function Kasir({ user }) {
                                 alignItems: 'center',
                                 gap: '2px'
                               }}>
-                                <Check size={10} strokeWidth={3} /> {inCart}x
+                                <Check size={10} strokeWidth={3} /> {inCart} pcs
                               </span>
                             )}
                           </div>
 
                           {/* Info */}
                           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                            <div>
+                            <div
+                              onClick={() => {
+                                setQuickQtyProduct(p);
+                                setQuickQtyValue(inCart > 0 ? inCart : (cardSelectedQty[p.id] || 1));
+                              }}
+                              style={{ cursor: 'pointer' }}
+                              title="Klik untuk opsi berapa pcs"
+                            >
                               <h4 style={{
                                 margin: 0,
                                 fontSize: '0.82rem',
@@ -3906,26 +3920,48 @@ export default function Kasir({ user }) {
                             <div style={{ marginTop: 'auto' }}>
                               {inCart > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  {/* QTY DI ATAS TULISAN TAMBAH: Stepper Simpel (Tanpa Chips +2 +5) */}
+                                  {/* QTY DI ATAS TULISAN TAMBAH: Stepper Aktif di Keranjang dengan Opsi Berapa Pcs */}
                                   <div style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
                                     border: '1.5px solid #10b981',
-                                    borderRadius: '7px',
-                                    padding: '3px 8px',
+                                    borderRadius: '8px',
+                                    padding: '2px 5px',
                                     marginBottom: '2px'
                                   }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a' }}>Qty:</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setQuickQtyProduct(p);
+                                        setQuickQtyValue(inCart);
+                                      }}
+                                      style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: isLight ? '#15803d' : '#86efac',
+                                        fontWeight: 800,
+                                        fontSize: '0.68rem',
+                                        cursor: 'pointer',
+                                        padding: '1px 2px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '2px'
+                                      }}
+                                      title="Opsi Berapa Pcs (Buka Dial Presets)"
+                                    >
+                                      <span>Qty:</span>
+                                      <span style={{ fontSize: '0.62rem' }}>⚙️</span>
+                                    </button>
 
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                       <button
                                         type="button"
                                         onClick={() => updateCartItemQty(p.id, -1)}
                                         style={{
-                                          width: '24px',
-                                          height: '24px',
+                                          width: '22px',
+                                          height: '22px',
                                           borderRadius: '6px',
                                           border: 'none',
                                           background: '#ef4444',
@@ -3939,27 +3975,42 @@ export default function Kasir({ user }) {
                                         }}
                                         aria-label={`Kurangi ${p.name}`}
                                       >
-                                        <Minus size={12} strokeWidth={3} />
+                                        <Minus size={11} strokeWidth={3} />
                                       </button>
-                                      <span
-                                        onClick={() => {
-                                          setQuickQtyProduct(p);
-                                          setQuickQtyValue(inCart);
-                                        }}
-                                        style={{
-                                          minWidth: '24px',
-                                          textAlign: 'center',
-                                          fontWeight: 900,
-                                          fontSize: '0.86rem',
-                                          color: isLight ? '#15803d' : '#86efac',
-                                          fontFamily: 'var(--font-mono)',
-                                          cursor: 'pointer',
-                                          padding: '0 2px'
-                                        }}
-                                        title="Klik untuk ubah banyaknya porsi"
-                                      >
-                                        {inCart}
-                                      </span>
+
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '2px',
+                                        background: isLight ? '#ffffff' : '#1e293b',
+                                        border: '1px solid #10b981',
+                                        borderRadius: '6px',
+                                        padding: '1px 3px'
+                                      }}>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max="999"
+                                          value={inCart}
+                                          onChange={e => setCartItemExactQty(p.id, e.target.value)}
+                                          onClick={e => e.stopPropagation()}
+                                          style={{
+                                            width: '26px',
+                                            textAlign: 'center',
+                                            fontWeight: 900,
+                                            fontSize: '0.8rem',
+                                            color: isLight ? '#15803d' : '#86efac',
+                                            fontFamily: 'var(--font-mono)',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            outline: 'none',
+                                            padding: 0
+                                          }}
+                                          aria-label={`Jumlah pcs ${p.name}`}
+                                        />
+                                        <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isLight ? '#166534' : '#86efac' }}>pcs</span>
+                                      </div>
+
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -3968,8 +4019,8 @@ export default function Kasir({ user }) {
                                           triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
                                         }}
                                         style={{
-                                          width: '24px',
-                                          height: '24px',
+                                          width: '22px',
+                                          height: '22px',
                                           borderRadius: '6px',
                                           border: 'none',
                                           background: '#10b981',
@@ -3983,7 +4034,7 @@ export default function Kasir({ user }) {
                                         }}
                                         aria-label={`Tambah ${p.name}`}
                                       >
-                                        <Plus size={12} strokeWidth={3} />
+                                        <Plus size={11} strokeWidth={3} />
                                       </button>
                                     </div>
                                   </div>
@@ -4013,12 +4064,12 @@ export default function Kasir({ user }) {
                                     }}
                                   >
                                     <Plus size={12} strokeWidth={2.5} />
-                                    <span>Tambah Lagi</span>
+                                    <span>Tambah Lagi (+1 pcs)</span>
                                   </button>
                                 </div>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-                                  {/* QTY DI ATAS TULISAN TAMBAH: Stepper Simpel (Tanpa Chips +2 +5) */}
+                                  {/* QTY DI ATAS TULISAN TAMBAH: Opsi Tambah Berapa Pcs */}
                                   {(() => {
                                     const itemQty = cardSelectedQty[p.id] || 1;
                                     return (
@@ -4029,20 +4080,42 @@ export default function Kasir({ user }) {
                                           justifyContent: 'space-between',
                                           background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.05)',
                                           border: `1px solid ${borderColor}`,
-                                          borderRadius: '7px',
-                                          padding: '3px 8px',
+                                          borderRadius: '8px',
+                                          padding: '2px 5px',
                                           marginBottom: '2px'
                                         }}>
-                                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: textSecondary }}>Qty:</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setQuickQtyProduct(p);
+                                              setQuickQtyValue(itemQty);
+                                            }}
+                                            style={{
+                                              border: 'none',
+                                              background: 'transparent',
+                                              color: '#2563eb',
+                                              fontWeight: 800,
+                                              fontSize: '0.68rem',
+                                              cursor: 'pointer',
+                                              padding: '1px 2px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '2px'
+                                            }}
+                                            title="Opsi Berapa Pcs (Buka Dial Presets)"
+                                          >
+                                            <span>Qty:</span>
+                                            <span style={{ fontSize: '0.62rem' }}>⚙️</span>
+                                          </button>
 
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             <button
                                               type="button"
                                               disabled={itemQty <= 1}
                                               onClick={() => setCardSelectedQty(prev => ({ ...prev, [p.id]: Math.max(1, itemQty - 1) }))}
                                               style={{
-                                                width: '24px',
-                                                height: '24px',
+                                                width: '22px',
+                                                height: '22px',
                                                 borderRadius: '6px',
                                                 border: 'none',
                                                 background: itemQty <= 1 ? (isLight ? '#e2e8f0' : '#334155') : '#ef4444',
@@ -4053,36 +4126,53 @@ export default function Kasir({ user }) {
                                                 justifyContent: 'center',
                                                 padding: 0
                                               }}
-                                              aria-label="Kurangi porsi"
+                                              aria-label="Kurangi pcs"
                                             >
                                               <Minus size={11} strokeWidth={3} />
                                             </button>
 
-                                            <span
-                                              onClick={() => {
-                                                setQuickQtyProduct(p);
-                                                setQuickQtyValue(itemQty);
-                                              }}
-                                              style={{
-                                                minWidth: '24px',
-                                                textAlign: 'center',
-                                                fontWeight: 900,
-                                                fontSize: '0.86rem',
-                                                color: textPrimary,
-                                                fontFamily: 'var(--font-mono)',
-                                                cursor: 'pointer'
-                                              }}
-                                              title="Klik untuk ubah banyaknya porsi"
-                                            >
-                                              {itemQty}
-                                            </span>
+                                            <div style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '2px',
+                                              background: isLight ? '#ffffff' : '#1e293b',
+                                              border: `1px solid ${isLight ? '#cbd5e1' : '#475569'}`,
+                                              borderRadius: '6px',
+                                              padding: '1px 3px'
+                                            }}>
+                                              <input
+                                                type="number"
+                                                min="1"
+                                                max="999"
+                                                value={itemQty}
+                                                onChange={e => {
+                                                  const val = parseInt(e.target.value, 10);
+                                                  setCardSelectedQty(prev => ({ ...prev, [p.id]: isNaN(val) ? 1 : Math.max(1, Math.min(999, val)) }));
+                                                }}
+                                                onClick={e => e.stopPropagation()}
+                                                style={{
+                                                  width: '26px',
+                                                  textAlign: 'center',
+                                                  fontWeight: 900,
+                                                  fontSize: '0.8rem',
+                                                  color: textPrimary,
+                                                  fontFamily: 'var(--font-mono)',
+                                                  border: 'none',
+                                                  background: 'transparent',
+                                                  outline: 'none',
+                                                  padding: 0
+                                                }}
+                                                aria-label={`Jumlah pcs ${p.name}`}
+                                              />
+                                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: textSecondary }}>pcs</span>
+                                            </div>
 
                                             <button
                                               type="button"
                                               onClick={() => setCardSelectedQty(prev => ({ ...prev, [p.id]: itemQty + 1 }))}
                                               style={{
-                                                width: '24px',
-                                                height: '24px',
+                                                width: '22px',
+                                                height: '22px',
                                                 borderRadius: '6px',
                                                 border: 'none',
                                                 background: '#10b981',
@@ -4093,7 +4183,7 @@ export default function Kasir({ user }) {
                                                 justifyContent: 'center',
                                                 padding: 0
                                               }}
-                                              aria-label="Tambah porsi"
+                                              aria-label="Tambah pcs"
                                             >
                                               <Plus size={11} strokeWidth={3} />
                                             </button>
@@ -4128,7 +4218,7 @@ export default function Kasir({ user }) {
                                           }}
                                         >
                                           <Plus size={13} strokeWidth={2.5} />
-                                          <span>Tambah {itemQty > 1 ? `(${itemQty}x)` : ''}</span>
+                                          <span>Tambah ({itemQty} pcs)</span>
                                         </button>
                                       </>
                                     );
@@ -9619,10 +9709,10 @@ export default function Kasir({ user }) {
                 <span style={{ fontSize: '1.2rem' }}>🔢</span>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: textPrimary }}>
-                    Banyaknya Porsi Menu
+                    Opsi Tambah Berapa Pcs
                   </h3>
                   <p style={{ margin: 0, fontSize: '0.72rem', color: textSecondary }}>
-                    Atur jumlah menu yang ditambahkan ke pesanan
+                    Atur jumlah pcs menu yang ingin ditambahkan ke pesanan
                   </p>
                 </div>
               </div>
@@ -9747,7 +9837,7 @@ export default function Kasir({ user }) {
             {/* Quick Presets (Banyaknya Porsi Cepat) */}
             <div>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, marginBottom: '6px' }}>
-                Pilih Banyaknya Porsi Cepat:
+                Pilih Banyaknya Pcs Cepat:
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
                 {[1, 2, 3, 5, 10, 15, 20, 25, 50, 100].map(amt => (
@@ -9830,7 +9920,7 @@ export default function Kasir({ user }) {
                   boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
                 }}
               >
-                Terapkan {quickQtyValue} Porsi
+                Terapkan {quickQtyValue} Pcs
               </button>
             </div>
           </div>
