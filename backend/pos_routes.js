@@ -943,21 +943,20 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
   // ── 0C-3. CONFIRM TRIPAY TOP UP TRANSACTION ───────────────────────────
   router.post('/topup-tripay/confirm', async (req, res) => {
-    const { reference, amount, quota, merchantId, simulate } = req.body;
-    const isSimulate = simulate === true;
+    const { reference, amount, quota, merchantId } = req.body;
+
+    if (!reference) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nomor referensi TriPay wajib disertakan untuk verifikasi pembayaran.'
+      });
+    }
 
     // 1. Cek apakah sudah lunas via webhook callback
     if (posPaidReferences.has(reference)) {
       // Proceed to update quota below without querying TriPay again
-    } else if (!isSimulate) {
+    } else {
       // 2. REAL CHECK KE TRIPAY API
-      if (!reference) {
-        return res.status(400).json({
-          success: false,
-          error: 'Nomor referensi TriPay wajib disertakan untuk verifikasi pembayaran.'
-        });
-      }
-
       const apiKey = process.env.TRIPAY_API_KEY || '8lgqWBCHk8xLycXV3aRjfn5YBrDUZtJCe13muUy5';
       const detailUrl = `https://tripay.co.id/api/transaction/detail?reference=${encodeURIComponent(reference)}`;
 
@@ -987,25 +986,23 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           const ipMatch = tripayMsg.match(/\((.*?)\)/)?.[1] || '';
           let userError = `⚠️ Pengecekan TriPay: ${tripayMsg}`;
           if (ipMatch) {
-            userError = `⚠️ IP Server (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Masukkan IP tersebut / kosongkan Whitelist IP di dashboard TriPay, atau gunakan tombol Bypass Simulasi di bawah untuk mengaktifkan kuota testing.`;
+            userError = `⚠️ IP Server (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Silakan kosongkan Whitelist IP di dashboard TriPay.`;
           } else if (tripayMsg.toLowerCase().includes('undefined parameter') || tripayMsg.toLowerCase().includes('tidak ditemukan')) {
-            userError = `ℹ️ Status TriPay: Pembayaran QRIS belum terdeteksi masuk (UNPAID). Silakan selesaikan pembayaran QRIS di e-wallet/m-banking Anda atau gunakan tombol Bypass Simulasi di bawah untuk testing kuota.`;
+            userError = `ℹ️ Status TriPay: Pembayaran QRIS belum terdeteksi masuk (UNPAID). Silakan selesaikan pembayaran QRIS di aplikasi e-wallet/m-banking Anda terlebih dahulu.`;
           }
           return res.status(400).json({
             success: false,
             isPaid: false,
             status: 'CHECK_FAILED',
             error: userError,
-            tripayMessage: tripayMsg,
-            canSimulate: true
+            tripayMessage: tripayMsg
           });
         }
       } catch (err) {
         return res.status(502).json({
           success: false,
           isPaid: false,
-          error: `Gagal memverifikasi ke TriPay: ${err.message}`,
-          canSimulate: true
+          error: `Gagal memverifikasi ke TriPay: ${err.message}`
         });
       }
     }

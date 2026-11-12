@@ -145,7 +145,6 @@ export default function Kasir({ user }) {
   const [posTopupLoading, setPosTopupLoading] = useState(false);
   const [tripayTopupData, setTripayTopupData] = useState(null);
   const [tripayCheckingStatus, setTripayCheckingStatus] = useState(false);
-  const [showSimulateBypass, setShowSimulateBypass] = useState(false);
   const [tripayStatusFeedback, setTripayStatusFeedback] = useState(null);
   const [showStoreModal, setShowStoreModal] = useState(false);
   const [storeForm, setStoreForm] = useState({
@@ -1012,7 +1011,7 @@ export default function Kasir({ user }) {
     }
   };
 
-  const handleConfirmTripayTopup = async (isSimulate = false) => {
+  const handleConfirmTripayTopup = async () => {
     if (!tripayTopupData) return;
     try {
       setTripayCheckingStatus(true);
@@ -1024,8 +1023,7 @@ export default function Kasir({ user }) {
           reference: tripayTopupData.reference,
           amount: tripayTopupData.amount,
           quota: tripayTopupData.quota,
-          merchantId: storeInfo?.merchantId,
-          simulate: isSimulate
+          merchantId: storeInfo?.merchantId
         })
       });
       const data = await res.json();
@@ -1038,21 +1036,16 @@ export default function Kasir({ user }) {
         }));
         setShowPosTopupModal(false);
         setTripayTopupData(null);
-        setShowSimulateBypass(false);
         setTripayStatusFeedback(null);
         fetchData();
         alert(data.message || `🎉 Pembayaran TriPay Sukses! +${tripayTopupData.quota} nota telah ditambahkan.`);
       } else {
-        if (data.canSimulate || data.status === 'CHECK_FAILED') {
-          setShowSimulateBypass(true);
-        }
         setTripayStatusFeedback({
           type: 'error',
           message: data.error || 'Status di TriPay belum lunas (UNPAID).'
         });
       }
     } catch (err) {
-      setShowSimulateBypass(true);
       setTripayStatusFeedback({
         type: 'error',
         message: 'Gagal mengecek status TriPay: ' + err.message
@@ -8179,64 +8172,6 @@ export default function Kasir({ user }) {
                   <RefreshCw size={16} />
                   <span>{tripayCheckingStatus ? 'Sedang Mengecek Status ke TriPay...' : '🔄 Cek Status Pembayaran ke TriPay'}</span>
                 </button>
-
-                {/* OPSI TESTING BYPASS JIKA WHITELIST IP MEMBLOKIR */}
-                {!showSimulateBypass && (
-                  <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowSimulateBypass(true)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#d97706',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      ⚡ Butuh testing tanpa bayar? Tampilkan tombol bypass simulasi
-                    </button>
-                  </div>
-                )}
-
-                {showSimulateBypass && (
-                  <div style={{
-                    background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.12)',
-                    border: '1px dashed #f59e0b',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    marginBottom: '8px',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#b45309', marginBottom: '4px' }}>
-                      ⚡ Mode Testing &amp; Bypass Whitelist IP
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: textSecondary, marginBottom: '8px', lineHeight: 1.4 }}>
-                      Jika IP server Cloudflare belum di-whitelist di TriPay (T53543), Anda dapat mengaktifkan kuota langsung untuk pengujian kasir:
-                    </div>
-                    <button
-                      type="button"
-                      disabled={tripayCheckingStatus}
-                      onClick={() => handleConfirmTripayTopup(true)}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #d97706',
-                        background: '#fef3c7',
-                        color: '#92400e',
-                        fontWeight: 900,
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(217, 119, 6, 0.15)'
-                      }}
-                    >
-                      ⚡ Bypass Simulasi Bayar Lunas (Testing +{tripayTopupData.quota} Nota)
-                    </button>
-                  </div>
-                )}
 
                 {/* ACTION 3: KEMBALI / GANTI PAKET */}
                 <button
