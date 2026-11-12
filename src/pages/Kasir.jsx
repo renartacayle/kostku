@@ -57,7 +57,8 @@ import {
   TrendingUp,
   Store,
   AlertCircle,
-  ShieldAlert
+  ShieldAlert,
+  Zap
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useTheme } from '../context/ThemeContext';
