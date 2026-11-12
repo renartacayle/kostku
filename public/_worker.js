@@ -1204,6 +1204,11 @@ async function handleApi(request, url, env) {
     return await handlePosApi(request, posPath, method, url);
   }
 
+  // ── Universal TriPay Webhook Callback listener ───────────────────
+  if (path === '/payments/tripay-callback' || path === '/payments/callback' || path === '/tripay-callback') {
+    return await handlePosApi(request, '/tripay/callback', method, url);
+  }
+
   // ── Auth: Google Login ──────────────────────────────────────────
   if (path === '/auth/google' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
