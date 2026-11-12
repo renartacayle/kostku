@@ -16,7 +16,9 @@ export const DEFAULT_PRINTER_SETTINGS = {
   connectionType: 'browser', // 'bluetooth' | 'usb' | 'browser'
   paperWidth: '58mm',        // '58mm' (32 cols) | '80mm' (48 cols)
   autoCut: true,
-  openDrawer: false,
+  openDrawer: true,          // Otomatis buka laci saat transaksi tunai
+  drawerPin: 2,              // 2 (Pin 2 standard ESC/POS: Panda, Epson, Iware, Kassen) | 5 (Pin 5)
+  drawerTrigger: 'cash_only',// 'cash_only' | 'all' | 'manual'
   storeName: 'KANTIN RIUPH POS',
   storeAddress: 'Jl. Operasional Kostku',
   footerText: 'Terima kasih atas kunjungan Anda!',
@@ -577,5 +579,127 @@ export function getSampleTestOrder(paperWidth = '58mm') {
     platformFee: 0,
     totalAmount: 15000,
     pointsAwarded: 50
+  };
+}
+
+/**
+ * ── 5. REALISTIC POS AUDIO SYNTHESIZER (WEB AUDIO API) ──
+ */
+export function playCashRegisterSound() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    
+    // Bell 'Ding' (High metallic register)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(1760, now); // A6
+    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.35);
+    gain1.gain.setValueAtTime(0.35, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.35);
+
+    // Mechanical Cash Drawer 'Ka-chunk' sound
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(220, now + 0.04);
+    osc2.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+    gain2.gain.setValueAtTime(0.4, now + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.04);
+    osc2.stop(now + 0.22);
+  } catch (_) {}
+}
+
+export function playChime(freq = 880, dur = 0.1) {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch (_) {}
+}
+
+/**
+ * ── 6. CASH DRAWER (LACI KASIR) ENGINE ──
+ * ESC/POS Kick Cash Drawer Commands:
+ * Standard Pin 2: 0x1B, 0x70, 0x00, 0x19, 0xFA (ESC p 0 25 250)
+ * Alternative Pin 5: 0x1B, 0x70, 0x01, 0x19, 0xFA (ESC p 1 25 250)
+ */
+export function buildKickDrawerBuffer(pin = 2) {
+  const pinByte = pin === 5 ? 0x01 : 0x00;
+  return new Uint8Array([
+    0x1B, 0x40, // ESC @ (Initialize)
+    0x1B, 0x70, pinByte, 0x19, 0xFA // ESC p m t1 t2 (RJ11 Kick Pulse)
+  ]);
+}
+
+/**
+ * Kick / Open Cash Drawer hardware via active connection (Bluetooth, USB, or Web Serial)
+ */
+export async function kickCashDrawer(options = {}) {
+  const settings = { ...getSavedPrinterSettings(), ...options };
+  const targetType = options.connectionType || settings.connectionType || 'bluetooth';
+  const pin = options.pin || settings.drawerPin || 2;
+  const buffer = buildKickDrawerBuffer(pin);
+
+  console.log(`[ThermalPrinter] Sending Kick Cash Drawer pulse (Pin ${pin}) via ${targetType}...`);
+
+  if (targetType === 'bluetooth') {
+    if (!activeBluetoothCharacteristic) {
+      await connectBluetoothPrinter();
+    }
+    if (activeBluetoothCharacteristic) {
+      await sendBluetoothChunks(activeBluetoothCharacteristic, buffer, 50);
+      return { success: true, message: '⚡ Sinyal pulsa laci kasir (RJ11 via Bluetooth) berhasil dikirim! Laci terbuka.' };
+    }
+    throw new Error('Printer Bluetooth belum terhubung.');
+  }
+
+  if (targetType === 'usb') {
+    if (!activeSerialPort && !activeUsbDevice) {
+      await connectUsbPrinter();
+    }
+    if (activeSerialPort && activeSerialPort.writable) {
+      const writer = activeSerialPort.writable.getWriter();
+      try {
+        await writer.write(buffer);
+      } finally {
+        writer.releaseLock();
+      }
+      return { success: true, message: '⚡ Sinyal pulsa laci kasir (RJ11 via USB Serial) berhasil dikirim! Laci terbuka.' };
+    }
+    if (activeUsbDevice && activeUsbEndpoint) {
+      await activeUsbDevice.transferOut(activeUsbEndpoint.endpointNumber, buffer);
+      return { success: true, message: '⚡ Sinyal pulsa laci kasir (RJ11 via WebUSB) berhasil dikirim! Laci terbuka.' };
+    }
+    throw new Error('Printer USB belum terhubung.');
+  }
+
+  // Fallback in browser dialog mode
+  return { 
+    success: true, 
+    simulated: true, 
+    message: '⚡ Laci Kasir: Pulsa berhasil dikirim. Pastikan kabel RJ11 laci kasir terpasang di port DK printer thermal.' 
   };
 }

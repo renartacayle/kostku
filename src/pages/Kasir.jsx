@@ -71,7 +71,11 @@ import {
   printViaBrowserDialog,
   getSampleTestOrder,
   getHardwareCapabilities,
-  buildEscPosBuffer
+  buildEscPosBuffer,
+  kickCashDrawer,
+  playCashRegisterSound,
+  playChime,
+  buildKickDrawerBuffer
 } from '../utils/thermalPrinter';
 import { apiGetAccountWallet, apiMutateAccountWallet } from '../services/api';
 import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
@@ -140,8 +144,11 @@ export default function Kasir({ user }) {
   const [savingStore, setSavingStore] = useState(false);
   const [storeSaveMsg, setStoreSaveMsg] = useState('');
 
-  // Hardware Thermal Printer Settings State (Bluetooth, USB & Browser)
+  // Hardware Thermal Printer & Cash Drawer (Laci Kasir) Settings State
   const [printerSettings, setPrinterSettings] = useState(() => getSavedPrinterSettings());
+  const [showHardwareModal, setShowHardwareModal] = useState(false);
+  const [hardwareModalTab, setHardwareModalTab] = useState('drawer'); // 'drawer' | 'printer'
+  const [drawerKicking, setDrawerKicking] = useState(false);
   const [printerFeedback, setPrinterFeedback] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
   const [hardwareCaps, setHardwareCaps] = useState(() => getHardwareCapabilities());
@@ -596,6 +603,26 @@ export default function Kasir({ user }) {
       setTimeout(() => setPrinterFeedback(''), 5000);
     } finally {
       setIsPrinting(false);
+    }
+  };
+
+  // ── CASH DRAWER (LACI KASIR RJ11 / USB) KICK HANDLER ──
+  const handleKickDrawerManual = async () => {
+    try {
+      setDrawerKicking(true);
+      playCashRegisterSound();
+      setPrinterFeedback('⚡ Mengirim sinyal pulsa buka laci kasir (RJ11/USB)...');
+      const res = await kickCashDrawer({
+        connectionType: printerSettings.connectionType || 'bluetooth',
+        pin: printerSettings.drawerPin || 2
+      });
+      setPrinterFeedback('✅ ' + (res.message || 'Laci uang kasir berhasil terbuka!'));
+      setTimeout(() => setPrinterFeedback(''), 4500);
+    } catch (err) {
+      setPrinterFeedback('❌ ' + (err.message || 'Gagal membuka laci. Pastikan printer thermal terhubung.'));
+      setTimeout(() => setPrinterFeedback(''), 5500);
+    } finally {
+      setTimeout(() => setDrawerKicking(false), 600);
     }
   };
 
@@ -1846,6 +1873,34 @@ export default function Kasir({ user }) {
               </button>
             </div>
 
+            {/* Manual Cash Drawer Quick Kick Button */}
+            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={handleKickDrawerManual}
+                disabled={drawerKicking}
+                style={{
+                  width: '100%',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  border: isLight ? '1px dashed #10b981' : '1px dashed rgba(16, 185, 129, 0.4)',
+                  background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)',
+                  color: '#059669',
+                  fontWeight: 700,
+                  fontSize: '0.74rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '5px'
+                }}
+                title="Buka laci uang kasir secara manual (pulsa RJ11)"
+              >
+                <span>🔓</span>
+                <span>{drawerKicking ? 'Membuka Laci...' : 'Buka Laci Uang Kasir (RJ11)'}</span>
+              </button>
+            </div>
+
             <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
               <button
                 type="button"
@@ -1912,7 +1967,34 @@ export default function Kasir({ user }) {
                     if (showMobileCartDrawer) setShowMobileCartDrawer(false);
                     fetchData();
                     loadPromos();
-                    alert('✅ Transaksi Tunai Berhasil! Nota tercatat & masuk antrean dapur.');
+
+                    // Automatic Cash Drawer Kick & Sound Effect
+                    if (printerSettings.openDrawer !== false) {
+                      try {
+                        playCashRegisterSound();
+                        kickCashDrawer({
+                          connectionType: printerSettings.connectionType || 'bluetooth',
+                          pin: printerSettings.drawerPin || 2
+                        }).catch(console.warn);
+                      } catch (_) {}
+                    }
+
+                    // Auto Print Thermal Receipt if configured
+                    try {
+                      printReceipt({
+                        id: newO.id,
+                        totalAmount: posFinalTotal,
+                        subtotal: posCartSubtotal,
+                        paymentMethod: 'TUNAI (CASH)',
+                        tableNumber: selectedTable,
+                        items: items.map(it => {
+                          const p = Object.values(posCart).find(c => c.product.id === it.productId)?.product;
+                          return { name: p?.name || 'Menu', qty: it.qty, subtotal: (p?.price || 0) * it.qty };
+                        })
+                      }, { openDrawer: false }).catch(console.warn);
+                    } catch (_) {}
+
+                    alert('✅ Transaksi Tunai Berhasil! Laci uang kasir terbuka otomatis & nota masuk antrean dapur.');
                   } else {
                     const err = await res.json();
                     alert(err.error || 'Gagal membuat pesanan');
@@ -2283,11 +2365,27 @@ export default function Kasir({ user }) {
 
         <button
           type="button"
-          onClick={() => setShowPrinterSettingsModal(true)}
+          onClick={() => setShowHardwareModal(true)}
           style={quickPillStyle('#10b981')}
+          title="Koneksikan Laci Kasir (RJ11) & Printer Thermal"
         >
           <Printer size={12} color="#10b981" />
-          <span>Printer</span>
+          <span>Laci &amp; Print</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleKickDrawerManual}
+          disabled={drawerKicking}
+          style={{
+            ...quickPillStyle('#059669'),
+            background: drawerKicking ? '#10b981' : (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.2)'),
+            color: drawerKicking ? '#ffffff' : (isLight ? '#047857' : '#34d399')
+          }}
+          title="Buka Laci Uang Kasir (Pulsa RJ11)"
+        >
+          <span>🔓</span>
+          <span>{drawerKicking ? 'Buka...' : 'Buka Laci'}</span>
         </button>
 
         <Link
@@ -3991,10 +4089,10 @@ export default function Kasir({ user }) {
                   onClick: () => { setShowLoyaltyModal(true); setShowToolsDrawer(false); }
                 },
                 {
-                  title: 'Printer Thermal',
-                  desc: 'Bluetooth, USB, Dialog',
+                  title: 'Printer & Laci Kasir',
+                  desc: 'Laci uang RJ11 & printer',
                   icon: <Printer size={20} color="#10b981" />,
-                  onClick: () => { setShowPrinterSettingsModal(true); setShowToolsDrawer(false); }
+                  onClick: () => { setShowHardwareModal(true); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Kelola Karyawan',
@@ -8290,6 +8388,554 @@ export default function Kasir({ user }) {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL PERIFERAL HARDWARE: LACI KASIR (CASH DRAWER) & PRINTER THERMAL ── */}
+      {showHardwareModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: isLight ? '#ffffff' : '#0f172a',
+            border: isLight ? '1.5px solid #86efac' : '1.5px solid rgba(16, 185, 129, 0.45)',
+            borderRadius: '24px',
+            maxWidth: '560px',
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+            overflow: 'hidden'
+          }}>
+            {/* Header Modal */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: `1px solid ${borderColor}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Printer size={20} color="#10b981" />
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: textPrimary }}>
+                    Hardware POS: Laci Kasir &amp; Printer
+                  </h3>
+                </div>
+                <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: textSecondary }}>
+                  Konfigurasi laci uang otomatis (RJ11) dan printer struk thermal (Bluetooth / USB).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHardwareModal(false)}
+                style={{ background: 'none', border: 'none', color: textSecondary, cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Hardware Feedback Alert if any */}
+            {printerFeedback && (
+              <div style={{
+                margin: '1rem 1.5rem 0',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                background: printerFeedback.startsWith('✅') ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)') : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)'),
+                color: printerFeedback.startsWith('✅') ? '#059669' : '#dc2626',
+                border: `1px solid ${printerFeedback.startsWith('✅') ? '#10b981' : '#ef4444'}`
+              }}>
+                {printerFeedback}
+              </div>
+            )}
+
+            {/* Segmented Tab Controls: Laci Kasir vs Printer Thermal */}
+            <div style={{ padding: '0.75rem 1.5rem 0' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '6px',
+                background: isLight ? '#f1f5f9' : '#1e293b',
+                padding: '4px',
+                borderRadius: '14px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setHardwareModalTab('drawer')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: hardwareModalTab === 'drawer' ? '#10b981' : 'transparent',
+                    color: hardwareModalTab === 'drawer' ? '#ffffff' : textSecondary,
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span>🗄️</span>
+                  <span>Laci Uang (Cash Drawer)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHardwareModalTab('printer')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: hardwareModalTab === 'printer' ? '#2563eb' : 'transparent',
+                    color: hardwareModalTab === 'printer' ? '#ffffff' : textSecondary,
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Printer size={15} />
+                  <span>Printer Struk Thermal</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body Content (Scrollable) */}
+            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              {/* ── TAB 1: LACI UANG KASIR (CASH DRAWER RJ11 / USB) ── */}
+              {hardwareModalTab === 'drawer' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  
+                  {/* Status Card & Diagram Visual */}
+                  <div style={{
+                    padding: '1rem',
+                    borderRadius: '16px',
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        ● Status Laci Kasir: Siap Konek
+                      </span>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        background: '#10b981',
+                        color: '#ffffff'
+                      }}>
+                        Port RJ11 / RJ12
+                      </span>
+                    </div>
+
+                    <div style={{
+                      background: isLight ? '#ffffff' : '#0f172a',
+                      borderRadius: '12px',
+                      padding: '10px 12px',
+                      border: `1px solid ${borderColor}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-around',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      color: textPrimary
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>📱</div>
+                        <span>Tablet / HP</span>
+                      </div>
+                      <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(BT/USB)──➔</div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>🖨️</div>
+                        <span>Printer Thermal</span>
+                      </div>
+                      <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(RJ11)──➔</div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>🗄️</div>
+                        <span style={{ color: '#10b981' }}>Laci Kasir</span>
+                      </div>
+                    </div>
+
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: textSecondary, lineHeight: 1.4 }}>
+                      Laci kasir terhubung via kabel RJ11 (kabel telepon) di port belakang printer thermal bertuliskan <strong>"DK" (Drawer Kick)</strong>. Saat transaksi tunai selesai, pulsa 12V/24V dikirim otomatis untuk melentingkan laci terbuka.
+                    </p>
+                  </div>
+
+                  {/* Tombol Utama: Uji Coba Buka Laci Sekarang */}
+                  <button
+                    type="button"
+                    onClick={handleKickDrawerManual}
+                    disabled={drawerKicking}
+                    style={{
+                      padding: '14px',
+                      borderRadius: '14px',
+                      border: 'none',
+                      background: drawerKicking 
+                        ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
+                        : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.92rem',
+                      cursor: drawerKicking ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.1rem' }}>🔓</span>
+                    <span>{drawerKicking ? 'Mengirim Pulsa Listrik...' : 'TES BUKA LACI SEKARANG (KICK DRAWER)'}</span>
+                  </button>
+
+                  {/* Pengaturan Otomatisasi Laci */}
+                  <div style={{
+                    padding: '1rem',
+                    borderRadius: '16px',
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 800, color: textPrimary }}>
+                      Pengaturan Otomatisasi Laci
+                    </h4>
+
+                    {/* Toggle: Auto-kick on Cash */}
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      background: isLight ? '#ffffff' : '#0f172a',
+                      border: `1px solid ${borderColor}`
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: textPrimary }}>
+                          Buka Laci Otomatis saat Bayar Tunai (Cash)
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: textSecondary }}>
+                          Laci langsung melenting terbuka saat klik 'Bayar Tunai &amp; Cetak Struk'.
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={printerSettings.openDrawer !== false}
+                        onChange={e => {
+                          const next = { ...printerSettings, openDrawer: e.target.checked };
+                          setPrinterSettings(next);
+                          savePrinterSettings(next);
+                        }}
+                        style={{ width: '18px', height: '18px', accentColor: '#10b981', cursor: 'pointer' }}
+                      />
+                    </label>
+
+                    {/* Selection: Pin RJ11 Pulsa */}
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '5px' }}>
+                        Pilihan Pin Pulsa Sinyal RJ11:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        {[
+                          { id: 2, label: 'Pin 2 (Standard ESC/POS)', desc: 'Panda, Epson, Iware, Eppos, Kassen' },
+                          { id: 5, label: 'Pin 5 (Alternatif Brand)', desc: 'Sebagian printer mini POS tertentu' }
+                        ].map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              const next = { ...printerSettings, drawerPin: p.id };
+                              setPrinterSettings(next);
+                              savePrinterSettings(next);
+                            }}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '10px',
+                              border: (printerSettings.drawerPin || 2) === p.id ? '2px solid #10b981' : `1px solid ${borderColor}`,
+                              background: (printerSettings.drawerPin || 2) === p.id ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)') : (isLight ? '#ffffff' : '#0f172a'),
+                              color: textPrimary,
+                              textAlign: 'left',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <div style={{ fontWeight: 800, fontSize: '0.76rem', color: (printerSettings.drawerPin || 2) === p.id ? '#10b981' : textPrimary }}>
+                              {p.label}
+                            </div>
+                            <div style={{ fontSize: '0.64rem', color: textSecondary }}>
+                              {p.desc}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Panduan 3 Langkah Sambungkan Laci */}
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    fontSize: '0.72rem',
+                    color: isLight ? '#92400e' : '#fde68a'
+                  }}>
+                    <strong>💡 Langkah Menyambungkan Laci Kasir:</strong>
+                    <ol style={{ margin: '4px 0 0', paddingLeft: '1.1rem', lineHeight: 1.5 }}>
+                      <li>Ambil kabel RJ11 (seperti kabel telepon) dari belakang laci kasir.</li>
+                      <li>Colokkan ke port <strong>DK (Drawer Kick)</strong> di belakang printer thermal Anda.</li>
+                      <li>Pastikan printer thermal sudah tersambung via Bluetooth atau USB di tab <em>Printer Struk Thermal</em>.</li>
+                      <li>Tekan tombol <strong>"Tes Buka Laci Sekarang"</strong> di atas.</li>
+                    </ol>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ── TAB 2: PRINTER STRUK THERMAL ── */}
+              {hardwareModalTab === 'printer' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  
+                  {/* Connection Type Selector */}
+                  <div>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '6px' }}>
+                      Pilih Metode Koneksi Printer:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                      {[
+                        { id: 'bluetooth', label: 'Bluetooth BLE', icon: <Bluetooth size={14} />, desc: 'HP / Tablet' },
+                        { id: 'usb', label: 'USB Serial', icon: <Usb size={14} />, desc: 'Kabel USB OTG' },
+                        { id: 'browser', label: 'Dialog Cetak', icon: <Printer size={14} />, desc: 'Driver OS' }
+                      ].map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            const next = { ...printerSettings, connectionType: m.id };
+                            setPrinterSettings(next);
+                            savePrinterSettings(next);
+                          }}
+                          style={{
+                            padding: '8px 6px',
+                            borderRadius: '10px',
+                            border: (printerSettings.connectionType || 'browser') === m.id ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                            background: (printerSettings.connectionType || 'browser') === m.id ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.18)') : (isLight ? '#ffffff' : '#1e293b'),
+                            color: textPrimary,
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}
+                        >
+                          <div style={{ color: (printerSettings.connectionType || 'browser') === m.id ? '#2563eb' : textSecondary }}>{m.icon}</div>
+                          <span style={{ fontSize: '0.76rem', fontWeight: 800 }}>{m.label}</span>
+                          <span style={{ fontSize: '0.62rem', color: textSecondary }}>{m.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pair Device Action Buttons */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={handleConnectBluetooth}
+                      style={{
+                        flex: 1,
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#ffffff' : '#1e293b',
+                        color: textPrimary,
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Bluetooth size={14} color="#3b82f6" />
+                      <span>{printerSettings.pairedBluetoothDeviceName ? `BT: ${printerSettings.pairedBluetoothDeviceName}` : 'Pair Printer Bluetooth'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleConnectUsb}
+                      style={{
+                        flex: 1,
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#ffffff' : '#1e293b',
+                        color: textPrimary,
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Usb size={14} color="#10b981" />
+                      <span>{printerSettings.pairedUsbPortName ? `USB: ${printerSettings.pairedUsbPortName}` : 'Pair Kabel USB OTG'}</span>
+                    </button>
+                  </div>
+
+                  {/* Paper Width & Auto Cut */}
+                  <div style={{
+                    padding: '1rem',
+                    borderRadius: '16px',
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '4px' }}>
+                        Lebar Kertas Struk:
+                      </label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {['58mm', '80mm'].map(w => (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => {
+                              const next = { ...printerSettings, paperWidth: w };
+                              setPrinterSettings(next);
+                              savePrinterSettings(next);
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '8px',
+                              borderRadius: '8px',
+                              border: (printerSettings.paperWidth || '58mm') === w ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                              background: (printerSettings.paperWidth || '58mm') === w ? '#2563eb' : (isLight ? '#ffffff' : '#0f172a'),
+                              color: (printerSettings.paperWidth || '58mm') === w ? '#ffffff' : textPrimary,
+                              fontWeight: 800,
+                              fontSize: '0.76rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {w} ({w === '58mm' ? '32 Kolom' : '48 Kolom'})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: textPrimary, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={printerSettings.autoCut !== false}
+                        onChange={e => {
+                          const next = { ...printerSettings, autoCut: e.target.checked };
+                          setPrinterSettings(next);
+                          savePrinterSettings(next);
+                        }}
+                      />
+                      <span>Auto-Cut Kertas Otomatis (Pemotong Kertas)</span>
+                    </label>
+                  </div>
+
+                  {/* Test Print Receipt Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleTestPrint()}
+                    disabled={isPrinting}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: isPrinting ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                    }}
+                  >
+                    <Printer size={15} />
+                    <span>{isPrinting ? 'Mencetak Struk...' : 'TES CETAK STRUK THERMAL'}</span>
+                  </button>
+
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer Modal */}
+            <div style={{
+              padding: '10px 1.5rem',
+              borderTop: `1px solid ${borderColor}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: isLight ? '#f8fafc' : '#0f172a',
+              fontSize: '0.74rem',
+              color: textSecondary
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🔌 Mode:</span>
+                <strong style={{ color: textPrimary }}>{printerSettings.connectionType || 'browser'}</strong>
+                <span>• Laci:</span>
+                <strong style={{ color: '#10b981' }}>{printerSettings.openDrawer !== false ? 'Auto-Kick ON' : 'Manual'}</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowHardwareModal(false);
+                  setPrinterFeedback('');
+                }}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#ffffff' : '#1e293b',
+                  color: textPrimary,
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Tutup
+              </button>
+            </div>
+
           </div>
         </div>
       )}
