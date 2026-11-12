@@ -232,8 +232,10 @@ export default function MobileBottomNav({ user }) {
     location.pathname === '/pembayaran' ||
     location.pathname === '/stress-test-report' ||
     location.pathname.startsWith('/stress-test') ||
-    location.pathname.startsWith('/order/') ||
-    location.pathname.startsWith('/meja/');
+    location.pathname.startsWith('/order') ||
+    location.pathname.startsWith('/meja') ||
+    location.pathname.startsWith('/kasir') ||
+    location.pathname.startsWith('/pos');
 
   if (shouldHide) {
     return null;

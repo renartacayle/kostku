@@ -83,8 +83,16 @@ export default function Kasir({ user }) {
   // Dompet Terpadu (Unified Wallet Kasir POS & Mitra UMKM - 1 UID)
   const [walletData, setWalletData] = useState(null);
 
-  // Navigation tab: 'kds' (Dapur) | 'pos' (Kasir Meja) | 'tables' (Meja & QR) | 'settings' (TriPay & Sistem)
-  const [activeTab, setActiveTab] = useState('kds');
+  // Navigation tab: 'pos' (Kasir Meja - Default) | 'kds' (Dapur) | 'tables' (Meja & QR) | 'settings' (TriPay & Sistem)
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const qTab = new URLSearchParams(window.location.search).get('tab');
+      return qTab || 'pos';
+    } catch (_) {
+      return 'pos';
+    }
+  });
+  const [isAlertDismissed, setIsAlertDismissed] = useState(false);
 
   // Data States
   const [orders, setOrders] = useState([]);
@@ -1713,11 +1721,19 @@ export default function Kasir({ user }) {
             </button>
           </div>
         </div>
+      </header>
 
+      {/* ── SUBHEADER & ACTION CENTER (NATURALLY SCROLLABLE ON MOBILE) ── */}
+      <div style={{
+        maxWidth: '1280px',
+        margin: '0 auto',
+        padding: '0.6rem 1rem 0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}>
         {/* ── STORE LOCATION & VALIDITY BAR (LOKASI WAJIB VALID) ── */}
         <div style={{
-          maxWidth: '1280px',
-          margin: '0.5rem auto 0',
           padding: '8px 12px',
           borderRadius: '12px',
           background: storeInfo.isValidated
@@ -2000,11 +2016,9 @@ export default function Kasir({ user }) {
           </div>
         </div>
 
-        {/* ── BANNER ALERT GUDANG MAU HABIS (REALTIME NOTIFICATION) ── */}
-        {inventoryAlerts.length > 0 && (
+        {/* ── BANNER ALERT GUDANG MAU HABIS (REALTIME NOTIFICATION & DISMISSIBLE) ── */}
+        {inventoryAlerts.length > 0 && !isAlertDismissed && (
           <div style={{
-            maxWidth: '1280px',
-            margin: '0.5rem auto 0',
             padding: '10px 14px',
             borderRadius: '12px',
             background: isLight ? '#fff1f2' : 'rgba(239, 68, 68, 0.16)',
@@ -2016,7 +2030,7 @@ export default function Kasir({ user }) {
             gap: '10px',
             boxShadow: '0 2px 8px rgba(239, 68, 68, 0.12)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
               <ShieldAlert size={20} color="#ef4444" style={{ flexShrink: 0 }} />
               <div>
                 <strong style={{ fontSize: '0.84rem', color: isLight ? '#991b1b' : '#fca5a5' }}>
@@ -2028,44 +2042,69 @@ export default function Kasir({ user }) {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                setShowInventoryModal(true);
-                setInventoryTab('stock');
-                loadInventory();
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: '#ef4444',
-                color: '#ffffff',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
-              }}
-            >
-              <Package size={14} /> Buka Gudang &amp; Restock
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInventoryModal(true);
+                  setInventoryTab('stock');
+                  loadInventory();
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <Package size={14} /> Buka Gudang &amp; Restock
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAlertDismissed(true)}
+                style={{
+                  background: 'transparent',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  padding: '5px 7px',
+                  cursor: 'pointer',
+                  color: textSecondary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Tutup Notifikasi"
+              >
+                <X size={15} />
+              </button>
+            </div>
           </div>
         )}
 
-        {/* ── RESPONSIVE NAVIGATION TAB PILLS (NO TRUNCATION) ── */}
+        {/* ── RESPONSIVE NAVIGATION TAB PILLS (STICKY UNDER SLIM TOPBAR) ── */}
         <div style={{
-          maxWidth: '1280px',
-          margin: '0.6rem auto 0',
+          position: 'sticky',
+          top: '56px',
+          zIndex: 35,
+          background: isLight ? 'rgba(248, 250, 252, 0.95)' : 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(10px)',
+          padding: '6px 0',
+          borderRadius: '12px',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '8px',
-          paddingBottom: '2px'
+          gap: '8px'
         }}>
           {[
-            { id: 'kds', label: 'Dapur (KDS)', icon: <Flame size={15} />, badge: pendingOrders.length },
             { id: 'pos', label: 'Kasir Register', icon: <ShoppingBag size={15} /> },
+            { id: 'kds', label: 'Dapur (KDS)', icon: <Flame size={15} />, badge: pendingOrders.length },
             { id: 'tables', label: 'Meja & QR', icon: <QrCode size={15} /> },
             { id: 'settings', label: 'Keuangan', icon: <DollarSign size={15} /> }
           ].map(tab => {
@@ -2114,7 +2153,7 @@ export default function Kasir({ user }) {
             );
           })}
         </div>
-      </header>
+      </div>
 
       {/* ── TAB 1: DAPUR KITCHEN DISPLAY SYSTEM (KDS) ── */}
       {activeTab === 'kds' && (

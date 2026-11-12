@@ -101,7 +101,9 @@ export default function FabFanMenu() {
     location.pathname === '/stress-test-report' ||
     location.pathname.startsWith('/stress-test') ||
     location.pathname.startsWith('/order') ||
-    location.pathname.startsWith('/meja');
+    location.pathname.startsWith('/meja') ||
+    location.pathname.startsWith('/kasir') ||
+    location.pathname.startsWith('/pos');
 
   // Determine current active role
   const role = (currentUser?.role || '').toLowerCase();

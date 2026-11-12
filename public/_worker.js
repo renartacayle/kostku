@@ -578,9 +578,9 @@ async function handleApi(request, url, env) {
   // ── Version & App Health ─────────────────────────────────────────
   if ((path === '/app-version' || path === '/version') && method === 'GET') {
     return new Response(JSON.stringify({
-      version: '1.5.0',
+      version: '1.5.1',
       buildDate: '2026-11-12',
-      buildNumber: 155,
+      buildNumber: 156,
       appId: 'id.kostku.app'
     }), { headers: corsHeaders });
   }
