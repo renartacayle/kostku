@@ -789,7 +789,16 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     let merchant = db.merchants.find(m => String(m.id) === String(targetId)) || db.merchants[0];
 
     if (!merchant) {
-      return res.status(404).json({ error: 'Data toko kasir tidak ditemukan' });
+      db.settings = db.settings || {};
+      db.settings.posStore = db.settings.posStore || {};
+      merchant = db.settings.posStore;
+      merchant.id = merchant.id || 'STORE-DEFAULT';
+      merchant.name = merchant.name || 'KostKu Cafe';
+      merchant.saldoNota = Number(merchant.saldoNota) || 5000;
+      merchant.kuotaNota = Number(merchant.kuotaNota) || 50;
+      if (!db.merchants.find(m => m.id === merchant.id)) {
+        db.merchants.push(merchant);
+      }
     }
 
     const NOTA_PRICE = 100;
@@ -801,6 +810,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     merchant.saldoNota = (Number(merchant.saldoNota) || 0) + topupAmount;
     merchant.kuotaNota = Math.max(0, Math.floor(merchant.saldoNota / NOTA_PRICE));
     merchant.notaHistory = merchant.notaHistory || [];
+
+    if (db.settings && db.settings.posStore) {
+      db.settings.posStore.saldoNota = merchant.saldoNota;
+      db.settings.posStore.kuotaNota = merchant.kuotaNota;
+    }
 
     const record = {
       id: 'TOPUP-POS-' + Date.now(),

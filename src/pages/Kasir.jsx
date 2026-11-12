@@ -975,19 +975,28 @@ export default function Kasir({ user }) {
   const handleTopupPosNota = async (nominal) => {
     try {
       setPosTopupLoading(true);
+      const chosenAmount = nominal || posTopupAmount || 10000;
+      const chosenQuota = Math.max(1, Math.floor(chosenAmount / 100));
       const res = await fetch('/api/pos/topup-nota', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: nominal || posTopupAmount,
+          amount: chosenAmount,
+          quota: chosenQuota,
           merchantId: storeInfo?.merchantId
         })
       });
       const data = await res.json();
       if (res.ok) {
-        alert(data.message || 'Top up nota kasir berhasil!');
+        try { playChime(880, 0.15); } catch (_) {}
+        setStoreInfo(prev => ({
+          ...prev,
+          saldoNota: data.saldoNota ?? ((prev.saldoNota || 0) + chosenAmount),
+          kuotaNota: data.kuotaNota ?? ((prev.kuotaNota || 0) + chosenQuota)
+        }));
         setShowPosTopupModal(false);
         fetchData();
+        alert(data.message || `🎉 Top up nota kasir berhasil! (+${chosenQuota} nota)`);
       } else {
         alert(data.error || 'Gagal top up saldo nota kasir');
       }
@@ -2451,21 +2460,31 @@ export default function Kasir({ user }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                padding: '4px 8px',
+                padding: '4px 9px',
                 borderRadius: '999px',
                 background: Number(storeInfo.saldoNota ?? 5000) < 100 
-                  ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.2)') 
-                  : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.18)'),
-                border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.4)',
+                  ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
+                  : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
+                border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
                 cursor: 'pointer',
-                fontSize: '0.7rem',
+                fontSize: '0.72rem',
                 fontWeight: 800,
-                color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#b45309' : '#fbbf24')
+                color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
               }}
               title="Klik untuk Top Up Saldo Kuota Nota Kasir"
             >
               <span>🪙</span>
               <span>{storeInfo.kuotaNota ?? 50}</span>
+              <span style={{
+                fontSize: '0.62rem',
+                fontWeight: 900,
+                background: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#2563eb',
+                color: '#ffffff',
+                padding: '1px 5px',
+                borderRadius: '999px',
+                marginLeft: '1px'
+              }}>+Top Up</span>
             </button>
 
             {/* Tombol Pusat Kelola Kasir (Semua Fitur) */}
@@ -4676,6 +4695,13 @@ export default function Kasir({ user }) {
             <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               {[
                 {
+                  title: 'Top Up Saldo Nota',
+                  desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar`,
+                  icon: <Zap size={20} color="#eab308" />,
+                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Habis' : '🪙 Beli Nota',
+                  onClick: () => { setShowPosTopupModal(true); setShowToolsDrawer(false); }
+                },
+                {
                   title: 'Promo Makanan',
                   desc: 'Kuota & tgl diskon',
                   icon: <Tag size={20} color="#f59e0b" />,
@@ -6720,7 +6746,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 50,
+          zIndex: 150,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -7246,7 +7272,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 50,
+          zIndex: 150,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -7472,7 +7498,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 50,
+          zIndex: 150,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -7691,7 +7717,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 50,
+          zIndex: 150,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -7876,7 +7902,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 150,
           padding: '1rem'
         }}>
           <div style={{
@@ -8151,7 +8177,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 150,
           padding: '1rem'
         }}>
           <div style={{
@@ -8536,7 +8562,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 150,
           padding: '1rem'
         }}>
           <div style={{
@@ -9134,7 +9160,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 150,
           padding: '1rem'
         }}>
           <div style={{

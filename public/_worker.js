@@ -1482,10 +1482,18 @@ async function handlePosApi(request, path, method, url) {
   // 3. POST /pos/topup-nota
   if (path === '/topup-nota' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
-    const addQuota = Number(body.quota) || 100;
     const addSaldo = Number(body.amount) || 10000;
-    posStore.kuotaNota += addQuota;
-    posStore.saldoNota += addSaldo;
+    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / 100));
+    posStore.kuotaNota = (Number(posStore.kuotaNota) || 0) + addQuota;
+    posStore.saldoNota = (Number(posStore.saldoNota) || 0) + addSaldo;
+    if (Array.isArray(posStore.branches)) {
+      posStore.branches.forEach(b => {
+        if (b.id === posStore.activeBranch) {
+          b.saldoNota = posStore.saldoNota;
+          b.kuotaNota = posStore.kuotaNota;
+        }
+      });
+    }
     return new Response(JSON.stringify({
       success: true,
       message: `Top up kuota kasir berhasil (+${addQuota} nota)`,
