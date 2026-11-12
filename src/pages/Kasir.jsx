@@ -105,6 +105,9 @@ export default function Kasir({ user }) {
   const [posCart, setPosCart] = useState({});
   const [selectedTable, setSelectedTable] = useState('');
   const [posCategory, setPosCategory] = useState('Makanan');
+  const [posSearchQuery, setPosSearchQuery] = useState('');
+  const [showMobileCartDrawer, setShowMobileCartDrawer] = useState(false);
+  const [showToolsDrawer, setShowToolsDrawer] = useState(false);
   // POS Catalog View Mode: 'grid' (2 Kolom Kartu) vs 'list' (List Ramping Cepat)
   const [posViewMode, setPosViewMode] = useState('grid');
 
@@ -259,6 +262,26 @@ export default function Kasir({ user }) {
     }));
     // Auto reset back to 1 immediately so fingers don't get tired
     setPosCardQtys(prev => ({ ...prev, [p.id]: 1 }));
+  };
+
+  const updateCartItemQty = (productId, delta) => {
+    setPosCart(prev => {
+      const cur = prev[productId];
+      if (!cur && delta > 0) {
+        const prod = products.find(p => p.id === productId);
+        if (!prod) return prev;
+        return { ...prev, [productId]: { product: prod, qty: 1 } };
+      }
+      if (!cur) return prev;
+      const nextQty = cur.qty + delta;
+      const copy = { ...prev };
+      if (nextQty <= 0) {
+        delete copy[productId];
+      } else {
+        copy[productId] = { ...cur, qty: nextQty };
+      }
+      return copy;
+    });
   };
 
   // Thermal Receipt Modal State
@@ -1535,6 +1558,390 @@ export default function Kasir({ user }) {
   const borderColor = isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)';
   const borderLight = isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.16)';
 
+  const quickPillStyle = (color) => ({
+    flexShrink: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '5px 11px',
+    borderRadius: '999px',
+    border: isLight ? `1px solid ${color}40` : `1px solid ${color}55`,
+    background: isLight ? `${color}12` : `${color}20`,
+    color: isLight ? color : '#ffffff',
+    fontSize: '0.73rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.15s ease'
+  });
+
+  const renderCartSummaryContent = () => {
+    const posCartItems = Object.values(posCart);
+    const posCartSubtotal = posCartItems.reduce((s, it) => s + (it.product.price * it.qty), 0);
+    const posPromoDiscount = activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0;
+    const posFinalTotal = Math.max(0, posCartSubtotal - posPromoDiscount);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div>
+          <label style={{ fontSize: '0.76rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
+            Pilih Nomor Meja:
+          </label>
+          <select
+            value={selectedTable}
+            onChange={e => setSelectedTable(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              border: `1px solid ${borderColor}`,
+              background: isLight ? '#f8fafc' : '#1e293b',
+              color: textPrimary,
+              fontSize: '0.85rem',
+              fontWeight: 700
+            }}
+          >
+            {tables.map(t => (
+              <option key={t.id} value={t.number}>{t.number}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Items in Cart */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
+          {posCartItems.length === 0 ? (
+            <p style={{ textAlign: 'center', color: textSecondary, fontSize: '0.8rem', padding: '1.5rem 0', margin: 0 }}>
+              Keranjang masih kosong. Ketuk menu di katalog untuk menambah pesanan.
+            </p>
+          ) : (
+            posCartItems.map(it => (
+              <div
+                key={it.product.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.8rem',
+                  padding: '6px 8px',
+                  background: isLight ? '#f8fafc' : 'rgba(0,0,0,0.25)',
+                  borderRadius: '8px',
+                  border: `1px solid ${borderColor}`
+                }}
+              >
+                <div style={{ overflow: 'hidden', paddingRight: '6px' }}>
+                  <div style={{ color: textPrimary, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {it.product.name}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: textSecondary, fontFamily: 'var(--font-mono)' }}>
+                    @ Rp {it.product.price?.toLocaleString('id-ID')}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  {/* Stepper +/- */}
+                  <div style={{ display: 'flex', alignItems: 'center', background: isLight ? '#e2e8f0' : '#1e293b', borderRadius: '6px', padding: '1px' }}>
+                    <button
+                      type="button"
+                      onClick={() => updateCartItemQty(it.product.id, -1)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: textPrimary,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Minus size={11} />
+                    </button>
+                    <span style={{ fontWeight: 800, fontSize: '0.75rem', padding: '0 5px', color: '#2563eb' }}>
+                      {it.qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateCartItemQty(it.product.id, 1)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: textPrimary,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Plus size={11} />
+                    </button>
+                  </div>
+
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.78rem', minWidth: '60px', textAlign: 'right' }}>
+                    Rp {(it.product.price * it.qty).toLocaleString('id-ID')}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPosCart(prev => {
+                        const copy = { ...prev };
+                        delete copy[it.product.id];
+                        return copy;
+                      });
+                    }}
+                    style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', padding: '2px' }}
+                    title="Hapus"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {posCartItems.length > 0 && (
+          <div style={{ borderTop: `1px solid ${borderColor}`, paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '0.8rem' }}>
+            {/* Selector Promo Makanan */}
+            <div style={{
+              background: isLight ? '#fefce8' : 'rgba(245, 158, 11, 0.1)',
+              border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '10px',
+              padding: '7px 9px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Tag size={13} color="#d97706" />
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: textPrimary }}>
+                    {activeCartPromo ? activeCartPromo.title : 'Promo Makanan:'}
+                  </span>
+                </div>
+                {activeCartPromo ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveCartPromo(null)}
+                    style={{ fontSize: '0.68rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                  >
+                    ✕ Lepas
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPromoManagerModal(true);
+                      loadPromos();
+                    }}
+                    style={{ fontSize: '0.68rem', color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, textDecoration: 'underline' }}
+                  >
+                    + Kelola Promo
+                  </button>
+                )}
+              </div>
+              {!activeCartPromo && promosList.filter(p => p.isAvailable).length > 0 && (
+                <select
+                  onChange={(e) => {
+                    const p = promosList.find(pr => pr.id === e.target.value);
+                    if (p) setActiveCartPromo(p);
+                  }}
+                  defaultValue=""
+                  style={{
+                    width: '100%',
+                    marginTop: '5px',
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    border: `1px solid ${borderColor}`,
+                    background: bgCard,
+                    color: textPrimary
+                  }}
+                >
+                  <option value="" disabled>-- Pilih Promo Makanan Aktif --</option>
+                  {promosList.filter(p => p.isAvailable).map(pr => (
+                    <option key={pr.id} value={pr.id}>
+                      {pr.title} ({pr.discountType === 'PERCENT' ? `${pr.discountValue}%` : `Rp ${pr.discountValue.toLocaleString('id-ID')}`}) • {pr.limitType === 'QUOTA' ? `Sisa ${pr.remainingQuota} porsi` : pr.limitType === 'DATE' ? `s/d ${pr.expiryDate}` : `Sisa ${pr.remainingQuota} porsi (s/d ${pr.expiryDate})`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
+              <span>Subtotal:</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>
+                Rp {posCartSubtotal.toLocaleString('id-ID')}
+              </span>
+            </div>
+
+            {posPromoDiscount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', fontWeight: 700 }}>
+                <span>Diskon ({activeCartPromo?.code}):</span>
+                <span style={{ fontFamily: 'var(--font-mono)' }}>
+                  -Rp {posPromoDiscount.toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
+              <span>Biaya Layanan:</span>
+              <span style={{ color: '#16a34a', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>Gratis (Rp 0)</span>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.98rem',
+              fontWeight: 800,
+              color: textPrimary,
+              borderTop: `1px solid ${borderColor}`,
+              paddingTop: '6px',
+              marginTop: '2px'
+            }}>
+              <span>Total Bayar:</span>
+              <span style={{ color: '#16a34a', fontFamily: 'var(--font-mono)' }}>
+                Rp {posFinalTotal.toLocaleString('id-ID')}
+              </span>
+            </div>
+
+            {/* Saldo Nota Notification */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '6px 8px',
+              borderRadius: '8px',
+              background: Number(storeInfo.saldoNota ?? 5000) < 100 
+                ? 'rgba(239, 68, 68, 0.12)' 
+                : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)'),
+              border: Number(storeInfo.saldoNota ?? 5000) < 100 
+                ? '1px solid #ef4444' 
+                : '1px solid rgba(16, 185, 129, 0.25)',
+              marginTop: '4px',
+              fontSize: '0.72rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span>🪙</span>
+                <span style={{ fontWeight: 700, color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981' }}>
+                  {Number(storeInfo.saldoNota ?? 5000) < 100
+                    ? `Saldo Nota: Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')} (Habis!)`
+                    : `Sisa Nota: ${storeInfo.kuotaNota ?? 50} lembar`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPosTopupModal(true)}
+                style={{
+                  padding: '2px 7px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  background: '#3b82f6',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                + Top Up
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Kosongkan semua item di keranjang?')) {
+                    setPosCart({});
+                    setActiveCartPromo(null);
+                    if (showMobileCartDrawer) setShowMobileCartDrawer(false);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  color: textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Kosongkan
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (Number(storeInfo.saldoNota ?? 5000) < 100) {
+                    setShowPosTopupModal(true);
+                    alert(`⚠️ Saldo nota toko tidak mencukupi untuk transaksi tunai kasir (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota terlebih dahulu.`);
+                    return;
+                  }
+
+                  const items = Object.values(posCart).map(it => ({ productId: it.product.id, qty: it.qty }));
+                  const tbl = tables.find(t => t.number === selectedTable) || tables[0];
+                  const res = await fetch('/api/pos/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      tableToken: tbl?.qrToken,
+                      customerName: 'Kasir Walk-in (' + selectedTable + ')',
+                      items,
+                      promoId: activeCartPromo?.id,
+                      promoCode: activeCartPromo?.code
+                    })
+                  });
+                  if (res.ok) {
+                    const newO = await res.json();
+                    await fetch(`/api/pos/orders/${newO.id}/acc`, { method: 'POST' });
+                    const payRes = await fetch(`/api/pos/orders/${newO.id}/pay`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ method: 'CASH' })
+                    });
+                    const payData = await payRes.json();
+                    if (!payRes.ok) {
+                      if (payData.requiresTopupNota) setShowPosTopupModal(true);
+                      alert(payData.error || 'Gagal memproses pembayaran tunai');
+                      return;
+                    }
+                    setPosCart({});
+                    setActiveCartPromo(null);
+                    if (showMobileCartDrawer) setShowMobileCartDrawer(false);
+                    fetchData();
+                    loadPromos();
+                    alert('✅ Transaksi Tunai Berhasil! Nota tercatat & masuk antrean dapur.');
+                  } else {
+                    const err = await res.json();
+                    alert(err.error || 'Gagal membuat pesanan');
+                  }
+                }}
+                style={{
+                  flex: 2,
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: Number(storeInfo.saldoNota ?? 5000) < 100
+                    ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  boxShadow: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                {Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Top Up Nota' : 'Bayar Tunai & Cetak Struk'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -1543,13 +1950,15 @@ export default function Kasir({ user }) {
       fontFamily: 'var(--font-main, "Plus Jakarta Sans", sans-serif)',
       paddingBottom: '5rem'
     }}>
-      {/* ── TOP HEADER / NAVBAR (KOSTKU AESTHETIC - NATURAL FLOW ON MOBILE) ── */}
+      {/* ── TOP HEADER / NAVBAR (SLEEK, COMPACT & MODERN POS) ── */}
       <header style={{
-        position: 'relative',
-        background: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 23, 42, 0.96)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
         backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${borderColor}`,
-        padding: '0.75rem 1rem',
+        padding: '0.55rem 1rem',
         boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : '0 4px 20px rgba(0,0,0,0.3)'
       }}>
         <div style={{
@@ -1558,489 +1967,373 @@ export default function Kasir({ user }) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.75rem'
+          gap: '0.5rem'
         }}>
-          {/* Logo & Title (Linked to KostKu Main App) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Link to="/dashboard" title="Kembali ke Dashboard KostKu" style={{ textDecoration: 'none' }}>
+          {/* Logo, Store Name & Live Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <Link to="/dashboard" title="Kembali ke Dashboard KostKu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               <img 
                 src="/logo.png" 
                 alt="Logo KostKu" 
                 style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
                   objectFit: 'contain',
-                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.28)',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
                   cursor: 'pointer'
                 }} 
               />
             </Link>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Link to="/dashboard" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: '1.05rem',
-                    fontWeight: 800,
-                    color: textPrimary,
-                    letterSpacing: '-0.3px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    KostKu POS Kasir
-                  </h1>
-                </Link>
-                <span style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.2)',
-                  color: isLight ? '#15803d' : '#4ade80',
-                  border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.3)'
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h1 style={{
+                  margin: 0,
+                  fontSize: '0.92rem',
+                  fontWeight: 800,
+                  color: textPrimary,
+                  letterSpacing: '-0.3px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
                 }}>
-                  Live System
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <span>Ekosistem KostKu • <span style={{ fontFamily: 'var(--font-mono)' }}>kostku.riuph.me/kasir</span></span>
-                {user && (
+                  {storeInfo.storeName || 'KostKu POS Kasir'}
+                </h1>
+                {storeInfo.isValidated ? (
                   <span style={{
-                    padding: '1px 8px',
+                    fontSize: '0.6rem',
+                    fontWeight: 800,
+                    padding: '1px 6px',
                     borderRadius: '999px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    background: user.role === 'mitra' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                    color: user.role === 'mitra' ? '#ec4899' : '#10b981',
-                    border: user.role === 'mitra' ? '1px solid rgba(236, 72, 153, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)'
+                    background: '#16a34a',
+                    color: '#ffffff',
+                    flexShrink: 0
                   }}>
-                    {user.role === 'mitra' ? '👑 Pemilik Mitra: ' : '👤 Kasir Toko: '}{user.name}
+                    ✓ Resmi
+                  </span>
+                ) : (
+                  <span 
+                    onClick={() => setShowStoreModal(true)}
+                    style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: '999px',
+                      background: '#d97706',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    ⚠️ Validasi
                   </span>
                 )}
+              </div>
+              <p style={{ margin: 0, fontSize: '0.68rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span>{storeInfo.location || 'Kantin KostKu'}</span>
+                <span>•</span>
+                <span style={{ color: user?.role === 'mitra' ? '#ec4899' : '#10b981', fontWeight: 600 }}>
+                  {user ? (user.role === 'mitra' ? `👑 ${user.name}` : `👤 ${user.name}`) : 'Kasir'}
+                </span>
               </p>
             </div>
           </div>
 
-          {/* Quick Controls: Kembali ke KostKu + Theme Toggle & Bell & Karyawan */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Quick Controls: Sisa Nota, Kelola Modal, Theme, Sound, Refresh */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+            {/* Saldo Kuota Nota Chip */}
+            <button
+              type="button"
+              onClick={() => setShowPosTopupModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '999px',
+                background: Number(storeInfo.saldoNota ?? 5000) < 100 
+                  ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.2)') 
+                  : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.18)'),
+                border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.4)',
+                cursor: 'pointer',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#b45309' : '#fbbf24')
+              }}
+              title="Klik untuk Top Up Saldo Kuota Nota Kasir"
+            >
+              <span>🪙</span>
+              <span>{storeInfo.kuotaNota ?? 50} nota</span>
+            </button>
+
+            {/* Tombol Pusat Kelola Kasir (Semua Fitur) */}
+            <button
+              type="button"
+              onClick={() => setShowToolsDrawer(true)}
+              style={{
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 9px',
+                borderRadius: '8px',
+                border: `1px solid ${borderColor}`,
+                background: isLight ? '#f1f5f9' : '#1e293b',
+                color: textPrimary,
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+              title="Buka Pusat Kelola Fitur Kasir & Toko"
+            >
+              <Sliders size={13} color="#2563eb" />
+              <span>Kelola</span>
+              {inventoryAlerts.length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-3px',
+                  right: '-3px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '999px',
+                  background: '#ef4444'
+                }} />
+              )}
+            </button>
+
+            {/* Back to Dashboard */}
             <Link
               to="/dashboard"
               style={{
-                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                border: 'none',
-                borderRadius: '10px',
-                padding: '7px 12px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                color: '#ffffff',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.28)'
-              }}
-              title="Kembali ke Dashboard KostKu Utama"
-            >
-              <ArrowLeft size={14} strokeWidth={2.5} />
-              <span>Ke KostKu</span>
-            </Link>
-            <Link
-              to="/karyawan"
-              style={{
                 background: isLight ? '#f1f5f9' : '#1e293b',
                 border: `1px solid ${borderColor}`,
-                borderRadius: '10px',
-                padding: '7px 11px',
+                borderRadius: '8px',
+                padding: '5px 7px',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                color: textPrimary,
-                fontSize: '0.76rem',
-                fontWeight: 600,
+                justifyContent: 'center',
+                color: textSecondary,
                 textDecoration: 'none'
               }}
-              title="Kelola Akun Karyawan & Staf"
+              title="Kembali ke Dashboard KostKu"
             >
-              <Users size={14} color="#3b82f6" />
-              <span>Karyawan</span>
+              <ArrowLeft size={14} />
             </Link>
+
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               style={{
                 background: isLight ? '#f1f5f9' : '#1e293b',
                 border: `1px solid ${borderColor}`,
-                borderRadius: '10px',
-                padding: '7px 10px',
+                borderRadius: '8px',
+                padding: '5px 7px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 color: textSecondary
               }}
               title="Ganti Tema Terang/Gelap"
             >
-              {isLight ? <Moon size={16} /> : <Sun size={16} color="#f59e0b" />}
+              {isLight ? <Moon size={14} /> : <Sun size={14} color="#f59e0b" />}
             </button>
+
+            {/* Audio Toggle */}
             <button
               onClick={() => setAudioAlert(!audioAlert)}
               style={{
                 background: isLight ? '#f1f5f9' : '#1e293b',
                 border: `1px solid ${borderColor}`,
-                borderRadius: '10px',
-                padding: '7px 10px',
+                borderRadius: '8px',
+                padding: '5px 7px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 color: audioAlert ? '#10b981' : textSecondary
               }}
-              title={audioAlert ? 'Notifikasi Suara Aktif' : 'Notifikasi Suara Nonaktif'}
+              title={audioAlert ? 'Suara Aktif' : 'Suara Mati'}
             >
-              {audioAlert ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />}
             </button>
+
+            {/* Refresh */}
             <button
               onClick={fetchData}
               style={{
                 background: isLight ? '#f1f5f9' : '#1e293b',
                 border: `1px solid ${borderColor}`,
-                borderRadius: '10px',
-                padding: '7px 10px',
+                borderRadius: '8px',
+                padding: '5px 7px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 color: textSecondary
               }}
               title="Refresh Data"
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={14} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* ── SUBHEADER & ACTION CENTER (NATURALLY SCROLLABLE ON MOBILE) ── */}
+      {/* ── HORIZONTAL QUICK TOOLBAR (1-BARIS PRAKTIS & RAMPING) ── */}
       <div style={{
         maxWidth: '1280px',
         margin: '0 auto',
-        padding: '0.6rem 1rem 0',
+        padding: '0.45rem 1rem 0',
         display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
+        alignItems: 'center',
+        gap: '6px',
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+        WebkitOverflowScrolling: 'touch'
       }}>
-        {/* ── STORE LOCATION & VALIDITY BAR (LOKASI WAJIB VALID) ── */}
-        <div style={{
-          padding: '8px 12px',
-          borderRadius: '12px',
-          background: storeInfo.isValidated
-            ? (isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.12)')
-            : (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.15)'),
-          border: storeInfo.isValidated
-            ? '1px solid #86efac'
-            : '1.5px solid #fde68a',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', flexWrap: 'wrap' }}>
-            <MapPin size={16} color={storeInfo.isValidated ? '#16a34a' : '#d97706'} />
-            <div>
-              <span style={{ fontWeight: 800, color: storeInfo.isValidated ? (isLight ? '#166534' : '#86efac') : (isLight ? '#92400e' : '#fde68a') }}>
-                {storeInfo.storeName || 'Nama Toko Belum Diatur'}
-              </span>
-              <span style={{ margin: '0 6px', color: textSecondary }}>•</span>
-              <span style={{ color: textSecondary, fontWeight: 500 }}>
-                {storeInfo.location || 'Lokasi Kasir Belum Diinput (Wajib Diinput Agar Toko Valid)'}
-              </span>
-            </div>
-            {storeInfo.isValidated ? (
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: '#16a34a',
-                color: '#ffffff'
-              }}>
-                ✓ Toko Valid & Resmi
-              </span>
-            ) : (
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: '#d97706',
-                color: '#ffffff'
-              }}>
-                ⚠️ Belum Valid
-              </span>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Multi-Store Switcher (1 Owner Banyak Toko) */}
-            {storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ fontSize: '0.74rem', color: textSecondary, fontWeight: 700 }}>Toko:</span>
-                <select
-                  value={storeInfo.merchantId}
-                  onChange={(e) => handleSwitchPosStore(e.target.value)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '8px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#ffffff' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {storeInfo.allOwnerStores.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.icon || '🏪'} {s.name} (Sisa: {s.kuotaNota} nota)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+        {/* Multi-Store Switcher jika ada toko lain */}
+        {storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 1 && (
+          <select
+            value={storeInfo.merchantId}
+            onChange={(e) => handleSwitchPosStore(e.target.value)}
+            style={{
+              flexShrink: 0,
+              padding: '4px 8px',
+              borderRadius: '999px',
+              border: `1px solid ${borderColor}`,
+              background: isLight ? '#ffffff' : '#1e293b',
+              color: textPrimary,
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            {storeInfo.allOwnerStores.map(s => (
+              <option key={s.id} value={s.id}>
+                🏪 {s.name} ({s.kuotaNota} nota)
+              </option>
+            ))}
+          </select>
+        )}
 
-            {/* Saldo Kuota Nota Kasir */}
-            <div
-              onClick={() => setShowPosTopupModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 10px',
-                borderRadius: '8px',
-                background: Number(storeInfo.saldoNota ?? 5000) < 100 
-                  ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.2)') 
-                  : (isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.18)'),
-                border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.35)',
-                cursor: 'pointer',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#b45309' : '#fbbf24')
-              }}
-              title="Klik untuk Top Up Saldo Kuota Nota Kasir"
-            >
-              <span>🪙 Sisa Nota:</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
-                Rp {Number(storeInfo.saldoNota ?? 5000).toLocaleString('id-ID')}
-              </span>
-              <span>({storeInfo.kuotaNota ?? 50} nota)</span>
-              {Number(storeInfo.saldoNota ?? 5000) < 100 && (
-                <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
-                  HABIS!
-                </span>
-              )}
-            </div>
+        <button
+          type="button"
+          onClick={() => { setShowPromoManagerModal(true); loadPromos(); }}
+          style={quickPillStyle('#f59e0b')}
+        >
+          <Tag size={12} color="#f59e0b" />
+          <span>Promo</span>
+        </button>
 
-            {/* Tombol Cepat Redeem Kode Kasir */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowRedeemManagerModal(true);
-                loadRedeemCodes();
-              }}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: isLight ? '1px solid #fbcfe8' : '1px solid rgba(236, 72, 153, 0.4)',
-                background: isLight ? '#fdf2f8' : 'rgba(236, 72, 153, 0.15)',
-                color: '#db2777',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              title="Klaim Kode Redeem Kuota Kasir dari Owner"
-            >
-              <Gift size={13} color="#db2777" />
-              <span>Redeem Kode</span>
-            </button>
+        <button
+          type="button"
+          onClick={() => { setShowRedeemManagerModal(true); loadRedeemCodes(); }}
+          style={quickPillStyle('#ec4899')}
+        >
+          <Gift size={12} color="#ec4899" />
+          <span>Redeem</span>
+        </button>
 
-            {/* Tombol Promo Makanan (Owner / Mitra / Kasir / Admin) */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowPromoManagerModal(true);
-                loadPromos();
-              }}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.4)',
-                background: isLight ? '#fefce8' : 'rgba(245, 158, 11, 0.15)',
-                color: '#b45309',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              title="Kelola Promo Makanan (Batas Kuota / Tanggal) oleh Owner, Mitra, Kasir, atau Admin"
-            >
-              <Tag size={13} color="#b45309" />
-              <span>Promo Makanan</span>
-              {promosList.filter(p => p.isAvailable).length > 0 && (
-                <span style={{
-                  background: '#f59e0b',
-                  color: '#ffffff',
-                  fontSize: '0.62rem',
-                  padding: '1px 5px',
-                  borderRadius: '999px',
-                  fontWeight: 900
-                }}>
-                  {promosList.filter(p => p.isAvailable).length}
-                </span>
-              )}
-            </button>
+        <button
+          type="button"
+          onClick={() => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); }}
+          style={inventoryAlerts.length > 0 ? {
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '5px 11px',
+            borderRadius: '999px',
+            border: '1px solid #ef4444',
+            background: '#ef4444',
+            color: '#ffffff',
+            fontSize: '0.73rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
+          } : quickPillStyle('#ef4444')}
+        >
+          <Package size={12} color={inventoryAlerts.length > 0 ? '#ffffff' : '#ef4444'} />
+          <span>Gudang</span>
+          {inventoryAlerts.length > 0 && (
+            <span style={{ background: '#ffffff', color: '#dc2626', fontSize: '0.62rem', fontWeight: 900, padding: '0 4px', borderRadius: '999px' }}>
+              {inventoryAlerts.length}!
+            </span>
+          )}
+        </button>
 
-            {/* Tombol Gudang, Resep & Stok Bahan Baku */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowInventoryModal(true);
-                setInventoryTab('stock');
-                loadInventory();
-                loadRecipes();
-              }}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: inventoryAlerts.length > 0 
-                  ? '1.5px solid #ef4444' 
-                  : (isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.4)'),
-                background: inventoryAlerts.length > 0 
-                  ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.2)') 
-                  : (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)'),
-                color: inventoryAlerts.length > 0 ? '#dc2626' : '#2563eb',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              title="Pantau Stok Bahan Baku Gudang, Resep Menu, dan Alert Bahan Habis"
-            >
-              <Package size={13} color={inventoryAlerts.length > 0 ? '#dc2626' : '#2563eb'} />
-              <span>Gudang &amp; Resep</span>
-              {inventoryAlerts.length > 0 && (
-                <span style={{
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '0.62rem',
-                  padding: '1px 5px',
-                  borderRadius: '999px',
-                  fontWeight: 900
-                }}>
-                  {inventoryAlerts.length} Menipis!
-                </span>
-              )}
-            </button>
+        <button
+          type="button"
+          onClick={() => { setShowAnalyticsModal(true); loadAnalytics(); }}
+          style={quickPillStyle('#6366f1')}
+        >
+          <BarChart3 size={12} color="#6366f1" />
+          <span>Statistik</span>
+        </button>
 
-            {/* Tombol Statistik Keuangan Multi-Dimensi */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowAnalyticsModal(true);
-                loadAnalytics();
-              }}
-              style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: isLight ? '1px solid #c7d2fe' : '1px solid rgba(99, 102, 241, 0.4)',
-                background: isLight ? '#eef2ff' : 'rgba(99, 102, 241, 0.15)',
-                color: '#4f46e5',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              title="Statistik Keuangan Per Menu, Per Cabang, Semua Cabang, dan Per Karyawan"
-            >
-              <BarChart3 size={13} color="#4f46e5" />
-              <span>Statistik Keuangan</span>
-            </button>
+        <button
+          type="button"
+          onClick={() => setShowLoyaltyModal(true)}
+          style={quickPillStyle('#3b82f6')}
+        >
+          <Award size={12} color="#3b82f6" />
+          <span>Stamp</span>
+        </button>
 
-            <button
-              type="button"
-              onClick={() => setShowLoyaltyModal(true)}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '8px',
-                border: `1px solid ${borderColor}`,
-                background: isLight ? '#ffffff' : '#1e293b',
-                color: '#2563eb',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Award size={13} />
-              <span>Stamp & Poin</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowStoreModal(true)}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: storeInfo.isValidated ? '#16a34a' : '#d97706',
-                color: '#ffffff',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              {storeInfo.isValidated ? 'Ubah Lokasi' : '⚠️ Input Lokasi Kasir'}
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowPrinterSettingsModal(true)}
+          style={quickPillStyle('#10b981')}
+        >
+          <Printer size={12} color="#10b981" />
+          <span>Printer</span>
+        </button>
 
-        {/* ── BANNER ALERT GUDANG MAU HABIS (REALTIME NOTIFICATION & DISMISSIBLE) ── */}
-        {inventoryAlerts.length > 0 && !isAlertDismissed && (
+        <Link
+          to="/karyawan"
+          style={{ ...quickPillStyle('#8b5cf6'), textDecoration: 'none' }}
+        >
+          <Users size={12} color="#8b5cf6" />
+          <span>Karyawan</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => setShowStoreModal(true)}
+          style={quickPillStyle('#14b8a6')}
+        >
+          <MapPin size={12} color="#14b8a6" />
+          <span>Lokasi Toko</span>
+        </button>
+      </div>
+
+      {/* ── BANNER PERINGATAN GUDANG RAMPING (HANYA MUNCUL JIKA ADA BAHAN MENIPIS) ── */}
+      {inventoryAlerts.length > 0 && !isAlertDismissed && (
+        <div style={{ maxWidth: '1280px', margin: '0.4rem auto 0', padding: '0 1rem' }}>
           <div style={{
-            padding: '10px 14px',
-            borderRadius: '12px',
+            padding: '6px 12px',
+            borderRadius: '10px',
             background: isLight ? '#fff1f2' : 'rgba(239, 68, 68, 0.16)',
-            border: '1.5px solid #f87171',
+            border: '1px solid #f87171',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '10px',
-            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.12)'
+            gap: '8px',
+            fontSize: '0.74rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-              <ShieldAlert size={20} color="#ef4444" style={{ flexShrink: 0 }} />
-              <div>
-                <strong style={{ fontSize: '0.84rem', color: isLight ? '#991b1b' : '#fca5a5' }}>
-                  ⚠️ PERINGATAN GUDANG: {inventoryAlerts.length} Bahan Baku Menipis / Mau Habis!
-                </strong>
-                <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: textSecondary }}>
-                  {inventoryAlerts.slice(0, 4).map(a => `${a.name} (Sisa ${a.currentStock} ${a.unit})`).join(' • ')}
-                  {inventoryAlerts.length > 4 ? ` dan ${inventoryAlerts.length - 4} bahan lainnya.` : '.'}
-                </p>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+              <ShieldAlert size={14} color="#ef4444" style={{ flexShrink: 0 }} />
+              <strong style={{ color: isLight ? '#991b1b' : '#fca5a5', flexShrink: 0 }}>
+                {inventoryAlerts.length} Bahan Menipis:
+              </strong>
+              <span style={{ color: textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {inventoryAlerts.slice(0, 3).map(a => `${a.name} (${a.currentStock} ${a.unit})`).join(' • ')}
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={() => {
@@ -2049,95 +2342,89 @@ export default function Kasir({ user }) {
                   loadInventory();
                 }}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
                   border: 'none',
                   background: '#ef4444',
                   color: '#ffffff',
-                  fontSize: '0.74rem',
+                  fontSize: '0.68rem',
                   fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+                  cursor: 'pointer'
                 }}
               >
-                <Package size={14} /> Buka Gudang &amp; Restock
+                Restock
               </button>
               <button
                 type="button"
                 onClick={() => setIsAlertDismissed(true)}
                 style={{
-                  background: 'transparent',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  padding: '5px 7px',
-                  cursor: 'pointer',
+                  background: 'none',
+                  border: 'none',
                   color: textSecondary,
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  padding: '2px'
                 }}
-                title="Tutup Notifikasi"
+                title="Tutup Peringatan"
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── RESPONSIVE NAVIGATION TAB PILLS (NATURAL FLOW ON MOBILE) ── */}
+      {/* ── MODERN SEGMENTED TAB BAR (4 SEGMEN RAMPING PRESISI) ── */}
+      <div style={{ maxWidth: '1280px', margin: '0.5rem auto 0', padding: '0 1rem' }}>
         <div style={{
-          position: 'relative',
-          padding: '4px 0',
+          background: isLight ? '#e2e8f0' : '#1e293b',
+          borderRadius: '12px',
+          padding: '3px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '8px'
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '4px'
         }}>
           {[
-            { id: 'pos', label: 'Kasir Register', icon: <ShoppingBag size={15} /> },
-            { id: 'kds', label: 'Dapur (KDS)', icon: <Flame size={15} />, badge: pendingOrders.length },
-            { id: 'tables', label: 'Meja & QR', icon: <QrCode size={15} /> },
-            { id: 'settings', label: 'Keuangan', icon: <DollarSign size={15} /> }
+            { id: 'pos', label: 'Kasir', icon: <ShoppingBag size={14} /> },
+            { id: 'kds', label: 'Dapur', icon: <Flame size={14} />, badge: pendingOrders.length },
+            { id: 'tables', label: 'Meja & QR', icon: <QrCode size={14} /> },
+            { id: 'settings', label: 'Keuangan', icon: <DollarSign size={14} /> }
           ].map(tab => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  border: isActive
-                    ? '1.5px solid #2563eb'
-                    : `1px solid ${borderColor}`,
-                  background: isActive
-                    ? (isLight ? '#2563eb' : '#2563eb')
-                    : (isLight ? '#ffffff' : '#131b2e'),
+                  justifyContent: 'center',
+                  gap: '5px',
+                  padding: '8px 4px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: isActive ? '#2563eb' : 'transparent',
                   color: isActive ? '#ffffff' : textSecondary,
-                  boxShadow: isActive ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none',
-                  transition: 'all 0.2s ease'
+                  fontSize: '0.78rem',
+                  fontWeight: isActive ? 800 : 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isActive ? '0 2px 6px rgba(37, 99, 235, 0.25)' : 'none'
                 }}
               >
                 {tab.icon}
-                <span>{tab.label}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{tab.label}</span>
                 {tab.badge > 0 && (
                   <span style={{
-                    padding: '2px 6px',
-                    borderRadius: '9999px',
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
                     background: '#ef4444',
                     color: '#ffffff',
-                    marginLeft: '4px'
+                    fontSize: '0.62rem',
+                    fontWeight: 900,
+                    padding: '1px 5px',
+                    borderRadius: '999px',
+                    lineHeight: 1
                   }}>
                     {tab.badge}
                   </span>
@@ -2821,23 +3108,24 @@ export default function Kasir({ user }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
             {/* Left: Product Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Catalog Controls: Title, View Toggle & Add Menu */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: textPrimary, margin: 0 }}>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: textPrimary, margin: 0 }}>
                     Katalog Menu Kasir
                   </h2>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: textSecondary }}>
-                    Pilih kategori di bawah, lalu ketuk menu untuk dimasukkan ke keranjang kasir.
+                  <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: textSecondary }}>
+                    Cari &amp; ketuk menu untuk dimasukkan ke keranjang kasir.
                   </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {/* Grid vs List View Toggle */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     background: isLight ? '#f1f5f9' : '#1e293b',
-                    padding: '3px',
-                    borderRadius: '10px',
+                    padding: '2px',
+                    borderRadius: '8px',
                     border: `1px solid ${borderColor}`
                   }}>
                     <button
@@ -2845,21 +3133,20 @@ export default function Kasir({ user }) {
                       onClick={() => setPosViewMode('grid')}
                       title="Tampilan Grid Kartu"
                       style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
                         border: 'none',
                         background: posViewMode === 'grid' ? '#2563eb' : 'transparent',
                         color: posViewMode === 'grid' ? '#ffffff' : textSecondary,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        transition: 'all 0.15s ease'
+                        gap: '3px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700
                       }}
                     >
-                      <LayoutGrid size={14} />
+                      <LayoutGrid size={13} />
                       <span>Grid</span>
                     </button>
                     <button
@@ -2867,21 +3154,20 @@ export default function Kasir({ user }) {
                       onClick={() => setPosViewMode('list')}
                       title="Tampilan List Kompak"
                       style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
                         border: 'none',
                         background: posViewMode === 'list' ? '#2563eb' : 'transparent',
                         color: posViewMode === 'list' ? '#ffffff' : textSecondary,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        transition: 'all 0.15s ease'
+                        gap: '3px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700
                       }}
                     >
-                      <List size={14} />
+                      <List size={13} />
                       <span>List</span>
                     </button>
                   </div>
@@ -2890,34 +3176,77 @@ export default function Kasir({ user }) {
                     type="button"
                     onClick={handleOpenAddMenu}
                     style={{
-                      padding: '8px 14px',
-                      borderRadius: '12px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
                       border: 'none',
                       background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                       color: '#ffffff',
                       fontWeight: 800,
-                      fontSize: '0.8rem',
+                      fontSize: '0.76rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-                      transition: 'all 0.2s ease'
+                      gap: '5px',
+                      boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
                     }}
                   >
-                    <Plus size={16} strokeWidth={2.5} />
-                    <span>+ Tambah Menu</span>
+                    <Plus size={14} strokeWidth={2.5} />
+                    <span>Menu Baru</span>
                   </button>
                 </div>
               </div>
 
-              {/* Category Filter Tabs with Icons: DYNAMIC 2-COLUMN GRID (NO HORIZONTAL SCROLL) */}
+              {/* Live Search Input Bar */}
+              <div style={{ position: 'relative', width: '100%' }}>
+                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: textSecondary }} />
+                <input
+                  type="text"
+                  placeholder="Cari menu makanan, minuman, cemilan..."
+                  value={posSearchQuery}
+                  onChange={e => setPosSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 32px 8px 34px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.8rem',
+                    outline: 'none',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                />
+                {posSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setPosSearchQuery('')}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: textSecondary,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 0
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Category Filter Pills: HORIZONTAL SLEEK SCROLL (NO CLUTTER) */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                gap: '8px',
-                width: '100%',
-                marginBottom: '4px'
+                display: 'flex',
+                gap: '6px',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: '2px'
               }}>
                 {posCategories.map(cat => {
                   const isActive = posCategory === cat;
@@ -2930,34 +3259,32 @@ export default function Kasir({ user }) {
                       type="button"
                       onClick={() => setPosCategory(cat)}
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '12px',
-                        fontSize: '0.82rem',
+                        flexShrink: 0,
+                        padding: '6px 12px',
+                        borderRadius: '999px',
+                        fontSize: '0.76rem',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '6px',
+                        gap: '5px',
                         border: isActive ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
                         background: isActive
                           ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
-                          : bgCard,
+                          : (isLight ? '#ffffff' : '#1e293b'),
                         color: isActive ? '#ffffff' : textSecondary,
-                        boxShadow: isActive ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'var(--shadow-sm)',
+                        boxShadow: isActive ? '0 2px 8px rgba(37, 99, 235, 0.25)' : 'none',
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '1rem' }}>{getCategoryIcon(cat)}</span>
-                        <span>{cat}</span>
-                      </div>
+                      <span>{getCategoryIcon(cat)}</span>
+                      <span>{cat}</span>
                       <span style={{
-                        fontSize: '0.68rem',
+                        fontSize: '0.65rem',
                         fontWeight: 800,
-                        padding: '2px 7px',
+                        padding: '1px 5px',
                         borderRadius: '999px',
-                        background: isActive ? 'rgba(255, 255, 255, 0.25)' : (isLight ? '#f1f5f9' : '#1e293b'),
+                        background: isActive ? 'rgba(255, 255, 255, 0.25)' : (isLight ? '#f1f5f9' : '#0f172a'),
                         color: isActive ? '#ffffff' : textSecondary
                       }}>
                         {count}
@@ -2968,791 +3295,838 @@ export default function Kasir({ user }) {
               </div>
 
               {/* Product Cards: GRID OR LIST VIEW */}
-              {posViewMode === 'grid' ? (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: '12px',
-                  alignItems: 'stretch'
-                }}>
-                  {(posCategory === 'Semua' ? products : products.filter(p => p.category === posCategory)).map(p => {
-                    const inCart = posCart[p.id]?.qty || 0;
-                    const selectedQty = getPosCardQty(p.id);
-                    return (
-                      <div
-                        key={p.id}
-                        style={{
-                          background: bgCard,
-                          border: inCart > 0 ? '2px solid #2563eb' : `1px solid ${borderColor}`,
-                          borderRadius: '16px',
-                          padding: '10px',
-                          boxShadow: inCart > 0 ? '0 4px 14px rgba(37, 99, 235, 0.15)' : 'var(--shadow-sm)',
-                          transition: 'all 0.2s ease',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          position: 'relative'
-                        }}
-                      >
-                        {/* Image, Edit & Delete Buttons & In-Cart Badge */}
-                        <div style={{ position: 'relative', width: '100%', marginBottom: '8px' }}>
-                          <img
-                            src={p.image}
-                            alt={p.name}
-                            style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '12px', display: 'block' }}
-                          />
-                          {/* Action Buttons Overlay: Edit & Delete */}
-                          <div style={{ position: 'absolute', top: '6px', left: '6px', display: 'flex', gap: '4px' }}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEditMenu(p);
-                              }}
-                              title={`Edit Menu ${p.name}`}
-                              style={{
-                                width: '26px',
-                                height: '26px',
-                                borderRadius: '999px',
-                                border: 'none',
-                                background: 'rgba(0, 0, 0, 0.65)',
-                                color: '#38bdf8',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backdropFilter: 'blur(4px)',
-                                transition: 'all 0.15s'
-                              }}
-                            >
-                              <Edit3 size={13} strokeWidth={2.5} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteProduct(p.id, p.name);
-                              }}
-                              title={`Hapus ${p.name}`}
-                              style={{
-                                width: '26px',
-                                height: '26px',
-                                borderRadius: '999px',
-                                border: 'none',
-                                background: 'rgba(0, 0, 0, 0.65)',
-                                color: '#f87171',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backdropFilter: 'blur(4px)',
-                                transition: 'all 0.15s'
-                              }}
-                            >
-                              <Trash2 size={13} strokeWidth={2.5} />
-                            </button>
-                          </div>
+              {(() => {
+                const q = posSearchQuery.trim().toLowerCase();
+                const filteredPosProducts = products.filter(p => {
+                  const matchesCat = posCategory === 'Semua' || p.category === posCategory;
+                  const matchesSearch = !q || 
+                    (p.name && p.name.toLowerCase().includes(q)) ||
+                    (p.description && p.description.toLowerCase().includes(q)) ||
+                    (p.category && p.category.toLowerCase().includes(q));
+                  return matchesCat && matchesSearch;
+                });
 
-                          {p.isAvailable === false && (
-                            <span style={{
-                              position: 'absolute',
-                              bottom: '6px',
-                              left: '6px',
-                              padding: '2px 6px',
-                              borderRadius: '6px',
-                              background: '#ef4444',
-                              color: '#ffffff',
-                              fontWeight: 800,
-                              fontSize: '0.62rem'
-                            }}>
-                              HABIS
-                            </span>
-                          )}
+                if (filteredPosProducts.length === 0) {
+                  return (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '3rem 1rem',
+                      background: bgCard,
+                      borderRadius: '16px',
+                      border: `1px solid ${borderColor}`,
+                      color: textSecondary
+                    }}>
+                      <Utensils size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+                      <p style={{ fontWeight: 700, fontSize: '0.9rem', margin: 0, color: textPrimary }}>
+                        Menu Tidak Ditemukan
+                      </p>
+                      <p style={{ fontSize: '0.76rem', margin: '4px 0 12px' }}>
+                        Tidak ada menu untuk pencarian "{posSearchQuery}" di kategori {posCategory}.
+                      </p>
+                      {posSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setPosSearchQuery('')}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            border: `1px solid ${borderColor}`,
+                            background: isLight ? '#f1f5f9' : '#1e293b',
+                            color: '#2563eb',
+                            fontWeight: 700,
+                            fontSize: '0.76rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Reset Pencarian
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
 
-                          {inCart > 0 && (
-                            <span style={{
-                              position: 'absolute',
-                              top: '6px',
-                              right: '6px',
-                              padding: '3px 8px',
-                              borderRadius: '999px',
-                              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                              color: '#ffffff',
-                              fontWeight: 800,
-                              fontSize: '0.68rem',
-                              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}>
-                              <Check size={12} strokeWidth={3} /> {inCart} di Kasir
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Info & Counter */}
-                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                          <div>
-                            <h4 style={{
-                              margin: 0,
-                              fontSize: '0.84rem',
-                              fontWeight: 800,
-                              color: textPrimary,
-                              lineHeight: 1.25,
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              minHeight: '2.2em'
-                            }}>
-                              {p.name}
-                            </h4>
-                            <p style={{
-                              margin: '2px 0 0',
-                              fontSize: '0.7rem',
-                              color: textSecondary,
-                              lineHeight: 1.25,
-                              display: '-webkit-box',
-                              WebkitLineClamp: 1,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden'
-                            }}>
-                              {p.description || 'Menu lezat pilihan'}
-                            </p>
-                            <span style={{
-                              display: 'block',
-                              fontSize: '0.88rem',
-                              fontWeight: 800,
-                              color: '#2563eb',
-                              fontFamily: 'var(--font-mono)',
-                              margin: '4px 0 8px'
-                            }}>
-                              Rp {p.price?.toLocaleString('id-ID')}
-                            </span>
-                          </div>
-
-                          {/* Quantity Stepper & Add Button with Auto-Reset to 1 */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'auto' }}>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              background: isLight ? '#f8fafc' : '#0f172a',
-                              border: `1.5px solid ${borderColor}`,
-                              borderRadius: '10px',
-                              padding: '2px 4px'
-                            }}>
+                return posViewMode === 'grid' ? (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))',
+                    gap: '10px',
+                    alignItems: 'stretch'
+                  }}>
+                    {filteredPosProducts.map(p => {
+                      const inCart = posCart[p.id]?.qty || 0;
+                      return (
+                        <div
+                          key={p.id}
+                          style={{
+                            background: bgCard,
+                            border: inCart > 0 ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                            borderRadius: '14px',
+                            padding: '8px',
+                            boxShadow: inCart > 0 ? '0 4px 14px rgba(37, 99, 235, 0.15)' : 'var(--shadow-sm)',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            position: 'relative'
+                          }}
+                        >
+                          {/* Image & In-Cart Badge */}
+                          <div style={{ position: 'relative', width: '100%', marginBottom: '6px' }}>
+                            <img
+                              src={p.image}
+                              alt={p.name}
+                              style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '10px', display: 'block' }}
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+                              }}
+                            />
+                            {/* Action Buttons Overlay: Edit */}
+                            <div style={{ position: 'absolute', top: '5px', left: '5px', display: 'flex', gap: '3px' }}>
                               <button
                                 type="button"
-                                onClick={() => updatePosCardQty(p.id, -1)}
-                                disabled={selectedQty <= 1}
+                                onClick={(e) => { e.stopPropagation(); handleOpenEditMenu(p); }}
+                                title={`Edit ${p.name}`}
                                 style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '7px',
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '999px',
                                   border: 'none',
-                                  background: selectedQty <= 1 ? 'transparent' : (isLight ? '#e2e8f0' : '#334155'),
-                                  color: selectedQty <= 1 ? (isLight ? '#cbd5e1' : '#475569') : textPrimary,
-                                  cursor: selectedQty <= 1 ? 'not-allowed' : 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  transition: 'all 0.15s'
-                                }}
-                              >
-                                <Minus size={13} strokeWidth={2.5} />
-                              </button>
-                              <input
-                                type="number"
-                                min="1"
-                                max="99"
-                                value={selectedQty}
-                                onChange={(e) => setDirectPosCardQty(p.id, e.target.value)}
-                                style={{
-                                  width: '38px',
-                                  textAlign: 'center',
-                                  border: 'none',
-                                  background: 'transparent',
-                                  fontWeight: 800,
-                                  fontSize: '0.88rem',
-                                  color: textPrimary,
-                                  fontFamily: 'var(--font-mono)',
-                                  padding: 0
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updatePosCardQty(p.id, 1)}
-                                style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '7px',
-                                  border: 'none',
-                                  background: isLight ? '#e2e8f0' : '#334155',
-                                  color: textPrimary,
+                                  background: 'rgba(0, 0, 0, 0.65)',
+                                  color: '#38bdf8',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  transition: 'all 0.15s'
+                                  backdropFilter: 'blur(4px)'
                                 }}
                               >
-                                <Plus size={13} strokeWidth={2.5} />
+                                <Edit3 size={12} />
                               </button>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                const targetEl = document.querySelector('[data-cart-target="pos-cart-summary"]');
-                                triggerCometArc({
-                                  startEl: e.currentTarget,
-                                  targetEl,
-                                  color: '#38bdf8',
-                                  duration: 580
-                                });
-                                handleAddPosWithQty(p);
-                              }}
-                              style={{
-                                width: '100%',
-                                padding: '8px 10px',
-                                borderRadius: '10px',
-                                border: 'none',
-                                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                            {p.isAvailable === false && (
+                              <span style={{
+                                position: 'absolute',
+                                bottom: '5px',
+                                left: '5px',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: '#ef4444',
                                 color: '#ffffff',
                                 fontWeight: 800,
-                                fontSize: '0.78rem',
-                                cursor: 'pointer',
+                                fontSize: '0.6rem'
+                              }}>
+                                HABIS
+                              </span>
+                            )}
+
+                            {inCart > 0 && (
+                              <span style={{
+                                position: 'absolute',
+                                top: '5px',
+                                right: '5px',
+                                padding: '2px 6px',
+                                borderRadius: '999px',
+                                background: '#2563eb',
+                                color: '#ffffff',
+                                fontWeight: 800,
+                                fontSize: '0.65rem',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '4px',
-                                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              <Plus size={14} strokeWidth={2.5} />
-                              <span>+ Tambah {selectedQty > 1 ? `(${selectedQty})` : ''}</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* LIST VIEW MODE (High-Density Rows) */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {(posCategory === 'Semua' ? products : products.filter(p => p.category === posCategory)).map(p => {
-                    const inCart = posCart[p.id]?.qty || 0;
-                    const selectedQty = getPosCardQty(p.id);
-                    return (
-                      <div
-                        key={p.id}
-                        style={{
-                          background: bgCard,
-                          border: inCart > 0 ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
-                          borderRadius: '14px',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          boxShadow: inCart > 0 ? '0 4px 14px rgba(37, 99, 235, 0.1)' : 'var(--shadow-sm)',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {/* Thumbnail & Badges */}
-                        <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
-                          <img
-                            src={p.image}
-                            alt={p.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px', display: 'block' }}
-                          />
-                          {inCart > 0 && (
-                            <span style={{
-                              position: 'absolute',
-                              top: '-4px',
-                              right: '-4px',
-                              width: '20px',
-                              height: '20px',
-                              borderRadius: '999px',
-                              background: '#2563eb',
-                              color: '#fff',
-                              fontSize: '0.65rem',
-                              fontWeight: 800,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                            }}>
-                              {inCart}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Middle Details & Action Buttons */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <h4 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 800, color: textPrimary }}>
-                              {p.name}
-                            </h4>
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 700,
-                              padding: '1px 6px',
-                              borderRadius: '6px',
-                              background: isLight ? '#f1f5f9' : '#1e293b',
-                              color: textSecondary
-                            }}>
-                              {p.category}
-                            </span>
-                            {p.isAvailable === false && (
-                              <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#ef4444' }}>• HABIS</span>
+                                gap: '2px'
+                              }}>
+                                <Check size={10} strokeWidth={3} /> {inCart}x
+                              </span>
                             )}
                           </div>
-                          <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {p.description || 'Menu lezat pilihan'}
-                          </p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#2563eb', fontFamily: 'var(--font-mono)' }}>
-                              Rp {p.price?.toLocaleString('id-ID')}
-                            </span>
-                            {/* Edit & Delete Mini Buttons */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditMenu(p)}
-                              style={{
-                                border: 'none',
-                                background: 'transparent',
-                                color: '#38bdf8',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                padding: 0
-                              }}
-                            >
-                              <Edit3 size={11} /> Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteProduct(p.id, p.name)}
-                              style={{
-                                border: 'none',
-                                background: 'transparent',
-                                color: '#f87171',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                padding: 0
-                              }}
-                            >
-                              <Trash2 size={11} /> Hapus
-                            </button>
+
+                          {/* Info */}
+                          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                            <div>
+                              <h4 style={{
+                                margin: 0,
+                                fontSize: '0.82rem',
+                                fontWeight: 800,
+                                color: textPrimary,
+                                lineHeight: 1.25,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden'
+                              }}>
+                                {p.name}
+                              </h4>
+                              <div style={{
+                                fontSize: '0.86rem',
+                                fontWeight: 800,
+                                color: '#2563eb',
+                                fontFamily: 'var(--font-mono)',
+                                margin: '3px 0 6px'
+                              }}>
+                                Rp {p.price?.toLocaleString('id-ID')}
+                              </div>
+                            </div>
+
+                            {/* Stepper / Add button */}
+                            <div style={{ marginTop: 'auto' }}>
+                              {inCart > 0 ? (
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+                                  border: '1.5px solid #10b981',
+                                  borderRadius: '8px',
+                                  padding: '2px'
+                                }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCartItemQty(p.id, -1)}
+                                    style={{
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '6px',
+                                      border: 'none',
+                                      background: '#ef4444',
+                                      color: '#ffffff',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    <Minus size={12} strokeWidth={3} />
+                                  </button>
+                                  <span style={{ fontWeight: 800, fontSize: '0.82rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                                    {inCart}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      updateCartItemQty(p.id, 1);
+                                      try { playChime(880, 0.08); } catch (_) {}
+                                      triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                    }}
+                                    style={{
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '6px',
+                                      border: 'none',
+                                      background: '#10b981',
+                                      color: '#ffffff',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    <Plus size={12} strokeWidth={3} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={p.isAvailable === false}
+                                  onClick={(e) => {
+                                    updateCartItemQty(p.id, 1);
+                                    try { playChime(880, 0.08); } catch (_) {}
+                                    triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '6px 8px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: p.isAvailable === false ? (isLight ? '#cbd5e1' : '#334155') : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                                    color: '#ffffff',
+                                    fontWeight: 800,
+                                    fontSize: '0.76rem',
+                                    cursor: p.isAvailable === false ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px',
+                                    boxShadow: p.isAvailable === false ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.25)'
+                                  }}
+                                >
+                                  <Plus size={13} strokeWidth={2.5} />
+                                  <span>+ Tambah</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
-
-                        {/* Right Qty Stepper & Add Button */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                          <div style={{
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* LIST VIEW MODE */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {filteredPosProducts.map(p => {
+                      const inCart = posCart[p.id]?.qty || 0;
+                      return (
+                        <div
+                          key={p.id}
+                          style={{
+                            background: bgCard,
+                            border: inCart > 0 ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                            borderRadius: '12px',
+                            padding: '8px 10px',
                             display: 'flex',
                             alignItems: 'center',
-                            background: isLight ? '#f8fafc' : '#0f172a',
-                            border: `1px solid ${borderColor}`,
-                            borderRadius: '8px',
-                            padding: '1px 3px'
-                          }}>
-                            <button
-                              type="button"
-                              onClick={() => updatePosCardQty(p.id, -1)}
-                              disabled={selectedQty <= 1}
-                              style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '6px',
-                                border: 'none',
-                                background: 'transparent',
-                                color: selectedQty <= 1 ? (isLight ? '#cbd5e1' : '#475569') : textPrimary,
-                                cursor: selectedQty <= 1 ? 'not-allowed' : 'pointer',
+                            justifyContent: 'space-between',
+                            gap: '10px',
+                            boxShadow: inCart > 0 ? '0 4px 14px rgba(37, 99, 235, 0.1)' : 'var(--shadow-sm)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ position: 'relative', width: '56px', height: '56px', flexShrink: 0 }}>
+                            <img
+                              src={p.image}
+                              alt={p.name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+                              }}
+                            />
+                            {inCart > 0 && (
+                              <span style={{
+                                position: 'absolute',
+                                top: '-4px',
+                                right: '-4px',
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '999px',
+                                background: '#2563eb',
+                                color: '#fff',
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center'
-                              }}
-                            >
-                              <Minus size={11} />
-                            </button>
-                            <span style={{ minWidth: '22px', textAlign: 'center', fontWeight: 800, fontSize: '0.8rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
-                              {selectedQty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updatePosCardQty(p.id, 1)}
-                              style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '6px',
-                                border: 'none',
-                                background: 'transparent',
-                                color: textPrimary,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            >
-                              <Plus size={11} />
-                            </button>
+                              }}>
+                                {inCart}
+                              </span>
+                            )}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              const targetEl = document.querySelector('[data-cart-target="pos-cart-summary"]');
-                              triggerCometArc({
-                                startEl: e.currentTarget,
-                                targetEl,
-                                color: '#38bdf8',
-                                duration: 580
-                              });
-                              handleAddPosWithQty(p);
-                            }}
-                            style={{
-                              padding: '7px 12px',
-                              borderRadius: '10px',
-                              border: 'none',
-                              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                              color: '#ffffff',
-                              fontWeight: 800,
-                              fontSize: '0.78rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-                            }}
-                          >
-                            <Plus size={13} strokeWidth={2.5} />
-                            <span>Tambah</span>
-                          </button>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 800, color: textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {p.name}
+                              </h4>
+                              {p.isAvailable === false && (
+                                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#ef4444' }}>• HABIS</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#2563eb', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                              Rp {p.price?.toLocaleString('id-ID')}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            {inCart > 0 ? (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+                                border: '1.5px solid #10b981',
+                                borderRadius: '8px',
+                                padding: '2px'
+                              }}>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartItemQty(p.id, -1)}
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '5px',
+                                    border: 'none',
+                                    background: '#ef4444',
+                                    color: '#ffffff',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                >
+                                  <Minus size={11} strokeWidth={3} />
+                                </button>
+                                <span style={{ fontWeight: 800, fontSize: '0.8rem', padding: '0 6px', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                                  {inCart}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    updateCartItemQty(p.id, 1);
+                                    try { playChime(880, 0.08); } catch (_) {}
+                                    triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                  }}
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '5px',
+                                    border: 'none',
+                                    background: '#10b981',
+                                    color: '#ffffff',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                >
+                                  <Plus size={11} strokeWidth={3} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={p.isAvailable === false}
+                                onClick={(e) => {
+                                  updateCartItemQty(p.id, 1);
+                                  try { playChime(880, 0.08); } catch (_) {}
+                                  triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                }}
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: '8px',
+                                  border: 'none',
+                                  background: p.isAvailable === false ? (isLight ? '#cbd5e1' : '#334155') : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                                  color: '#ffffff',
+                                  fontWeight: 800,
+                                  fontSize: '0.76rem',
+                                  cursor: p.isAvailable === false ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <Plus size={13} strokeWidth={2.5} />
+                                <span>Tambah</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Right: Cart Order Summary */}
-            <div 
-              data-cart-target="pos-cart-summary"
-              style={{
-              background: bgCard,
-              border: `1px solid ${borderColor}`,
-              borderRadius: '16px',
-              padding: '1.25rem',
-              boxShadow: 'var(--shadow-md)',
-              height: 'fit-content',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: textPrimary }}>
-                Order Kasir Walk-in
-              </h3>
-
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: textSecondary, display: 'block', marginBottom: '4px' }}>
-                  Pilih Nomor Meja:
-                </label>
-                <select
-                  value={selectedTable}
-                  onChange={e => setSelectedTable(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  {tables.map(t => (
-                    <option key={t.id} value={t.number}>{t.number}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Items in Cart */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-                {Object.values(posCart).length === 0 ? (
-                  <p style={{ textAlign: 'center', color: textSecondary, fontSize: '0.8rem', padding: '1.5rem 0' }}>
-                    Pilih menu di sebelah kiri untuk menambah item.
-                  </p>
-                ) : (
-                  Object.values(posCart).map(it => (
-                    <div
-                      key={it.product.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        fontSize: '0.82rem',
-                        padding: '6px 8px',
-                        background: isLight ? '#f8fafc' : 'rgba(0,0,0,0.2)',
-                        borderRadius: '8px'
-                      }}
-                    >
-                      <span style={{ color: textPrimary, fontWeight: 600 }}>{it.product.name}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 800, color: '#2563eb' }}>{it.qty}x</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', color: textSecondary }}>
-                          Rp {(it.product.price * it.qty).toLocaleString('id-ID')}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setPosCart(prev => {
-                              const copy = { ...prev };
-                              delete copy[it.product.id];
-                              return copy;
-                            });
-                          }}
-                          style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', padding: '2px' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {Object.values(posCart).length > 0 && (() => {
-                const posCartItems = Object.values(posCart);
-                const posCartSubtotal = posCartItems.reduce((s, it) => s + (it.product.price * it.qty), 0);
-                const posPromoDiscount = activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0;
-                const posFinalTotal = Math.max(0, posCartSubtotal - posPromoDiscount);
-
-                return (
-                <div style={{ borderTop: `1px solid ${borderColor}`, paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.82rem' }}>
-                  {/* Selector Promo Makanan */}
-                  <div style={{
-                    background: isLight ? '#fefce8' : 'rgba(245, 158, 11, 0.1)',
-                    border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
-                    borderRadius: '10px',
-                    padding: '8px 10px',
-                    marginBottom: '4px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Tag size={13} color="#d97706" />
-                        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: textPrimary }}>
-                          {activeCartPromo ? activeCartPromo.title : 'Promo Makanan:'}
-                        </span>
-                      </div>
-                      {activeCartPromo ? (
-                        <button
-                          type="button"
-                          onClick={() => setActiveCartPromo(null)}
-                          style={{ fontSize: '0.68rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800 }}
-                        >
-                          ✕ Lepas
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowPromoManagerModal(true);
-                            loadPromos();
-                          }}
-                          style={{ fontSize: '0.68rem', color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, textDecoration: 'underline' }}
-                        >
-                          + Kelola Promo
-                        </button>
-                      )}
-                    </div>
-                    {!activeCartPromo && promosList.filter(p => p.isAvailable).length > 0 && (
-                      <select
-                        onChange={(e) => {
-                          const p = promosList.find(pr => pr.id === e.target.value);
-                          if (p) setActiveCartPromo(p);
-                        }}
-                        defaultValue=""
-                        style={{
-                          width: '100%',
-                          marginTop: '6px',
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.72rem',
-                          border: `1px solid ${borderColor}`,
-                          background: bgCard,
-                          color: textPrimary
-                        }}
-                      >
-                        <option value="" disabled>-- Pilih Promo Makanan Aktif --</option>
-                        {promosList.filter(p => p.isAvailable).map(pr => (
-                          <option key={pr.id} value={pr.id}>
-                            {pr.title} ({pr.discountType === 'PERCENT' ? `${pr.discountValue}%` : `Rp ${pr.discountValue.toLocaleString('id-ID')}`}) • {pr.limitType === 'QUOTA' ? `Sisa ${pr.remainingQuota} porsi` : pr.limitType === 'DATE' ? `s/d ${pr.expiryDate}` : `Sisa ${pr.remainingQuota} porsi (s/d ${pr.expiryDate})`}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                      );
+                    })}
                   </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
-                    <span>Subtotal:</span>
-                    <span style={{ fontFamily: 'var(--font-mono)' }}>
-                      Rp {posCartSubtotal.toLocaleString('id-ID')}
-                    </span>
-                  </div>
-
-                  {posPromoDiscount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', fontWeight: 700 }}>
-                      <span>Diskon Promo ({activeCartPromo?.code}):</span>
-                      <span style={{ fontFamily: 'var(--font-mono)' }}>
-                        -Rp {posPromoDiscount.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
-                    <span>Biaya Layanan Pelanggan:</span>
-                    <span style={{ color: '#16a34a', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>Rp 0 (Ditanggung Bisnis)</span>
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '0.95rem',
-                    fontWeight: 800,
-                    color: textPrimary,
-                    borderTop: `1px solid ${borderColor}`,
-                    paddingTop: '6px',
-                    marginTop: '2px'
-                  }}>
-                    <span>Total Bayar:</span>
-                    <span style={{ color: '#16a34a', fontFamily: 'var(--font-mono)' }}>
-                      Rp {posFinalTotal.toLocaleString('id-ID')}
-                    </span>
-                  </div>
-
-                  {/* Indikator Saldo Kuota Nota Transaksi Tunai */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 10px',
-                    borderRadius: '10px',
-                    background: Number(storeInfo.saldoNota ?? 5000) < 100 
-                      ? 'rgba(239, 68, 68, 0.12)' 
-                      : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)'),
-                    border: Number(storeInfo.saldoNota ?? 5000) < 100 
-                      ? '1px solid #ef4444' 
-                      : '1px solid rgba(16, 185, 129, 0.25)',
-                    marginTop: '8px',
-                    fontSize: '0.74rem'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>🪙</span>
-                      <span style={{ fontWeight: 700, color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981' }}>
-                        {Number(storeInfo.saldoNota ?? 5000) < 100
-                          ? `Saldo Nota: Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')} (Habis!)`
-                          : `Sisa Nota: ${storeInfo.kuotaNota ?? 50} lembar (Rp ${(storeInfo.saldoNota ?? 5000).toLocaleString('id-ID')})`}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowPosTopupModal(true)}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: '#3b82f6',
-                        color: '#ffffff',
-                        fontSize: '0.7rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      + Top Up
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={async () => {
-                      if (Number(storeInfo.saldoNota ?? 5000) < 100) {
-                        setShowPosTopupModal(true);
-                        alert(`⚠️ Saldo nota toko tidak mencukupi untuk transaksi tunai kasir (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota terlebih dahulu.`);
-                        return;
-                      }
-
-                      const items = Object.values(posCart).map(it => ({ productId: it.product.id, qty: it.qty }));
-                      const tbl = tables.find(t => t.number === selectedTable) || tables[0];
-                      const res = await fetch('/api/pos/orders', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          tableToken: tbl?.qrToken,
-                          customerName: 'Kasir Walk-in (' + selectedTable + ')',
-                          items,
-                          promoId: activeCartPromo?.id,
-                          promoCode: activeCartPromo?.code
-                        })
-                      });
-                      if (res.ok) {
-                        const newO = await res.json();
-                        await fetch(`/api/pos/orders/${newO.id}/acc`, { method: 'POST' });
-                        const payRes = await fetch(`/api/pos/orders/${newO.id}/pay`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ method: 'CASH' })
-                        });
-                        const payData = await payRes.json();
-                        if (!payRes.ok) {
-                          if (payData.requiresTopupNota) setShowPosTopupModal(true);
-                          alert(payData.error || 'Gagal memproses pembayaran tunai');
-                          return;
-                        }
-                        setPosCart({});
-                        setActiveCartPromo(null);
-                        fetchData();
-                        loadPromos();
-                        alert('✅ Transaksi Tunai Kasir Berhasil Dicatat & Masuk Antrean Masak! 1 nota (Rp 100) dipotong dari saldo toko.');
-                      } else {
-                        const err = await res.json();
-                        alert(err.error || 'Gagal membuat pesanan');
-                      }
-                    }}
-                    style={{
-                      marginTop: '8px',
-                      padding: '11px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      background: Number(storeInfo.saldoNota ?? 5000) < 100
-                        ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
-                        : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      boxShadow: Number(storeInfo.saldoNota ?? 5000) < 100
-                        ? 'none'
-                        : '0 4px 14px rgba(16, 185, 129, 0.3)'
-                    }}
-                  >
-                    {Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Kuota Nota Habis (Top Up Dulu)' : 'Bayar Tunai & Cetak Struk'}
-                  </button>
-                </div>
                 );
               })()}
             </div>
+
+            {/* Right: Cart Order Summary (Desktop Pinned) */}
+            <div 
+              className="desktop-only"
+              data-cart-target="pos-cart-summary"
+              style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '16px',
+                padding: '1.25rem',
+                boxShadow: 'var(--shadow-md)',
+                height: 'fit-content',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                position: 'sticky',
+                top: '70px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShoppingBag size={18} color="#2563eb" />
+                  <span>Order Kasir Walk-in</span>
+                </h3>
+                {Object.values(posCart).length > 0 && (
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: '#2563eb',
+                    color: '#ffffff'
+                  }}>
+                    {Object.values(posCart).reduce((s, it) => s + it.qty, 0)} item
+                  </span>
+                )}
+              </div>
+              {renderCartSummaryContent()}
+            </div>
           </div>
         </main>
+      )}
+
+      {/* ── MOBILE FLOATING CART BAR (WHEN CART HAS ITEMS) ── */}
+      {activeTab === 'pos' && Object.values(posCart).length > 0 && !showMobileCartDrawer && (
+        <div 
+          onClick={() => setShowMobileCartDrawer(true)}
+          style={{
+            position: 'fixed',
+            bottom: '16px',
+            left: '12px',
+            right: '12px',
+            zIndex: 45,
+            maxWidth: '560px',
+            margin: '0 auto',
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            color: '#ffffff',
+            borderRadius: '16px',
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(12px)',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              position: 'relative',
+              background: '#2563eb',
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <ShoppingBag size={18} color="#ffffff" />
+              <span style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                background: '#ef4444',
+                color: '#ffffff',
+                fontSize: '0.68rem',
+                fontWeight: 900,
+                borderRadius: '999px',
+                padding: '1px 5px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              }}>
+                {Object.values(posCart).reduce((s, it) => s + it.qty, 0)}
+              </span>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                {selectedTable ? `Meja: ${selectedTable}` : 'Kasir Walk-in'}
+              </div>
+              <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                Rp {Math.max(0, Object.values(posCart).reduce((s, it) => s + (it.product.price * it.qty), 0) - (activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0)).toLocaleString('id-ID')}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMobileCartDrawer(true);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '8px 14px',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+            }}
+          >
+            <span>Lihat Pesanan</span>
+            <ChevronRight size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* ── MOBILE SLIDE-UP CHECKOUT DRAWER ── */}
+      {showMobileCartDrawer && (
+        <div 
+          onClick={() => setShowMobileCartDrawer(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: bgCard,
+              borderTopLeftRadius: '22px',
+              borderTopRightRadius: '22px',
+              borderTop: `1px solid ${borderColor}`,
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              padding: '1.25rem 1.25rem 2.5rem',
+              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.4)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: `1px solid ${borderColor}`, paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShoppingBag size={20} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: textPrimary }}>
+                  Pesanan Kasir ({Object.values(posCart).reduce((s, it) => s + it.qty, 0)} Item)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileCartDrawer(false)}
+                style={{
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '999px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: textSecondary
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Render Cart Content */}
+            {renderCartSummaryContent()}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL PUSAT KELOLA KASIR & TOKO ── */}
+      {showToolsDrawer && (
+        <div 
+          onClick={() => setShowToolsDrawer(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '20px',
+              maxWidth: '520px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{
+              padding: '1rem 1.25rem',
+              borderBottom: `1px solid ${borderColor}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sliders size={20} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: textPrimary }}>
+                  Pusat Kelola Kasir &amp; Toko
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowToolsDrawer(false)}
+                style={{
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: 'none',
+                  borderRadius: '999px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: textSecondary
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+              {[
+                {
+                  title: 'Promo Makanan',
+                  desc: 'Kuota & tgl diskon',
+                  icon: <Tag size={20} color="#f59e0b" />,
+                  badge: promosList.filter(p => p.isAvailable).length ? `${promosList.filter(p => p.isAvailable).length} aktif` : null,
+                  onClick: () => { setShowPromoManagerModal(true); loadPromos(); setShowToolsDrawer(false); }
+                },
+                {
+                  title: 'Redeem Kode',
+                  desc: 'Klaim bonus nota',
+                  icon: <Gift size={20} color="#ec4899" />,
+                  onClick: () => { setShowRedeemManagerModal(true); loadRedeemCodes(); setShowToolsDrawer(false); }
+                },
+                {
+                  title: 'Gudang & Resep',
+                  desc: inventoryAlerts.length > 0 ? `${inventoryAlerts.length} menipis!` : 'Stok bahan baku',
+                  icon: <Package size={20} color="#ef4444" />,
+                  alert: inventoryAlerts.length > 0,
+                  badge: inventoryAlerts.length > 0 ? `${inventoryAlerts.length}!` : null,
+                  onClick: () => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); setShowToolsDrawer(false); }
+                },
+                {
+                  title: 'Statistik Keuangan',
+                  desc: 'Menu, cabang & staf',
+                  icon: <BarChart3 size={20} color="#6366f1" />,
+                  onClick: () => { setShowAnalyticsModal(true); loadAnalytics(); setShowToolsDrawer(false); }
+                },
+                {
+                  title: 'Stamp & Loyalty',
+                  desc: 'Hadiah pelanggan',
+                  icon: <Award size={20} color="#3b82f6" />,
+                  onClick: () => { setShowLoyaltyModal(true); setShowToolsDrawer(false); }
+                },
+                {
+                  title: 'Printer Thermal',
+                  desc: 'Bluetooth, USB, Dialog',
+                  icon: <Printer size={20} color="#10b981" />,
+                  onClick: () => { setShowPrinterSettingsModal(true); setShowToolsDrawer(false); }
+                },
+                {
+                  title: 'Kelola Karyawan',
+                  desc: 'Staf & role akses',
+                  icon: <Users size={20} color="#8b5cf6" />,
+                  link: '/karyawan'
+                },
+                {
+                  title: 'Lokasi & Info Toko',
+                  desc: storeInfo.storeName || 'Atur data toko',
+                  icon: <Store size={20} color="#14b8a6" />,
+                  badge: storeInfo.isValidated ? '✓ Resmi' : '⚠️ Validasi',
+                  onClick: () => { setShowStoreModal(true); setShowToolsDrawer(false); }
+                }
+              ].map((item, idx) => (
+                item.link ? (
+                  <Link
+                    key={idx}
+                    to={item.link}
+                    style={{
+                      textDecoration: 'none',
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '14px',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {item.icon}
+                      <ExternalLink size={13} color={textSecondary} />
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '0.84rem', color: textPrimary, marginTop: '4px' }}>
+                      {item.title}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: textSecondary }}>
+                      {item.desc}
+                    </div>
+                  </Link>
+                ) : (
+                  <div
+                    key={idx}
+                    onClick={item.onClick}
+                    style={{
+                      background: item.alert 
+                        ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)') 
+                        : (isLight ? '#f8fafc' : '#1e293b'),
+                      border: item.alert ? '1.5px solid #ef4444' : `1px solid ${borderColor}`,
+                      borderRadius: '14px',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {item.icon}
+                      {item.badge && (
+                        <span style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          background: item.alert ? '#ef4444' : (isLight ? '#2563eb' : '#3b82f6'),
+                          color: '#ffffff'
+                        }}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '0.84rem', color: textPrimary, marginTop: '4px' }}>
+                      {item.title}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: textSecondary }}>
+                      {item.desc}
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+
+            <div style={{
+              padding: '10px 1.25rem',
+              borderTop: `1px solid ${borderColor}`,
+              background: isLight ? '#f8fafc' : '#0f172a',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '0.74rem',
+              color: textSecondary
+            }}>
+              <span>Toko: {storeInfo.storeName || 'KostKu POS'}</span>
+              <button
+                type="button"
+                onClick={() => setShowToolsDrawer(false)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: `1px solid ${borderColor}`,
+                  background: 'transparent',
+                  color: textPrimary,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── TAB 3: MEJA & QR CODE (TENT CARDS) ── */}
