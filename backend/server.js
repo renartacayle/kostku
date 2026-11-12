@@ -5098,7 +5098,6 @@ app.post('/api/merchants/create', (req, res, next) => {
   }
   res.status(404).json({ error: 'Endpoint not found' });
 });
-});
 
 // Endpoint: Usulkan Warung / Mitra Sekitar (Crowdsourcing Anak Kost)
 app.post('/api/merchants/suggest', (req, res) => {

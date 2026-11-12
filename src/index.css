@@ -454,11 +454,29 @@ html, body {
   gap: 10px;
   align-items: stretch;
   width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
   .pos-product-grid {
     grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  }
+}
+
+/* POS Tables Grid: 50% dan 50% di HP, auto-fill di tablet/desktop */
+.pos-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .pos-tables-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
   }
 }
 

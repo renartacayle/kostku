@@ -61,6 +61,7 @@ import {
   Zap
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import QRCode from 'qrcode';
 import { useTheme } from '../context/ThemeContext';
 import { triggerCometArc } from '../utils/cometArc';
 import {
@@ -118,6 +119,11 @@ export default function Kasir({ user }) {
   // Multi-Payment & Cash Register State
   const [posPaymentMethod, setPosPaymentMethod] = useState('CASH'); // 'CASH' | 'QRIS' | 'TRANSFER'
   const [posCashReceived, setPosCashReceived] = useState('');
+
+  // Quick Quantity Modal State (Atur Banyaknya Porsi Menu Ditambahkan)
+  const [quickQtyProduct, setQuickQtyProduct] = useState(null);
+  const [quickQtyValue, setQuickQtyValue] = useState(1);
+  const [cardSelectedQty, setCardSelectedQty] = useState({});
 
   // Store Location & Validity State (Validasi Toko Resmi)
   const [storeInfo, setStoreInfo] = useState({
@@ -833,8 +839,22 @@ export default function Kasir({ user }) {
       if (resProd.ok) setProducts(await resProd.json());
       if (resTables.ok) {
         const tbls = await resTables.json();
-        setTables(tbls);
-        if (tbls.length > 0 && !selectedTable) setSelectedTable(tbls[0].number);
+        const tablesWithQR = await Promise.all(tbls.map(async (tbl) => {
+          if (tbl.qrDataUrl) return tbl;
+          const orderUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://kostku.riuph.me'}/order/${tbl.qrToken || tbl.id}`;
+          try {
+            const qrDataUrl = await QRCode.toDataURL(orderUrl, {
+              width: 320,
+              margin: 1,
+              color: { dark: '#0f172a', light: '#ffffff' }
+            });
+            return { ...tbl, qrDataUrl };
+          } catch (_) {
+            return tbl;
+          }
+        }));
+        setTables(tablesWithQR);
+        if (tablesWithQR.length > 0 && !selectedTable) setSelectedTable(tablesWithQR[0].number);
       }
       if (resConfig.ok) setTripayConfig(await resConfig.json());
       if (resStore.ok) {
@@ -3885,56 +3905,90 @@ export default function Kasir({ user }) {
                             {/* Stepper / Add button */}
                             <div style={{ marginTop: 'auto' }}>
                               {inCart > 0 ? (
-                                <div style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
-                                  border: '1.5px solid #10b981',
-                                  borderRadius: '8px',
-                                  padding: '2px'
-                                }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => updateCartItemQty(p.id, -1)}
-                                    style={{
-                                      width: '28px',
-                                      height: '28px',
-                                      borderRadius: '6px',
-                                      border: 'none',
-                                      background: '#ef4444',
-                                      color: '#ffffff',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                    }}
-                                    aria-label={`Kurangi ${p.name}`}
-                                  >
-                                    <Minus size={13} strokeWidth={3} />
-                                  </button>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="999"
-                                    value={inCart}
-                                    onChange={e => setCartItemExactQty(p.id, e.target.value)}
-                                    onClick={e => e.stopPropagation()}
-                                    style={{
-                                      width: '38px',
-                                      textAlign: 'center',
-                                      fontWeight: 800,
-                                      fontSize: '0.86rem',
-                                      color: textPrimary,
-                                      fontFamily: 'var(--font-mono)',
-                                      border: 'none',
-                                      background: 'transparent',
-                                      outline: 'none',
-                                      padding: 0
-                                    }}
-                                    aria-label={`Jumlah pesanan ${p.name}`}
-                                  />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {/* QTY DI ATAS TULISAN TAMBAH: Stepper Simpel (Tanpa Chips +2 +5) */}
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+                                    border: '1.5px solid #10b981',
+                                    borderRadius: '7px',
+                                    padding: '3px 8px',
+                                    marginBottom: '2px'
+                                  }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a' }}>Qty:</span>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => updateCartItemQty(p.id, -1)}
+                                        style={{
+                                          width: '24px',
+                                          height: '24px',
+                                          borderRadius: '6px',
+                                          border: 'none',
+                                          background: '#ef4444',
+                                          color: '#ffffff',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                          padding: 0
+                                        }}
+                                        aria-label={`Kurangi ${p.name}`}
+                                      >
+                                        <Minus size={12} strokeWidth={3} />
+                                      </button>
+                                      <span
+                                        onClick={() => {
+                                          setQuickQtyProduct(p);
+                                          setQuickQtyValue(inCart);
+                                        }}
+                                        style={{
+                                          minWidth: '24px',
+                                          textAlign: 'center',
+                                          fontWeight: 900,
+                                          fontSize: '0.86rem',
+                                          color: isLight ? '#15803d' : '#86efac',
+                                          fontFamily: 'var(--font-mono)',
+                                          cursor: 'pointer',
+                                          padding: '0 2px'
+                                        }}
+                                        title="Klik untuk ubah banyaknya porsi"
+                                      >
+                                        {inCart}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          updateCartItemQty(p.id, 1);
+                                          try { playChime(880, 0.08); } catch (_) {}
+                                          triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                        }}
+                                        style={{
+                                          width: '24px',
+                                          height: '24px',
+                                          borderRadius: '6px',
+                                          border: 'none',
+                                          background: '#10b981',
+                                          color: '#ffffff',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                          padding: 0
+                                        }}
+                                        aria-label={`Tambah ${p.name}`}
+                                      >
+                                        <Plus size={12} strokeWidth={3} />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* TULISAN TAMBAH: Tambah Lagi */}
                                   <button
                                     type="button"
                                     onClick={(e) => {
@@ -3943,52 +3997,143 @@ export default function Kasir({ user }) {
                                       triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
                                     }}
                                     style={{
-                                      width: '28px',
-                                      height: '28px',
-                                      borderRadius: '6px',
-                                      border: 'none',
-                                      background: '#10b981',
-                                      color: '#ffffff',
+                                      width: '100%',
+                                      padding: '6px 8px',
+                                      borderRadius: '7px',
+                                      border: '1px solid #10b981',
+                                      background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)',
+                                      color: isLight ? '#15803d' : '#86efac',
+                                      fontWeight: 800,
+                                      fontSize: '0.76rem',
                                       cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                      gap: '4px'
                                     }}
-                                    aria-label={`Tambah ${p.name}`}
                                   >
-                                    <Plus size={13} strokeWidth={3} />
+                                    <Plus size={12} strokeWidth={2.5} />
+                                    <span>Tambah Lagi</span>
                                   </button>
                                 </div>
                               ) : (
-                                <button
-                                  type="button"
-                                  disabled={p.isAvailable === false}
-                                  onClick={(e) => {
-                                    updateCartItemQty(p.id, 1);
-                                    try { playChime(880, 0.08); } catch (_) {}
-                                    triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '6px 8px',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    background: p.isAvailable === false ? (isLight ? '#cbd5e1' : '#334155') : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                                    color: '#ffffff',
-                                    fontWeight: 800,
-                                    fontSize: '0.76rem',
-                                    cursor: p.isAvailable === false ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '4px',
-                                    boxShadow: p.isAvailable === false ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.25)'
-                                  }}
-                                >
-                                  <Plus size={13} strokeWidth={2.5} />
-                                  <span>+ Tambah</span>
-                                </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                  {/* QTY DI ATAS TULISAN TAMBAH: Stepper Simpel (Tanpa Chips +2 +5) */}
+                                  {(() => {
+                                    const itemQty = cardSelectedQty[p.id] || 1;
+                                    return (
+                                      <>
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.05)',
+                                          border: `1px solid ${borderColor}`,
+                                          borderRadius: '7px',
+                                          padding: '3px 8px',
+                                          marginBottom: '2px'
+                                        }}>
+                                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: textSecondary }}>Qty:</span>
+
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <button
+                                              type="button"
+                                              disabled={itemQty <= 1}
+                                              onClick={() => setCardSelectedQty(prev => ({ ...prev, [p.id]: Math.max(1, itemQty - 1) }))}
+                                              style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '6px',
+                                                border: 'none',
+                                                background: itemQty <= 1 ? (isLight ? '#e2e8f0' : '#334155') : '#ef4444',
+                                                color: itemQty <= 1 ? (isLight ? '#94a3b8' : '#64748b') : '#ffffff',
+                                                cursor: itemQty <= 1 ? 'not-allowed' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: 0
+                                              }}
+                                              aria-label="Kurangi porsi"
+                                            >
+                                              <Minus size={11} strokeWidth={3} />
+                                            </button>
+
+                                            <span
+                                              onClick={() => {
+                                                setQuickQtyProduct(p);
+                                                setQuickQtyValue(itemQty);
+                                              }}
+                                              style={{
+                                                minWidth: '24px',
+                                                textAlign: 'center',
+                                                fontWeight: 900,
+                                                fontSize: '0.86rem',
+                                                color: textPrimary,
+                                                fontFamily: 'var(--font-mono)',
+                                                cursor: 'pointer'
+                                              }}
+                                              title="Klik untuk ubah banyaknya porsi"
+                                            >
+                                              {itemQty}
+                                            </span>
+
+                                            <button
+                                              type="button"
+                                              onClick={() => setCardSelectedQty(prev => ({ ...prev, [p.id]: itemQty + 1 }))}
+                                              style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '6px',
+                                                border: 'none',
+                                                background: '#10b981',
+                                                color: '#ffffff',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: 0
+                                              }}
+                                              aria-label="Tambah porsi"
+                                            >
+                                              <Plus size={11} strokeWidth={3} />
+                                            </button>
+                                          </div>
+                                        </div>
+
+                                        {/* TULISAN TAMBAH: Tombol Tambah Utama */}
+                                        <button
+                                          type="button"
+                                          disabled={p.isAvailable === false}
+                                          onClick={(e) => {
+                                            updateCartItemQty(p.id, itemQty);
+                                            setCardSelectedQty(prev => ({ ...prev, [p.id]: 1 }));
+                                            try { playChime(880, 0.08); } catch (_) {}
+                                            triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                          }}
+                                          style={{
+                                            width: '100%',
+                                            padding: '7px 8px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: p.isAvailable === false ? (isLight ? '#cbd5e1' : '#334155') : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                                            color: '#ffffff',
+                                            fontWeight: 800,
+                                            fontSize: '0.78rem',
+                                            cursor: p.isAvailable === false ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '4px',
+                                            boxShadow: p.isAvailable === false ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.25)'
+                                          }}
+                                        >
+                                          <Plus size={13} strokeWidth={2.5} />
+                                          <span>Tambah {itemQty > 1 ? `(${itemQty}x)` : ''}</span>
+                                        </button>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -4723,12 +4868,8 @@ export default function Kasir({ user }) {
             </button>
           </div>
 
-          {/* Table Cards: RESPONSIVE GRID (Auto-Fill min 180px) with Direct Download */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: '14px'
-          }}>
+          {/* Table Cards: 50% : 50% di HP via .pos-tables-grid */}
+          <div className="pos-tables-grid">
             {tables.map(tbl => (
               <div
                 key={tbl.id}
@@ -4736,19 +4877,31 @@ export default function Kasir({ user }) {
                   background: bgCard,
                   border: `1px solid ${borderColor}`,
                   borderRadius: '16px',
-                  padding: '12px 10px',
+                  padding: '12px 8px',
                   textAlign: 'center',
                   boxShadow: 'var(--shadow-sm)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '10px'
+                  gap: '8px',
+                  minWidth: 0,
+                  boxSizing: 'border-box'
                 }}
               >
-                <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: 800, color: textPrimary }}>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: textPrimary, letterSpacing: '-0.01em' }}>
                     {tbl.number}
+                  </span>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
+                    color: '#2563eb'
+                  }}>
+                    Scan untuk Pesan
                   </span>
                 </div>
 
@@ -4757,7 +4910,7 @@ export default function Kasir({ user }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '4px'
+                  padding: '2px'
                 }}>
                   {tbl.qrDataUrl ? (
                     <img
@@ -4771,41 +4924,56 @@ export default function Kasir({ user }) {
                         background: '#ffffff',
                         padding: '6px',
                         borderRadius: '12px',
+                        border: `1px solid ${borderColor}`,
                         boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                         display: 'block'
                       }}
                     />
                   ) : (
-                    <div style={{ width: '110px', height: '110px', background: '#e2e8f0', borderRadius: '12px' }} />
+                    <div style={{
+                      width: '100px',
+                      height: '100px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: isLight ? '#f1f5f9' : '#1e293b',
+                      borderRadius: '12px',
+                      gap: '4px',
+                      color: textSecondary,
+                      fontSize: '0.65rem'
+                    }}>
+                      <QrCode size={26} opacity={0.5} />
+                      <span>Membuat QR...</span>
+                    </div>
                   )}
                 </div>
 
-                {/* Direct Download Button (No "Uji Tampilan", Direct Download) */}
+                {/* Direct Download Button */}
                 <a
                   href={tbl.qrDataUrl}
                   download={`QR-${String(tbl.number).replace(/\s+/g, '-')}.png`}
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
+                    padding: '7px 8px',
                     borderRadius: '10px',
                     border: 'none',
                     background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                     color: '#ffffff',
                     fontWeight: 800,
-                    fontSize: '0.75rem',
+                    fontSize: '0.72rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '5px',
+                    gap: '4px',
                     textDecoration: 'none',
                     boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                    transition: 'all 0.15s ease',
                     boxSizing: 'border-box'
                   }}
                   title={`Download Barcode QR ${tbl.number}`}
                 >
-                  <Download size={13} strokeWidth={2.5} />
+                  <Download size={12} strokeWidth={2.5} />
                   <span>Download QR</span>
                 </a>
               </div>
@@ -9410,6 +9578,261 @@ export default function Kasir({ user }) {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ATUR BANYAKNYA MENU DITAMBAHKAN (QUICK QUANTITY SELECTOR) ── */}
+      {quickQtyProduct && (
+        <div 
+          onClick={() => setQuickQtyProduct(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 120,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: bgCard,
+              border: `1.5px solid ${borderColor}`,
+              borderRadius: '20px',
+              padding: '1.25rem',
+              width: '100%',
+              maxWidth: '380px',
+              boxShadow: 'var(--shadow-xl)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.2rem' }}>🔢</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: textPrimary }}>
+                    Banyaknya Porsi Menu
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: textSecondary }}>
+                    Atur jumlah menu yang ditambahkan ke pesanan
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickQtyProduct(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: textSecondary,
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Product Summary */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              borderRadius: '12px',
+              background: isLight ? '#f8fafc' : '#1e293b',
+              border: `1px solid ${borderColor}`
+            }}>
+              <img 
+                src={quickQtyProduct.image} 
+                alt={quickQtyProduct.name}
+                style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+                }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.86rem', color: textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {quickQtyProduct.name}
+                </div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#2563eb', fontFamily: 'var(--font-mono)' }}>
+                  Rp {quickQtyProduct.price?.toLocaleString('id-ID')} / porsi
+                </div>
+              </div>
+            </div>
+
+            {/* Stepper with Huge Touch Buttons */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              padding: '10px',
+              background: isLight ? '#f1f5f9' : '#0f172a',
+              borderRadius: '14px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setQuickQtyValue(v => Math.max(0, v - 1))}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '1.2rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <Minus size={20} strokeWidth={3} />
+              </button>
+
+              <input
+                type="number"
+                min="0"
+                max="999"
+                value={quickQtyValue}
+                onChange={e => setQuickQtyValue(Math.max(0, parseInt(e.target.value) || 0))}
+                style={{
+                  width: '80px',
+                  textAlign: 'center',
+                  fontSize: '1.75rem',
+                  fontWeight: 900,
+                  color: textPrimary,
+                  fontFamily: 'var(--font-mono)',
+                  border: `2px solid ${borderColor}`,
+                  background: isLight ? '#ffffff' : '#1e293b',
+                  borderRadius: '12px',
+                  padding: '4px'
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => setQuickQtyValue(v => Math.min(999, v + 1))}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '1.2rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                <Plus size={20} strokeWidth={3} />
+              </button>
+            </div>
+
+            {/* Quick Presets (Banyaknya Porsi Cepat) */}
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, marginBottom: '6px' }}>
+                Pilih Banyaknya Porsi Cepat:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+                {[1, 2, 3, 5, 10, 15, 20, 25, 50, 100].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setQuickQtyValue(amt)}
+                    style={{
+                      padding: '7px 4px',
+                      borderRadius: '8px',
+                      border: quickQtyValue === amt ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                      background: quickQtyValue === amt ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.2)') : (isLight ? '#ffffff' : '#1e293b'),
+                      color: quickQtyValue === amt ? '#2563eb' : textPrimary,
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.1s ease'
+                    }}
+                  >
+                    {amt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Subtotal Calculation */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid #10b981'
+            }}>
+              <span style={{ fontSize: '0.78rem', color: isLight ? '#166534' : '#86efac', fontWeight: 700 }}>
+                Total Subtotal:
+              </span>
+              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#16a34a', fontFamily: 'var(--font-mono)' }}>
+                Rp {(quickQtyValue * (quickQtyProduct.price || 0)).toLocaleString('id-ID')}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+              <button
+                type="button"
+                onClick={() => setQuickQtyProduct(null)}
+                style={{
+                  flex: 1,
+                  padding: '9px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#ffffff' : '#1e293b',
+                  color: textSecondary,
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCartItemExactQty(quickQtyProduct.id, quickQtyValue);
+                  try { playChime(880, 0.08); } catch (_) {}
+                  setQuickQtyProduct(null);
+                }}
+                style={{
+                  flex: 2,
+                  padding: '9px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                }}
+              >
+                Terapkan {quickQtyValue} Porsi
+              </button>
+            </div>
           </div>
         </div>
       )}
