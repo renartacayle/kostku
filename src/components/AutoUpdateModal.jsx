@@ -79,6 +79,12 @@ export default function AutoUpdateModal() {
                         isNewerVersion(data.version, APP_VERSION);
 
       if (hasUpdate) {
+        // Jangan mengganggu alur kasir POS & order aktif dengan modal pembaruan popup
+        if (!isManual && (window.location.pathname.startsWith('/kasir') || window.location.pathname.startsWith('/pos') || window.location.pathname.startsWith('/order'))) {
+          window.dispatchEvent(new CustomEvent('kostku_checking_update_end'));
+          return;
+        }
+
         // Check 24-hour snooze persistence for non-manual checks
         const snoozeKey = `kostku_snooze_${data.version}`;
         const snoozeUntil = localStorage.getItem(snoozeKey);
