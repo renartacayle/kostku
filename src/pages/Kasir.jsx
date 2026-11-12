@@ -114,6 +114,9 @@ export default function Kasir({ user }) {
   const [showToolsDrawer, setShowToolsDrawer] = useState(false);
   // POS Catalog View Mode: 'grid' (2 Kolom Kartu) vs 'list' (List Ramping Cepat)
   const [posViewMode, setPosViewMode] = useState('grid');
+  // Multi-Payment & Cash Register State
+  const [posPaymentMethod, setPosPaymentMethod] = useState('CASH'); // 'CASH' | 'QRIS' | 'TRANSFER'
+  const [posCashReceived, setPosCashReceived] = useState('');
 
   // Store Location & Validity State (Validasi Toko Resmi)
   const [storeInfo, setStoreInfo] = useState({
@@ -277,7 +280,7 @@ export default function Kasir({ user }) {
       if (!cur && delta > 0) {
         const prod = products.find(p => p.id === productId);
         if (!prod) return prev;
-        return { ...prev, [productId]: { product: prod, qty: 1 } };
+        return { ...prev, [productId]: { product: prod, qty: 1, notes: '' } };
       }
       if (!cur) return prev;
       const nextQty = cur.qty + delta;
@@ -288,6 +291,35 @@ export default function Kasir({ user }) {
         copy[productId] = { ...cur, qty: nextQty };
       }
       return copy;
+    });
+  };
+
+  const setCartItemExactQty = (productId, exactQty) => {
+    const qty = Math.max(0, parseInt(exactQty) || 0);
+    setPosCart(prev => {
+      const copy = { ...prev };
+      if (qty <= 0) {
+        delete copy[productId];
+      } else if (copy[productId]) {
+        copy[productId] = { ...copy[productId], qty };
+      } else {
+        const prod = products.find(p => p.id === productId);
+        if (prod) copy[productId] = { product: prod, qty, notes: '' };
+      }
+      return copy;
+    });
+  };
+
+  const updateCartItemNotes = (productId, notes) => {
+    setPosCart(prev => {
+      if (!prev[productId]) return prev;
+      return {
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          notes
+        }
+      };
     });
   };
 
@@ -1607,6 +1639,8 @@ export default function Kasir({ user }) {
     const posCartSubtotal = posCartItems.reduce((s, it) => s + (it.product.price * it.qty), 0);
     const posPromoDiscount = activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0;
     const posFinalTotal = Math.max(0, posCartSubtotal - posPromoDiscount);
+    const numCashReceived = Number(posCashReceived.replace(/\D/g, '')) || 0;
+    const cashChange = Math.max(0, numCashReceived - posFinalTotal);
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1635,7 +1669,7 @@ export default function Kasir({ user }) {
         </div>
 
         {/* Items in Cart */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
           {posCartItems.length === 0 ? (
             <p style={{ textAlign: 'center', color: textSecondary, fontSize: '0.8rem', padding: '1.5rem 0', margin: 0 }}>
               Keranjang masih kosong. Ketuk menu di katalog untuk menambah pesanan.
@@ -1646,83 +1680,113 @@ export default function Kasir({ user }) {
                 key={it.product.id}
                 style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  flexDirection: 'column',
+                  gap: '5px',
                   fontSize: '0.8rem',
-                  padding: '6px 8px',
+                  padding: '8px 10px',
                   background: isLight ? '#f8fafc' : 'rgba(0,0,0,0.25)',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   border: `1px solid ${borderColor}`
                 }}
               >
-                <div style={{ overflow: 'hidden', paddingRight: '6px' }}>
-                  <div style={{ color: textPrimary, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {it.product.name}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ overflow: 'hidden', paddingRight: '6px', flex: 1 }}>
+                    <div style={{ color: textPrimary, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {it.product.name}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: textSecondary, fontFamily: 'var(--font-mono)' }}>
+                      @ Rp {it.product.price?.toLocaleString('id-ID')}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: textSecondary, fontFamily: 'var(--font-mono)' }}>
-                    @ Rp {it.product.price?.toLocaleString('id-ID')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    {/* Stepper +/- (WCAG Compliant min touch target >= 30px) */}
+                    <div style={{ display: 'flex', alignItems: 'center', background: isLight ? '#e2e8f0' : '#1e293b', borderRadius: '8px', padding: '2px', border: `1px solid ${borderColor}` }}>
+                      <button
+                        type="button"
+                        onClick={() => updateCartItemQty(it.product.id, -1)}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: isLight ? '#ffffff' : '#334155',
+                          color: textPrimary,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
+                        }}
+                        aria-label={`Kurangi ${it.product.name}`}
+                      >
+                        <Minus size={13} strokeWidth={2.5} />
+                      </button>
+                      <span style={{ fontWeight: 800, fontSize: '0.82rem', padding: '0 8px', color: '#2563eb', fontFamily: 'var(--font-mono)', minWidth: '24px', textAlign: 'center' }}>
+                        {it.qty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateCartItemQty(it.product.id, 1)}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: isLight ? '#ffffff' : '#334155',
+                          color: textPrimary,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
+                        }}
+                        aria-label={`Tambah ${it.product.name}`}
+                      >
+                        <Plus size={13} strokeWidth={2.5} />
+                      </button>
+                    </div>
+
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.84rem', minWidth: '65px', textAlign: 'right' }}>
+                      Rp {(it.product.price * it.qty).toLocaleString('id-ID')}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPosCart(prev => {
+                          const copy = { ...prev };
+                          delete copy[it.product.id];
+                          return copy;
+                        });
+                      }}
+                      style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', padding: '4px' }}
+                      title="Hapus"
+                      aria-label="Hapus item"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                  {/* Stepper +/- */}
-                  <div style={{ display: 'flex', alignItems: 'center', background: isLight ? '#e2e8f0' : '#1e293b', borderRadius: '6px', padding: '1px' }}>
-                    <button
-                      type="button"
-                      onClick={() => updateCartItemQty(it.product.id, -1)}
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: textPrimary,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Minus size={11} />
-                    </button>
-                    <span style={{ fontWeight: 800, fontSize: '0.75rem', padding: '0 5px', color: '#2563eb' }}>
-                      {it.qty}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => updateCartItemQty(it.product.id, 1)}
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: textPrimary,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Plus size={11} />
-                    </button>
-                  </div>
 
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.78rem', minWidth: '60px', textAlign: 'right' }}>
-                    Rp {(it.product.price * it.qty).toLocaleString('id-ID')}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPosCart(prev => {
-                        const copy = { ...prev };
-                        delete copy[it.product.id];
-                        return copy;
-                      });
+                {/* DEF-06: Custom Kitchen Notes per Item */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>📝</span>
+                  <input
+                    type="text"
+                    placeholder="Catatan koki (misal: pedas lv 2, tanpa es, dibungkus)..."
+                    value={it.notes || ''}
+                    onChange={e => updateCartItemNotes(it.product.id, e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '4px 8px',
+                      fontSize: '0.72rem',
+                      borderRadius: '6px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#ffffff' : '#0f172a',
+                      color: textPrimary,
+                      outline: 'none'
                     }}
-                    style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', padding: '2px' }}
-                    title="Hapus"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  />
                 </div>
               </div>
             ))
@@ -1730,7 +1794,7 @@ export default function Kasir({ user }) {
         </div>
 
         {posCartItems.length > 0 && (
-          <div style={{ borderTop: `1px solid ${borderColor}`, paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '0.8rem' }}>
+          <div style={{ borderTop: `1px solid ${borderColor}`, paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem' }}>
             {/* Selector Promo Makanan */}
             <div style={{
               background: isLight ? '#fefce8' : 'rgba(245, 158, 11, 0.1)',
@@ -1810,26 +1874,199 @@ export default function Kasir({ user }) {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
-              <span>Biaya Layanan:</span>
-              <span style={{ color: '#16a34a', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>Gratis (Rp 0)</span>
+            {/* DEF-10: Rincian Biaya Transparan (Rp 40 flat + Rp 60 held escrow per nota) */}
+            <div style={{
+              background: isLight ? '#f8fafc' : 'rgba(0,0,0,0.15)',
+              padding: '6px 8px',
+              borderRadius: '8px',
+              border: `1px solid ${borderColor}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '3px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary, fontSize: '0.72rem' }}>
+                <span>Biaya Layanan POS & Cloud:</span>
+                <span style={{ fontFamily: 'var(--font-mono)' }}>Rp 40</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontSize: '0.72rem' }}>
+                <span>Deposit Promo Poin (100% Refundable):</span>
+                <span style={{ fontFamily: 'var(--font-mono)' }}>Rp 60</span>
+              </div>
+              <div style={{ fontSize: '0.64rem', color: textSecondary, fontStyle: 'italic', textAlign: 'right' }}>
+                *Dipotong 1 kuota nota toko. Refund Rp 60 otomatis kembali di jam 00:01 jika nota unclaimed.
+              </div>
             </div>
 
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              fontSize: '0.98rem',
+              fontSize: '1rem',
               fontWeight: 800,
               color: textPrimary,
               borderTop: `1px solid ${borderColor}`,
               paddingTop: '6px',
               marginTop: '2px'
             }}>
-              <span>Total Bayar:</span>
-              <span style={{ color: '#16a34a', fontFamily: 'var(--font-mono)' }}>
+              <span>Total Tagihan:</span>
+              <span style={{ color: '#16a34a', fontFamily: 'var(--font-mono)', fontSize: '1.15rem' }}>
                 Rp {posFinalTotal.toLocaleString('id-ID')}
               </span>
             </div>
+
+            {/* DEF-03: Multi-Channel Payment Selector */}
+            <div style={{ marginTop: '4px' }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
+                Pilih Metode Pembayaran:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                {[
+                  { id: 'CASH', label: '💵 Tunai', sub: 'Laci Uang RJ11' },
+                  { id: 'QRIS', label: '💳 QRIS', sub: 'Dinamis TriPay' },
+                  { id: 'TRANSFER', label: '📱 Bank', sub: 'Transfer / VA' }
+                ].map(m => {
+                  const isSelected = posPaymentMethod === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setPosPaymentMethod(m.id)}
+                      style={{
+                        padding: '7px 4px',
+                        borderRadius: '8px',
+                        border: isSelected ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                        background: isSelected ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)') : (isLight ? '#ffffff' : '#1e293b'),
+                        color: isSelected ? '#2563eb' : textSecondary,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isSelected ? '0 2px 6px rgba(37, 99, 235, 0.2)' : 'none'
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, fontSize: '0.74rem' }}>{m.label}</div>
+                      <div style={{ fontSize: '0.6rem', opacity: 0.85 }}>{m.sub}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* DEF-04: Kalkulator Nominal Bayar & Uang Kembalian (Khusus Tunai) */}
+            {posPaymentMethod === 'CASH' && (
+              <div style={{
+                background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)',
+                padding: '8px 10px',
+                borderRadius: '10px',
+                border: `1px solid ${borderColor}`,
+                marginTop: '4px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary }}>
+                    Nominal Uang Diterima:
+                  </label>
+                  <span style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    fontFamily: 'var(--font-mono)',
+                    color: numCashReceived > 0 && numCashReceived < posFinalTotal ? '#ef4444' : '#10b981'
+                  }}>
+                    {numCashReceived > 0 && numCashReceived < posFinalTotal
+                      ? `Kurang Rp ${(posFinalTotal - numCashReceived).toLocaleString('id-ID')}`
+                      : `Kembalian: Rp ${cashChange.toLocaleString('id-ID')}`}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  placeholder={`Contoh: Rp ${posFinalTotal.toLocaleString('id-ID')} (Uang Pas)`}
+                  value={posCashReceived ? `Rp ${Number(posCashReceived.replace(/\D/g, '')).toLocaleString('id-ID')}` : ''}
+                  onChange={e => setPosCashReceived(e.target.value.replace(/\D/g, ''))}
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
+                    border: `1px solid ${numCashReceived > 0 && numCashReceived < posFinalTotal ? '#ef4444' : borderColor}`,
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    fontFamily: 'var(--font-mono)'
+                  }}
+                />
+                {/* Quick Cash Chips */}
+                <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Uang Pas', val: posFinalTotal },
+                    { label: '20k', val: 20000 },
+                    { label: '50k', val: 50000 },
+                    { label: '100k', val: 100000 }
+                  ].map(chip => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setPosCashReceived(String(chip.val))}
+                      style={{
+                        flex: 1,
+                        padding: '4px 6px',
+                        borderRadius: '6px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#ffffff' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {posPaymentMethod === 'QRIS' && (
+              <div style={{
+                background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.12)',
+                padding: '8px 10px',
+                borderRadius: '10px',
+                border: '1px solid rgba(37, 99, 235, 0.3)',
+                marginTop: '4px',
+                fontSize: '0.74rem',
+                color: textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>💳</span>
+                <div>
+                  <strong>QRIS Dinamis TriPay / Mitra</strong>
+                  <div style={{ fontSize: '0.68rem', color: textSecondary }}>
+                    Pelanggan scan QRIS senilai Rp {posFinalTotal.toLocaleString('id-ID')}. Struk terbit dengan tanda lunas QRIS.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {posPaymentMethod === 'TRANSFER' && (
+              <div style={{
+                background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+                padding: '8px 10px',
+                borderRadius: '10px',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                marginTop: '4px',
+                fontSize: '0.74rem',
+                color: textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>📱</span>
+                <div>
+                  <strong>Transfer Bank / E-Wallet</strong>
+                  <div style={{ fontSize: '0.68rem', color: textSecondary }}>
+                    Kasir memastikan mutasi dana masuk ke rekening sebelum menyelesaikan struk.
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Saldo Nota Notification */}
             <div style={{
@@ -1874,7 +2111,7 @@ export default function Kasir({ user }) {
             </div>
 
             {/* Manual Cash Drawer Quick Kick Button */}
-            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
               <button
                 type="button"
                 onClick={handleKickDrawerManual}
@@ -1908,6 +2145,7 @@ export default function Kasir({ user }) {
                   if (window.confirm('Kosongkan semua item di keranjang?')) {
                     setPosCart({});
                     setActiveCartPromo(null);
+                    setPosCashReceived('');
                     if (showMobileCartDrawer) setShowMobileCartDrawer(false);
                   }
                 }}
@@ -1931,11 +2169,23 @@ export default function Kasir({ user }) {
                 onClick={async () => {
                   if (Number(storeInfo.saldoNota ?? 5000) < 100) {
                     setShowPosTopupModal(true);
-                    alert(`⚠️ Saldo nota toko tidak mencukupi untuk transaksi tunai kasir (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota terlebih dahulu.`);
+                    alert(`⚠️ Saldo nota toko tidak mencukupi untuk transaksi kasir (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota terlebih dahulu.`);
                     return;
                   }
 
-                  const items = Object.values(posCart).map(it => ({ productId: it.product.id, qty: it.qty }));
+                  if (posPaymentMethod === 'CASH' && numCashReceived > 0 && numCashReceived < posFinalTotal) {
+                    alert(`⚠️ Uang tunai yang diterima kurang dari total tagihan (Kurang Rp ${(posFinalTotal - numCashReceived).toLocaleString('id-ID')}).`);
+                    return;
+                  }
+
+                  const effectiveCashReceived = posPaymentMethod === 'CASH' ? (numCashReceived || posFinalTotal) : posFinalTotal;
+                  const effectiveChange = posPaymentMethod === 'CASH' ? Math.max(0, effectiveCashReceived - posFinalTotal) : 0;
+
+                  const items = Object.values(posCart).map(it => ({
+                    productId: it.product.id,
+                    qty: it.qty,
+                    notes: it.notes || ''
+                  }));
                   const tbl = tables.find(t => t.number === selectedTable) || tables[0];
                   const res = await fetch('/api/pos/orders', {
                     method: 'POST',
@@ -1945,7 +2195,10 @@ export default function Kasir({ user }) {
                       customerName: 'Kasir Walk-in (' + selectedTable + ')',
                       items,
                       promoId: activeCartPromo?.id,
-                      promoCode: activeCartPromo?.code
+                      promoCode: activeCartPromo?.code,
+                      paymentMethod: posPaymentMethod,
+                      cashReceived: effectiveCashReceived,
+                      cashChange: effectiveChange
                     })
                   });
                   if (res.ok) {
@@ -1954,22 +2207,27 @@ export default function Kasir({ user }) {
                     const payRes = await fetch(`/api/pos/orders/${newO.id}/pay`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ method: 'CASH' })
+                      body: JSON.stringify({
+                        method: posPaymentMethod,
+                        cashReceived: effectiveCashReceived,
+                        cashChange: effectiveChange
+                      })
                     });
                     const payData = await payRes.json();
                     if (!payRes.ok) {
                       if (payData.requiresTopupNota) setShowPosTopupModal(true);
-                      alert(payData.error || 'Gagal memproses pembayaran tunai');
+                      alert(payData.error || 'Gagal memproses pembayaran');
                       return;
                     }
                     setPosCart({});
                     setActiveCartPromo(null);
+                    setPosCashReceived('');
                     if (showMobileCartDrawer) setShowMobileCartDrawer(false);
                     fetchData();
                     loadPromos();
 
-                    // Automatic Cash Drawer Kick & Sound Effect
-                    if (printerSettings.openDrawer !== false) {
+                    // Automatic Cash Drawer Kick & Sound Effect (khusus Tunai)
+                    if (posPaymentMethod === 'CASH' && printerSettings.openDrawer !== false) {
                       try {
                         playCashRegisterSound();
                         kickCashDrawer({
@@ -1979,13 +2237,15 @@ export default function Kasir({ user }) {
                       } catch (_) {}
                     }
 
-                    // Auto Print Thermal Receipt if configured
+                    // Auto Print Thermal Receipt
                     const receiptData = {
                       id: newO.id,
                       invoice_number: newO.invoice || newO.invoice_number || newO.id,
                       totalAmount: posFinalTotal,
                       subtotal: posCartSubtotal,
-                      paymentMethod: 'TUNAI (CASH)',
+                      paymentMethod: posPaymentMethod === 'CASH' ? 'TUNAI (CASH)' : posPaymentMethod === 'QRIS' ? 'QRIS DINAMIS' : 'TRANSFER BANK',
+                      cashReceived: effectiveCashReceived,
+                      cashChange: effectiveChange,
                       tableNumber: selectedTable,
                       claimToken: newO.claim_token || newO.claimToken,
                       qrClaimUrl: newO.qr_claim_url || newO.qrClaimUrl,
@@ -1994,7 +2254,12 @@ export default function Kasir({ user }) {
                       createdAt: new Date().toISOString(),
                       items: items.map(it => {
                         const p = Object.values(posCart).find(c => c.product.id === it.productId)?.product;
-                        return { name: p?.name || 'Menu', qty: it.qty, subtotal: (p?.price || 0) * it.qty };
+                        return {
+                          name: p?.name || 'Menu',
+                          qty: it.qty,
+                          notes: it.notes || '',
+                          subtotal: (p?.price || 0) * it.qty
+                        };
                       })
                     };
 
@@ -2003,7 +2268,8 @@ export default function Kasir({ user }) {
                     } catch (_) {}
 
                     setReceiptOrder(receiptData);
-                    alert('✅ Transaksi Tunai Berhasil! Laci uang kasir terbuka otomatis & nota masuk antrean dapur.');
+                    const methodLabel = posPaymentMethod === 'CASH' ? 'Tunai (Laci Uang Terbuka)' : posPaymentMethod === 'QRIS' ? 'QRIS Dinamis' : 'Transfer Bank';
+                    alert(`✅ Transaksi ${methodLabel} Berhasil! Nota telah diproses & masuk antrean dapur.`);
                   } else {
                     const err = await res.json();
                     alert(err.error || 'Gagal membuat pesanan');
@@ -2024,7 +2290,13 @@ export default function Kasir({ user }) {
                   boxShadow: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
                 }}
               >
-                {Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Top Up Nota' : 'Bayar Tunai & Cetak Struk'}
+                {Number(storeInfo.saldoNota ?? 5000) < 100 
+                  ? '⚠️ Top Up Nota' 
+                  : posPaymentMethod === 'CASH'
+                    ? 'Bayar Tunai & Cetak Struk'
+                    : posPaymentMethod === 'QRIS'
+                      ? 'Verifikasi QRIS & Cetak Struk'
+                      : 'Konfirmasi Transfer & Cetak Struk'}
               </button>
             </div>
           </div>
@@ -2094,7 +2366,7 @@ export default function Kasir({ user }) {
               }} 
             />
 
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ minWidth: 0, overflow: 'hidden', flex: 1, maxWidth: '220px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <h1 style={{
                   margin: 0,
@@ -3257,7 +3529,7 @@ export default function Kasir({ user }) {
       {/* ── TAB 2: KASIR POS REGISTER (TOUCH POS) ── */}
       {activeTab === 'pos' && (
         <main style={{ maxWidth: '1280px', margin: '1.25rem auto 0', padding: '0 1rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          <div className="pos-workspace-grid">
             {/* Left: Product Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* Unified Search & Quick Actions Bar (Single Compact Row) */}
@@ -3622,8 +3894,8 @@ export default function Kasir({ user }) {
                                     type="button"
                                     onClick={() => updateCartItemQty(p.id, -1)}
                                     style={{
-                                      width: '26px',
-                                      height: '26px',
+                                      width: '28px',
+                                      height: '28px',
                                       borderRadius: '6px',
                                       border: 'none',
                                       background: '#ef4444',
@@ -3631,14 +3903,34 @@ export default function Kasir({ user }) {
                                       cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center'
+                                      justifyContent: 'center',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                     }}
+                                    aria-label={`Kurangi ${p.name}`}
                                   >
-                                    <Minus size={12} strokeWidth={3} />
+                                    <Minus size={13} strokeWidth={3} />
                                   </button>
-                                  <span style={{ fontWeight: 800, fontSize: '0.82rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
-                                    {inCart}
-                                  </span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="999"
+                                    value={inCart}
+                                    onChange={e => setCartItemExactQty(p.id, e.target.value)}
+                                    onClick={e => e.stopPropagation()}
+                                    style={{
+                                      width: '38px',
+                                      textAlign: 'center',
+                                      fontWeight: 800,
+                                      fontSize: '0.86rem',
+                                      color: textPrimary,
+                                      fontFamily: 'var(--font-mono)',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      outline: 'none',
+                                      padding: 0
+                                    }}
+                                    aria-label={`Jumlah pesanan ${p.name}`}
+                                  />
                                   <button
                                     type="button"
                                     onClick={(e) => {
@@ -3647,8 +3939,8 @@ export default function Kasir({ user }) {
                                       triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
                                     }}
                                     style={{
-                                      width: '26px',
-                                      height: '26px',
+                                      width: '28px',
+                                      height: '28px',
                                       borderRadius: '6px',
                                       border: 'none',
                                       background: '#10b981',
@@ -3656,10 +3948,12 @@ export default function Kasir({ user }) {
                                       cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center'
+                                      justifyContent: 'center',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                     }}
+                                    aria-label={`Tambah ${p.name}`}
                                   >
-                                    <Plus size={12} strokeWidth={3} />
+                                    <Plus size={13} strokeWidth={3} />
                                   </button>
                                 </div>
                               ) : (
@@ -3777,8 +4071,8 @@ export default function Kasir({ user }) {
                                   type="button"
                                   onClick={() => updateCartItemQty(p.id, -1)}
                                   style={{
-                                    width: '24px',
-                                    height: '24px',
+                                    width: '26px',
+                                    height: '26px',
                                     borderRadius: '5px',
                                     border: 'none',
                                     background: '#ef4444',
@@ -3786,14 +4080,34 @@ export default function Kasir({ user }) {
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                   }}
+                                  aria-label={`Kurangi ${p.name}`}
                                 >
-                                  <Minus size={11} strokeWidth={3} />
+                                  <Minus size={12} strokeWidth={3} />
                                 </button>
-                                <span style={{ fontWeight: 800, fontSize: '0.8rem', padding: '0 6px', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
-                                  {inCart}
-                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="999"
+                                  value={inCart}
+                                  onChange={e => setCartItemExactQty(p.id, e.target.value)}
+                                  onClick={e => e.stopPropagation()}
+                                  style={{
+                                    width: '34px',
+                                    textAlign: 'center',
+                                    fontWeight: 800,
+                                    fontSize: '0.82rem',
+                                    color: textPrimary,
+                                    fontFamily: 'var(--font-mono)',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    outline: 'none',
+                                    padding: 0
+                                  }}
+                                  aria-label={`Jumlah pesanan ${p.name}`}
+                                />
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -3802,8 +4116,8 @@ export default function Kasir({ user }) {
                                     triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
                                   }}
                                   style={{
-                                    width: '24px',
-                                    height: '24px',
+                                    width: '26px',
+                                    height: '26px',
                                     borderRadius: '5px',
                                     border: 'none',
                                     background: '#10b981',
@@ -3811,10 +4125,12 @@ export default function Kasir({ user }) {
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                   }}
+                                  aria-label={`Tambah ${p.name}`}
                                 >
-                                  <Plus size={11} strokeWidth={3} />
+                                  <Plus size={12} strokeWidth={3} />
                                 </button>
                               </div>
                             ) : (
@@ -3898,6 +4214,7 @@ export default function Kasir({ user }) {
       {/* ── MOBILE FLOATING CART BAR (WHEN CART HAS ITEMS) ── */}
       {activeTab === 'pos' && Object.values(posCart).length > 0 && !showMobileCartDrawer && (
         <div 
+          className="mobile-only-flex"
           onClick={() => setShowMobileCartDrawer(true)}
           style={{
             position: 'fixed',
@@ -3911,7 +4228,6 @@ export default function Kasir({ user }) {
             color: '#ffffff',
             borderRadius: '16px',
             padding: '10px 14px',
-            display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)',
@@ -4008,10 +4324,19 @@ export default function Kasir({ user }) {
               borderTop: `1px solid ${borderColor}`,
               maxHeight: '85vh',
               overflowY: 'auto',
-              padding: '1.25rem 1.25rem 2.5rem',
+              padding: '0.75rem 1.25rem 2.5rem',
               boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.4)'
             }}
           >
+            {/* DEF-07: Swipe Bar Handle Visual Affordance */}
+            <div style={{
+              width: '42px',
+              height: '4px',
+              borderRadius: '999px',
+              background: isLight ? '#cbd5e1' : '#475569',
+              margin: '0 auto 12px'
+            }} />
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: `1px solid ${borderColor}`, paddingBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShoppingBag size={20} color="#2563eb" />
@@ -4394,11 +4719,11 @@ export default function Kasir({ user }) {
             </button>
           </div>
 
-          {/* Table Cards: 2-COLUMN GRID ("2 baris kebawah") with Direct Download */}
+          {/* Table Cards: RESPONSIVE GRID (Auto-Fill min 180px) with Direct Download */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: '12px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: '14px'
           }}>
             {tables.map(tbl => (
               <div
@@ -4713,11 +5038,11 @@ export default function Kasir({ user }) {
             </div>
           </div>
 
-          {/* 4 Kartu Metrik Keuangan (Grid 2 Kolom "2 baris kebawah") */}
+          {/* 4 Kartu Metrik Keuangan (Responsive Grid: 2 Kolom di HP, 4 Kolom di Monitor) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: '10px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px'
           }}>
             {/* 1. Total Omset */}
             <div style={{
@@ -5794,7 +6119,7 @@ export default function Kasir({ user }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 50,
+          zIndex: 110,
           background: 'rgba(0, 0, 0, 0.65)',
           backdropFilter: 'blur(4px)',
           display: 'flex',
@@ -6133,7 +6458,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 50,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -6659,7 +6984,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 50,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -6885,7 +7210,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 50,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -7104,7 +7429,7 @@ export default function Kasir({ user }) {
           inset: 0,
           background: 'rgba(0, 0, 0, 0.72)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 50,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -7289,7 +7614,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 50,
           padding: '1rem'
         }}>
           <div style={{
@@ -7564,7 +7889,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 50,
           padding: '1rem'
         }}>
           <div style={{
@@ -7949,7 +8274,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 50,
           padding: '1rem'
         }}>
           <div style={{
@@ -8547,7 +8872,7 @@ export default function Kasir({ user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 50,
           padding: '1rem'
         }}>
           <div style={{

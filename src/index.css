@@ -432,6 +432,20 @@ html, body {
   display: none !important;
 }
 
+/* POS Workspace Responsive Grid: 65% Catalog vs 35% Sticky Cart on Desktop */
+.pos-workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 901px) {
+  .pos-workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+}
+
 @media (max-width: 900px) {
   .desktop-only,
   .desktop-only-flex {
