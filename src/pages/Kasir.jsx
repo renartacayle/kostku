@@ -1543,12 +1543,10 @@ export default function Kasir({ user }) {
       fontFamily: 'var(--font-main, "Plus Jakarta Sans", sans-serif)',
       paddingBottom: '5rem'
     }}>
-      {/* ── TOP HEADER / NAVBAR (KOSTKU AESTHETIC) ── */}
+      {/* ── TOP HEADER / NAVBAR (KOSTKU AESTHETIC - NATURAL FLOW ON MOBILE) ── */}
       <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-        background: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 23, 42, 0.94)',
+        position: 'relative',
+        background: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 23, 42, 0.96)',
         backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${borderColor}`,
         padding: '0.75rem 1rem',
@@ -2089,15 +2087,10 @@ export default function Kasir({ user }) {
           </div>
         )}
 
-        {/* ── RESPONSIVE NAVIGATION TAB PILLS (STICKY UNDER SLIM TOPBAR) ── */}
+        {/* ── RESPONSIVE NAVIGATION TAB PILLS (NATURAL FLOW ON MOBILE) ── */}
         <div style={{
-          position: 'sticky',
-          top: '56px',
-          zIndex: 35,
-          background: isLight ? 'rgba(248, 250, 252, 0.95)' : 'rgba(15, 23, 42, 0.95)',
-          backdropFilter: 'blur(10px)',
-          padding: '6px 0',
-          borderRadius: '12px',
+          position: 'relative',
+          padding: '4px 0',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
           gap: '8px'
