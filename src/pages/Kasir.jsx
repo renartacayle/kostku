@@ -110,7 +110,7 @@ export default function Kasir({ user }) {
   // POS Direct Register State
   const [posCart, setPosCart] = useState({});
   const [selectedTable, setSelectedTable] = useState('');
-  const [posCategory, setPosCategory] = useState('Makanan');
+  const [posCategory, setPosCategory] = useState('Semua');
   const [posSearchQuery, setPosSearchQuery] = useState('');
   const [showMobileCartDrawer, setShowMobileCartDrawer] = useState(false);
   const [showToolsDrawer, setShowToolsDrawer] = useState(false);
@@ -371,7 +371,7 @@ export default function Kasir({ user }) {
   ['Makanan', 'Snack', 'Minuman'].forEach(c => {
     if (!availableCategories.includes(c)) availableCategories.push(c);
   });
-  const posCategories = [...availableCategories, 'Semua'];
+  const posCategories = ['Semua', ...availableCategories.filter(c => c !== 'Semua')];
 
   const getCategoryIcon = (cat) => {
     const c = String(cat).toLowerCase();
