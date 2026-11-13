@@ -60,7 +60,17 @@ import {
   Store,
   AlertCircle,
   ShieldAlert,
-  Zap
+  Zap,
+  LayoutDashboard,
+  PlusCircle,
+  Coins,
+  Wallet,
+  Lock,
+  Unlock,
+  Receipt,
+  ArrowDownRight,
+  ArrowUpRight,
+  History
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import QRCode from 'qrcode';
@@ -343,6 +353,50 @@ export default function Kasir({ user }) {
     supplier: ''
   });
   const [savingNewInventory, setSavingNewInventory] = useState(false);
+
+  // ── CASHIER SHIFT & OPENING MANAGEMENT STATE ──
+  const [cashierShift, setCashierShift] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kostku_cashier_shift');
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return {
+      isOpen: true,
+      openedAt: new Date().setHours(8, 0, 0, 0),
+      cashierName: user?.name || 'Kasir 1',
+      initialFloat: 200000,
+      cashIns: [], // [{ id, time, amount, note }]
+      cashOuts: [], // [{ id, time, amount, note }]
+      closedAt: null,
+      closingData: null
+    };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('kostku_cashier_shift', JSON.stringify(cashierShift));
+    } catch (_) {}
+  }, [cashierShift]);
+
+  const [showShiftOpeningModal, setShowShiftOpeningModal] = useState(false);
+  const [showShiftClosingModal, setShowShiftClosingModal] = useState(false);
+  const [showPettyCashModal, setShowPettyCashModal] = useState(false);
+  const [pettyCashType, setPettyCashType] = useState('OUT'); // 'IN' | 'OUT'
+  const [pettyCashAmount, setPettyCashAmount] = useState('');
+  const [pettyCashNote, setPettyCashNote] = useState('');
+  const [openingFloatInput, setOpeningFloatInput] = useState('200000');
+  const [openingCashierInput, setOpeningCashierInput] = useState(user?.name || 'Kasir 1');
+  const [closingActualCash, setClosingActualCash] = useState('');
+  const [closingNote, setClosingNote] = useState('');
+  const [closingFeedback, setClosingFeedback] = useState('');
+  const [shiftHistory, setShiftHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kostku_shift_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Direct quantity selector per product before adding to posCart (auto reset to 1 after add)
   const [posCardQtys, setPosCardQtys] = useState({});
@@ -1915,6 +1969,168 @@ export default function Kasir({ user }) {
     })
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
+  // ── CASH DRAWER & SHIFT METRICS ──
+  const totalPettyIn = (cashierShift.cashIns || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const totalPettyOut = (cashierShift.cashOuts || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const expectedDrawerCash = (Number(cashierShift.initialFloat) || 0) + cashRevenue + totalPettyIn - totalPettyOut;
+  const nonCashRevenue = Math.max(0, totalRevenue - cashRevenue);
+
+  // Top 5 Menu Terlaris Shift Ini
+  const topSoldProducts = React.useMemo(() => {
+    const counts = {};
+    completedOrders.forEach(order => {
+      (order.items || []).forEach(it => {
+        const name = it.name || it.productName || 'Menu';
+        const qty = Number(it.qty || it.quantity) || 1;
+        const price = Number(it.price) || 0;
+        if (!counts[name]) {
+          counts[name] = { name, qty: 0, revenue: 0 };
+        }
+        counts[name].qty += qty;
+        counts[name].revenue += (qty * price);
+      });
+    });
+    return Object.values(counts).sort((a, b) => b.qty - a.qty).slice(0, 5);
+  }, [completedOrders]);
+
+  const handleOpenNewShift = (e) => {
+    if (e) e.preventDefault();
+    const floatVal = Number(openingFloatInput) || 0;
+    const newShift = {
+      isOpen: true,
+      openedAt: Date.now(),
+      cashierName: openingCashierInput || user?.name || 'Kasir 1',
+      initialFloat: floatVal,
+      cashIns: [],
+      cashOuts: [],
+      closedAt: null,
+      closingData: null
+    };
+    setCashierShift(newShift);
+    setShowShiftOpeningModal(false);
+    try { playCashRegisterSound(); } catch (_) {}
+  };
+
+  const handleSavePettyCash = (e) => {
+    if (e) e.preventDefault();
+    const amountVal = Number(pettyCashAmount);
+    if (!amountVal || amountVal <= 0) return;
+
+    const entry = {
+      id: `PETTY-${Date.now()}`,
+      time: Date.now(),
+      amount: amountVal,
+      note: pettyCashNote.trim() || (pettyCashType === 'IN' ? 'Kas Masuk Tambahan' : 'Pengeluaran Kas Kecil')
+    };
+
+    setCashierShift(prev => {
+      const next = { ...prev };
+      if (pettyCashType === 'IN') {
+        next.cashIns = [entry, ...(next.cashIns || [])];
+      } else {
+        next.cashOuts = [entry, ...(next.cashOuts || [])];
+      }
+      return next;
+    });
+
+    try { playChime(660, 0.1); } catch (_) {}
+    setPettyCashAmount('');
+    setPettyCashNote('');
+    setShowPettyCashModal(false);
+  };
+
+  const handleDeletePettyCash = (id, type) => {
+    setCashierShift(prev => {
+      const next = { ...prev };
+      if (type === 'IN') {
+        next.cashIns = (next.cashIns || []).filter(item => item.id !== id);
+      } else {
+        next.cashOuts = (next.cashOuts || []).filter(item => item.id !== id);
+      }
+      return next;
+    });
+  };
+
+  const handlePrintClosingReceipt = async (actualCashVal, diffVal) => {
+    const actual = actualCashVal !== undefined ? actualCashVal : (Number(closingActualCash) || 0);
+    const diff = diffVal !== undefined ? diffVal : (actual - expectedDrawerCash);
+    const closingSlip = {
+      id: `SHIFT-CLOSE-${Date.now().toString().slice(-6)}`,
+      storeName: storeInfo.storeName || 'KOSTKU RESTO & CAFE',
+      storeLocation: storeInfo.location || 'Laporan Closing Shift Kasir',
+      tableNumber: `Kasir: ${cashierShift.cashierName}`,
+      customerName: `Buka: ${new Date(cashierShift.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} | Tutup: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+      items: [
+        { name: '1. Modal Kas Awal (Float)', qty: 1, price: cashierShift.initialFloat, subtotal: cashierShift.initialFloat },
+        { name: '2. Penjualan Tunai Kasir', qty: completedOrders.filter(o => {
+            const pm = String(o.paymentMethod || '').toUpperCase();
+            return pm.includes('TUNAI') || pm.includes('CASH');
+          }).length, price: cashRevenue, subtotal: cashRevenue },
+        { name: '3. Kas Masuk (Petty In)', qty: (cashierShift.cashIns || []).length, price: totalPettyIn, subtotal: totalPettyIn },
+        { name: '4. Kas Keluar (Petty Out)', qty: (cashierShift.cashOuts || []).length, price: -totalPettyOut, subtotal: -totalPettyOut },
+        { name: '5. Fisik Kas Aktual', qty: 1, price: actual, subtotal: actual },
+        { name: '6. Selisih Kas (Diff)', qty: 1, price: diff, subtotal: diff },
+        { name: '7. Non-Tunai (QRIS/Trf)', qty: 1, price: nonCashRevenue, subtotal: nonCashRevenue }
+      ],
+      totalAmount: totalRevenue,
+      paymentMethod: `CLOSING SHIFT (Selisih: Rp ${diff.toLocaleString('id-ID')})`,
+      cashReceived: actual,
+      cashChange: diff
+    };
+
+    try {
+      setPrinterFeedback('🖨️ Mencetak laporan rekap closing shift...');
+      await printReceipt(closingSlip);
+      setPrinterFeedback('✅ Struk closing shift berhasil dicetak!');
+      setTimeout(() => setPrinterFeedback(''), 4500);
+    } catch (err) {
+      setPrinterFeedback('⚠️ Gagal mencetak thermal. Membuka dialog print browser.');
+      printViaBrowserDialog();
+      setTimeout(() => setPrinterFeedback(''), 4500);
+    }
+  };
+
+  const handleConfirmClosingShift = () => {
+    const actual = Number(closingActualCash) || 0;
+    const diff = actual - expectedDrawerCash;
+    const closingRecord = {
+      id: `RECORD-${Date.now()}`,
+      shiftOpenedAt: cashierShift.openedAt,
+      closedAt: Date.now(),
+      cashierName: cashierShift.cashierName,
+      initialFloat: cashierShift.initialFloat,
+      cashRevenue,
+      qrisRevenue,
+      nonCashRevenue,
+      totalRevenue,
+      totalPettyIn,
+      totalPettyOut,
+      expectedDrawerCash,
+      actualCash: actual,
+      diff,
+      note: closingNote,
+      completedOrdersCount: completedOrders.length
+    };
+
+    const nextHistory = [closingRecord, ...shiftHistory].slice(0, 30);
+    setShiftHistory(nextHistory);
+    try {
+      localStorage.setItem('kostku_shift_history', JSON.stringify(nextHistory));
+    } catch (_) {}
+
+    setCashierShift(prev => ({
+      ...prev,
+      isOpen: false,
+      closedAt: Date.now(),
+      closingData: closingRecord
+    }));
+
+    setClosingFeedback('✅ Closing shift kasir berhasil diselesaikan!');
+    setShowShiftClosingModal(false);
+    setClosingActualCash('');
+    setClosingNote('');
+  };
+
   // Palette definitions matching KostKu Theme
   const bgPage = isLight ? '#f1f5f9' : '#0b0f19';
   const bgCard = isLight ? '#ffffff' : '#131b2e';
@@ -2798,6 +3014,28 @@ export default function Kasir({ user }) {
               Modul Kasir
             </span>
 
+            {/* 0. Dashboard Kasir & Shift */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('dashboard')}
+              style={sidebarItemStyle(activeTab === 'dashboard')}
+            >
+              <LayoutDashboard size={17} strokeWidth={activeTab === 'dashboard' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Dashboard Kasir</span>
+              {cashierShift.isOpen && (
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  background: '#10b981',
+                  color: '#ffffff',
+                  padding: '1px 6px',
+                  borderRadius: '999px'
+                }}>
+                  Buka
+                </span>
+              )}
+            </button>
+
             {/* 1. Kasir POS */}
             <button
               type="button"
@@ -3236,6 +3474,7 @@ export default function Kasir({ user }) {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
+                  {activeTab === 'dashboard' && <><span>📊</span><span>Dashboard Kasir &amp; Shift Opening</span></>}
                   {activeTab === 'pos' && <><span>🛍️</span><span>Kasir &amp; Katalog POS</span></>}
                   {activeTab === 'kds' && <><span>🍳</span><span>Layar Antrean Dapur (KDS)</span></>}
                   {activeTab === 'tables' && <><span>🪑</span><span>Manajemen Meja &amp; QR Barcode</span></>}
@@ -3711,6 +3950,593 @@ export default function Kasir({ user }) {
           })}
         </div>
       </div>
+
+      {/* ── TAB 0: DASHBOARD KASIR & SHIFT OPENING ── */}
+      {activeTab === 'dashboard' && (
+        <main style={{ width: '100%', maxWidth: '100%', margin: '0.8rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
+          {/* Header Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{
+                  margin: 0,
+                  fontSize: '1.25rem',
+                  fontWeight: 900,
+                  color: textPrimary,
+                  letterSpacing: '-0.3px'
+                }}>
+                  Dashboard Kasir &amp; Shift
+                </h2>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '3px 8px',
+                  borderRadius: '999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  background: cashierShift.isOpen ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)'),
+                  color: cashierShift.isOpen ? '#10b981' : '#ef4444',
+                  border: cashierShift.isOpen ? '1px solid #10b981' : '1px solid #ef4444'
+                }}>
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: cashierShift.isOpen ? '#10b981' : '#ef4444',
+                    boxShadow: cashierShift.isOpen ? '0 0 6px #10b981' : 'none'
+                  }} />
+                  {cashierShift.isOpen ? 'Shift Aktif (Buka)' : 'Shift Tutup'}
+                </span>
+              </div>
+              <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: textSecondary }}>
+                Kasir: <strong>{cashierShift.cashierName}</strong> &bull; Buka sejak: {new Date(cashierShift.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+              </p>
+            </div>
+
+            {/* Quick Shift Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {cashierShift.isOpen ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowPettyCashModal(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 13px',
+                      borderRadius: '10px',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                      background: bgCard,
+                      color: textPrimary,
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                    }}
+                  >
+                    <Coins size={15} color="#f59e0b" />
+                    <span>Catat Kas Keluar/Masuk</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClosingActualCash('');
+                      setClosingNote('');
+                      setShowShiftClosingModal(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 13px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      color: '#ffffff',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+                    }}
+                  >
+                    <Lock size={15} />
+                    <span>Tutup Shift &amp; Closing</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowShiftOpeningModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(37, 99, 235, 0.35)'
+                  }}
+                >
+                  <Unlock size={16} />
+                  <span>Mulai Buka Shift Baru</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {closingFeedback && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid #10b981',
+              color: isLight ? '#047857' : '#34d399',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span>{closingFeedback}</span>
+              <button
+                type="button"
+                onClick={() => setClosingFeedback('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
+          {/* ── CARD 1: HERO CASH DRAWER & FISIK UANG DI LACI ── */}
+          <div style={{
+            background: bgCard,
+            border: `1.5px solid ${borderColor}`,
+            borderRadius: '18px',
+            padding: '16px 18px',
+            marginBottom: '1rem',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              marginBottom: '14px',
+              borderBottom: `1px solid ${borderColor}`,
+              paddingBottom: '12px'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Wallet size={20} color="#2563eb" />
+                  <span>Manajemen Laci Kasir (Cash Drawer)</span>
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: textSecondary }}>
+                  Kalkulasi arus kas fisik shift aktif: Modal Awal + Tunai + Kas Masuk - Kas Keluar
+                </p>
+              </div>
+
+              {/* Drawer Button */}
+              <button
+                type="button"
+                onClick={handleKickDrawerManual}
+                disabled={drawerKicking}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  border: isLight ? '1px solid #10b981' : '1px solid rgba(16, 185, 129, 0.5)',
+                  background: drawerKicking ? '#10b981' : (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)'),
+                  color: drawerKicking ? '#ffffff' : (isLight ? '#047857' : '#34d399'),
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Kirim sinyal pulsa buka laci kasir RJ11 / USB"
+              >
+                <span>🔓</span>
+                <span>{drawerKicking ? 'Membuka...' : 'Buka Laci (RJ11)'}</span>
+              </button>
+            </div>
+
+            {/* Arus Kas Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+              gap: '10px',
+              marginBottom: '14px'
+            }}>
+              <div style={{
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: isLight ? '#f8fafc' : '#0f172a',
+                border: `1px solid ${borderColor}`
+              }}>
+                <span style={{ fontSize: '0.7rem', color: textSecondary, fontWeight: 700, display: 'block' }}>
+                  Modal Kas Awal (Float)
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, marginTop: '2px', display: 'block' }}>
+                  Rp {(Number(cashierShift.initialFloat) || 0).toLocaleString('id-ID')}
+                </span>
+                <span style={{ fontSize: '0.66rem', color: textSecondary }}>Uang kembalian awal</span>
+              </div>
+
+              <div style={{
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, display: 'block' }}>
+                  (+) Penjualan Tunai
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#10b981', marginTop: '2px', display: 'block' }}>
+                  Rp {cashRevenue.toLocaleString('id-ID')}
+                </span>
+                <span style={{ fontSize: '0.66rem', color: textSecondary }}>Dari transaksi kasir</span>
+              </div>
+
+              <div style={{
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: isLight ? '#f8fafc' : '#0f172a',
+                border: `1px solid ${borderColor}`
+              }}>
+                <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700, display: 'block' }}>
+                  (+) Kas Masuk Tambahan
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0284c7', marginTop: '2px', display: 'block' }}>
+                  Rp {totalPettyIn.toLocaleString('id-ID')}
+                </span>
+                <span style={{ fontSize: '0.66rem', color: textSecondary }}>{(cashierShift.cashIns || []).length} kali masuk</span>
+              </div>
+
+              <div style={{
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.3)'
+              }}>
+                <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, display: 'block' }}>
+                  (-) Pengeluaran Kas (Petty)
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ef4444', marginTop: '2px', display: 'block' }}>
+                  Rp {totalPettyOut.toLocaleString('id-ID')}
+                </span>
+                <span style={{ fontSize: '0.66rem', color: textSecondary }}>{(cashierShift.cashOuts || []).length} kali keluar</span>
+              </div>
+            </div>
+
+            {/* Highlight Banner: Uang Fisik Seharusnya */}
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '14px',
+              background: isLight ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #1e3a8a33 0%, #17255455 100%)',
+              border: '1.5px solid #2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: '#2563eb',
+                  display: 'block'
+                }}>
+                  Uang Fisik Seharusnya di Laci Kasir:
+                </span>
+                <span style={{
+                  fontSize: '1.55rem',
+                  fontWeight: 900,
+                  color: textPrimary,
+                  letterSpacing: '-0.5px'
+                }}>
+                  Rp {expectedDrawerCash.toLocaleString('id-ID')}
+                </span>
+                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
+                  Total uang tunai kertas &amp; koin yang wajib ada di laci saat dihitung fisik.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPettyCashType('IN');
+                    setPettyCashAmount('');
+                    setPettyCashNote('');
+                    setShowPettyCashModal(true);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #0284c7',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    color: '#0284c7',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Kas Masuk
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPettyCashType('OUT');
+                    setPettyCashAmount('');
+                    setPettyCashNote('');
+                    setShowPettyCashModal(true);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #ef4444',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    color: '#ef4444',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  - Kas Keluar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── CARD 2: RINGKASAN OMSET & TRANSAKSI SHIFT INI ── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '12px',
+            marginBottom: '1rem'
+          }}>
+            {/* Total Omset */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '16px',
+              padding: '14px 16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary }}>
+                  Total Omset Shift Ini
+                </span>
+                <span style={{ background: '#2563eb18', color: '#2563eb', fontSize: '0.65rem', fontWeight: 900, padding: '2px 7px', borderRadius: '999px' }}>
+                  {completedOrders.length} Pesanan
+                </span>
+              </div>
+              <span style={{ fontSize: '1.4rem', fontWeight: 900, color: textPrimary, display: 'block', letterSpacing: '-0.3px' }}>
+                Rp {totalRevenue.toLocaleString('id-ID')}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: textSecondary, marginTop: '4px', display: 'block' }}>
+                Rata-rata: Rp {completedOrders.length > 0 ? Math.round(totalRevenue / completedOrders.length).toLocaleString('id-ID') : 0} / nota
+              </span>
+            </div>
+
+            {/* Non-Tunai (QRIS & Transfer) */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '16px',
+              padding: '14px 16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary }}>
+                  Pembayaran Non-Tunai (Digital)
+                </span>
+                <span style={{ background: '#10b98118', color: '#10b981', fontSize: '0.65rem', fontWeight: 900, padding: '2px 7px', borderRadius: '999px' }}>
+                  QRIS &amp; Transfer
+                </span>
+              </div>
+              <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', display: 'block', letterSpacing: '-0.3px' }}>
+                Rp {nonCashRevenue.toLocaleString('id-ID')}
+              </span>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '0.72rem', color: textSecondary }}>
+                <span>QRIS: Rp {qrisRevenue.toLocaleString('id-ID')}</span>
+                <span>Transfer: Rp {(nonCashRevenue - qrisRevenue).toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── CARD 3 & 4: PETTY CASH LOG & TOP MENU ── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '12px',
+            marginBottom: '1rem'
+          }}>
+            {/* Petty Cash Log */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '16px',
+              padding: '14px 16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <History size={16} color="#6366f1" />
+                  <span>Catatan Kas Keluar / Masuk</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setShowPettyCashModal(true)}
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#2563eb',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Tambah
+                </button>
+              </div>
+
+              {((cashierShift.cashIns || []).length === 0 && (cashierShift.cashOuts || []).length === 0) ? (
+                <div style={{ textAlign: 'center', padding: '16px 8px', color: textSecondary, fontSize: '0.76rem' }}>
+                  Belum ada catatan kas kecil shift ini.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                  {[
+                    ...(cashierShift.cashIns || []).map(it => ({ ...it, type: 'IN' })),
+                    ...(cashierShift.cashOuts || []).map(it => ({ ...it, type: 'OUT' }))
+                  ]
+                    .sort((a, b) => b.time - a.time)
+                    .map(it => (
+                      <div
+                        key={it.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          background: isLight ? '#f8fafc' : '#0f172a',
+                          border: `1px solid ${borderColor}`,
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              background: it.type === 'IN' ? '#10b98120' : '#ef444420',
+                              color: it.type === 'IN' ? '#10b981' : '#ef4444'
+                            }}>
+                              {it.type === 'IN' ? 'MASUK' : 'KELUAR'}
+                            </span>
+                            <span style={{ fontWeight: 700, color: textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {it.note}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '0.65rem', color: textSecondary }}>
+                            {new Date(it.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{
+                            fontWeight: 800,
+                            color: it.type === 'IN' ? '#10b981' : '#ef4444'
+                          }}>
+                            {it.type === 'IN' ? '+' : '-'}Rp {Number(it.amount).toLocaleString('id-ID')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePettyCash(it.id, it.type)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecondary, padding: '2px' }}
+                            title="Hapus"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Top 5 Menu Terlaris */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '16px',
+              padding: '14px 16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            }}>
+              <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <TrendingUp size={16} color="#f59e0b" />
+                <span>Top Menu Terlaris Shift Ini</span>
+              </h4>
+
+              {topSoldProducts.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 8px', color: textSecondary, fontSize: '0.76rem' }}>
+                  Belum ada pesanan selesai pada shift ini.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {topSoldProducts.map((p, idx) => (
+                    <div
+                      key={p.name}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        background: isLight ? '#f8fafc' : '#0f172a',
+                        border: `1px solid ${borderColor}`,
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                        <span style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: idx === 0 ? '#f59e0b' : (idx === 1 ? '#94a3b8' : '#cd7f32'),
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.62rem',
+                          fontWeight: 900
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <span style={{ fontWeight: 700, color: textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.name}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontWeight: 800, color: '#2563eb', display: 'block' }}>
+                          {p.qty} porsi
+                        </span>
+                        <span style={{ fontSize: '0.65rem', color: textSecondary }}>
+                          Rp {p.revenue.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      )}
 
       {/* ── TAB 1: DAPUR KITCHEN DISPLAY SYSTEM (KDS) ── */}
       {activeTab === 'kds' && (
@@ -10673,6 +11499,637 @@ export default function Kasir({ user }) {
         </div>
       )}
 
+      {/* ── MODAL OPENING SHIFT KASIR ── */}
+      {showShiftOpeningModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 160,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: bgCard,
+            border: `1.5px solid ${borderColor}`,
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '460px',
+            padding: '20px 22px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#2563eb18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Unlock size={20} color="#2563eb" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: textPrimary }}>
+                    Mulai Buka Shift Kasir
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
+                    Input kasir bertugas dan modal kas awal (float)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShiftOpeningModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecondary }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleOpenNewShift} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textSecondary, marginBottom: '5px' }}>
+                  Nama Kasir yang Bertugas
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={openingCashierInput}
+                  onChange={e => setOpeningCashierInput(e.target.value)}
+                  placeholder="Contoh: Kasir Shift Pagi / Rina"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#0f172a',
+                    color: textPrimary,
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textSecondary, marginBottom: '5px' }}>
+                  Modal Kas Awal di Laci (Uang Kembalian / Float)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '10px', fontSize: '0.85rem', fontWeight: 700, color: textSecondary }}>
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={openingFloatInput}
+                    onChange={e => setOpeningFloatInput(e.target.value)}
+                    placeholder="200000"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px 10px 36px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#0f172a',
+                      color: textPrimary,
+                      fontSize: '0.92rem',
+                      fontWeight: 800,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                {/* Quick Chips */}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '7px', flexWrap: 'wrap' }}>
+                  {[100000, 200000, 300000, 500000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setOpeningFloatInput(String(amt))}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: `1px solid ${borderColor}`,
+                        background: openingFloatInput === String(amt) ? '#2563eb' : (isLight ? '#f1f5f9' : '#1e293b'),
+                        color: openingFloatInput === String(amt) ? '#ffffff' : textSecondary,
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Rp {(amt / 1000).toFixed(0)}k
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowShiftOpeningModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: 'transparent',
+                    color: textSecondary,
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 2,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(37, 99, 235, 0.35)'
+                  }}
+                >
+                  Buka Shift Sekarang
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CATAT KAS MASUK / KAS KELUAR (PETTY CASH) ── */}
+      {showPettyCashModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 160,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: bgCard,
+            border: `1.5px solid ${borderColor}`,
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '440px',
+            padding: '20px 22px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: pettyCashType === 'IN' ? '#10b98118' : '#ef444418',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Coins size={20} color={pettyCashType === 'IN' ? '#10b981' : '#ef4444'} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 900, color: textPrimary }}>
+                    {pettyCashType === 'IN' ? 'Catat Kas Masuk (Petty In)' : 'Catat Kas Keluar (Petty Out)'}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
+                    {pettyCashType === 'IN' ? 'Penambahan uang tunai modal/receh di laci' : 'Pengeluaran tunai operasional kasir'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPettyCashModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecondary }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Type Selector Toggle */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px',
+              padding: '3px',
+              borderRadius: '10px',
+              background: isLight ? '#f1f5f9' : '#0f172a',
+              marginBottom: '14px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setPettyCashType('OUT')}
+                style={{
+                  padding: '7px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: pettyCashType === 'OUT' ? '#ef4444' : 'transparent',
+                  color: pettyCashType === 'OUT' ? '#ffffff' : textSecondary,
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                - Kas Keluar (Belanja)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPettyCashType('IN')}
+                style={{
+                  padding: '7px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: pettyCashType === 'IN' ? '#10b981' : 'transparent',
+                  color: pettyCashType === 'IN' ? '#ffffff' : textSecondary,
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                + Kas Masuk (Modal)
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePettyCash} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textSecondary, marginBottom: '5px' }}>
+                  Nominal Uang (Rp)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '10px', fontSize: '0.85rem', fontWeight: 700, color: textSecondary }}>
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    min="1000"
+                    required
+                    value={pettyCashAmount}
+                    onChange={e => setPettyCashAmount(e.target.value)}
+                    placeholder="Contoh: 15000"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px 10px 36px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#0f172a',
+                      color: textPrimary,
+                      fontSize: '0.92rem',
+                      fontWeight: 800,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                {/* Quick Chips */}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  {[10000, 20000, 50000, 100000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setPettyCashAmount(String(amt))}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: `1px solid ${borderColor}`,
+                        background: pettyCashAmount === String(amt) ? '#2563eb' : (isLight ? '#f1f5f9' : '#1e293b'),
+                        color: pettyCashAmount === String(amt) ? '#ffffff' : textSecondary,
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Rp {(amt / 1000).toFixed(0)}k
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textSecondary, marginBottom: '5px' }}>
+                  Keterangan / Keperluan
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={pettyCashNote}
+                  onChange={e => setPettyCashNote(e.target.value)}
+                  placeholder={pettyCashType === 'IN' ? 'Contoh: Tambah uang receh kembalian' : 'Contoh: Beli es batu kristal / galon air'}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#0f172a',
+                    color: textPrimary,
+                    fontSize: '0.85rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPettyCashModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: 'transparent',
+                    color: textSecondary,
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 2,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: pettyCashType === 'IN' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Simpan Catatan Kas
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CLOSING SHIFT & HITUNG SELISIH FISIK KASIR ── */}
+      {showShiftClosingModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 160,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: bgCard,
+            border: `1.5px solid ${borderColor}`,
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '480px',
+            padding: '20px 22px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            boxSizing: 'border-box',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ef444418', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={20} color="#ef4444" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: textPrimary }}>
+                    Tutup Shift &amp; Closing Kasir
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
+                    Hitung uang fisik di laci dan rekonsiliasi selisih sistem
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShiftClosingModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecondary }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Ringkasan Perhitungan Sistem */}
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: '12px',
+              background: isLight ? '#f8fafc' : '#0f172a',
+              border: `1px solid ${borderColor}`,
+              marginBottom: '14px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: textSecondary, marginBottom: '4px' }}>
+                <span>Modal Kas Awal:</span>
+                <strong style={{ color: textPrimary }}>Rp {(Number(cashierShift.initialFloat) || 0).toLocaleString('id-ID')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#10b981', marginBottom: '4px' }}>
+                <span>(+) Penjualan Tunai:</span>
+                <strong>Rp {cashRevenue.toLocaleString('id-ID')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#0284c7', marginBottom: '4px' }}>
+                <span>(+) Kas Masuk Tambahan:</span>
+                <strong>Rp {totalPettyIn.toLocaleString('id-ID')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#ef4444', marginBottom: '6px' }}>
+                <span>(-) Pengeluaran Kas Kecil:</span>
+                <strong>Rp {totalPettyOut.toLocaleString('id-ID')}</strong>
+              </div>
+              <div style={{
+                borderTop: `1px dashed ${borderColor}`,
+                paddingTop: '6px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.86rem',
+                fontWeight: 900
+              }}>
+                <span style={{ color: textPrimary }}>Uang Seharusnya di Laci:</span>
+                <span style={{ color: '#2563eb' }}>Rp {expectedDrawerCash.toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+
+            {/* Input Uang Fisik Aktual */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: textPrimary, marginBottom: '6px' }}>
+                Hitung Fisik Uang di Laci (Kertas + Koin)
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '10px', fontSize: '0.85rem', fontWeight: 700, color: textSecondary }}>
+                  Rp
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  value={closingActualCash}
+                  onChange={e => setClosingActualCash(e.target.value)}
+                  placeholder={String(expectedDrawerCash)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px 10px 36px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #2563eb',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    color: textPrimary,
+                    fontSize: '1rem',
+                    fontWeight: 900,
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Status Selisih Kas (Real-time Feedback) */}
+              {closingActualCash !== '' && (() => {
+                const actual = Number(closingActualCash) || 0;
+                const diff = actual - expectedDrawerCash;
+                const isMatch = diff === 0;
+                const isSurplus = diff > 0;
+                return (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    background: isMatch ? '#ecfdf5' : (isSurplus ? '#eff6ff' : '#fef2f2'),
+                    border: `1px solid ${isMatch ? '#10b981' : (isSurplus ? '#3b82f6' : '#ef4444')}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '0.78rem',
+                    fontWeight: 800
+                  }}>
+                    <span style={{ color: isMatch ? '#047857' : (isSurplus ? '#1d4ed8' : '#b91c1c') }}>
+                      {isMatch ? '✅ Uang Fisik Pas (Sesuai Sistem)' : (isSurplus ? `🔵 Surplus Lebih (+Rp ${diff.toLocaleString('id-ID')})` : `⚠️ Selisih Kurang (-Rp ${Math.abs(diff).toLocaleString('id-ID')})`)}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: textSecondary }}>
+                      Fisik: Rp {actual.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Catatan Closing */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textSecondary, marginBottom: '5px' }}>
+                Catatan Serah Terima / Keterangan Shift
+              </label>
+              <textarea
+                rows={2}
+                value={closingNote}
+                onChange={e => setClosingNote(e.target.value)}
+                placeholder="Catatan untuk kasir shift berikutnya atau pesan serah terima uang..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  color: textPrimary,
+                  fontSize: '0.82rem',
+                  boxSizing: 'border-box',
+                  resize: 'none'
+                }}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handlePrintClosingReceipt(Number(closingActualCash) || expectedDrawerCash, (Number(closingActualCash) || expectedDrawerCash) - expectedDrawerCash)}
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: isLight ? '1px solid #059669' : '1px solid #10b981',
+                    background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
+                    color: isLight ? '#047857' : '#34d399',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Receipt size={16} />
+                  <span>Cetak Struk Rekap</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleKickDrawerManual}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f1f5f9' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Buka Laci Kasir"
+                >
+                  🔓 Laci
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowShiftClosingModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: 'transparent',
+                    color: textSecondary,
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmClosingShift}
+                  style={{
+                    flex: 2,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(239, 68, 68, 0.35)'
+                  }}
+                >
+                  Selesaikan Closing Shift
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── MODAL PERIFERAL HARDWARE: LACI KASIR (CASH DRAWER) & PRINTER THERMAL ── */}
       {showHardwareModal && (
         <div style={{
@@ -11838,11 +13295,11 @@ export default function Kasir({ user }) {
           padding: '0 1%',
           boxSizing: 'border-box'
         }}>
-          {/* 1. KASIR */}
+          {/* 1. DASHBOARD KASIR & SHIFT (GANTI POSISI KASIR LAMA) */}
           <button
             type="button"
             onClick={() => {
-              setActiveTab('pos');
+              setActiveTab('dashboard');
               setShowMobileMenuHub(false);
             }}
             style={{
@@ -11855,35 +13312,30 @@ export default function Kasir({ user }) {
               border: 'none',
               padding: '4px 0',
               cursor: 'pointer',
-              color: (activeTab === 'pos' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              color: (activeTab === 'dashboard' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
               transition: 'all 0.15s ease'
             }}
           >
             <div style={{ position: 'relative' }}>
-              <ShoppingBag size={20} strokeWidth={(activeTab === 'pos' && !showMobileMenuHub) ? 2.5 : 2} />
-              {Object.values(posCart).length > 0 && (
+              <LayoutDashboard size={20} strokeWidth={(activeTab === 'dashboard' && !showMobileMenuHub) ? 2.5 : 2} />
+              {cashierShift.isOpen && (
                 <span style={{
                   position: 'absolute',
-                  top: '-4px',
-                  right: '-8px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '0.6rem',
-                  fontWeight: 900,
+                  top: '-2px',
+                  right: '-3px',
+                  width: '7px',
+                  height: '7px',
                   borderRadius: '999px',
-                  padding: '1px 4px',
-                  lineHeight: 1
-                }}>
-                  {Object.values(posCart).reduce((s, it) => s + it.qty, 0)}
-                </span>
+                  background: '#10b981'
+                }} />
               )}
             </div>
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: (activeTab === 'pos' && !showMobileMenuHub) ? 800 : 600,
+              fontWeight: (activeTab === 'dashboard' && !showMobileMenuHub) ? 800 : 600,
               letterSpacing: '-0.01em'
             }}>
-              Kasir
+              Dashboard
             </span>
           </button>
 
@@ -11936,39 +13388,65 @@ export default function Kasir({ user }) {
             </span>
           </button>
 
-          {/* 3. + MENU (TENGAH - KHUSUS UNTUK MENAMBAH MENU PELANGGAN) */}
+          {/* 3. KASIR (TENGAH - PINDAH KE TEMPAT MENU SEBELUMNYA) */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <button
               type="button"
-              onClick={handleOpenAddMenu}
-              aria-label="Tambah Menu untuk Pelanggan"
+              onClick={() => {
+                setActiveTab('pos');
+                setShowMobileMenuHub(false);
+              }}
+              aria-label="Kasir Walk-in Register"
               style={{
                 width: '48px',
                 height: '48px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                background: (activeTab === 'pos' && !showMobileMenuHub)
+                  ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 color: '#ffffff',
                 border: isLight ? '3.5px solid #ffffff' : '3.5px solid #0f172a',
-                boxShadow: '0 6px 18px rgba(37, 99, 235, 0.45)',
+                boxShadow: (activeTab === 'pos' && !showMobileMenuHub)
+                  ? '0 6px 18px rgba(37, 99, 235, 0.55), 0 0 0 3px rgba(37, 99, 235, 0.25)'
+                  : '0 6px 18px rgba(37, 99, 235, 0.45)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 transform: 'translateY(-12px)',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                position: 'relative'
               }}
-              title="Tambah Menu Makanan/Minuman Baru untuk Pelanggan"
+              title="Kasir POS Walk-in"
             >
-              <Plus size={24} strokeWidth={2.8} color="#ffffff" />
+              <ShoppingBag size={22} strokeWidth={2.6} color="#ffffff" />
+              {Object.values(posCart).length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-6px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  borderRadius: '999px',
+                  padding: '2px 5px',
+                  lineHeight: 1,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                  border: '1.5px solid #ffffff'
+                }}>
+                  {Object.values(posCart).reduce((s, it) => s + it.qty, 0)}
+                </span>
+              )}
             </button>
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: 800,
-              color: isLight ? '#1e293b' : '#f8fafc',
+              fontWeight: (activeTab === 'pos' && !showMobileMenuHub) ? 800 : 700,
+              color: (activeTab === 'pos' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#1e293b' : '#f8fafc'),
               marginTop: '-10px',
               letterSpacing: '-0.01em'
             }}>
-              + Menu
+              Kasir
             </span>
           </div>
 
@@ -12129,7 +13607,77 @@ export default function Kasir({ user }) {
               width: '100%',
               boxSizing: 'border-box'
             }}>
+              {/* PRIMARY ACTION CARD: + TAMBAH MENU BARU UNTUK PELANGGAN */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleOpenAddMenu();
+                  setShowMobileMenuHub(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  border: isLight ? '1.5px solid #3b82f6' : '1.5px solid #2563eb',
+                  background: isLight ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #1e293b 0%, #1e3a8a30 100%)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.12)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#2563eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 3px 8px rgba(37, 99, 235, 0.35)'
+                  }}>
+                    <Plus size={20} color="#ffffff" strokeWidth={2.8} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1d4ed8' }}>
+                        + Tambah Menu Baru
+                      </span>
+                      <span style={{
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: '999px'
+                      }}>
+                        Menu
+                      </span>
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#3b82f6' : '#93c5fd' }}>
+                      Tambah menu makanan/minuman baru untuk pelanggan
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={17} color="#2563eb" style={{ flexShrink: 0 }} />
+              </button>
+
               {[
+                {
+                  id: 'dashboard',
+                  title: 'Dashboard Kasir & Shift',
+                  desc: 'Opening, modal awal, closing & laci uang',
+                  icon: <LayoutDashboard size={20} color="#2563eb" />,
+                  badge: cashierShift.isOpen ? 'Shift Buka' : 'Tutup',
+                  badgeBg: cashierShift.isOpen ? '#10b981' : '#64748b',
+                  onClick: () => { setActiveTab('dashboard'); setShowMobileMenuHub(false); }
+                },
                 {
                   id: 'kasir',
                   title: 'Kasir Walk-in',
