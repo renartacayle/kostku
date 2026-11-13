@@ -91,7 +91,12 @@ import {
   playChime,
   buildKickDrawerBuffer
 } from '../utils/thermalPrinter';
-import { apiGetAccountWallet, apiMutateAccountWallet } from '../services/api';
+import {
+  apiGetAccountWallet,
+  apiMutateAccountWallet,
+  apiGetStaffAttendance,
+  apiGetOwnerStaff
+} from '../services/api';
 import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
 import KasirInventoryModal from '../components/kasir/KasirInventoryModal';
 
@@ -119,6 +124,8 @@ export default function Kasir({ user }) {
   const [tables, setTables] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [audioAlert, setAudioAlert] = useState(true);
+  const [onlineStaffList, setOnlineStaffList] = useState([]);
+  const [loadingOnlineStaff, setLoadingOnlineStaff] = useState(false);
 
   // POS Direct Register State
   const [posCart, setPosCart] = useState({});
@@ -1053,6 +1060,90 @@ export default function Kasir({ user }) {
     return () => clearInterval(interval);
   }, [audioAlert, orders.length]);
 
+  // ── FETCH KARYAWAN ONLINE & ABSENSI HARI INI ──
+  useEffect(() => {
+    let isMounted = true;
+    const fetchOnlineStaff = async () => {
+      setLoadingOnlineStaff(true);
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const [staffRes, attRes] = await Promise.all([
+          apiGetOwnerStaff(null, user?.id).catch(() => []),
+          apiGetStaffAttendance({ ownerId: user?.id, date: todayStr }).catch(() => [])
+        ]);
+
+        if (!isMounted) return;
+        const allStaff = Array.isArray(staffRes) ? staffRes : [];
+        const attendance = Array.isArray(attRes) ? attRes : [];
+
+        const online = [];
+
+        // 1. Kasir shift aktif saat ini (jika shift buka)
+        if (cashierShift.isOpen) {
+          online.push({
+            id: 'shift-active-cashier',
+            name: cashierShift.cashierName || user?.name || 'Kasir 1',
+            role: 'Kasir POS (Shift Aktif)',
+            since: cashierShift.openedAt
+              ? new Date(cashierShift.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+              : 'Aktif',
+            status: 'ONLINE',
+            isCurrentCashier: true
+          });
+        }
+
+        // 2. Karyawan yang absen masuk hari ini dan belum checkout
+        attendance.forEach(att => {
+          if (att.checkInTime && !att.checkOutTime) {
+            const matched = allStaff.find(s => s.id === att.staffId);
+            const staffName = matched?.name || att.staffName || 'Karyawan';
+            if (!online.some(o => o.name.toLowerCase() === staffName.toLowerCase())) {
+              online.push({
+                id: att.id || att.staffId,
+                name: staffName,
+                role: matched?.jobTitle || (Array.isArray(matched?.roles) ? matched.roles.join(', ') : 'Staff Operasional'),
+                since: new Date(att.checkInTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                status: 'ONLINE',
+                isCurrentCashier: false
+              });
+            }
+          }
+        });
+
+        // 3. Fallback jika tidak ada data dari backend
+        if (online.length === 0) {
+          online.push({
+            id: 'default-active-user',
+            name: user?.name || cashierShift.cashierName || 'Kasir Bertugas',
+            role: user?.role === 'owner' ? 'Owner / Pengelola POS' : 'Staff Kasir & FnB',
+            since: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+            status: 'ONLINE',
+            isCurrentCashier: true
+          });
+        }
+
+        setOnlineStaffList(online);
+      } catch (err) {
+        console.warn('Gagal memuat staf online:', err);
+        if (isMounted) {
+          setOnlineStaffList([{
+            id: 'fallback-cashier',
+            name: cashierShift.cashierName || user?.name || 'Kasir Bertugas',
+            role: 'Kasir POS (Shift Aktif)',
+            since: 'Shift Aktif',
+            status: 'ONLINE',
+            isCurrentCashier: true
+          }]);
+        }
+      } finally {
+        if (isMounted) setLoadingOnlineStaff(false);
+      }
+    };
+
+    fetchOnlineStaff();
+    return () => { isMounted = false; };
+  }, [user?.id, user?.name, user?.role, cashierShift.isOpen, cashierShift.cashierName, cashierShift.openedAt]);
+
   const playNotificationBell = () => {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1975,23 +2066,98 @@ export default function Kasir({ user }) {
   const expectedDrawerCash = (Number(cashierShift.initialFloat) || 0) + cashRevenue + totalPettyIn - totalPettyOut;
   const nonCashRevenue = Math.max(0, totalRevenue - cashRevenue);
 
-  // Top 5 Menu Terlaris Shift Ini
-  const topSoldProducts = React.useMemo(() => {
+  // ── PENDAPATAN HARIAN & BULANAN METRICS ──
+  const revenueMetrics = React.useMemo(() => {
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+
+    let dailyTotal = 0;
+    let dailyOrders = 0;
+    let dailyCash = 0;
+    let dailyNonCash = 0;
+
+    let monthlyTotal = 0;
+    let monthlyOrders = 0;
+
+    completedOrders.forEach(o => {
+      const amount = Number(o.totalAmount) || 0;
+      const pm = String(o.paymentMethod || '').toUpperCase();
+      const isCash = pm.includes('TUNAI') || pm.includes('CASH');
+
+      let isToday = false;
+      let isThisMonth = false;
+
+      if (o.createdAt) {
+        const orderDate = new Date(o.createdAt);
+        if (!isNaN(orderDate.getTime())) {
+          if (
+            orderDate.getFullYear() === todayYear &&
+            orderDate.getMonth() === todayMonth &&
+            orderDate.getDate() === todayDate
+          ) {
+            isToday = true;
+          }
+          if (
+            orderDate.getFullYear() === todayYear &&
+            orderDate.getMonth() === todayMonth
+          ) {
+            isThisMonth = true;
+          }
+        } else {
+          isToday = true;
+          isThisMonth = true;
+        }
+      } else {
+        isToday = true;
+        isThisMonth = true;
+      }
+
+      if (isToday) {
+        dailyTotal += amount;
+        dailyOrders += 1;
+        if (isCash) dailyCash += amount;
+        else dailyNonCash += amount;
+      }
+
+      if (isThisMonth) {
+        monthlyTotal += amount;
+        monthlyOrders += 1;
+      }
+    });
+
+    return {
+      dailyRevenue: dailyTotal,
+      dailyOrdersCount: dailyOrders,
+      dailyCashRevenue: dailyCash,
+      dailyNonCashRevenue: dailyNonCash,
+      monthlyRevenue: monthlyTotal,
+      monthlyOrdersCount: monthlyOrders
+    };
+  }, [completedOrders]);
+
+  // Top 10 Menu Terlaris FnB
+  const top10SoldProducts = React.useMemo(() => {
     const counts = {};
     completedOrders.forEach(order => {
       (order.items || []).forEach(it => {
-        const name = it.name || it.productName || 'Menu';
+        const name = it.name || it.productName || 'Menu FnB';
         const qty = Number(it.qty || it.quantity) || 1;
         const price = Number(it.price) || 0;
+        const category = it.category || 'FnB';
         if (!counts[name]) {
-          counts[name] = { name, qty: 0, revenue: 0 };
+          counts[name] = { name, qty: 0, revenue: 0, category, price };
         }
         counts[name].qty += qty;
         counts[name].revenue += (qty * price);
       });
     });
-    return Object.values(counts).sort((a, b) => b.qty - a.qty).slice(0, 5);
+    return Object.values(counts).sort((a, b) => b.qty - a.qty).slice(0, 10);
   }, [completedOrders]);
+
+  // Keep topSoldProducts backwards compatible
+  const topSoldProducts = top10SoldProducts.slice(0, 5);
 
   const handleOpenNewShift = (e) => {
     if (e) e.preventDefault();
@@ -3951,10 +4117,10 @@ export default function Kasir({ user }) {
         </div>
       </div>
 
-      {/* ── TAB 0: DASHBOARD KASIR & SHIFT OPENING ── */}
+      {/* ── TAB 0: DASHBOARD KASIR & STATISTIK FNB ── */}
       {activeTab === 'dashboard' && (
         <main style={{ width: '100%', maxWidth: '100%', margin: '0.8rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
-          {/* Header Bar */}
+          {/* Header Bar: Status Shift & Aksi Cepat */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -3972,7 +4138,7 @@ export default function Kasir({ user }) {
                   color: textPrimary,
                   letterSpacing: '-0.3px'
                 }}>
-                  Dashboard Kasir &amp; Shift
+                  Dashboard Kasir &amp; Ringkasan Operasional
                 </h2>
                 <span style={{
                   display: 'inline-flex',
@@ -3993,15 +4159,15 @@ export default function Kasir({ user }) {
                     background: cashierShift.isOpen ? '#10b981' : '#ef4444',
                     boxShadow: cashierShift.isOpen ? '0 0 6px #10b981' : 'none'
                   }} />
-                  {cashierShift.isOpen ? 'Shift Aktif (Buka)' : 'Shift Tutup'}
+                  {cashierShift.isOpen ? 'Shift Aktif' : 'Shift Tutup'}
                 </span>
               </div>
               <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: textSecondary }}>
-                Kasir: <strong>{cashierShift.cashierName}</strong> &bull; Buka sejak: {new Date(cashierShift.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                Kasir: <strong>{cashierShift.cashierName}</strong> &bull; {storeInfo.storeName || 'Kantin KostKu POS'} &bull; {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             </div>
 
-            {/* Quick Shift Actions */}
+            {/* Quick Shift Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {cashierShift.isOpen ? (
                 <>
@@ -4024,7 +4190,7 @@ export default function Kasir({ user }) {
                     }}
                   >
                     <Coins size={15} color="#f59e0b" />
-                    <span>Catat Kas Keluar/Masuk</span>
+                    <span>Catat Kas</span>
                   </button>
                   <button
                     type="button"
@@ -4049,7 +4215,7 @@ export default function Kasir({ user }) {
                     }}
                   >
                     <Lock size={15} />
-                    <span>Tutup Shift &amp; Closing</span>
+                    <span>Tutup Shift</span>
                   </button>
                 </>
               ) : (
@@ -4072,7 +4238,7 @@ export default function Kasir({ user }) {
                   }}
                 >
                   <Unlock size={16} />
-                  <span>Mulai Buka Shift Baru</span>
+                  <span>Buka Shift Baru</span>
                 </button>
               )}
             </div>
@@ -4103,434 +4269,537 @@ export default function Kasir({ user }) {
             </div>
           )}
 
-          {/* ── CARD 1: HERO CASH DRAWER & FISIK UANG DI LACI ── */}
-          <div style={{
-            background: bgCard,
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: '18px',
-            padding: '16px 18px',
-            marginBottom: '1rem',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '10px',
-              marginBottom: '14px',
-              borderBottom: `1px solid ${borderColor}`,
-              paddingBottom: '12px'
-            }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Wallet size={20} color="#2563eb" />
-                  <span>Manajemen Laci Kasir (Cash Drawer)</span>
-                </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: textSecondary }}>
-                  Kalkulasi arus kas fisik shift aktif: Modal Awal + Tunai + Kas Masuk - Kas Keluar
-                </p>
-              </div>
-
-              {/* Drawer Button */}
-              <button
-                type="button"
-                onClick={handleKickDrawerManual}
-                disabled={drawerKicking}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 12px',
-                  borderRadius: '10px',
-                  border: isLight ? '1px solid #10b981' : '1px solid rgba(16, 185, 129, 0.5)',
-                  background: drawerKicking ? '#10b981' : (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)'),
-                  color: drawerKicking ? '#ffffff' : (isLight ? '#047857' : '#34d399'),
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                title="Kirim sinyal pulsa buka laci kasir RJ11 / USB"
-              >
-                <span>🔓</span>
-                <span>{drawerKicking ? 'Membuka...' : 'Buka Laci (RJ11)'}</span>
-              </button>
-            </div>
-
-            {/* Arus Kas Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
-              gap: '10px',
-              marginBottom: '14px'
-            }}>
-              <div style={{
-                padding: '10px 12px',
-                borderRadius: '12px',
-                background: isLight ? '#f8fafc' : '#0f172a',
-                border: `1px solid ${borderColor}`
-              }}>
-                <span style={{ fontSize: '0.7rem', color: textSecondary, fontWeight: 700, display: 'block' }}>
-                  Modal Kas Awal (Float)
-                </span>
-                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, marginTop: '2px', display: 'block' }}>
-                  Rp {(Number(cashierShift.initialFloat) || 0).toLocaleString('id-ID')}
-                </span>
-                <span style={{ fontSize: '0.66rem', color: textSecondary }}>Uang kembalian awal</span>
-              </div>
-
-              <div style={{
-                padding: '10px 12px',
-                borderRadius: '12px',
-                background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.3)'
-              }}>
-                <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, display: 'block' }}>
-                  (+) Penjualan Tunai
-                </span>
-                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#10b981', marginTop: '2px', display: 'block' }}>
-                  Rp {cashRevenue.toLocaleString('id-ID')}
-                </span>
-                <span style={{ fontSize: '0.66rem', color: textSecondary }}>Dari transaksi kasir</span>
-              </div>
-
-              <div style={{
-                padding: '10px 12px',
-                borderRadius: '12px',
-                background: isLight ? '#f8fafc' : '#0f172a',
-                border: `1px solid ${borderColor}`
-              }}>
-                <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700, display: 'block' }}>
-                  (+) Kas Masuk Tambahan
-                </span>
-                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0284c7', marginTop: '2px', display: 'block' }}>
-                  Rp {totalPettyIn.toLocaleString('id-ID')}
-                </span>
-                <span style={{ fontSize: '0.66rem', color: textSecondary }}>{(cashierShift.cashIns || []).length} kali masuk</span>
-              </div>
-
-              <div style={{
-                padding: '10px 12px',
-                borderRadius: '12px',
-                background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.3)'
-              }}>
-                <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, display: 'block' }}>
-                  (-) Pengeluaran Kas (Petty)
-                </span>
-                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ef4444', marginTop: '2px', display: 'block' }}>
-                  Rp {totalPettyOut.toLocaleString('id-ID')}
-                </span>
-                <span style={{ fontSize: '0.66rem', color: textSecondary }}>{(cashierShift.cashOuts || []).length} kali keluar</span>
-              </div>
-            </div>
-
-            {/* Highlight Banner: Uang Fisik Seharusnya */}
-            <div style={{
-              padding: '14px 16px',
-              borderRadius: '14px',
-              background: isLight ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #1e3a8a33 0%, #17255455 100%)',
-              border: '1.5px solid #2563eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <span style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: '#2563eb',
-                  display: 'block'
-                }}>
-                  Uang Fisik Seharusnya di Laci Kasir:
-                </span>
-                <span style={{
-                  fontSize: '1.55rem',
-                  fontWeight: 900,
-                  color: textPrimary,
-                  letterSpacing: '-0.5px'
-                }}>
-                  Rp {expectedDrawerCash.toLocaleString('id-ID')}
-                </span>
-                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
-                  Total uang tunai kertas &amp; koin yang wajib ada di laci saat dihitung fisik.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPettyCashType('IN');
-                    setPettyCashAmount('');
-                    setPettyCashNote('');
-                    setShowPettyCashModal(true);
-                  }}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid #0284c7',
-                    background: isLight ? '#ffffff' : '#0f172a',
-                    color: '#0284c7',
-                    fontSize: '0.76rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  + Kas Masuk
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPettyCashType('OUT');
-                    setPettyCashAmount('');
-                    setPettyCashNote('');
-                    setShowPettyCashModal(true);
-                  }}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid #ef4444',
-                    background: isLight ? '#ffffff' : '#0f172a',
-                    color: '#ef4444',
-                    fontSize: '0.76rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  - Kas Keluar
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* ── CARD 2: RINGKASAN OMSET & TRANSAKSI SHIFT INI ── */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
+          {/* ── 4 KPI CARDS UTAMA: HARIAN, BULANAN, KARYAWAN ONLINE, NOTA ── */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: '12px',
-            marginBottom: '1rem'
+            marginBottom: '1.25rem'
           }}>
-            {/* Total Omset */}
+            {/* 1. PENDAPATAN HARIAN */}
             <div style={{
               background: bgCard,
-              border: `1px solid ${borderColor}`,
-              borderRadius: '16px',
-              padding: '14px 16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              border: isLight ? '1.5px solid #d1fae5' : '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '18px',
+              padding: '16px 18px',
+              boxShadow: isLight ? '0 4px 14px rgba(16, 185, 129, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary }}>
-                  Total Omset Shift Ini
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Pendapatan Harian
                 </span>
-                <span style={{ background: '#2563eb18', color: '#2563eb', fontSize: '0.65rem', fontWeight: 900, padding: '2px 7px', borderRadius: '999px' }}>
-                  {completedOrders.length} Pesanan
+                <span style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Coins size={17} color="#10b981" />
                 </span>
               </div>
-              <span style={{ fontSize: '1.4rem', fontWeight: 900, color: textPrimary, display: 'block', letterSpacing: '-0.3px' }}>
-                Rp {totalRevenue.toLocaleString('id-ID')}
+              <span style={{
+                fontSize: '1.6rem',
+                fontWeight: 900,
+                color: isLight ? '#065f46' : '#34d399',
+                display: 'block',
+                letterSpacing: '-0.5px',
+                lineHeight: 1.1
+              }}>
+                Rp {revenueMetrics.dailyRevenue.toLocaleString('id-ID')}
               </span>
-              <span style={{ fontSize: '0.72rem', color: textSecondary, marginTop: '4px', display: 'block' }}>
-                Rata-rata: Rp {completedOrders.length > 0 ? Math.round(totalRevenue / completedOrders.length).toLocaleString('id-ID') : 0} / nota
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', color: textSecondary }}>
+                <span>{revenueMetrics.dailyOrdersCount} pesanan selesai hari ini</span>
+                <span style={{ fontWeight: 700, color: isLight ? '#047857' : '#10b981' }}>
+                  Tunai: Rp {revenueMetrics.dailyCashRevenue.toLocaleString('id-ID')}
+                </span>
+              </div>
             </div>
 
-            {/* Non-Tunai (QRIS & Transfer) */}
+            {/* 2. PENDAPATAN BULANAN */}
             <div style={{
               background: bgCard,
-              border: `1px solid ${borderColor}`,
-              borderRadius: '16px',
-              padding: '14px 16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              border: isLight ? '1.5px solid #dbeafe' : '1px solid rgba(37, 99, 235, 0.3)',
+              borderRadius: '18px',
+              padding: '16px 18px',
+              boxShadow: isLight ? '0 4px 14px rgba(37, 99, 235, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary }}>
-                  Pembayaran Non-Tunai (Digital)
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Pendapatan Bulanan
                 </span>
-                <span style={{ background: '#10b98118', color: '#10b981', fontSize: '0.65rem', fontWeight: 900, padding: '2px 7px', borderRadius: '999px' }}>
-                  QRIS &amp; Transfer
+                <span style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <TrendingUp size={17} color="#2563eb" />
                 </span>
               </div>
-              <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', display: 'block', letterSpacing: '-0.3px' }}>
-                Rp {nonCashRevenue.toLocaleString('id-ID')}
+              <span style={{
+                fontSize: '1.6rem',
+                fontWeight: 900,
+                color: isLight ? '#1e40af' : '#60a5fa',
+                display: 'block',
+                letterSpacing: '-0.5px',
+                lineHeight: 1.1
+              }}>
+                Rp {revenueMetrics.monthlyRevenue.toLocaleString('id-ID')}
               </span>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '0.72rem', color: textSecondary }}>
-                <span>QRIS: Rp {qrisRevenue.toLocaleString('id-ID')}</span>
-                <span>Transfer: Rp {(nonCashRevenue - qrisRevenue).toLocaleString('id-ID')}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', color: textSecondary }}>
+                <span>{revenueMetrics.monthlyOrdersCount} total transaksi bulan ini</span>
+                <span style={{ fontWeight: 700, color: '#2563eb' }}>
+                  Bulan {new Date().toLocaleDateString('id-ID', { month: 'short' })}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. KARYAWAN YG ONLINE */}
+            <div style={{
+              background: bgCard,
+              border: isLight ? '1.5px solid #e0e7ff' : '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '18px',
+              padding: '16px 18px',
+              boxShadow: isLight ? '0 4px 14px rgba(99, 102, 241, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Karyawan yg Online
+                </span>
+                <span style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: isLight ? '#eef2ff' : 'rgba(99, 102, 241, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Users size={17} color="#6366f1" />
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                <span style={{
+                  fontSize: '1.6rem',
+                  fontWeight: 900,
+                  color: isLight ? '#3730a3' : '#a5b4fc',
+                  display: 'block',
+                  letterSpacing: '-0.5px',
+                  lineHeight: 1.1
+                }}>
+                  {onlineStaffList.length} Orang
+                </span>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: '#10b981',
+                  background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                  padding: '2px 6px',
+                  borderRadius: '999px'
+                }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }} />
+                  Aktif
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', color: textSecondary }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {onlineStaffList[0]?.name ? `${onlineStaffList[0].name}${onlineStaffList.length > 1 ? ` +${onlineStaffList.length - 1} lainnya` : ''}` : 'Belum ada staf online'}
+                </span>
+                <Link
+                  to="/karyawan"
+                  style={{
+                    fontWeight: 700,
+                    color: '#6366f1',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px'
+                  }}
+                >
+                  <span>Detail</span>
+                  <ChevronRight size={13} />
+                </Link>
+              </div>
+            </div>
+
+            {/* 4. SISA SALDO NOTA */}
+            <div style={{
+              background: bgCard,
+              border: Number(storeInfo.saldoNota ?? 5000) < 1000
+                ? (isLight ? '1.5px solid #fecaca' : '1px solid rgba(239, 68, 68, 0.4)')
+                : (isLight ? '1.5px solid #fef3c7' : '1px solid rgba(245, 158, 11, 0.3)'),
+              borderRadius: '18px',
+              padding: '16px 18px',
+              boxShadow: isLight ? '0 4px 14px rgba(245, 158, 11, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Sisa Saldo Nota
+                </span>
+                <span style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Receipt size={17} color="#f59e0b" />
+                </span>
+              </div>
+              <span style={{
+                fontSize: '1.6rem',
+                fontWeight: 900,
+                color: Number(storeInfo.saldoNota ?? 5000) < 1000 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
+                display: 'block',
+                letterSpacing: '-0.5px',
+                lineHeight: 1.1
+              }}>
+                Rp {(Number(storeInfo.saldoNota) || 5000).toLocaleString('id-ID')}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem' }}>
+                <span style={{ color: textSecondary }}>
+                  ~{storeInfo.kuotaNota ?? Math.floor((Number(storeInfo.saldoNota) || 5000) / 100)} lembar nota
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowPosTopupModal(true)}
+                  style={{
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '2px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 4px rgba(37, 99, 235, 0.3)'
+                  }}
+                >
+                  + Top Up
+                </button>
               </div>
             </div>
           </div>
 
-          {/* ── CARD 3 & 4: PETTY CASH LOG & TOP MENU ── */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
+          {/* ── SECTION DETAIL: KARYAWAN YG ONLINE & STATISTIK FNB TOP 10 ── */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '12px',
-            marginBottom: '1rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '14px',
+            marginBottom: '1.5rem'
           }}>
-            {/* Petty Cash Log */}
+            {/* ── PANEL KARYAWAN YG ONLINE ── */}
             <div style={{
               background: bgCard,
-              border: `1px solid ${borderColor}`,
-              borderRadius: '16px',
-              padding: '14px 16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              border: `1.5px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px 18px',
+              boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
+              display: 'flex',
+              flexDirection: 'column'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <History size={16} color="#6366f1" />
-                  <span>Catatan Kas Keluar / Masuk</span>
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setShowPettyCashModal(true)}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px',
+                paddingBottom: '10px',
+                borderBottom: `1px solid ${borderColor}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={18} color="#6366f1" />
+                  <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: textPrimary }}>
+                    Karyawan yg Online
+                  </h3>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: '999px',
+                    background: isLight ? '#eef2ff' : 'rgba(99, 102, 241, 0.2)',
+                    color: '#6366f1'
+                  }}>
+                    {onlineStaffList.length} Aktif
+                  </span>
+                </div>
+                <Link
+                  to="/karyawan"
                   style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     color: '#2563eb',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer'
+                    textDecoration: 'none'
                   }}
                 >
-                  + Tambah
-                </button>
+                  Kelola Staf &rarr;
+                </Link>
               </div>
 
-              {((cashierShift.cashIns || []).length === 0 && (cashierShift.cashOuts || []).length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '16px 8px', color: textSecondary, fontSize: '0.76rem' }}>
-                  Belum ada catatan kas kecil shift ini.
+              {loadingOnlineStaff ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.78rem' }}>
+                  <RefreshCw size={18} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                  <span>Memeriksa status kehadiran staf...</span>
+                </div>
+              ) : onlineStaffList.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.78rem' }}>
+                  Tidak ada karyawan yang terdeteksi online saat ini.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                  {[
-                    ...(cashierShift.cashIns || []).map(it => ({ ...it, type: 'IN' })),
-                    ...(cashierShift.cashOuts || []).map(it => ({ ...it, type: 'OUT' }))
-                  ]
-                    .sort((a, b) => b.time - a.time)
-                    .map(it => (
-                      <div
-                        key={it.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '6px 10px',
-                          borderRadius: '8px',
-                          background: isLight ? '#f8fafc' : '#0f172a',
-                          border: `1px solid ${borderColor}`,
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 900,
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              background: it.type === 'IN' ? '#10b98120' : '#ef444420',
-                              color: it.type === 'IN' ? '#10b981' : '#ef4444'
-                            }}>
-                              {it.type === 'IN' ? 'MASUK' : 'KELUAR'}
-                            </span>
-                            <span style={{ fontWeight: 700, color: textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {it.note}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: '0.65rem', color: textSecondary }}>
-                            {new Date(it.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{
-                            fontWeight: 800,
-                            color: it.type === 'IN' ? '#10b981' : '#ef4444'
-                          }}>
-                            {it.type === 'IN' ? '+' : '-'}Rp {Number(it.amount).toLocaleString('id-ID')}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePettyCash(it.id, it.type)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecondary, padding: '2px' }}
-                            title="Hapus"
-                          >
-                            <X size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-
-            {/* Top 5 Menu Terlaris */}
-            <div style={{
-              background: bgCard,
-              border: `1px solid ${borderColor}`,
-              borderRadius: '16px',
-              padding: '14px 16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-            }}>
-              <h4 style={{ margin: '0 0 10px', fontSize: '0.88rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <TrendingUp size={16} color="#f59e0b" />
-                <span>Top Menu Terlaris Shift Ini</span>
-              </h4>
-
-              {topSoldProducts.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '16px 8px', color: textSecondary, fontSize: '0.76rem' }}>
-                  Belum ada pesanan selesai pada shift ini.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {topSoldProducts.map((p, idx) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '360px' }}>
+                  {onlineStaffList.map((st, idx) => (
                     <div
-                      key={p.name}
+                      key={st.id || idx}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '6px 10px',
-                        borderRadius: '8px',
+                        padding: '9px 12px',
+                        borderRadius: '12px',
                         background: isLight ? '#f8fafc' : '#0f172a',
                         border: `1px solid ${borderColor}`,
-                        fontSize: '0.75rem'
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                        <span style={{
-                          width: '18px',
-                          height: '18px',
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
                           borderRadius: '50%',
-                          background: idx === 0 ? '#f59e0b' : (idx === 1 ? '#94a3b8' : '#cd7f32'),
+                          background: st.isCurrentCashier ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                           color: '#ffffff',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '0.62rem',
-                          fontWeight: 900
+                          fontWeight: 900,
+                          fontSize: '0.82rem',
+                          flexShrink: 0
                         }}>
-                          {idx + 1}
-                        </span>
-                        <span style={{ fontWeight: 700, color: textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {p.name}
-                        </span>
+                          {st.name ? st.name.slice(0, 2).toUpperCase() : 'ST'}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{
+                            display: 'block',
+                            fontWeight: 800,
+                            fontSize: '0.84rem',
+                            color: textPrimary,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {st.name}
+                          </span>
+                          <span style={{
+                            display: 'block',
+                            fontSize: '0.7rem',
+                            color: textSecondary,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {st.role}
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontWeight: 800, color: '#2563eb', display: 'block' }}>
-                          {p.qty} porsi
+
+                      <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '2px 7px',
+                          borderRadius: '999px',
+                          background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                          color: '#10b981',
+                          fontSize: '0.66rem',
+                          fontWeight: 800
+                        }}>
+                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }} />
+                          Online
                         </span>
-                        <span style={{ fontSize: '0.65rem', color: textSecondary }}>
-                          Rp {p.revenue.toLocaleString('id-ID')}
+                        <span style={{ display: 'block', fontSize: '0.64rem', color: textSecondary, marginTop: '2px' }}>
+                          Sejak: {st.since}
                         </span>
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── PANEL STATISTIK FNB TOP 10 TERLARIS ── */}
+            <div style={{
+              background: bgCard,
+              border: `1.5px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px 18px',
+              boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px',
+                paddingBottom: '10px',
+                borderBottom: `1px solid ${borderColor}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Award size={18} color="#f59e0b" />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: textPrimary }}>
+                      Statistik FnB Terlaris (Top 10)
+                    </h3>
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: '999px',
+                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
+                  color: isLight ? '#92400e' : '#fbbf24'
+                }}>
+                  Top 10 Menu
+                </span>
+              </div>
+
+              {top10SoldProducts.length === 0 ? (
+                <div style={{
+                  padding: '2.5rem 1rem',
+                  textAlign: 'center',
+                  color: textSecondary,
+                  fontSize: '0.8rem',
+                  border: `1.5px dashed ${borderColor}`,
+                  borderRadius: '14px',
+                  margin: 'auto 0'
+                }}>
+                  <Utensils size={32} color={textSecondary} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <p style={{ margin: 0, fontWeight: 700 }}>Belum ada data penjualan menu FnB</p>
+                  <span style={{ fontSize: '0.72rem', color: textSecondary }}>
+                    Pesanan FnB yang berstatus selesai akan otomatis terakumulasi di sini.
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', overflowY: 'auto', maxHeight: '360px' }}>
+                  {top10SoldProducts.map((p, idx) => {
+                    const maxQty = top10SoldProducts[0]?.qty || 1;
+                    const percent = Math.min(100, Math.round((p.qty / maxQty) * 100));
+                    const isTop1 = idx === 0;
+                    const isTop2 = idx === 1;
+                    const isTop3 = idx === 2;
+
+                    return (
+                      <div
+                        key={p.name}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '12px',
+                          background: isTop1
+                            ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)')
+                            : (isLight ? '#f8fafc' : '#0f172a'),
+                          border: isTop1
+                            ? (isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.35)')
+                            : `1px solid ${borderColor}`,
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {/* Subtle Progress Bar Background */}
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          bottom: 0,
+                          width: `${percent}%`,
+                          background: isTop1
+                            ? (isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.08)')
+                            : (isLight ? 'rgba(37, 99, 235, 0.06)' : 'rgba(37, 99, 235, 0.05)'),
+                          zIndex: 0,
+                          pointerEvents: 'none'
+                        }} />
+
+                        <div style={{
+                          position: 'relative',
+                          zIndex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                            <span style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              background: isTop1 ? '#f59e0b' : (isTop2 ? '#94a3b8' : (isTop3 ? '#cd7f32' : (isLight ? '#e2e8f0' : '#334155'))),
+                              color: isTop1 || isTop2 || isTop3 ? '#ffffff' : textSecondary,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.65rem',
+                              fontWeight: 900,
+                              flexShrink: 0
+                            }}>
+                              {idx + 1}
+                            </span>
+                            <div style={{ minWidth: 0 }}>
+                              <span style={{
+                                fontWeight: 800,
+                                fontSize: '0.82rem',
+                                color: textPrimary,
+                                display: 'block',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {p.name}
+                              </span>
+                              <span style={{ fontSize: '0.66rem', color: textSecondary }}>
+                                {p.category || 'FnB'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
+                            <span style={{
+                              fontWeight: 900,
+                              fontSize: '0.82rem',
+                              color: isTop1 ? '#d97706' : '#2563eb',
+                              display: 'block'
+                            }}>
+                              {p.qty} porsi
+                            </span>
+                            <span style={{ fontSize: '0.68rem', color: textSecondary, fontWeight: 700 }}>
+                              Rp {p.revenue.toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
