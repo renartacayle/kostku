@@ -124,7 +124,18 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* Custom Scrollbar */
@@ -482,7 +493,11 @@ html, body {
 
 @media (min-width: 901px) {
   .pos-workspace-grid {
-    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-columns: minmax(0, 68%) minmax(0, 30%);
+    gap: 2%;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 
@@ -499,25 +514,42 @@ html, body {
   }
   .pos-layout-wrapper {
     display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
   }
   .pos-desktop-sidebar {
     display: none !important;
   }
+  .pos-main-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+  .pos-workspace-grid {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
-/* POS Responsive Shell with Left Sidebar on Desktop */
+/* POS Responsive Shell with Percentage-Based Layout (No Over Sideways) */
 .pos-layout-wrapper {
   display: flex;
   min-height: 100vh;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .pos-desktop-sidebar {
   display: flex;
   flex-direction: column;
-  width: 255px;
-  min-width: 255px;
-  max-width: 255px;
+  width: 20%;
+  min-width: 210px;
+  max-width: 275px;
   flex-shrink: 0;
   height: 100vh;
   position: sticky;
@@ -531,9 +563,11 @@ html, body {
 .pos-main-wrapper {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Safe area bottom padding for mobile (space for mobile bottom nav) */

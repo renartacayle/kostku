@@ -2936,11 +2936,16 @@ export default function Kasir({ user }) {
           backdropFilter: 'blur(12px)',
           borderBottom: `1px solid ${borderColor}`,
           padding: '0.55rem 1rem',
-          boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : '0 4px 20px rgba(0,0,0,0.3)'
+          boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : '0 4px 20px rgba(0,0,0,0.3)',
+          width: '100%',
+          boxSizing: 'border-box'
         }}>
           <div style={{
-            maxWidth: '1280px',
+            width: '100%',
+            maxWidth: '100%',
             margin: '0 auto',
+            padding: '0 1%',
+            boxSizing: 'border-box',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -3179,9 +3184,11 @@ export default function Kasir({ user }) {
       {/* ── PERINGATAN KUOTA MENIPIS (THRESHOLD ALERT <= 15 NOTA) ── */}
       {(storeInfo.kuotaNota ?? 50) <= 15 && (
         <div style={{
-          maxWidth: '1280px',
+          width: '100%',
+          maxWidth: '100%',
           margin: '0.5rem auto 0',
-          padding: '0 1rem'
+          padding: '0 2%',
+          boxSizing: 'border-box'
         }}>
           <div style={{
             padding: '10px 14px',
@@ -3351,7 +3358,7 @@ export default function Kasir({ user }) {
 
       {/* ── BANNER PERINGATAN GUDANG RAMPING (HANYA MUNCUL JIKA ADA BAHAN MENIPIS) ── */}
       {inventoryAlerts.length > 0 && !isAlertDismissed && (
-        <div style={{ maxWidth: '1280px', margin: '0.4rem auto 0', padding: '0 1rem' }}>
+        <div style={{ width: '100%', maxWidth: '100%', margin: '0.4rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
           <div style={{
             padding: '6px 12px',
             borderRadius: '10px',
@@ -3476,7 +3483,7 @@ export default function Kasir({ user }) {
 
       {/* ── TAB 1: DAPUR KITCHEN DISPLAY SYSTEM (KDS) ── */}
       {activeTab === 'kds' && (
-        <main style={{ maxWidth: '1280px', margin: '1.25rem auto 0', padding: '0 1rem' }}>
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -4143,7 +4150,7 @@ export default function Kasir({ user }) {
 
       {/* ── TAB 2: KASIR POS REGISTER (TOUCH POS) ── */}
       {activeTab === 'pos' && (
-        <main style={{ maxWidth: '1280px', margin: '1.25rem auto 0', padding: '0 1rem' }}>
+        <main style={{ width: '100%', maxWidth: '100%', margin: '0.75rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
           <div className="pos-workspace-grid">
             {/* Left: Product Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, width: '100%' }}>
@@ -5050,11 +5057,13 @@ export default function Kasir({ user }) {
           style={{
             position: 'fixed',
             bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
-            left: '12px',
-            right: '12px',
+            left: '3%',
+            right: '3%',
+            width: '94%',
             zIndex: 95,
-            maxWidth: '560px',
+            maxWidth: '520px',
             margin: '0 auto',
+            boxSizing: 'border-box',
             background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
             color: '#ffffff',
             borderRadius: '16px',
@@ -5511,7 +5520,7 @@ export default function Kasir({ user }) {
 
       {/* ── TAB 3: MEJA & QR CODE (TENT CARDS) ── */}
       {activeTab === 'tables' && (
-        <main style={{ maxWidth: '1280px', margin: '1.25rem auto 0', padding: '0 1rem' }}>
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: textPrimary }}>
@@ -5667,7 +5676,7 @@ export default function Kasir({ user }) {
 
       {/* ── TAB 4: KEUANGAN & PEMBAYARAN KASIR ── */}
       {activeTab === 'settings' && (
-        <main style={{ maxWidth: '840px', margin: '1.25rem auto 0', padding: '0 1rem', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Header Keuangan */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <div>
@@ -10653,14 +10662,16 @@ export default function Kasir({ user }) {
         }}
       >
         <div style={{
+          width: '100%',
           maxWidth: '520px',
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateColumns: 'repeat(5, 20%)',
           alignItems: 'center',
           height: '56px',
           position: 'relative',
-          padding: '0 4px'
+          padding: '0 1%',
+          boxSizing: 'border-box'
         }}>
           {/* 1. KASIR */}
           <button
