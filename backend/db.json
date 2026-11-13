@@ -23478,7 +23478,8 @@
   ],
   "customer_points": {
     "081234567890": 16865,
-    "081299887766": 200
+    "081299887766": 200,
+    "081299998888": 0
   },
   "pos_spin_logs": [
     {
@@ -25530,7 +25531,30 @@
       "createdAt": "2026-11-11T15:03:41.293Z"
     }
   ],
-  "customer_stamps": {},
+  "customer_stamps": {
+    "081299998888": {
+      "phone": "081299998888",
+      "name": "Budi Test",
+      "stamps": 0,
+      "maxStamps": 5,
+      "history": [
+        {
+          "date": "2026-11-13T01:23:53.346Z",
+          "type": "CONVERT_VOUCHER",
+          "change": -500,
+          "reason": "Tukar 500 Poin jadi Voucher Diskon POIN-88883GCY (Rp 5.000)",
+          "balanceAfter": 0
+        },
+        {
+          "date": "2026-11-13T01:23:53.289Z",
+          "type": "CUSTOM_POINTS",
+          "change": 500,
+          "reason": "Bonus Poin Khusus dari Owner / Kasir",
+          "balanceAfter": 500
+        }
+      ]
+    }
+  },
   "unified_wallets": {
     "PTR-1794408562216": {
       "uid": "PTR-1794408562216",
@@ -26060,6 +26084,26 @@
       "createdByRole": "admin",
       "description": "Potongan Rp 5.000 untuk 50 porsi atau s/d 25 November 2026",
       "createdAt": "2026-11-12T01:24:03.490Z"
+    },
+    {
+      "id": "promo_voucher_1794533033329",
+      "title": "Voucher Poin Rp 5.000",
+      "code": "POIN-88883GCY",
+      "scope": "ALL",
+      "targetProductId": null,
+      "targetProductName": null,
+      "discountType": "FIXED",
+      "discountValue": 5000,
+      "minOrder": 0,
+      "limitType": "QUOTA",
+      "maxQuota": 1,
+      "usedCount": 0,
+      "startDate": "2026-11-13",
+      "expiryDate": null,
+      "isActive": true,
+      "createdByRole": "customer",
+      "customerPhone": "081299998888",
+      "description": "Voucher penukaran 500 Poin oleh 081299998888"
     }
   ],
   "pos_inventory": [
@@ -26479,5 +26523,10 @@
       "restockedBy": "Test Runner",
       "date": "2026-11-12T05:13:27.272Z"
     }
-  ]
+  ],
+  "merchant_wallets": {},
+  "receipt_claims": [],
+  "customers": {},
+  "points_ledger": [],
+  "wallet_mutations": []
 }

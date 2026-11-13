@@ -67,6 +67,11 @@ export default function ClaimPoin() {
   const [customerHistory, setCustomerHistory] = useState([]);
   const [checkError, setCheckError] = useState('');
 
+  // Solusi A: Self-Service Point to Voucher Converter
+  const [convertingVoucher, setConvertingVoucher] = useState(false);
+  const [convertedVoucher, setConvertedVoucher] = useState(null);
+  const [convertError, setConvertError] = useState('');
+
   // Fetch claim details if token exists
   const fetchClaimInfo = async (tkn) => {
     if (!tkn) return;
@@ -183,7 +188,7 @@ export default function ClaimPoin() {
 
   // Check Points Handler
   const handleCheckPoints = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const cleanPhone = checkPhone.replace(/\D/g, '');
     if (!cleanPhone) {
       setCheckError('Masukkan nomor WhatsApp untuk cek poin.');
@@ -205,6 +210,42 @@ export default function ClaimPoin() {
       setCheckError('Gagal memeriksa poin. Periksa koneksi internet Anda.');
     } finally {
       setCheckingPoints(false);
+    }
+  };
+
+  // Solusi A: Tukar Poin Jadi Voucher Diskon Belanja Mandiri
+  const handleConvertToVoucher = async (pointsToConvert) => {
+    const targetPhone = customerAccount?.whatsapp_number || checkPhone;
+    if (!targetPhone) return;
+    setConvertingVoucher(true);
+    setConvertError('');
+    try {
+      const res = await fetch('/api/pos/loyalty/convert-to-voucher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: targetPhone,
+          points: pointsToConvert
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menukar poin');
+      setConvertedVoucher(data.voucher);
+      setCustomerAccount(prev => ({
+        ...prev,
+        total_points: data.remainingPoints
+      }));
+      // Refresh ledger history
+      const cleanPhone = targetPhone.replace(/\D/g, '');
+      const refRes = await fetch(`/api/loyalty/customer/${encodeURIComponent(cleanPhone)}`);
+      if (refRes.ok) {
+        const refData = await refRes.json();
+        setCustomerHistory(refData.history || []);
+      }
+    } catch (err) {
+      setConvertError(err.message || 'Gagal memproses penukaran poin.');
+    } finally {
+      setConvertingVoucher(false);
     }
   };
 
@@ -1368,6 +1409,103 @@ export default function ClaimPoin() {
                     </div>
                   </div>
                 )}
+
+                {/* SOLUSI A: TUKAR POIN JADI VOUCHER BELANJA (SELF-SERVICE HP PELANGGAN) */}
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <Gift size={16} color="#d97706" />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#92400e' }}>
+                      Tukar Poin Jadi Voucher Kasir (Walk-in)
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: '#78350f', lineHeight: 1.35 }}>
+                    Tukar poin mandiri menjadi Voucher Diskon tanpa perlu sebut nomor HP di meja kasir. Cukup tunjukkan kode voucher saat bayar di kasir!
+                  </p>
+
+                  {convertedVoucher && (
+                    <div style={{
+                      background: '#ffffff',
+                      border: '1.5px dashed #10b981',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      marginBottom: '10px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 800 }}>
+                        🎉 VOUCHER AKTIF ANDA (Diskon Rp {convertedVoucher.discountValue?.toLocaleString('id-ID')}):
+                      </div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#065f46', fontFamily: 'monospace', letterSpacing: '1.5px', margin: '4px 0' }}>
+                        {convertedVoucher.code}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(convertedVoucher.code)}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          background: copiedCode ? '#16a34a' : '#10b981',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {copiedCode ? '✓ Kode Tersalin' : '📋 Salin Kode Voucher'}
+                      </button>
+                      <span style={{ display: 'block', fontSize: '0.66rem', color: '#64748b', marginTop: '4px' }}>
+                        *Sebutkan atau tunjukkan kode ini ke kasir saat memesan walk-in.
+                      </span>
+                    </div>
+                  )}
+
+                  {convertError && (
+                    <div style={{ padding: '6px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b', fontSize: '0.72rem', marginBottom: '8px' }}>
+                      ⚠️ {convertError}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    {[
+                      { pts: 100, disc: 'Rp 1.000' },
+                      { pts: 500, disc: 'Rp 5.000' },
+                      { pts: 1000, disc: 'Rp 10.000' }
+                    ].map(tier => {
+                      const canAfford = (customerAccount.total_points || 0) >= tier.pts;
+                      return (
+                        <button
+                          key={tier.pts}
+                          type="button"
+                          disabled={!canAfford || convertingVoucher}
+                          onClick={() => handleConvertToVoucher(tier.pts)}
+                          style={{
+                            padding: '8px 4px',
+                            borderRadius: '8px',
+                            border: canAfford ? '1.5px solid #d97706' : '1px solid #e2e8f0',
+                            background: canAfford ? '#ffffff' : '#f1f5f9',
+                            color: canAfford ? '#92400e' : '#94a3b8',
+                            cursor: canAfford && !convertingVoucher ? 'pointer' : 'not-allowed',
+                            textAlign: 'center',
+                            fontSize: '0.72rem',
+                            boxShadow: canAfford ? '0 1px 3px rgba(217, 119, 6, 0.15)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800 }}>{tier.pts} Poin</div>
+                          <div style={{ fontSize: '0.65rem', color: canAfford ? '#16a34a' : '#94a3b8', fontWeight: 700 }}>
+                            {tier.disc}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* History Ledger List */}
                 <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>

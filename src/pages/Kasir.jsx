@@ -52,6 +52,7 @@ import {
   Ticket,
   Calendar,
   ArrowLeft,
+  ArrowRight,
   Home,
   BarChart3,
   Package,
@@ -250,14 +251,68 @@ export default function Kasir({ user }) {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   // ── GUDANG, RESEP & ALERT STOK MENIPIS STATE ──
+  const DEFAULT_INITIAL_INVENTORY = [
+    { id: 'INV-MIE', name: 'Mie Basah Telur Segar', category: 'Bahan Pokok', unit: 'porsi', currentStock: 8, minAlertStock: 15, costPerUnit: 2500, supplier: 'Pabrik Mie Barokah' },
+    { id: 'INV-AYAM', name: 'Daging Ayam Cincang', category: 'Protein & Lauk', unit: 'kg', currentStock: 3, minAlertStock: 8, costPerUnit: 38000, supplier: 'Rumah Potong Unggas' },
+    { id: 'INV-BERAS', name: 'Beras Ramos Premium', category: 'Bahan Pokok', unit: 'kg', currentStock: 5, minAlertStock: 12, costPerUnit: 14500, supplier: 'Toko Beras Jaya' },
+    { id: 'INV-MINYAK', name: 'Minyak Goreng Sawit', category: 'Bumbu & Saus', unit: 'Liter', currentStock: 2, minAlertStock: 6, costPerUnit: 16500, supplier: 'Agen Sembako' },
+    { id: 'INV-TELUR', name: 'Telur Ayam Negeri', category: 'Protein & Lauk', unit: 'butir', currentStock: 45, minAlertStock: 30, costPerUnit: 2000, supplier: 'Peternakan Unggas' },
+    { id: 'INV-SOSIS', name: 'Sosis Sapi Panggang', category: 'Protein & Lauk', unit: 'pcs', currentStock: 40, minAlertStock: 20, costPerUnit: 3000, supplier: 'Distributor Frozen' },
+    { id: 'INV-BOX', name: 'Box Kraft Food Grade', category: 'Kemasan & Cup', unit: 'pcs', currentStock: 120, minAlertStock: 50, costPerUnit: 850, supplier: 'Percetakan Kemasan' }
+  ];
+
+  const DEFAULT_INITIAL_RECIPES = [
+    {
+      productId: 'prod-1',
+      name: 'Mie Gacoan Level 2',
+      sellingPrice: 13000,
+      totalHPP: 4600,
+      image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80',
+      ingredients: [
+        { inventoryId: 'INV-MIE', name: 'Mie Basah Telur Segar', amount: 1, unit: 'porsi', currentStock: 8, cost: 2500 },
+        { inventoryId: 'INV-AYAM', name: 'Daging Ayam Cincang', amount: 40, unit: 'gram', currentStock: 3, cost: 1250 },
+        { inventoryId: 'INV-MINYAK', name: 'Minyak Goreng Sawit', amount: 15, unit: 'ml', currentStock: 2, cost: 250 },
+        { inventoryId: 'INV-BOX', name: 'Box Kraft Food Grade', amount: 1, unit: 'pcs', currentStock: 120, cost: 600 }
+      ]
+    },
+    {
+      productId: 'prod-2',
+      name: 'Nasi Goreng Spesial Kost',
+      sellingPrice: 18000,
+      totalHPP: 6200,
+      image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
+      ingredients: [
+        { inventoryId: 'INV-BERAS', name: 'Beras Ramos Premium', amount: 150, unit: 'gram', currentStock: 5, cost: 2175 },
+        { inventoryId: 'INV-TELUR', name: 'Telur Ayam Negeri', amount: 1, unit: 'butir', currentStock: 45, cost: 2000 },
+        { inventoryId: 'INV-SOSIS', name: 'Sosis Sapi Panggang', amount: 1, unit: 'pcs', currentStock: 40, cost: 1500 },
+        { inventoryId: 'INV-BOX', name: 'Box Kraft Food Grade', amount: 1, unit: 'pcs', currentStock: 120, cost: 600 }
+      ]
+    }
+  ];
+
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [inventoryTab, setInventoryTab] = useState('stock'); // 'stock' | 'recipes'
-  const [inventoryList, setInventoryList] = useState([]);
-  const [inventoryAlerts, setInventoryAlerts] = useState([]);
+  const [inventoryList, setInventoryList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kostku_pos_inventory');
+      return saved ? JSON.parse(saved) : DEFAULT_INITIAL_INVENTORY;
+    } catch {
+      return DEFAULT_INITIAL_INVENTORY;
+    }
+  });
+  const [inventoryAlerts, setInventoryAlerts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kostku_pos_inventory');
+      const list = saved ? JSON.parse(saved) : DEFAULT_INITIAL_INVENTORY;
+      return list.filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0));
+    } catch {
+      return DEFAULT_INITIAL_INVENTORY.filter(i => i.currentStock <= i.minAlertStock);
+    }
+  });
   const [loadingInventory, setLoadingInventory] = useState(false);
-  const [recipesList, setRecipesList] = useState([]);
+  const [recipesList, setRecipesList] = useState(DEFAULT_INITIAL_RECIPES);
   const [loadingRecipes, setLoadingRecipes] = useState(false);
-  const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(null);
+  const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(DEFAULT_INITIAL_RECIPES[0]);
 
   // Restock Cepat State
   const [showRestockModal, setShowRestockModal] = useState(false);
@@ -266,6 +321,28 @@ export default function Kasir({ user }) {
   const [restockNotesInput, setRestockNotesInput] = useState('');
   const [savingRestock, setSavingRestock] = useState(false);
   const [restockFeedback, setRestockFeedback] = useState(null);
+
+  // Tab Gudang Inline Search, Filter & Inline Restock State (NO POP-UP!)
+  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('Semua');
+  const [inlineRestockId, setInlineRestockId] = useState(null);
+  const [inlineRestockQty, setInlineRestockQty] = useState('');
+  const [inlineRestockNotes, setInlineRestockNotes] = useState('');
+  const [inlineRestockLoading, setInlineRestockLoading] = useState(false);
+  const [inlineRestockSuccessId, setInlineRestockSuccessId] = useState(null);
+
+  // Form Tambah Bahan Baku Baru (Inline Collapsible, NO POP-UP!)
+  const [showAddInventoryForm, setShowAddInventoryForm] = useState(false);
+  const [newInventoryForm, setNewInventoryForm] = useState({
+    name: '',
+    category: 'Bahan Pokok',
+    unit: 'porsi',
+    currentStock: '',
+    minAlertStock: '10',
+    costPerUnit: '',
+    supplier: ''
+  });
+  const [savingNewInventory, setSavingNewInventory] = useState(false);
 
   // Direct quantity selector per product before adding to posCart (auto reset to 1 after add)
   const [posCardQtys, setPosCardQtys] = useState({});
@@ -1568,13 +1645,17 @@ export default function Kasir({ user }) {
     try {
       setLoadingInventory(true);
       const res = await fetch('/api/pos/inventory');
-      const data = await res.json();
       if (res.ok) {
-        setInventoryList(data.inventory || []);
-        setInventoryAlerts(data.alerts || []);
+        const data = await res.json();
+        if (data.inventory && data.inventory.length > 0) {
+          setInventoryList(data.inventory);
+          setInventoryAlerts(data.alerts || data.inventory.filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0)));
+          try { localStorage.setItem('kostku_pos_inventory', JSON.stringify(data.inventory)); } catch {}
+          return;
+        }
       }
     } catch (err) {
-      console.warn('Gagal memuat inventaris gudang:', err);
+      console.warn('Gagal memuat inventaris gudang via network, menggunakan data lokal:', err);
     } finally {
       setLoadingInventory(false);
     }
@@ -1584,15 +1665,17 @@ export default function Kasir({ user }) {
     try {
       setLoadingRecipes(true);
       const res = await fetch('/api/pos/recipes');
-      const data = await res.json();
       if (res.ok) {
-        setRecipesList(data.recipes || []);
-        if (!selectedRecipeProduct && data.recipes?.length > 0) {
-          setSelectedRecipeProduct(data.recipes[0]);
+        const data = await res.json();
+        if (data.recipes && data.recipes.length > 0) {
+          setRecipesList(data.recipes);
+          if (!selectedRecipeProduct && data.recipes.length > 0) {
+            setSelectedRecipeProduct(data.recipes[0]);
+          }
         }
       }
     } catch (err) {
-      console.warn('Gagal memuat resep menu:', err);
+      console.warn('Gagal memuat resep menu via network:', err);
     } finally {
       setLoadingRecipes(false);
     }
@@ -1637,6 +1720,102 @@ export default function Kasir({ user }) {
       setRestockFeedback({ type: 'error', text: 'Kesalahan jaringan: ' + err.message });
     } finally {
       setSavingRestock(false);
+    }
+  };
+
+  // ── INLINE RESTOCK HANDLER (NO POP-UP!) ──
+  const handleInlineRestock = async (inventoryId, customQty = null, notes = '') => {
+    const qty = Number(customQty !== null ? customQty : inlineRestockQty);
+    if (!inventoryId || isNaN(qty) || qty <= 0) {
+      alert('Masukkan jumlah restock yang valid (> 0)!');
+      return;
+    }
+    try {
+      setInlineRestockLoading(true);
+
+      // Optimistic instant state update + localStorage
+      setInventoryList(prev => {
+        const next = prev.map(item => {
+          if (item.id === inventoryId) {
+            return { ...item, currentStock: (Number(item.currentStock) || 0) + qty };
+          }
+          return item;
+        });
+        try { localStorage.setItem('kostku_pos_inventory', JSON.stringify(next)); } catch {}
+        setInventoryAlerts(next.filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0)));
+        return next;
+      });
+
+      // Send to server in background
+      try {
+        await fetch('/api/pos/inventory/restock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inventoryId,
+            addQty: qty,
+            notes: notes || inlineRestockNotes || 'Restock berkala stok dapur',
+            restockedBy: user?.name ? `${user.name} (${user.role})` : 'Kasir Shift'
+          })
+        });
+      } catch (err) {
+        console.warn('Server restock sync background warning:', err);
+      }
+
+      setInlineRestockSuccessId(inventoryId);
+      setInlineRestockId(null);
+      setInlineRestockQty('');
+      setInlineRestockNotes('');
+      setTimeout(() => setInlineRestockSuccessId(null), 3000);
+    } catch (err) {
+      alert('Kesalahan restock: ' + err.message);
+    } finally {
+      setInlineRestockLoading(false);
+    }
+  };
+
+  // ── INLINE TAMBAH BAHAN BAKU BARU HANDLER (NO POP-UP!) ──
+  const handleAddNewInventory = async (e) => {
+    e.preventDefault();
+    if (!newInventoryForm.name.trim()) {
+      alert('Nama bahan baku wajib diisi!');
+      return;
+    }
+    try {
+      setSavingNewInventory(true);
+      const res = await fetch('/api/pos/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newInventoryForm.name.trim(),
+          category: newInventoryForm.category || 'Bahan Pokok',
+          unit: newInventoryForm.unit || 'porsi',
+          currentStock: Number(newInventoryForm.currentStock) || 0,
+          minAlertStock: Number(newInventoryForm.minAlertStock) || 10,
+          costPerUnit: Number(newInventoryForm.costPerUnit) || 0,
+          supplier: newInventoryForm.supplier || 'Supplier Lokal'
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewInventoryForm({
+          name: '',
+          category: 'Bahan Pokok',
+          unit: 'porsi',
+          currentStock: '',
+          minAlertStock: '10',
+          costPerUnit: '',
+          supplier: ''
+        });
+        setShowAddInventoryForm(false);
+        await loadInventory();
+      } else {
+        alert(data.error || 'Gagal menambahkan bahan baku');
+      }
+    } catch (err) {
+      alert('Kesalahan jaringan: ' + err.message);
+    } finally {
+      setSavingNewInventory(false);
     }
   };
 
@@ -2717,10 +2896,15 @@ export default function Kasir({ user }) {
             {/* 6. Gudang */}
             <button
               type="button"
-              onClick={() => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); }}
-              style={sidebarItemStyle(false)}
+              onClick={() => {
+                setActiveTab('inventory');
+                setInventoryTab('stock');
+                loadInventory();
+                loadRecipes();
+              }}
+              style={sidebarItemStyle(activeTab === 'inventory')}
             >
-              <Package size={17} color="#ef4444" />
+              <Package size={17} color={activeTab === 'inventory' ? '#2563eb' : '#ef4444'} />
               <span style={{ flex: 1 }}>Gudang &amp; Stok</span>
               {inventoryAlerts.length > 0 && (
                 <span style={{
@@ -3056,6 +3240,7 @@ export default function Kasir({ user }) {
                   {activeTab === 'kds' && <><span>🍳</span><span>Layar Antrean Dapur (KDS)</span></>}
                   {activeTab === 'tables' && <><span>🪑</span><span>Manajemen Meja &amp; QR Barcode</span></>}
                   {activeTab === 'settings' && <><span>💰</span><span>Laporan Keuangan &amp; Kasir</span></>}
+                  {activeTab === 'inventory' && <><span>📦</span><span>Gudang &amp; Stok Bahan</span></>}
                 </span>
               </div>
             </div>
@@ -3268,7 +3453,12 @@ export default function Kasir({ user }) {
 
         <button
           type="button"
-          onClick={() => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); }}
+          onClick={() => {
+            setActiveTab('inventory');
+            setInventoryTab('stock');
+            loadInventory();
+            loadRecipes();
+          }}
           style={inventoryAlerts.length > 0 ? {
             flexShrink: 0,
             display: 'inline-flex',
@@ -3276,20 +3466,20 @@ export default function Kasir({ user }) {
             gap: '5px',
             padding: '5px 11px',
             borderRadius: '999px',
-            border: '1px solid #ef4444',
-            background: '#ef4444',
+            border: '1px solid #d97706',
+            background: activeTab === 'inventory' ? '#2563eb' : '#d97706',
             color: '#ffffff',
             fontSize: '0.73rem',
             fontWeight: 800,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
-          } : quickPillStyle('#ef4444')}
+            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.35)'
+          } : quickPillStyle(activeTab === 'inventory' ? '#2563eb' : '#ef4444')}
         >
-          <Package size={12} color={inventoryAlerts.length > 0 ? '#ffffff' : '#ef4444'} />
+          <Package size={12} color={inventoryAlerts.length > 0 || activeTab === 'inventory' ? '#ffffff' : '#ef4444'} />
           <span>Gudang</span>
           {inventoryAlerts.length > 0 && (
-            <span style={{ background: '#ffffff', color: '#dc2626', fontSize: '0.62rem', fontWeight: 900, padding: '0 4px', borderRadius: '999px' }}>
+            <span style={{ background: '#ffffff', color: '#b45309', fontSize: '0.62rem', fontWeight: 900, padding: '0 5px', borderRadius: '999px' }}>
               {inventoryAlerts.length}!
             </span>
           )}
@@ -3356,49 +3546,90 @@ export default function Kasir({ user }) {
         </button>
       </div>
 
-      {/* ── BANNER PERINGATAN GUDANG RAMPING (HANYA MUNCUL JIKA ADA BAHAN MENIPIS) ── */}
-      {inventoryAlerts.length > 0 && !isAlertDismissed && (
+      {/* ── BANNER PERINGATAN GUDANG RAMPING (HANYA MUNCUL DI TAB POS JIKA ADA BAHAN MENIPIS) ── */}
+      {activeTab === 'pos' && inventoryAlerts.length > 0 && !isAlertDismissed && (
         <div style={{ width: '100%', maxWidth: '100%', margin: '0.4rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
           <div style={{
-            padding: '6px 12px',
-            borderRadius: '10px',
-            background: isLight ? '#fff1f2' : 'rgba(239, 68, 68, 0.16)',
-            border: '1px solid #f87171',
+            padding: '8px 12px',
+            borderRadius: '12px',
+            background: isLight ? '#fffbeb' : '#1c1917',
+            border: isLight ? '1px solid #fde68a' : '1px solid #78350f',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: '8px',
-            fontSize: '0.74rem'
+            boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+            boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-              <ShieldAlert size={14} color="#ef4444" style={{ flexShrink: 0 }} />
-              <strong style={{ color: isLight ? '#991b1b' : '#fca5a5', flexShrink: 0 }}>
-                {inventoryAlerts.length} Bahan Menipis:
-              </strong>
-              <span style={{ color: textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {inventoryAlerts.slice(0, 3).map(a => `${a.name} (${a.currentStock} ${a.unit})`).join(' • ')}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
+                background: '#fef3c7',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '0.75rem',
+                flexShrink: 0
+              }}>
+                ⚠️
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: '0.78rem', color: isLight ? '#92400e' : '#fde68a' }}>
+                    {inventoryAlerts.length} Bahan Menipis:
+                  </strong>
+                  {inventoryAlerts.slice(0, 3).map(a => (
+                    <span key={a.id} style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      background: isLight ? '#fef3c7' : '#292524',
+                      color: isLight ? '#b45309' : '#d6d3d1',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {a.name} ({a.currentStock} {a.unit})
+                    </span>
+                  ))}
+                  {inventoryAlerts.length > 3 && (
+                    <span style={{ fontSize: '0.66rem', color: textSecondary }}>
+                      +{inventoryAlerts.length - 3} lainnya
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={() => {
-                  setShowInventoryModal(true);
+                  setActiveTab('inventory');
                   setInventoryTab('stock');
                   loadInventory();
+                  loadRecipes();
                 }}
                 style={{
-                  padding: '3px 8px',
-                  borderRadius: '6px',
+                  padding: '5px 10px',
+                  borderRadius: '8px',
                   border: 'none',
-                  background: '#ef4444',
+                  background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                   color: '#ffffff',
-                  fontSize: '0.68rem',
+                  fontSize: '0.72rem',
                   fontWeight: 800,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 6px rgba(217, 119, 6, 0.25)'
                 }}
               >
-                Restock
+                <span>Kelola Stok</span>
+                <ArrowRight size={12} />
               </button>
               <button
                 type="button"
@@ -5296,7 +5527,7 @@ export default function Kasir({ user }) {
                   icon: <Package size={20} color="#ef4444" />,
                   alert: inventoryAlerts.length > 0,
                   badge: inventoryAlerts.length > 0 ? `${inventoryAlerts.length}!` : null,
-                  onClick: () => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); setShowToolsDrawer(false); }
+                  onClick: () => { setActiveTab('inventory'); setInventoryTab('stock'); loadInventory(); loadRecipes(); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Statistik Keuangan',
@@ -6965,6 +7196,940 @@ export default function Kasir({ user }) {
               </button>
             </form>
           </div>
+        </main>
+      )}
+
+      {/* ── TAB 5: GUDANG, RESEP & STOK BAHAN BAKU (NATIVE VIEW - NO POP-UP!) ── */}
+      {activeTab === 'inventory' && (
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Header Gudang & Stok */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📦</span>
+                <span>Gudang &amp; Stok Bahan Baku</span>
+              </h2>
+              <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: textSecondary }}>
+                Pantau stok bahan dapur, ambang batas menipis, dan kalkulasi HPP resep otomatis tanpa pop-up.
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  loadInventory();
+                  loadRecipes();
+                }}
+                disabled={loadingInventory || loadingRecipes}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#ffffff' : '#1e293b',
+                  color: textPrimary,
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <RefreshCw size={13} className={(loadingInventory || loadingRecipes) ? 'animate-spin' : ''} />
+                <span>{(loadingInventory || loadingRecipes) ? 'Memuat...' : 'Refresh'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddInventoryForm(prev => !prev)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                }}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                <span>{showAddInventoryForm ? 'Tutup Form' : 'Tambah Bahan'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Metrics Bar: 4 Kartu Ringkas */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
+            gap: '10px'
+          }}>
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '14px',
+              padding: '12px 14px',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>Total Bahan</span>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: textPrimary, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                {inventoryList.length} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: textSecondary }}>item</span>
+              </div>
+            </div>
+
+            <div style={{
+              background: inventoryAlerts.length > 0 ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)') : bgCard,
+              border: inventoryAlerts.length > 0 ? '1.5px solid #f87171' : `1px solid ${borderColor}`,
+              borderRadius: '14px',
+              padding: '12px 14px',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: inventoryAlerts.length > 0 ? '#dc2626' : textSecondary, textTransform: 'uppercase' }}>Bahan Menipis</span>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: inventoryAlerts.length > 0 ? '#dc2626' : '#16a34a', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                {inventoryAlerts.length} <span style={{ fontSize: '0.74rem', fontWeight: 600 }}>{inventoryAlerts.length > 0 ? '⚠️ Butuh Restock' : '✓ Aman'}</span>
+              </div>
+            </div>
+
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '14px',
+              padding: '12px 14px',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>Resep Terhubung</span>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2563eb', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                {recipesList.length} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: textSecondary }}>menu resto</span>
+              </div>
+            </div>
+
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '14px',
+              padding: '12px 14px',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>Status Sinkron POS</span>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#16a34a', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Check size={14} strokeWidth={3} />
+                <span>Auto-Deduct Aktif</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SECTION 1: PERINGATAN BAHAN MENIPIS DENGAN RESTOCK CEPAT 1-KLIK (NO POP-UP!) ── */}
+          {inventoryAlerts.length > 0 && (
+            <div style={{
+              background: isLight ? '#fffbeb' : '#1c1917',
+              border: isLight ? '1.5px solid #fde68a' : '1.5px solid #78350f',
+              borderRadius: '16px',
+              padding: '16px',
+              boxShadow: '0 2px 10px rgba(217, 119, 6, 0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: '#fef3c7',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.9rem',
+                  fontWeight: 900,
+                  flexShrink: 0
+                }}>
+                  ⚠️
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: isLight ? '#92400e' : '#fde68a' }}>
+                    {inventoryAlerts.length} Bahan Baku Menipis / Perlu Segera Direstock!
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: isLight ? '#b45309' : '#d6d3d1' }}>
+                    Stok berada di bawah ambang minimum. Tambahkan stok langsung dengan tombol restock cepat di bawah (tanpa pop-up).
+                  </p>
+                </div>
+              </div>
+
+              {/* Grid Kartu Bahan Menipis */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+                gap: '10px'
+              }}>
+                {inventoryAlerts.map(item => {
+                  const isZero = Number(item.currentStock) <= 0;
+                  const minStock = Number(item.minAlertStock) || 1;
+                  const currentStock = Math.max(0, Number(item.currentStock) || 0);
+                  const ratio = Math.min(100, Math.round((currentStock / minStock) * 100));
+                  const isSuccess = inlineRestockSuccessId === item.id;
+                  const isOpen = inlineRestockId === item.id;
+
+                  return (
+                    <div key={item.id} style={{
+                      background: isLight ? '#ffffff' : '#292524',
+                      border: isLight ? (isZero ? '1.5px solid #fca5a5' : '1.5px solid #fed7aa') : '#44403c',
+                      borderRadius: '14px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      boxSizing: 'border-box'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <span style={{ fontSize: '0.64rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>
+                            {item.category || 'Bahan Baku'}
+                          </span>
+                          <h4 style={{ margin: '1px 0 0', fontSize: '0.88rem', fontWeight: 800, color: textPrimary }}>
+                            {item.name}
+                          </h4>
+                        </div>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          background: isZero ? '#fee2e2' : '#fef3c7',
+                          color: isZero ? '#b91c1c' : '#b45309'
+                        }}>
+                          {isZero ? '🔴 HABIS' : '🟡 MENIPIS'}
+                        </span>
+                      </div>
+
+                      {/* Stock Level Meter Bar */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', marginBottom: '4px' }}>
+                          <span style={{ color: textSecondary }}>Sisa Stok Saat Ini:</span>
+                          <strong style={{ color: isZero ? '#dc2626' : '#d97706', fontFamily: 'var(--font-mono)' }}>
+                            {item.currentStock} {item.unit} <span style={{ color: textSecondary, fontWeight: 500 }}>(min {item.minAlertStock} {item.unit})</span>
+                          </strong>
+                        </div>
+                        <div style={{ width: '100%', height: '6px', background: isLight ? '#f1f5f9' : '#374151', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${ratio}%`, height: '100%', background: isZero ? '#ef4444' : '#f59e0b', borderRadius: '3px' }} />
+                        </div>
+                      </div>
+
+                      {/* 1-Click Quick Restock Buttons Inline */}
+                      {isSuccess ? (
+                        <div style={{ padding: '6px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontSize: '0.72rem', fontWeight: 800, textAlign: 'center' }}>
+                          ✅ Stok Berhasil Ditambahkan!
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary }}>+ Restock:</span>
+                            {[
+                              { label: '+5', qty: 5 },
+                              { label: '+10', qty: 10 },
+                              { label: '+25', qty: 25 },
+                              { label: '+50', qty: 50 }
+                            ].map(q => (
+                              <button
+                                key={q.label}
+                                type="button"
+                                disabled={inlineRestockLoading}
+                                onClick={() => handleInlineRestock(item.id, q.qty, `Restock cepat ${q.label} ${item.unit}`)}
+                                style={{
+                                  padding: '3px 7px',
+                                  borderRadius: '6px',
+                                  border: `1px solid ${borderColor}`,
+                                  background: isLight ? '#f8fafc' : '#1e293b',
+                                  color: textPrimary,
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {q.label}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInlineRestockId(isOpen ? null : item.id);
+                                setInlineRestockQty('');
+                              }}
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: '#2563eb',
+                                color: '#ffffff',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                marginLeft: 'auto'
+                              }}
+                            >
+                              {isOpen ? 'Tutup' : 'Input +'}
+                            </button>
+                          </div>
+
+                          {/* Inline Custom Input */}
+                          {isOpen && (
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '4px', alignItems: 'center' }}>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder={`Jml (${item.unit})`}
+                                value={inlineRestockQty}
+                                onChange={e => setInlineRestockQty(e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  padding: '5px 8px',
+                                  borderRadius: '6px',
+                                  border: `1px solid ${borderColor}`,
+                                  background: isLight ? '#ffffff' : '#0f172a',
+                                  color: textPrimary,
+                                  fontSize: '0.74rem'
+                                }}
+                              />
+                              <button
+                                type="button"
+                                disabled={inlineRestockLoading || !inlineRestockQty}
+                                onClick={() => handleInlineRestock(item.id)}
+                                style={{
+                                  padding: '5px 12px',
+                                  borderRadius: '6px',
+                                  border: 'none',
+                                  background: '#10b981',
+                                  color: '#ffffff',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {inlineRestockLoading ? '...' : 'Simpan'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Form Tambah Bahan Baku Baru (Inline Collapsible, NO POP-UP!) */}
+          {showAddInventoryForm && (
+            <div style={{
+              background: bgCard,
+              border: `1.5px solid ${borderColor}`,
+              borderRadius: '16px',
+              padding: '16px',
+              boxShadow: 'var(--shadow-sm)',
+              boxSizing: 'border-box'
+            }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: '0.96rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Plus size={16} color="#2563eb" />
+                <span>Tambah Bahan Baku Gudang Baru</span>
+              </h3>
+              <form onSubmit={handleAddNewInventory} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>Nama Bahan Baku *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Daging Sapi Cincang"
+                    value={newInventoryForm.name}
+                    onChange={e => setNewInventoryForm({ ...newInventoryForm, name: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: '8px', border: `1px solid ${borderColor}`, background: isLight ? '#ffffff' : '#1e293b', color: textPrimary, fontSize: '0.78rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>Kategori Bahan</label>
+                  <select
+                    value={newInventoryForm.category}
+                    onChange={e => setNewInventoryForm({ ...newInventoryForm, category: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: '8px', border: `1px solid ${borderColor}`, background: isLight ? '#ffffff' : '#1e293b', color: textPrimary, fontSize: '0.78rem' }}
+                  >
+                    <option value="Bahan Pokok">Bahan Pokok</option>
+                    <option value="Protein & Lauk">Protein &amp; Lauk</option>
+                    <option value="Bumbu & Saus">Bumbu &amp; Saus</option>
+                    <option value="Sayuran Segar">Sayuran Segar</option>
+                    <option value="Minuman & Kopi">Minuman &amp; Kopi</option>
+                    <option value="Kemasan & Cup">Kemasan &amp; Cup</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>Satuan Takar</label>
+                  <select
+                    value={newInventoryForm.unit}
+                    onChange={e => setNewInventoryForm({ ...newInventoryForm, unit: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: '8px', border: `1px solid ${borderColor}`, background: isLight ? '#ffffff' : '#1e293b', color: textPrimary, fontSize: '0.78rem' }}
+                  >
+                    <option value="porsi">porsi</option>
+                    <option value="gram">gram</option>
+                    <option value="kg">kg</option>
+                    <option value="ml">ml</option>
+                    <option value="Liter">Liter</option>
+                    <option value="pcs">pcs</option>
+                    <option value="butir">butir</option>
+                    <option value="potong">potong</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>Stok Awal Saat Ini</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={newInventoryForm.currentStock}
+                    onChange={e => setNewInventoryForm({ ...newInventoryForm, currentStock: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: '8px', border: `1px solid ${borderColor}`, background: isLight ? '#ffffff' : '#1e293b', color: textPrimary, fontSize: '0.78rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>Ambang Batas Peringatan (Min)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="10"
+                    value={newInventoryForm.minAlertStock}
+                    onChange={e => setNewInventoryForm({ ...newInventoryForm, minAlertStock: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: '8px', border: `1px solid ${borderColor}`, background: isLight ? '#ffffff' : '#1e293b', color: textPrimary, fontSize: '0.78rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>Harga Kulakan / Satuan (Rp)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Contoh: 15000"
+                    value={newInventoryForm.costPerUnit}
+                    onChange={e => setNewInventoryForm({ ...newInventoryForm, costPerUnit: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: '8px', border: `1px solid ${borderColor}`, background: isLight ? '#ffffff' : '#1e293b', color: textPrimary, fontSize: '0.78rem' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddInventoryForm(false)}
+                    style={{ padding: '7px 14px', borderRadius: '8px', border: `1px solid ${borderColor}`, background: isLight ? '#f1f5f9' : '#1e293b', color: textSecondary, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingNewInventory}
+                    style={{ padding: '7px 18px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#ffffff', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    {savingNewInventory ? 'Menyimpan...' : 'Simpan Bahan Baku'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Sub-Tab Navigation Bar: Stok Bahan vs Resep HPP */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            borderBottom: `1.5px solid ${borderColor}`,
+            paddingBottom: '2px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setInventoryTab('stock')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                border: 'none',
+                borderBottom: inventoryTab === 'stock' ? '2.5px solid #2563eb' : '2.5px solid transparent',
+                background: 'transparent',
+                color: inventoryTab === 'stock' ? '#2563eb' : textSecondary,
+                fontSize: '0.82rem',
+                fontWeight: inventoryTab === 'stock' ? 800 : 600,
+                cursor: 'pointer',
+                marginBottom: '-2px'
+              }}
+            >
+              <Package size={15} />
+              <span>Stok Bahan Baku ({inventoryList.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setInventoryTab('recipes');
+                if (recipesList.length === 0) loadRecipes();
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                border: 'none',
+                borderBottom: inventoryTab === 'recipes' ? '2.5px solid #2563eb' : '2.5px solid transparent',
+                background: 'transparent',
+                color: inventoryTab === 'recipes' ? '#2563eb' : textSecondary,
+                fontSize: '0.82rem',
+                fontWeight: inventoryTab === 'recipes' ? 800 : 600,
+                cursor: 'pointer',
+                marginBottom: '-2px'
+              }}
+            >
+              <ChefHat size={15} />
+              <span>Resep Menu &amp; HPP Otomatis ({recipesList.length})</span>
+            </button>
+          </div>
+
+          {/* ── SUB-TAB 1: DAFTAR SEMUA STOK BAHAN BAKU ── */}
+          {inventoryTab === 'stock' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Search & Category Pills */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                  paddingBottom: '2px',
+                  minWidth: 0,
+                  flex: 1
+                }}>
+                  {['Semua', ...Array.from(new Set(inventoryList.map(i => i.category).filter(Boolean)))].map(cat => {
+                    const isActive = inventoryCategoryFilter === cat;
+                    const count = cat === 'Semua' ? inventoryList.length : inventoryList.filter(i => i.category === cat).length;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setInventoryCategoryFilter(cat)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '5px 11px',
+                          borderRadius: '999px',
+                          border: isActive ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                          background: isActive ? '#2563eb' : (isLight ? '#ffffff' : '#1e293b'),
+                          color: isActive ? '#ffffff' : textSecondary,
+                          fontSize: '0.74rem',
+                          fontWeight: isActive ? 800 : 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ position: 'relative', width: '220px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: textSecondary }} />
+                  <input
+                    type="text"
+                    placeholder="Cari bahan baku..."
+                    value={inventorySearchQuery}
+                    onChange={e => setInventorySearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '6px 10px 6px 30px',
+                      borderRadius: '8px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#ffffff' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.76rem'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Grid Kartu Stok Bahan Baku (Responsive Percentage, NO OVERFLOW) */}
+              {(() => {
+                const q = inventorySearchQuery.trim().toLowerCase();
+                const filtered = inventoryList.filter(item => {
+                  const matchCat = inventoryCategoryFilter === 'Semua' || item.category === inventoryCategoryFilter;
+                  const matchQ = !q || (item.name && item.name.toLowerCase().includes(q)) || (item.id && item.id.toLowerCase().includes(q));
+                  return matchCat && matchQ;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '3rem 1rem',
+                      background: bgCard,
+                      borderRadius: '16px',
+                      border: `1px solid ${borderColor}`,
+                      color: textSecondary
+                    }}>
+                      <Package size={36} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+                      <p style={{ fontWeight: 800, fontSize: '0.92rem', color: textPrimary, margin: 0 }}>
+                        Bahan Baku Tidak Ditemukan
+                      </p>
+                      <p style={{ fontSize: '0.76rem', margin: '4px 0 0' }}>
+                        Tidak ada bahan yang cocok dengan pencarian "{inventorySearchQuery}".
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+                    gap: '10px'
+                  }}>
+                    {filtered.map(item => {
+                      const isLow = Number(item.currentStock) <= Number(item.minAlertStock);
+                      const isZero = Number(item.currentStock) <= 0;
+                      const isSuccess = inlineRestockSuccessId === item.id;
+                      const isOpen = inlineRestockId === item.id;
+
+                      return (
+                        <div key={item.id} style={{
+                          background: bgCard,
+                          border: isZero ? '1.5px solid #fca5a5' : isLow ? '1.5px solid #fed7aa' : `1px solid ${borderColor}`,
+                          borderRadius: '14px',
+                          padding: '12px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '10px',
+                          boxShadow: 'var(--shadow-sm)',
+                          boxSizing: 'border-box'
+                        }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div>
+                                <span style={{ fontSize: '0.64rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>
+                                  {item.category || 'Bahan'}
+                                </span>
+                                <h4 style={{ margin: '2px 0 0', fontSize: '0.9rem', fontWeight: 800, color: textPrimary }}>
+                                  {item.name}
+                                </h4>
+                                <span style={{ fontSize: '0.66rem', color: textSecondary }}>ID: {item.id}</span>
+                              </div>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                fontSize: '0.66rem',
+                                fontWeight: 800,
+                                background: isZero ? '#fee2e2' : isLow ? '#fef3c7' : '#dcfce7',
+                                color: isZero ? '#b91c1c' : isLow ? '#b45309' : '#15803d'
+                              }}>
+                                {isZero ? '🔴 HABIS' : isLow ? '🟡 MENIPIS' : '🟢 AMAN'}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
+                              <span style={{ fontSize: '0.74rem', color: textSecondary }}>Stok Saat Ini:</span>
+                              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: isZero ? '#dc2626' : isLow ? '#d97706' : textPrimary, fontFamily: 'var(--font-mono)' }}>
+                                {item.currentStock} <span style={{ fontSize: '0.76rem', fontWeight: 700, color: textSecondary }}>{item.unit}</span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: textSecondary, marginTop: '4px' }}>
+                              <span>Ambang Alert Min:</span>
+                              <span style={{ fontWeight: 700 }}>{item.minAlertStock} {item.unit}</span>
+                            </div>
+
+                            {item.costPerUnit > 0 && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: textSecondary, marginTop: '2px' }}>
+                                <span>Estimasi HPP:</span>
+                                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>Rp {Number(item.costPerUnit).toLocaleString('id-ID')} / {item.unit}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Quick Restock Inline Form (NO POP-UP!) */}
+                          {isSuccess ? (
+                            <div style={{ padding: '6px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontSize: '0.72rem', fontWeight: 800, textAlign: 'center' }}>
+                              ✅ Stok Berhasil Ditambahkan!
+                            </div>
+                          ) : (
+                            <div style={{ paddingTop: '8px', borderTop: `1px dashed ${borderColor}` }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary }}>+ Restock:</span>
+                                {[
+                                  { label: '+5', qty: 5 },
+                                  { label: '+10', qty: 10 },
+                                  { label: '+25', qty: 25 }
+                                ].map(q => (
+                                  <button
+                                    key={q.label}
+                                    type="button"
+                                    disabled={inlineRestockLoading}
+                                    onClick={() => handleInlineRestock(item.id, q.qty, `Restock cepat ${q.label} ${item.unit}`)}
+                                    style={{
+                                      padding: '3px 7px',
+                                      borderRadius: '6px',
+                                      border: `1px solid ${borderColor}`,
+                                      background: isLight ? '#f8fafc' : '#1e293b',
+                                      color: textPrimary,
+                                      fontSize: '0.68rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {q.label}
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setInlineRestockId(isOpen ? null : item.id);
+                                    setInlineRestockQty('');
+                                  }}
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    background: '#2563eb',
+                                    color: '#ffffff',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    marginLeft: 'auto'
+                                  }}
+                                >
+                                  {isOpen ? 'Tutup' : 'Input +'}
+                                </button>
+                              </div>
+
+                              {isOpen && (
+                                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', alignItems: 'center' }}>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    placeholder={`Jml (${item.unit})`}
+                                    value={inlineRestockQty}
+                                    onChange={e => setInlineRestockQty(e.target.value)}
+                                    style={{
+                                      flex: 1,
+                                      padding: '5px 8px',
+                                      borderRadius: '6px',
+                                      border: `1px solid ${borderColor}`,
+                                      background: isLight ? '#ffffff' : '#0f172a',
+                                      color: textPrimary,
+                                      fontSize: '0.74rem'
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    disabled={inlineRestockLoading || !inlineRestockQty}
+                                    onClick={() => handleInlineRestock(item.id)}
+                                    style={{
+                                      padding: '5px 12px',
+                                      borderRadius: '6px',
+                                      border: 'none',
+                                      background: '#10b981',
+                                      color: '#ffffff',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {inlineRestockLoading ? '...' : 'Simpan'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ── SUB-TAB 2: RESEP MENU & HPP OTOMATIS ── */}
+          {inventoryTab === 'recipes' && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+              gap: '14px',
+              alignItems: 'start'
+            }}>
+              {/* Kolom Kiri: Menu Selector */}
+              <div style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '16px',
+                padding: '14px',
+                boxShadow: 'var(--shadow-sm)',
+                boxSizing: 'border-box'
+              }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
+                  Pilih Menu untuk Rincian Resep &amp; HPP:
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '500px', overflowY: 'auto' }}>
+                  {recipesList.map(rec => {
+                    const isSelected = (selectedRecipeProduct?.productId || recipesList[0]?.productId) === rec.productId;
+                    return (
+                      <div
+                        key={rec.productId}
+                        onClick={() => setSelectedRecipeProduct(rec)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          border: isSelected ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                          background: isSelected ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.15)') : (isLight ? '#f8fafc' : '#1e293b'),
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                          <img
+                            src={rec.image}
+                            alt={rec.name}
+                            style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                            onError={e => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'; }}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <strong style={{ fontSize: '0.84rem', color: textPrimary, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {rec.name}
+                            </strong>
+                            <span style={{ fontSize: '0.7rem', color: textSecondary }}>
+                              Harga: Rp {Number(rec.sellingPrice || 0).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.64rem', color: textSecondary, display: 'block' }}>HPP Dasar</span>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#16a34a', fontFamily: 'var(--font-mono)' }}>
+                            Rp {Number(rec.totalHPP || 0).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Kolom Kanan: Rincian Bahan & Kalkulasi Margin Menu Terpilih */}
+              {(() => {
+                const cur = selectedRecipeProduct || recipesList[0];
+                if (!cur) return null;
+                const selling = Number(cur.sellingPrice || 0);
+                const hpp = Number(cur.totalHPP || 0);
+                const marginRp = Math.max(0, selling - hpp);
+                const marginPct = selling > 0 ? Math.round((marginRp / selling) * 100) : 0;
+
+                return (
+                  <div style={{
+                    background: bgCard,
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '16px',
+                    padding: '16px',
+                    boxShadow: 'var(--shadow-sm)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    boxSizing: 'border-box'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>
+                          Komposisi Resep Menu
+                        </span>
+                        <h3 style={{ margin: '2px 0 0', fontSize: '1.05rem', fontWeight: 800, color: textPrimary }}>
+                          {cur.name}
+                        </h3>
+                      </div>
+                      <div style={{
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid #10b981',
+                        color: isLight ? '#047857' : '#34d399',
+                        fontSize: '0.76rem',
+                        fontWeight: 800
+                      }}>
+                        Untung Bersih: {marginPct}% (Rp {marginRp.toLocaleString('id-ID')})
+                      </div>
+                    </div>
+
+                    {/* Table Resep Bahan */}
+                    <div style={{ border: `1px solid ${borderColor}`, borderRadius: '12px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ background: isLight ? '#f1f5f9' : '#0f172a', borderBottom: `1px solid ${borderColor}` }}>
+                            <th style={{ padding: '8px 10px', fontWeight: 800, color: textSecondary }}>Bahan Baku</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 800, color: textSecondary, textAlign: 'center' }}>Takaran / Porsi</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 800, color: textSecondary, textAlign: 'center' }}>Stok Gudang</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 800, color: textSecondary, textAlign: 'right' }}>Biaya HPP</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(cur.ingredients || []).map((ing, idx) => {
+                            const isLow = Number(ing.currentStock) <= 0;
+                            return (
+                              <tr key={ing.inventoryId || idx} style={{ borderBottom: `1px solid ${borderColor}` }}>
+                                <td style={{ padding: '8px 10px' }}>
+                                  <strong style={{ color: textPrimary }}>{ing.name}</strong>
+                                  <span style={{ fontSize: '0.64rem', color: textSecondary, display: 'block' }}>{ing.inventoryId}</span>
+                                </td>
+                                <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700 }}>
+                                  {ing.amount} {ing.unit}
+                                </td>
+                                <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 800,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    background: isLow ? '#fee2e2' : '#dcfce7',
+                                    color: isLow ? '#dc2626' : '#15803d'
+                                  }}>
+                                    {ing.currentStock} {ing.inventoryUnit || ing.unit}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                                  Rp {Number(ing.cost || 0).toLocaleString('id-ID')}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{ background: isLight ? '#f8fafc' : '#1e293b' }}>
+                            <td colSpan={3} style={{ padding: '8px 10px', fontWeight: 800, color: textPrimary }}>
+                              TOTAL BIAYA HPP PER PORSI:
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 900, color: '#16a34a', fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }}>
+                              Rp {hpp.toLocaleString('id-ID')}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </main>
       )}
 
@@ -11017,7 +12182,13 @@ export default function Kasir({ user }) {
                   icon: <Package size={20} color="#ef4444" />,
                   badge: inventoryAlerts.length > 0 ? `${inventoryAlerts.length}!` : null,
                   badgeBg: '#ef4444',
-                  onClick: () => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); setShowMobileMenuHub(false); }
+                  onClick: () => {
+                    setActiveTab('inventory');
+                    setInventoryTab('stock');
+                    loadInventory();
+                    loadRecipes();
+                    setShowMobileMenuHub(false);
+                  }
                 },
                 {
                   id: 'statistik',

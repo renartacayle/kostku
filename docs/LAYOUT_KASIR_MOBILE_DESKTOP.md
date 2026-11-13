@@ -64,9 +64,8 @@ Pada layar desktop dan tablet lebar (> 900px), antarmuka kasir memanfaatkan selu
 |  | Lv 2          |  | Spesial       |  |           | |  | 2. Es Teh Manis Jumbo          x1   Rp  5.000 [-][+]|  |
 |  | Rp 13.000     |  | Rp 18.000     |  |           | |  |-----------------------------------------------------|  |
 |  | [-] 2 [+]     |  | [-] 1 [+]     |  |           | |  | Subtotal:                                 Rp 31.000 |  |
-|  | [+ Tambah]    |  | [+ Tambah]    |  |           | |  | Voucher Promo: [ HEMAT10 - Rp 3.100 ]            v |  |
-|  +---------------+  +---------------+  +-----------+ |  | Potongan Poin: [- 100 Poin = -Rp 100]        [ Pakai]|  |
-|                                                      |  | Biaya Platform Kasir:                          Rp 40 |  |
+|  | [+ Tambah]    |  | [+ Tambah]    |  |           | |  | Voucher Promo / Poin: [ POIN-8901 - Rp 3.100 ]      v |  |
+|  +---------------+  +---------------+  +-----------+ |  | Biaya Platform Kasir:                          Rp 40 |  |
 |  +---------------+  +---------------+  +-----------+ |  | Held Promo Escrow (Refundable):                Rp 60 |  |
 |  | [ FOTO MENU ] |  | [ FOTO MENU ] |  | ...       | |  | Total Tagihan:                            Rp 27.900 |  |
 |  | Es Teh Jumbo  |  | Dimsum Ayam   |  |           | |  |-----------------------------------------------------|  |
@@ -209,7 +208,7 @@ Sistem tab 4-segmen modern menggunakan pill biru aktif (`#2563eb`):
 - **Desktop Cart Panel (`.desktop-only`, z-index normal, sticky top 70px):**
   - Pemilih nomor meja atau mode Walk-in Takeaway.
   - Daftar belanjaan dengan penyesuaian catatan koki (*custom notes per item*).
-  - Kalkulator diskon kupon promo & penukaran poin loyalitas pelanggan.
+  - Kalkulator diskon kupon promo & voucher penukaran poin (Solusi A: Walk-in via kode voucher mandiri, Solusi C: Pesan Meja via checkbox di HP pelanggan tanpa beban kasir).
   - Rincian transparansi biaya: Subtotal, Diskon, Biaya Admin Rp 40, Deposit Promo Rp 60 (Refundable), dan Total Tagihan Bersih.
   - Tiga metode pembayaran: **Tunai (Cash Drawer)**, **QRIS Dinamis**, dan **Transfer Bank**.
   - Kalkulator kembalian instan dengan pecahan uang cepat (`Pas`, `Rp 20.000`, `Rp 50.000`, `Rp 100.000`).

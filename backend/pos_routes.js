@@ -2773,6 +2773,99 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     });
   });
 
+  // ── 9A-2. CONVERT POINTS TO FOOD VOUCHER (SOLUSI A: SELF-SERVICE REDEMPTION DI HP PELANGGAN) ──
+  router.post('/loyalty/convert-to-voucher', (req, res) => {
+    const { phone, points } = req.body;
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    if (!cleanPhone) {
+      return res.status(400).json({ error: 'Nomor WhatsApp pelanggan wajib diisi!' });
+    }
+
+    const pts = parseInt(points, 10);
+    if (!pts || isNaN(pts) || pts < 100) {
+      return res.status(400).json({ error: 'Penukaran poin minimal 100 Poin!' });
+    }
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const currentPoints = db.customer_points[cleanPhone] || (db.customers && db.customers[cleanPhone]?.total_points) || 0;
+    if (currentPoints < pts) {
+      return res.status(400).json({ error: `Saldo poin Anda tidak mencukupi (tersedia: ${currentPoints} Poin, dibutuhkan: ${pts} Poin).` });
+    }
+
+    // 100 Poin = Rp 1.000 diskon langsung
+    const discountVal = Math.floor(pts / 100) * 1000;
+    if (discountVal <= 0) {
+      return res.status(400).json({ error: 'Nilai voucher harus lebih besar dari 0!' });
+    }
+
+    // Deduct points from customer
+    const updatedPoints = currentPoints - pts;
+    db.customer_points[cleanPhone] = updatedPoints;
+    if (db.customers && db.customers[cleanPhone]) {
+      db.customers[cleanPhone].total_points = updatedPoints;
+    }
+
+    // Buat kode voucher unik 8 digit: POIN-XXXX
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const phoneSuffix = cleanPhone.slice(-4);
+    const voucherCode = `POIN-${phoneSuffix}${randomSuffix}`;
+
+    db.pos_food_promos = db.pos_food_promos || [];
+    const newVoucher = {
+      id: `promo_voucher_${Date.now()}`,
+      title: `Voucher Poin Rp ${discountVal.toLocaleString('id-ID')}`,
+      code: voucherCode,
+      scope: 'ALL',
+      targetProductId: null,
+      targetProductName: null,
+      discountType: 'FIXED',
+      discountValue: discountVal,
+      minOrder: 0,
+      limitType: 'QUOTA',
+      maxQuota: 1,
+      usedCount: 0,
+      startDate: new Date().toISOString().slice(0, 10),
+      expiryDate: null,
+      isActive: true,
+      createdByRole: 'customer',
+      customerPhone: cleanPhone,
+      description: `Voucher penukaran ${pts} Poin oleh ${cleanPhone}`
+    };
+    db.pos_food_promos.push(newVoucher);
+
+    // Record in history
+    db.customer_stamps = db.customer_stamps || {};
+    db.customer_stamps[cleanPhone] = db.customer_stamps[cleanPhone] || {
+      phone: cleanPhone,
+      name: 'Member KostKu',
+      stamps: 0,
+      maxStamps: 5,
+      history: []
+    };
+    db.customer_stamps[cleanPhone].history.unshift({
+      date: new Date().toISOString(),
+      type: 'CONVERT_VOUCHER',
+      change: -pts,
+      reason: `Tukar ${pts} Poin jadi Voucher Diskon ${voucherCode} (Rp ${discountVal.toLocaleString('id-ID')})`,
+      balanceAfter: updatedPoints
+    });
+
+    writeDB(db, req);
+
+    res.json({
+      success: true,
+      message: `🎉 Berhasil menukar ${pts} Poin menjadi Voucher Rp ${discountVal.toLocaleString('id-ID')}!`,
+      voucher: {
+        code: voucherCode,
+        discountValue: discountVal,
+        title: newVoucher.title
+      },
+      remainingPoints: updatedPoints
+    });
+  });
+
   // ── 9B. HYBRID LOYALTY & ESCROW REFUND ENDPOINTS ──────────────────────
   // 1. Claim info check for customer claim page (/api/pos/loyalty/claim-info?token=...)
   router.get('/loyalty/claim-info', (req, res) => {
