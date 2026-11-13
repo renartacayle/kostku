@@ -1541,13 +1541,17 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       return res.status(400).json({ error: 'Nama menu dan harga wajib diisi' });
     }
 
-    if (!image || !String(image).trim()) {
-      return res.status(400).json({ error: 'Foto produk wajib disertakan (must have)!' });
+    const resolvedCategory = (category && String(category).trim()) ? String(category).trim() : 'Makanan';
+    let fallbackImage = 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80';
+    const catLower = resolvedCategory.toLowerCase();
+    if (catLower.includes('minum') || catLower.includes('kopi') || catLower.includes('teh') || catLower.includes('jus')) {
+      fallbackImage = 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80';
+    } else if (catLower.includes('snack') || catLower.includes('camilan') || catLower.includes('gorengan')) {
+      fallbackImage = 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&q=80';
     }
 
-    if (!category || !String(category).trim()) {
-      return res.status(400).json({ error: 'Kategori produk wajib dipilih atau diisi!' });
-    }
+    const resolvedImage = (image && String(image).trim()) ? String(image).trim() : fallbackImage;
+    const resolvedDesc = (description && String(description).trim()) ? String(description).trim() : `${String(name).trim()} lezat siap dinikmati.`;
 
     const db = getDB(req);
     ensurePosCollections(db);
@@ -1555,12 +1559,12 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const newProduct = {
       id: 'prod-' + Date.now(),
       name: String(name).trim(),
-      category: String(category).trim(),
+      category: resolvedCategory,
       price: Math.max(0, Number(price)),
-      stock: Number(stock !== undefined ? stock : 99),
+      stock: Number(stock !== undefined && stock !== '' ? stock : 99),
       isAvailable: isAvailable !== false,
-      description: String(description || '').trim(),
-      image: String(image).trim(),
+      description: resolvedDesc,
+      image: resolvedImage,
       createdAt: new Date().toISOString()
     };
 

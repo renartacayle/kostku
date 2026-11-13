@@ -100,6 +100,107 @@ import {
 import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
 import KasirInventoryModal from '../components/kasir/KasirInventoryModal';
 
+// ── DEFAULT PRODUCTS & ASSET HELPERS (OFFLINE-FIRST RESILIENCE) ──
+const DEFAULT_FALLBACK_PRODUCTS = [
+  {
+    id: 'prod-1',
+    name: 'Mie Gacoan Level 2',
+    category: 'Makanan',
+    price: 13000,
+    stock: 99,
+    isAvailable: true,
+    description: 'Mie pedas gurih manis dengan topping ayam cincang dan pangsit goreng renyah.',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80'
+  },
+  {
+    id: 'prod-2',
+    name: 'Nasi Goreng Spesial Telur',
+    category: 'Makanan',
+    price: 18000,
+    stock: 99,
+    isAvailable: true,
+    description: 'Nasi goreng racikan bumbu khas dengan telur ceplok dan kerupuk renyah.',
+    image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80'
+  },
+  {
+    id: 'prod-3',
+    name: 'Ayam Geprek Sambal Bawang',
+    category: 'Makanan',
+    price: 17000,
+    stock: 99,
+    isAvailable: true,
+    description: 'Ayam krispi gurih digeprek dengan cabai rawit pedas mantap.',
+    image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80'
+  },
+  {
+    id: 'prod-4',
+    name: 'Dimsum Siomay Ayam (4 pcs)',
+    category: 'Snack',
+    price: 15000,
+    stock: 99,
+    isAvailable: true,
+    description: 'Dimsum siomay daging ayam padat lembut disajikan dengan saus cocolan.',
+    image: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=500&q=80'
+  },
+  {
+    id: 'prod-5',
+    name: 'Es Teh Manis Jumbo',
+    category: 'Minuman',
+    price: 5000,
+    stock: 99,
+    isAvailable: true,
+    description: 'Teh melati wangi segar disajikan dingin manis melegakan dahaga.',
+    image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80'
+  }
+];
+
+const getDefaultPhotoForCategory = (cat = 'Makanan') => {
+  const c = String(cat || '').toLowerCase();
+  if (c.includes('minum') || c.includes('kopi') || c.includes('teh') || c.includes('jus')) {
+    return 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80';
+  }
+  if (c.includes('snack') || c.includes('camilan') || c.includes('gorengan')) {
+    return 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&q=80';
+  }
+  return 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80';
+};
+
+const compressImageFile = (file, maxWidth = 800, maxHeight = 800, quality = 0.8) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function Kasir({ user }) {
   const navigate = useNavigate();
   const { isLight, toggleTheme } = useTheme();
@@ -120,7 +221,16 @@ export default function Kasir({ user }) {
 
   // Data States
   const [orders, setOrders] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kostku_pos_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return DEFAULT_FALLBACK_PRODUCTS;
+  });
   const [tables, setTables] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [audioAlert, setAudioAlert] = useState(true);
@@ -536,19 +646,21 @@ export default function Kasir({ user }) {
     return '🍴';
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setAddMenuError('Ukuran file foto maksimal 5 MB!');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      setNewMenuForm(prev => ({ ...prev, image: uploadEvent.target.result }));
+    try {
       setAddMenuError('');
-    };
-    reader.readAsDataURL(file);
+      const compressedDataUrl = await compressImageFile(file, 800, 800, 0.8);
+      setNewMenuForm(prev => ({ ...prev, image: compressedDataUrl }));
+    } catch (err) {
+      console.warn('Gagal kompresi foto:', err);
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        setNewMenuForm(prev => ({ ...prev, image: uploadEvent.target.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveNewMenu = async (e) => {
@@ -556,80 +668,88 @@ export default function Kasir({ user }) {
     setAddMenuError('');
 
     const targetCategory = newMenuForm.isCustomCategory
-      ? newMenuForm.customCategory.trim()
-      : newMenuForm.category.trim();
+      ? (newMenuForm.customCategory.trim() || 'Lainnya')
+      : (newMenuForm.category.trim() || 'Makanan');
 
-    if (!newMenuForm.name.trim()) {
+    if (!newMenuForm.name || !newMenuForm.name.trim()) {
       setAddMenuError('Nama menu wajib diisi!');
       return;
     }
-    if (!targetCategory) {
-      setAddMenuError('Kategori produk wajib diisi!');
-      return;
-    }
+
     if (!newMenuForm.price || isNaN(Number(newMenuForm.price)) || Number(newMenuForm.price) < 0) {
       setAddMenuError('Harga menu wajib berupa angka nominal yang valid!');
       return;
     }
-    if (!newMenuForm.description.trim()) {
-      setAddMenuError('Deskripsi produk wajib diisi!');
-      return;
-    }
-    // FOTO MUST HAVE VALIDATION!
-    if (!newMenuForm.image || !newMenuForm.image.trim()) {
-      setAddMenuError('Foto produk WAJIB disertakan (must have)! Silakan unggah foto dari galeri atau pilih dari preset foto.');
-      return;
-    }
+
+    // Auto-fallback image & description so user is NEVER blocked!
+    const finalImage = (newMenuForm.image && newMenuForm.image.trim())
+      ? newMenuForm.image.trim()
+      : getDefaultPhotoForCategory(targetCategory);
+
+    const finalDescription = (newMenuForm.description && newMenuForm.description.trim())
+      ? newMenuForm.description.trim()
+      : `${newMenuForm.name.trim()} lezat siap dinikmati.`;
+
+    const productPayload = {
+      id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
+      name: newMenuForm.name.trim(),
+      category: targetCategory,
+      price: Math.max(0, Number(newMenuForm.price)),
+      description: finalDescription,
+      image: finalImage,
+      stock: Number(newMenuForm.stock !== undefined && newMenuForm.stock !== '' ? newMenuForm.stock : 99),
+      isAvailable: editingProduct ? (newMenuForm.isAvailable !== false) : true,
+      createdAt: editingProduct?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
 
     try {
       setSavingMenu(true);
+
+      // 1. Optimistic Local State & LocalStorage Persistence (Instant & Offline-Safe)
+      let nextProducts;
       if (editingProduct) {
-        // Mode Edit Menu
-        const res = await fetch(`/api/pos/products/${editingProduct.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: newMenuForm.name.trim(),
-            category: targetCategory,
-            price: Number(newMenuForm.price),
-            description: newMenuForm.description.trim(),
-            image: newMenuForm.image.trim(),
-            stock: Number(newMenuForm.stock || 99),
-            isAvailable: newMenuForm.isAvailable !== false
-          })
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Gagal memperbarui menu');
-
-        setProducts(prev => prev.map(p => p.id === data.id ? data : p));
-        setPosCategory(data.category);
-        try { playChime(880, 0.1); } catch (_) {}
+        nextProducts = products.map(p => p.id === productPayload.id ? { ...p, ...productPayload } : p);
       } else {
-        // Mode Tambah Menu Baru
-        const res = await fetch('/api/pos/products', {
-          method: 'POST',
+        nextProducts = [productPayload, ...products];
+      }
+      setProducts(nextProducts);
+      try {
+        localStorage.setItem('kostku_pos_products', JSON.stringify(nextProducts));
+      } catch (lsErr) {
+        console.warn('LocalStorage save warning:', lsErr);
+      }
+      setPosCategory(targetCategory);
+      try { playChime(880, 0.1); } catch (_) {}
+
+      // 2. Background Sync with Backend API
+      try {
+        const endpoint = editingProduct ? `/api/pos/products/${editingProduct.id}` : '/api/pos/products';
+        const method = editingProduct ? 'PUT' : 'POST';
+        const res = await fetch(endpoint, {
+          method,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: newMenuForm.name.trim(),
-            category: targetCategory,
-            price: Number(newMenuForm.price),
-            description: newMenuForm.description.trim(),
-            image: newMenuForm.image.trim(),
-            stock: Number(newMenuForm.stock || 99),
-            isAvailable: true
-          })
+          body: JSON.stringify(productPayload)
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Gagal menyimpan menu');
-
-        setProducts(prev => [data, ...prev]);
-        setPosCategory(data.category);
-        try { playChime(880, 0.1); } catch (_) {}
+        if (res.ok) {
+          const serverProd = await res.json();
+          if (serverProd && serverProd.id) {
+            setProducts(prev => {
+              const updated = prev.map(p => p.id === productPayload.id ? { ...p, ...serverProd } : p);
+              try { localStorage.setItem('kostku_pos_products', JSON.stringify(updated)); } catch (_) {}
+              return updated;
+            });
+          }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn('API sync response not OK:', errData);
+        }
+      } catch (netErr) {
+        console.warn('API sync deferred (saved locally):', netErr);
       }
 
-      // Reset form dan tutup modal
+      // 3. Reset form and close modal
       setEditingProduct(null);
       setNewMenuForm({
         name: '',
@@ -644,7 +764,8 @@ export default function Kasir({ user }) {
       });
       setShowAddMenuModal(false);
     } catch (err) {
-      setAddMenuError(err.message);
+      console.error('Error saving menu:', err);
+      setAddMenuError(err.message || 'Gagal menyimpan menu');
     } finally {
       setSavingMenu(false);
     }
@@ -659,7 +780,7 @@ export default function Kasir({ user }) {
       isCustomCategory: false,
       price: '',
       description: '',
-      image: '',
+      image: PHOTO_PRESETS[1]?.url || 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
       stock: 99,
       isAvailable: true
     });
@@ -670,13 +791,13 @@ export default function Kasir({ user }) {
   const handleOpenEditMenu = (p) => {
     setEditingProduct(p);
     setNewMenuForm({
-      name: p.name,
-      category: p.category,
+      name: p.name || '',
+      category: p.category || 'Makanan',
       customCategory: '',
-      isCustomCategory: !availableCategories.includes(p.category),
-      price: p.price,
+      isCustomCategory: false,
+      price: p.price !== undefined ? String(p.price) : '',
       description: p.description || '',
-      image: p.image || '',
+      image: p.image || getDefaultPhotoForCategory(p.category),
       stock: p.stock ?? 99,
       isAvailable: p.isAvailable !== false
     });
@@ -955,15 +1076,17 @@ export default function Kasir({ user }) {
   const handleDeleteProduct = async (productId, productName) => {
     if (!window.confirm(`Hapus menu "${productName}" dari katalog?`)) return;
     try {
-      const res = await fetch(`/api/pos/products/${productId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setProducts(prev => prev.filter(p => p.id !== productId));
-        setPosCart(prev => {
-          const copy = { ...prev };
-          delete copy[productId];
-          return copy;
-        });
-      }
+      setProducts(prev => {
+        const next = prev.filter(p => p.id !== productId);
+        try { localStorage.setItem('kostku_pos_products', JSON.stringify(next)); } catch (_) {}
+        return next;
+      });
+      setPosCart(prev => {
+        const copy = { ...prev };
+        delete copy[productId];
+        return copy;
+      });
+      await fetch(`/api/pos/products/${productId}`, { method: 'DELETE' }).catch(() => {});
     } catch (_) {}
   };
 
@@ -991,7 +1114,13 @@ export default function Kasir({ user }) {
       ]);
 
       if (resOrders.ok) setOrders(await resOrders.json());
-      if (resProd.ok) setProducts(await resProd.json());
+      if (resProd.ok) {
+        const remoteProds = await resProd.json();
+        if (Array.isArray(remoteProds) && remoteProds.length > 0) {
+          setProducts(remoteProds);
+          try { localStorage.setItem('kostku_pos_products', JSON.stringify(remoteProds)); } catch (_) {}
+        }
+      }
       if (resTables.ok) {
         const tbls = await resTables.json();
         const tablesWithQR = await Promise.all(tbls.map(async (tbl) => {
@@ -9830,14 +9959,13 @@ export default function Kasir({ user }) {
               {/* 4. Deskripsi Produk */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Deskripsi Produk <span style={{ color: '#ef4444' }}>*</span>
+                  Deskripsi Produk <span style={{ color: textSecondary, fontWeight: 500 }}>(Opsional)</span>
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Jelaskan bumbu, cita rasa pedas/gurih, topping, atau catatan porsi menu..."
+                  placeholder="Jelaskan bumbu, cita rasa pedas/gurih, topping, atau catatan porsi menu (opsional)..."
                   value={newMenuForm.description}
                   onChange={(e) => setNewMenuForm(prev => ({ ...prev, description: e.target.value }))}
-                  required
                   style={{
                     width: '100%',
                     padding: '9px 12px',
@@ -9853,20 +9981,20 @@ export default function Kasir({ user }) {
                 />
               </div>
 
-              {/* 5. Foto Produk (MUST HAVE) */}
+              {/* 5. Foto Produk (Otomatis / Pilihan) */}
               <div style={{
                 padding: '10px',
                 borderRadius: '14px',
-                border: !newMenuForm.image ? '1.5px dashed #ef4444' : '1.5px solid #10b981',
+                border: !newMenuForm.image ? `1.5px dashed ${borderColor}` : '1.5px solid #10b981',
                 background: !newMenuForm.image
-                  ? (isLight ? '#fff5f5' : 'rgba(239, 68, 68, 0.08)')
+                  ? (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)')
                   : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.08)')
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <label style={{ fontSize: '0.78rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Camera size={14} />
                     <span>Foto Produk</span>
-                    <span style={{ color: '#ef4444' }}>* (MUST HAVE)</span>
+                    <span style={{ color: textSecondary, fontWeight: 500 }}>(Otomatis / Pilihan)</span>
                   </label>
                   {newMenuForm.image ? (
                     <span style={{
@@ -9886,12 +10014,12 @@ export default function Kasir({ user }) {
                     <span style={{
                       fontSize: '0.68rem',
                       fontWeight: 800,
-                      color: '#ef4444',
-                      background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
+                      color: '#2563eb',
+                      background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
                       padding: '2px 8px',
                       borderRadius: '999px'
                     }}>
-                      Wajib Diunggah
+                      Auto Sesuai Kategori
                     </span>
                   )}
                 </div>
@@ -9937,14 +10065,16 @@ export default function Kasir({ user }) {
                   </div>
                 ) : (
                   <div style={{
-                    padding: '1rem',
+                    padding: '0.8rem',
                     textAlign: 'center',
-                    color: '#ef4444',
-                    fontSize: '0.75rem',
+                    color: '#2563eb',
+                    fontSize: '0.74rem',
                     fontWeight: 600,
-                    marginBottom: '8px'
+                    marginBottom: '8px',
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.1)',
+                    borderRadius: '10px'
                   }}>
-                    ❌ Belum ada foto produk. Pilih salah satu cara di bawah:
+                    ✨ Foto lezat otomatis dipilihkan sesuai kategori, atau pilih foto HD / unggah foto Anda di bawah:
                   </div>
                 )}
 
