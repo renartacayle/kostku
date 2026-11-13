@@ -165,7 +165,7 @@ const getDefaultPhotoForCategory = (cat = 'Makanan') => {
   return 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80';
 };
 
-const compressImageFile = (file, maxWidth = 800, maxHeight = 800, quality = 0.8) => {
+const compressImageFile = (file, maxWidth = 640, maxHeight = 640, quality = 0.72) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -291,6 +291,61 @@ export default function Kasir({ user }) {
   });
   const [savingStore, setSavingStore] = useState(false);
   const [storeSaveMsg, setStoreSaveMsg] = useState('');
+
+  // Multi-tenant Account Identifier (Unifies Owner & Staff under 1 Account ID)
+  const effectiveAccountId = useMemo(() => {
+    let currentUser = user;
+    if (!currentUser) {
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) currentUser = JSON.parse(stored);
+      } catch (_) {}
+    }
+    const accId = currentUser?.ownerId || currentUser?.ownerUid || currentUser?.employerId || currentUser?.id || currentUser?.uid || storeInfo?.merchantId || 'default_account';
+    return String(accId);
+  }, [user, storeInfo?.merchantId]);
+
+  // Kategori Kustom Terisolasi per Akun & Pegawainya
+  const [accountCustomCategories, setAccountCustomCategories] = useState(() => {
+    try {
+      let currentUser = user;
+      if (!currentUser) {
+        const stored = localStorage.getItem('user');
+        if (stored) currentUser = JSON.parse(stored);
+      }
+      const accId = currentUser?.ownerId || currentUser?.ownerUid || currentUser?.employerId || currentUser?.id || currentUser?.uid || storeInfo?.merchantId || 'default_account';
+      const saved = localStorage.getItem(`kostku_categories_${accId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (_) {}
+    return [];
+  });
+
+  // Sync kategori khusus toko saat akun / toko dimuat
+  useEffect(() => {
+    try {
+      const savedCats = localStorage.getItem(`kostku_categories_${effectiveAccountId}`);
+      if (savedCats) {
+        const parsed = JSON.parse(savedCats);
+        if (Array.isArray(parsed)) setAccountCustomCategories(parsed);
+      }
+    } catch (_) {}
+
+    fetch(`/api/pos/categories?merchantId=${encodeURIComponent(effectiveAccountId)}`)
+      .then(r => r.headers.get('content-type')?.includes('application/json') ? r.json() : null)
+      .then(data => {
+        if (data && Array.isArray(data.categories) && data.categories.length > 0) {
+          setAccountCustomCategories(prev => {
+            const merged = Array.from(new Set([...prev, ...data.categories]));
+            try { localStorage.setItem(`kostku_categories_${effectiveAccountId}`, JSON.stringify(merged)); } catch (_) {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {});
+  }, [effectiveAccountId]);
 
   // Hardware Thermal Printer & Cash Drawer (Laci Kasir) Settings State
   const [hardwareCaps, setHardwareCaps] = useState(() => getHardwareCapabilities());
@@ -616,24 +671,26 @@ export default function Kasir({ user }) {
   const [savingMenu, setSavingMenu] = useState(false);
   const menuFileInputRef = useRef(null);
 
-  // Preset Delicious Food Photos for Instant Selection
-  const PHOTO_PRESETS = [
-    { label: 'Mie / Ramen', url: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80' },
-    { label: 'Nasi Goreng', url: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80' },
-    { label: 'Ayam Geprek', url: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80' },
-    { label: 'Dimsum / Siomay', url: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=500&q=80' },
-    { label: 'Kentang Goreng', url: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&q=80' },
-    { label: 'Es Teh Segar', url: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80' },
-    { label: 'Kopi Susu Aren', url: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&q=80' },
-    { label: 'Boba Milk Tea', url: 'https://images.unsplash.com/photo-1558857563-b37cf5a5a92a?w=500&q=80' }
-  ];
+  // Dynamic Categories Isolated per Account (Owner & Staff):
+  // 1. Base standard categories ('Makanan', 'Snack', 'Minuman')
+  // 2. Custom categories created by this account or its staff
+  // 3. Categories from products matching this account's merchantId (or default products)
+  const availableCategories = useMemo(() => {
+    const catsSet = new Set(['Makanan', 'Snack', 'Minuman']);
+    accountCustomCategories.forEach(c => {
+      if (c && typeof c === 'string' && c.trim()) catsSet.add(c.trim());
+    });
+    products.forEach(p => {
+      if (p.category && (!p.merchantId || String(p.merchantId) === effectiveAccountId)) {
+        catsSet.add(p.category.trim());
+      }
+    });
+    return Array.from(catsSet);
+  }, [accountCustomCategories, products, effectiveAccountId]);
 
-  // Dynamic Categories from Products
-  const availableCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-  ['Makanan', 'Snack', 'Minuman'].forEach(c => {
-    if (!availableCategories.includes(c)) availableCategories.push(c);
-  });
-  const posCategories = ['Semua', ...availableCategories.filter(c => c !== 'Semua')];
+  const posCategories = useMemo(() => {
+    return ['Semua', ...availableCategories.filter(c => c !== 'Semua')];
+  }, [availableCategories]);
 
   const getCategoryIcon = (cat) => {
     const c = String(cat).toLowerCase();
@@ -651,7 +708,7 @@ export default function Kasir({ user }) {
     if (!file) return;
     try {
       setAddMenuError('');
-      const compressedDataUrl = await compressImageFile(file, 800, 800, 0.8);
+      const compressedDataUrl = await compressImageFile(file, 640, 640, 0.72);
       setNewMenuForm(prev => ({ ...prev, image: compressedDataUrl }));
     } catch (err) {
       console.warn('Gagal kompresi foto:', err);
@@ -668,35 +725,60 @@ export default function Kasir({ user }) {
     setAddMenuError('');
 
     const targetCategory = newMenuForm.isCustomCategory
-      ? (newMenuForm.customCategory.trim() || 'Lainnya')
-      : (newMenuForm.category.trim() || 'Makanan');
+      ? (newMenuForm.customCategory?.trim() || '')
+      : (newMenuForm.category?.trim() || 'Makanan');
 
+    // 1. Validasi Ketat 4 Kolom Wajib Diisi (Nama, Harga, Deskripsi, Foto)
     if (!newMenuForm.name || !newMenuForm.name.trim()) {
       setAddMenuError('Nama menu wajib diisi!');
       return;
     }
 
-    if (!newMenuForm.price || isNaN(Number(newMenuForm.price)) || Number(newMenuForm.price) < 0) {
-      setAddMenuError('Harga menu wajib berupa angka nominal yang valid!');
+    if (newMenuForm.isCustomCategory && !targetCategory) {
+      setAddMenuError('Nama kategori baru wajib diisi!');
       return;
     }
 
-    // Auto-fallback image & description so user is NEVER blocked!
-    const finalImage = (newMenuForm.image && newMenuForm.image.trim())
-      ? newMenuForm.image.trim()
-      : getDefaultPhotoForCategory(targetCategory);
+    const priceNum = Number(newMenuForm.price);
+    if (!newMenuForm.price || isNaN(priceNum) || priceNum <= 0) {
+      setAddMenuError('Harga menu wajib diisi dengan nominal lebih dari Rp 0!');
+      return;
+    }
 
-    const finalDescription = (newMenuForm.description && newMenuForm.description.trim())
-      ? newMenuForm.description.trim()
-      : `${newMenuForm.name.trim()} lezat siap dinikmati.`;
+    if (!newMenuForm.description || !newMenuForm.description.trim()) {
+      setAddMenuError('Deskripsi produk wajib diisi!');
+      return;
+    }
+
+    if (!newMenuForm.image || !newMenuForm.image.trim()) {
+      setAddMenuError('Foto produk wajib diunggah (kamera atau galeri HP)!');
+      return;
+    }
+
+    // 2. Isolasi Kategori per Akun & Pegawai (Tersimpan khusus untuk akun ini & stafnya)
+    if (newMenuForm.isCustomCategory && targetCategory) {
+      if (!accountCustomCategories.includes(targetCategory)) {
+        const nextCats = [...accountCustomCategories, targetCategory];
+        setAccountCustomCategories(nextCats);
+        try {
+          localStorage.setItem(`kostku_categories_${effectiveAccountId}`, JSON.stringify(nextCats));
+        } catch (_) {}
+        fetch('/api/pos/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category: targetCategory, merchantId: effectiveAccountId })
+        }).catch(() => {});
+      }
+    }
 
     const productPayload = {
       id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
       name: newMenuForm.name.trim(),
       category: targetCategory,
-      price: Math.max(0, Number(newMenuForm.price)),
-      description: finalDescription,
-      image: finalImage,
+      price: priceNum,
+      description: newMenuForm.description.trim(),
+      image: newMenuForm.image.trim(),
+      merchantId: effectiveAccountId,
       stock: Number(newMenuForm.stock !== undefined && newMenuForm.stock !== '' ? newMenuForm.stock : 99),
       isAvailable: editingProduct ? (newMenuForm.isAvailable !== false) : true,
       createdAt: editingProduct?.createdAt || new Date().toISOString(),
@@ -706,7 +788,7 @@ export default function Kasir({ user }) {
     try {
       setSavingMenu(true);
 
-      // 1. Optimistic Local State & LocalStorage Persistence (Instant & Offline-Safe)
+      // 1. Optimistic Local State & LocalStorage Persistence (Scoped per Account & Instant)
       let nextProducts;
       if (editingProduct) {
         nextProducts = products.map(p => p.id === productPayload.id ? { ...p, ...productPayload } : p);
@@ -715,6 +797,7 @@ export default function Kasir({ user }) {
       }
       setProducts(nextProducts);
       try {
+        localStorage.setItem(`kostku_pos_products_${effectiveAccountId}`, JSON.stringify(nextProducts));
         localStorage.setItem('kostku_pos_products', JSON.stringify(nextProducts));
       } catch (lsErr) {
         console.warn('LocalStorage save warning:', lsErr);
@@ -722,7 +805,7 @@ export default function Kasir({ user }) {
       setPosCategory(targetCategory);
       try { playChime(880, 0.1); } catch (_) {}
 
-      // 2. Background Sync with Backend API
+      // 2. Background Sync with Backend API (Non-blocking & Safe from HTML/SPA response)
       try {
         const endpoint = editingProduct ? `/api/pos/products/${editingProduct.id}` : '/api/pos/products';
         const method = editingProduct ? 'PUT' : 'POST';
@@ -732,24 +815,25 @@ export default function Kasir({ user }) {
           body: JSON.stringify(productPayload)
         });
 
-        if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
           const serverProd = await res.json();
           if (serverProd && serverProd.id) {
             setProducts(prev => {
               const updated = prev.map(p => p.id === productPayload.id ? { ...p, ...serverProd } : p);
-              try { localStorage.setItem('kostku_pos_products', JSON.stringify(updated)); } catch (_) {}
+              try {
+                localStorage.setItem(`kostku_pos_products_${effectiveAccountId}`, JSON.stringify(updated));
+                localStorage.setItem('kostku_pos_products', JSON.stringify(updated));
+              } catch (_) {}
               return updated;
             });
           }
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          console.warn('API sync response not OK:', errData);
         }
       } catch (netErr) {
         console.warn('API sync deferred (saved locally):', netErr);
       }
 
-      // 3. Reset form and close modal
+      // 3. Reset form and close modal cleanly
       setEditingProduct(null);
       setNewMenuForm({
         name: '',
@@ -780,7 +864,7 @@ export default function Kasir({ user }) {
       isCustomCategory: false,
       price: '',
       description: '',
-      image: PHOTO_PRESETS[1]?.url || 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
+      image: '',
       stock: 99,
       isAvailable: true
     });
@@ -797,7 +881,7 @@ export default function Kasir({ user }) {
       isCustomCategory: false,
       price: p.price !== undefined ? String(p.price) : '',
       description: p.description || '',
-      image: p.image || getDefaultPhotoForCategory(p.category),
+      image: p.image || '',
       stock: p.stock ?? 99,
       isAvailable: p.isAvailable !== false
     });
@@ -9956,14 +10040,15 @@ export default function Kasir({ user }) {
                 </div>
               </div>
 
-              {/* 4. Deskripsi Produk */}
+              {/* 4. Deskripsi Produk (Wajib) */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Deskripsi Produk <span style={{ color: textSecondary, fontWeight: 500 }}>(Opsional)</span>
+                  Deskripsi Produk <span style={{ color: '#ef4444', fontWeight: 800 }}>* (Wajib Diisi)</span>
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Jelaskan bumbu, cita rasa pedas/gurih, topping, atau catatan porsi menu (opsional)..."
+                  required
+                  placeholder="Jelaskan bumbu, cita rasa pedas/gurih, topping, atau catatan porsi menu (wajib diisi)..."
                   value={newMenuForm.description}
                   onChange={(e) => setNewMenuForm(prev => ({ ...prev, description: e.target.value }))}
                   style={{
@@ -9981,20 +10066,20 @@ export default function Kasir({ user }) {
                 />
               </div>
 
-              {/* 5. Foto Produk (Otomatis / Pilihan) */}
+              {/* 5. Foto Produk (Wajib Diunggah Kamera / Galeri HP) */}
               <div style={{
-                padding: '10px',
+                padding: '12px',
                 borderRadius: '14px',
-                border: !newMenuForm.image ? `1.5px dashed ${borderColor}` : '1.5px solid #10b981',
+                border: !newMenuForm.image ? '1.5px dashed #f59e0b' : '1.5px solid #10b981',
                 background: !newMenuForm.image
-                  ? (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)')
+                  ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.05)')
                   : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.08)')
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <label style={{ fontSize: '0.78rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Camera size={14} />
+                    <Camera size={14} color="#f59e0b" />
                     <span>Foto Produk</span>
-                    <span style={{ color: textSecondary, fontWeight: 500 }}>(Otomatis / Pilihan)</span>
+                    <span style={{ color: '#ef4444', fontWeight: 800 }}>* (Wajib Diunggah)</span>
                   </label>
                   {newMenuForm.image ? (
                     <span style={{
@@ -10014,17 +10099,17 @@ export default function Kasir({ user }) {
                     <span style={{
                       fontSize: '0.68rem',
                       fontWeight: 800,
-                      color: '#2563eb',
-                      background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                      color: '#dc2626',
+                      background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
                       padding: '2px 8px',
                       borderRadius: '999px'
                     }}>
-                      Auto Sesuai Kategori
+                      Wajib Diunggah
                     </span>
                   )}
                 </div>
 
-                {/* Image Preview Box */}
+                {/* Image Preview Box or Empty Prompt */}
                 {newMenuForm.image ? (
                   <div style={{ position: 'relative', width: '100%', marginBottom: '8px' }}>
                     <img
@@ -10039,42 +10124,71 @@ export default function Kasir({ user }) {
                         display: 'block'
                       }}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setNewMenuForm(prev => ({ ...prev, image: '' }))}
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        color: '#f87171',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        backdropFilter: 'blur(4px)'
-                      }}
-                    >
-                      <Trash2 size={12} /> Hapus Foto
-                    </button>
+                    <div style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      display: 'flex',
+                      gap: '6px'
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => menuFileInputRef.current && menuFileInputRef.current.click()}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: 'rgba(0, 0, 0, 0.75)',
+                          color: '#ffffff',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backdropFilter: 'blur(4px)'
+                        }}
+                      >
+                        <Camera size={12} /> Ganti
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewMenuForm(prev => ({ ...prev, image: '' }))}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: 'rgba(220, 38, 38, 0.85)',
+                          color: '#ffffff',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backdropFilter: 'blur(4px)'
+                        }}
+                      >
+                        <Trash2 size={12} /> Hapus
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div style={{
-                    padding: '0.8rem',
+                    padding: '16px 12px',
                     textAlign: 'center',
-                    color: '#2563eb',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    marginBottom: '8px',
-                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.1)',
-                    borderRadius: '10px'
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: '10px',
+                    border: `1px dashed ${borderColor}`,
+                    marginBottom: '8px'
                   }}>
-                    ✨ Foto lezat otomatis dipilihkan sesuai kategori, atau pilih foto HD / unggah foto Anda di bawah:
+                    <Camera size={26} color="#94a3b8" style={{ margin: '0 auto 6px', display: 'block' }} />
+                    <p style={{ margin: '0 0 4px', fontSize: '0.76rem', fontWeight: 700, color: textPrimary }}>
+                      Belum ada foto produk dipilih
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: textSecondary }}>
+                      Wajib unggah foto makanan/minuman dari kamera atau galeri HP Anda
+                    </p>
                   </div>
                 )}
 
@@ -10091,96 +10205,24 @@ export default function Kasir({ user }) {
                   onClick={() => menuFileInputRef.current && menuFileInputRef.current.click()}
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
+                    padding: '10px 14px',
                     borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#ffffff' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
+                    border: '1.5px solid #2563eb',
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.15)',
+                    color: '#2563eb',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    marginBottom: '8px',
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
-                  <Upload size={14} />
-                  <span>Unggah dari Galeri / Kamera HP (Max 5MB)</span>
+                  <Upload size={15} />
+                  <span>{newMenuForm.image ? 'Unggah Foto Lain' : 'Ambil Foto Kamera / Galeri HP (Max 5MB)'}</span>
                 </button>
-
-                {/* Preset Photo Grid */}
-                <div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
-                    Atau Pilih Foto HD Siap Pakai:
-                  </span>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '6px'
-                  }}>
-                    {PHOTO_PRESETS.map((preset, idx) => {
-                      const isChosen = newMenuForm.image === preset.url;
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => setNewMenuForm(prev => ({ ...prev, image: preset.url, description: prev.description || `${preset.label} lezat dengan racikan bumbu khas pilihan.` }))}
-                          style={{
-                            cursor: 'pointer',
-                            borderRadius: '8px',
-                            border: isChosen ? '2px solid #2563eb' : `1px solid ${borderColor}`,
-                            overflow: 'hidden',
-                            position: 'relative',
-                            height: '52px'
-                          }}
-                          title={preset.label}
-                        >
-                          <img
-                            src={preset.url}
-                            alt={preset.label}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                          />
-                          <div style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            background: 'rgba(0,0,0,0.6)',
-                            color: '#ffffff',
-                            fontSize: '0.58rem',
-                            fontWeight: 700,
-                            padding: '1px 3px',
-                            textAlign: 'center',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {preset.label}
-                          </div>
-                          {isChosen && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '2px',
-                              right: '2px',
-                              width: '16px',
-                              height: '16px',
-                              borderRadius: '999px',
-                              background: '#2563eb',
-                              color: '#ffffff',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              <Check size={10} strokeWidth={3} />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
 
               {/* Submit / Cancel Buttons */}

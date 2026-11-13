@@ -1528,49 +1528,84 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     res.json({ success: true, message: 'Konfigurasi TriPay POS berhasil disimpan!' });
   });
 
-  // ── 2. PRODUCTS / MENU MANAGEMENT ─────────────────────────────────────
+  // ── 2. PRODUCTS & CATEGORY MANAGEMENT (ISOLATED PER MERCHANT/ACCOUNT) ──
   router.get('/products', (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
+    const { merchantId } = req.query;
+    if (merchantId) {
+      const filtered = db.pos_products.filter(p => !p.merchantId || String(p.merchantId) === String(merchantId));
+      return res.json(filtered);
+    }
     res.json(db.pos_products);
   });
 
   router.post('/products', (req, res) => {
-    const { name, category, price, stock, isAvailable, description, image } = req.body;
-    if (!name || !String(name).trim() || isNaN(Number(price))) {
-      return res.status(400).json({ error: 'Nama menu dan harga wajib diisi' });
+    const { id, name, category, price, stock, isAvailable, description, image, merchantId } = req.body;
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: 'Nama menu wajib diisi' });
+    }
+    const priceNum = Number(price);
+    if (price === undefined || isNaN(priceNum) || priceNum <= 0) {
+      return res.status(400).json({ error: 'Harga menu wajib diisi dengan nominal lebih dari Rp 0' });
+    }
+    if (!description || !String(description).trim()) {
+      return res.status(400).json({ error: 'Deskripsi menu wajib diisi' });
+    }
+    if (!image || !String(image).trim()) {
+      return res.status(400).json({ error: 'Foto menu wajib diunggah' });
     }
 
     const resolvedCategory = (category && String(category).trim()) ? String(category).trim() : 'Makanan';
-    let fallbackImage = 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80';
-    const catLower = resolvedCategory.toLowerCase();
-    if (catLower.includes('minum') || catLower.includes('kopi') || catLower.includes('teh') || catLower.includes('jus')) {
-      fallbackImage = 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80';
-    } else if (catLower.includes('snack') || catLower.includes('camilan') || catLower.includes('gorengan')) {
-      fallbackImage = 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&q=80';
-    }
-
-    const resolvedImage = (image && String(image).trim()) ? String(image).trim() : fallbackImage;
-    const resolvedDesc = (description && String(description).trim()) ? String(description).trim() : `${String(name).trim()} lezat siap dinikmati.`;
 
     const db = getDB(req);
     ensurePosCollections(db);
 
     const newProduct = {
-      id: 'prod-' + Date.now(),
+      id: id || 'prod-' + Date.now(),
       name: String(name).trim(),
       category: resolvedCategory,
-      price: Math.max(0, Number(price)),
+      price: priceNum,
       stock: Number(stock !== undefined && stock !== '' ? stock : 99),
       isAvailable: isAvailable !== false,
-      description: resolvedDesc,
-      image: resolvedImage,
+      description: String(description).trim(),
+      image: String(image).trim(),
+      merchantId: merchantId ? String(merchantId) : null,
       createdAt: new Date().toISOString()
     };
 
     db.pos_products.unshift(newProduct);
     writeDB(db, req);
     res.json(newProduct);
+  });
+
+  // Kategori khusus terisolasi per akun toko & stafnya
+  router.get('/categories', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { merchantId } = req.query;
+    db.pos_custom_categories = db.pos_custom_categories || {};
+    const accountCats = (merchantId && db.pos_custom_categories[merchantId]) || [];
+    res.json({ categories: accountCats });
+  });
+
+  router.post('/categories', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { category, merchantId } = req.body;
+    if (!category || !merchantId) {
+      return res.status(400).json({ error: 'Kategori dan merchantId wajib disertakan' });
+    }
+    db.pos_custom_categories = db.pos_custom_categories || {};
+    if (!db.pos_custom_categories[merchantId]) {
+      db.pos_custom_categories[merchantId] = [];
+    }
+    const catTrimmed = String(category).trim();
+    if (catTrimmed && !db.pos_custom_categories[merchantId].includes(catTrimmed)) {
+      db.pos_custom_categories[merchantId].push(catTrimmed);
+      writeDB(db, req);
+    }
+    res.json({ success: true, categories: db.pos_custom_categories[merchantId] });
   });
 
   router.put('/products/:id', (req, res) => {
