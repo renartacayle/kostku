@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Utensils,
   ShoppingBag,
@@ -84,6 +84,7 @@ import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
 import KasirInventoryModal from '../components/kasir/KasirInventoryModal';
 
 export default function Kasir({ user }) {
+  const navigate = useNavigate();
   const { isLight, toggleTheme } = useTheme();
 
   // Dompet Terpadu (Unified Wallet Kasir POS & Mitra UMKM - 1 UID)
@@ -114,6 +115,7 @@ export default function Kasir({ user }) {
   const [posSearchQuery, setPosSearchQuery] = useState('');
   const [showMobileCartDrawer, setShowMobileCartDrawer] = useState(false);
   const [showToolsDrawer, setShowToolsDrawer] = useState(false);
+  const [showMobileMenuHub, setShowMobileMenuHub] = useState(false); // Mobile 5-Slot Bottom Nav Menu Sheet
   // POS Catalog View Mode: 'grid' (2 Kolom Kartu) vs 'list' (List Ramping Cepat)
   const [posViewMode, setPosViewMode] = useState('grid');
   // Multi-Payment & Cash Register State
@@ -2970,7 +2972,7 @@ export default function Kasir({ user }) {
       )}
 
       {/* ── MODERN SEGMENTED TAB BAR (4 SEGMEN RAMPING PRESISI) ── */}
-      <div style={{ maxWidth: '1280px', margin: '0.5rem auto 0', padding: '0 1rem' }}>
+      <div className="desktop-only" style={{ maxWidth: '1280px', margin: '0.5rem auto 0', padding: '0 1rem' }}>
         <div style={{
           background: isLight ? '#e2e8f0' : '#1e293b',
           borderRadius: '12px',
@@ -4604,10 +4606,10 @@ export default function Kasir({ user }) {
           onClick={() => setShowMobileCartDrawer(true)}
           style={{
             position: 'fixed',
-            bottom: '16px',
+            bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
             left: '12px',
             right: '12px',
-            zIndex: 45,
+            zIndex: 95,
             maxWidth: '560px',
             margin: '0 auto',
             background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
@@ -10187,6 +10189,493 @@ export default function Kasir({ user }) {
           return data;
         }}
       />
+
+      {/* ── MOBILE 5-ITEM BOTTOM NAVBAR (HP BOTTOM DOCK) ── */}
+      <nav
+        className="mobile-only"
+        aria-label="Navigasi Kasir & Operasional Mobile"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 90,
+          background: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 23, 42, 0.96)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderTop: `1px solid ${isLight ? '#e2e8f0' : 'rgba(51, 65, 85, 0.7)'}`,
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.12)',
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)',
+          paddingTop: '4px'
+        }}
+      >
+        <div style={{
+          maxWidth: '520px',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          alignItems: 'center',
+          height: '56px',
+          position: 'relative',
+          padding: '0 4px'
+        }}>
+          {/* 1. KASIR */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('pos');
+              setShowMobileMenuHub(false);
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              background: 'none',
+              border: 'none',
+              padding: '4px 0',
+              cursor: 'pointer',
+              color: (activeTab === 'pos' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <ShoppingBag size={20} strokeWidth={(activeTab === 'pos' && !showMobileMenuHub) ? 2.5 : 2} />
+              {Object.values(posCart).length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-8px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.6rem',
+                  fontWeight: 900,
+                  borderRadius: '999px',
+                  padding: '1px 4px',
+                  lineHeight: 1
+                }}>
+                  {Object.values(posCart).reduce((s, it) => s + it.qty, 0)}
+                </span>
+              )}
+            </div>
+            <span style={{
+              fontSize: '0.68rem',
+              fontWeight: (activeTab === 'pos' && !showMobileMenuHub) ? 800 : 600,
+              letterSpacing: '-0.01em'
+            }}>
+              Kasir
+            </span>
+          </button>
+
+          {/* 2. DAPUR */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('kds');
+              setShowMobileMenuHub(false);
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              background: 'none',
+              border: 'none',
+              padding: '4px 0',
+              cursor: 'pointer',
+              color: (activeTab === 'kds' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <Flame size={20} strokeWidth={(activeTab === 'kds' && !showMobileMenuHub) ? 2.5 : 2} />
+              {pendingOrders.length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-8px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.6rem',
+                  fontWeight: 900,
+                  borderRadius: '999px',
+                  padding: '1px 4px',
+                  lineHeight: 1
+                }}>
+                  {pendingOrders.length}
+                </span>
+              )}
+            </div>
+            <span style={{
+              fontSize: '0.68rem',
+              fontWeight: (activeTab === 'kds' && !showMobileMenuHub) ? 800 : 600,
+              letterSpacing: '-0.01em'
+            }}>
+              Dapur
+            </span>
+          </button>
+
+          {/* 3. MENU (TENGAH - KHUSUS BUAT MENU / HUB OPERASIONAL) */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setShowMobileMenuHub(prev => !prev)}
+              aria-label="Buka Semua Menu & Fitur"
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                background: showMobileMenuHub 
+                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                  : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: '#ffffff',
+                border: isLight ? '3px solid #ffffff' : '3px solid #0f172a',
+                boxShadow: showMobileMenuHub 
+                  ? '0 6px 16px rgba(16, 185, 129, 0.45)' 
+                  : '0 6px 16px rgba(37, 99, 235, 0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transform: 'translateY(-12px)',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              {showMobileMenuHub ? <X size={22} strokeWidth={2.5} /> : <LayoutGrid size={22} strokeWidth={2.3} />}
+            </button>
+            <span style={{
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              color: showMobileMenuHub ? '#10b981' : (isLight ? '#1e293b' : '#f8fafc'),
+              marginTop: '-10px',
+              letterSpacing: '-0.01em'
+            }}>
+              Menu
+            </span>
+          </div>
+
+          {/* 4. MEJA QR */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('tables');
+              setShowMobileMenuHub(false);
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              background: 'none',
+              border: 'none',
+              padding: '4px 0',
+              cursor: 'pointer',
+              color: (activeTab === 'tables' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <QrCode size={20} strokeWidth={(activeTab === 'tables' && !showMobileMenuHub) ? 2.5 : 2} />
+            <span style={{
+              fontSize: '0.68rem',
+              fontWeight: (activeTab === 'tables' && !showMobileMenuHub) ? 800 : 600,
+              letterSpacing: '-0.01em'
+            }}>
+              Meja QR
+            </span>
+          </button>
+
+          {/* 5. KEUANGAN */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('settings');
+              setShowMobileMenuHub(false);
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              background: 'none',
+              border: 'none',
+              padding: '4px 0',
+              cursor: 'pointer',
+              color: (activeTab === 'settings' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <DollarSign size={20} strokeWidth={(activeTab === 'settings' && !showMobileMenuHub) ? 2.5 : 2} />
+            <span style={{
+              fontSize: '0.68rem',
+              fontWeight: (activeTab === 'settings' && !showMobileMenuHub) ? 800 : 600,
+              letterSpacing: '-0.01em'
+            }}>
+              Keuangan
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      {/* ── MOBILE MENU HUB BOTTOM SHEET (TENGAH) ── */}
+      {showMobileMenuHub && (
+        <div
+          onClick={() => setShowMobileMenuHub(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 150,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '560px',
+              background: bgCard,
+              borderTop: `1px solid ${borderColor}`,
+              borderRadius: '24px 24px 0 0',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              boxShadow: '0 -15px 40px rgba(0, 0, 0, 0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)'
+            }}
+          >
+            {/* Drag Handle Bar */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: isLight ? '#cbd5e1' : '#475569', margin: '12px auto 6px' }} />
+
+            {/* Header Sheet */}
+            <div style={{
+              padding: '10px 18px 14px',
+              borderBottom: `1px solid ${borderColor}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 900, color: textPrimary, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <LayoutGrid size={18} color="#2563eb" />
+                  <span>Semua Menu &amp; Fitur Operasional</span>
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
+                  Akses cepat 10 modul kasir, dapur &amp; manajemen toko
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileMenuHub(false)}
+                style={{
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: textSecondary
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Grid 10 Menu Fitur Lengkap Sesuai Permintaan */}
+            <div style={{
+              padding: '16px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '10px'
+            }}>
+              {[
+                {
+                  id: 'kasir',
+                  title: 'Kasir Walk-in',
+                  desc: 'Pesan, diskon & bayar',
+                  icon: <ShoppingBag size={20} color="#2563eb" />,
+                  badge: Object.values(posCart).length > 0 ? `${Object.values(posCart).reduce((s, it) => s + it.qty, 0)} item` : null,
+                  badgeBg: '#2563eb',
+                  onClick: () => { setActiveTab('pos'); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'keuangan',
+                  title: 'Keuangan & Saldo',
+                  desc: 'Mutasi, omset & payout',
+                  icon: <DollarSign size={20} color="#10b981" />,
+                  badge: walletData?.available_balance ? `Rp ${(walletData.available_balance / 1000).toFixed(0)}k` : null,
+                  badgeBg: '#10b981',
+                  onClick: () => { setActiveTab('settings'); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'dapur',
+                  title: 'Dapur (KDS)',
+                  desc: 'Checklist antrean masak',
+                  icon: <Flame size={20} color="#f97316" />,
+                  badge: pendingOrders.length > 0 ? `${pendingOrders.length} antrean` : null,
+                  badgeBg: '#ef4444',
+                  onClick: () => { setActiveTab('kds'); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'meja_qr',
+                  title: 'Meja & Barcode QR',
+                  desc: 'Cetak QR & denah meja',
+                  icon: <QrCode size={20} color="#8b5cf6" />,
+                  badge: `${tables.length} meja`,
+                  badgeBg: '#8b5cf6',
+                  onClick: () => { setActiveTab('tables'); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'promo',
+                  title: 'Promo Makanan',
+                  desc: 'Diskon & kuota promo',
+                  icon: <Tag size={20} color="#f59e0b" />,
+                  badge: promosList.filter(p => p.isAvailable).length ? `${promosList.filter(p => p.isAvailable).length} aktif` : null,
+                  badgeBg: '#f59e0b',
+                  onClick: () => { setShowPromoManagerModal(true); loadPromos(); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'gudang',
+                  title: 'Gudang & Resep',
+                  desc: inventoryAlerts.length > 0 ? `${inventoryAlerts.length} stok menipis!` : 'Bahan baku & restock',
+                  icon: <Package size={20} color="#ef4444" />,
+                  badge: inventoryAlerts.length > 0 ? `${inventoryAlerts.length}!` : null,
+                  badgeBg: '#ef4444',
+                  onClick: () => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'statistik',
+                  title: 'Statistik Keuangan',
+                  desc: 'Grafik menu & performa kasir',
+                  icon: <BarChart3 size={20} color="#6366f1" />,
+                  onClick: () => { setShowAnalyticsModal(true); loadAnalytics(); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'stamp',
+                  title: 'Stamp & Loyalty',
+                  desc: 'Hadiah poin pelanggan',
+                  icon: <Award size={20} color="#3b82f6" />,
+                  onClick: () => { setShowLoyaltyModal(true); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'karyawan',
+                  title: 'Kelola Karyawan',
+                  desc: 'Shift kasir & staf resto',
+                  icon: <Users size={20} color="#a855f7" />,
+                  onClick: () => { navigate('/karyawan'); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'lokasi_toko',
+                  title: 'Lokasi & Info Toko',
+                  desc: storeInfo.storeName || 'Atur data & alamat',
+                  icon: <Store size={20} color="#14b8a6" />,
+                  badge: storeInfo.isValidated ? '✓ Resmi' : '⚠️ Validasi',
+                  badgeBg: storeInfo.isValidated ? '#10b981' : '#f59e0b',
+                  onClick: () => { setShowStoreModal(true); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'printer',
+                  title: 'Printer & Laci Kasir',
+                  desc: 'Thermal Bluetooth / USB',
+                  icon: <Printer size={20} color="#059669" />,
+                  onClick: () => { setShowHardwareModal(true); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'topup_nota',
+                  title: 'Top Up Kuota Nota',
+                  desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar`,
+                  icon: <Zap size={20} color="#eab308" />,
+                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Habis' : null,
+                  badgeBg: '#ef4444',
+                  onClick: () => { setShowPosTopupModal(true); setShowMobileMenuHub(false); }
+                }
+              ].map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={item.onClick}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    padding: '12px 10px',
+                    borderRadius: '14px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    border: `1px solid ${borderColor}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {item.icon}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: textPrimary,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {item.title}
+                    </div>
+                    <div style={{
+                      fontSize: '0.68rem',
+                      color: textSecondary,
+                      marginTop: '2px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {item.desc}
+                    </div>
+                    {item.badge && (
+                      <span style={{
+                        display: 'inline-block',
+                        marginTop: '4px',
+                        fontSize: '0.6rem',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: '999px',
+                        background: item.badgeBg || '#2563eb',
+                        color: '#ffffff',
+                        lineHeight: 1.2
+                      }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
