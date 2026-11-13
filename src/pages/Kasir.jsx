@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Utensils,
+  ChefHat,
   ShoppingBag,
   Clock,
   CheckCircle2,
@@ -2474,35 +2475,89 @@ export default function Kasir({ user }) {
     );
   };
 
+  const sidebarItemStyle = (isActive) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '9px',
+    padding: '7px 11px',
+    borderRadius: '10px',
+    border: isActive ? `1px solid ${isLight ? 'rgba(37, 99, 235, 0.3)' : 'rgba(37, 99, 235, 0.4)'}` : '1px solid transparent',
+    background: isActive 
+      ? (isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.22)') 
+      : 'transparent',
+    color: isActive ? '#2563eb' : (isLight ? '#475569' : '#94a3b8'),
+    fontWeight: isActive ? 800 : 600,
+    fontSize: '0.78rem',
+    cursor: 'pointer',
+    textAlign: 'left',
+    width: '100%',
+    transition: 'all 0.15s ease',
+    textDecoration: 'none',
+    boxSizing: 'border-box'
+  });
+
   return (
-    <div style={{
+    <div className="pos-layout-wrapper" style={{
       minHeight: '100vh',
       background: bgPage,
       color: textPrimary,
-      fontFamily: 'var(--font-main, "Plus Jakarta Sans", sans-serif)',
-      paddingBottom: '5rem'
+      fontFamily: 'var(--font-main, "Plus Jakarta Sans", sans-serif)'
     }}>
-      {/* ── TOP HEADER / NAVBAR (SLEEK, COMPACT & MODERN POS) ── */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-        background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${borderColor}`,
-        padding: '0.55rem 1rem',
-        boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : '0 4px 20px rgba(0,0,0,0.3)'
+      {/* ── DESKTOP LEFT SIDEBAR (SEBELAH KIRI) ── */}
+      <aside className="pos-desktop-sidebar desktop-only" style={{
+        background: bgCard,
+        borderRight: `1px solid ${borderColor}`,
+        padding: '1.1rem 0.85rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '0.75rem',
+        boxSizing: 'border-box'
       }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          {/* Left: Back Arrow + Logo + Store Name + Live Status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Header Toko / Brand KostKu POS */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            paddingBottom: '0.75rem',
+            borderBottom: `1px solid ${borderColor}`
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+              <img 
+                src="/logo.png" 
+                alt="Logo KostKu" 
+                style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'contain', flexShrink: 0 }} 
+              />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 900,
+                  color: textPrimary,
+                  letterSpacing: '-0.3px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span>{storeInfo.storeName || 'KostKu POS'}</span>
+                  {storeInfo.isValidated && (
+                    <span style={{ fontSize: '0.55rem', fontWeight: 800, padding: '1px 4px', borderRadius: '999px', background: '#16a34a', color: '#ffffff' }}>✓</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.66rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span>{storeInfo.location || 'Kantin'}</span>
+                  <span> • </span>
+                  <span style={{ color: user?.role === 'mitra' ? '#ec4899' : '#10b981', fontWeight: 700 }}>
+                    {user ? user.name.split(' ')[0] : 'Kasir'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <Link 
               to="/dashboard" 
               title="Kembali ke Dashboard KostKu" 
@@ -2511,215 +2566,615 @@ export default function Kasir({ user }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '8px',
                 background: isLight ? '#f1f5f9' : '#1e293b',
                 border: `1px solid ${borderColor}`,
-                color: textPrimary,
+                color: textSecondary,
                 flexShrink: 0
               }}
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={15} />
             </Link>
-
-            <img 
-              src="/logo.png" 
-              alt="Logo KostKu" 
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '8px',
-                objectFit: 'contain',
-                flexShrink: 0
-              }} 
-            />
-
-            <div style={{ minWidth: 0, overflow: 'hidden', flex: 1, maxWidth: '220px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: '0.86rem',
-                  fontWeight: 800,
-                  color: textPrimary,
-                  letterSpacing: '-0.3px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {storeInfo.storeName || 'KostKu POS'}
-                </h1>
-                {storeInfo.isValidated ? (
-                  <span style={{
-                    fontSize: '0.58rem',
-                    fontWeight: 800,
-                    padding: '1px 5px',
-                    borderRadius: '999px',
-                    background: '#16a34a',
-                    color: '#ffffff',
-                    flexShrink: 0
-                  }}>
-                    ✓
-                  </span>
-                ) : (
-                  <span 
-                    onClick={() => setShowStoreModal(true)}
-                    style={{
-                      fontSize: '0.58rem',
-                      fontWeight: 800,
-                      padding: '1px 5px',
-                      borderRadius: '999px',
-                      background: '#d97706',
-                      color: '#ffffff',
-                      cursor: 'pointer',
-                      flexShrink: 0
-                    }}
-                  >
-                    ⚠️
-                  </span>
-                )}
-              </div>
-              <p style={{ margin: 0, fontSize: '0.64rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span>{storeInfo.location || 'Kantin'}</span>
-                <span> • </span>
-                <span style={{ color: user?.role === 'mitra' ? '#ec4899' : '#10b981', fontWeight: 600 }}>
-                  {user ? (user.name.split(' ')[0]) : 'Kasir'}
-                </span>
-              </p>
-            </div>
           </div>
 
-          {/* Right: Sisa Nota + Kelola Modal + Desktop-Only Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-            {/* Saldo Kuota Nota Chip */}
+          {/* Tombol Menonjol Utama: + Tambah Menu Pelanggan */}
+          <button
+            type="button"
+            onClick={handleOpenAddMenu}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '9px 12px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Tambah Menu Makanan/Minuman Baru untuk Pelanggan"
+          >
+            <Plus size={17} strokeWidth={2.8} />
+            <span>+ Tambah Menu</span>
+          </button>
+
+          {/* Group 1: Modul Utama Kasir */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span style={{
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: textSecondary,
+              padding: '6px 8px 2px'
+            }}>
+              Modul Kasir
+            </span>
+
+            {/* 1. Kasir POS */}
             <button
               type="button"
-              onClick={() => setShowPosTopupModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 9px',
-                borderRadius: '999px',
-                background: Number(storeInfo.saldoNota ?? 5000) < 100 
-                  ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
-                  : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
-                border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
-                cursor: 'pointer',
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
-                boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-              }}
-              title="Klik untuk Top Up Saldo Kuota Nota Kasir"
+              onClick={() => setActiveTab('pos')}
+              style={sidebarItemStyle(activeTab === 'pos')}
             >
-              <span>🪙</span>
-              <span>{storeInfo.kuotaNota ?? 50}</span>
-              <span style={{
-                fontSize: '0.62rem',
-                fontWeight: 900,
-                background: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#2563eb',
-                color: '#ffffff',
-                padding: '1px 5px',
-                borderRadius: '999px',
-                marginLeft: '1px'
-              }}>+Top Up</span>
+              <ShoppingBag size={17} strokeWidth={activeTab === 'pos' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Kasir POS</span>
+              {Object.values(posCart).length > 0 && (
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  padding: '1px 6px',
+                  borderRadius: '999px'
+                }}>
+                  {Object.values(posCart).reduce((s, it) => s + it.qty, 0)}
+                </span>
+              )}
             </button>
 
-            {/* Tombol Pusat Kelola Kasir (Semua Fitur) */}
+            {/* 2. Layar Dapur KDS */}
             <button
               type="button"
-              onClick={() => setShowToolsDrawer(true)}
+              onClick={() => setActiveTab('kds')}
+              style={sidebarItemStyle(activeTab === 'kds')}
+            >
+              <ChefHat size={17} strokeWidth={activeTab === 'kds' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Dapur (KDS)</span>
+              {pendingOrders.length > 0 && (
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  padding: '1px 6px',
+                  borderRadius: '999px'
+                }}>
+                  {pendingOrders.length}
+                </span>
+              )}
+            </button>
+
+            {/* 3. Meja QR */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('tables')}
+              style={sidebarItemStyle(activeTab === 'tables')}
+            >
+              <QrCode size={17} strokeWidth={activeTab === 'tables' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Meja QR</span>
+              <span style={{
+                fontSize: '0.62rem',
+                fontWeight: 700,
+                color: textSecondary
+              }}>
+                {tables.length}
+              </span>
+            </button>
+
+            {/* 4. Keuangan */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('settings')}
+              style={sidebarItemStyle(activeTab === 'settings')}
+            >
+              <DollarSign size={17} strokeWidth={activeTab === 'settings' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Keuangan</span>
+            </button>
+          </div>
+
+          {/* Group 2: Operasional & Toko */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span style={{
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              color: textSecondary,
+              padding: '6px 8px 2px'
+            }}>
+              Manajemen Toko
+            </span>
+
+            {/* 5. Promo */}
+            <button
+              type="button"
+              onClick={() => { setShowPromoManagerModal(true); loadPromos(); }}
+              style={sidebarItemStyle(false)}
+            >
+              <Tag size={17} color="#f59e0b" />
+              <span style={{ flex: 1 }}>Promo &amp; Diskon</span>
+            </button>
+
+            {/* 6. Gudang */}
+            <button
+              type="button"
+              onClick={() => { setShowInventoryModal(true); setInventoryTab('stock'); loadInventory(); }}
+              style={sidebarItemStyle(false)}
+            >
+              <Package size={17} color="#ef4444" />
+              <span style={{ flex: 1 }}>Gudang &amp; Stok</span>
+              {inventoryAlerts.length > 0 && (
+                <span style={{
+                  fontSize: '0.6rem',
+                  fontWeight: 900,
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  padding: '1px 5px',
+                  borderRadius: '999px'
+                }}>
+                  {inventoryAlerts.length}!
+                </span>
+              )}
+            </button>
+
+            {/* 7. Statistik */}
+            <button
+              type="button"
+              onClick={() => { setShowAnalyticsModal(true); loadAnalytics(); }}
+              style={sidebarItemStyle(false)}
+            >
+              <BarChart3 size={17} color="#6366f1" />
+              <span style={{ flex: 1 }}>Statistik</span>
+            </button>
+
+            {/* 8. Stamp */}
+            <button
+              type="button"
+              onClick={() => setShowLoyaltyModal(true)}
+              style={sidebarItemStyle(false)}
+            >
+              <Award size={17} color="#3b82f6" />
+              <span style={{ flex: 1 }}>Stamp Loyalti</span>
+            </button>
+
+            {/* 9. Karyawan */}
+            <Link
+              to="/karyawan"
+              style={sidebarItemStyle(false)}
+            >
+              <Users size={17} color="#a855f7" />
+              <span style={{ flex: 1 }}>Karyawan</span>
+            </Link>
+
+            {/* 10. Lokasi Toko */}
+            <button
+              type="button"
+              onClick={() => setShowStoreModal(true)}
+              style={sidebarItemStyle(false)}
+            >
+              <MapPin size={17} color="#14b8a6" />
+              <span style={{ flex: 1 }}>Lokasi Toko</span>
+            </button>
+
+            {/* 11. Printer & Laci */}
+            <button
+              type="button"
+              onClick={() => setShowHardwareModal(true)}
+              style={sidebarItemStyle(false)}
+            >
+              <Printer size={17} color="#059669" />
+              <span style={{ flex: 1 }}>Laci &amp; Printer</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar Bottom / Footer */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          paddingTop: '0.75rem',
+          borderTop: `1px solid ${borderColor}`
+        }}>
+          {/* Multi-Store Switcher jika ada toko lain */}
+          {storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 1 && (
+            <select
+              value={storeInfo.merchantId}
+              onChange={(e) => handleSwitchPosStore(e.target.value)}
               style={{
-                position: 'relative',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '5px 9px',
+                width: '100%',
+                padding: '5px 8px',
                 borderRadius: '8px',
                 border: `1px solid ${borderColor}`,
-                background: isLight ? '#f1f5f9' : '#1e293b',
+                background: isLight ? '#f8fafc' : '#0f172a',
                 color: textPrimary,
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 cursor: 'pointer'
               }}
-              title="Buka Pusat Kelola Fitur Kasir & Toko"
             >
-              <Sliders size={13} color="#2563eb" />
-              <span>Kelola</span>
-              {inventoryAlerts.length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-3px',
-                  right: '-3px',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '999px',
-                  background: '#ef4444'
-                }} />
-              )}
+              {storeInfo.allOwnerStores.map(s => (
+                <option key={s.id} value={s.id}>
+                  🏪 {s.name} ({s.kuotaNota} nota)
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Kuota Nota Status Card */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '7px 10px',
+            borderRadius: '10px',
+            background: Number(storeInfo.saldoNota ?? 5000) < 100 
+              ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)') 
+              : (isLight ? '#f8fafc' : '#0f172a'),
+            border: `1px solid ${borderColor}`
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>🪙</span>
+              <div>
+                <div style={{ fontSize: '0.62rem', color: textSecondary, fontWeight: 700, lineHeight: 1 }}>Kuota Nota</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: textPrimary }}>{storeInfo.kuotaNota ?? 50} lembar</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPosTopupModal(true)}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                background: '#2563eb',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              +Top Up
+            </button>
+          </div>
+
+          {/* Utility Bar: Theme, Audio, Refresh */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+            <button
+              onClick={toggleTheme}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '6px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : '#1e293b',
+                border: `1px solid ${borderColor}`,
+                color: textSecondary,
+                cursor: 'pointer',
+                fontSize: '0.7rem'
+              }}
+              title="Ganti Tema"
+            >
+              {isLight ? <Moon size={14} /> : <Sun size={14} color="#f59e0b" />}
             </button>
 
-            {/* Desktop-Only Secondary Controls: Theme, Sound, Refresh */}
-            <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '5px' }}>
-              <button
-                onClick={toggleTheme}
-                style={{
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  padding: '5px 7px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: textSecondary
-                }}
-                title="Ganti Tema Terang/Gelap"
-              >
-                {isLight ? <Moon size={14} /> : <Sun size={14} color="#f59e0b" />}
-              </button>
+            <button
+              onClick={() => setAudioAlert(!audioAlert)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '6px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : '#1e293b',
+                border: `1px solid ${borderColor}`,
+                color: audioAlert ? '#10b981' : textSecondary,
+                cursor: 'pointer',
+                fontSize: '0.7rem'
+              }}
+              title={audioAlert ? 'Suara Aktif' : 'Suara Mati'}
+            >
+              {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </button>
 
-              <button
-                onClick={() => setAudioAlert(!audioAlert)}
-                style={{
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  padding: '5px 7px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: audioAlert ? '#10b981' : textSecondary
-                }}
-                title={audioAlert ? 'Suara Aktif' : 'Suara Mati'}
-              >
-                {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />}
-              </button>
-
-              <button
-                onClick={fetchData}
-                style={{
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  padding: '5px 7px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: textSecondary
-                }}
-                title="Refresh Data"
-              >
-                <RefreshCw size={14} />
-              </button>
-            </div>
+            <button
+              onClick={fetchData}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '6px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : '#1e293b',
+                border: `1px solid ${borderColor}`,
+                color: textSecondary,
+                cursor: 'pointer',
+                fontSize: '0.7rem'
+              }}
+              title="Refresh Data"
+            >
+              <RefreshCw size={14} />
+            </button>
           </div>
         </div>
-      </header>
+      </aside>
+
+      {/* ── POS MAIN CONTENT WRAPPER ── */}
+      <div className="pos-main-wrapper" style={{ minWidth: 0, paddingBottom: '5rem' }}>
+        {/* ── TOP HEADER / NAVBAR (SLEEK, COMPACT & MODERN POS) ── */}
+        <header style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
+          background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: `1px solid ${borderColor}`,
+          padding: '0.55rem 1rem',
+          boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : '0 4px 20px rgba(0,0,0,0.3)'
+        }}>
+          <div style={{
+            maxWidth: '1280px',
+            margin: '0 auto',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            {/* Left: Mobile (Back Arrow + Logo + Store Name) vs Desktop (Active Module Title) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+              {/* Mobile View: Back Arrow + Logo + Store Name */}
+              <div className="mobile-only-flex" style={{ alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <Link 
+                  to="/dashboard" 
+                  title="Kembali ke Dashboard KostKu" 
+                  style={{
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: isLight ? '#f1f5f9' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    color: textPrimary,
+                    flexShrink: 0
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                </Link>
+
+                <img 
+                  src="/logo.png" 
+                  alt="Logo KostKu" 
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    objectFit: 'contain',
+                    flexShrink: 0
+                  }} 
+                />
+
+                <div style={{ minWidth: 0, overflow: 'hidden', flex: 1, maxWidth: '200px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <h1 style={{
+                      margin: 0,
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      color: textPrimary,
+                      letterSpacing: '-0.3px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {storeInfo.storeName || 'KostKu POS'}
+                    </h1>
+                    {storeInfo.isValidated ? (
+                      <span style={{
+                        fontSize: '0.58rem',
+                        fontWeight: 800,
+                        padding: '1px 5px',
+                        borderRadius: '999px',
+                        background: '#16a34a',
+                        color: '#ffffff',
+                        flexShrink: 0
+                      }}>
+                        ✓
+                      </span>
+                    ) : (
+                      <span 
+                        onClick={() => setShowStoreModal(true)}
+                        style={{
+                          fontSize: '0.58rem',
+                          fontWeight: 800,
+                          padding: '1px 5px',
+                          borderRadius: '999px',
+                          background: '#d97706',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          flexShrink: 0
+                        }}
+                      >
+                        ⚠️
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.64rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span>{storeInfo.location || 'Kantin'}</span>
+                    <span> • </span>
+                    <span style={{ color: user?.role === 'mitra' ? '#ec4899' : '#10b981', fontWeight: 600 }}>
+                      {user ? (user.name.split(' ')[0]) : 'Kasir'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Desktop View: Active Tab Title */}
+              <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  fontSize: '0.98rem',
+                  fontWeight: 900,
+                  color: textPrimary,
+                  letterSpacing: '-0.3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  {activeTab === 'pos' && <><span>🛍️</span><span>Kasir &amp; Katalog POS</span></>}
+                  {activeTab === 'kds' && <><span>🍳</span><span>Layar Antrean Dapur (KDS)</span></>}
+                  {activeTab === 'tables' && <><span>🪑</span><span>Manajemen Meja &amp; QR Barcode</span></>}
+                  {activeTab === 'settings' && <><span>💰</span><span>Laporan Keuangan &amp; Kasir</span></>}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Sisa Nota + Desktop Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              {/* Buka Laci Cepat RJ11 di Desktop */}
+              <button
+                type="button"
+                className="desktop-only-flex"
+                onClick={handleKickDrawerManual}
+                disabled={drawerKicking}
+                style={{
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  border: `1px solid ${borderColor}`,
+                  background: drawerKicking ? '#10b981' : (isLight ? '#f1f5f9' : '#1e293b'),
+                  color: drawerKicking ? '#ffffff' : textPrimary,
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title="Buka Laci Uang Kasir (Pulsa RJ11)"
+              >
+                <span>🔓</span>
+                <span>{drawerKicking ? 'Buka...' : 'Buka Laci'}</span>
+              </button>
+
+              {/* Saldo Kuota Nota Chip */}
+              <button
+                type="button"
+                onClick={() => setShowPosTopupModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 9px',
+                  borderRadius: '999px',
+                  background: Number(storeInfo.saldoNota ?? 5000) < 100 
+                    ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
+                    : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
+                  border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                }}
+                title="Klik untuk Top Up Saldo Kuota Nota Kasir"
+              >
+                <span>🪙</span>
+                <span>{storeInfo.kuotaNota ?? 50}</span>
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  background: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#2563eb',
+                  color: '#ffffff',
+                  padding: '1px 5px',
+                  borderRadius: '999px',
+                  marginLeft: '1px'
+                }}>+Top Up</span>
+              </button>
+
+              {/* Desktop-Only Secondary Controls: Theme, Sound, Refresh */}
+              <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '5px' }}>
+                <button
+                  onClick={toggleTheme}
+                  style={{
+                    background: isLight ? '#f1f5f9' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '8px',
+                    padding: '5px 7px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: textSecondary
+                  }}
+                  title="Ganti Tema Terang/Gelap"
+                >
+                  {isLight ? <Moon size={14} /> : <Sun size={14} color="#f59e0b" />}
+                </button>
+
+                <button
+                  onClick={() => setAudioAlert(!audioAlert)}
+                  style={{
+                    background: isLight ? '#f1f5f9' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '8px',
+                    padding: '5px 7px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: audioAlert ? '#10b981' : textSecondary
+                  }}
+                  title={audioAlert ? 'Suara Aktif' : 'Suara Mati'}
+                >
+                  {audioAlert ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                </button>
+
+                <button
+                  onClick={fetchData}
+                  style={{
+                    background: isLight ? '#f1f5f9' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '8px',
+                    padding: '5px 7px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: textSecondary
+                  }}
+                  title="Refresh Data"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
 
       {/* ── PERINGATAN KUOTA MENIPIS (THRESHOLD ALERT <= 15 NOTA) ── */}
       {(storeInfo.kuotaNota ?? 50) <= 15 && (
@@ -2768,20 +3223,8 @@ export default function Kasir({ user }) {
         </div>
       )}
 
-      {/* ── HORIZONTAL QUICK TOOLBAR (1-BARIS PRAKTIS & RAMPING) ── */}
-      <div style={{
-        maxWidth: '1280px',
-        width: '100%',
-        boxSizing: 'border-box',
-        margin: '0 auto',
-        padding: '0.45rem 1rem 0',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        overflowX: 'auto',
-        scrollbarWidth: 'none',
-        WebkitOverflowScrolling: 'touch'
-      }}>
+      {/* ── HORIZONTAL QUICK TOOLBAR (TERPADU DI SIDEBAR DESKTOP & BOTTOM SHEET MOBILE) ── */}
+      <div className="desktop-only" style={{ display: 'none' }}>
         {/* Multi-Store Switcher jika ada toko lain */}
         {storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 1 && (
           <select
@@ -2971,8 +3414,8 @@ export default function Kasir({ user }) {
         </div>
       )}
 
-      {/* ── MODERN SEGMENTED TAB BAR (4 SEGMEN RAMPING PRESISI) ── */}
-      <div className="desktop-only" style={{ maxWidth: '1280px', margin: '0.5rem auto 0', padding: '0 1rem' }}>
+      {/* ── MODERN SEGMENTED TAB BAR (TERPADU DI SIDEBAR DESKTOP & BOTTOM NAVBAR MOBILE) ── */}
+      <div className="desktop-only" style={{ display: 'none' }}>
         <div style={{
           background: isLight ? '#e2e8f0' : '#1e293b',
           borderRadius: '12px',
@@ -10317,24 +10760,20 @@ export default function Kasir({ user }) {
             </span>
           </button>
 
-          {/* 3. MENU (TENGAH - KHUSUS BUAT MENU / HUB OPERASIONAL) */}
+          {/* 3. + MENU (TENGAH - KHUSUS UNTUK MENAMBAH MENU PELANGGAN) */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <button
               type="button"
-              onClick={() => setShowMobileMenuHub(prev => !prev)}
-              aria-label="Buka Semua Menu & Fitur"
+              onClick={handleOpenAddMenu}
+              aria-label="Tambah Menu untuk Pelanggan"
               style={{
-                width: '46px',
-                height: '46px',
+                width: '48px',
+                height: '48px',
                 borderRadius: '50%',
-                background: showMobileMenuHub 
-                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
-                  : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 color: '#ffffff',
-                border: isLight ? '3px solid #ffffff' : '3px solid #0f172a',
-                boxShadow: showMobileMenuHub 
-                  ? '0 6px 16px rgba(16, 185, 129, 0.45)' 
-                  : '0 6px 16px rgba(37, 99, 235, 0.45)',
+                border: isLight ? '3.5px solid #ffffff' : '3.5px solid #0f172a',
+                boxShadow: '0 6px 18px rgba(37, 99, 235, 0.45)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -10342,17 +10781,18 @@ export default function Kasir({ user }) {
                 transform: 'translateY(-12px)',
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
+              title="Tambah Menu Makanan/Minuman Baru untuk Pelanggan"
             >
-              {showMobileMenuHub ? <X size={22} strokeWidth={2.5} /> : <LayoutGrid size={22} strokeWidth={2.3} />}
+              <Plus size={24} strokeWidth={2.8} color="#ffffff" />
             </button>
             <span style={{
               fontSize: '0.68rem',
               fontWeight: 800,
-              color: showMobileMenuHub ? '#10b981' : (isLight ? '#1e293b' : '#f8fafc'),
+              color: isLight ? '#1e293b' : '#f8fafc',
               marginTop: '-10px',
               letterSpacing: '-0.01em'
             }}>
-              Menu
+              + Menu
             </span>
           </div>
 
@@ -10387,13 +10827,10 @@ export default function Kasir({ user }) {
             </span>
           </button>
 
-          {/* 5. KEUANGAN */}
+          {/* 5. KELOLA (KEUANGAN & FITUR TOKO) */}
           <button
             type="button"
-            onClick={() => {
-              setActiveTab('settings');
-              setShowMobileMenuHub(false);
-            }}
+            onClick={() => setShowMobileMenuHub(prev => !prev)}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -10404,17 +10841,31 @@ export default function Kasir({ user }) {
               border: 'none',
               padding: '4px 0',
               cursor: 'pointer',
-              color: (activeTab === 'settings' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
-              transition: 'all 0.15s ease'
+              color: (activeTab === 'settings' || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              transition: 'all 0.15s ease',
+              position: 'relative'
             }}
           >
-            <DollarSign size={20} strokeWidth={(activeTab === 'settings' && !showMobileMenuHub) ? 2.5 : 2} />
+            <div style={{ position: 'relative' }}>
+              <Sliders size={20} strokeWidth={(activeTab === 'settings' || showMobileMenuHub) ? 2.5 : 2} />
+              {inventoryAlerts.length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-4px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '999px',
+                  background: '#ef4444'
+                }} />
+              )}
+            </div>
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: (activeTab === 'settings' && !showMobileMenuHub) ? 800 : 600,
+              fontWeight: (activeTab === 'settings' || showMobileMenuHub) ? 800 : 600,
               letterSpacing: '-0.01em'
             }}>
-              Keuangan
+              Kelola
             </span>
           </button>
         </div>
@@ -10466,11 +10917,11 @@ export default function Kasir({ user }) {
             }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 900, color: textPrimary, display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <LayoutGrid size={18} color="#2563eb" />
-                  <span>Semua Menu &amp; Fitur Operasional</span>
+                  <Sliders size={18} color="#2563eb" />
+                  <span>Pusat Kelola &amp; Fitur Toko</span>
                 </h3>
                 <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
-                  Akses cepat 10 modul kasir, dapur &amp; manajemen toko
+                  Akses modul keuangan, promo, gudang, statistik &amp; manajemen toko
                 </p>
               </div>
               <button
@@ -10676,6 +11127,8 @@ export default function Kasir({ user }) {
           </div>
         </div>
       )}
+      {/* Closing pos-main-wrapper */}
+      </div>
     </div>
   );
 }

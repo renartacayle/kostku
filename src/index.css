@@ -497,6 +497,43 @@ html, body {
   .mobile-only-flex {
     display: flex !important;
   }
+  .pos-layout-wrapper {
+    display: block !important;
+  }
+  .pos-desktop-sidebar {
+    display: none !important;
+  }
+}
+
+/* POS Responsive Shell with Left Sidebar on Desktop */
+.pos-layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.pos-desktop-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 255px;
+  min-width: 255px;
+  max-width: 255px;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  z-index: 50;
+  box-sizing: border-box;
+}
+
+.pos-main-wrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 /* Safe area bottom padding for mobile (space for mobile bottom nav) */
