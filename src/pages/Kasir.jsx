@@ -2987,11 +2987,11 @@ export default function Kasir({ user }) {
                   }} 
                 />
 
-                <div style={{ minWidth: 0, overflow: 'hidden', flex: 1, maxWidth: '200px' }}>
+                <div style={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <h1 style={{
                       margin: 0,
-                      fontSize: '0.86rem',
+                      fontSize: '0.88rem',
                       fontWeight: 800,
                       color: textPrimary,
                       letterSpacing: '-0.3px',
@@ -3510,7 +3510,7 @@ export default function Kasir({ user }) {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
             gap: '1.25rem'
           }}>
             {/* ── KOLOM 1: PERLU ACC DAPUR ── */}
@@ -5905,7 +5905,7 @@ export default function Kasir({ user }) {
           {/* 4 Kartu Metrik Keuangan (Responsive Grid: 2 Kolom di HP, 4 Kolom di Monitor) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
             gap: '12px'
           }}>
             {/* 1. Total Omset */}
@@ -10666,7 +10666,7 @@ export default function Kasir({ user }) {
           maxWidth: '520px',
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 20%)',
+          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
           alignItems: 'center',
           height: '56px',
           position: 'relative',
@@ -10955,18 +10955,20 @@ export default function Kasir({ user }) {
               </button>
             </div>
 
-            {/* Grid 10 Menu Fitur Lengkap Sesuai Permintaan */}
+            {/* 1-Kolom Full-Width List: Bebas Truncation & Bebas Sideways Overflow */}
             <div style={{
-              padding: '16px',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '10px'
+              padding: '12px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
               {[
                 {
                   id: 'kasir',
                   title: 'Kasir Walk-in',
-                  desc: 'Pesan, diskon & bayar',
+                  desc: 'Pesan, diskon & bayar kasir',
                   icon: <ShoppingBag size={20} color="#2563eb" />,
                   badge: Object.values(posCart).length > 0 ? `${Object.values(posCart).reduce((s, it) => s + it.qty, 0)} item` : null,
                   badgeBg: '#2563eb',
@@ -10975,7 +10977,7 @@ export default function Kasir({ user }) {
                 {
                   id: 'keuangan',
                   title: 'Keuangan & Saldo',
-                  desc: 'Mutasi, omset & payout',
+                  desc: 'Mutasi, omset & penarikan saldo',
                   icon: <DollarSign size={20} color="#10b981" />,
                   badge: walletData?.available_balance ? `Rp ${(walletData.available_balance / 1000).toFixed(0)}k` : null,
                   badgeBg: '#10b981',
@@ -10984,7 +10986,7 @@ export default function Kasir({ user }) {
                 {
                   id: 'dapur',
                   title: 'Dapur (KDS)',
-                  desc: 'Checklist antrean masak',
+                  desc: 'Checklist antrean pesanan masak',
                   icon: <Flame size={20} color="#f97316" />,
                   badge: pendingOrders.length > 0 ? `${pendingOrders.length} antrean` : null,
                   badgeBg: '#ef4444',
@@ -10993,7 +10995,7 @@ export default function Kasir({ user }) {
                 {
                   id: 'meja_qr',
                   title: 'Meja & Barcode QR',
-                  desc: 'Cetak QR & denah meja',
+                  desc: 'Cetak QR & denah meja resto',
                   icon: <QrCode size={20} color="#8b5cf6" />,
                   badge: `${tables.length} meja`,
                   badgeBg: '#8b5cf6',
@@ -11002,7 +11004,7 @@ export default function Kasir({ user }) {
                 {
                   id: 'promo',
                   title: 'Promo Makanan',
-                  desc: 'Diskon & kuota promo',
+                  desc: 'Diskon & kuota promo pelanggan',
                   icon: <Tag size={20} color="#f59e0b" />,
                   badge: promosList.filter(p => p.isAvailable).length ? `${promosList.filter(p => p.isAvailable).length} aktif` : null,
                   badgeBg: '#f59e0b',
@@ -11011,7 +11013,7 @@ export default function Kasir({ user }) {
                 {
                   id: 'gudang',
                   title: 'Gudang & Resep',
-                  desc: inventoryAlerts.length > 0 ? `${inventoryAlerts.length} stok menipis!` : 'Bahan baku & restock',
+                  desc: inventoryAlerts.length > 0 ? `${inventoryAlerts.length} stok menipis!` : 'Bahan baku & restock stok',
                   icon: <Package size={20} color="#ef4444" />,
                   badge: inventoryAlerts.length > 0 ? `${inventoryAlerts.length}!` : null,
                   badgeBg: '#ef4444',
@@ -11020,14 +11022,14 @@ export default function Kasir({ user }) {
                 {
                   id: 'statistik',
                   title: 'Statistik Keuangan',
-                  desc: 'Grafik menu & performa kasir',
+                  desc: 'Grafik menu & performa omset',
                   icon: <BarChart3 size={20} color="#6366f1" />,
                   onClick: () => { setShowAnalyticsModal(true); loadAnalytics(); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'stamp',
                   title: 'Stamp & Loyalty',
-                  desc: 'Hadiah poin pelanggan',
+                  desc: 'Hadiah poin pelanggan setia',
                   icon: <Award size={20} color="#3b82f6" />,
                   onClick: () => { setShowLoyaltyModal(true); setShowMobileMenuHub(false); }
                 },
@@ -11041,7 +11043,7 @@ export default function Kasir({ user }) {
                 {
                   id: 'lokasi_toko',
                   title: 'Lokasi & Info Toko',
-                  desc: storeInfo.storeName || 'Atur data & alamat',
+                  desc: storeInfo.storeName || 'Atur data & alamat toko',
                   icon: <Store size={20} color="#14b8a6" />,
                   badge: storeInfo.isValidated ? '✓ Resmi' : '⚠️ Validasi',
                   badgeBg: storeInfo.isValidated ? '#10b981' : '#f59e0b',
@@ -11057,7 +11059,7 @@ export default function Kasir({ user }) {
                 {
                   id: 'topup_nota',
                   title: 'Top Up Kuota Nota',
-                  desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar`,
+                  desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar nota`,
                   icon: <Zap size={20} color="#eab308" />,
                   badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Habis' : null,
                   badgeBg: '#ef4444',
@@ -11070,67 +11072,71 @@ export default function Kasir({ user }) {
                   onClick={item.onClick}
                   style={{
                     display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    padding: '12px 10px',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    width: '100%',
+                    padding: '11px 14px',
                     borderRadius: '14px',
                     border: `1px solid ${borderColor}`,
                     background: isLight ? '#f8fafc' : '#1e293b',
                     textAlign: 'left',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
-                    position: 'relative'
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: isLight ? '#ffffff' : '#0f172a',
-                    border: `1px solid ${borderColor}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    {item.icon}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '11px',
+                      background: isLight ? '#ffffff' : '#0f172a',
+                      border: `1px solid ${borderColor}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                    }}>
+                      {item.icon}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        fontSize: '0.88rem',
+                        fontWeight: 800,
+                        color: textPrimary,
+                        lineHeight: 1.25
+                      }}>
+                        {item.title}
+                      </div>
+                      <div style={{
+                        fontSize: '0.72rem',
+                        color: textSecondary,
+                        marginTop: '2px',
+                        lineHeight: 1.3
+                      }}>
+                        {item.desc}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
-                      color: textPrimary,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {item.title}
-                    </div>
-                    <div style={{
-                      fontSize: '0.68rem',
-                      color: textSecondary,
-                      marginTop: '2px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {item.desc}
-                    </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {item.badge && (
                       <span style={{
-                        display: 'inline-block',
-                        marginTop: '4px',
-                        fontSize: '0.6rem',
+                        fontSize: '0.66rem',
                         fontWeight: 800,
-                        padding: '1px 6px',
+                        padding: '2px 8px',
                         borderRadius: '999px',
                         background: item.badgeBg || '#2563eb',
                         color: '#ffffff',
-                        lineHeight: 1.2
+                        lineHeight: 1.2,
+                        whiteSpace: 'nowrap'
                       }}>
                         {item.badge}
                       </span>
                     )}
+                    <ChevronRight size={16} color={textSecondary} />
                   </div>
                 </button>
               ))}
