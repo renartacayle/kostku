@@ -210,7 +210,7 @@ const Penghuni = ({ user }) => {
       await fetchData();
 
       setActiveTab('penghuni');
-      alert(`✅ Berhasil! Pengajuan sewa dari ${applicantName} telah diterima.\n\nPenghuni otomatis ditempatkan di Kamar ${roomNo} dan masuk ke daftar Penghuni Aktif.`);
+      alert(`Berhasil! Pengajuan sewa dari ${applicantName} telah diterima.\n\nPenghuni otomatis ditempatkan di Kamar ${roomNo} dan masuk ke daftar Penghuni Aktif.`);
     } catch (err) {
       alert(err.message || 'Gagal memproses pengajuan sewa');
     } finally {
@@ -506,8 +506,8 @@ const Penghuni = ({ user }) => {
                             </span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-                            {t.phone && <span>📞 {t.phone}</span>}
-                            {t.email && <span>✉️ {t.email}</span>}
+                            {t.phone && <span>{t.phone}</span>}
+                            {t.email && <span>{t.email}</span>}
                           </div>
                         </div>
                       </div>

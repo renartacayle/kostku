@@ -90,10 +90,10 @@ const PackageLockerCard = ({ user, isStaff = false }) => {
   const handleSendWhatsapp = (pkg) => {
     const text = encodeURIComponent(
       `Halo Kak ${pkg.tenantName} (Kamar ${pkg.roomNumber})!\n\n` +
-      `📦 Paket kiriman Anda dari ekspedisi *${pkg.courier}* telah tiba di pos jaga/resepsionis ${user.kostName || 'Kost'}.\n` +
+      `Paket kiriman Anda dari ekspedisi *${pkg.courier}* telah tiba di pos jaga/resepsionis ${user.kostName || 'Kost'}.\n` +
       `No. Resi: ${pkg.trackingNumber}\n` +
       `Keterangan: ${pkg.note || 'Tersimpan aman di rak paket'}\n\n` +
-      `Silakan ambil paket Anda di pos resepsionis saat waktu luang. Terima kasih! 🙏`
+      `Silakan ambil paket Anda di pos resepsionis saat waktu luang. Terima kasih!`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };

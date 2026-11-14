@@ -110,7 +110,7 @@ const Register = () => {
 
     // 0. Wajib Setujui Syarat & Ketentuan serta Kebijakan Privasi & Perjanjian
     if (!agreedTerms) {
-      setError('⚠️ Anda wajib mencentang persetujuan Syarat & Ketentuan (S&K), Perjanjian Sewa/Kemitraan, serta Kebijakan Privasi KostKu untuk membuat akun.');
+      setError('Anda wajib mencentang persetujuan Syarat & Ketentuan (S&K), Perjanjian Sewa/Kemitraan, serta Kebijakan Privasi KostKu untuk membuat akun.');
       const el = document.getElementById('agreeTermsContainer');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -605,23 +605,23 @@ const Register = () => {
               <ShieldCheck size={16} />
             </div>
             <strong style={{ color: isLight ? '#065f46' : '#6ee7b7', fontSize: '0.88rem' }}>
-              🛡️ Dilindungi oleh Program Pelindung KostKu
+              Dilindungi oleh Program Pelindung KostKu
             </strong>
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Setiap akun terdaftar otomatis tercakup dalam jaminan keamanan resmi platform:
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '8px', fontSize: '0.74rem' }}>
               <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                🏢 <strong>Owner Kost:</strong> Uang sewa aman &amp; anti-penunggak
+                <strong>Owner Kost:</strong> Uang sewa aman &amp; anti-penunggak
               </div>
               <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                🏪 <strong>Bisnis Mitra:</strong> Anti-fake order &amp; kasir tercatat
+                <strong>Bisnis Mitra:</strong> Anti-fake order &amp; kasir tercatat
               </div>
               <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                👷 <strong>Karyawan:</strong> Akun Gmail &amp; jam kerja sah
+                <strong>Karyawan:</strong> Akun Gmail &amp; jam kerja sah
               </div>
               <div style={{ background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                🏠 <strong>Penghuni:</strong> Garansi 100% anti-kost fiktif
+                <strong>Penghuni:</strong> Garansi 100% anti-kost fiktif
               </div>
             </div>
           </div>
@@ -659,7 +659,7 @@ const Register = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>🏢</div>
+                  <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center', color: selectedRole === 'owner' ? '#3b82f6' : 'var(--text-secondary)' }}><Building2 size={22} /></div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'owner' ? '#3b82f6' : 'var(--text-primary)' }}>
                     Pemilik Kost
                   </div>
@@ -686,7 +686,7 @@ const Register = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>🏪</div>
+                  <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center', color: selectedRole === 'mitra' ? '#f59e0b' : 'var(--text-secondary)' }}><Store size={22} /></div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'mitra' ? '#f59e0b' : 'var(--text-primary)' }}>
                     Pemilik Bisnis
                   </div>
@@ -713,7 +713,7 @@ const Register = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>👷</div>
+                  <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center', color: selectedRole === 'staff' ? '#10b981' : 'var(--text-secondary)' }}><Briefcase size={22} /></div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'staff' ? '#10b981' : 'var(--text-primary)' }}>
                     Karyawan
                   </div>
@@ -740,7 +740,7 @@ const Register = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ fontSize: '1.4rem', marginBottom: '3px' }}>🏠</div>
+                  <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center', color: selectedRole === 'user' ? '#8b5cf6' : 'var(--text-secondary)' }}><Home size={22} /></div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: selectedRole === 'user' ? '#8b5cf6' : 'var(--text-primary)' }}>
                     Penghuni
                   </div>
@@ -762,16 +762,16 @@ const Register = () => {
                 color: 'var(--text-secondary)'
               }}>
                 {selectedRole === 'owner' && (
-                  <span>🏢 <strong>Akun Pemilik Kost (Owner):</strong> Kelola properti kost, kamar sewa, tagihan penghuni, pantau kasir, &amp; daftarkan akun staf karyawan menggunakan Gmail mereka masing-masing.</span>
+                  <span><strong>Akun Pemilik Kost (Owner):</strong> Kelola properti kost, kamar sewa, tagihan penghuni, pantau kasir, &amp; daftarkan akun staf karyawan menggunakan Gmail mereka masing-masing.</span>
                 )}
                 {selectedRole === 'mitra' && (
-                  <span>🏪 <strong>Akun Pemilik Bisnis (Mitra UMKM / Kantin / Cafe / Toko):</strong> Kelola usaha komersial, katalog menu &amp; foto produk, meja barcode QR self-order, dapur KDS, pembukuan kasir POS, &amp; staf kasir.</span>
+                  <span><strong>Akun Pemilik Bisnis (Mitra UMKM / Kantin / Cafe / Toko):</strong> Kelola usaha komersial, katalog menu &amp; foto produk, meja barcode QR self-order, dapur KDS, pembukuan kasir POS, &amp; staf kasir.</span>
                 )}
                 {selectedRole === 'staff' && (
-                  <span>👷 <strong>Akun Karyawan / Staf:</strong> Masuk menggunakan akun Gmail Anda sendiri untuk operasional kasir POS, dapur, dan absensi yang dihubungkan oleh Pemilik Kost atau Pemilik Bisnis.</span>
+                  <span><strong>Akun Karyawan / Staf:</strong> Masuk menggunakan akun Gmail Anda sendiri untuk operasional kasir POS, dapur, dan absensi yang dihubungkan oleh Pemilik Kost atau Pemilik Bisnis.</span>
                 )}
                 {selectedRole === 'user' && (
-                  <span>🏠 <strong>Akun Penghuni Kost:</strong> Cari kamar kost, ajukan sewa, pesan menu kantin meja QR, dan bayar tagihan sewa kamar secara online.</span>
+                  <span><strong>Akun Penghuni Kost:</strong> Cari kamar kost, ajukan sewa, pesan menu kantin meja QR, dan bayar tagihan sewa kamar secara online.</span>
                 )}
               </div>
             </div>
@@ -921,11 +921,11 @@ const Register = () => {
                         className="input-field"
                         style={{ cursor: 'pointer' }}
                       >
-                        <option value="Kantin & Kuliner">🍱 Kantin, Warung Makan & Kuliner</option>
-                        <option value="Cafe & Minuman">☕ Cafe, Coffee Shop & Minuman Kekinian</option>
-                        <option value="Laundry & Cuci Pakaian">🧺 Laundry & Cuci Pakaian Express</option>
-                        <option value="Toko Kelontong & Minimarket">🏪 Minimarket, Sembako & Toko Kelontong</option>
-                        <option value="Jasa & Lain-lain">✨ Jasa Fotokopi, Servis & Lainnya</option>
+                        <option value="Kantin & Kuliner">Kantin, Warung Makan & Kuliner</option>
+                        <option value="Cafe & Minuman">Cafe, Coffee Shop & Minuman Kekinian</option>
+                        <option value="Laundry & Cuci Pakaian">Laundry & Cuci Pakaian Express</option>
+                        <option value="Toko Kelontong & Minimarket">Minimarket, Sembako & Toko Kelontong</option>
+                        <option value="Jasa & Lain-lain">Jasa Fotokopi, Servis & Lainnya</option>
                       </select>
                     </div>
                   </div>
@@ -1159,7 +1159,7 @@ const Register = () => {
                     textTransform: 'uppercase',
                     color: agreedTerms ? '#10b981' : (isLight ? '#dc2626' : '#f87171')
                   }}>
-                    {agreedTerms ? '✓ Persetujuan Dikonfirmasi' : '⚠️ Wajib Dicentang'}
+                    {agreedTerms ? '✓ Persetujuan Dikonfirmasi' : 'Wajib Dicentang'}
                   </span>
                 </div>
                 <label 
@@ -1417,7 +1417,7 @@ const Register = () => {
                 fontSize: '0.78rem'
               }}>
                 <span style={{ color: '#93c5fd' }}>
-                  🔑 <strong>Kode Dev/Uji:</strong> <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>{otpDevCode}</code>
+                  <strong>Kode Dev/Uji:</strong> <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>{otpDevCode}</code>
                 </span>
                 <button
                   type="button"
@@ -1634,7 +1634,7 @@ const Register = () => {
             fontSize: '0.82rem',
             marginBottom: '1.5rem'
           }}>
-            🎉 Akun siap digunakan. Anda sedang dialihkan ke halaman Masuk...
+            Akun siap digunakan. Anda sedang dialihkan ke halaman Masuk...
           </div>
           <button
             onClick={() => navigate('/login')}
@@ -1671,15 +1671,15 @@ const Register = () => {
             onClick={() => setShowTermsModal(true)}
             style={{ background: 'none', border: 'none', padding: 0, color: isLight ? '#475569' : '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
           >
-            📜 Syarat &amp; Ketentuan
+            Syarat &amp; Ketentuan
           </button>
           <span>•</span>
           <Link to="/kebijakan-privasi" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-            🛡️ Kebijakan Privasi
+            Kebijakan Privasi
           </Link>
           <span>•</span>
           <Link to="/tentang-kami" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-            🏢 Tentang Kami
+            Tentang Kami
           </Link>
         </div>
 
@@ -1762,7 +1762,7 @@ const Register = () => {
             <div style={{ padding: '20px', overflowY: 'auto', fontSize: '0.85rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
               <div style={{ marginBottom: '14px', padding: '12px', borderRadius: '12px', background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
                 <strong style={{ color: isLight ? '#1d4ed8' : '#93c5fd', display: 'block', marginBottom: '4px' }}>
-                  📌 Ringkasan Ketentuan Akun &amp; Peran:
+                  Ringkasan Ketentuan Akun &amp; Peran:
                 </strong>
                 Platform KostKu memfasilitasi pengelolaan kost mandiri, keuangan, kasir kantin/POS, dan manajemen karyawan menggunakan akun Gmail masing-masing pihak demi transparansi dan keamanan.
               </div>

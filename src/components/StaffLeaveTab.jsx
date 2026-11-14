@@ -368,7 +368,7 @@ export default function StaffLeaveTab({ user, currentKostUid }) {
           </form>
 
           <div style={{ marginTop: '10px', fontSize: '0.75rem', color: '#93c5fd', background: 'rgba(59, 130, 246, 0.1)', padding: '8px 12px', borderRadius: '8px' }}>
-            ℹ️ <strong>Contoh:</strong> Jika disetel 20 hari kerja = 2 hari cuti, maka staf yang telah hadir 40 hari kerja akan mendapatkan total 4 hari cuti aktif.
+            <strong>Contoh:</strong> Jika disetel 20 hari kerja = 2 hari cuti, maka staf yang telah hadir 40 hari kerja akan mendapatkan total 4 hari cuti aktif.
           </div>
         </div>
       )}
@@ -402,7 +402,7 @@ export default function StaffLeaveTab({ user, currentKostUid }) {
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {[
                 { id: 'all', label: 'Semua' },
-                { id: 'pending', label: '⏳ Menunggu' },
+                { id: 'pending', label: 'Menunggu' },
                 { id: 'approved', label: '✓ Disetujui' },
                 { id: 'rejected', label: '✕ Ditolak' }
               ].map(f => (
@@ -549,7 +549,7 @@ export default function StaffLeaveTab({ user, currentKostUid }) {
                           color: leave.type === 'sakit' ? '#fca5a5' : '#93c5fd',
                           border: leave.type === 'sakit' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)'
                         }}>
-                          {leave.type === 'sakit' ? '🏥 Izin Sakit' : leave.type === 'izin' ? '📋 Izin Khusus' : '🏖️ Cuti Tahunan'}
+                          {leave.type === 'sakit' ? 'Izin Sakit' : leave.type === 'izin' ? 'Izin Khusus' : 'Cuti Tahunan'}
                         </span>
                       </div>
                       <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -604,7 +604,7 @@ export default function StaffLeaveTab({ user, currentKostUid }) {
 
                   {leave.notes && (
                     <div style={{ fontSize: '0.78rem', color: '#93c5fd', marginTop: '4px', background: 'rgba(59, 130, 246, 0.08)', padding: '4px 8px', borderRadius: '6px' }}>
-                      💬 Catatan Owner: {leave.notes}
+                      Catatan Owner: {leave.notes}
                     </div>
                   )}
                 </div>
@@ -738,9 +738,9 @@ export default function StaffLeaveTab({ user, currentKostUid }) {
                   onChange={e => setLeaveType(e.target.value)}
                   style={{ background: '#0f172a', color: 'white' }}
                 >
-                  <option value="cuti">🏖️ Cuti Tahunan (Potong Kuota Cuti)</option>
-                  <option value="sakit">🏥 Izin Sakit (Lampirkan Surat Dokter)</option>
-                  <option value="izin">📋 Izin Keperluan Mendesak / Keluarga</option>
+                  <option value="cuti">Cuti Tahunan (Potong Kuota Cuti)</option>
+                  <option value="sakit">Izin Sakit (Lampirkan Surat Dokter)</option>
+                  <option value="izin">Izin Keperluan Mendesak / Keluarga</option>
                 </select>
               </div>
 

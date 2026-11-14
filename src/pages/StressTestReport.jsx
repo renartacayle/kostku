@@ -541,7 +541,7 @@ export default function StressTestReport() {
             }}>
               <div>
                 <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 800, margin: '0 0 4px 0', color: isLight ? '#0f172a' : '#ffffff' }}>
-                  📑 Pembaca Dokumen CAD 252 Halaman (A4 Vektor)
+                  Pembaca Dokumen CAD 252 Halaman (A4 Vektor)
                 </h2>
                 <p style={{ margin: 0, fontSize: isMobile ? '0.76rem' : '0.84rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Dibaca langsung di browser tanpa perlu download file 58 MB. Teks &amp; linework 100% SVG tajam.
@@ -623,9 +623,9 @@ export default function StressTestReport() {
                   { id: 'tipe c', label: 'Tipe C (14m²)' },
                   { id: 'tipe d', label: 'Tipe D (18m²)' },
                   { id: 'tipe e', label: 'Tipe E (22.5m²)' },
-                  { id: 'km dalam', label: '🚿 KM Dalam' },
-                  { id: 'km luar', label: '🚪 KM Luar' },
-                  { id: 'blur unsure', label: '🌫️ Sudut Blur' }
+                  { id: 'km dalam', label: 'KM Dalam' },
+                  { id: 'km luar', label: 'KM Luar' },
+                  { id: 'blur unsure', label: 'Sudut Blur' }
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -773,7 +773,7 @@ export default function StressTestReport() {
                           color: room.has_bathroom ? '#34d399' : (isLight ? '#475569' : '#cbd5e1'),
                           border: room.has_bathroom ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(148, 163, 184, 0.25)'
                         }}>
-                          {room.has_bathroom ? '🚿 KM Dlm' : '🚪 KM Luar'}
+                          {room.has_bathroom ? 'KM Dlm' : 'KM Luar'}
                         </span>
                         
                         {room.unsure_zone && (
@@ -786,7 +786,7 @@ export default function StressTestReport() {
                             color: '#fb7185',
                             border: '1px solid rgba(244, 63, 94, 0.3)'
                           }}>
-                            🌫️ Blur
+                            Blur
                           </span>
                         )}
                       </div>
@@ -839,7 +839,7 @@ export default function StressTestReport() {
                             alignItems: 'center',
                             gap: '3px'
                           }}>
-                            📸 {isMobile ? 'Real Web' : 'Foto Web Nyata'}
+                            {isMobile ? 'Real Web' : 'Foto Web Nyata'}
                           </div>
                         </div>
 
@@ -883,7 +883,7 @@ export default function StressTestReport() {
                             gap: '3px',
                             border: '1px solid rgba(56, 189, 248, 0.3)'
                           }}>
-                            📐 {isMobile ? 'CAD 1:50' : 'CAD Skala 1:50'}
+                            {isMobile ? 'CAD 1:50' : 'CAD Skala 1:50'}
                           </div>
                         </div>
                       </div>
@@ -920,7 +920,7 @@ export default function StressTestReport() {
                           fontWeight: 800,
                           border: '1px solid rgba(56, 189, 248, 0.3)'
                         }}>
-                          📐 CAD 1:50 • Tap Layar Penuh
+                          CAD 1:50 • Tap Layar Penuh
                         </div>
                       </div>
                     ) : (
@@ -955,7 +955,7 @@ export default function StressTestReport() {
                           color: '#4ade80',
                           fontWeight: 800
                         }}>
-                          📸 Foto Web Real • Tap Layar Penuh
+                          Foto Web Real • Tap Layar Penuh
                         </div>
                       </div>
                     )}
@@ -1280,7 +1280,7 @@ export default function StressTestReport() {
                     cursor: 'pointer'
                   }}
                 >
-                  📐 CAD 2D
+                  CAD 2D
                 </button>
                 <button
                   type="button"
@@ -1297,7 +1297,7 @@ export default function StressTestReport() {
                     cursor: 'pointer'
                   }}
                 >
-                  📸 Foto Real
+                  Foto Real
                 </button>
                 <button
                   type="button"
@@ -1314,7 +1314,7 @@ export default function StressTestReport() {
                     cursor: 'pointer'
                   }}
                 >
-                  ⚖️ Keduanya
+                  Keduanya
                 </button>
               </div>
             )}
@@ -1329,7 +1329,7 @@ export default function StressTestReport() {
               }}>
                 <div>
                   <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#4ade80', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    📸 Foto Real Web Kamar Tidur
+                    Foto Real Web Kamar Tidur
                   </div>
                   <div style={{
                     borderRadius: '12px',
@@ -1348,7 +1348,7 @@ export default function StressTestReport() {
 
                 <div>
                   <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    📐 Denah Vektor CAD Arsitektural (Skala 1:50)
+                    Denah Vektor CAD Arsitektural (Skala 1:50)
                   </div>
                   <div style={{
                     borderRadius: '12px',
@@ -1368,7 +1368,7 @@ export default function StressTestReport() {
             ) : modalTab === 'cad' ? (
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', marginBottom: '6px' }}>
-                  📐 Denah Vektor CAD Arsitektural (Skala 1:50)
+                  Denah Vektor CAD Arsitektural (Skala 1:50)
                 </div>
                 <div style={{
                   borderRadius: '12px',
@@ -1388,7 +1388,7 @@ export default function StressTestReport() {
             ) : (
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#4ade80', marginBottom: '6px' }}>
-                  📸 Foto Real Web Kamar Tidur
+                  Foto Real Web Kamar Tidur
                 </div>
                 <div style={{
                   borderRadius: '12px',
@@ -1432,7 +1432,7 @@ export default function StressTestReport() {
               <div>
                 <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Sudut Unsure</div>
                 <div style={{ fontSize: isMobile ? '0.8rem' : '0.9rem', fontWeight: 800, color: selectedRoomModal.unsure_zone ? '#fb7185' : '#38bdf8', marginTop: '2px' }}>
-                  {selectedRoomModal.unsure_zone ? '🌫️ Dibuat Blur' : '✓ 100% Terlihat'}
+                  {selectedRoomModal.unsure_zone ? 'Dibuat Blur' : '✓ 100% Terlihat'}
                 </div>
               </div>
               <div>

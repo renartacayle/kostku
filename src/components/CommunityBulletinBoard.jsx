@@ -466,10 +466,10 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
                   className="input-field"
                   style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
                 >
-                  <option value="pemeliharaan">🔧 Pemeliharaan (WiFi, Toren Air, Listrik, Sampah)</option>
-                  <option value="keamanan">🛡️ Keamanan & Jam Malam (Gembok Gerbang, Tamu)</option>
-                  <option value="acara">📅 Acara & Komunitas (Makan Bersama, Buka Puasa, Bersih-bersih)</option>
-                  <option value="umum">📢 Pengumuman Umum / Tata Tertib Kost</option>
+                  <option value="pemeliharaan">Pemeliharaan (WiFi, Toren Air, Listrik, Sampah)</option>
+                  <option value="keamanan">Keamanan & Jam Malam (Gembok Gerbang, Tamu)</option>
+                  <option value="acara">Acara & Komunitas (Makan Bersama, Buka Puasa, Bersih-bersih)</option>
+                  <option value="umum">Pengumuman Umum / Tata Tertib Kost</option>
                 </select>
               </div>
 
@@ -519,7 +519,7 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
                     onChange={(e) => setIsPinned(e.target.checked)}
                     style={{ accentColor: '#38bdf8' }}
                   />
-                  <span>📌 <strong>Sematkan di Paling Atas (Pinned Post)</strong></span>
+                  <span><strong>Sematkan di Paling Atas (Pinned Post)</strong></span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: isLight ? '#dc2626' : '#f87171' }}>
@@ -529,7 +529,7 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
                     onChange={(e) => setIsUrgent(e.target.checked)}
                     style={{ accentColor: '#ef4444' }}
                   />
-                  <span>🚨 <strong>Tandai Sebagai Urgent / Penting</strong></span>
+                  <span><strong>Tandai Sebagai Urgent / Penting</strong></span>
                 </label>
               </div>
 

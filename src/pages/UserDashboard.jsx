@@ -217,7 +217,7 @@ const UserDashboard = ({ user }) => {
 
     setSuggestNotice({
       type: 'success',
-      message: `🎉 Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
+      message: `Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
     });
   };
 
@@ -231,10 +231,10 @@ const UserDashboard = ({ user }) => {
       : independentForm.category === 'galon' ? 'Air & Gas'
       : 'Jasa & Servis';
 
-    const defaultIcon = independentForm.category === 'makanan' ? '🍲'
-      : independentForm.category === 'laundry' ? '🧺'
-      : independentForm.category === 'galon' ? '💧'
-      : '🛠️';
+    const defaultIcon = independentForm.category === 'makanan' ? ''
+      : independentForm.category === 'laundry' ? ''
+      : independentForm.category === 'galon' ? ''
+      : '';
 
     const defaultPhoto = independentForm.category === 'makanan'
       ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80'
@@ -282,7 +282,7 @@ const UserDashboard = ({ user }) => {
 
     setIndependentNotice({
       type: 'success',
-      message: `🏪 Selamat! Toko "${newMerchant.name}" berhasil terpasang dan langsung aktif di katalog KostKu (Masa Inkubasi Baru).`
+      message: `Selamat! Toko "${newMerchant.name}" berhasil terpasang dan langsung aktif di katalog KostKu (Masa Inkubasi Baru).`
     });
   };
 
@@ -361,7 +361,7 @@ const UserDashboard = ({ user }) => {
   // Rating & Tip Modal States for Staff
   const [ratingModalComplaint, setRatingModalComplaint] = useState(null);
   const [ratingStars, setRatingStars] = useState(5);
-  const [ratingBadges, setRatingBadges] = useState(['⚡ Sangat Cepat & Tanggap', '✨ Pengerjaan Rapi & Bersih']);
+  const [ratingBadges, setRatingBadges] = useState(['Sangat Cepat & Tanggap', 'Pengerjaan Rapi & Bersih']);
   const [ratingReview, setRatingReview] = useState('');
   const [tipAmount, setTipAmount] = useState(10000);
   const [submittingRating, setSubmittingRating] = useState(false);
@@ -743,7 +743,7 @@ const UserDashboard = ({ user }) => {
               </Link>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Halo, {currentUser.name} 👋</h1>
+                  <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Halo, {currentUser.name}</h1>
                   <span className="badge badge-primary">Penghuni Aktif</span>
                 </div>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -763,7 +763,7 @@ const UserDashboard = ({ user }) => {
                   fontSize: '0.74rem'
                 }}>
                   <span style={{ fontWeight: 800, color: isLight ? '#92400e' : '#fbbf24' }}>
-                    🎁 Kode Referral: <code style={{ fontFamily: 'monospace', fontWeight: 900 }}>{userRefCode}</code>
+                    Kode Referral: <code style={{ fontFamily: 'monospace', fontWeight: 900 }}>{userRefCode}</code>
                   </span>
                   <button
                     type="button"
@@ -821,7 +821,7 @@ const UserDashboard = ({ user }) => {
                 title="Pesan galon, laundry, katering, dan camilan ke pintu kamar"
               >
                 <Store size={14} color="#fbbf24" />
-                <span>🏪 Toko & Mitra</span>
+                <span>Toko & Mitra</span>
               </Link>
 
               <button
@@ -835,7 +835,7 @@ const UserDashboard = ({ user }) => {
                 }}
               >
                 <PenTool size={14} color={contract?.signedAt ? '#4ade80' : '#fbbf24'} />
-                {contract?.signedAt ? '✓ Kontrak Tertandatangani' : '✍️ TTD Kontrak'}
+                {contract?.signedAt ? '✓ Kontrak Tertandatangani' : 'TTD Kontrak'}
               </button>
 
               {currentUser?.kostUid && (
@@ -873,7 +873,7 @@ const UserDashboard = ({ user }) => {
                 title="Daftarkan tamu menginap berizin (Overnight Pass)"
               >
                 <Users size={14} />
-                <span>👥 Izin Tamu Inap</span>
+                <span>Izin Tamu Inap</span>
               </button>
 
               <button
@@ -890,7 +890,7 @@ const UserDashboard = ({ user }) => {
                 title="Chat langsung dengan pemilik kost tanpa keluar aplikasi"
               >
                 <MessageCircle size={14} />
-                <span>💬 Chat Pemilik</span>
+                <span>Chat Pemilik</span>
               </button>
             </div>
           </div>
@@ -922,7 +922,7 @@ const UserDashboard = ({ user }) => {
                 flexShrink: 0,
                 boxShadow: '0 4px 10px rgba(16, 185, 129, 0.35)'
               }}>
-                🍱
+                
               </div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: isLight ? '#064e3b' : '#6ee7b7' }}>
@@ -953,7 +953,7 @@ const UserDashboard = ({ user }) => {
                   boxShadow: '0 2px 8px rgba(37, 211, 102, 0.35)'
                 }}
               >
-                <span>📲</span>
+                <Send size={14} />
                 <span>Bagikan Link &amp; Kode via WhatsApp</span>
               </a>
 
@@ -1069,7 +1069,7 @@ const UserDashboard = ({ user }) => {
                         fontSize: '0.78rem'
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                          <span style={{ color: '#38bdf8', fontWeight: 700 }}>⚡ Cicilan 2x (Split Payment Aktif):</span>
+                          <span style={{ color: '#38bdf8', fontWeight: 700 }}>Cicilan 2x (Split Payment Aktif):</span>
                           <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
                             Termin {latestInvoice.splitTerms.term1.status === 'lunas' ? '2/2' : '1/2'}
                           </span>
@@ -1241,7 +1241,7 @@ const UserDashboard = ({ user }) => {
                       transition: 'all 0.2s'
                     }}>
                       <Camera size={15} color="#38bdf8" />
-                      <span>{compressingPhoto ? 'Mengompresi Gambar...' : '📸 Ambil Foto / Unggah Bukti Kerusakan'}</span>
+                      <span>{compressingPhoto ? 'Mengompresi Gambar...' : 'Ambil Foto / Unggah Bukti Kerusakan'}</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -1449,7 +1449,7 @@ const UserDashboard = ({ user }) => {
                             onClick={() => {
                               setRatingModalComplaint(c);
                               setRatingStars(5);
-                              setRatingBadges(['⚡ Sangat Cepat & Tanggap', '✨ Pengerjaan Rapi & Bersih']);
+                              setRatingBadges(['Sangat Cepat & Tanggap', 'Pengerjaan Rapi & Bersih']);
                               setRatingReview('');
                               setTipAmount(10000);
                             }}
@@ -1494,7 +1494,7 @@ const UserDashboard = ({ user }) => {
                           </div>
                           {c.ratingData.tipAmount > 0 && (
                             <span style={{ fontSize: '0.7rem', color: '#34d399', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                              💸 Tip Diberikan: Rp {Number(c.ratingData.tipAmount).toLocaleString('id-ID')}
+                              Tip Diberikan: Rp {Number(c.ratingData.tipAmount).toLocaleString('id-ID')}
                             </span>
                           )}
                         </div>
@@ -1749,7 +1749,7 @@ const UserDashboard = ({ user }) => {
                 });
                 setRatingModalComplaint(null);
                 fetchData();
-                alert('⭐ Terima kasih! Penilaian dan apresiasi Anda berhasil dikirim ke staf.');
+                alert('Terima kasih! Penilaian dan apresiasi Anda berhasil dikirim ke staf.');
               } catch (err) {
                 alert(err.message || 'Gagal mengirim rating');
               } finally {
@@ -1786,10 +1786,10 @@ const UserDashboard = ({ user }) => {
                   ))}
                 </div>
                 <span style={{ display: 'block', marginTop: '6px', fontSize: '0.9rem', fontWeight: 800, color: isLight ? '#d97706' : '#fbbf24' }}>
-                  {ratingStars === 5 ? '⭐⭐⭐⭐⭐ Luar Biasa & Sangat Memuaskan!' :
-                   ratingStars === 4 ? '⭐⭐⭐⭐ Sangat Bagus' :
-                   ratingStars === 3 ? '⭐⭐⭐ Cukup Baik' :
-                   ratingStars === 2 ? '⭐⭐ Kurang Memuaskan' : '⭐ Perlu Ditingkatkan'}
+                  {ratingStars === 5 ? '5/5 Luar Biasa & Sangat Memuaskan!' :
+                   ratingStars === 4 ? '4/5 Sangat Bagus' :
+                   ratingStars === 3 ? '3/5 Cukup Baik' :
+                   ratingStars === 2 ? '2/5 Kurang Memuaskan' : '1/5 Perlu Ditingkatkan'}
                 </span>
               </div>
 
@@ -1800,10 +1800,10 @@ const UserDashboard = ({ user }) => {
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {[
-                    '⚡ Sangat Cepat & Tanggap',
-                    '✨ Pengerjaan Rapi & Bersih',
-                    '🤝 Ramah, Sopan & Santun',
-                    '🔧 Ahli, Teliti & Tuntas'
+                    'Sangat Cepat & Tanggap',
+                    'Pengerjaan Rapi & Bersih',
+                    'Ramah, Sopan & Santun',
+                    'Ahli, Teliti & Tuntas'
                   ].map((badge) => {
                     const isSelected = ratingBadges.includes(badge);
                     return (
@@ -1861,7 +1861,7 @@ const UserDashboard = ({ user }) => {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#15803d' : '#6ee7b7' }}>
-                    💸 Tip Sukarela untuk Teknisi (Opsional):
+                    Tip Sukarela untuk Teknisi (Opsional):
                   </label>
                   <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>100% diterima staf</span>
                 </div>
@@ -2000,7 +2000,7 @@ const UserDashboard = ({ user }) => {
                 justifyContent: 'center',
                 fontSize: '1.25rem'
               }}>
-                🍜
+                
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
@@ -2029,7 +2029,7 @@ const UserDashboard = ({ user }) => {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <span>✨</span>
+                <Sparkles size={15} style={{ flexShrink: 0 }} />
                 <div>{suggestNotice.message}</div>
               </div>
             )}
@@ -2123,7 +2123,7 @@ const UserDashboard = ({ user }) => {
                     boxShadow: '0 2px 8px rgba(14, 165, 233, 0.35)'
                   }}
                 >
-                  🎁 Kirim Usulan & Klaim +500 Poin
+                  Kirim Usulan & Klaim +500 Poin
                 </button>
               </div>
             </form>
@@ -2190,7 +2190,7 @@ const UserDashboard = ({ user }) => {
                 justifyContent: 'center',
                 fontSize: '1.25rem'
               }}>
-                🏪
+                
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
@@ -2219,7 +2219,7 @@ const UserDashboard = ({ user }) => {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <span>✅</span>
+                <CheckCircle size={15} style={{ flexShrink: 0 }} />
                 <div>{independentNotice.message}</div>
               </div>
             )}
@@ -2265,10 +2265,10 @@ const UserDashboard = ({ user }) => {
                       fontSize: '0.8rem'
                     }}
                   >
-                    <option value="makanan">🍲 Warung & Kuliner</option>
-                    <option value="laundry">🧺 Laundry Kiloan</option>
-                    <option value="galon">💧 Air & Gas Elpiji</option>
-                    <option value="jasa">🛠️ Jasa & Servis</option>
+                    <option value="makanan">Warung & Kuliner</option>
+                    <option value="laundry">Laundry Kiloan</option>
+                    <option value="galon">Air & Gas Elpiji</option>
+                    <option value="jasa">Jasa & Servis</option>
                   </select>
                 </div>
                 <div>
@@ -2322,7 +2322,7 @@ const UserDashboard = ({ user }) => {
                 padding: '10px 12px'
               }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#0284c7' : '#38bdf8', display: 'block', marginBottom: '6px' }}>
-                  📦 Produk / Menu Utama Pertama:
+                  Produk / Menu Utama Pertama:
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '8px' }}>
                   <div>
@@ -2395,7 +2395,7 @@ const UserDashboard = ({ user }) => {
                     boxShadow: '0 2px 8px rgba(14, 165, 233, 0.4)'
                   }}
                 >
-                  🚀 Pasang Sekarang & Aktifkan Toko
+                  Pasang Sekarang & Aktifkan Toko
                 </button>
               </div>
             </form>

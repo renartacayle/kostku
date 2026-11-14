@@ -311,13 +311,13 @@ const SmartLockAndTokenModal = ({
 
   const handleShareWhatsApp = () => {
     if (!settledData?.token) return;
-    const msg = `⚡ *BUKTI PEMBELIAN TOKEN LISTRIK PLN - KOSTKU*\n\n` +
+    const msg = `*BUKTI PEMBELIAN TOKEN LISTRIK PLN - KOSTKU*\n\n` +
       `• No. Meter / IDPEL: ${settledData.meterNumber}\n` +
       `• Nama Pelanggan: ${settledData.subscriberName}\n` +
       `• Nominal: Rp ${Number(settledData.nominal).toLocaleString('id-ID')}\n` +
       `• Tambahan Daya: +${settledData.kwhAdded} kWh\n` +
       `• No. Referensi: ${settledData.receiptNumber}\n\n` +
-      `🔑 *KODE TOKEN PLN (20 DIGIT):*\n` +
+      `*KODE TOKEN PLN (20 DIGIT):*\n` +
       `*${settledData.token}*\n\n` +
       `_Status: Lunas Terverifikasi via TriPay Payment Gateway (Merchant T53543)._`;
     
@@ -655,7 +655,7 @@ const SmartLockAndTokenModal = ({
                 {/* Helper info on custom meter */}
                 <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
                   <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                    💡 Otomatis untuk Kamar {user?.kamar || roomNumber}. Bisa diubah bebas ke meteran lain.
+                    Otomatis untuk Kamar {user?.kamar || roomNumber}. Bisa diubah bebas ke meteran lain.
                   </span>
                   {meterNumber !== defaultMeter && (
                     <button
@@ -1047,7 +1047,7 @@ const SmartLockAndTokenModal = ({
                 fontWeight: 800,
                 marginBottom: '12px'
               }}>
-                <span>🎁</span>
+                <Sparkles size={16} style={{ flexShrink: 0 }} />
                 <span>+100 Poin Loyalty Berhasil Dikreditkan! (Otomatis Tanpa Referral)</span>
               </div>
 

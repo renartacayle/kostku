@@ -234,7 +234,7 @@ export default function KostDetail({ user }) {
           <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#4ade80' }}>
             <CheckCircle2 size={44} />
           </div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 10px 0' }}>Pengajuan Sewa Terkirim! 🎉</h2>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 10px 0' }}>Pengajuan Sewa Terkirim!</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
             Pengajuan sewa untuk <strong>Kamar {selectedRoom}</strong> ({rentalDuration} Bulan) di <strong>{kost.kostName}</strong> telah diteruskan langsung ke pemilik kost. Pemilik akan mengonfirmasi via WhatsApp ke <strong>{phone}</strong>.
           </p>
@@ -387,7 +387,7 @@ export default function KostDetail({ user }) {
                   color: kost.type === 'Putri' ? '#f472b6' : kost.type === 'Putra' ? '#60a5fa' : '#34d399',
                   border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
-                  {kost.type === 'Putri' ? '🌸 Kost Putri' : kost.type === 'Putra' ? '👔 Kost Putra' : '🏡 Kost Campur'}
+                  {kost.type === 'Putri' ? 'Kost Putri' : kost.type === 'Putra' ? 'Kost Putra' : 'Kost Campur'}
                 </span>
 
                 {kost.promoted?.active && (
@@ -404,7 +404,7 @@ export default function KostDetail({ user }) {
                     gap: '4px',
                     boxShadow: '0 0 12px rgba(245, 158, 11, 0.25)'
                   }}>
-                    {kost.promoted.badgeText || '🔥 Rekomendasi Utama'}
+                    {kost.promoted.badgeText ? kost.promoted.badgeText.replace(/^[\p{Extended_Pictographic}\s\uFE0F]+/gu, '') : 'Rekomendasi Utama'}
                   </span>
                 )}
 
@@ -492,7 +492,7 @@ export default function KostDetail({ user }) {
                       }}
                       title="Buka Navigasi Rute di Google Maps"
                     >
-                      <Navigation size={13} /> 🗺️ Petunjuk Rute Google Maps
+                      <Navigation size={13} /> Petunjuk Rute Google Maps
                     </a>
                   </div>
                 )}
@@ -531,7 +531,7 @@ export default function KostDetail({ user }) {
                   }}
                 >
                   <Camera size={16} />
-                  <span>📸 Foto Asli ({images.length})</span>
+                  <span>Foto Asli ({images.length})</span>
                 </button>
 
                 <button
@@ -555,7 +555,7 @@ export default function KostDetail({ user }) {
                   }}
                 >
                   <Grid size={16} />
-                  <span>📐 Denah 2D Unit Kamar</span>
+                  <span>Denah 2D Unit Kamar</span>
                 </button>
               </div>
 
@@ -612,10 +612,10 @@ export default function KostDetail({ user }) {
                     color: '#e2e8f0',
                     fontWeight: 600
                   }}>
-                    {activePhotoIndex === 0 && '🏠 Fasad / Area Luar Gedung'}
-                    {activePhotoIndex === 1 && '🛏️ Interior Kamar Tidur'}
-                    {activePhotoIndex === 2 && '🚿 Kamar Mandi Dalam'}
-                    {activePhotoIndex >= 3 && '🍳 Fasilitas Bersama & Dapur'}
+                    {activePhotoIndex === 0 && 'Fasad / Area Luar Gedung'}
+                    {activePhotoIndex === 1 && 'Interior Kamar Tidur'}
+                    {activePhotoIndex === 2 && 'Kamar Mandi Dalam'}
+                    {activePhotoIndex >= 3 && 'Fasilitas Bersama & Dapur'}
                   </div>
 
                   <button
@@ -670,7 +670,7 @@ export default function KostDetail({ user }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    🛏️ Pilih Kamar Idaman Anda ({roomsList.length} Kamar)
+                    Pilih Kamar Idaman Anda ({roomsList.length} Kamar)
                   </h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                     Pilih unit kamar yang ingin Anda sewa untuk melihat rincian harga akurat
@@ -879,7 +879,7 @@ export default function KostDetail({ user }) {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          ⚡ Ketentuan Listrik & Air
+                          Ketentuan Listrik & Air
                         </span>
                         <span style={{
                           fontSize: '0.68rem',
@@ -893,9 +893,9 @@ export default function KostDetail({ user }) {
                             ? (isLight ? '#b45309' : '#fbbf24')
                             : (isLight ? '#1d4ed8' : '#60a5fa')
                         }}>
-                          {kost.utilityScheme === 'electric_mandiri' ? '⚡ Token Listrik Mandiri' :
-                           kost.utilityScheme === 'water_mandiri' ? '💧 Air Mandiri' :
-                           kost.utilityScheme === 'all_mandiri' ? '⚡💧 Listrik & Air Mandiri' : '🏢 Air & Listrik Dikelola Kost'}
+                          {kost.utilityScheme === 'electric_mandiri' ? 'Token Listrik Mandiri' :
+                           kost.utilityScheme === 'water_mandiri' ? 'Air Mandiri' :
+                           kost.utilityScheme === 'all_mandiri' ? 'Listrik & Air Mandiri' : 'Air & Listrik Dikelola Kost'}
                         </span>
                       </div>
 
@@ -948,7 +948,7 @@ export default function KostDetail({ user }) {
                             }}
                           >
                             <Calculator size={13} />
-                            <span>⚡ Simulasi Biaya Token Listrik</span>
+                            <span>Simulasi Biaya Token Listrik</span>
                           </button>
                         </div>
 
@@ -1112,7 +1112,7 @@ export default function KostDetail({ user }) {
                   color: 'var(--text-primary)',
                   fontWeight: 600
                 }}>
-                  📐 Luas: {normalizedDimensions.width} x {normalizedDimensions.length} m ({normalizedDimensions.area})
+                  Luas: {normalizedDimensions.width} x {normalizedDimensions.length} m ({normalizedDimensions.area})
                 </span>
                 <span style={{
                   padding: '4px 10px',
@@ -1121,7 +1121,7 @@ export default function KostDetail({ user }) {
                   color: 'var(--text-primary)',
                   fontWeight: 600
                 }}>
-                  🛏️ Kasur: {activeFloorPlan.bedType === 'queen' ? 'Queen Bed (160x200)' : 'Single/Super Single Bed'}
+                  Kasur: {activeFloorPlan.bedType === 'queen' ? 'Queen Bed (160x200)' : 'Single/Super Single Bed'}
                 </span>
                 <span style={{
                   padding: '4px 10px',
@@ -1130,7 +1130,7 @@ export default function KostDetail({ user }) {
                   color: 'var(--text-primary)',
                   fontWeight: 600
                 }}>
-                  ✨ {computedFurnitures.length} Furnitur Lengkap
+                  {computedFurnitures.length} Furnitur Lengkap
                 </span>
                 <span style={{
                   padding: '4px 10px',
@@ -1170,7 +1170,7 @@ export default function KostDetail({ user }) {
                     : (isLight ? '#1d4ed8' : '#60a5fa'),
                   border: isLight ? '1px solid rgba(217, 119, 6, 0.2)' : '1px solid rgba(251, 191, 36, 0.3)'
                 }}>
-                  {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? '⚡ Token PLN Mandiri' : '🏢 Listrik Dikelola Kost'}
+                  {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? 'Token PLN Mandiri' : 'Listrik Dikelola Kost'}
                 </span>
               </div>
 
@@ -1542,7 +1542,7 @@ export default function KostDetail({ user }) {
                         <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{d.label}</div>
                         {promoTag ? (
                           <div style={{ fontSize: '0.68rem', color: isLight ? '#16a34a' : '#34d399', fontWeight: 700, marginTop: '2px' }}>
-                            🏷️ {promoTag}
+                            {promoTag}
                           </div>
                         ) : (
                           <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>Harga Normal</div>
@@ -1589,7 +1589,7 @@ export default function KostDetail({ user }) {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    <span>⚡ Listrik Kamar:</span>
+                    <span>Listrik Kamar:</span>
                     <span style={{ color: (kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri') ? (isLight ? '#b45309' : '#fbbf24') : 'var(--text-primary)' }}>
                       {(kost.utilityScheme === 'electric_mandiri' || kost.utilityScheme === 'all_mandiri')
                         ? 'Token Mandiri (Penghuni)'
@@ -1600,7 +1600,7 @@ export default function KostDetail({ user }) {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    <span>💧 Air Bersih:</span>
+                    <span>Air Bersih:</span>
                     <span style={{ color: (kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri') ? (isLight ? '#0284c7' : '#38bdf8') : 'var(--text-primary)' }}>
                       {(kost.utilityScheme === 'water_mandiri' || kost.utilityScheme === 'all_mandiri')
                         ? 'Mandiri (Penghuni)'
@@ -1686,7 +1686,7 @@ export default function KostDetail({ user }) {
                   }}
                   title="Tanya langsung ke pemilik kos via WhatsApp"
                 >
-                  <span style={{ fontSize: '16px' }}>💬</span>
+                  <MessageCircle size={16} />
                   <span>Tanya Pemilik via WhatsApp</span>
                 </a>
 
@@ -1722,7 +1722,7 @@ export default function KostDetail({ user }) {
 
               <div style={{ textAlign: 'center', marginTop: '14px' }}>
                 <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                  🔒 Transaksi aman • Terhubung langsung dengan pemilik resmi
+                  Transaksi aman • Terhubung langsung dengan pemilik resmi
                 </span>
               </div>
             </div>
@@ -1806,7 +1806,7 @@ export default function KostDetail({ user }) {
             title="Tanya Pemilik via WhatsApp"
             aria-label="Tanya Pemilik via WhatsApp"
           >
-            <span style={{ fontSize: '15px' }}>💬</span>
+            <MessageCircle size={15} />
             <span style={{ fontSize: '0.78rem' }}>WA</span>
           </a>
 

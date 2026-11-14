@@ -293,7 +293,7 @@ const RoomInspectionModal = ({
                 <div>
                   <strong style={{ fontSize: '0.85rem', color: isLight ? '#0f172a' : 'white', display: 'block' }}>{item.label}</strong>
                   <span style={{ fontSize: '0.72rem', color: item.status === 'good' ? (isLight ? '#16a34a' : '#4ade80') : item.status === 'minor' ? (isLight ? '#d97706' : '#f59e0b') : (isLight ? '#dc2626' : '#f87171') }}>
-                    {item.status === 'good' ? '✓ Kondisi Baik / Bersih' : item.status === 'minor' ? '⚠ Kotor / Perlu Dibenahi' : '✗ Rusak / Hilang'}
+                    {item.status === 'good' ? '✓ Kondisi Baik / Bersih' : item.status === 'minor' ? 'Kotor / Perlu Dibenahi' : '✗ Rusak / Hilang'}
                   </span>
                 </div>
 

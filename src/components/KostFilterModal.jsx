@@ -319,12 +319,12 @@ export default function KostFilterModal({
               ) : userLocation?.isGps ? (
                 <>
                   <Navigation size={16} />
-                  <span>📍 GPS Aktif: {userLocation.label}</span>
+                  <span>GPS Aktif: {userLocation.label}</span>
                 </>
               ) : (
                 <>
                   <Navigation size={16} />
-                  <span>📍 Gunakan Lokasi GPS Saya (Terdekat)</span>
+                  <span>Gunakan Lokasi GPS Saya (Terdekat)</span>
                 </>
               )}
             </button>
@@ -343,7 +343,7 @@ export default function KostFilterModal({
                 justifyContent: 'space-between',
                 gap: '8px'
               }}>
-                <span>⚠️ {locatingError}</span>
+                <span>{locatingError}</span>
                 <button
                   type="button"
                   onClick={() => setLocatingError(null)}
@@ -390,7 +390,7 @@ export default function KostFilterModal({
                       }}
                       title={lm.full}
                     >
-                      🎓 {lm.name}
+                      {lm.name}
                     </button>
                   );
                 })}

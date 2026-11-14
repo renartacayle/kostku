@@ -25,9 +25,13 @@ import {
   MapPin,
   MessageSquare,
   AlertTriangle,
-  Tag
+  Tag,
+  Coffee,
+  Package,
+  ExternalLink
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { formatStoreHeaderLines } from '../utils/thermalPrinter';
 
 export default function OrderMeja() {
   const { tableToken } = useParams();
@@ -202,11 +206,11 @@ export default function OrderMeja() {
 
   const getCategoryIcon = (cat) => {
     const c = String(cat).toLowerCase();
-    if (c.includes('makan')) return '🍜';
-    if (c.includes('snack') || c.includes('camilan') || c.includes('goreng')) return '🍟';
-    if (c.includes('minum') || c.includes('teh') || c.includes('kopi')) return '🥤';
-    if (c.includes('paket')) return '🍱';
-    return '🍽️';
+    if (c.includes('makan')) return <Utensils size={14} />;
+    if (c.includes('snack') || c.includes('camilan') || c.includes('goreng')) return <Package size={14} />;
+    if (c.includes('minum') || c.includes('teh') || c.includes('kopi')) return <Coffee size={14} />;
+    if (c.includes('paket')) return <ShoppingBag size={14} />;
+    return <Utensils size={14} />;
   };
 
   // Direct quantity selector per product before adding to cart (auto reset to 1 after add)
@@ -596,27 +600,50 @@ export default function OrderMeja() {
             }}>
               <Utensils size={20} />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h1 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: textPrimary }}>
-                  {storeInfo?.storeName || 'Kantin Riuph POS'}
-                </h1>
-                <span style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  padding: '1px 6px',
-                  borderRadius: '6px',
-                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
-                  color: isLight ? '#b45309' : '#fbbf24'
-                }}>
-                  Self-Order
-                </span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h1 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: textPrimary }}>
+                    {formatStoreHeaderLines(storeInfo || {}).storeName}
+                  </h1>
+                  <span style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '6px',
+                    background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
+                    color: isLight ? '#b45309' : '#fbbf24'
+                  }}>
+                    Self-Order
+                  </span>
+                </div>
+                {(() => {
+                  const hdr = formatStoreHeaderLines(storeInfo || {});
+                  return (
+                    <>
+                      <p style={{ margin: 0, fontSize: '0.72rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                        <span>{tableInfo.number}</span>
+                        {hdr.standLine && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            • <MapPin size={11} /> {hdr.standLine}
+                          </span>
+                        )}
+                      </p>
+                      {(hdr.addressLine || hdr.phoneLine) && (
+                        <p style={{ margin: '2px 0 0', fontSize: '0.66rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {hdr.addressLine && <span>{hdr.addressLine}</span>}
+                          {hdr.phoneLine && <span>• {hdr.phoneLine}</span>}
+                          {hdr.mapsUrl && (
+                            <a href={hdr.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                              Peta <ExternalLink size={10} />
+                            </a>
+                          )}
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
-              <p style={{ margin: 0, fontSize: '0.72rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                {tableInfo.number} {storeInfo?.location ? `• 📍 ${storeInfo.location}` : '• Pesan dari Meja'}
-              </p>
-            </div>
           </div>
 
           <div style={{ textAlign: 'right' }}>
@@ -664,8 +691,8 @@ export default function OrderMeja() {
               }}>
                 {activeOrder.status === 'PENDING_CONFIRMATION' && 'Menunggu ACC Dapur'}
                 {activeOrder.status === 'WAITING_PAYMENT' && 'Siap Dibayar'}
-                {activeOrder.status === 'PREPARING' && 'Sedang Dimasak 👨‍🍳'}
-                {activeOrder.status === 'COMPLETED' && 'Selesai Disajikan ✨'}
+                {activeOrder.status === 'PREPARING' && 'Sedang Dimasak'}
+                {activeOrder.status === 'COMPLETED' && 'Selesai Disajikan'}
                 {activeOrder.status === 'CANCELLED' && 'Dibatalkan'}
               </span>
             </div>
@@ -871,7 +898,7 @@ export default function OrderMeja() {
                         alignItems: 'center',
                         gap: '6px'
                       }}>
-                        {allItemsReady ? '✨ Semua Menu Sudah Siap!' : '👨‍🍳 Sedang Dimasak di Dapur'}
+                        {allItemsReady ? 'Semua Menu Sudah Siap!' : 'Sedang Dimasak di Dapur'}
                       </strong>
                       <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
                         {allItemsReady
@@ -947,9 +974,12 @@ export default function OrderMeja() {
                           <span style={{
                             fontSize: '0.8rem',
                             fontWeight: 700,
-                            color: isItemReady ? '#15803d' : textPrimary
+                            color: isItemReady ? '#15803d' : textPrimary,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px'
                           }}>
-                            {isItemReady ? '✅ ' : '⏳ '}
+                            {isItemReady ? <CheckCircle2 size={13} color="#16a34a" /> : <Clock size={13} color="#d97706" />}
                             <strong>{it.qty}x</strong> {it.name}
                           </span>
                           <span style={{
@@ -1108,7 +1138,7 @@ export default function OrderMeja() {
             />
             {/* Quick Chips for easy tapping */}
             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '4px' }}>
-              {['Tidak Pedas 🌶️', 'Pedas Sedang 🔥', 'Bungkus / Takeaway 🥡', 'Sendok 🍴', 'Kuah Dipisah 🥣'].map((chip, idx) => (
+              {['Tidak Pedas', 'Pedas Sedang', 'Bungkus / Takeaway', 'Pakai Sendok', 'Kuah Dipisah'].map((chip, idx) => (
                 <button
                   key={idx}
                   type="button"
@@ -1197,7 +1227,7 @@ export default function OrderMeja() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong style={{ fontSize: '0.84rem', color: '#15803d' }}>
-                  🎉 {selectedPromo.title}
+                  {selectedPromo.title}
                 </strong>
                 <span style={{
                   fontSize: '0.7rem',
@@ -1224,17 +1254,17 @@ export default function OrderMeja() {
               </div>
               {selectedPromo.limitType === 'QUOTA' && selectedPromo.remainingQuota !== null && (
                 <span style={{ fontSize: '0.68rem', color: '#b45309' }}>
-                  ⚡ Batas kuota: Sisa {selectedPromo.remainingQuota} porsi lagi!
+                  Batas kuota: Sisa {selectedPromo.remainingQuota} porsi lagi
                 </span>
               )}
               {selectedPromo.limitType === 'DATE' && selectedPromo.expiryDate && (
                 <span style={{ fontSize: '0.68rem', color: '#2563eb' }}>
-                  📅 Batas tanggal: Berlaku s/d {selectedPromo.expiryDate}
+                  Batas tanggal: Berlaku s/d {selectedPromo.expiryDate}
                 </span>
               )}
               {selectedPromo.limitType === 'BOTH' && (
                 <span style={{ fontSize: '0.68rem', color: '#7c3aed' }}>
-                  🏷️ Hybrid: Sisa {selectedPromo.remainingQuota ?? selectedPromo.maxQuota} kuota • Berlaku s/d {selectedPromo.expiryDate}
+                  Hybrid: Sisa {selectedPromo.remainingQuota ?? selectedPromo.maxQuota} kuota • Berlaku s/d {selectedPromo.expiryDate}
                 </span>
               )}
             </div>

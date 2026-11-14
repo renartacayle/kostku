@@ -311,11 +311,11 @@ export default function KasirAnalyticsModal({
             paddingBottom: '2px'
           }}>
             {[
-              { id: 'perMenu', label: '🍜 Per Menu (Omset & HPP)', count: perMenu.length },
-              { id: 'perStore', label: '🏪 Per Cabang / Toko', count: perStore.length },
-              { id: 'crossBranch', label: '🌐 Semua Cabang per Menu (Matriks)', count: crossBranch.length },
-              { id: 'perCashier', label: '👨‍💼 Per Karyawan / Kasir', count: perCashier.length },
-              { id: 'escrowPromo', label: '🎁 Escrow & Loyalty (Rp 75 Promo)', count: 'Live' }
+              { id: 'perMenu', label: 'Per Menu (Omset & HPP)', count: perMenu.length },
+              { id: 'perStore', label: 'Per Cabang / Toko', count: perStore.length },
+              { id: 'crossBranch', label: 'Semua Cabang per Menu (Matriks)', count: crossBranch.length },
+              { id: 'perCashier', label: 'Per Karyawan / Kasir', count: perCashier.length },
+              { id: 'escrowPromo', label: 'Escrow & Loyalty (Rp 75 Promo)', count: 'Live' }
             ].map(tab => {
               const active = activeTab === tab.id;
               return (
@@ -387,7 +387,7 @@ export default function KasirAnalyticsModal({
                       return (
                         <tr key={item.productId || idx} style={{ borderBottom: `1px solid ${borderColor}` }}>
                           <td style={{ padding: '10px 12px', fontWeight: 800 }}>
-                            {idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`}
+                            {`#${idx + 1}`}
                           </td>
                           <td style={{ padding: '10px 12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -575,7 +575,7 @@ export default function KasirAnalyticsModal({
                             fontWeight: 700,
                             fontSize: '0.72rem'
                           }}>
-                            ⭐ {cb.topBranchName || '-'}
+                            {cb.topBranchName || '-'}
                           </span>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
@@ -636,7 +636,7 @@ export default function KasirAnalyticsModal({
                     {perCashier.map((ck, idx) => (
                       <tr key={ck.cashierId || idx} style={{ borderBottom: `1px solid ${borderColor}` }}>
                         <td style={{ padding: '10px 12px', fontWeight: 800 }}>
-                          {idx === 0 ? '👑 #1' : `#${idx + 1}`}
+                          {idx === 0 ? '#1 Terbaik' : `#${idx + 1}`}
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <strong style={{ color: textPrimary, display: 'block' }}>{ck.cashierName}</strong>
@@ -889,7 +889,7 @@ export default function KasirAnalyticsModal({
           background: isLight ? '#f8fafc' : '#0f172a'
         }}>
           <span style={{ fontSize: '0.74rem', color: textSecondary }}>
-            💡 Data diperbarui otomatis secara real-time dari database POS kasir.
+            Data diperbarui otomatis secara real-time dari database POS kasir.
           </span>
           <button
             type="button"

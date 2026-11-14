@@ -112,7 +112,7 @@ export function lazyRetry(componentImport, componentName = 'Component', maxRetri
         const isTimeout = Boolean(error?.isTimeout || error?.message?.includes('TIMEOUT_'));
         
         if (isTimeout) {
-          console.warn(`[KostKu] ⏳ Buffer ${(currentBuffer / 1000).toFixed(1)}s habis untuk ${componentName}! Jaringan lambat, memicu try load baru (Percobaan ke-${attempt + 1})...`);
+          console.warn(`[KostKu] Buffer ${(currentBuffer / 1000).toFixed(1)}s habis untuk ${componentName}! Jaringan lambat, memicu try load baru (Percobaan ke-${attempt + 1})...`);
         } else {
           console.warn(`[KostKu] Percobaan memuat ${componentName} gagal (${attempt + 1}/${maxRetries + 1}):`, error);
         }

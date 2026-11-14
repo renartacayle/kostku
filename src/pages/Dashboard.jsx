@@ -103,7 +103,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
     promoted: {
       active: false,
       plan: '7d',
-      badgeText: '🔥 Rekomendasi Utama',
+      badgeText: 'Rekomendasi Utama',
       expiresAt: ''
     },
     waBotQuota: 25,
@@ -224,7 +224,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
   const [newMerchantForm, setNewMerchantForm] = useState({
     name: '',
     category: 'galon',
-    icon: '💧',
+    icon: '',
     phone: '',
     address: '',
     distanceKm: '0.2',
@@ -258,7 +258,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
       setNewMerchantForm({
         name: '',
         category: 'galon',
-        icon: '💧',
+        icon: '',
         phone: '',
         address: '',
         distanceKm: '0.2',
@@ -347,7 +347,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
         electricityRate: 0,
         depositAmount: 0,
         discount: { enabled: false, type: 'percent', value: 10, durationMonths: '1', validUntil: '', label: 'Promo Spesial' },
-        promoted: { active: false, plan: '7d', badgeText: '🔥 Rekomendasi Utama', expiresAt: '' },
+        promoted: { active: false, plan: '7d', badgeText: 'Rekomendasi Utama', expiresAt: '' },
         waBotQuota: 25,
         isPro: false
       });
@@ -395,7 +395,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
           promoted: sets.promoted || {
             active: false,
             plan: '7d',
-            badgeText: '🔥 Rekomendasi Utama',
+            badgeText: 'Rekomendasi Utama',
             expiresAt: ''
           },
           waBotQuota: sets.waBotQuota ?? 25,
@@ -476,7 +476,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
     };
   };
 
-  const handlePromoteKostAction = async (action, plan = '7d', badgeText = '🔥 Rekomendasi Utama', topUpQuota = 100, price = 20000, paymentMethod = 'qris', paymentRef = '') => {
+  const handlePromoteKostAction = async (action, plan = '7d', badgeText = 'Rekomendasi Utama', topUpQuota = 100, price = 20000, paymentMethod = 'qris', paymentRef = '') => {
     if (!targetKostUid) return;
     setPromotingKost(true);
     setSettingsMessage(null);
@@ -502,7 +502,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
         ? `Berhasil top-up +${topUpQuota} kuota pesan WhatsApp Bot Otomatis!`
         : action === 'deactivate'
           ? 'Status Sundul Kost berhasil dinonaktifkan. Properti kembali ke urutan normal.'
-          : `🚀 Sundul Kost aktif! Properti Anda kini berada di posisi #1 halaman Cari Kost dan Beranda.`;
+          : `Sundul Kost aktif! Properti Anda kini berada di posisi #1 halaman Cari Kost dan Beranda.`;
       setSettingsMessage({ type: 'success', text: msg });
       setTimeout(() => setSettingsMessage(null), 5000);
       return res;
@@ -735,7 +735,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
             boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)',
             flexShrink: 0
           }}>
-            👑
+            
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -779,7 +779,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
           }}
           title="Buka panel operasional staf untuk catat meteran, terima paket, dan inspeksi kamar"
         >
-          <span>🛠️ Ambil Alih Tugas & Meteran Staf</span>
+          <span>Ambil Alih Tugas & Meteran Staf</span>
           <span style={{
             background: 'rgba(255, 255, 255, 0.25)',
             padding: '2px 7px',
@@ -935,7 +935,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
               onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
             >
               <Plus size={20} strokeWidth={2.5} />
-              <span>➕ Buat Kost Sekarang</span>
+              <span>Buat Kost Sekarang</span>
             </button>
 
             {/* Feature Cards Grid */}
@@ -948,10 +948,10 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
               textAlign: 'left'
             }}>
               {[
-                { icon: '🏢', title: 'Unit Kamar Otomatis', desc: 'Generate kamar awal dengan tarif & denah visual AI.' },
-                { icon: '⚡', title: 'Skema Utilitas Fleksibel', desc: 'Atur token PLN mandiri atau air PDAM kelolaan.' },
-                { icon: '💰', title: 'Rekap Keuangan Realtime', desc: 'Catat sewa masuk, pengeluaran & cetak invoice otomatis.' },
-                { icon: '🔍', title: 'Tayang di Cari Kost', desc: 'Terima calon penyewa langsung via aplikasi tanpa perantara.' }
+                { icon: <Home size={22} color="#3b82f6" />, title: 'Unit Kamar Otomatis', desc: 'Generate kamar awal dengan tarif & denah visual AI.' },
+                { icon: <Zap size={22} color="#f59e0b" />, title: 'Skema Utilitas Fleksibel', desc: 'Atur token PLN mandiri atau air PDAM kelolaan.' },
+                { icon: <DollarSign size={22} color="#10b981" />, title: 'Rekap Keuangan Realtime', desc: 'Catat sewa masuk, pengeluaran & cetak invoice otomatis.' },
+                { icon: <Search size={22} color="#8b5cf6" />, title: 'Tayang di Cari Kost', desc: 'Terima calon penyewa langsung via aplikasi tanpa perantara.' }
               ].map((feat, idx) => (
                 <div key={idx} style={{
                   padding: '14px',
@@ -959,7 +959,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                   background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
                   border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)'
                 }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>{feat.icon}</div>
+                  <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>{feat.icon}</div>
                   <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}>
                     {feat.title}
                   </div>
@@ -1060,7 +1060,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      🌱 Kost Baru Buka — Siap Terima Penghuni Pertama!
+                      Kost Baru Buka — Siap Terima Penghuni Pertama!
                     </h4>
                     <span style={{
                       fontSize: '0.72rem',
@@ -1770,7 +1770,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                           </span>
                           {occupants.length > 0 ? (
                             <span style={{ fontSize: '0.7rem', color: isLight ? '#1d4ed8' : '#93c5fd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', fontWeight: 600 }}>
-                              👤 {occupants.map(o => o.name).join(', ')}
+                              {occupants.map(o => o.name).join(', ')}
                             </span>
                           ) : (
                             <span style={{ fontSize: '0.68rem', color: isLight ? '#059669' : '#34d399', display: 'block', fontWeight: 600 }}>
@@ -2213,7 +2213,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                     fontSize: '0.8rem',
                     color: '#38bdf8'
                   }}>
-                    💧 <strong>Air Mandiri:</strong> Penghuni bayar PDAM/meteran sendiri (Rp 0 ke kost).
+                    <strong>Air Mandiri:</strong> Penghuni bayar PDAM/meteran sendiri (Rp 0 ke kost).
                   </div>
                 ) : (
                   <input 
@@ -2240,7 +2240,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                     fontSize: '0.8rem',
                     color: '#fbbf24'
                   }}>
-                    ⚡ <strong>Listrik Mandiri:</strong> Penghuni beli token PLN sendiri per kamar (Rp 0 ke kost).
+                    <strong>Listrik Mandiri:</strong> Penghuni beli token PLN sendiri per kamar (Rp 0 ke kost).
                   </div>
                 ) : (
                   <input 
@@ -2486,10 +2486,10 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                       <option value="all">Sepanjang Masa Sewa (Semua Bulan Terdiskon)</option>
                     </select>
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', lineHeight: '1.3' }}>
-                      {settings.discount?.durationMonths === '1' && '💡 Penyewa hanya mendapat diskon di bulan pertama masuk, bulan berikutnya bayar harga normal.'}
-                      {settings.discount?.durationMonths === '3' && '💡 Diskon dipotong untuk maksimal 3 bulan sewa pertama.'}
-                      {settings.discount?.durationMonths === '6' && '💡 Diskon dipotong untuk maksimal 6 bulan sewa pertama.'}
-                      {settings.discount?.durationMonths === 'all' && '💡 Diskon berlaku penuh untuk setiap bulan yang disewa.'}
+                      {settings.discount?.durationMonths === '1' && 'Penyewa hanya mendapat diskon di bulan pertama masuk, bulan berikutnya bayar harga normal.'}
+                      {settings.discount?.durationMonths === '3' && 'Diskon dipotong untuk maksimal 3 bulan sewa pertama.'}
+                      {settings.discount?.durationMonths === '6' && 'Diskon dipotong untuk maksimal 6 bulan sewa pertama.'}
+                      {settings.discount?.durationMonths === 'all' && 'Diskon berlaku penuh untuk setiap bulan yang disewa.'}
                     </span>
                   </div>
 
@@ -2639,7 +2639,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                       color: settings.promoted?.active ? '#fbbf24' : '#34d399',
                       border: settings.promoted?.active ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(16, 185, 129, 0.3)'
                     }}>
-                      {settings.promoted?.active ? '🔥 Aktif di Posisi #1 Cari Kost' : '✅ Bebas Iklan Mengganggu'}
+                      {settings.promoted?.active ? 'Aktif di Posisi #1 Cari Kost' : 'Bebas Iklan Mengganggu'}
                     </span>
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -2675,7 +2675,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <strong style={{ fontSize: '0.92rem', color: isLight ? '#b45309' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      🚀 Fitur "Sundul Kost" (Boost Posisi #1)
+                      Fitur "Sundul Kost" (Boost Posisi #1)
                     </strong>
                     <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
                       Biaya Pasif
@@ -2725,16 +2725,16 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                     </label>
                     <select
                       className="input-field"
-                      value={settings.promoted?.badgeText || '🔥 Rekomendasi Utama'}
+                      value={settings.promoted?.badgeText || 'Rekomendasi Utama'}
                       onChange={e => setSettings(prev => ({
                         ...prev,
                         promoted: { ...(prev.promoted || {}), badgeText: e.target.value }
                       }))}
                       style={{ padding: '6px 10px', fontSize: '0.8rem' }}
                     >
-                      <option value="🔥 Rekomendasi Utama">🔥 Rekomendasi Utama</option>
-                      <option value="⚡ Prioritas Pencarian">⚡ Prioritas Pencarian</option>
-                      <option value="🌟 Kost Terverifikasi Unggulan">🌟 Kost Terverifikasi Unggulan</option>
+                      <option value="Rekomendasi Utama">Rekomendasi Utama</option>
+                      <option value="Prioritas Pencarian">Prioritas Pencarian</option>
+                      <option value="Kost Terverifikasi Unggulan">Kost Terverifikasi Unggulan</option>
                     </select>
                   </div>
                 </div>
@@ -2761,9 +2761,9 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                           borderRadius: '6px',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '5px'
                         }}>
-                          <span>🟢</span>
+                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
                           <span>AKTIF DI POSISI #1</span>
                         </span>
                         <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isLight ? '#166534' : '#fbbf24' }}>
@@ -2867,7 +2867,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                           fontSize: '0.78rem'
                         }}
                       >
-                        ⚡ Perpanjang
+                        Perpanjang
                       </button>
                       <button
                         type="button"
@@ -2905,7 +2905,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                       boxShadow: '0 4px 14px rgba(217, 119, 6, 0.3)'
                     }}
                   >
-                    🚀 Checkout Sundul Kost (Bayar via QRIS)
+                    Checkout Sundul Kost (Bayar via QRIS)
                   </button>
                 )}
               </div>
@@ -2925,7 +2925,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <strong style={{ fontSize: '0.92rem', color: isLight ? '#0284c7' : '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      🤖 Kuota WA Bot & Proteksi Biaya Aktif
+                      Kuota WA Bot & Proteksi Biaya Aktif
                     </strong>
                     <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
                       Biaya Aktif
@@ -2986,7 +2986,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                   fontSize: '0.72rem',
                   color: isLight ? '#065f46' : '#a7f3d0'
                 }}>
-                  💡 <strong>Zero-Ads Policy:</strong> Halaman keuangan, tagihan, dan komplain dijamin 100% bersih tanpa iklan pihak ketiga.
+                  <strong>Zero-Ads Policy:</strong> Halaman keuangan, tagihan, dan komplain dijamin 100% bersih tanpa iklan pihak ketiga.
                 </div>
               </div>
             </div>
@@ -3007,7 +3007,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                       Mitra Pribadi & Toko Affiliate Sekitar Kost (Komisi Pasif)
                     </span>
                     <span style={{ fontSize: '0.65rem', padding: '2px 7px', borderRadius: '999px', background: isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.15)', color: isLight ? '#15803d' : '#4ade80', fontWeight: 700, border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)' }}>
-                      💳 Prioritas Non-COD (QRIS & Tagihan)
+                      Prioritas Non-COD (QRIS & Tagihan)
                     </span>
                   </div>
                   <span style={{ fontSize: '0.72rem', color: isLight ? '#475569' : 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
@@ -3043,7 +3043,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
 
                 <div style={{ background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.05)', border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '8px', padding: '8px 10px' }}>
                   <div style={{ fontSize: '0.65rem', color: isLight ? '#166534' : '#4ade80', fontWeight: 600 }}>
-                    💰 Komisi Pemilik Terkumpul:
+                    Komisi Pemilik Terkumpul:
                   </div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 900, color: isLight ? '#15803d' : '#22c55e', marginTop: '2px' }}>
                     Rp {(merchantSummary?.totalOwnerCommission || 0).toLocaleString('id-ID')}
@@ -3052,7 +3052,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
 
                 <div style={{ background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.05)', border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '8px 10px' }}>
                   <div style={{ fontSize: '0.65rem', color: isLight ? '#1e40af' : '#93c5fd', fontWeight: 600 }}>
-                    ⚙️ Biaya Platform KostKu:
+                    Biaya Platform KostKu:
                   </div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isLight ? '#1e40af' : '#93c5fd', marginTop: '2px' }}>
                     Rp 200 / order
@@ -3061,7 +3061,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
 
                 <div style={{ background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
                   <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                    📦 Pesanan Berhasil:
+                    Pesanan Berhasil:
                   </div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc', marginTop: '2px' }}>
                     {merchantSummary?.completedOrders || 0} transaksi
@@ -3138,7 +3138,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        🏢 Mitra Pribadi Kost ({personalList.length})
+                        Mitra Pribadi Kost ({personalList.length})
                       </button>
                       <button
                         type="button"
@@ -3154,7 +3154,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        🌐 Affiliate Jaringan ({affiliateList.length})
+                        Affiliate Jaringan ({affiliateList.length})
                       </button>
                     </div>
 
@@ -3168,7 +3168,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                         textAlign: 'center',
                         marginBottom: '8px'
                       }}>
-                        <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>📡</div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color: '#f59e0b' }}><Store size={24} /></div>
                         <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc', marginBottom: '4px' }}>
                           Belum Ada Affiliate Aktif di Radius 1.5 km Kost
                         </div>
@@ -3188,7 +3188,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                         textAlign: 'center',
                         marginBottom: '8px'
                       }}>
-                        <div style={{ fontSize: '1.4rem', marginBottom: '4px' }}>🏪</div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color: isLight ? '#64748b' : '#94a3b8' }}><Store size={24} /></div>
                         <div style={{ fontSize: '0.84rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc', marginBottom: '4px' }}>
                           Belum Ada Mitra Toko yang Didaftarkan
                         </div>
@@ -3229,7 +3229,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                               <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '4px' }}>
                                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', minWidth: 0, flex: 1 }}>
-                                    <span style={{ fontSize: '1.4rem', lineHeight: 1, marginTop: '2px' }}>{m.icon || '🏪'}</span>
+                                    <Store size={18} color="#38bdf8" style={{ flexShrink: 0, marginTop: '2px' }} />
                                     <div style={{ minWidth: 0, flex: 1 }}>
                                       <div
                                         style={{
@@ -3250,7 +3250,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                                         {cleanName}
                                       </div>
                                       <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '2px' }}>
-                                        📍 {m.distanceKm || 0.2} km • {m.phone || 'Toko Terverifikasi'}
+                                        {m.distanceKm || 0.2} km • {m.phone || 'Toko Terverifikasi'}
                                       </div>
                                     </div>
                                   </div>
@@ -3279,7 +3279,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                                   flexDirection: 'column',
                                   justifyContent: 'center'
                                 }}>
-                                  <div>📦 <strong>{m.products?.length || 1} Produk Katalog:</strong></div>
+                                  <div><strong>{m.products?.length || 1} Produk Katalog:</strong></div>
                                   <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     <span style={{ color: '#93c5fd' }}>{m.products?.[0]?.name || 'Layanan Standar'}</span>{' '}
                                     <span style={{ color: '#86efac' }}>(Rp {(m.products?.[0]?.price || 16000).toLocaleString('id-ID')})</span>
@@ -3289,7 +3289,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
 
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
                                 <span style={{ fontSize: '0.72rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
-                                  🪙 +100 Poin (Rp 100) Reward
+                                  +100 Poin (Rp 100) Reward
                                 </span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {isCustomMerchant && (
@@ -3341,7 +3341,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
 
                 {inboxMessages.length === 0 ? (
                   <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                    Belum ada pesan masuk. Calon penyewa dapat mengirim chat langsung dari tombol <em>"💬 Tanya Pemilik via Chat Langsung"</em> di halaman Detail Kost tanpa perlu WhatsApp.
+                    Belum ada pesan masuk. Calon penyewa dapat mengirim chat langsung dari tombol <em>"Tanya Pemilik via Chat Langsung"</em> di halaman Detail Kost tanpa perlu WhatsApp.
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -3407,7 +3407,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                 className="btn btn-secondary btn-sm"
                 onClick={() => setShowBulkModal(true)}
               >
-                ⚡ Generate Massal
+                Generate Massal
               </button>
             </div>
 
@@ -3453,13 +3453,13 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                 </div>
                 {(settings.utilityScheme === 'electric_mandiri' || settings.utilityScheme === 'all_mandiri') && (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#fbbf24', marginBottom: '4px' }}>⚡ No. Meter PLN (Token)</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#fbbf24', marginBottom: '4px' }}>No. Meter PLN (Token)</label>
                     <input type="text" placeholder="11-12 digit No Meter" value={newRoom.plnMeterNo || ''} onChange={e => setNewRoom({...newRoom, plnMeterNo: e.target.value})} className="input-field" />
                   </div>
                 )}
                 {(settings.utilityScheme === 'water_mandiri' || settings.utilityScheme === 'all_mandiri') && (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#38bdf8', marginBottom: '4px' }}>💧 No. Pelanggan PDAM</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#38bdf8', marginBottom: '4px' }}>No. Pelanggan PDAM</label>
                     <input type="text" placeholder="No Rekening PDAM" value={newRoom.pdamMeterNo || ''} onChange={e => setNewRoom({...newRoom, pdamMeterNo: e.target.value})} className="input-field" />
                   </div>
                 )}
@@ -3468,7 +3468,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
               {/* Upload Foto Kamar Asli (Wajib) */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', marginBottom: '6px' }}>
-                  📸 Foto Fisik Kamar Ini (Wajib Diunggah) <span style={{ color: '#ef4444' }}>*</span>
+                  Foto Fisik Kamar Ini (Wajib Diunggah) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
 
                 {newRoom.roomPhoto ? (
@@ -3683,7 +3683,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                         }}>
                           <Camera size={22} color="#f87171" />
                           <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700 }}>
-                            ⚠️ Belum Ada Foto
+                            Belum Ada Foto
                           </span>
                           <span style={{ fontSize: '0.68rem', color: '#38bdf8', textDecoration: 'underline' }}>
                             Upload Foto
@@ -3990,9 +3990,9 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                   background: settings.utilityScheme === 'all_kost' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(245, 158, 11, 0.15)',
                   color: settings.utilityScheme === 'all_kost' ? '#60a5fa' : '#fbbf24'
                 }}>
-                  {settings.utilityScheme === 'electric_mandiri' ? '⚡ Listrik Mandiri' :
-                   settings.utilityScheme === 'water_mandiri' ? '💧 Air Mandiri' :
-                   settings.utilityScheme === 'all_mandiri' ? '⚡💧 Listrik & Air Mandiri' : '🏢 Utilitas Dikelola Kost'}
+                  {settings.utilityScheme === 'electric_mandiri' ? 'Listrik Mandiri' :
+                   settings.utilityScheme === 'water_mandiri' ? 'Air Mandiri' :
+                   settings.utilityScheme === 'all_mandiri' ? 'Listrik & Air Mandiri' : 'Utilitas Dikelola Kost'}
                 </span>
               </div>
 
@@ -4204,7 +4204,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
               {/* Upload 1 Foto Kamar Identik */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', marginBottom: '6px' }}>
-                  📸 1 Foto Fisik Kamar (Otomatis Diterapkan ke Semua Unit) <span style={{ color: '#ef4444' }}>*</span>
+                  1 Foto Fisik Kamar (Otomatis Diterapkan ke Semua Unit) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
 
                 {bulkConfig.roomPhoto ? (
@@ -4322,8 +4322,8 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
             boxShadow: isLight ? '0 20px 40px rgba(0, 0, 0, 0.1)' : '0 25px 60px -15px rgba(0, 0, 0, 0.8)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.5rem' }}>🏪</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Store size={24} color="#3b82f6" style={{ flexShrink: 0 }} />
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
                     Tambah Toko / Mitra Pribadi Kost
@@ -4367,18 +4367,18 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                     value={newMerchantForm.category}
                     onChange={e => {
                       const cat = e.target.value;
-                      const icon = cat === 'galon' ? '💧' : cat === 'laundry' ? '🧺' : cat === 'makanan' ? '🍱' : cat === 'gas' ? '🔥' : cat === 'service' ? '❄️' : '🏪';
+                      const icon = cat === 'galon' ? '' : cat === 'laundry' ? '' : cat === 'makanan' ? '' : cat === 'gas' ? '' : cat === 'service' ? '' : '';
                       setNewMerchantForm(prev => ({ ...prev, category: cat, icon }));
                     }}
                     className="input-field"
                     style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
                   >
-                    <option value="galon">💧 Air Galon Mineral</option>
-                    <option value="laundry">🧺 Laundry Kiloan</option>
-                    <option value="makanan">🍱 Katering / Makanan</option>
-                    <option value="gas">🔥 Gas LPG Melon</option>
-                    <option value="service">❄️ Teknisi & Cuci AC</option>
-                    <option value="lainnya">🏪 Kebutuhan Lainnya</option>
+                    <option value="galon">Air Galon Mineral</option>
+                    <option value="laundry">Laundry Kiloan</option>
+                    <option value="makanan">Katering / Makanan</option>
+                    <option value="gas">Gas LPG Melon</option>
+                    <option value="service">Teknisi & Cuci AC</option>
+                    <option value="lainnya">Kebutuhan Lainnya</option>
                   </select>
                 </div>
 
@@ -4426,7 +4426,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                   style={{ width: '100%', padding: '8px 10px', fontSize: '0.82rem' }}
                 />
                 <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '3px' }}>
-                  💡 Jika diisi gambar QRIS rekening toko (BCA/GoPay/dll), anak kost akan men-scan kode asli tersebut.
+                  Jika diisi gambar QRIS rekening toko (BCA/GoPay/dll), anak kost akan men-scan kode asli tersebut.
                 </span>
               </div>
 
@@ -4438,7 +4438,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                 marginBottom: '10px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
-                  <span>🪙</span> Reward Transaksi: +100 Poin (Rp 100) per order
+                  <Coins size={15} /> Reward Transaksi: +100 Poin (Rp 100) per order
                 </div>
                 <div style={{ fontSize: '0.72rem', color: isLight ? '#78350f' : '#fef3c7', marginTop: '3px' }}>
                   Bebas komisi tunai dari mitra. Setiap transaksi otomatis menghasilkan reward loyalty poin.
@@ -4491,7 +4491,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                 fontSize: '0.72rem',
                 color: isLight ? '#15803d' : '#4ade80'
               }}>
-                💳 <strong>Sistem Non-Tunai Otomatis:</strong> Pesanan anak kost akan otomatis diproses via QRIS Instan atau digabung ke tagihan bulanan kamar. Komisi Anda langsung bertambah di sistem.
+                <strong>Sistem Non-Tunai Otomatis:</strong> Pesanan anak kost akan otomatis diproses via QRIS Instan atau digabung ke tagihan bulanan kamar. Komisi Anda langsung bertambah di sistem.
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
@@ -4543,7 +4543,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
         kostName={settings.kostName || user?.kostName || 'Kost Anda'}
         kostUid={targetKostUid}
         currentPlan={settings.promoted?.plan || '7d'}
-        currentBadge={settings.promoted?.badgeText || '🔥 Rekomendasi Utama'}
+        currentBadge={settings.promoted?.badgeText || 'Rekomendasi Utama'}
         isRenewal={isSundulRenewal}
         onSuccess={async (data) => {
           await handlePromoteKostAction('activate', data.plan, data.badgeText, 100, data.price, data.paymentMethod, data.paymentRef);
@@ -4621,7 +4621,7 @@ const Dashboard = ({ user }) => {
               boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
               flexShrink: 0
             }}>
-              👑
+              
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -4636,7 +4636,7 @@ const Dashboard = ({ user }) => {
                   background: '#f59e0b',
                   color: '#ffffff'
                 }}>
-                  👑 Mode Ambil Alih Juragan
+                  Mode Ambil Alih Juragan
                 </span>
                 <span style={{
                   fontSize: '0.72rem',

@@ -159,10 +159,9 @@ export default function ReceiptPrinter({
             {/* Header Stamp */}
             <div style={{ textAlign: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '1.05rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a' }}>
-                <span>🏠</span>
                 <span>{receipt.kostName || 'KOSTKU INDONESIA'}</span>
               </div>
-              <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.65rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '2px' }}>
                 Kuitansi Sah Pembayaran Sewa
               </div>
             </div>
@@ -207,8 +206,8 @@ export default function ReceiptPrinter({
                   <span>{formatRupiah(receipt.electricityDeposit)}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669', fontWeight: 700 }}>
-                <span>Biaya Admin & Layanan</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0f172a', fontWeight: 700 }}>
+                <span>Biaya Admin &amp; Layanan</span>
                 <span>Rp 0 (GRATIS)</span>
               </div>
             </div>
@@ -232,33 +231,33 @@ export default function ReceiptPrinter({
               alignItems: 'center',
               justifyContent: 'space-between',
               background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #cbd5e1',
               borderRadius: '8px',
               padding: '6px 10px',
               marginBottom: '16px',
               fontSize: '0.72rem'
             }}>
-              <span style={{ color: '#64748b' }}>Metode Pembayaran:</span>
-              <strong style={{ color: '#059669' }}>✓ {receipt.paymentMethod}</strong>
+              <span style={{ color: '#475569' }}>Metode Pembayaran:</span>
+              <strong style={{ color: '#0f172a' }}>{receipt.paymentMethod}</strong>
             </div>
 
-            {/* Tactile Stamp: LUNAS (Angled Stamp) */}
+            {/* Tactile Stamp: LUNAS (Angled Stamp - Monochrome) */}
             <div style={{
               position: 'absolute',
               top: '55%',
               right: '20px',
               transform: 'translateY(-50%) rotate(-14deg)',
-              border: '3px solid #059669',
+              border: '3px solid #0f172a',
               borderRadius: '8px',
               padding: '4px 12px',
-              color: '#059669',
+              color: '#0f172a',
               fontWeight: 900,
               fontSize: '1.25rem',
               letterSpacing: '0.15em',
               textTransform: 'uppercase',
               opacity: 0.85,
               pointerEvents: 'none',
-              boxShadow: 'inset 0 0 0 1px rgba(5, 150, 105, 0.4)'
+              boxShadow: 'inset 0 0 0 1px rgba(15, 23, 42, 0.35)'
             }}>
               LUNAS
             </div>

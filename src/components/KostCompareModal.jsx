@@ -59,7 +59,7 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
         }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
-              ⚖️ Bandingkan Pilihan Kost ({kosts.length} Kost)
+              Bandingkan Pilihan Kost ({kosts.length} Kost)
             </h3>
             <span style={{ fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
               Bandingkan harga, fasilitas, dan tata ruang untuk menentukan pilihan terbaik
@@ -234,7 +234,7 @@ export default function KostCompareModal({ isOpen, onClose, kosts = [] }) {
           gap: '10px'
         }}>
           <span style={{ fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-            💡 Klik "Pilih Kost Ini" untuk melihat rincian kamar & fasilitas lengkap
+            Klik "Pilih Kost Ini" untuk melihat rincian kamar & fasilitas lengkap
           </span>
           <button
             type="button"

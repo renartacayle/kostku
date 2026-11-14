@@ -220,7 +220,7 @@ export default function KasirInventoryModal({
               <ShieldAlert size={22} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <strong style={{ fontSize: '0.84rem', color: isLight ? '#991b1b' : '#fca5a5', display: 'block' }}>
-                  ⚠️ PERHATIAN: {inventoryAlerts.length} Bahan Baku Menipis / Perlu Segera Direstock!
+                  PERHATIAN: {inventoryAlerts.length} Bahan Baku Menipis / Perlu Segera Direstock!
                 </strong>
                 <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: textSecondary, lineHeight: 1.4 }}>
                   {inventoryAlerts.map(a => `${a.name} (Sisa: ${a.currentStock} ${a.unit}, batas min: ${a.minAlertStock} ${a.unit})`).join(' • ')}
@@ -383,7 +383,7 @@ export default function KasirInventoryModal({
                               background: isZero ? '#fee2e2' : isLow ? '#fef3c7' : '#dcfce7',
                               color: isZero ? '#b91c1c' : isLow ? '#b45309' : '#15803d'
                             }}>
-                              {isZero ? '🔴 HABIS' : isLow ? '🟡 MENIPIS' : '🟢 AMAN'}
+                              {isZero ? 'HABIS' : isLow ? 'MENIPIS' : 'AMAN'}
                             </span>
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
@@ -600,7 +600,7 @@ export default function KasirInventoryModal({
           background: isLight ? '#f8fafc' : '#0f172a'
         }}>
           <span style={{ fontSize: '0.74rem', color: textSecondary }}>
-            💡 Pembatalan pesanan di dapur otomatis mengembalikan stok bahan baku ke gudang.
+            Pembatalan pesanan di dapur otomatis mengembalikan stok bahan baku ke gudang.
           </span>
           <button
             type="button"

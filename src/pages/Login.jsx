@@ -595,15 +595,15 @@ export default function Login({ onLogin }) {
             gap: '12px'
           }}>
             <Link to="/syarat-ketentuan" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-              📜 Syarat & Ketentuan
+              Syarat & Ketentuan
             </Link>
             <span>•</span>
             <Link to="/kebijakan-privasi" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-              🛡️ Kebijakan Privasi
+              Kebijakan Privasi
             </Link>
             <span>•</span>
             <Link to="/tentang-kami" style={{ color: isLight ? '#475569' : '#94a3b8', textDecoration: 'none', fontWeight: 600 }}>
-              🏢 Tentang Kami
+              Tentang Kami
             </Link>
           </div>
         </div>

@@ -67,19 +67,19 @@ export const CITY_DEFAULT_COORDINATES = {
  * Popular educational and tech hubs across major Indonesian cities with known coordinates
  */
 export const POPULAR_LANDMARKS = [
-  { id: 'udinus', name: '🎓 Kampus UDINUS', full: 'Universitas Dian Nuswantoro, Semarang', city: 'Semarang', lat: -6.9826, lng: 110.4091 },
-  { id: 'undip', name: '🎓 Kampus UNDIP', full: 'Universitas Diponegoro, Tembalang, Semarang', city: 'Semarang', lat: -7.0504, lng: 110.4385 },
-  { id: 'unnes', name: '🎓 Kampus UNNES', full: 'Universitas Negeri Semarang, Sekaran, Gunungpati', city: 'Semarang', lat: -7.0515, lng: 110.3920 },
-  { id: 'simpang5', name: '🏙️ Simpang Lima', full: 'Simpang Lima Semarang Tengah', city: 'Semarang', lat: -6.9912, lng: 110.4245 },
-  { id: 'itb', name: '🎓 Kampus ITB', full: 'Institut Teknologi Bandung, Dago', city: 'Bandung', lat: -6.8915, lng: 107.6107 },
-  { id: 'unpad', name: '🎓 Kampus UNPAD', full: 'Universitas Padjadjaran, Dipati Ukur', city: 'Bandung', lat: -6.8929, lng: 107.6179 },
-  { id: 'ugm', name: '🎓 Kampus UGM', full: 'Universitas Gadjah Mada, Sleman', city: 'Yogyakarta', lat: -7.7713, lng: 110.3775 },
-  { id: 'ui', name: '🎓 Kampus UI', full: 'Universitas Indonesia, Depok / Jaksel', city: 'Jakarta', lat: -6.3650, lng: 106.8286 },
-  { id: 'tebet', name: '🏙️ Tebet Jaksel', full: 'Tebet Raya, Jakarta Selatan', city: 'Jakarta', lat: -6.2383, lng: 106.8532 },
-  { id: 'bsd', name: '🏢 BSD City Serpong', full: 'BSD Green Office Park, Tangerang', city: 'Tangerang', lat: -6.3015, lng: 106.6521 },
-  { id: 'unair', name: '🎓 Kampus UNAIR', full: 'Universitas Airlangga Kampus B, Surabaya', city: 'Surabaya', lat: -7.2687, lng: 112.7588 },
-  { id: 'ub', name: '🎓 Kampus UB', full: 'Universitas Brawijaya, Malang', city: 'Malang', lat: -7.9526, lng: 112.6138 },
-  { id: 'canggu', name: '🌴 Canggu Bali', full: 'Batu Bolong, Canggu, Bali', city: 'Bali', lat: -8.6500, lng: 115.1333 }
+  { id: 'udinus', name: 'Kampus UDINUS', full: 'Universitas Dian Nuswantoro, Semarang', city: 'Semarang', lat: -6.9826, lng: 110.4091 },
+  { id: 'undip', name: 'Kampus UNDIP', full: 'Universitas Diponegoro, Tembalang, Semarang', city: 'Semarang', lat: -7.0504, lng: 110.4385 },
+  { id: 'unnes', name: 'Kampus UNNES', full: 'Universitas Negeri Semarang, Sekaran, Gunungpati', city: 'Semarang', lat: -7.0515, lng: 110.3920 },
+  { id: 'simpang5', name: 'Simpang Lima', full: 'Simpang Lima Semarang Tengah', city: 'Semarang', lat: -6.9912, lng: 110.4245 },
+  { id: 'itb', name: 'Kampus ITB', full: 'Institut Teknologi Bandung, Dago', city: 'Bandung', lat: -6.8915, lng: 107.6107 },
+  { id: 'unpad', name: 'Kampus UNPAD', full: 'Universitas Padjadjaran, Dipati Ukur', city: 'Bandung', lat: -6.8929, lng: 107.6179 },
+  { id: 'ugm', name: 'Kampus UGM', full: 'Universitas Gadjah Mada, Sleman', city: 'Yogyakarta', lat: -7.7713, lng: 110.3775 },
+  { id: 'ui', name: 'Kampus UI', full: 'Universitas Indonesia, Depok / Jaksel', city: 'Jakarta', lat: -6.3650, lng: 106.8286 },
+  { id: 'tebet', name: 'Tebet Jaksel', full: 'Tebet Raya, Jakarta Selatan', city: 'Jakarta', lat: -6.2383, lng: 106.8532 },
+  { id: 'bsd', name: 'BSD City Serpong', full: 'BSD Green Office Park, Tangerang', city: 'Tangerang', lat: -6.3015, lng: 106.6521 },
+  { id: 'unair', name: 'Kampus UNAIR', full: 'Universitas Airlangga Kampus B, Surabaya', city: 'Surabaya', lat: -7.2687, lng: 112.7588 },
+  { id: 'ub', name: 'Kampus UB', full: 'Universitas Brawijaya, Malang', city: 'Malang', lat: -7.9526, lng: 112.6138 },
+  { id: 'canggu', name: 'Canggu Bali', full: 'Batu Bolong, Canggu, Bali', city: 'Bali', lat: -8.6500, lng: 115.1333 }
 ];
 
 /**

@@ -312,17 +312,17 @@ const Keuangan = ({ user }) => {
       const data = await res.json();
       if (res.ok) {
         if (data.processedCount > 0) {
-          setSettlementFeedback(`✅ Sukses! ${data.processedCount} nota kadaluarsa berhasil diselesaikan (+Rp ${(data.totalRefunded || 0).toLocaleString('id-ID')} dikembalikan ke saldo aktif).`);
+          setSettlementFeedback(`Sukses! ${data.processedCount} nota kadaluarsa berhasil diselesaikan (+Rp ${(data.totalRefunded || 0).toLocaleString('id-ID')} dikembalikan ke saldo aktif).`);
         } else {
-          setSettlementFeedback('ℹ️ Tidak ada nota pending yang telah melewati batas deadline klaim (D+1 23:59 WIB).');
+          setSettlementFeedback('Info: Tidak ada nota pending yang telah melewati batas deadline klaim (D+1 23:59 WIB).');
         }
         fetchEscrowWallet();
         setTimeout(() => setSettlementFeedback(''), 6000);
       } else {
-        setSettlementFeedback('❌ Gagal menjalankan settlement: ' + (data.error || 'Server error'));
+        setSettlementFeedback('Gagal menjalankan settlement: ' + (data.error || 'Server error'));
       }
     } catch (err) {
-      setSettlementFeedback('❌ Terjadi kesalahan jaringan saat settlement.');
+      setSettlementFeedback('Gagal: Terjadi kesalahan jaringan saat settlement.');
     } finally {
       setSettlementExecuting(false);
     }
@@ -1325,7 +1325,7 @@ const Keuangan = ({ user }) => {
             fontSize: '0.78rem',
             color: '#cbd5e1'
           }}>
-            <span style={{ fontSize: '1.1rem' }}>💡</span>
+            <AlertCircle size={18} color="#38bdf8" style={{ flexShrink: 0 }} />
             <span>
               <strong>Penghuni Bayar Mandiri dari HP:</strong> Setiap anak kost dapat langsung membuka tagihan dan membayar mandiri lewat akun mereka (via QRIS / Virtual Account). Anda <strong>tidak perlu</strong> mengirimkan QRIS manual. Tombol di bawah digunakan hanya jika anak kost membayar tunai di meja pengelola atau untuk pengujian di tempat.
             </span>
@@ -1557,19 +1557,23 @@ const Keuangan = ({ user }) => {
           </div>
 
           {/* Feedback Alert Banner */}
-          {settlementFeedback && (
-            <div style={{
-              padding: '12px 16px',
-              borderRadius: '12px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              background: settlementFeedback.startsWith('✅') ? '#dcfce7' : settlementFeedback.startsWith('ℹ️') ? '#eff6ff' : '#fee2e2',
-              color: settlementFeedback.startsWith('✅') ? '#166534' : settlementFeedback.startsWith('ℹ️') ? '#1e40af' : '#991b1b',
-              border: `1px solid ${settlementFeedback.startsWith('✅') ? '#86efac' : settlementFeedback.startsWith('ℹ️') ? '#bfdbfe' : '#fca5a5'}`
-            }}>
-              {settlementFeedback}
-            </div>
-          )}
+          {settlementFeedback && (() => {
+            const isSuccess = /^sukses/i.test(settlementFeedback);
+            const isInfo = /^info|^tidak ada nota/i.test(settlementFeedback);
+            return (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '12px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                background: isSuccess ? '#dcfce7' : isInfo ? '#eff6ff' : '#fee2e2',
+                color: isSuccess ? '#166534' : isInfo ? '#1e40af' : '#991b1b',
+                border: `1px solid ${isSuccess ? '#86efac' : isInfo ? '#bfdbfe' : '#fca5a5'}`
+              }}>
+                {settlementFeedback}
+              </div>
+            );
+          })()}
 
           {/* 3 Top Cards Grid */}
           <div style={{
@@ -1699,7 +1703,7 @@ const Keuangan = ({ user }) => {
                 color: isLight ? '#92400e' : '#fde68a',
                 lineHeight: 1.4
               }}>
-                ℹ️ <strong>Aturan Escrow:</strong> Dana Rp 75/nota ditahan sementara selama masa klaim pelanggan. Jika pelanggan tidak mengklaim poin sampai besok 23:59 WIB, dana ini otomatis dikembalikan ke saldo aktif Anda pada pukul 00:01 WIB.
+                <strong>Aturan Escrow:</strong> Dana Rp 75/nota ditahan sementara selama masa klaim pelanggan. Jika pelanggan tidak mengklaim poin sampai besok 23:59 WIB, dana ini otomatis dikembalikan ke saldo aktif Anda pada pukul 00:01 WIB.
               </div>
             </div>
 
@@ -1725,7 +1729,7 @@ const Keuangan = ({ user }) => {
                   borderRadius: '8px',
                   fontSize: '0.76rem'
                 }}>
-                  <span style={{ color: '#d97706', fontWeight: 700 }}>⏳ Menunggu Klaim (Pending):</span>
+                  <span style={{ color: '#d97706', fontWeight: 700 }}>Menunggu Klaim (Pending):</span>
                   <strong>{escrowWallet.pendingClaimsCount || 0} Nota</strong>
                 </div>
 
@@ -1738,7 +1742,7 @@ const Keuangan = ({ user }) => {
                   borderRadius: '8px',
                   fontSize: '0.76rem'
                 }}>
-                  <span style={{ color: '#16a34a', fontWeight: 700 }}>🎁 Poin Diklaim Pelanggan:</span>
+                  <span style={{ color: '#16a34a', fontWeight: 700 }}>Poin Diklaim Pelanggan:</span>
                   <strong>{escrowWallet.claimedCount || 0} Nota</strong>
                 </div>
 
@@ -1873,7 +1877,7 @@ const Keuangan = ({ user }) => {
                               fontSize: '0.68rem',
                               border: '1px solid #fde68a'
                             }}>
-                              ⏳ Menunggu Klaim Pelanggan
+                              Menunggu Klaim Pelanggan
                             </span>
                           )}
                           {claim.status === 'CLAIMED' && (
@@ -1886,7 +1890,7 @@ const Keuangan = ({ user }) => {
                               fontSize: '0.68rem',
                               border: '1px solid #86efac'
                             }}>
-                              🎁 Poin Diklaim (Rp 100)
+                              Poin Diklaim (Rp 100)
                             </span>
                           )}
                           {claim.status === 'EXPIRED' && (
@@ -2172,7 +2176,7 @@ const Keuangan = ({ user }) => {
                       border: isLight ? '1px solid rgba(2, 132, 199, 0.25)' : '1px solid rgba(56, 189, 248, 0.4)',
                       fontWeight: 700
                     }}>
-                      ⚡ TRIPAY DISBURSEMENT GATEWAY
+                      TRIPAY DISBURSEMENT GATEWAY
                     </span>
                     <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>Kliring Bank Indonesia</span>
                   </div>
@@ -2265,7 +2269,7 @@ const Keuangan = ({ user }) => {
                           fontWeight: 700
                         }}
                       >
-                        ⚡ Tarik Semua (Max)
+                        Tarik Semua (Max)
                       </button>
                     </div>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -2648,7 +2652,7 @@ const Keuangan = ({ user }) => {
                   lineHeight: '1.45',
                   border: isLight ? '1px solid rgba(2, 132, 199, 0.2)' : 'none'
                 }}>
-                  💡 <strong>Catatan:</strong> Pencairan dana diproses secara real-time melalui jaringan TriPay Disbursement &amp; BI-FAST langsung ke rekening bank tujuan Anda.
+                  <strong>Catatan:</strong> Pencairan dana diproses secara real-time melalui jaringan TriPay Disbursement &amp; BI-FAST langsung ke rekening bank tujuan Anda.
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>

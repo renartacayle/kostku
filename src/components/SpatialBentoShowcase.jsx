@@ -35,7 +35,7 @@ export default function SpatialBentoShowcase() {
   const CUSTOMER_SLIDES = [
     {
       id: 'foto-asli',
-      badge: '📸 FOTO ASLI & TERVERIFIKASI',
+      badge: 'FOTO ASLI & TERVERIFIKASI',
       badgeColor: '#10B981',
       badgeBg: 'rgba(16, 185, 129, 0.15)',
       title: '100% Foto Asli Tanpa Lensa Tipu-Tipu',
@@ -50,12 +50,12 @@ export default function SpatialBentoShowcase() {
       ctaText: 'Cari Kost Terverifikasi →',
       ctaLink: '/search',
       floatingBadge: '✓ Lolos Verifikasi Lapangan',
-      floatingIcon: '📸',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'denah-nyata',
-      badge: '📐 TATA RUANG & PERABOT',
+      badge: 'TATA RUANG & PERABOT',
       badgeColor: '#38BDF8',
       badgeBg: 'rgba(56, 189, 248, 0.15)',
       title: 'Ketahui Muat Apa Saja Sebelum Datang Survei',
@@ -69,13 +69,13 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Rata-rata Kamar Nyaman',
       ctaText: 'Jelajahi Denah Kamar →',
       ctaLink: '/search',
-      floatingBadge: '📐 Dimensi Realistis 1:50',
-      floatingIcon: '📐',
+      floatingBadge: 'Dimensi Realistis 1:50',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'listrik-transparan',
-      badge: '⚡ BEBAS BIAYA SILUMAN',
+      badge: 'BEBAS BIAYA SILUMAN',
       badgeColor: '#F59E0B',
       badgeBg: 'rgba(245, 158, 11, 0.15)',
       title: 'Token Listrik Mandiri Sesuai Tarif Resmi PLN',
@@ -89,13 +89,13 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Biaya Tambahan Tersembunyi',
       ctaText: 'Cari Kost Listrik Mandiri →',
       ctaLink: '/search',
-      floatingBadge: '⚡ Meteran Token Mandiri',
-      floatingIcon: '⚡',
+      floatingBadge: 'Meteran Token Mandiri',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'bebas-calo',
-      badge: '🛡️ KEAMANAN & ANTI-PENIPUAN',
+      badge: 'KEAMANAN & ANTI-PENIPUAN',
       badgeColor: '#818CF8',
       badgeBg: 'rgba(129, 140, 248, 0.15)',
       title: 'Sewa Langsung ke Pemilik Sah Tanpa Calo',
@@ -109,8 +109,8 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Penghuni Tenang & Nyaman',
       ctaText: 'Temukan Kost Aman Sekarang →',
       ctaLink: '/search',
-      floatingBadge: '🛡️ 100% Pemilik Terverifikasi',
-      floatingIcon: '🛡️',
+      floatingBadge: '100% Pemilik Terverifikasi',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1000&auto=format&fit=crop&q=80'
     }
   ];
@@ -118,7 +118,7 @@ export default function SpatialBentoShowcase() {
   const OWNER_SLIDES = [
     {
       id: 'kelola-okupansi',
-      badge: '🏢 MANAJEMEN OKUPANSI KOST',
+      badge: 'MANAJEMEN OKUPANSI KOST',
       badgeColor: '#38BDF8',
       badgeBg: 'rgba(56, 189, 248, 0.15)',
       title: 'Kelola Seluruh Kamar & Okupansi Otomatis',
@@ -132,13 +132,13 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Rata-rata Okupansi Mitra',
       ctaText: 'Daftarkan Kost Sekarang →',
       ctaLink: '/register?role=owner',
-      floatingBadge: '📊 Monitoring Kamar Real-Time',
-      floatingIcon: '📊',
+      floatingBadge: 'Monitoring Kamar Real-Time',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'keuangan-otomatis',
-      badge: '💰 KEUANGAN & PEMBUKUAN',
+      badge: 'KEUANGAN & PEMBUKUAN',
       badgeColor: '#10B981',
       badgeBg: 'rgba(16, 185, 129, 0.15)',
       title: 'Pencatatan Keuangan & Kwitansi 1-Click WhatsApp',
@@ -152,13 +152,13 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Kirim Kwitansi WA Instan',
       ctaText: 'Mulai Kelola Keuangan →',
       ctaLink: '/register?role=owner',
-      floatingBadge: '🧾 Kwitansi WA Digital Otomatis',
-      floatingIcon: '🧾',
+      floatingBadge: 'Kwitansi WA Digital Otomatis',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'penyewa-terverifikasi',
-      badge: '✨ DATA PENYEWA TERTIB & AMAN',
+      badge: 'DATA PENYEWA TERTIB & AMAN',
       badgeColor: '#818CF8',
       badgeBg: 'rgba(129, 140, 248, 0.15)',
       title: 'Data Kontak Tertib, Komunikasi Penghuni Lancar & Nyaman',
@@ -172,13 +172,13 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Komunikasi Lancar & Tertib',
       ctaText: 'Kelola Penyewa Praktis →',
       ctaLink: '/register?role=owner',
-      floatingBadge: '✨ Profil Penyewa Rapi & Jelas',
-      floatingIcon: '✨',
+      floatingBadge: 'Profil Penyewa Rapi & Jelas',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'promosi-maksimal',
-      badge: '🚀 PROMOSI & JANGKAUAN',
+      badge: 'PROMOSI & JANGKAUAN',
       badgeColor: '#F59E0B',
       badgeBg: 'rgba(245, 158, 11, 0.15)',
       title: 'Jangkau Ribuan Mahasiswa & Karyawan Tiap Hari',
@@ -192,8 +192,8 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Pencari Aktif / Bulan',
       ctaText: 'Pasang Iklan Kost Gratis →',
       ctaLink: '/register?role=owner',
-      floatingBadge: '🎯 Radar GPS Kampus Terdekat',
-      floatingIcon: '🎯',
+      floatingBadge: 'Radar GPS Kampus Terdekat',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1000&auto=format&fit=crop&q=80'
     }
   ];
@@ -201,7 +201,7 @@ export default function SpatialBentoShowcase() {
   const MITRA_SLIDES = [
     {
       id: 'pasar-hyperlocal',
-      badge: '🏪 PASAR TETAP HYPERLOCAL',
+      badge: 'PASAR TETAP HYPERLOCAL',
       badgeColor: '#F59E0B',
       badgeBg: 'rgba(245, 158, 11, 0.15)',
       title: 'Pasar Pasti Ratusan Penghuni Kost di Radius Dekat',
@@ -215,13 +215,13 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Pasar Rutin Harian',
       ctaText: 'Daftarkan Toko Mitra Gratis →',
       ctaLink: '/mitra',
-      floatingBadge: '🏪 Captive Market Kost',
-      floatingIcon: '🏪',
+      floatingBadge: 'Captive Market Kost',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'bebas-komisi-20',
-      badge: '💸 TANPA POTONGAN BESAR',
+      badge: 'TANPA POTONGAN BESAR',
       badgeColor: '#10B981',
       badgeBg: 'rgba(16, 185, 129, 0.15)',
       title: 'Margin Penuh Milik Mitra, Tanpa Potongan Ojol 20%',
@@ -236,12 +236,12 @@ export default function SpatialBentoShowcase() {
       ctaText: 'Mulai Jualan di KostKu →',
       ctaLink: '/mitra',
       floatingBadge: '✓ Margin Bersih 100%',
-      floatingIcon: '💰',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'qris-dan-kasir',
-      badge: '💳 KASIR & QRIS OTOMATIS',
+      badge: 'KASIR & QRIS OTOMATIS',
       badgeColor: '#38BDF8',
       badgeBg: 'rgba(56, 189, 248, 0.15)',
       title: 'Terima QRIS Otomatis & Tarik Saldo Fleksibel',
@@ -255,13 +255,13 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Pencairan Saldo Fleksibel',
       ctaText: 'Lihat Integrasi QRIS Mitra →',
       ctaLink: '/mitra',
-      floatingBadge: '⚡ QRIS Resmi Bank Indonesia',
-      floatingIcon: '⚡',
+      floatingBadge: 'QRIS Resmi Bank Indonesia',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1556742049-0a67e557224f?w=1000&auto=format&fit=crop&q=80'
     },
     {
       id: 'referral-loyalty',
-      badge: '🎁 REFERRAL & LOYALTY WARUNG',
+      badge: 'REFERRAL & LOYALTY WARUNG',
       badgeColor: '#8B5CF6',
       badgeBg: 'rgba(139, 92, 246, 0.15)',
       title: 'Dipromosikan Langsung oleh Anak Kost & Pengelola',
@@ -275,8 +275,8 @@ export default function SpatialBentoShowcase() {
       statLabel: 'Poin Loyalty Referral',
       ctaText: 'Gabung Jaringan Mitra Sekarang →',
       ctaLink: '/mitra',
-      floatingBadge: '🎁 Bonus Referral Komunitas',
-      floatingIcon: '🎁',
+      floatingBadge: 'Bonus Referral Komunitas',
+      floatingIcon: '',
       image: 'https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=1000&auto=format&fit=crop&q=80'
     }
   ];
@@ -712,7 +712,7 @@ export default function SpatialBentoShowcase() {
                 fontWeight: 700,
                 boxShadow: isLight ? '0 8px 20px rgba(15, 23, 42, 0.12)' : '0 8px 24px rgba(0, 0, 0, 0.5)'
               }}>
-                <span style={{ fontSize: '1rem' }}>{currentItem.floatingIcon}</span>
+                <Sparkles size={14} color="#38bdf8" />
                 <span>{currentItem.floatingBadge}</span>
               </div>
 

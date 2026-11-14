@@ -107,7 +107,7 @@ export default function SmartLockAndApplianceCard({ user, kostUid, roomNumber })
       } else {
         await fetchSmartLock();
       }
-      alert('🔑 PIN Smart Lock baru berhasil di-generate & disinkronkan ke gateway pintu!');
+      alert('PIN Smart Lock baru berhasil di-generate & disinkronkan ke gateway pintu!');
     } catch (err) {
       alert('Gagal generate PIN: ' + (err.message || 'Terjadi kesalahan'));
     } finally {

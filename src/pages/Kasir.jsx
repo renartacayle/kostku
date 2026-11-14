@@ -70,7 +70,11 @@ import {
   Receipt,
   ArrowDownRight,
   ArrowUpRight,
-  History
+  History,
+  ChevronDown,
+  ChevronUp,
+  Navigation,
+  Eye
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import QRCode from 'qrcode';
@@ -89,7 +93,8 @@ import {
   kickCashDrawer,
   playCashRegisterSound,
   playChime,
-  buildKickDrawerBuffer
+  buildKickDrawerBuffer,
+  formatStoreHeaderLines
 } from '../utils/thermalPrinter';
 import {
   apiGetAccountWallet,
@@ -241,6 +246,9 @@ const parseJsonIfOk = async (res) => {
   return parseJsonSafe(res);
 };
 
+/** Format an integer/numeric value cleanly in Indonesian Rupiah. */
+const formatRupiah = (amount) => `Rp ${Number(amount || 0).toLocaleString('id-ID')}`;
+
 export default function Kasir({ user }) {
   const navigate = useNavigate();
   const { isLight, toggleTheme } = useTheme();
@@ -337,15 +345,42 @@ export default function Kasir({ user }) {
   const [editingTableName, setEditingTableName] = useState('');
   const [deletingTableId, setDeletingTableId] = useState(null);
   const [tableActionFeedback, setTableActionFeedback] = useState(null);
+  const [selectedDashboardOrderId, setSelectedDashboardOrderId] = useState(null);
+  const [selectedTableReceiptKey, setSelectedTableReceiptKey] = useState(null);
+  const [selectedTableOrderId, setSelectedTableOrderId] = useState(null);
+  const [keuanganSubTab, setKeuanganSubTab] = useState('overview'); // 'overview' | 'analytics'
   const [storeForm, setStoreForm] = useState({
     storeName: '',
     location: '',
     address: '',
     city: '',
-    phone: ''
+    phone: '',
+    mapsUrl: '',
+    latitude: '',
+    longitude: ''
   });
   const [savingStore, setSavingStore] = useState(false);
   const [storeSaveMsg, setStoreSaveMsg] = useState('');
+
+  const isErrorFeedback = (msg) => {
+    const txt = String(msg || '');
+    return /gagal|wajib|tidak|habis|kurang|error|kosong|belum|ditolak|peringatan|selisih/i.test(txt) && !/berhasil|sukses|diklaim|terhubung/i.test(txt);
+  };
+
+  const resolveGoogleMapsEmbedUrl = (src = {}) => {
+    const lat = src.latitude !== undefined && src.latitude !== null && String(src.latitude).trim() !== '' ? Number(src.latitude) : null;
+    const lng = src.longitude !== undefined && src.longitude !== null && String(src.longitude).trim() !== '' ? Number(src.longitude) : null;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
+    }
+    const rawUrl = String(src.mapsUrl || '').trim();
+    const coordMatch = rawUrl.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) || rawUrl.match(/[?&](?:q|query)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+    if (coordMatch) {
+      return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&z=16&output=embed`;
+    }
+    const queryStr = [src.storeName, src.address, src.city || 'Semarang'].filter(Boolean).join(', ');
+    return `https://maps.google.com/maps?q=${encodeURIComponent(queryStr || 'Semarang, Indonesia')}&z=15&output=embed`;
+  };
 
   // Multi-tenant Account Identifier (Unifies Owner & Staff under 1 Account ID)
   const effectiveAccountId = useMemo(() => {
@@ -404,7 +439,7 @@ export default function Kasir({ user }) {
     }
     return saved;
   });
-  const [hardwareModalTab, setHardwareModalTab] = useState('drawer'); // 'drawer' | 'printer'
+  const [hardwareModalTab, setHardwareModalTab] = useState('all'); // 'all' | 'drawer' | 'printer'
   const [drawerKicking, setDrawerKicking] = useState(false);
   const [printerFeedback, setPrinterFeedback] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
@@ -737,13 +772,12 @@ export default function Kasir({ user }) {
 
   const getCategoryIcon = (cat) => {
     const c = String(cat).toLowerCase();
-    if (c.includes('makan') || c.includes('nasi') || c.includes('mie') || c.includes('ayam')) return '🍜';
-    if (c.includes('snack') || c.includes('camilan') || c.includes('goreng') || c.includes('kentang')) return '🍟';
-    if (c.includes('minum') || c.includes('teh') || c.includes('kopi') || c.includes('jus') || c.includes('boba')) return '🥤';
-    if (c.includes('dessert') || c.includes('kue') || c.includes('roti') || c.includes('manis')) return '🍰';
-    if (c.includes('paket') || c.includes('hemat')) return '🍱';
-    if (c === 'semua') return '🍽️';
-    return '🍴';
+    if (c.includes('makan') || c.includes('nasi') || c.includes('mie') || c.includes('ayam')) return <Utensils size={13} />;
+    if (c.includes('snack') || c.includes('camilan') || c.includes('goreng') || c.includes('kentang')) return <Package size={13} />;
+    if (c.includes('minum') || c.includes('teh') || c.includes('kopi') || c.includes('jus') || c.includes('boba')) return <Coffee size={13} />;
+    if (c.includes('dessert') || c.includes('kue') || c.includes('roti') || c.includes('manis')) return <Sparkles size={13} />;
+    if (c.includes('paket') || c.includes('hemat')) return <Gift size={13} />;
+    return <ShoppingBag size={13} />;
   };
 
   const handleImageUpload = async (e) => {
@@ -941,15 +975,18 @@ export default function Kasir({ user }) {
       location: (storeForm.location ?? storeInfo.location ?? '').trim(),
       address: (storeForm.address ?? storeInfo.address ?? '').trim(),
       city: (storeForm.city ?? storeInfo.city ?? '').trim(),
-      phone: (storeForm.phone ?? storeInfo.phone ?? '').trim()
+      phone: (storeForm.phone ?? storeInfo.phone ?? '').trim(),
+      mapsUrl: (storeForm.mapsUrl ?? storeInfo.mapsUrl ?? '').trim(),
+      latitude: storeForm.latitude !== '' && storeForm.latitude !== null && storeForm.latitude !== undefined ? Number(storeForm.latitude) : null,
+      longitude: storeForm.longitude !== '' && storeForm.longitude !== null && storeForm.longitude !== undefined ? Number(storeForm.longitude) : null
     };
 
     if (!payload.storeName) {
-      setStoreSaveMsg('❌ Nama toko/kantin kasir wajib diisi!');
+      setStoreSaveMsg('Gagal: Nama toko/kantin kasir wajib diisi!');
       return;
     }
     if (!payload.location) {
-      setStoreSaveMsg('❌ Lokasi kasir (lantai/gedung/posisi fisik) wajib diinput agar toko valid!');
+      setStoreSaveMsg('Gagal: Lokasi kasir (lantai/gedung/posisi fisik) wajib diinput agar toko valid!');
       return;
     }
 
@@ -971,14 +1008,17 @@ export default function Kasir({ user }) {
           location: data.store.location || payload.location,
           address: data.store.address || payload.address,
           city: data.store.city || payload.city,
-          phone: data.store.phone || payload.phone
+          phone: data.store.phone || payload.phone,
+          mapsUrl: data.store.mapsUrl || payload.mapsUrl || '',
+          latitude: data.store.latitude ?? payload.latitude ?? '',
+          longitude: data.store.longitude ?? payload.longitude ?? ''
         });
       }
-      setStoreSaveMsg('✅ Lokasi dan toko kasir berhasil divalidasi resmi!');
+      setStoreSaveMsg('Lokasi, Google Maps, dan identitas toko kasir berhasil divalidasi resmi!');
       setTimeout(() => setStoreSaveMsg(''), 4000);
       try { playChime(880, 0.1); } catch (_) {}
     } catch (err) {
-      setStoreSaveMsg(`❌ ${err.message}`);
+      setStoreSaveMsg(`Gagal: ${err.message}`);
     } finally {
       setSavingStore(false);
     }
@@ -995,13 +1035,16 @@ export default function Kasir({ user }) {
         paperWidth: printerSettings.paperWidth || '58mm',
         autoCut: printerSettings.autoCut !== false,
         openDrawer: printerSettings.openDrawer === true,
-        storeName: storeInfo.storeName || 'KANTIN RIUPH POS',
-        storeAddress: storeInfo.location ? `${storeInfo.storeName} - ${storeInfo.location}` : 'Jl. Operasional Kostku'
+        storeName: storeInfo.storeName || 'Kantin Berkah Kost',
+        storeLocation: storeInfo.location || '',
+        storeAddress: storeInfo.address || '',
+        storeCity: storeInfo.city || '',
+        storePhone: storeInfo.phone || ''
       });
-      setPrinterFeedback('✅ ' + (res.message || 'Struk thermal berhasil dicetak!'));
+      setPrinterFeedback(res.message || 'Struk thermal berhasil dicetak!');
       setTimeout(() => setPrinterFeedback(''), 4000);
     } catch (err) {
-      setPrinterFeedback('❌ ' + (err.message || 'Gagal mencetak struk thermal.'));
+      setPrinterFeedback('Gagal: ' + (err.message || 'Gagal mencetak struk thermal.'));
       setTimeout(() => setPrinterFeedback(''), 6000);
     } finally {
       setIsPrinting(false);
@@ -1017,10 +1060,10 @@ export default function Kasir({ user }) {
         connectionType: 'bluetooth',
         pairedBluetoothDeviceName: res.deviceName
       }));
-      setPrinterFeedback(`✅ Terhubung ke Bluetooth: ${res.deviceName}`);
+      setPrinterFeedback(`Berhasil terhubung ke Bluetooth: ${res.deviceName}`);
       setTimeout(() => setPrinterFeedback(''), 4000);
     } catch (err) {
-      setPrinterFeedback('❌ ' + err.message);
+      setPrinterFeedback('Gagal: ' + err.message);
       setTimeout(() => setPrinterFeedback(''), 5000);
     }
   };
@@ -1034,10 +1077,10 @@ export default function Kasir({ user }) {
         connectionType: 'usb',
         pairedUsbPortName: res.name
       }));
-      setPrinterFeedback(`✅ Terhubung ke USB: ${res.name}`);
+      setPrinterFeedback(`Berhasil terhubung ke USB: ${res.name}`);
       setTimeout(() => setPrinterFeedback(''), 4000);
     } catch (err) {
-      setPrinterFeedback('❌ ' + err.message);
+      setPrinterFeedback('Gagal: ' + err.message);
       setTimeout(() => setPrinterFeedback(''), 5000);
     }
   };
@@ -1047,17 +1090,26 @@ export default function Kasir({ user }) {
       setIsPrinting(true);
       setPrinterFeedback('Mencetak struk tes hardware...');
       const testOrder = getSampleTestOrder(printerSettings.paperWidth || '58mm');
-      testOrder.storeName = storeInfo.storeName || 'KANTIN RIUPH POS';
-      testOrder.storeLocation = storeInfo.location || 'Lokasi Kasir Terverifikasi';
+      testOrder.storeName = storeInfo.storeName || 'Kantin Berkah Kost';
+      testOrder.storeLocation = storeInfo.location || 'Lantai 1 Dekat Gazebo';
+      testOrder.storeAddress = storeInfo.address || '';
+      testOrder.storeCity = storeInfo.city || '';
+      testOrder.storePhone = storeInfo.phone || '';
+      testOrder.cashierName = cashierShift.cashierName || user?.name || 'Kasir Shift';
       await printReceipt(testOrder, {
         connectionType: targetMode || printerSettings.connectionType || 'browser',
         paperWidth: printerSettings.paperWidth || '58mm',
-        autoCut: printerSettings.autoCut !== false
+        autoCut: printerSettings.autoCut !== false,
+        storeName: testOrder.storeName,
+        storeLocation: testOrder.storeLocation,
+        storeAddress: testOrder.storeAddress,
+        storeCity: testOrder.storeCity,
+        storePhone: testOrder.storePhone
       });
-      setPrinterFeedback('✅ Tes cetak struk thermal berhasil!');
+      setPrinterFeedback('Tes cetak struk thermal berhasil!');
       setTimeout(() => setPrinterFeedback(''), 4000);
     } catch (err) {
-      setPrinterFeedback('❌ ' + err.message);
+      setPrinterFeedback('Gagal: ' + err.message);
       setTimeout(() => setPrinterFeedback(''), 5000);
     } finally {
       setIsPrinting(false);
@@ -1069,15 +1121,15 @@ export default function Kasir({ user }) {
     try {
       setDrawerKicking(true);
       playCashRegisterSound();
-      setPrinterFeedback('⚡ Mengirim sinyal pulsa buka laci kasir (RJ11/USB)...');
+      setPrinterFeedback('Mengirim sinyal pulsa buka laci kasir (RJ11/USB)...');
       const res = await kickCashDrawer({
         connectionType: printerSettings.connectionType || 'bluetooth',
         pin: printerSettings.drawerPin || 2
       });
-      setPrinterFeedback('✅ ' + (res.message || 'Laci uang kasir berhasil terbuka!'));
+      setPrinterFeedback(res.message || 'Laci uang kasir berhasil terbuka!');
       setTimeout(() => setPrinterFeedback(''), 4500);
     } catch (err) {
-      setPrinterFeedback('❌ ' + (err.message || 'Gagal membuka laci. Pastikan printer thermal terhubung.'));
+      setPrinterFeedback('Gagal: ' + (err.message || 'Gagal membuka laci. Pastikan printer thermal terhubung.'));
       setTimeout(() => setPrinterFeedback(''), 5500);
     } finally {
       setTimeout(() => setDrawerKicking(false), 600);
@@ -1111,7 +1163,7 @@ export default function Kasir({ user }) {
       setOrders(prev => prev.map(o => o.id === data.order.id ? data.order : o));
       setShowDiscountModal(false);
       setSelectedOrderForDiscount(null);
-      alert(`✅ ${data.message}`);
+      alert(data.message);
       try { playChime(880, 0.1); } catch (_) {}
     } catch (err) {
       alert(err.message);
@@ -1124,7 +1176,7 @@ export default function Kasir({ user }) {
   const handleSearchLoyalty = async (phone) => {
     const cleanPhone = String(phone || loyaltySearchPhone || '').replace(/\D/g, '');
     if (!cleanPhone) {
-      setLoyaltyFeedback('❌ Masukkan nomor WhatsApp pelanggan terlebih dahulu!');
+      setLoyaltyFeedback('Masukkan nomor WhatsApp pelanggan terlebih dahulu!');
       return;
     }
 
@@ -1136,7 +1188,7 @@ export default function Kasir({ user }) {
       if (!res.ok || !data) throw new Error('Data member tidak ditemukan');
       setLoyaltyData(data);
     } catch (err) {
-      setLoyaltyFeedback('❌ Gagal memuat loyalty pelanggan: ' + err.message);
+      setLoyaltyFeedback('Gagal memuat loyalty pelanggan: ' + err.message);
     } finally {
       setLoyaltyLoading(false);
     }
@@ -1146,7 +1198,7 @@ export default function Kasir({ user }) {
     if (!loyaltyData?.phone) return;
     const pts = parseInt(customPointsInput, 10);
     if (!pts || isNaN(pts)) {
-      setLoyaltyFeedback('❌ Masukkan jumlah poin yang valid!');
+      setLoyaltyFeedback('Masukkan jumlah poin yang valid!');
       return;
     }
 
@@ -1163,12 +1215,12 @@ export default function Kasir({ user }) {
       });
       const data = await parseJsonIfOk(res);
       if (!res.ok) throw new Error(data?.error || 'Gagal memberi poin');
-      setLoyaltyFeedback(`✅ ${data?.message || 'Poin berhasil ditambahkan!'}`);
+      setLoyaltyFeedback(data?.message || 'Poin berhasil ditambahkan!');
       setCustomPointsInput('');
       setCustomPointsReason('');
       handleSearchLoyalty(loyaltyData.phone);
     } catch (err) {
-      setLoyaltyFeedback('❌ ' + err.message);
+      setLoyaltyFeedback('Gagal: ' + err.message);
     }
   };
 
@@ -1187,10 +1239,10 @@ export default function Kasir({ user }) {
       });
       const data = await parseJsonIfOk(res);
       if (!res.ok) throw new Error(data?.error || 'Gagal menambah stamp');
-      setLoyaltyFeedback(`✅ ${data?.message || '1 Stamp ditambahkan!'}`);
+      setLoyaltyFeedback(data?.message || '1 Stamp ditambahkan!');
       handleSearchLoyalty(loyaltyData.phone);
     } catch (err) {
-      setLoyaltyFeedback('❌ ' + err.message);
+      setLoyaltyFeedback('Gagal: ' + err.message);
     }
   };
 
@@ -1210,10 +1262,10 @@ export default function Kasir({ user }) {
       });
       const data = await parseJsonIfOk(res);
       if (!res.ok) throw new Error(data?.error || 'Gagal klaim stamp');
-      setLoyaltyFeedback(`🎉 ${data?.message || 'Reward stamp berhasil diklaim!'}`);
+      setLoyaltyFeedback(data?.message || 'Reward stamp berhasil diklaim!');
       handleSearchLoyalty(loyaltyData.phone);
     } catch (err) {
-      setLoyaltyFeedback('❌ ' + err.message);
+      setLoyaltyFeedback('Gagal: ' + err.message);
     }
   };
 
@@ -1313,7 +1365,10 @@ export default function Kasir({ user }) {
           location: st.location || '',
           address: st.address || '',
           city: st.city || '',
-          phone: st.phone || ''
+          phone: st.phone || '',
+          mapsUrl: st.mapsUrl || '',
+          latitude: st.latitude ?? '',
+          longitude: st.longitude ?? ''
         });
         const targetWalletUid = st.uid || 'pos';
         apiGetAccountWallet(targetWalletUid).then(wRes => {
@@ -1494,7 +1549,7 @@ export default function Kasir({ user }) {
       if (res.ok) {
         const data = await res.json();
         await fetchData();
-        alert(`✅ Kasir POS berhasil beralih ke toko: ${data.store?.storeName || 'Toko'}`);
+        alert(`Kasir POS berhasil beralih ke toko: ${data.store?.storeName || 'Toko'}`);
       } else {
         const err = await res.json();
         alert(err.error || 'Gagal beralih toko');
@@ -1529,7 +1584,7 @@ export default function Kasir({ user }) {
     if (e) e.preventDefault();
     const cleanNum = String(newTableName || '').trim();
     if (!cleanNum) {
-      setTableActionFeedback({ type: 'error', message: '❌ Nama / nomor meja wajib diisi!' });
+      setTableActionFeedback({ type: 'error', message: 'Nama / nomor meja wajib diisi!' });
       return;
     }
     try {
@@ -1545,9 +1600,9 @@ export default function Kasir({ user }) {
       setShowAddTablePanel(false);
       setNewTableName('');
       await fetchData();
-      setTableActionFeedback({ type: 'success', message: `✅ Meja "${cleanNum}" & QR Code berhasil dibuat!` });
+      setTableActionFeedback({ type: 'success', message: `Meja "${cleanNum}" & QR Code berhasil dibuat!` });
     } catch (err) {
-      setTableActionFeedback({ type: 'error', message: `❌ ${err.message}` });
+      setTableActionFeedback({ type: 'error', message: `${err.message}` });
     } finally {
       setSavingTable(false);
     }
@@ -1557,7 +1612,7 @@ export default function Kasir({ user }) {
     if (e) e.preventDefault();
     const cleanNum = String(editingTableName || '').trim();
     if (!cleanNum) {
-      setTableActionFeedback({ type: 'error', message: '❌ Nama / nomor meja tidak boleh kosong!' });
+      setTableActionFeedback({ type: 'error', message: 'Nama / nomor meja tidak boleh kosong!' });
       return;
     }
     try {
@@ -1573,9 +1628,9 @@ export default function Kasir({ user }) {
       setEditingTableId(null);
       setEditingTableName('');
       await fetchData();
-      setTableActionFeedback({ type: 'success', message: `✅ Nama meja berhasil diubah menjadi "${cleanNum}".` });
+      setTableActionFeedback({ type: 'success', message: `Nama meja berhasil diubah menjadi "${cleanNum}".` });
     } catch (err) {
-      setTableActionFeedback({ type: 'error', message: `❌ ${err.message}` });
+      setTableActionFeedback({ type: 'error', message: `${err.message}` });
     } finally {
       setSavingTable(false);
     }
@@ -1593,9 +1648,9 @@ export default function Kasir({ user }) {
       setDeletingTableId(null);
       if (editingTableId === tableId) setEditingTableId(null);
       await fetchData();
-      setTableActionFeedback({ type: 'success', message: `✅ "${tableName}" berhasil dihapus.` });
+      setTableActionFeedback({ type: 'success', message: `"${tableName}" berhasil dihapus.` });
     } catch (err) {
-      setTableActionFeedback({ type: 'error', message: `❌ ${err.message}` });
+      setTableActionFeedback({ type: 'error', message: `${err.message}` });
     } finally {
       setSavingTable(false);
     }
@@ -1664,7 +1719,7 @@ export default function Kasir({ user }) {
         setTripayTopupData(null);
         setTripayStatusFeedback(null);
         fetchData();
-        alert(data.message || `🎉 Pembayaran TriPay Sukses! +${tripayTopupData.quota} nota telah ditambahkan.`);
+        alert(data.message || `Pembayaran TriPay Sukses! +${tripayTopupData.quota} nota telah ditambahkan.`);
       } else {
         setTripayStatusFeedback({
           type: 'error',
@@ -1705,7 +1760,7 @@ export default function Kasir({ user }) {
         }));
         setShowPosTopupModal(false);
         fetchData();
-        alert(data.message || `🎉 Top up nota kasir berhasil! (+${chosenQuota} nota)`);
+        alert(data.message || `Top up nota kasir berhasil! (+${chosenQuota} nota)`);
       } else {
         alert(data.error || 'Gagal top up saldo nota kasir');
       }
@@ -1719,7 +1774,7 @@ export default function Kasir({ user }) {
   const handleConfirmPaid = async (orderId) => {
     if (Number(storeInfo.saldoNota ?? 5000) < 100) {
       setShowPosTopupModal(true);
-      alert(`⚠️ Saldo nota toko tidak mencukupi untuk konfirmasi bayar tunai (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota kasir terlebih dahulu.`);
+      alert(`Saldo nota toko tidak mencukupi untuk konfirmasi bayar tunai (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota kasir terlebih dahulu.`);
       return;
     }
     try {
@@ -1733,7 +1788,7 @@ export default function Kasir({ user }) {
         return;
       }
       fetchData();
-      alert('✅ Pembayaran tunai berhasil dikonfirmasi! 1 nota (Rp 100) dipotong dari saldo toko.');
+      alert('Pembayaran tunai berhasil dikonfirmasi! 1 nota (Rp 100) dipotong dari saldo toko.');
     } catch (err) {
       alert('Gagal konfirmasi pembayaran: ' + err.message);
     }
@@ -1796,7 +1851,7 @@ export default function Kasir({ user }) {
         triggerCometArc({
           origin: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
           color: '#ec4899',
-          title: '🎉 Kuota Nota Bertambah!',
+          title: 'Kuota Nota Bertambah!',
           subtitle: `Kode ${codeToUse} berhasil diklaim (+${data.bonusNota} nota).`
         });
       } else {
@@ -2019,7 +2074,7 @@ export default function Kasir({ user }) {
       triggerCometArc({
         origin: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
         color: '#10b981',
-        title: '📊 Export Excel Berhasil!',
+        title: 'Export Excel Berhasil!',
         subtitle: `File ${filename} telah diunduh.`
       });
     } catch (err) {
@@ -2111,7 +2166,7 @@ export default function Kasir({ user }) {
         triggerCometArc({
           origin: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
           color: '#f59e0b',
-          title: '🏷️ Promo Makanan Terbit!',
+          title: 'Promo Makanan Terbit!',
           subtitle: data.promo.title
         });
       } else {
@@ -2420,7 +2475,7 @@ export default function Kasir({ user }) {
         body: JSON.stringify(tripayConfig)
       });
       if (res.ok) {
-        setTripaySavedMsg('✅ Konfigurasi TriPay berhasil disimpan!');
+        setTripaySavedMsg('Konfigurasi TriPay berhasil disimpan!');
         setTimeout(() => setTripaySavedMsg(''), 3000);
         fetchData();
       } else {
@@ -2433,10 +2488,13 @@ export default function Kasir({ user }) {
     }
   };
 
-  const pendingOrders = orders.filter(o => o.status === 'PENDING_CONFIRMATION');
-  const cookingOrders = orders.filter(o => o.status === 'PREPARING');
-  const waitingPayOrders = orders.filter(o => o.status === 'WAITING_PAYMENT');
-  const completedOrders = orders.filter(o => o.status === 'COMPLETED');
+  const sortOldestFirst = (arr) => [...arr].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+  const sortNewestFirst = (arr) => [...arr].sort((a, b) => new Date(b.createdAt || b.paidAt || 0).getTime() - new Date(a.createdAt || a.paidAt || 0).getTime());
+  const pendingOrders = sortOldestFirst(orders.filter(o => o.status === 'PENDING_CONFIRMATION'));
+  const cookingOrders = sortOldestFirst(orders.filter(o => o.status === 'PREPARING'));
+  const waitingPayOrders = sortOldestFirst(orders.filter(o => o.status === 'WAITING_PAYMENT'));
+  const completedOrders = sortNewestFirst(orders.filter(o => o.status === 'COMPLETED'));
+  const latestOrders = sortNewestFirst(orders);
 
   // Keuangan Metrics
   const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
@@ -2610,10 +2668,15 @@ export default function Kasir({ user }) {
   const handlePrintClosingReceipt = async (actualCashVal, diffVal) => {
     const actual = actualCashVal !== undefined ? actualCashVal : (Number(closingActualCash) || 0);
     const diff = diffVal !== undefined ? diffVal : (actual - expectedDrawerCash);
+    const hdr = formatStoreHeaderLines(storeInfo);
     const closingSlip = {
       id: `SHIFT-CLOSE-${Date.now().toString().slice(-6)}`,
-      storeName: storeInfo.storeName || 'KOSTKU RESTO & CAFE',
+      storeName: hdr.storeName,
       storeLocation: storeInfo.location || 'Laporan Closing Shift Kasir',
+      storeAddress: storeInfo.address || '',
+      storeCity: storeInfo.city || '',
+      storePhone: storeInfo.phone || '',
+      cashierName: cashierShift.cashierName,
       tableNumber: `Kasir: ${cashierShift.cashierName}`,
       customerName: `Buka: ${new Date(cashierShift.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} | Tutup: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
       items: [
@@ -2635,12 +2698,12 @@ export default function Kasir({ user }) {
     };
 
     try {
-      setPrinterFeedback('🖨️ Mencetak laporan rekap closing shift...');
+      setPrinterFeedback('Mencetak laporan rekap closing shift...');
       await printReceipt(closingSlip);
-      setPrinterFeedback('✅ Struk closing shift berhasil dicetak!');
+      setPrinterFeedback('Struk closing shift berhasil dicetak!');
       setTimeout(() => setPrinterFeedback(''), 4500);
     } catch (err) {
-      setPrinterFeedback('⚠️ Gagal mencetak thermal. Membuka dialog print browser.');
+      setPrinterFeedback('Gagal mencetak thermal. Membuka dialog print browser.');
       printViaBrowserDialog();
       setTimeout(() => setPrinterFeedback(''), 4500);
     }
@@ -2681,7 +2744,7 @@ export default function Kasir({ user }) {
       closingData: closingRecord
     }));
 
-    setClosingFeedback('✅ Closing shift kasir berhasil diselesaikan!');
+    setClosingFeedback('Closing shift kasir berhasil diselesaikan!');
     setShowShiftClosingModal(false);
     setClosingActualCash('');
     setClosingNote('');
@@ -2888,7 +2951,7 @@ export default function Kasir({ user }) {
 
                 {/* DEF-06: Custom Kitchen Notes per Item */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontSize: '0.72rem', opacity: 0.7 }}>📝</span>
+                  <FileText size={13} color={textSecondary} style={{ opacity: 0.75, flexShrink: 0 }} />
                   <input
                     type="text"
                     placeholder="Catatan koki (misal: pedas lv 2, tanpa es, dibungkus)..."
@@ -3038,9 +3101,9 @@ export default function Kasir({ user }) {
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                 {[
-                  { id: 'CASH', label: '💵 Tunai', sub: 'Laci Uang RJ11' },
-                  { id: 'QRIS', label: '💳 QRIS', sub: 'Dinamis TriPay' },
-                  { id: 'TRANSFER', label: '📱 Bank', sub: 'Transfer / VA' }
+                  { id: 'CASH', label: 'Tunai', sub: 'Laci Uang RJ11' },
+                  { id: 'QRIS', label: 'QRIS', sub: 'Dinamis TriPay' },
+                  { id: 'TRANSFER', label: 'Bank', sub: 'Transfer / VA' }
                 ].map(m => {
                   const isSelected = posPaymentMethod === m.id;
                   return (
@@ -3153,7 +3216,7 @@ export default function Kasir({ user }) {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <span style={{ fontSize: '1.2rem' }}>💳</span>
+                <CreditCard size={18} color="#2563eb" style={{ flexShrink: 0 }} />
                 <div>
                   <strong>QRIS Dinamis TriPay / Mitra</strong>
                   <div style={{ fontSize: '0.68rem', color: textSecondary }}>
@@ -3176,7 +3239,7 @@ export default function Kasir({ user }) {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <span style={{ fontSize: '1.2rem' }}>📱</span>
+                <Wallet size={18} color="#10b981" style={{ flexShrink: 0 }} />
                 <div>
                   <strong>Transfer Bank / E-Wallet</strong>
                   <div style={{ fontSize: '0.68rem', color: textSecondary }}>
@@ -3203,7 +3266,7 @@ export default function Kasir({ user }) {
               fontSize: '0.72rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span>🪙</span>
+                <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#d97706'} />
                 <span style={{ fontWeight: 700, color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981' }}>
                   {Number(storeInfo.saldoNota ?? 5000) < 100
                     ? `Saldo Nota: Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')} (Habis!)`
@@ -3251,7 +3314,7 @@ export default function Kasir({ user }) {
                 }}
                 title="Buka laci uang kasir secara manual (pulsa RJ11)"
               >
-                <span>🔓</span>
+                <Unlock size={13} />
                 <span>{drawerKicking ? 'Membuka Laci...' : 'Buka Laci Uang Kasir (RJ11)'}</span>
               </button>
             </div>
@@ -3287,12 +3350,12 @@ export default function Kasir({ user }) {
                 onClick={async () => {
                   if (Number(storeInfo.saldoNota ?? 5000) < 100) {
                     setShowPosTopupModal(true);
-                    alert(`⚠️ Saldo nota toko tidak mencukupi untuk transaksi kasir (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota terlebih dahulu.`);
+                    alert(`Saldo nota toko tidak mencukupi untuk transaksi kasir (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota terlebih dahulu.`);
                     return;
                   }
 
                   if (posPaymentMethod === 'CASH' && numCashReceived > 0 && numCashReceived < posFinalTotal) {
-                    alert(`⚠️ Uang tunai yang diterima kurang dari total tagihan (Kurang Rp ${(posFinalTotal - numCashReceived).toLocaleString('id-ID')}).`);
+                    alert(`Uang tunai yang diterima kurang dari total tagihan (Kurang Rp ${(posFinalTotal - numCashReceived).toLocaleString('id-ID')}).`);
                     return;
                   }
 
@@ -3312,6 +3375,8 @@ export default function Kasir({ user }) {
                       tableToken: null,
                       tableNumber: 'Menunggu Meja',
                       customerName: 'Kasir Walk-in',
+                      cashierId: user?.id || 'KSR-01',
+                      cashierName: cashierShift.cashierName || user?.name || 'Kasir Shift',
                       items,
                       promoId: activeCartPromo?.id,
                       promoCode: activeCartPromo?.code,
@@ -3328,6 +3393,8 @@ export default function Kasir({ user }) {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         method: posPaymentMethod,
+                        cashierId: user?.id || 'KSR-01',
+                        cashierName: cashierShift.cashierName || user?.name || 'Kasir Shift',
                         cashReceived: effectiveCashReceived,
                         cashChange: effectiveChange
                       })
@@ -3412,7 +3479,7 @@ export default function Kasir({ user }) {
                 }}
               >
                 {Number(storeInfo.saldoNota ?? 5000) < 100 
-                  ? '⚠️ Top Up Nota' 
+                  ? 'Top Up Nota' 
                   : posPaymentMethod === 'CASH'
                     ? `Bayar Tunai Rp ${posFinalTotal.toLocaleString('id-ID')}`
                     : posPaymentMethod === 'QRIS'
@@ -3447,7 +3514,7 @@ export default function Kasir({ user }) {
     boxSizing: 'border-box'
   });
 
-  const MANAJEMEN_TABS = ['promo', 'inventory', 'analytics', 'loyalty', 'karyawan', 'store', 'hardware'];
+  const MANAJEMEN_TABS = ['promo', 'inventory', 'loyalty', 'karyawan', 'store'];
 
   /** Shared responsive full-page header for all Manajemen Toko views (zero popups). */
   const renderManajemenHeader = (title, subtitle, iconEl, extraActions = null) => (
@@ -3677,7 +3744,17 @@ export default function Kasir({ user }) {
               )}
             </button>
 
-            {/* 3. Meja QR */}
+            {/* 3. Keuangan */}
+            <button
+              type="button"
+              onClick={() => { setActiveTab('settings'); }}
+              style={sidebarItemStyle(activeTab === 'settings')}
+            >
+              <DollarSign size={17} strokeWidth={activeTab === 'settings' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Keuangan</span>
+            </button>
+
+            {/* 4. Meja QR (Di bawah Keuangan) */}
             <button
               type="button"
               onClick={() => setActiveTab('tables')}
@@ -3694,14 +3771,14 @@ export default function Kasir({ user }) {
               </span>
             </button>
 
-            {/* 4. Keuangan */}
+            {/* 5. Laci & Printer (Dalam Modul Kasir) */}
             <button
               type="button"
-              onClick={() => setActiveTab('settings')}
-              style={sidebarItemStyle(activeTab === 'settings')}
+              onClick={() => setActiveTab('hardware')}
+              style={sidebarItemStyle(activeTab === 'hardware')}
             >
-              <DollarSign size={17} strokeWidth={activeTab === 'settings' ? 2.5 : 2} />
-              <span style={{ flex: 1 }}>Keuangan</span>
+              <Printer size={17} color={activeTab === 'hardware' ? '#2563eb' : '#059669'} />
+              <span style={{ flex: 1 }}>Laci &amp; Printer</span>
             </button>
           </div>
 
@@ -3718,7 +3795,7 @@ export default function Kasir({ user }) {
               Manajemen Toko
             </span>
 
-            {/* 5. Promo */}
+            {/* 6. Promo */}
             <button
               type="button"
               onClick={() => { setActiveTab('promo'); loadPromos(); }}
@@ -3728,7 +3805,7 @@ export default function Kasir({ user }) {
               <span style={{ flex: 1 }}>Promo &amp; Diskon</span>
             </button>
 
-            {/* 6. Gudang */}
+            {/* 7. Gudang */}
             <button
               type="button"
               onClick={() => {
@@ -3753,16 +3830,6 @@ export default function Kasir({ user }) {
                   {inventoryAlerts.length}!
                 </span>
               )}
-            </button>
-
-            {/* 7. Statistik */}
-            <button
-              type="button"
-              onClick={() => { setActiveTab('analytics'); loadAnalytics(); }}
-              style={sidebarItemStyle(activeTab === 'analytics')}
-            >
-              <BarChart3 size={17} color={activeTab === 'analytics' ? '#2563eb' : '#6366f1'} />
-              <span style={{ flex: 1 }}>Statistik</span>
             </button>
 
             {/* 8. Stamp */}
@@ -3794,16 +3861,6 @@ export default function Kasir({ user }) {
               <MapPin size={17} color={activeTab === 'store' ? '#2563eb' : '#14b8a6'} />
               <span style={{ flex: 1 }}>Lokasi Toko</span>
             </button>
-
-            {/* 11. Printer & Laci */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('hardware')}
-              style={sidebarItemStyle(activeTab === 'hardware')}
-            >
-              <Printer size={17} color={activeTab === 'hardware' ? '#2563eb' : '#059669'} />
-              <span style={{ flex: 1 }}>Laci &amp; Printer</span>
-            </button>
           </div>
         </div>
 
@@ -3834,7 +3891,7 @@ export default function Kasir({ user }) {
             >
               {storeInfo.allOwnerStores.map(s => (
                 <option key={s.id} value={s.id}>
-                  🏪 {s.name} ({s.kuotaNota} nota)
+                  {s.name} ({s.kuotaNota} nota)
                 </option>
               ))}
             </select>
@@ -3847,13 +3904,13 @@ export default function Kasir({ user }) {
             justifyContent: 'space-between',
             padding: '7px 10px',
             borderRadius: '10px',
-            background: Number(storeInfo.saldoNota ?? 5000) < 100 
-              ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)') 
+            background: Number(storeInfo.saldoNota ?? 5000) < 100
+              ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)')
               : (isLight ? '#f8fafc' : '#0f172a'),
             border: `1px solid ${borderColor}`
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>🪙</span>
+              <Coins size={16} color="#d97706" />
               <div>
                 <div style={{ fontSize: '0.62rem', color: textSecondary, fontWeight: 700, lineHeight: 1 }}>Kuota Nota</div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 900, color: textPrimary }}>{storeInfo.kuotaNota ?? 50} lembar</div>
@@ -4034,7 +4091,7 @@ export default function Kasir({ user }) {
                         ✓
                       </span>
                     ) : (
-                      <span 
+                      <span
                         onClick={() => setActiveTab('store')}
                         style={{
                           fontSize: '0.58rem',
@@ -4044,10 +4101,12 @@ export default function Kasir({ user }) {
                           background: '#d97706',
                           color: '#ffffff',
                           cursor: 'pointer',
-                          flexShrink: 0
+                          flexShrink: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center'
                         }}
                       >
-                        ⚠️
+                        !
                       </span>
                     )}
                   </div>
@@ -4072,18 +4131,18 @@ export default function Kasir({ user }) {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  {activeTab === 'dashboard' && <><span>📊</span><span>Dashboard Kasir &amp; Shift Opening</span></>}
-                  {activeTab === 'pos' && <><span>🛍️</span><span>Kasir &amp; Katalog POS</span></>}
-                  {activeTab === 'kds' && <><span>🍳</span><span>Layar Antrean Dapur (KDS)</span></>}
-                  {activeTab === 'tables' && <><span>🪑</span><span>Manajemen Meja &amp; QR Barcode</span></>}
-                  {activeTab === 'settings' && <><span>💰</span><span>Laporan Keuangan &amp; Kasir</span></>}
-                  {activeTab === 'promo' && <><span>🏷️</span><span>Promo &amp; Diskon Makanan</span></>}
-                  {activeTab === 'inventory' && <><span>📦</span><span>Gudang &amp; Stok Bahan</span></>}
-                  {activeTab === 'analytics' && <><span>📈</span><span>Statistik &amp; Analitik Keuangan</span></>}
-                  {activeTab === 'loyalty' && <><span>🏆</span><span>Program Stamp &amp; Poin Loyalti</span></>}
-                  {activeTab === 'karyawan' && <><span>👥</span><span>Manajemen Karyawan &amp; Shift</span></>}
-                  {activeTab === 'store' && <><span>📍</span><span>Lokasi Kasir &amp; Validasi Toko</span></>}
-                  {activeTab === 'hardware' && <><span>🖨️</span><span>Laci Uang (RJ11) &amp; Printer Thermal</span></>}
+                  {activeTab === 'dashboard' && <><LayoutDashboard size={17} color="#2563eb" /><span>Dashboard Kasir &amp; Shift Opening</span></>}
+                  {activeTab === 'pos' && <><ShoppingBag size={17} color="#2563eb" /><span>Kasir &amp; Katalog POS</span></>}
+                  {activeTab === 'kds' && <><ChefHat size={17} color="#f59e0b" /><span>Layar Antrean Dapur (KDS)</span></>}
+                  {activeTab === 'tables' && <><QrCode size={17} color="#2563eb" /><span>Manajemen Meja &amp; QR Barcode</span></>}
+                  {activeTab === 'settings' && <><DollarSign size={17} color="#10b981" /><span>Laporan Keuangan, Statistik &amp; Kasir</span></>}
+                  {activeTab === 'promo' && <><Tag size={17} color="#f59e0b" /><span>Promo &amp; Diskon Makanan</span></>}
+                  {activeTab === 'inventory' && <><Package size={17} color="#ef4444" /><span>Gudang &amp; Stok Bahan</span></>}
+                  {activeTab === 'analytics' && <><BarChart3 size={17} color="#6366f1" /><span>Statistik &amp; Analitik Keuangan</span></>}
+                  {activeTab === 'loyalty' && <><Award size={17} color="#3b82f6" /><span>Program Stamp &amp; Poin Loyalti</span></>}
+                  {activeTab === 'karyawan' && <><Users size={17} color="#a855f7" /><span>Manajemen Karyawan &amp; Shift</span></>}
+                  {activeTab === 'store' && <><MapPin size={17} color="#14b8a6" /><span>Lokasi Kasir &amp; Validasi Toko</span></>}
+                  {activeTab === 'hardware' && <><Printer size={17} color="#059669" /><span>Laci Uang (RJ11) &amp; Printer Thermal</span></>}
                 </span>
               </div>
             </div>
@@ -4110,7 +4169,7 @@ export default function Kasir({ user }) {
                 }}
                 title="Buka Laci Uang Kasir (Pulsa RJ11)"
               >
-                <span>🔓</span>
+                <Unlock size={13} />
                 <span>{drawerKicking ? 'Buka...' : 'Buka Laci'}</span>
               </button>
 
@@ -4136,7 +4195,7 @@ export default function Kasir({ user }) {
                 }}
                 title="Klik untuk Top Up Saldo Kuota Nota Kasir"
               >
-                <span>🪙</span>
+                <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#d97706'} />
                 <span>{storeInfo.kuotaNota ?? 50}</span>
                 <span style={{
                   fontSize: '0.62rem',
@@ -4231,7 +4290,7 @@ export default function Kasir({ user }) {
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+              <AlertTriangle size={18} color="#d97706" style={{ flexShrink: 0 }} />
               <div style={{ fontSize: '0.76rem', lineHeight: 1.35 }}>
                 <strong>Kuota nota gratis Anda tersisa {storeInfo.kuotaNota ?? 0} transaksi.</strong><br />
                 <span style={{ fontSize: '0.7rem', opacity: 0.9 }}>Lakukan top up agar operasional kasir tetap lancar.</span>
@@ -4279,7 +4338,7 @@ export default function Kasir({ user }) {
           >
             {storeInfo.allOwnerStores.map(s => (
               <option key={s.id} value={s.id}>
-                🏪 {s.name} ({s.kuotaNota} nota)
+                {s.name} ({s.kuotaNota} nota)
               </option>
             ))}
           </select>
@@ -4330,11 +4389,11 @@ export default function Kasir({ user }) {
 
         <button
           type="button"
-          onClick={() => { setActiveTab('analytics'); loadAnalytics(); }}
-          style={quickPillStyle(activeTab === 'analytics' ? '#2563eb' : '#6366f1')}
+          onClick={() => { setActiveTab('settings'); setKeuanganSubTab('analytics'); loadAnalytics(); }}
+          style={quickPillStyle(activeTab === 'settings' && keuanganSubTab === 'analytics' ? '#2563eb' : '#6366f1')}
         >
-          <BarChart3 size={12} color="#6366f1" />
-          <span>Statistik</span>
+          <DollarSign size={12} color="#10b981" />
+          <span>Keuangan &amp; Statistik</span>
         </button>
 
         <button
@@ -4353,7 +4412,7 @@ export default function Kasir({ user }) {
           title="Koneksikan Laci Kasir (RJ11) & Printer Thermal"
         >
           <Printer size={12} color="#10b981" />
-          <span>Laci &amp; Print</span>
+          <span>Laci &amp; Printer</span>
         </button>
 
         <button
@@ -4367,7 +4426,7 @@ export default function Kasir({ user }) {
           }}
           title="Buka Laci Uang Kasir (Pulsa RJ11)"
         >
-          <span>🔓</span>
+          <Unlock size={12} />
           <span>{drawerKicking ? 'Buka...' : 'Buka Laci'}</span>
         </button>
 
@@ -4420,7 +4479,7 @@ export default function Kasir({ user }) {
                 fontSize: '0.75rem',
                 flexShrink: 0
               }}>
-                ⚠️
+                <AlertTriangle size={16} color="#d97706" />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -5254,6 +5313,235 @@ export default function Kasir({ user }) {
               )}
             </div>
           </div>
+
+          {/* ── DAFTAR NOTA TERBARU (KASIR, TOTAL BAYAR & KLIK DETAIL) ── */}
+          <div style={{
+            background: bgCard,
+            border: `1.5px solid ${borderColor}`,
+            borderRadius: '18px',
+            padding: '16px 18px',
+            boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '12px',
+              paddingBottom: '10px',
+              borderBottom: `1px solid ${borderColor}`
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Receipt size={18} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: textPrimary }}>
+                  Daftar Nota Terbaru
+                </h3>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
+                  color: '#2563eb'
+                }}>
+                  {latestOrders.length} Nota
+                </span>
+              </div>
+              <span style={{ fontSize: '0.74rem', color: textSecondary }}>
+                Klik salah satu nota untuk melihat rincian menu, kasir &amp; cetak struk
+              </span>
+            </div>
+
+            {latestOrders.length === 0 ? (
+              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.8rem' }}>
+                Belum ada nota transaksi tercatat pada shift ini.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {latestOrders.slice(0, 15).map((ord) => {
+                  const isExpanded = selectedDashboardOrderId === ord.id;
+                  const cashierDisplay = ord.cashierName || cashierShift.cashierName || 'Kasir Shift';
+                  const statusLabel = ord.status === 'COMPLETED'
+                    ? 'Selesai'
+                    : ord.status === 'PREPARING'
+                      ? 'Dimasak'
+                      : ord.status === 'WAITING_PAYMENT'
+                        ? 'Tunggu Bayar'
+                        : ord.status === 'CANCELLED'
+                          ? 'Dibatalkan'
+                          : 'Masuk';
+                  return (
+                    <div
+                      key={ord.id}
+                      style={{
+                        border: isExpanded ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                        borderRadius: '12px',
+                        background: isLight ? (isExpanded ? '#f8fafc' : '#ffffff') : (isExpanded ? '#1e293b' : 'rgba(15, 23, 42, 0.55)'),
+                        overflow: 'hidden',
+                        transition: 'border-color 0.15s ease'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDashboardOrderId(isExpanded ? null : ord.id)}
+                        style={{
+                          width: '100%',
+                          padding: '11px 14px',
+                          background: 'transparent',
+                          border: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '8px',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 200px' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 800, fontSize: '0.84rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                                {ord.invoice || `#${String(ord.id).slice(-8)}`}
+                              </span>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                background: isLight ? '#f1f5f9' : '#334155',
+                                color: textPrimary
+                              }}>
+                                {ord.tableNumber || 'Walk-in'}
+                              </span>
+                              <span style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                padding: '2px 7px',
+                                borderRadius: '999px',
+                                background: ord.status === 'COMPLETED' ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.2)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.2)'),
+                                color: ord.status === 'COMPLETED' ? '#15803d' : '#b45309'
+                              }}>
+                                {statusLabel}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.73rem', color: textSecondary, marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span>Kasir: <strong style={{ color: textPrimary }}>{cashierDisplay}</strong></span>
+                              <span>•</span>
+                              <span>{ord.customerName || 'Tamu'}</span>
+                              <span>•</span>
+                              <span>{ord.createdAt ? new Date(ord.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 900, fontSize: '0.92rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                              Rp {Number(ord.totalAmount || 0).toLocaleString('id-ID')}
+                            </div>
+                            <div style={{ fontSize: '0.66rem', color: textSecondary, fontWeight: 700, textTransform: 'uppercase' }}>
+                              {ord.paymentMethod || 'TUNAI'}
+                            </div>
+                          </div>
+                          {isExpanded ? <ChevronUp size={16} color="#2563eb" /> : <ChevronDown size={16} color={textSecondary} />}
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div style={{
+                          padding: '12px 14px',
+                          borderTop: `1px dashed ${borderColor}`,
+                          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.75)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px'
+                        }}>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
+                            gap: '8px',
+                            fontSize: '0.75rem'
+                          }}>
+                            <div>
+                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>ID Transaksi</span>
+                              <strong style={{ color: textPrimary, fontFamily: 'var(--font-mono)' }}>{ord.id}</strong>
+                            </div>
+                            <div>
+                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>Kasir Bertugas</span>
+                              <strong style={{ color: textPrimary }}>{cashierDisplay}</strong>
+                            </div>
+                            <div>
+                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>Pembayaran</span>
+                              <strong style={{ color: textPrimary }}>{ord.paymentMethod || 'TUNAI'} ({ord.paymentStatus || 'PAID'})</strong>
+                            </div>
+                            <div>
+                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>Waktu Transaksi</span>
+                              <strong style={{ color: textPrimary }}>
+                                {ord.createdAt ? new Date(ord.createdAt).toLocaleString('id-ID') : '-'}
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div style={{
+                            borderTop: `1px solid ${borderColor}`,
+                            borderBottom: `1px solid ${borderColor}`,
+                            padding: '8px 0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '5px'
+                          }}>
+                            {(ord.items || []).map((item, idx) => (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                                <span style={{ color: textPrimary }}>
+                                  <strong>{item.qty}x</strong> {item.name}
+                                  {item.notes ? <em style={{ color: textSecondary }}> ({item.notes})</em> : ''}
+                                </span>
+                                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: textPrimary }}>
+                                  Rp {Number(item.subtotal || ((item.price || 0) * (item.qty || 1))).toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ fontSize: '0.78rem', color: textSecondary }}>
+                              Subtotal Rp {Number(ord.subtotal || ord.totalAmount || 0).toLocaleString('id-ID')}
+                              {Number(ord.discount || ord.discountAmount || 0) > 0 && ` • Diskon -Rp ${Number(ord.discount || ord.discountAmount).toLocaleString('id-ID')}`}
+                              {' • '}
+                              <strong style={{ color: textPrimary }}>Total Pembayaran: Rp {Number(ord.totalAmount || 0).toLocaleString('id-ID')}</strong>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setReceiptOrder(ord)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                background: '#0f172a',
+                                color: '#ffffff',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Printer size={13} />
+                              <span>Lihat / Cetak Nota</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </main>
       )}
 
@@ -5279,7 +5567,7 @@ export default function Kasir({ user }) {
                 Antrean Pesanan Masuk
               </h2>
               <p style={{ margin: 0, fontSize: '0.8rem', color: textSecondary }}>
-                Total antrean aktif saat ini: <strong>{pendingOrders.length + cookingOrders.length} pesanan</strong>
+                Total antrean aktif saat ini: <strong>{pendingOrders.length + cookingOrders.length} pesanan</strong> • Urutan: <strong>Terlama di Atas (Oldest First / FIFO)</strong>
               </p>
             </div>
           </div>
@@ -5720,7 +6008,7 @@ export default function Kasir({ user }) {
                           alignItems: 'center',
                           gap: '4px'
                         }}>
-                          {allItemsReady ? '✨ Siap Diantar' : `🍳 Memasak (${readyCount}/${totalItems})`}
+                          {allItemsReady ? 'Siap Diantar' : `Memasak (${readyCount}/${totalItems})`}
                         </span>
                       </div>
 
@@ -5739,7 +6027,7 @@ export default function Kasir({ user }) {
                             fontWeight: 800,
                             color: allItemsReady ? '#16a34a' : textSecondary
                           }}>
-                            {allItemsReady ? '🎉 SEMUA MENU SIAP DI MEJA DAPUR' : '👉 Ketuk setiap menu jika sudah selesai dimasak:'}
+                            {allItemsReady ? 'SEMUA MENU SIAP DI MEJA DAPUR' : 'Ketuk setiap menu jika sudah selesai dimasak:'}
                           </span>
                           <span style={{
                             fontSize: '0.72rem',
@@ -5861,7 +6149,7 @@ export default function Kasir({ user }) {
                                   ? (isLight ? '1px solid #bbf7d0' : '1px solid rgba(34, 197, 94, 0.35)')
                                   : '1px solid rgba(245, 158, 11, 0.35)'
                               }}>
-                                {isItemReady ? '✓ Siap' : '🍳 Masak'}
+                                {isItemReady ? 'Siap' : 'Masak'}
                               </span>
                             </button>
                           );
@@ -5911,7 +6199,7 @@ export default function Kasir({ user }) {
                         >
                           <CheckCircle2 size={16} />
                           {allItemsReady
-                            ? '🚀 Semua Siap — Antar ke Meja!'
+                            ? 'Semua Siap — Antar ke Meja!'
                             : `Antar ke Meja (${readyCount}/${totalItems} Siap)`}
                         </button>
                       </div>
@@ -6327,7 +6615,7 @@ export default function Kasir({ user }) {
                                       title="Opsi Berapa Pcs (Buka Dial Presets)"
                                     >
                                       <span>Qty:</span>
-                                      <span style={{ fontSize: '0.62rem' }}>⚙️</span>
+                                      <Sliders size={10} color={textSecondary} />
                                     </button>
 
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -6480,7 +6768,7 @@ export default function Kasir({ user }) {
                                             title="Opsi Berapa Pcs (Buka Dial Presets)"
                                           >
                                             <span>Qty:</span>
-                                            <span style={{ fontSize: '0.62rem' }}>⚙️</span>
+                                            <Sliders size={10} color={textSecondary} />
                                           </button>
 
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -7056,7 +7344,7 @@ export default function Kasir({ user }) {
                   title: 'Top Up Saldo Nota',
                   desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar`,
                   icon: <Zap size={20} color="#eab308" />,
-                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Habis' : '🪙 Beli Nota',
+                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'Habis' : 'Beli Nota',
                   onClick: () => { setShowPosTopupModal(true); setShowToolsDrawer(false); }
                 },
                 {
@@ -7075,10 +7363,10 @@ export default function Kasir({ user }) {
                   onClick: () => { setActiveTab('inventory'); setInventoryTab('stock'); loadInventory(); loadRecipes(); setShowToolsDrawer(false); }
                 },
                 {
-                  title: 'Statistik Keuangan',
-                  desc: 'Menu, cabang & staf',
-                  icon: <BarChart3 size={20} color="#6366f1" />,
-                  onClick: () => { setActiveTab('analytics'); loadAnalytics(); setShowToolsDrawer(false); }
+                  title: 'Keuangan & Statistik',
+                  desc: 'Rekap kasir, saldo & analitik',
+                  icon: <DollarSign size={20} color="#10b981" />,
+                  onClick: () => { setActiveTab('settings'); setKeuanganSubTab('analytics'); loadAnalytics(); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Stamp & Loyalty',
@@ -7087,7 +7375,7 @@ export default function Kasir({ user }) {
                   onClick: () => { setActiveTab('loyalty'); setShowToolsDrawer(false); }
                 },
                 {
-                  title: 'Printer & Laci Kasir',
+                  title: 'Laci & Printer',
                   desc: 'Laci uang RJ11 & printer',
                   icon: <Printer size={20} color="#10b981" />,
                   onClick: () => { setActiveTab('hardware'); setShowToolsDrawer(false); }
@@ -7102,7 +7390,7 @@ export default function Kasir({ user }) {
                   title: 'Lokasi & Info Toko',
                   desc: storeInfo.storeName || 'Atur data toko',
                   icon: <Store size={20} color="#14b8a6" />,
-                  badge: storeInfo.isValidated ? '✓ Resmi' : '⚠️ Validasi',
+                  badge: storeInfo.isValidated ? 'Resmi' : 'Validasi',
                   onClick: () => { setActiveTab('store'); setShowToolsDrawer(false); }
                 }
               ].map((item, idx) => (
@@ -7465,343 +7753,645 @@ export default function Kasir({ user }) {
             </form>
           )}
 
-          {/* Table Cards: 50% : 50% di HP via .pos-tables-grid */}
-          {tables.length === 0 ? (
-            <div style={{
-              background: bgCard,
-              border: `1px dashed ${borderColor}`,
-              borderRadius: '16px',
-              padding: '2.25rem 1rem',
-              textAlign: 'center',
-              color: textSecondary
-            }}>
-              <QrCode size={34} color="#2563eb" style={{ margin: '0 auto 8px' }} />
-              <div style={{ fontWeight: 800, fontSize: '0.92rem', color: textPrimary, marginBottom: '4px' }}>
-                Belum Ada Meja Terdaftar
-              </div>
-              <p style={{ margin: 0, fontSize: '0.78rem' }}>
-                Klik <strong>"+ Tambah Meja"</strong> di atas untuk membuat nomor meja beserta barcode QR pesan mandiri.
-              </p>
-            </div>
-          ) : (
-            <div className="pos-tables-grid">
-              {tables.map(tbl => {
-                const isEditingThis = editingTableId === tbl.id;
-                const isDeletingThis = deletingTableId === tbl.id;
-                return (
-                  <div
-                    key={tbl.id}
-                    style={{
-                      background: bgCard,
-                      border: isEditingThis
-                        ? '1.5px solid #2563eb'
-                        : isDeletingThis
-                          ? '1.5px solid #ef4444'
-                          : `1px solid ${borderColor}`,
-                      borderRadius: '16px',
-                      padding: '12px 10px',
-                      textAlign: 'center',
-                      boxShadow: 'var(--shadow-sm)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      minWidth: 0,
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    {isEditingThis ? (
-                      <form
-                        onSubmit={(e) => handleUpdateTable(e, tbl.id)}
-                        noValidate
-                        style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}
-                      >
-                        <label style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textAlign: 'left' }}>
-                          Ubah Nama Meja:
-                        </label>
-                        <input
-                          type="text"
-                          autoFocus
-                          value={editingTableName}
-                          onChange={e => setEditingTableName(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Escape') {
-                              setEditingTableId(null);
-                              setEditingTableName('');
-                            }
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '6px 8px',
-                            borderRadius: '8px',
-                            border: '1px solid #3b82f6',
-                            background: isLight ? '#f8fafc' : '#1e293b',
-                            color: textPrimary,
-                            fontSize: '0.8rem',
-                            fontWeight: 800,
-                            textAlign: 'center',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '5px', width: '100%' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingTableId(null);
-                              setEditingTableName('');
-                            }}
-                            style={{
-                              padding: '5px 4px',
-                              borderRadius: '7px',
-                              border: `1px solid ${borderColor}`,
-                              background: 'transparent',
-                              color: textSecondary,
-                              fontWeight: 700,
-                              fontSize: '0.7rem',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Batal
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={savingTable}
-                            style={{
-                              padding: '5px 4px',
-                              borderRadius: '7px',
-                              border: 'none',
-                              background: '#2563eb',
-                              color: '#ffffff',
-                              fontWeight: 800,
-                              fontSize: '0.7rem',
-                              cursor: savingTable ? 'not-allowed' : 'pointer'
-                            }}
-                          >
-                            Simpan
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                        <span style={{ fontSize: '0.92rem', fontWeight: 900, color: textPrimary, letterSpacing: '-0.01em', wordBreak: 'break-word' }}>
-                          {tbl.number}
-                        </span>
-                        <span style={{
-                          fontSize: '0.62rem',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
-                          color: '#2563eb'
-                        }}>
-                          Scan untuk Pesan
-                        </span>
-                      </div>
-                    )}
+          {(() => {
+            const normalizeTableKey = (val) => String(val || '').trim().toLowerCase().replace(/^meja\s*/i, '');
+            const matchOrderToTable = (o, tbl) => {
+              if (!o || !tbl) return false;
+              if (o.tableId && tbl.id && String(o.tableId) === String(tbl.id)) return true;
+              const oNum = String(o.tableNumber || '').trim().toLowerCase();
+              const tNum = String(tbl.number || '').trim().toLowerCase();
+              if (!oNum || !tNum) return false;
+              return oNum === tNum || normalizeTableKey(oNum) === normalizeTableKey(tNum);
+            };
+            const isPaidOrd = (o) => o && (o.status === 'paid' || o.paymentStatus === 'paid' || Boolean(o.paidAt));
 
-                    <div style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '2px'
-                    }}>
-                      {tbl.qrDataUrl ? (
-                        <img
-                          src={tbl.qrDataUrl}
-                          alt={tbl.number}
-                          style={{
-                            width: '100%',
-                            maxWidth: '125px',
-                            aspectRatio: '1/1',
-                            objectFit: 'contain',
-                            background: '#ffffff',
-                            padding: '6px',
-                            borderRadius: '12px',
-                            border: `1px solid ${borderColor}`,
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                            display: 'block'
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '100px',
-                          height: '100px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: isLight ? '#f1f5f9' : '#1e293b',
-                          borderRadius: '12px',
-                          gap: '4px',
-                          color: textSecondary,
-                          fontSize: '0.65rem'
-                        }}>
-                          <QrCode size={26} opacity={0.5} />
-                          <span>Membuat QR...</span>
-                        </div>
-                      )}
-                    </div>
+            const tableMetrics = tables.map((tbl) => {
+              const matchingOrders = latestOrders.filter((o) => o.status !== 'cancelled' && matchOrderToTable(o, tbl));
+              const paidOrders = matchingOrders.filter(isPaidOrd);
+              const revenue = paidOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0);
+              return { tbl, matchingOrders, paidOrders, revenue };
+            });
 
-                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {/* Direct Download Button */}
-                      <a
-                        href={tbl.qrDataUrl}
-                        download={`QR-${String(tbl.number).replace(/\s+/g, '-')}.png`}
-                        style={{
-                          width: '100%',
-                          padding: '7px 8px',
-                          borderRadius: '10px',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                          color: '#ffffff',
-                          fontWeight: 800,
-                          fontSize: '0.72rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px',
-                          textDecoration: 'none',
-                          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                          boxSizing: 'border-box'
-                        }}
-                        title={`Download Barcode QR ${tbl.number}`}
-                      >
-                        <Download size={12} strokeWidth={2.5} />
-                        <span>Download QR</span>
-                      </a>
+            const totalTableNotas = tableMetrics.reduce((s, m) => s + m.matchingOrders.length, 0);
+            const totalTableOmset = tableMetrics.reduce((s, m) => s + m.revenue, 0);
+            const sortedByPerf = [...tableMetrics].sort((a, b) => b.revenue - a.revenue || b.matchingOrders.length - a.matchingOrders.length);
+            const topTable = sortedByPerf[0] && (sortedByPerf[0].revenue > 0 || sortedByPerf[0].matchingOrders.length > 0)
+              ? sortedByPerf[0]
+              : null;
 
-                      {isDeletingThis ? (
-                        <div style={{
-                          background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)',
-                          border: '1px solid #fca5a5',
-                          borderRadius: '10px',
-                          padding: '6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '5px'
-                        }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#dc2626' }}>
-                            Hapus {tbl.number}?
-                          </span>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '5px' }}>
-                            <button
-                              type="button"
-                              onClick={() => setDeletingTableId(null)}
-                              style={{
-                                padding: '5px 4px',
-                                borderRadius: '7px',
-                                border: `1px solid ${borderColor}`,
-                                background: isLight ? '#ffffff' : '#1e293b',
-                                color: textSecondary,
-                                fontWeight: 700,
-                                fontSize: '0.68rem',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Batal
-                            </button>
-                            <button
-                              type="button"
-                              disabled={savingTable}
-                              onClick={() => handleDeleteTable(tbl.id, tbl.number)}
-                              style={{
-                                padding: '5px 4px',
-                                borderRadius: '7px',
-                                border: 'none',
-                                background: '#dc2626',
-                                color: '#ffffff',
-                                fontWeight: 800,
-                                fontSize: '0.68rem',
-                                cursor: savingTable ? 'not-allowed' : 'pointer'
-                              }}
-                            >
-                              Ya, Hapus
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingTableId(tbl.id);
-                              setEditingTableName(tbl.number);
-                              setDeletingTableId(null);
-                              setShowAddTablePanel(false);
-                              setTableActionFeedback(null);
-                            }}
-                            style={{
-                              padding: '6px 6px',
-                              borderRadius: '9px',
-                              border: `1px solid ${borderColor}`,
-                              background: isLight ? '#f8fafc' : '#1e293b',
-                              color: textPrimary,
-                              fontWeight: 700,
-                              fontSize: '0.7rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              minWidth: 0
-                            }}
-                          >
-                            <Edit3 size={12} color="#2563eb" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDeletingTableId(tbl.id);
-                              setEditingTableId(null);
-                              setShowAddTablePanel(false);
-                              setTableActionFeedback(null);
-                            }}
-                            style={{
-                              padding: '6px 6px',
-                              borderRadius: '9px',
-                              border: '1px solid rgba(239, 68, 68, 0.25)',
-                              background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.12)',
-                              color: '#ef4444',
-                              fontWeight: 700,
-                              fontSize: '0.7rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              minWidth: 0
-                            }}
-                          >
-                            <Trash2 size={12} />
-                            <span>Hapus</span>
-                          </button>
-                        </div>
-                      )}
+            const activeTableMetric = selectedTableReceiptKey
+              ? tableMetrics.find((m) => String(m.tbl.id) === String(selectedTableReceiptKey)) || null
+              : null;
+            const visibleTableOrders = activeTableMetric
+              ? activeTableMetric.matchingOrders
+              : latestOrders.filter((o) => o.status !== 'cancelled' && tables.some((tbl) => matchOrderToTable(o, tbl)));
+
+            return (
+              <>
+                {/* Statistik Ringkas Meja QR */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 145px), 1fr))',
+                  gap: '10px'
+                }}>
+                  <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '14px', padding: '12px 14px', boxShadow: 'var(--shadow-sm)' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>Total Meja QR</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: textPrimary, marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                      {tables.length} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: textSecondary }}>meja</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '14px', padding: '12px 14px', boxShadow: 'var(--shadow-sm)' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>Total Nota Meja</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2563eb', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                      {totalTableNotas} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: textSecondary }}>nota</span>
+                    </div>
+                  </div>
+                  <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '14px', padding: '12px 14px', boxShadow: 'var(--shadow-sm)' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>Omset Meja QR</span>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#10b981', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                      {formatRupiah(totalTableOmset)}
+                    </div>
+                  </div>
+                  <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '14px', padding: '12px 14px', boxShadow: 'var(--shadow-sm)' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>Meja Terlaris</span>
+                    <div style={{ fontSize: '0.96rem', fontWeight: 800, color: textPrimary, marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {topTable ? `${topTable.tbl.number} (${topTable.matchingOrders.length}x)` : 'Belum ada transaksi'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table Cards: 50% : 50% di HP via .pos-tables-grid */}
+                {tables.length === 0 ? (
+                  <div style={{
+                    background: bgCard,
+                    border: `1px dashed ${borderColor}`,
+                    borderRadius: '16px',
+                    padding: '2.25rem 1rem',
+                    textAlign: 'center',
+                    color: textSecondary
+                  }}>
+                    <QrCode size={34} color="#2563eb" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: textPrimary, marginBottom: '4px' }}>
+                      Belum Ada Meja Terdaftar
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.78rem' }}>
+                      Klik <strong>"+ Tambah Meja"</strong> di atas untuk membuat nomor meja beserta barcode QR pesan mandiri.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="pos-tables-grid">
+                    {tableMetrics.map(({ tbl, matchingOrders, revenue }) => {
+                      const isEditingThis = editingTableId === tbl.id;
+                      const isDeletingThis = deletingTableId === tbl.id;
+                      const isNotaSelected = String(selectedTableReceiptKey) === String(tbl.id);
+                      return (
+                        <div
+                          key={tbl.id}
+                          style={{
+                            background: bgCard,
+                            border: isEditingThis || isNotaSelected
+                              ? '1.5px solid #2563eb'
+                              : isDeletingThis
+                                ? '1.5px solid #ef4444'
+                                : `1px solid ${borderColor}`,
+                            borderRadius: '16px',
+                            padding: '12px 10px',
+                            textAlign: 'center',
+                            boxShadow: 'var(--shadow-sm)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                            minWidth: 0,
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          {isEditingThis ? (
+                            <form
+                              onSubmit={(e) => handleUpdateTable(e, tbl.id)}
+                              noValidate
+                              style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}
+                            >
+                              <label style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textAlign: 'left' }}>
+                                Ubah Nama Meja:
+                              </label>
+                              <input
+                                type="text"
+                                autoFocus
+                                value={editingTableName}
+                                onChange={e => setEditingTableName(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Escape') {
+                                    setEditingTableId(null);
+                                    setEditingTableName('');
+                                  }
+                                }}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #3b82f6',
+                                  background: isLight ? '#f8fafc' : '#1e293b',
+                                  color: textPrimary,
+                                  fontSize: '0.8rem',
+                                  fontWeight: 800,
+                                  textAlign: 'center',
+                                  boxSizing: 'border-box'
+                                }}
+                              />
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '5px', width: '100%' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingTableId(null);
+                                    setEditingTableName('');
+                                  }}
+                                  style={{
+                                    padding: '5px 4px',
+                                    borderRadius: '7px',
+                                    border: `1px solid ${borderColor}`,
+                                    background: 'transparent',
+                                    color: textSecondary,
+                                    fontWeight: 700,
+                                    fontSize: '0.7rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={savingTable}
+                                  style={{
+                                    padding: '5px 4px',
+                                    borderRadius: '7px',
+                                    border: 'none',
+                                    background: '#2563eb',
+                                    color: '#ffffff',
+                                    fontWeight: 800,
+                                    fontSize: '0.7rem',
+                                    cursor: savingTable ? 'not-allowed' : 'pointer'
+                                  }}
+                                >
+                                  Simpan
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 900, color: textPrimary, letterSpacing: '-0.01em', wordBreak: 'break-word' }}>
+                                {tbl.number}
+                              </span>
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
+                                color: '#2563eb'
+                              }}>
+                                Scan untuk Pesan
+                              </span>
+                              <span style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                color: matchingOrders.length > 0 ? '#059669' : textSecondary,
+                                fontFamily: 'var(--font-mono)'
+                              }}>
+                                {matchingOrders.length} nota · {formatRupiah(revenue)}
+                              </span>
+                            </div>
+                          )}
+
+                          <div style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '2px'
+                          }}>
+                            {tbl.qrDataUrl ? (
+                              <img
+                                src={tbl.qrDataUrl}
+                                alt={tbl.number}
+                                style={{
+                                  width: '100%',
+                                  maxWidth: '125px',
+                                  aspectRatio: '1/1',
+                                  objectFit: 'contain',
+                                  background: '#ffffff',
+                                  padding: '6px',
+                                  borderRadius: '12px',
+                                  border: `1px solid ${borderColor}`,
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                  display: 'block'
+                                }}
+                              />
+                            ) : (
+                              <div style={{
+                                width: '100px',
+                                height: '100px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: isLight ? '#f1f5f9' : '#1e293b',
+                                borderRadius: '12px',
+                                gap: '4px',
+                                color: textSecondary,
+                                fontSize: '0.65rem'
+                              }}>
+                                <QrCode size={26} opacity={0.5} />
+                                <span>Membuat QR...</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {/* Direct Download Button */}
+                            <a
+                              href={tbl.qrDataUrl}
+                              download={`QR-${String(tbl.number).replace(/\s+/g, '-')}.png`}
+                              style={{
+                                width: '100%',
+                                padding: '7px 8px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                                color: '#ffffff',
+                                fontWeight: 800,
+                                fontSize: '0.72rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                textDecoration: 'none',
+                                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+                                boxSizing: 'border-box'
+                              }}
+                              title={`Download Barcode QR ${tbl.number}`}
+                            >
+                              <Download size={12} strokeWidth={2.5} />
+                              <span>Download QR</span>
+                            </a>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedTableReceiptKey((prev) => String(prev) === String(tbl.id) ? null : tbl.id);
+                                setSelectedTableOrderId(null);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                borderRadius: '9px',
+                                border: isNotaSelected ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                                background: isNotaSelected ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.18)') : (isLight ? '#ffffff' : '#0f172a'),
+                                color: isNotaSelected ? '#2563eb' : textPrimary,
+                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              <FileText size={12} />
+                              <span>{isNotaSelected ? `Tutup Nota (${matchingOrders.length})` : `Nota Meja (${matchingOrders.length})`}</span>
+                            </button>
+
+                            {isDeletingThis ? (
+                              <div style={{
+                                background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)',
+                                border: '1px solid #fca5a5',
+                                borderRadius: '10px',
+                                padding: '6px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '5px'
+                              }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#dc2626' }}>
+                                  Hapus {tbl.number}?
+                                </span>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '5px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeletingTableId(null)}
+                                    style={{
+                                      padding: '5px 4px',
+                                      borderRadius: '7px',
+                                      border: `1px solid ${borderColor}`,
+                                      background: isLight ? '#ffffff' : '#1e293b',
+                                      color: textSecondary,
+                                      fontWeight: 700,
+                                      fontSize: '0.68rem',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Batal
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={savingTable}
+                                    onClick={() => handleDeleteTable(tbl.id, tbl.number)}
+                                    style={{
+                                      padding: '5px 4px',
+                                      borderRadius: '7px',
+                                      border: 'none',
+                                      background: '#dc2626',
+                                      color: '#ffffff',
+                                      fontWeight: 800,
+                                      fontSize: '0.68rem',
+                                      cursor: savingTable ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    Ya, Hapus
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingTableId(tbl.id);
+                                    setEditingTableName(tbl.number);
+                                    setDeletingTableId(null);
+                                    setShowAddTablePanel(false);
+                                    setTableActionFeedback(null);
+                                  }}
+                                  style={{
+                                    padding: '6px 6px',
+                                    borderRadius: '9px',
+                                    border: `1px solid ${borderColor}`,
+                                    background: isLight ? '#f8fafc' : '#1e293b',
+                                    color: textPrimary,
+                                    fontWeight: 700,
+                                    fontSize: '0.7rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px',
+                                    minWidth: 0
+                                  }}
+                                >
+                                  <Edit3 size={12} color="#2563eb" />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDeletingTableId(tbl.id);
+                                    setEditingTableId(null);
+                                    setShowAddTablePanel(false);
+                                    setTableActionFeedback(null);
+                                  }}
+                                  style={{
+                                    padding: '6px 6px',
+                                    borderRadius: '9px',
+                                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                                    background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.12)',
+                                    color: '#ef4444',
+                                    fontWeight: 700,
+                                    fontSize: '0.7rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px',
+                                    minWidth: 0
+                                  }}
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Hapus</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Panel Inline Nota & Statistik Per Meja */}
+                <div style={{
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '18px',
+                  padding: '1rem 1.1rem',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FileText size={16} color="#2563eb" />
+                        <span>
+                          {activeTableMetric
+                            ? `Riwayat Nota & Statistik — ${activeTableMetric.tbl.number}`
+                            : 'Riwayat Nota & Statistik Per Meja'}
+                        </span>
+                      </h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: textSecondary }}>
+                        {activeTableMetric
+                          ? `${activeTableMetric.paidOrders.length} nota lunas · Total omset ${formatRupiah(activeTableMetric.revenue)}`
+                          : 'Pilih meja untuk memfilter nota dan omset per meja, lalu klik baris nota untuk melihat detail item.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Filter Pill Per Meja */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedTableReceiptKey(null); setSelectedTableOrderId(null); }}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '999px',
+                        border: !activeTableMetric ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                        background: !activeTableMetric ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.2)') : 'transparent',
+                        color: !activeTableMetric ? '#2563eb' : textSecondary,
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Semua Meja ({totalTableNotas})
+                    </button>
+                    {tableMetrics.map(({ tbl, matchingOrders, revenue }) => {
+                      const isSel = activeTableMetric && String(activeTableMetric.tbl.id) === String(tbl.id);
+                      return (
+                        <button
+                          key={tbl.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTableReceiptKey(tbl.id);
+                            setSelectedTableOrderId(null);
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '999px',
+                            border: isSel ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                            background: isSel ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.2)') : 'transparent',
+                            color: isSel ? '#2563eb' : textSecondary,
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {tbl.number} ({matchingOrders.length} · {formatRupiah(revenue)})
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {visibleTableOrders.length === 0 ? (
+                    <div style={{
+                      padding: '1rem',
+                      borderRadius: '12px',
+                      border: `1px dashed ${borderColor}`,
+                      textAlign: 'center',
+                      fontSize: '0.78rem',
+                      color: textSecondary
+                    }}>
+                      Belum ada transaksi nota untuk meja yang dipilih.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {visibleTableOrders.slice(0, 20).map((ord) => {
+                        const isOpen = selectedTableOrderId === ord.id;
+                        const paidFlag = isPaidOrd(ord);
+                        return (
+                          <div key={ord.id} style={{
+                            border: `1px solid ${isOpen ? '#2563eb' : borderColor}`,
+                            borderRadius: '12px',
+                            background: isLight ? '#f8fafc' : '#0f172a',
+                            overflow: 'hidden'
+                          }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTableOrderId(isOpen ? null : ord.id)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                border: 'none',
+                                background: 'transparent',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                flexWrap: 'wrap'
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: 800, fontSize: '0.8rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                                    #{String(ord.id || '').slice(-6)}
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb' }}>
+                                    {ord.tableNumber || 'Meja'}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '0.64rem',
+                                    fontWeight: 800,
+                                    padding: '1px 6px',
+                                    borderRadius: '999px',
+                                    background: paidFlag ? '#dcfce7' : '#fef3c7',
+                                    color: paidFlag ? '#166534' : '#92400e'
+                                  }}>
+                                    {paidFlag ? 'LUNAS' : String(ord.status || 'PROSES').toUpperCase()}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: textSecondary }}>
+                                  {ord.customerName || 'Tamu'} · Kasir: {ord.cashierName || ord.cashier || 'Kasir Toko'} · {ord.createdAt ? new Date(ord.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: 900, fontSize: '0.86rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                                  {formatRupiah(ord.totalAmount || 0)}
+                                </span>
+                                {isOpen ? <ChevronUp size={16} color={textSecondary} /> : <ChevronDown size={16} color={textSecondary} />}
+                              </div>
+                            </button>
+
+                            {isOpen && (
+                              <div style={{
+                                padding: '10px 12px',
+                                borderTop: `1px solid ${borderColor}`,
+                                background: bgCard,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px'
+                              }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {(ord.items || []).map((it, idx) => (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: textPrimary }}>
+                                      <span>{it.qty}x {it.name}</span>
+                                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{formatRupiah((it.price || 0) * (it.qty || 1))}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', paddingTop: '6px', borderTop: `1px dashed ${borderColor}` }}>
+                                  <span style={{ fontSize: '0.7rem', color: textSecondary }}>
+                                    Metode: {(ord.paymentMethod || 'cash').toUpperCase()}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setReceiptOrder(ord)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      padding: '6px 12px',
+                                      borderRadius: '8px',
+                                      border: '1px solid #0f172a',
+                                      background: '#0f172a',
+                                      color: '#ffffff',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <Eye size={13} />
+                                    <span>Lihat / Cetak Nota</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </main>
       )}
 
-      {/* ── TAB 4: KEUANGAN & PEMBAYARAN KASIR ── */}
+      {/* ── TAB 4: KEUANGAN & STATISTIK KASIR ── */}
       {activeTab === 'settings' && (
-        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Header Keuangan */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>💰</span>
-                <span>Laporan Keuangan & Kasir</span>
+                <DollarSign size={20} color="#10b981" />
+                <span>Laporan Keuangan, Statistik &amp; Kasir</span>
               </h2>
               <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: textSecondary }}>
-                Pantau omset harian kantin, rincian pembayaran, dan konektivitas gateway pembayaran.
+                Pantau omset harian kantin, rincian pembayaran, saldo nota, dan statistik analitik multi-dimensi.
               </p>
             </div>
             <a
@@ -7826,6 +8416,75 @@ export default function Kasir({ user }) {
             </a>
           </div>
 
+          {/* Sub-Navigation: Ringkasan Keuangan vs Statistik Analitik */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: '8px',
+            background: bgCard,
+            border: `1px solid ${borderColor}`,
+            padding: '6px',
+            borderRadius: '14px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setKeuanganSubTab('overview')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: 'none',
+                background: keuanganSubTab === 'overview' ? '#2563eb' : 'transparent',
+                color: keuanganSubTab === 'overview' ? '#ffffff' : textSecondary,
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Wallet size={15} />
+              <span>Ringkasan &amp; Rekap Kasir</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setKeuanganSubTab('analytics');
+                loadAnalytics();
+              }}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: 'none',
+                background: keuanganSubTab === 'analytics' ? '#4f46e5' : 'transparent',
+                color: keuanganSubTab === 'analytics' ? '#ffffff' : textSecondary,
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <BarChart3 size={15} />
+              <span>Statistik &amp; Analitik</span>
+            </button>
+          </div>
+
+          {keuanganSubTab === 'analytics' ? (
+            <KasirAnalyticsModal
+              isFullPage={true}
+              isOpen={true}
+              onClose={() => setKeuanganSubTab('overview')}
+              isLight={isLight}
+              analyticsData={analyticsData}
+              loadingAnalytics={loadingAnalytics}
+              onRefresh={loadAnalytics}
+            />
+          ) : (
+          <>
           {/* Hero Card: Dompet Terpadu Kasir POS & Mitra UMKM (1 UID Shared) */}
           <div style={{
             background: isLight 
@@ -7852,7 +8511,7 @@ export default function Kasir({ user }) {
                     color: '#a855f7',
                     border: '1px solid rgba(139, 92, 246, 0.35)'
                   }}>
-                    💳 Dompet Terpadu (Kasir &amp; Mitra)
+                    Dompet Terpadu (Kasir &amp; Mitra)
                   </span>
                   <span style={{
                     fontSize: '0.72rem',
@@ -7966,7 +8625,7 @@ export default function Kasir({ user }) {
                     color: '#f59e0b',
                     border: '1px solid rgba(245, 158, 11, 0.35)'
                   }}>
-                    🪙 Saldo Kuota Nota Kasir
+                    Saldo Kuota Nota Kasir
                   </span>
                   <span style={{
                     fontSize: '0.72rem',
@@ -7976,7 +8635,7 @@ export default function Kasir({ user }) {
                     background: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
                     color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981'
                   }}>
-                    {Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Kuota Habis (Top Up Diperlukan)' : `✓ Sisa: ${storeInfo.kuotaNota ?? 50} Transaksi Tunai`}
+                    {Number(storeInfo.saldoNota ?? 5000) < 100 ? 'Kuota Habis (Top Up Diperlukan)' : `Sisa: ${storeInfo.kuotaNota ?? 50} Transaksi Tunai`}
                   </span>
                 </div>
                 <div style={{
@@ -8036,7 +8695,7 @@ export default function Kasir({ user }) {
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>
                   Total Omset
                 </span>
-                <span style={{ fontSize: '1.1rem' }}>💵</span>
+                <DollarSign size={16} color="#16a34a" />
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#16a34a', fontFamily: 'var(--font-mono)' }}>
                 Rp {totalRevenue.toLocaleString('id-ID')}
@@ -8058,7 +8717,7 @@ export default function Kasir({ user }) {
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>
                   QRIS TriPay
                 </span>
-                <span style={{ fontSize: '1.1rem' }}>📱</span>
+                <QrCode size={16} color="#2563eb" />
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#2563eb', fontFamily: 'var(--font-mono)' }}>
                 Rp {qrisRevenue.toLocaleString('id-ID')}
@@ -8080,7 +8739,7 @@ export default function Kasir({ user }) {
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>
                   Tunai (Cash)
                 </span>
-                <span style={{ fontSize: '1.1rem' }}>🪙</span>
+                <Coins size={16} color="#d97706" />
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#d97706', fontFamily: 'var(--font-mono)' }}>
                 Rp {cashRevenue.toLocaleString('id-ID')}
@@ -8102,7 +8761,7 @@ export default function Kasir({ user }) {
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, textTransform: 'uppercase' }}>
                   Saldo Kuota Nota
                 </span>
-                <span style={{ fontSize: '1.1rem' }}>🎟️</span>
+                <Receipt size={16} color="#10b981" />
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981', fontFamily: 'var(--font-mono)' }}>
                 {storeInfo.kuotaNota ?? 50} Nota
@@ -8418,235 +9077,7 @@ export default function Kasir({ user }) {
             )}
           </div>
 
-          {/* Section: Pengaturan Hardware Printer Thermal */}
-          <div style={{
-            background: bgCard,
-            border: `1px solid ${borderColor}`,
-            borderRadius: '20px',
-            padding: '1.25rem',
-            boxShadow: 'var(--shadow-md)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            <div>
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                letterSpacing: '0.5px',
-                color: '#2563eb',
-                textTransform: 'uppercase',
-                background: isLight ? '#dbeafe' : 'rgba(37, 99, 235, 0.2)',
-                padding: '2px 8px',
-                borderRadius: '6px'
-              }}>
-                Hardware & Periferal
-              </span>
-              <h3 style={{ margin: '6px 0 2px', fontSize: '1.05rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Printer size={18} />
-                <span>Printer Thermal Bluetooth & USB (ESC/POS)</span>
-              </h3>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: textSecondary }}>
-                Koneksikan printer struk thermal 58mm/80mm via Web Bluetooth, Web Serial/USB, atau dialog cetak OS.
-              </p>
-            </div>
-
-            {printerFeedback && (
-              <div style={{
-                padding: '8px 12px',
-                borderRadius: '10px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                background: printerFeedback.startsWith('✅') ? '#dcfce7' : '#fee2e2',
-                color: printerFeedback.startsWith('✅') ? '#166534' : '#991b1b',
-                border: `1px solid ${printerFeedback.startsWith('✅') ? '#86efac' : '#fca5a5'}`
-              }}>
-                {printerFeedback}
-              </div>
-            )}
-
-            {/* Connection Type Selector */}
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '6px' }}>
-                Metode Koneksi Default:
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {[
-                  { id: 'bluetooth', label: 'Bluetooth BLE', icon: <Bluetooth size={14} />, desc: 'HP / Tablet / Laptop' },
-                  { id: 'usb', label: 'USB Serial', icon: <Usb size={14} />, desc: 'Kabel USB Desktop' },
-                  { id: 'browser', label: 'Dialog Sistem', icon: <Printer size={14} />, desc: 'Fallback Browser' }
-                ].map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      const next = { ...printerSettings, connectionType: m.id };
-                      setPrinterSettings(next);
-                      savePrinterSettings(next);
-                    }}
-                    style={{
-                      padding: '10px 8px',
-                      borderRadius: '12px',
-                      border: (printerSettings.connectionType || 'browser') === m.id ? '2px solid #2563eb' : `1px solid ${borderColor}`,
-                      background: (printerSettings.connectionType || 'browser') === m.id ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.15)') : bgCard,
-                      color: textPrimary,
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <div style={{ color: (printerSettings.connectionType || 'browser') === m.id ? '#2563eb' : textSecondary }}>{m.icon}</div>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>{m.label}</span>
-                    <span style={{ fontSize: '0.65rem', color: textSecondary }}>{m.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Paper Width & Settings */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '4px' }}>
-                  Lebar Kertas Struk:
-                </label>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {['58mm', '80mm'].map(w => (
-                    <button
-                      key={w}
-                      type="button"
-                      onClick={() => {
-                        const next = { ...printerSettings, paperWidth: w };
-                        setPrinterSettings(next);
-                        savePrinterSettings(next);
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '8px',
-                        borderRadius: '10px',
-                        border: (printerSettings.paperWidth || '58mm') === w ? '2px solid #2563eb' : `1px solid ${borderColor}`,
-                        background: (printerSettings.paperWidth || '58mm') === w ? '#2563eb' : bgCard,
-                        color: (printerSettings.paperWidth || '58mm') === w ? '#ffffff' : textPrimary,
-                        fontWeight: 800,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {w} ({w === '58mm' ? '32 Kolom' : '48 Kolom'})
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '4px' }}>
-                  Fitur Tambahan ESC/POS:
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: textPrimary, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={printerSettings.autoCut !== false}
-                      onChange={e => {
-                        const next = { ...printerSettings, autoCut: e.target.checked };
-                        setPrinterSettings(next);
-                        savePrinterSettings(next);
-                      }}
-                    />
-                    <span>Auto-Cut Kertas Otomatis</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: textPrimary, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={printerSettings.openDrawer === true}
-                      onChange={e => {
-                        const next = { ...printerSettings, openDrawer: e.target.checked };
-                        setPrinterSettings(next);
-                        savePrinterSettings(next);
-                      }}
-                    />
-                    <span>Buka Laci Uang Kasir (Cash Drawer)</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Pair & Test Buttons */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
-              <button
-                type="button"
-                onClick={handleConnectBluetooth}
-                style={{
-                  flex: 1,
-                  padding: '9px 12px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#ffffff' : '#1e293b',
-                  color: textPrimary,
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Bluetooth size={14} color="#3b82f6" />
-                <span>{printerSettings.pairedBluetoothDeviceName ? `BT: ${printerSettings.pairedBluetoothDeviceName}` : 'Pair Bluetooth'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleConnectUsb}
-                style={{
-                  flex: 1,
-                  padding: '9px 12px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#ffffff' : '#1e293b',
-                  color: textPrimary,
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Usb size={14} color="#10b981" />
-                <span>{printerSettings.pairedUsbPortName ? `USB: ${printerSettings.pairedUsbPortName}` : 'Pair USB Serial'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTestPrint()}
-                disabled={isPrinting}
-                style={{
-                  flex: 1,
-                  padding: '9px 12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
-                  cursor: isPrinting ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  boxShadow: '0 2px 8px rgba(37,99,235,0.25)'
-                }}
-              >
-                <Printer size={14} />
-                <span>{isPrinting ? 'Mencetak...' : 'Tes Cetak Struk'}</span>
-              </button>
-            </div>
-          </div>
+          {/* Laci Uang & Printer Thermal dipindah ke tab Laci & Printer pada MODUL KASIR */}
 
           {/* Section: Member Stamp & Loyalty Management */}
           <div style={{
@@ -8687,9 +9118,9 @@ export default function Kasir({ user }) {
                 borderRadius: '10px',
                 fontSize: '0.78rem',
                 fontWeight: 700,
-                background: loyaltyFeedback.startsWith('✅') ? '#dcfce7' : '#fee2e2',
-                color: loyaltyFeedback.startsWith('✅') ? '#166534' : '#991b1b',
-                border: `1px solid ${loyaltyFeedback.startsWith('✅') ? '#86efac' : '#fca5a5'}`
+                background: isErrorFeedback(loyaltyFeedback) ? '#fee2e2' : '#dcfce7',
+                color: isErrorFeedback(loyaltyFeedback) ? '#991b1b' : '#166534',
+                border: `1px solid ${isErrorFeedback(loyaltyFeedback) ? '#fca5a5' : '#86efac'}`
               }}>
                 {loyaltyFeedback}
               </div>
@@ -8831,7 +9262,7 @@ export default function Kasir({ user }) {
                       cursor: (loyaltyData.stamps?.current || 0) >= (loyaltyData.stamps?.target || 5) ? 'pointer' : 'not-allowed'
                     }}
                   >
-                    🎁 Tukar Hadiah (Min. 5)
+                    Tukar Hadiah (Min. 5)
                   </button>
                 </div>
 
@@ -8892,195 +9323,8 @@ export default function Kasir({ user }) {
             )}
           </div>
 
-          {/* Section: Pengaturan Gateway Pembayaran TriPay */}
-          <div style={{
-            background: bgCard,
-            border: `1px solid ${borderColor}`,
-            borderRadius: '20px',
-            padding: '1.25rem',
-            boxShadow: 'var(--shadow-md)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            <div>
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                letterSpacing: '0.5px',
-                color: '#2563eb',
-                textTransform: 'uppercase',
-                background: isLight ? '#dbeafe' : 'rgba(37, 99, 235, 0.2)',
-                padding: '2px 8px',
-                borderRadius: '6px'
-              }}>
-                Payment Gateway Integration
-              </span>
-              <h3 style={{ margin: '6px 0 2px', fontSize: '1.05rem', fontWeight: 800, color: textPrimary }}>
-                Pengaturan Gateway Pembayaran TriPay
-              </h3>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: textSecondary }}>
-                Koneksikan akun TriPay Anda untuk memproses transaksi QRIS & E-Wallet secara otomatis langsung ke rekening kasir.
-              </p>
-            </div>
-
-            {/* Status Notice */}
-            <div style={{
-              background: tripayConfig.isConfigured
-                ? (isLight ? '#dcfce7' : 'rgba(34, 197, 94, 0.15)')
-                : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)'),
-              border: tripayConfig.isConfigured
-                ? '1px solid #86efac'
-                : '1px solid #fde68a',
-              borderRadius: '12px',
-              padding: '10px 12px',
-              fontSize: '0.78rem',
-              color: tripayConfig.isConfigured
-                ? (isLight ? '#166534' : '#86efac')
-                : (isLight ? '#92400e' : '#fde68a'),
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '8px'
-            }}>
-              <Sparkles size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>
-                <strong>
-                  {tripayConfig.isConfigured ? 'TriPay Aktif Terhubung!' : 'Mode Simulator Aktif (Siap Pakai Kapan Saja)'}
-                </strong>
-                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', opacity: 0.9 }}>
-                  {tripayConfig.isConfigured
-                    ? 'Transaksi QRIS kasir akan diteruskan langsung ke sistem live TriPay.'
-                    : 'Anda dapat menguji transaksi kasir sekarang dengan simulator bawaan. Masukkan API Key resmi di bawah ini kapan saja setelah akun TriPay Anda aktif.'}
-                </p>
-              </div>
-            </div>
-
-            {tripaySavedMsg && (
-              <div style={{
-                background: '#dcfce7',
-                border: '1px solid #86efac',
-                color: '#166534',
-                padding: '8px 12px',
-                borderRadius: '10px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                textAlign: 'center'
-              }}>
-                {tripaySavedMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveTripay} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '3px' }}>
-                  TriPay Merchant Code:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: T12345"
-                  value={tripayConfig.merchantCode}
-                  onChange={e => setTripayConfig({ ...tripayConfig, merchantCode: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '3px' }}>
-                  TriPay API Key:
-                </label>
-                <input
-                  type="text"
-                  placeholder="DEV-... atau PROD-..."
-                  value={tripayConfig.apiKey}
-                  onChange={e => setTripayConfig({ ...tripayConfig, apiKey: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    fontFamily: 'var(--font-mono)',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '3px' }}>
-                  TriPay Private Key:
-                </label>
-                <input
-                  type="password"
-                  placeholder="Masukkan Private Key TriPay..."
-                  value={tripayConfig.privateKey}
-                  onChange={e => setTripayConfig({ ...tripayConfig, privateKey: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    fontFamily: 'var(--font-mono)',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                background: isLight ? '#f8fafc' : '#1e293b',
-                border: `1px solid ${borderColor}`
-              }}>
-                <div>
-                  <strong style={{ fontSize: '0.8rem', color: textPrimary, display: 'block' }}>Mode Produksi (Live)</strong>
-                  <span style={{ fontSize: '0.7rem', color: textSecondary }}>Aktifkan jika akun TriPay sudah disetujui untuk transaksi real</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={tripayConfig.isProduction}
-                  onChange={e => setTripayConfig({ ...tripayConfig, isProduction: e.target.checked })}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingTripay}
-                style={{
-                  marginTop: '4px',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: savingTripay ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
-                  opacity: savingTripay ? 0.7 : 1
-                }}
-              >
-                {savingTripay ? 'Menyimpan Pengaturan...' : 'Simpan Pengaturan Gateway'}
-              </button>
-            </form>
-          </div>
+            </>
+          )}
         </main>
       )}
 
@@ -9091,7 +9335,7 @@ export default function Kasir({ user }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📦</span>
+                <Package size={20} color="#ef4444" />
                 <span>Gudang &amp; Stok Bahan Baku</span>
               </h2>
               <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: textSecondary }}>
@@ -9197,7 +9441,7 @@ export default function Kasir({ user }) {
             }}>
               <span style={{ fontSize: '0.68rem', fontWeight: 700, color: inventoryAlerts.length > 0 ? '#dc2626' : textSecondary, textTransform: 'uppercase' }}>Bahan Menipis</span>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: inventoryAlerts.length > 0 ? '#dc2626' : '#16a34a', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-                {inventoryAlerts.length} <span style={{ fontSize: '0.74rem', fontWeight: 600 }}>{inventoryAlerts.length > 0 ? '⚠️ Butuh Restock' : '✓ Aman'}</span>
+                {inventoryAlerts.length} <span style={{ fontSize: '0.74rem', fontWeight: 600 }}>{inventoryAlerts.length > 0 ? 'Butuh Restock' : 'Aman'}</span>
               </div>
             </div>
 
@@ -9256,7 +9500,7 @@ export default function Kasir({ user }) {
                   fontWeight: 900,
                   flexShrink: 0
                 }}>
-                  ⚠️
+                  <AlertTriangle size={18} color="#d97706" />
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: isLight ? '#92400e' : '#fde68a' }}>
@@ -9311,7 +9555,7 @@ export default function Kasir({ user }) {
                           background: isZero ? '#fee2e2' : '#fef3c7',
                           color: isZero ? '#b91c1c' : '#b45309'
                         }}>
-                          {isZero ? '🔴 HABIS' : '🟡 MENIPIS'}
+                          {isZero ? 'HABIS' : 'MENIPIS'}
                         </span>
                       </div>
 
@@ -9331,7 +9575,7 @@ export default function Kasir({ user }) {
                       {/* 1-Click Quick Restock Buttons Inline */}
                       {isSuccess ? (
                         <div style={{ padding: '6px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontSize: '0.72rem', fontWeight: 800, textAlign: 'center' }}>
-                          ✅ Stok Berhasil Ditambahkan!
+                          Stok Berhasil Ditambahkan!
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -9739,7 +9983,7 @@ export default function Kasir({ user }) {
                                 background: isZero ? '#fee2e2' : isLow ? '#fef3c7' : '#dcfce7',
                                 color: isZero ? '#b91c1c' : isLow ? '#b45309' : '#15803d'
                               }}>
-                                {isZero ? '🔴 HABIS' : isLow ? '🟡 MENIPIS' : '🟢 AMAN'}
+                                {isZero ? 'HABIS' : isLow ? 'MENIPIS' : 'AMAN'}
                               </span>
                             </div>
 
@@ -9766,7 +10010,7 @@ export default function Kasir({ user }) {
                           {/* Quick Restock Inline Form (NO POP-UP!) */}
                           {isSuccess ? (
                             <div style={{ padding: '6px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontSize: '0.72rem', fontWeight: 800, textAlign: 'center' }}>
-                              ✅ Stok Berhasil Ditambahkan!
+                              Stok Berhasil Ditambahkan!
                             </div>
                           ) : (
                             <div style={{ paddingTop: '8px', borderTop: `1px dashed ${borderColor}` }}>
@@ -10131,10 +10375,10 @@ export default function Kasir({ user }) {
                         fontWeight: 700
                       }}
                     >
-                      <option value="owner">👑 Owner Kost / Toko</option>
-                      <option value="mitra">🏬 Mitra Merchant</option>
-                      <option value="kasir">👨‍🍳 Kasir POS</option>
-                      <option value="admin">🛡️ Administrator</option>
+                      <option value="owner">Owner Kost / Toko</option>
+                      <option value="mitra">Mitra Merchant</option>
+                      <option value="kasir">Kasir POS</option>
+                      <option value="admin">Administrator</option>
                     </select>
                   </div>
 
@@ -10419,7 +10663,7 @@ export default function Kasir({ user }) {
                     boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
                   }}
                 >
-                  {savingPromo ? 'Menerbitkan...' : '🏷️ Terbitkan Promo Makanan'}
+                  {savingPromo ? 'Menerbitkan...' : 'Terbitkan Promo Makanan'}
                 </button>
               </form>
             </div>
@@ -10626,9 +10870,9 @@ export default function Kasir({ user }) {
                 borderRadius: '12px',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                background: loyaltyFeedback.startsWith('❌') ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)') : (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)'),
-                color: loyaltyFeedback.startsWith('❌') ? (isLight ? '#991b1b' : '#fca5a5') : (isLight ? '#166534' : '#86efac'),
-                border: `1px solid ${loyaltyFeedback.startsWith('❌') ? '#fca5a5' : '#86efac'}`
+                background: isErrorFeedback(loyaltyFeedback) ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)') : (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)'),
+                color: isErrorFeedback(loyaltyFeedback) ? (isLight ? '#991b1b' : '#fca5a5') : (isLight ? '#166534' : '#86efac'),
+                border: `1px solid ${isErrorFeedback(loyaltyFeedback) ? '#fca5a5' : '#86efac'}`
               }}>
                 {loyaltyFeedback}
               </div>
@@ -10791,10 +11035,15 @@ export default function Kasir({ user }) {
                         color: '#ffffff',
                         fontWeight: 800,
                         fontSize: '0.78rem',
-                        cursor: currentStamps >= maxStamps ? 'pointer' : 'not-allowed'
+                        cursor: currentStamps >= maxStamps ? 'pointer' : 'not-allowed',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
                       }}
                     >
-                      🎁 Tukar Hadiah (Min. {maxStamps})
+                      <Gift size={14} />
+                      <span>Tukar Hadiah (Min. {maxStamps})</span>
                     </button>
                   </div>
                 </div>
@@ -10951,142 +11200,86 @@ export default function Kasir({ user }) {
       )}
 
       {/* ── TAB 10: LOKASI KASIR & VALIDASI TOKO (FULL PAGE) ── */}
-      {activeTab === 'store' && (
-        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {renderManajemenHeader(
-            'Lokasi Kasir & Validasi Toko',
-            'Nama toko dan posisi fisik stand kasir wajib dilengkapi agar berstatus Resmi sebelum melayani pesanan meja & mencetak struk.',
-            <MapPin size={20} color="#14b8a6" />,
-            <span style={{
-              padding: '5px 11px',
-              borderRadius: '999px',
-              fontSize: '0.74rem',
-              fontWeight: 800,
-              background: storeInfo.isValidated ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.18)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.18)'),
-              color: storeInfo.isValidated ? '#16a34a' : '#d97706',
-              border: `1px solid ${storeInfo.isValidated ? '#86efac' : '#fcd34d'}`
-            }}>
-              {storeInfo.isValidated ? '✓ Tervalidasi Resmi' : '⚠️ Belum Valid'}
-            </span>
-          )}
+      {activeTab === 'store' && (() => {
+        const previewHdr = formatStoreHeaderLines({ ...storeInfo, ...storeForm });
+        const embedMapsUrl = resolveGoogleMapsEmbedUrl({ ...storeInfo, ...storeForm });
+        const hasCoords = storeForm.latitude !== '' && storeForm.longitude !== '' && Number.isFinite(Number(storeForm.latitude)) && Number.isFinite(Number(storeForm.longitude));
+        const openMapsHref = (storeForm.mapsUrl || storeInfo.mapsUrl || '').trim()
+          || (hasCoords ? `https://maps.google.com/?q=${Number(storeForm.latitude)},${Number(storeForm.longitude)}` : `https://maps.google.com/?q=${encodeURIComponent([storeForm.storeName || storeInfo.storeName, storeForm.address || storeInfo.address, storeForm.city || storeInfo.city || 'Semarang'].filter(Boolean).join(', '))}`);
 
-          {storeSaveMsg && (
+        return (
+          <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {renderManajemenHeader(
+              'Lokasi Kasir & Validasi Toko',
+              'Nama toko, posisi fisik stand kasir, dan titik Google Maps wajib dilengkapi agar berstatus Resmi sebelum melayani pesanan meja & mencetak struk.',
+              <MapPin size={20} color="#14b8a6" />,
+              <span style={{
+                padding: '5px 11px',
+                borderRadius: '999px',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                background: storeInfo.isValidated ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.18)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.18)'),
+                color: storeInfo.isValidated ? '#16a34a' : '#d97706',
+                border: `1px solid ${storeInfo.isValidated ? '#86efac' : '#fcd34d'}`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                {storeInfo.isValidated ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                <span>{storeInfo.isValidated ? 'Tervalidasi Resmi' : 'Belum Valid'}</span>
+              </span>
+            )}
+
+            {storeSaveMsg && (
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: '12px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                background: !isErrorFeedback(storeSaveMsg) ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)'),
+                color: !isErrorFeedback(storeSaveMsg) ? (isLight ? '#166534' : '#86efac') : (isLight ? '#991b1b' : '#fca5a5'),
+                border: `1px solid ${!isErrorFeedback(storeSaveMsg) ? '#86efac' : '#fca5a5'}`
+              }}>
+                {storeSaveMsg}
+              </div>
+            )}
+
             <div style={{
-              padding: '10px 14px',
-              borderRadius: '12px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              background: storeSaveMsg.startsWith('✅') ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)'),
-              color: storeSaveMsg.startsWith('✅') ? (isLight ? '#166534' : '#86efac') : (isLight ? '#991b1b' : '#fca5a5'),
-              border: `1px solid ${storeSaveMsg.startsWith('✅') ? '#86efac' : '#fca5a5'}`
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+              gap: '14px',
+              alignItems: 'start'
             }}>
-              {storeSaveMsg}
-            </div>
-          )}
+              {/* Form Identitas Toko */}
+              <form
+                onSubmit={handleSaveStore}
+                noValidate
+                style={{
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '18px',
+                  padding: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  minWidth: 0,
+                  boxSizing: 'border-box'
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary }}>
+                  Identitas Usaha &amp; Posisi Stand Kasir
+                </h3>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-            gap: '14px',
-            alignItems: 'start'
-          }}>
-            {/* Form Identitas Toko */}
-            <form
-              onSubmit={handleSaveStore}
-              noValidate
-              style={{
-                background: bgCard,
-                border: `1px solid ${borderColor}`,
-                borderRadius: '18px',
-                padding: '16px',
-                boxShadow: 'var(--shadow-sm)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                minWidth: 0,
-                boxSizing: 'border-box'
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary }}>
-                Identitas Usaha &amp; Posisi Stand Kasir
-              </h3>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Nama Toko / Usaha Kasir <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Kantin Riuph Kost Barokah"
-                  value={storeForm.storeName}
-                  onChange={e => setStoreForm(prev => ({ ...prev, storeName: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.84rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Lokasi Stand / Posisi Kasir <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Lantai 1 Dekat Tangga Utama / Stand Timur"
-                  value={storeForm.location}
-                  onChange={e => setStoreForm(prev => ({ ...prev, location: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.84rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Alamat Lengkap (Opsional untuk Struk)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Jl. Menoreh Tengah X No. 22"
-                  value={storeForm.address}
-                  onChange={e => setStoreForm(prev => ({ ...prev, address: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.84rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '10px' }}>
-                <div style={{ minWidth: 0 }}>
+                <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                    Kota
+                    Nama Toko / Usaha Kasir <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    placeholder="Semarang"
-                    value={storeForm.city}
-                    onChange={e => setStoreForm(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder="Contoh: Kantin Riuph Kost Barokah"
+                    value={storeForm.storeName}
+                    onChange={e => setStoreForm(prev => ({ ...prev, storeName: e.target.value }))}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -11099,15 +11292,16 @@ export default function Kasir({ user }) {
                     }}
                   />
                 </div>
-                <div style={{ minWidth: 0 }}>
+
+                <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                    No. Telp / WA Kasir
+                    Lokasi Stand / Posisi Kasir <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
-                    type="tel"
-                    placeholder="08123456789"
-                    value={storeForm.phone}
-                    onChange={e => setStoreForm(prev => ({ ...prev, phone: e.target.value }))}
+                    type="text"
+                    placeholder="Contoh: Lantai 1 Dekat Gazebo"
+                    value={storeForm.location}
+                    onChange={e => setStoreForm(prev => ({ ...prev, location: e.target.value }))}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -11120,79 +11314,343 @@ export default function Kasir({ user }) {
                     }}
                   />
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={savingStore}
-                style={{
-                  marginTop: '4px',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  color: '#ffffff',
-                  fontSize: '0.84rem',
-                  fontWeight: 800,
-                  cursor: savingStore ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
-                }}
-              >
-                {savingStore ? 'Menyimpan Lokasi...' : 'Simpan & Validasi Toko'}
-              </button>
-            </form>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Alamat Jalan / Gedung (Muncul di Struk)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Jl. Imam Bonjol No. 45, Semarang Tengah"
+                    value={storeForm.address}
+                    onChange={e => setStoreForm(prev => ({ ...prev, address: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderLight}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.84rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
 
-            {/* Preview Header Struk & Status */}
-            <div style={{
-              background: bgCard,
-              border: `1px solid ${borderColor}`,
-              borderRadius: '18px',
-              padding: '16px',
-              boxShadow: 'var(--shadow-sm)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              minWidth: 0,
-              boxSizing: 'border-box'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '7px' }}>
-                <Store size={17} color="#14b8a6" />
-                <span>Pratinjau Header Struk Thermal</span>
-              </h3>
-              <div style={{
-                padding: '16px 14px',
-                borderRadius: '12px',
-                background: isLight ? '#ffffff' : '#0f172a',
-                border: `1px dashed ${borderColor}`,
-                textAlign: 'center',
-                fontFamily: 'var(--font-mono)',
-                color: textPrimary,
-                lineHeight: 1.5
-              }}>
-                <div style={{ fontWeight: 900, fontSize: '0.95rem', textTransform: 'uppercase' }}>
-                  {storeForm.storeName || storeInfo.storeName || 'Nama Toko Belum Diisi'}
-                </div>
-                <div style={{ fontSize: '0.76rem', color: textSecondary }}>
-                  Stand: {storeForm.location || storeInfo.location || '-'}
-                </div>
-                {(storeForm.address || storeForm.city) && (
-                  <div style={{ fontSize: '0.74rem', color: textSecondary }}>
-                    {[storeForm.address, storeForm.city].filter(Boolean).join(', ')}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '10px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      Kota
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Semarang"
+                      value={storeForm.city}
+                      onChange={e => setStoreForm(prev => ({ ...prev, city: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.84rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
                   </div>
-                )}
-                {storeForm.phone && (
-                  <div style={{ fontSize: '0.74rem', color: textSecondary }}>
-                    Telp/WA: {storeForm.phone}
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      No. Telp / WA Kasir
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="08123456789"
+                      value={storeForm.phone}
+                      onChange={e => setStoreForm(prev => ({ ...prev, phone: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.84rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
                   </div>
-                )}
+                </div>
+
+                {/* Koordinat & Link Google Maps */}
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textPrimary, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Navigation size={14} color="#2563eb" />
+                      <span>Titik Google Maps Toko</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!navigator.geolocation) {
+                          setStoreSaveMsg('Perangkat tidak mendukung fitur GPS otomatis.');
+                          return;
+                        }
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            const lat = Number(pos.coords.latitude.toFixed(6));
+                            const lng = Number(pos.coords.longitude.toFixed(6));
+                            setStoreForm(prev => ({
+                              ...prev,
+                              latitude: String(lat),
+                              longitude: String(lng),
+                              mapsUrl: `https://maps.google.com/?q=${lat},${lng}`
+                            }));
+                            setStoreSaveMsg(`Titik GPS berhasil diambil (${lat}, ${lng}). Klik Simpan & Validasi Toko.`);
+                          },
+                          (err) => {
+                            setStoreSaveMsg(`Gagal mengambil lokasi GPS: ${err.message || 'izin lokasi ditolak'}.`);
+                          },
+                          { enableHighAccuracy: true, timeout: 8000 }
+                        );
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '5px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid #2563eb',
+                        background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.18)',
+                        color: '#2563eb',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Navigation size={12} />
+                      <span>Ambil GPS Saat Ini</span>
+                    </button>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: textSecondary, marginBottom: '4px' }}>
+                      Link Google Maps (Opsional / Otomatis dari GPS)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://maps.google.com/?q=-6.9825,110.4091"
+                      value={storeForm.mapsUrl}
+                      onChange={e => setStoreForm(prev => ({ ...prev, mapsUrl: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '9px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#ffffff' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.8rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: textSecondary, marginBottom: '3px' }}>
+                        Latitude
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="-6.9825"
+                        value={storeForm.latitude}
+                        onChange={e => setStoreForm(prev => ({ ...prev, latitude: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          padding: '7px 10px',
+                          borderRadius: '9px',
+                          border: `1px solid ${borderLight}`,
+                          background: isLight ? '#ffffff' : '#1e293b',
+                          color: textPrimary,
+                          fontSize: '0.78rem',
+                          fontFamily: 'var(--font-mono)',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: textSecondary, marginBottom: '3px' }}>
+                        Longitude
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="110.4091"
+                        value={storeForm.longitude}
+                        onChange={e => setStoreForm(prev => ({ ...prev, longitude: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          padding: '7px 10px',
+                          borderRadius: '9px',
+                          border: `1px solid ${borderLight}`,
+                          background: isLight ? '#ffffff' : '#1e293b',
+                          color: textPrimary,
+                          fontSize: '0.78rem',
+                          fontFamily: 'var(--font-mono)',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingStore}
+                  style={{
+                    marginTop: '4px',
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: savingStore ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+                  }}
+                >
+                  {savingStore ? 'Menyimpan Lokasi...' : 'Simpan & Validasi Toko'}
+                </button>
+              </form>
+
+              {/* Kolom Kanan: Pratinjau Header Struk Thermal (Monochrome) + Peta Google Maps */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
+                <div style={{
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '18px',
+                  padding: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  minWidth: 0,
+                  boxSizing: 'border-box'
+                }}>
+                  <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <Store size={17} color="#0f172a" />
+                    <span>Pratinjau Header Struk Thermal</span>
+                  </h3>
+                  <div style={{
+                    padding: '16px 14px',
+                    borderRadius: '12px',
+                    background: '#ffffff',
+                    border: '1px dashed #64748b',
+                    textAlign: 'center',
+                    fontFamily: 'var(--font-mono)',
+                    color: '#0f172a',
+                    lineHeight: 1.5
+                  }}>
+                    <div style={{ fontWeight: 900, fontSize: '0.95rem', textTransform: 'uppercase', color: '#0f172a' }}>
+                      {previewHdr.storeName}
+                    </div>
+                    {previewHdr.standLine && (
+                      <div style={{ fontSize: '0.76rem', color: '#334155', fontWeight: 700 }}>
+                        {previewHdr.standLine}
+                      </div>
+                    )}
+                    {previewHdr.addressLine && (
+                      <div style={{ fontSize: '0.74rem', color: '#334155' }}>
+                        {previewHdr.addressLine}
+                      </div>
+                    )}
+                    {previewHdr.phoneLine && (
+                      <div style={{ fontSize: '0.74rem', color: '#334155' }}>
+                        {previewHdr.phoneLine}
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary, lineHeight: 1.45 }}>
+                    Informasi ini muncul konsisten pada kop struk thermal 58mm/80mm, header halaman pesan meja QR pelanggan, serta laporan rekap penjualan shift.
+                  </p>
+                </div>
+
+                {/* Embed Google Maps Interaktif */}
+                <div style={{
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '18px',
+                  padding: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  minWidth: 0,
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <MapPin size={17} color="#2563eb" />
+                      <span>Peta Lokasi Toko (Google Maps)</span>
+                    </h3>
+                    <a
+                      href={openMapsHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#2563eb',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <span>Buka Google Maps</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  </div>
+
+                  <div style={{
+                    width: '100%',
+                    height: '220px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f1f5f9' : '#0f172a'
+                  }}>
+                    <iframe
+                      title="Peta Lokasi Toko Google Maps"
+                      src={embedMapsUrl}
+                      width="100%"
+                      height="220"
+                      style={{ border: 0, display: 'block' }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+
+                  <div style={{ fontSize: '0.72rem', color: textSecondary, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                    <span>
+                      {hasCoords ? `Koordinat: ${Number(storeForm.latitude).toFixed(5)}, ${Number(storeForm.longitude).toFixed(5)}` : 'Menampilkan peta berdasarkan alamat / koordinat toko'}
+                    </span>
+                    <span style={{ fontWeight: 700, color: textPrimary }}>{previewHdr.storeName}</span>
+                  </div>
+                </div>
               </div>
-              <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary, lineHeight: 1.45 }}>
-                Informasi ini muncul pada kop struk thermal 58mm/80mm, header halaman pesan meja QR pelanggan, serta laporan rekap penjualan shift.
-              </p>
             </div>
-          </div>
-        </main>
-      )}
+          </main>
+        );
+      })()}
 
       {/* ── TAB 11: PERIFERAL HARDWARE LACI KASIR & PRINTER THERMAL (FULL PAGE) ── */}
       {activeTab === 'hardware' && (
@@ -11220,24 +11678,45 @@ export default function Kasir({ user }) {
               borderRadius: '12px',
               fontSize: '0.78rem',
               fontWeight: 700,
-              background: printerFeedback.startsWith('✅') ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)'),
-              color: printerFeedback.startsWith('✅') ? '#059669' : '#dc2626',
-              border: `1px solid ${printerFeedback.startsWith('✅') ? '#10b981' : '#ef4444'}`
+              background: !isErrorFeedback(printerFeedback) ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)'),
+              color: !isErrorFeedback(printerFeedback) ? '#059669' : '#dc2626',
+              border: `1px solid ${!isErrorFeedback(printerFeedback) ? '#10b981' : '#ef4444'}`
             }}>
               {printerFeedback}
             </div>
           )}
 
-          {/* Segmented Tab Controls: Laci Kasir vs Printer Thermal */}
+          {/* Segmented Tab Controls: Semua Periferal vs Laci Kasir vs Printer Thermal */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
             gap: '8px',
             background: bgCard,
             border: `1px solid ${borderColor}`,
             padding: '6px',
             borderRadius: '14px'
           }}>
+            <button
+              type="button"
+              onClick={() => setHardwareModalTab('all')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: 'none',
+                background: hardwareModalTab === 'all' ? '#0f172a' : 'transparent',
+                color: hardwareModalTab === 'all' ? '#ffffff' : textSecondary,
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Settings size={16} />
+              <span>Semua Periferal</span>
+            </button>
             <button
               type="button"
               onClick={() => setHardwareModalTab('drawer')}
@@ -11256,7 +11735,7 @@ export default function Kasir({ user }) {
                 gap: '6px'
               }}
             >
-              <span>🗄️</span>
+              <Wallet size={16} />
               <span>Laci Uang (Cash Drawer)</span>
             </button>
             <button
@@ -11282,7 +11761,7 @@ export default function Kasir({ user }) {
             </button>
           </div>
 
-          {hardwareModalTab === 'drawer' && (
+          {(hardwareModalTab === 'all' || hardwareModalTab === 'drawer') && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
@@ -11330,18 +11809,18 @@ export default function Kasir({ user }) {
                   fontWeight: 700,
                   color: textPrimary
                 }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', marginBottom: '2px' }}>📱</div>
-                    <span>Tablet / HP</span>
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <Sliders size={20} color="#2563eb" />
+                    <span>Perangkat Kasir</span>
                   </div>
-                  <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(BT/USB)──➔</div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', marginBottom: '2px' }}>🖨️</div>
+                  <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(BT/USB)──&gt;</div>
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <Printer size={20} color="#2563eb" />
                     <span>Printer Thermal</span>
                   </div>
-                  <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(RJ11)──➔</div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', marginBottom: '2px' }}>🗄️</div>
+                  <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(RJ11)──&gt;</div>
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <Wallet size={20} color="#10b981" />
                     <span style={{ color: '#10b981' }}>Laci Kasir</span>
                   </div>
                 </div>
@@ -11372,7 +11851,7 @@ export default function Kasir({ user }) {
                     boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)'
                   }}
                 >
-                  <span>🔓</span>
+                  <Unlock size={17} />
                   <span>{drawerKicking ? 'Mengirim Pulsa Listrik...' : 'TES BUKA LACI SEKARANG (KICK DRAWER)'}</span>
                 </button>
               </div>
@@ -11470,10 +11949,10 @@ export default function Kasir({ user }) {
                   fontSize: '0.74rem',
                   color: isLight ? '#92400e' : '#fde68a'
                 }}>
-                  <strong>💡 Langkah Menyambungkan Laci Kasir:</strong>
+                  <strong>Panduan Menyambungkan Laci Kasir:</strong>
                   <ol style={{ margin: '5px 0 0', paddingLeft: '1.1rem', lineHeight: 1.55 }}>
                     <li>Colokkan kabel RJ11 laci kasir ke port <strong>DK (Drawer Kick)</strong> di belakang printer thermal.</li>
-                    <li>Pastikan printer thermal tersambung via Bluetooth atau USB di tab <em>Printer Struk Thermal</em>.</li>
+                    <li>Pastikan printer thermal tersambung via Bluetooth atau USB pada panel <em>Printer Struk Thermal</em>.</li>
                     <li>Tekan tombol <strong>"Tes Buka Laci Sekarang"</strong> untuk uji pulsa pembuka laci.</li>
                   </ol>
                 </div>
@@ -11481,7 +11960,7 @@ export default function Kasir({ user }) {
             </div>
           )}
 
-          {hardwareModalTab === 'printer' && (
+          {(hardwareModalTab === 'all' || hardwareModalTab === 'printer') && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
@@ -11694,355 +12173,366 @@ export default function Kasir({ user }) {
       )}
 
       {/* ── THERMAL RECEIPT MODAL WITH BLUETOOTH & USB DIRECT PRINTING ── */}
-      {receiptOrder && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 110,
-          background: 'rgba(0, 0, 0, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          overflowY: 'auto'
-        }}>
+      {receiptOrder && (() => {
+        const hdr = formatStoreHeaderLines(storeInfo);
+        const cashierLabel = receiptOrder.cashierName || receiptOrder.cashier || cashierShift?.cashierName || 'Kasir Toko';
+        return (
           <div style={{
-            background: '#ffffff',
-            color: '#0f172a',
-            maxWidth: '380px',
-            width: '100%',
-            borderRadius: '18px',
-            padding: '1.25rem',
-            fontFamily: 'var(--font-mono, monospace)',
-            fontSize: '0.8rem',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            position: 'fixed',
+            inset: 0,
+            zIndex: 110,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            maxHeight: '90vh',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
             overflowY: 'auto'
           }}>
-            {/* Header Struk Toko & Lokasi */}
-            <div style={{ textAlign: 'center', borderBottom: '1px dashed #cbd5e1', paddingBottom: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
-                {storeInfo.storeName || 'KANTIN RIUPH POS'}
-              </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#64748b' }}>
-                📍 {storeInfo.location || 'Lokasi Kasir Terverifikasi'}
-              </p>
-              {storeInfo.address && (
-                <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8' }}>
-                  {storeInfo.address}
-                </p>
-              )}
-              {storeInfo.phone && (
-                <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8' }}>
-                  Telp: {storeInfo.phone}
-                </p>
-              )}
-              <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#64748b' }}>
-                {new Date(receiptOrder.createdAt || Date.now()).toLocaleString('id-ID')}
-              </p>
-            </div>
-
-            {/* Order Meta Info */}
-            <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Order ID:</span>
-                <span style={{ fontWeight: 700 }}>#{receiptOrder.id}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Nomor Meja:</span>
-                <span style={{ fontWeight: 800, color: '#2563eb' }}>{receiptOrder.tableNumber}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Atas Nama:</span>
-                <span style={{ fontWeight: 700 }}>{receiptOrder.customerName || 'Pelanggan'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Status Member:</span>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  color: receiptOrder.isLoggedIn ? '#16a34a' : '#64748b',
-                  background: receiptOrder.isLoggedIn ? '#dcfce7' : '#f1f5f9',
-                  padding: '1px 6px',
-                  borderRadius: '4px'
-                }}>
-                  {receiptOrder.isLoggedIn ? '⭐ Member (+Poin)' : '👤 Tamu (0 Poin)'}
-                </span>
-              </div>
-            </div>
-
-            {/* Buyer Custom Notes */}
-            {receiptOrder.notes && (
-              <div style={{
-                background: '#fef3c7',
-                border: '1px dashed #d97706',
-                borderRadius: '8px',
-                padding: '6px 8px',
-                fontSize: '0.72rem',
-                color: '#92400e'
-              }}>
-                <strong>📝 Catatan Pembeli:</strong>
-                <p style={{ margin: '2px 0 0', fontStyle: 'italic' }}>
-                  "{receiptOrder.notes}"
+            <div style={{
+              background: '#ffffff',
+              color: '#0f172a',
+              maxWidth: '380px',
+              width: '100%',
+              borderRadius: '18px',
+              padding: '1.25rem',
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize: '0.8rem',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              border: '1px solid #cbd5e1',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}>
+              {/* Header Struk Toko & Lokasi (Monochrome) */}
+              <div style={{ textAlign: 'center', borderBottom: '1px dashed #64748b', paddingBottom: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a' }}>
+                  {hdr.storeName}
+                </h3>
+                {hdr.standLine && (
+                  <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#334155', fontWeight: 700 }}>
+                    {hdr.standLine}
+                  </p>
+                )}
+                {hdr.addressLine && (
+                  <p style={{ margin: '1px 0 0', fontSize: '0.68rem', color: '#475569' }}>
+                    {hdr.addressLine}
+                  </p>
+                )}
+                {hdr.phoneLine && (
+                  <p style={{ margin: '1px 0 0', fontSize: '0.68rem', color: '#475569' }}>
+                    {hdr.phoneLine}
+                  </p>
+                )}
+                <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#475569' }}>
+                  {new Date(receiptOrder.createdAt || Date.now()).toLocaleString('id-ID')}
                 </p>
               </div>
-            )}
 
-            {/* Items Ordered */}
-            <div style={{ borderTop: '1px dashed #cbd5e1', borderBottom: '1px dashed #cbd5e1', padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {(receiptOrder.items || []).map((it, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                  <span>{it.qty}x {it.name}</span>
-                  <span>Rp {it.subtotal?.toLocaleString('id-ID')}</span>
+              {/* Order Meta Info */}
+              <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '3px', color: '#0f172a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Order ID:</span>
+                  <span style={{ fontWeight: 700 }}>#{receiptOrder.id}</span>
                 </div>
-              ))}
-            </div>
-
-            {/* Totals & Discounts */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Subtotal:</span>
-                <span>Rp {receiptOrder.subtotal?.toLocaleString('id-ID')}</span>
-              </div>
-              {receiptOrder.discountAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', fontWeight: 700 }}>
-                  <span>Diskon ({receiptOrder.discountReason || 'Admin'}):</span>
-                  <span>-Rp {receiptOrder.discountAmount.toLocaleString('id-ID')}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Nomor Meja:</span>
+                  <span style={{ fontWeight: 800, color: '#0f172a' }}>{receiptOrder.tableNumber || '-'}</span>
                 </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Biaya Layanan:</span>
-                <span style={{ color: '#16a34a', fontWeight: 600 }}>Rp 0 (Ditanggung Penjual)</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Kasir:</span>
+                  <span style={{ fontWeight: 700 }}>{cashierLabel}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Atas Nama:</span>
+                  <span style={{ fontWeight: 700 }}>{receiptOrder.customerName || 'Pelanggan'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Status Member:</span>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    padding: '1px 6px',
+                    borderRadius: '4px'
+                  }}>
+                    {receiptOrder.isLoggedIn ? 'Member (+Poin)' : 'Tamu (0 Poin)'}
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.9rem', paddingTop: '4px', borderTop: '1px solid #e2e8f0' }}>
-                <span>TOTAL BAYAR:</span>
-                <span style={{ color: '#16a34a' }}>Rp {receiptOrder.totalAmount?.toLocaleString('id-ID')}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                <span>Metode Bayar:</span>
-                <span style={{ fontWeight: 700 }}>{receiptOrder.paymentMethod || 'TUNAI'}</span>
-              </div>
-            </div>
 
-            {/* Loyalty QR Code & Claim Section */}
-            {(() => {
-              const claimToken = receiptOrder.claimToken || receiptOrder.claim_token || receiptOrder.id;
-              const claimUrl = receiptOrder.qrClaimUrl || receiptOrder.qr_claim_url || `https://kostku.riuph.me/claim?token=${claimToken}`;
-              const claimDeadline = receiptOrder.claimDeadline || receiptOrder.claim_deadline;
-              const deadlineStr = claimDeadline
-                ? new Date(claimDeadline).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }) + ' 23:59 WIB'
-                : 'Besok 23:59 WIB';
-              
-              return (
+              {/* Buyer Custom Notes (Monochrome) */}
+              {receiptOrder.notes && (
                 <div style={{
-                  marginTop: '10px',
-                  padding: '10px',
                   background: '#f8fafc',
-                  border: '1px dashed #94a3b8',
-                  borderRadius: '10px',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '6px'
+                  border: '1px dashed #64748b',
+                  borderRadius: '8px',
+                  padding: '6px 8px',
+                  fontSize: '0.72rem',
+                  color: '#0f172a'
                 }}>
-                  <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#1e293b', letterSpacing: '0.5px' }}>
-                    KLAIM DISKON MAKAN ANDA!
-                  </div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: '4px' }}>
-                    [ QR CODE KLAIM POIN ]
-                  </div>
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(claimUrl)}`}
-                    alt="QR Code Klaim Poin"
-                    style={{ width: '110px', height: '110px', borderRadius: '6px', background: '#fff', padding: '4px', border: '1px solid #e2e8f0' }}
-                  />
-                  <div style={{ fontSize: '0.7rem', color: '#475569', lineHeight: 1.35 }}>
-                    <strong>Scan QR ini & Putar Roda Hadiah!</strong><br />
-                    Dapatkan Poin s/d 100 Poin Belanja.
-                  </div>
-                  <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#dc2626', background: '#fef2f2', padding: '2px 8px', borderRadius: '4px' }}>
-                    *Batas Waktu Klaim: {deadlineStr}
-                  </div>
-                  <a
-                    href={claimUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: '0.64rem', color: '#2563eb', textDecoration: 'none', wordBreak: 'break-all' }}
-                  >
-                    {claimUrl}
-                  </a>
+                  <strong>Catatan Pembeli:</strong>
+                  <p style={{ margin: '2px 0 0', fontStyle: 'italic' }}>
+                    "{receiptOrder.notes}"
+                  </p>
                 </div>
-              );
-            })()}
+              )}
 
-            {/* Printer Status Banner */}
-            {printerFeedback && (
-              <div style={{
-                padding: '6px 10px',
-                borderRadius: '8px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                textAlign: 'center',
-                background: printerFeedback.startsWith('✅') ? '#dcfce7' : '#fee2e2',
-                color: printerFeedback.startsWith('✅') ? '#166534' : '#991b1b',
-                border: `1px solid ${printerFeedback.startsWith('✅') ? '#86efac' : '#fca5a5'}`
-              }}>
-                {printerFeedback}
+              {/* Items Ordered */}
+              <div style={{ borderTop: '1px dashed #64748b', borderBottom: '1px dashed #64748b', padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {(receiptOrder.items || []).map((it, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#0f172a' }}>
+                    <span>{it.qty}x {it.name}</span>
+                    <span>Rp {(it.subtotal ?? (it.price || 0) * (it.qty || 1))?.toLocaleString('id-ID')}</span>
+                  </div>
+                ))}
               </div>
-            )}
 
-            {/* Mode & Paper Width Selection Controls */}
-            <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569' }}>Koneksi Printer:</span>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {[
-                    { id: 'bluetooth', label: 'BT', icon: <Bluetooth size={11} />, supported: hardwareCaps.bluetooth },
-                    { id: 'usb', label: 'USB', icon: <Usb size={11} />, supported: (hardwareCaps.usb || hardwareCaps.serial) },
-                    { id: 'browser', label: 'OS', icon: <Printer size={11} />, supported: true }
-                  ].map(m => {
-                    const isActive = (printerSettings.connectionType || 'browser') === m.id;
-                    return (
+              {/* Totals & Discounts (Monochrome) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.75rem', color: '#0f172a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Subtotal:</span>
+                  <span>Rp {receiptOrder.subtotal?.toLocaleString('id-ID')}</span>
+                </div>
+                {receiptOrder.discountAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0f172a', fontWeight: 700 }}>
+                    <span>Diskon ({receiptOrder.discountReason || 'Admin'}):</span>
+                    <span>-Rp {receiptOrder.discountAmount.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Biaya Layanan:</span>
+                  <span style={{ color: '#334155', fontWeight: 600 }}>Rp 0 (Ditanggung Penjual)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '0.92rem', paddingTop: '5px', borderTop: '1px solid #0f172a' }}>
+                  <span>TOTAL BAYAR:</span>
+                  <span style={{ color: '#0f172a' }}>Rp {receiptOrder.totalAmount?.toLocaleString('id-ID')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#475569', marginTop: '2px' }}>
+                  <span>Metode Bayar:</span>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{receiptOrder.paymentMethod || 'TUNAI'}</span>
+                </div>
+              </div>
+
+              {/* Loyalty QR Code & Claim Section (Monochrome) */}
+              {(() => {
+                const claimToken = receiptOrder.claimToken || receiptOrder.claim_token || receiptOrder.id;
+                const claimUrl = receiptOrder.qrClaimUrl || receiptOrder.qr_claim_url || `https://kostku.riuph.me/claim?token=${claimToken}`;
+                const claimDeadline = receiptOrder.claimDeadline || receiptOrder.claim_deadline;
+                const deadlineStr = claimDeadline
+                  ? new Date(claimDeadline).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }) + ' 23:59 WIB'
+                  : 'Besok 23:59 WIB';
+
+                return (
+                  <div style={{
+                    marginTop: '10px',
+                    padding: '10px',
+                    background: '#f8fafc',
+                    border: '1px dashed #64748b',
+                    borderRadius: '10px',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.5px' }}>
+                      KLAIM DISKON MAKAN ANDA!
+                    </div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0f172a', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>
+                      [ QR CODE KLAIM POIN ]
+                    </div>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(claimUrl)}`}
+                      alt="QR Code Klaim Poin"
+                      style={{ width: '110px', height: '110px', borderRadius: '6px', background: '#ffffff', padding: '4px', border: '1px solid #cbd5e1', filter: 'grayscale(100%) contrast(1.15)' }}
+                    />
+                    <div style={{ fontSize: '0.7rem', color: '#334155', lineHeight: 1.35 }}>
+                      <strong>Scan QR ini &amp; Putar Roda Hadiah!</strong><br />
+                      Dapatkan Poin s/d 100 Poin Belanja.
+                    </div>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#0f172a', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>
+                      *Batas Waktu Klaim: {deadlineStr}
+                    </div>
+                    <a
+                      href={claimUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ fontSize: '0.64rem', color: '#334155', textDecoration: 'underline', wordBreak: 'break-all' }}
+                    >
+                      {claimUrl}
+                    </a>
+                  </div>
+                );
+              })()}
+
+              {/* Printer Status Banner (Monochrome) */}
+              {printerFeedback && (
+                <div style={{
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  background: isErrorFeedback(printerFeedback) ? '#e2e8f0' : '#f8fafc',
+                  color: '#0f172a',
+                  border: `1px ${isErrorFeedback(printerFeedback) ? 'solid' : 'dashed'} #475569`
+                }}>
+                  {printerFeedback}
+                </div>
+              )}
+
+              {/* Mode & Paper Width Selection Controls */}
+              <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '10px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>Koneksi Printer:</span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {[
+                      { id: 'bluetooth', label: 'BT', icon: <Bluetooth size={11} />, supported: hardwareCaps.bluetooth },
+                      { id: 'usb', label: 'USB', icon: <Usb size={11} />, supported: (hardwareCaps.usb || hardwareCaps.serial) },
+                      { id: 'browser', label: 'OS', icon: <Printer size={11} />, supported: true }
+                    ].map(m => {
+                      const isActive = (printerSettings.connectionType || 'browser') === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            if (m.id === 'bluetooth' && !hardwareCaps.bluetooth) {
+                              setPrinterFeedback('Web Bluetooth tidak didukung di browser ini. Buka via Google Chrome Android atau gunakan mode OS.');
+                              setTimeout(() => setPrinterFeedback(''), 5000);
+                            }
+                            const next = { ...printerSettings, connectionType: m.id };
+                            setPrinterSettings(next);
+                            savePrinterSettings(next);
+                          }}
+                          style={{
+                            padding: '3px 7px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: isActive ? '#0f172a' : '#e2e8f0',
+                            color: isActive ? '#ffffff' : '#334155',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}
+                          title={m.supported ? `${m.label} didukung` : `${m.label} tidak didukung browser ini`}
+                        >
+                          {m.icon}
+                          <span>{m.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>Lebar Kertas:</span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {['58mm', '80mm'].map(w => (
                       <button
-                        key={m.id}
+                        key={w}
                         type="button"
                         onClick={() => {
-                          if (m.id === 'bluetooth' && !hardwareCaps.bluetooth) {
-                            setPrinterFeedback('ℹ️ Web Bluetooth tidak didukung di browser ini. Buka via Google Chrome Android atau gunakan mode OS.');
-                            setTimeout(() => setPrinterFeedback(''), 5000);
-                          }
-                          const next = { ...printerSettings, connectionType: m.id };
+                          const next = { ...printerSettings, paperWidth: w };
                           setPrinterSettings(next);
                           savePrinterSettings(next);
                         }}
                         style={{
-                          padding: '3px 7px',
+                          padding: '3px 8px',
                           borderRadius: '6px',
                           border: 'none',
-                          background: isActive ? '#2563eb' : '#e2e8f0',
-                          color: isActive ? '#fff' : '#475569',
+                          background: (printerSettings.paperWidth || '58mm') === w ? '#0f172a' : '#e2e8f0',
+                          color: (printerSettings.paperWidth || '58mm') === w ? '#ffffff' : '#334155',
                           fontSize: '0.68rem',
                           fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px'
+                          cursor: 'pointer'
                         }}
-                        title={m.supported ? `${m.label} didukung` : `${m.label} tidak didukung browser ini`}
                       >
-                        {m.icon}
-                        <span>{m.label}</span>
+                        {w}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569' }}>Lebar Kertas:</span>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {['58mm', '80mm'].map(w => (
-                    <button
-                      key={w}
-                      type="button"
-                      onClick={() => {
-                        const next = { ...printerSettings, paperWidth: w };
-                        setPrinterSettings(next);
-                        savePrinterSettings(next);
-                      }}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: (printerSettings.paperWidth || '58mm') === w ? '#0f172a' : '#e2e8f0',
-                        color: (printerSettings.paperWidth || '58mm') === w ? '#fff' : '#475569',
-                        fontSize: '0.68rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {w}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Print Action Buttons */}
-            <button
-              type="button"
-              disabled={isPrinting}
-              onClick={() => handlePrintReceipt(receiptOrder)}
-              style={{
-                marginTop: '4px',
-                padding: '11px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: isPrinting ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.35)'
-              }}
-            >
-              <Printer size={16} />
-              <span>
-                {isPrinting 
-                  ? 'Mencetak ke Thermal...' 
-                  : (printerSettings.connectionType === 'browser' 
-                      ? 'Cetak Struk (Driver OS / PDF)' 
+              {/* Print Action Buttons */}
+              <button
+                type="button"
+                disabled={isPrinting}
+                onClick={() => handlePrintReceipt(receiptOrder)}
+                style={{
+                  marginTop: '4px',
+                  padding: '11px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: isPrinting ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Printer size={16} />
+                <span>
+                  {isPrinting
+                    ? 'Mencetak ke Thermal...'
+                    : (printerSettings.connectionType === 'browser'
+                      ? 'Cetak Struk (Driver OS / PDF)'
                       : `Cetak Thermal ESC/POS (${printerSettings.connectionType?.toUpperCase() || 'OS'})`)}
-              </span>
-            </button>
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                handlePrintReceipt(receiptOrder, 'browser');
-              }}
-              style={{
-                padding: '8px',
-                borderRadius: '10px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                color: '#334155',
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                textAlign: 'center'
-              }}
-            >
-              Cetak Dialog Browser (Fallback PDF/OS)
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handlePrintReceipt(receiptOrder, 'browser');
+                }}
+                style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
+                Cetak Dialog Browser (Fallback PDF/OS)
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setReceiptOrder(null)}
-              style={{
-                border: 'none',
-                background: 'none',
-                color: '#64748b',
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-                textAlign: 'center',
-                padding: '4px'
-              }}
-            >
-              Tutup Struk
-            </button>
+              <button
+                type="button"
+                onClick={() => setReceiptOrder(null)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: '#475569',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  padding: '4px'
+                }}
+              >
+                Tutup Struk
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── MODAL: TAMBAH MENU & KATEGORI BARU (FOTO WAJIB / MUST HAVE) ── */}
       {showAddMenuModal && (
@@ -12077,7 +12567,7 @@ export default function Kasir({ user }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>{editingProduct ? '✏️' : '✨'}</span>
+                  {editingProduct ? <Edit3 size={18} color="#2563eb" /> : <Sparkles size={18} color="#2563eb" />}
                   <span>{editingProduct ? `Edit Menu: ${editingProduct.name}` : 'Tambah Menu & Kategori'}</span>
                 </h3>
                 <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: textSecondary }}>
@@ -12836,8 +13326,9 @@ export default function Kasir({ user }) {
                   alignItems: 'center'
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>
-                      🔒 TriPay Official Gateway (T53543)
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Lock size={11} />
+                      <span>TriPay Official Gateway (T53543)</span>
                     </div>
                     <div style={{ fontSize: '0.92rem', fontWeight: 900, color: textPrimary, marginTop: '2px' }}>
                       +{tripayTopupData.quota} Lembar Nota Kasir
@@ -12921,7 +13412,7 @@ export default function Kasir({ user }) {
                   }}
                 >
                   <ExternalLink size={15} />
-                  <span>Buka Halaman Checkout TriPay Resmi ↗</span>
+                  <span>Buka Halaman Checkout TriPay Resmi</span>
                 </button>
 
                 {/* STATUS FEEDBACK DARI TRIPAY */}
@@ -12965,7 +13456,7 @@ export default function Kasir({ user }) {
                   }}
                 >
                   <RefreshCw size={16} />
-                  <span>{tripayCheckingStatus ? 'Sedang Mengecek Status ke TriPay...' : '🔄 Cek Status Pembayaran ke TriPay'}</span>
+                  <span>{tripayCheckingStatus ? 'Sedang Mengecek Status ke TriPay...' : 'Cek Status Pembayaran ke TriPay'}</span>
                 </button>
 
                 {/* ACTION 3: KEMBALI / GANTI PAKET */}
@@ -13012,7 +13503,7 @@ export default function Kasir({ user }) {
                       borderRadius: '999px',
                       border: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '1px solid #fca5a5' : '1px solid #86efac'
                     }}>
-                      {Number(storeInfo.kuotaNota ?? 50) <= 15 ? '⚠️ Kuota Menipis' : '✓ 500 Kuota Aktif'}
+                      {Number(storeInfo.kuotaNota ?? 50) <= 15 ? 'Kuota Menipis' : '500 Kuota Aktif'}
                     </span>
                   </div>
 
@@ -13719,7 +14210,7 @@ export default function Kasir({ user }) {
                     fontWeight: 800
                   }}>
                     <span style={{ color: isMatch ? '#047857' : (isSurplus ? '#1d4ed8' : '#b91c1c') }}>
-                      {isMatch ? '✅ Uang Fisik Pas (Sesuai Sistem)' : (isSurplus ? `🔵 Surplus Lebih (+Rp ${diff.toLocaleString('id-ID')})` : `⚠️ Selisih Kurang (-Rp ${Math.abs(diff).toLocaleString('id-ID')})`)}
+                      {isMatch ? 'Uang Fisik Pas (Sesuai Sistem)' : (isSurplus ? `Surplus Lebih (+Rp ${diff.toLocaleString('id-ID')})` : `Selisih Kurang (-Rp ${Math.abs(diff).toLocaleString('id-ID')})`)}
                     </span>
                     <span style={{ fontSize: '0.72rem', color: textSecondary }}>
                       Fisik: Rp {actual.toLocaleString('id-ID')}
@@ -13793,7 +14284,8 @@ export default function Kasir({ user }) {
                   }}
                   title="Buka Laci Kasir"
                 >
-                  🔓 Laci
+                  <Unlock size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                  <span>Laci</span>
                 </button>
               </div>
 
@@ -13873,7 +14365,7 @@ export default function Kasir({ user }) {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.2rem' }}>🔢</span>
+                <Sliders size={18} color="#2563eb" />
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: textPrimary }}>
                     Opsi Tambah Berapa Pcs
@@ -14141,7 +14633,7 @@ export default function Kasir({ user }) {
                   fontSize: '1.2rem',
                   boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                 }}>
-                  ✅
+                  <Check size={20} strokeWidth={3} />
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: textPrimary }}>
@@ -14180,7 +14672,7 @@ export default function Kasir({ user }) {
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <span style={{ fontSize: '1.4rem' }}>🪑</span>
+                <Utensils size={20} color="#10b981" />
                 <div>
                   <div style={{ fontSize: '0.86rem', fontWeight: 800, color: isLight ? '#065f46' : '#34d399' }}>
                     Tanyakan ke Tamu: &ldquo;Duduk di Meja Berapa, Kak?&rdquo;
@@ -14278,7 +14770,7 @@ export default function Kasir({ user }) {
                       cursor: 'pointer'
                     }}
                   >
-                    <span>🛍️</span>
+                    <ShoppingBag size={15} />
                     <span>Bungkus / Takeaway</span>
                   </button>
                   <button
@@ -14299,7 +14791,7 @@ export default function Kasir({ user }) {
                       cursor: 'pointer'
                     }}
                   >
-                    <span>🍸</span>
+                    <Coffee size={15} />
                     <span>Duduk di Bar / Kasir</span>
                   </button>
                 </div>
@@ -14646,13 +15138,13 @@ export default function Kasir({ user }) {
               border: 'none',
               padding: '4px 0',
               cursor: 'pointer',
-              color: (activeTab === 'settings' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              color: (activeTab === 'settings' || activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
               transition: 'all 0.15s ease',
               position: 'relative'
             }}
           >
             <div style={{ position: 'relative' }}>
-              <Sliders size={20} strokeWidth={(activeTab === 'settings' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 2.5 : 2} />
+              <Sliders size={20} strokeWidth={(activeTab === 'settings' || activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 2.5 : 2} />
               {inventoryAlerts.length > 0 && (
                 <span style={{
                   position: 'absolute',
@@ -14667,7 +15159,7 @@ export default function Kasir({ user }) {
             </div>
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: (activeTab === 'settings' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 800 : 600,
+              fontWeight: (activeTab === 'settings' || activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 800 : 600,
               letterSpacing: '-0.01em'
             }}>
               Kelola
@@ -14693,6 +15185,7 @@ export default function Kasir({ user }) {
           }}
         >
           <div
+            data-testid="mobile-pusat-kelola-sheet"
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
@@ -14840,15 +15333,6 @@ export default function Kasir({ user }) {
                   onClick: () => { setActiveTab('pos'); setShowMobileMenuHub(false); }
                 },
                 {
-                  id: 'keuangan',
-                  title: 'Keuangan & Saldo',
-                  desc: 'Mutasi, omset & penarikan saldo',
-                  icon: <DollarSign size={20} color="#10b981" />,
-                  badge: walletData?.available_balance ? `Rp ${(walletData.available_balance / 1000).toFixed(0)}k` : null,
-                  badgeBg: '#10b981',
-                  onClick: () => { setActiveTab('settings'); setShowMobileMenuHub(false); }
-                },
-                {
                   id: 'dapur',
                   title: 'Dapur (KDS)',
                   desc: 'Checklist antrean pesanan masak',
@@ -14858,13 +15342,29 @@ export default function Kasir({ user }) {
                   onClick: () => { setActiveTab('kds'); setShowMobileMenuHub(false); }
                 },
                 {
+                  id: 'keuangan',
+                  title: 'Keuangan & Statistik',
+                  desc: 'Omset, mutasi, saldo & grafik analitik',
+                  icon: <DollarSign size={20} color="#10b981" />,
+                  badge: walletData?.available_balance ? `Rp ${(walletData.available_balance / 1000).toFixed(0)}k` : null,
+                  badgeBg: '#10b981',
+                  onClick: () => { setActiveTab('settings'); setShowMobileMenuHub(false); }
+                },
+                {
                   id: 'meja_qr',
-                  title: 'Meja & Barcode QR',
-                  desc: 'Cetak QR & denah meja resto',
+                  title: 'Meja QR & Nota Meja',
+                  desc: 'QR self-order, nota & statistik per meja',
                   icon: <QrCode size={20} color="#8b5cf6" />,
                   badge: `${tables.length} meja`,
                   badgeBg: '#8b5cf6',
                   onClick: () => { setActiveTab('tables'); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'printer',
+                  title: 'Laci & Printer',
+                  desc: 'Laci uang RJ11, printer BT / USB',
+                  icon: <Printer size={20} color="#059669" />,
+                  onClick: () => { setActiveTab('hardware'); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'promo',
@@ -14891,13 +15391,6 @@ export default function Kasir({ user }) {
                   }
                 },
                 {
-                  id: 'statistik',
-                  title: 'Statistik Keuangan',
-                  desc: 'Grafik menu & performa omset',
-                  icon: <BarChart3 size={20} color="#6366f1" />,
-                  onClick: () => { setActiveTab('analytics'); loadAnalytics(); setShowMobileMenuHub(false); }
-                },
-                {
                   id: 'stamp',
                   title: 'Stamp & Loyalty',
                   desc: 'Hadiah poin pelanggan setia',
@@ -14914,25 +15407,18 @@ export default function Kasir({ user }) {
                 {
                   id: 'lokasi_toko',
                   title: 'Lokasi & Info Toko',
-                  desc: storeInfo.storeName || 'Atur data & alamat toko',
+                  desc: storeInfo.storeName || 'Atur data, Google Maps & alamat toko',
                   icon: <Store size={20} color="#14b8a6" />,
-                  badge: storeInfo.isValidated ? '✓ Resmi' : '⚠️ Validasi',
+                  badge: storeInfo.isValidated ? 'Resmi' : 'Validasi',
                   badgeBg: storeInfo.isValidated ? '#10b981' : '#f59e0b',
                   onClick: () => { setActiveTab('store'); setShowMobileMenuHub(false); }
-                },
-                {
-                  id: 'printer',
-                  title: 'Printer & Laci Kasir',
-                  desc: 'Thermal Bluetooth / USB',
-                  icon: <Printer size={20} color="#059669" />,
-                  onClick: () => { setActiveTab('hardware'); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'topup_nota',
                   title: 'Top Up Kuota Nota',
                   desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar nota`,
                   icon: <Zap size={20} color="#eab308" />,
-                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? '⚠️ Habis' : null,
+                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'Habis' : null,
                   badgeBg: '#ef4444',
                   onClick: () => { setShowPosTopupModal(true); setShowMobileMenuHub(false); }
                 }

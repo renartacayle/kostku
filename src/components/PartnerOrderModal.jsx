@@ -25,7 +25,9 @@ import {
   Check,
   Download,
   Bike,
-  Copy
+  Copy,
+  Store,
+  Tag
 } from 'lucide-react';
 import {
   apiCreatePartnerOrder,
@@ -496,22 +498,22 @@ const PartnerOrderModal = ({
       if (!forceManual) {
         const res = await apiCheckQrisStatus(qrisData.orderId);
         if (res?.status === 'settlement' || res?.status === 'paid' || res?.status === 'capture' || res?.isPaid) {
-          setCheckNotice({ type: 'success', message: '✅ Pembayaran QRIS Terverifikasi Lunas!' });
+          setCheckNotice({ type: 'success', message: 'Pembayaran QRIS Terverifikasi Lunas!' });
           await executeFinalOrder(qrisData.orderId, 'qris');
           return;
         } else if (res?.status === 'expired') {
-          setCheckNotice({ type: 'error', message: '⚠️ Masa berlaku QRIS telah habis. Silakan buat kode QRIS baru.' });
+          setCheckNotice({ type: 'error', message: 'Masa berlaku QRIS telah habis. Silakan buat kode QRIS baru.' });
           return;
         }
         
         // If still pending
         setCheckNotice({
           type: 'pending',
-          message: '⏳ Pembayaran belum terdeteksi di mutasi perbankan. Silakan selesaikan scan di aplikasi m-Banking atau E-Wallet Anda, lalu klik Cek kembali.'
+          message: 'Pembayaran belum terdeteksi di mutasi perbankan. Silakan selesaikan scan di aplikasi m-Banking atau E-Wallet Anda, lalu klik Cek kembali.'
         });
       } else {
         // Force manual confirmation (user confirms they already transferred)
-        setCheckNotice({ type: 'success', message: '✅ Konfirmasi Pembayaran Berhasil Diterima!' });
+        setCheckNotice({ type: 'success', message: 'Konfirmasi Pembayaran Berhasil Diterima!' });
         await executeFinalOrder(qrisData.orderId, 'qris');
       }
     } catch (err) {
@@ -606,7 +608,7 @@ const PartnerOrderModal = ({
               {service.logo ? (
                 <img src={service.logo} alt={service.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <span style={{ fontSize: '1.6rem' }}>{service.icon || '🏪'}</span>
+                <Store size={20} color="#3b82f6" />
               )}
             </div>
             <div>
@@ -616,15 +618,15 @@ const PartnerOrderModal = ({
                 </h3>
                 {service.isMainPartner || service.partnershipType === 'main' ? (
                   <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: isLight ? '#b45309' : '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
-                    👑 Mitra Utama Kost
+                    Mitra Utama Kost
                   </span>
                 ) : service.isShared || service.partnershipType === 'shared' ? (
                   <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(34, 197, 94, 0.2)', color: isLight ? '#15803d' : '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)', fontWeight: 700 }}>
-                    🤝 Mitra Bersama Multi-Kost
+                    Mitra Bersama Multi-Kost
                   </span>
                 ) : (
                   <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.2)', color: isLight ? '#1d4ed8' : '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)', fontWeight: 700 }}>
-                    🌐 Mitra Jaringan Sekitar
+                    Mitra Jaringan Sekitar
                   </span>
                 )}
               </div>
@@ -710,12 +712,12 @@ const PartnerOrderModal = ({
                   fontWeight: 700
                 }}>
                   {paymentMethod === 'qris' 
-                    ? '🟢 Lunas (QRIS Platform)' 
+                    ? 'Lunas (QRIS Platform)' 
                     : paymentMethod === 'custom_qris'
-                    ? '🔵 QRIS Mandiri Mitra'
+                    ? 'QRIS Mandiri Mitra'
                     : paymentMethod === 'custom_bank_transfer'
-                    ? '🟣 Transfer Rekening Pribadi Mitra'
-                    : '⚪ Tunai COD'}
+                    ? 'Transfer Rekening Pribadi Mitra'
+                    : 'Tunai COD'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', borderTop: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px' }}>
@@ -764,7 +766,7 @@ const PartnerOrderModal = ({
               <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                 {slaSecondsLeft > 0
                   ? `Batas waktu SLA (${slaMinutes} menit) untuk kurir mitra mengantarkan barang sampai di pintu Kamar ${roomNumber}.`
-                  : '⚠️ Batas waktu SLA telah lewat! Garansi pembatalan pesanan otomatis (cancelled_timeout) & refund dana siap diklaim.'}
+                  : 'Batas waktu SLA telah lewat! Garansi pembatalan pesanan otomatis (cancelled_timeout) & refund dana siap diklaim.'}
               </p>
             </div>
 
@@ -772,7 +774,7 @@ const PartnerOrderModal = ({
             <div style={{ marginBottom: '1.25rem' }}>
               <a
                 href={`https://wa.me/${String(service?.whatsapp_number || service?.phone || '6281234567890').replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
-                  `Halo Mitra *${service?.name || service?.title || 'UMKM'}*,\nAda pesanan baru dari KostKu!\n\n📋 *ID Tiket:* ${orderResult?.id || 'ORD-NEW'}\n🏢 *Kamar:* ${roomNumber} (${customerName})\n💰 *Total:* Rp ${(orderResult?.total || grandTotal).toLocaleString('id-ID')}\n💳 *Metode:* ${paymentMethod === 'qris' ? 'LUNAS (QRIS)' : 'COD'}\n⏱️ *SLA:* ${slaMinutes} Menit\n\nMohon segera diproses dan diantar. Terima kasih!`
+                  `Halo Mitra *${service?.name || service?.title || 'UMKM'}*,\nAda pesanan baru dari KostKu!\n\n*ID Tiket:* ${orderResult?.id || 'ORD-NEW'}\n*Kamar:* ${roomNumber} (${customerName})\n*Total:* Rp ${(orderResult?.total || grandTotal).toLocaleString('id-ID')}\n*Metode:* ${paymentMethod === 'qris' ? 'LUNAS (QRIS)' : 'COD'}\n*SLA:* ${slaMinutes} Menit\n\nMohon segera diproses dan diantar. Terima kasih!`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1100,7 +1102,7 @@ const PartnerOrderModal = ({
                         cursor: 'pointer'
                       }}
                     >
-                      🔄 Cek Ulang Gateway
+                      Cek Ulang Gateway
                     </button>
                     <button
                       type="button"
@@ -1188,7 +1190,7 @@ const PartnerOrderModal = ({
                 alignItems: 'center',
                 gap: '9px'
               }}>
-                <span style={{ fontSize: '1.25rem' }}>🎁</span>
+                <Sparkles size={18} color="#38bdf8" style={{ flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8' }}>
                     Promo Toko Baru: Dapatkan +150 Poin Ekstra!
@@ -1212,7 +1214,7 @@ const PartnerOrderModal = ({
                 alignItems: 'center',
                 gap: '9px'
               }}>
-                <span style={{ fontSize: '1.15rem' }}>🏪</span>
+                <Store size={18} color="#38bdf8" style={{ flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#38bdf8' }}>
                     UMKM Mandiri Sekitar Kost
@@ -1283,17 +1285,7 @@ const PartnerOrderModal = ({
                               }}
                             />
                           ) : (
-                            <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>
-                              {prod.name.toLowerCase().includes('gas') ? '🔥'
-                                : prod.name.toLowerCase().includes('aqua') ? '🌊'
-                                : prod.name.toLowerCase().includes('minerale') ? '🧊'
-                                : prod.name.toLowerCase().includes('galon') || prod.name.toLowerCase().includes('air') ? '💧'
-                                : prod.name.toLowerCase().includes('setrika') ? '👔'
-                                : prod.name.toLowerCase().includes('sprei') || prod.name.toLowerCase().includes('bed') ? '🛏️'
-                                : prod.name.toLowerCase().includes('express') || prod.name.toLowerCase().includes('kilat') ? '⚡'
-                                : prod.name.toLowerCase().includes('cuci') ? '🧺'
-                                : (service.icon || '🏷️')}
-                            </span>
+                            <Tag size={18} color={isLight ? '#2563eb' : '#60a5fa'} />
                           )}
                         </div>
 
@@ -1304,11 +1296,11 @@ const PartnerOrderModal = ({
                             </span>
                             {prod.isRealTopSeller ? (
                               <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', fontWeight: 800 }}>
-                                🔥 Terlaris ({prod.effectiveSold || prod.totalSold || 30}x Dipesan)
+                                Terlaris ({prod.effectiveSold || prod.totalSold || 30}x Dipesan)
                               </span>
                             ) : (prod.isStorePick || prod.isBestSeller) ? (
                               <span style={{ fontSize: '0.58rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.2)', color: isLight ? '#b45309' : '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 800 }}>
-                                ⭐ Rekomendasi Toko
+                                Rekomendasi Toko
                               </span>
                             ) : null}
                             {/* Badges sensor kamera HANYA untuk FnB, Non-FnB bebas dari warning foto */}
@@ -1326,7 +1318,7 @@ const PartnerOrderModal = ({
                                   alignItems: 'center',
                                   gap: '3px'
                                 }} title="Foto Asli Kamera (Sensor PRNU & Defect Terverifikasi)">
-                                  🛡️ Kamera Asli
+                                  Kamera Asli
                                 </span>
                               ) : (
                                 <span style={{
@@ -1341,7 +1333,7 @@ const PartnerOrderModal = ({
                                   alignItems: 'center',
                                   gap: '3px'
                                 }} title="Foto Web/Katalog Internet (Gagal Sensor Kamera / Belum Terverifikasi Asli)">
-                                  ⚠️ Foto Web
+                                  Foto Web
                                 </span>
                               )
                             )}
@@ -1449,7 +1441,7 @@ const PartnerOrderModal = ({
                   <span>
                     Jam Kirim: {service?.deliveryStartTime || '07:30'} - {service?.deliveryEndTime || '21:00'}
                   </span>
-                  <span>{isWithinDeliveryHours ? '🟢' : '🟠'}</span>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isWithinDeliveryHours ? '#10b981' : '#f59e0b', display: 'inline-block', flexShrink: 0 }} />
                 </span>
               </div>
 
@@ -1466,7 +1458,7 @@ const PartnerOrderModal = ({
                   alignItems: 'center',
                   gap: '5px'
                 }}>
-                  <span>⚠️</span>
+                  <AlertTriangle size={14} style={{ flexShrink: 0 }} />
                   <span>
                     Di luar jam pengantaran kurir ({service?.deliveryStartTime || '07:30'} - {service?.deliveryEndTime || '21:00'} WIB). Pesanan tetap bisa dibuat dan diantar saat jam buka kirim.
                   </span>
@@ -1485,7 +1477,7 @@ const PartnerOrderModal = ({
                   alignItems: 'center',
                   gap: '6px'
                 }}>
-                  🏪 <strong>Wajib Ambil di Ruko / Toko:</strong> Mitra ini melayani pengambilan langsung di gerai/ruko.
+                  <strong>Wajib Ambil di Ruko / Toko:</strong> Mitra ini melayani pengambilan langsung di gerai/ruko.
                 </div>
               ) : service?.deliveryType === 'delivery' ? (
                 <div style={{
@@ -1501,7 +1493,7 @@ const PartnerOrderModal = ({
                 }}>
                   <Bike size={16} />
                   <span>
-                    <strong>Diantar ke Kamar:</strong> {deliveryFee === 0 ? '🎉 Gratis Ongkir' : `Rp ${deliveryFee.toLocaleString('id-ID')} (Jarak ~${distanceKm.toFixed(1)} km)`}.
+                    <strong>Diantar ke Kamar:</strong> {deliveryFee === 0 ? 'Gratis Ongkir' : `Rp ${deliveryFee.toLocaleString('id-ID')} (Jarak ~${distanceKm.toFixed(1)} km)`}.
                   </span>
                 </div>
               ) : (
@@ -1536,7 +1528,7 @@ const PartnerOrderModal = ({
                       <span style={{ fontWeight: 700 }}>Diantar ke Kamar</span>
                     </div>
                     <span style={{ fontSize: '0.68rem', color: selectedDeliveryMode === 'delivery' ? (isLight ? '#1e40af' : '#93c5fd') : (isLight ? '#64748b' : '#94a3b8') }}>
-                      {deliveryFee === 0 ? '🎉 Gratis Ongkir' : `Rp ${deliveryFee.toLocaleString('id-ID')} (~${distanceKm.toFixed(1)} km)`}
+                      {deliveryFee === 0 ? 'Gratis Ongkir' : `Rp ${deliveryFee.toLocaleString('id-ID')} (~${distanceKm.toFixed(1)} km)`}
                     </span>
                   </button>
                   <button
@@ -1564,7 +1556,7 @@ const PartnerOrderModal = ({
                       gap: '2px'
                     }}
                   >
-                    <span style={{ fontWeight: 700 }}>🏪 Ambil Sendiri di Ruko</span>
+                    <span style={{ fontWeight: 700 }}>Ambil Sendiri di Ruko</span>
                     <span style={{ fontSize: '0.68rem', color: selectedDeliveryMode === 'pickup' ? (isLight ? '#b45309' : '#fbbf24') : (isLight ? '#64748b' : '#94a3b8') }}>
                       Rp 0 (Bebas Ongkir)
                     </span>
@@ -1818,7 +1810,7 @@ const PartnerOrderModal = ({
                     alignItems: 'center',
                     gap: '6px'
                   }}>
-                    <span>⚠️</span>
+                    <AlertTriangle size={14} style={{ flexShrink: 0 }} />
                     <span>
                       Mitra ini mengaktifkan QRIS/transfer mandiri, namun Saldo Kuota Nota sedang habis (&lt; Rp 100). Pembayaran dialihkan ke QRIS Platform / Tunai.
                     </span>
@@ -1845,7 +1837,7 @@ const PartnerOrderModal = ({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '1rem' }}>💵</span>
+                    <CreditCard size={16} color="#f59e0b" style={{ flexShrink: 0 }} />
                     <div>
                       <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isLight ? '#0f172a' : '#e2e8f0', display: 'block' }}>
                         Bayar Tunai saat Diantar (COD)
@@ -1876,7 +1868,7 @@ const PartnerOrderModal = ({
                   textAlign: 'center'
                 }}>
                   <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#0369a1' : '#38bdf8', marginBottom: '8px' }}>
-                    📱 Barcode QRIS Resmi Milik {service?.name || 'Mitra Toko'}
+                    Barcode QRIS Resmi Milik {service?.name || 'Mitra Toko'}
                   </div>
                   <div style={{
                     background: '#ffffff',
@@ -1982,7 +1974,7 @@ const PartnerOrderModal = ({
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                 <span style={{ fontSize: '0.74rem', fontWeight: 700, color: isLight ? '#b45309' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  🎁 Referral Teman & Diskon PoinKu
+                  Referral Teman & Diskon PoinKu
                 </span>
                 <span style={{ fontSize: '0.66rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Saldo: <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>{userLoyaltyPoints} Poin</strong>
@@ -2028,7 +2020,7 @@ const PartnerOrderModal = ({
                 )}
               </div>
               <div style={{ fontSize: '0.6rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '6px' }}>
-                💡 {friendReferralCode ? `Kode referral "${friendReferralCode}" aktif: Kamu dapat +100 Poin, Pemilik Kode ("orangnya") dapat 1/2 dari pembeli = +50 Poin.` : 'Copas kode referral teman per transaksi jika ingin mengklaim bonus poin bersama.'}
+                {friendReferralCode ? `Kode referral "${friendReferralCode}" aktif: Kamu dapat +100 Poin, Pemilik Kode ("orangnya") dapat 1/2 dari pembeli = +50 Poin.` : 'Copas kode referral teman per transaksi jika ingin mengklaim bonus poin bersama.'}
               </div>
 
               {/* Checkbox Tukar Poin Diskon */}
@@ -2065,7 +2057,7 @@ const PartnerOrderModal = ({
                 padding: '4px 8px',
                 borderRadius: '5px'
               }}>
-                🛡️ <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>Proteksi Mitra:</strong> Mitra tetap terima 100% uang makanan & ongkir utuh tanpa potongan. Anda otomatis dapat <strong style={{ color: isLight ? '#15803d' : '#4ade80' }}>+100 Poin reward</strong> setelah pesanan berhasil!
+                <strong style={{ color: isLight ? '#0284c7' : '#38bdf8' }}>Proteksi Mitra:</strong> Mitra tetap terima 100% uang makanan & ongkir utuh tanpa potongan. Anda otomatis dapat <strong style={{ color: isLight ? '#15803d' : '#4ade80' }}>+100 Poin reward</strong> setelah pesanan berhasil!
               </div>
             </div>
 
@@ -2120,7 +2112,7 @@ const PartnerOrderModal = ({
                 <span style={{ color: isLight ? '#15803d' : '#4ade80' }}>Rp {grandTotal.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '6px', textAlign: 'center' }}>
-                💡 Admin Fee Transparan: Flat KostKu Rp 500 & Admin Pengelola disatukan • Tanpa Biaya Tersembunyi
+                Admin Fee Transparan: Flat KostKu Rp 500 & Admin Pengelola disatukan • Tanpa Biaya Tersembunyi
               </div>
             </div>
 

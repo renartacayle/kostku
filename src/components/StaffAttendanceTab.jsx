@@ -479,7 +479,7 @@ export default function StaffAttendanceTab({ user, currentKostUid }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-                  {modalType === 'checkIn' ? '📸 Absensi Masuk Karyawan' : '🏁 Absensi Selesai Kerja'}
+                  {modalType === 'checkIn' ? 'Absensi Masuk Karyawan' : 'Absensi Selesai Kerja'}
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                   Wajib foto di dekat kost dengan GPS lokasi aktif

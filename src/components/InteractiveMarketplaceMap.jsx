@@ -195,7 +195,7 @@ export default function InteractiveMarketplaceMap({ kosts = [], selectedCity = '
             border: 1px solid rgba(255, 255, 255, 0.4);
             cursor: default;
           ">
-            <span>📍</span>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ffffff', display: 'inline-block' }} />
             <span>${userLocation.label || 'Posisi Anda'}</span>
           </div>
         `,
@@ -208,14 +208,14 @@ export default function InteractiveMarketplaceMap({ kosts = [], selectedCity = '
 
     // ── Render Campus Landmarks for the active city ──
     const CAMPUS_LANDMARKS = [
-      { name: '🎓 Kampus UDINUS', lat: -6.9826, lng: 110.4091, city: 'Semarang' },
-      { name: '🎓 Kampus UNDIP', lat: -7.0504, lng: 110.4385, city: 'Semarang' },
-      { name: '🎓 Kampus ITB', lat: -6.8915, lng: 107.6107, city: 'Bandung' },
-      { name: '🎓 Kampus UNPAD', lat: -6.8929, lng: 107.6179, city: 'Bandung' },
-      { name: '🎓 Kampus UGM', lat: -7.7713, lng: 110.3775, city: 'Yogyakarta' },
-      { name: '🎓 Kampus UI', lat: -6.3650, lng: 106.8286, city: 'Jakarta' },
-      { name: '🎓 Kampus UNAIR', lat: -7.2687, lng: 112.7588, city: 'Surabaya' },
-      { name: '🎓 Kampus UB', lat: -7.9526, lng: 112.6138, city: 'Malang' }
+      { name: 'Kampus UDINUS', lat: -6.9826, lng: 110.4091, city: 'Semarang' },
+      { name: 'Kampus UNDIP', lat: -7.0504, lng: 110.4385, city: 'Semarang' },
+      { name: 'Kampus ITB', lat: -6.8915, lng: 107.6107, city: 'Bandung' },
+      { name: 'Kampus UNPAD', lat: -6.8929, lng: 107.6179, city: 'Bandung' },
+      { name: 'Kampus UGM', lat: -7.7713, lng: 110.3775, city: 'Yogyakarta' },
+      { name: 'Kampus UI', lat: -6.3650, lng: 106.8286, city: 'Jakarta' },
+      { name: 'Kampus UNAIR', lat: -7.2687, lng: 112.7588, city: 'Surabaya' },
+      { name: 'Kampus UB', lat: -7.9526, lng: 112.6138, city: 'Malang' }
     ];
 
     CAMPUS_LANDMARKS.filter(lm => lm.city.toLowerCase() === activeCity.toLowerCase()).forEach(lm => {
@@ -677,7 +677,7 @@ export default function InteractiveMarketplaceMap({ kosts = [], selectedCity = '
           pointerEvents: 'none',
           zIndex: 400
         }}>
-          💡 Klik pin harga pada peta untuk melihat detail kamar
+          Klik pin harga pada peta untuk melihat detail kamar
         </div>
 
       </div>

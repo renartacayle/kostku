@@ -352,7 +352,7 @@ const PdamPaymentModal = ({
 
   const handleShareWhatsApp = () => {
     if (!settledData) return;
-    const msg = `💧 *BUKTI PEMBAYARAN TAGIHAN AIR PDAM - KOSTKU*\n\n` +
+    const msg = `*BUKTI PEMBAYARAN TAGIHAN AIR PDAM - KOSTKU*\n\n` +
       `• Biller: ${settledData.operatorName}\n` +
       `• No. Sambungan / IDPEL: ${settledData.customerNumber}\n` +
       `• Nama Pelanggan: ${settledData.subscriberName}\n` +
@@ -794,7 +794,7 @@ const PdamPaymentModal = ({
 
                 <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                    💡 Otomatis untuk Kamar {user?.kamar || roomNumber}. Anda bebas mengubah nomor rekening air lainnya.
+                    Otomatis untuk Kamar {user?.kamar || roomNumber}. Anda bebas mengubah nomor rekening air lainnya.
                   </span>
                   {customerNumber !== defaultPdamNo && (
                     <button
@@ -1198,7 +1198,7 @@ const PdamPaymentModal = ({
                 fontWeight: 800,
                 marginBottom: '12px'
               }}>
-                <span>🎁</span>
+                <Sparkles size={16} style={{ flexShrink: 0 }} />
                 <span>+100 Poin Loyalty Berhasil Dikreditkan! (Otomatis Tanpa Referral)</span>
               </div>
 

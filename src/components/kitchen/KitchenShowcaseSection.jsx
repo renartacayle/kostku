@@ -315,9 +315,9 @@ export default function KitchenShowcaseSection() {
           }}>
             {/* 3 Fanned Buttons in Arc */}
             {[
-              { label: 'Bantuan CS', color: '#10b981', angle: 90, icon: '💬' },
-              { label: 'Bayar Sewa', color: '#f59e0b', angle: 135, icon: '💳' },
-              { label: 'Lapor Tiket', color: '#ef4444', angle: 180, icon: '📢' }
+              { label: 'Bantuan CS', color: '#10b981', angle: 90, icon: <Send size={14} /> },
+              { label: 'Bayar Sewa', color: '#f59e0b', angle: 135, icon: <ShieldCheck size={14} /> },
+              { label: 'Lapor Tiket', color: '#ef4444', angle: 180, icon: <Zap size={14} /> }
             ].map((item, i) => {
               const rad = (item.angle * Math.PI) / 180;
               const x = Math.round(90 * Math.cos(rad));
@@ -399,7 +399,7 @@ export default function KitchenShowcaseSection() {
       }}>
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem' }}>🔘</span>
+            <Sliders size={18} color="#3b82f6" />
             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               3. Button Part 2 Suite (Tombol Pasca-Ketukan)
             </h3>
@@ -424,7 +424,7 @@ export default function KitchenShowcaseSection() {
 
           {/* Confetti Burst Button */}
           <ConfettiBurstButton
-            label="Rayakan Lunas 🎉"
+            label="Rayakan Lunas"
           />
 
           {/* Copy Feedback Button */}
@@ -436,7 +436,7 @@ export default function KitchenShowcaseSection() {
 
           {/* Shine Sweep Button */}
           <ShineSweepButton
-            label="Upgrade Juragan Pro ✨"
+            label="Upgrade Juragan Pro"
           />
         </div>
       </div>
@@ -461,7 +461,7 @@ export default function KitchenShowcaseSection() {
         }}>
           <div style={{ width: '100%', marginBottom: '1.25rem', textAlign: 'center' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#10b981', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              🧾 Simulasi Struk Kasir Termal
+              Simulasi Struk Kasir Termal
             </span>
             <h3 style={{ margin: '4px 0', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               Kuitansi Otomatis Keluar
@@ -548,15 +548,15 @@ export default function KitchenShowcaseSection() {
               </h4>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-              <TactileButton variant="whatsapp" size="sm" icon={<span>💬</span>}>
+              <TactileButton variant="whatsapp" size="sm" icon={<Send size={13} />}>
                 Tanya Pemilik WA
               </TactileButton>
 
-              <TactileButton variant="emerald" size="sm" icon={<span>🔍</span>}>
+              <TactileButton variant="emerald" size="sm" icon={<Search size={13} />}>
                 Cari Kosan
               </TactileButton>
 
-              <TactileButton variant="amber" size="sm" icon={<span>⚡</span>}>
+              <TactileButton variant="amber" size="sm" icon={<Zap size={13} />}>
                 Token Listrik
               </TactileButton>
 

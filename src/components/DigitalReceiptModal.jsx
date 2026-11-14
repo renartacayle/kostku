@@ -308,7 +308,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     minHeight: '36px',
                     borderRadius: '6px',
                     border: 'none',
-                    background: receiptFormat === 'thermal' ? '#059669' : 'transparent',
+                    background: receiptFormat === 'thermal' ? '#0f172a' : 'transparent',
                     color: receiptFormat === 'thermal' ? '#ffffff' : '#94a3b8',
                     fontSize: '0.72rem',
                     fontWeight: 700,
@@ -316,7 +316,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  🧾 Struk Termal
+                  Struk Termal
                 </button>
                 <button
                   type="button"
@@ -326,7 +326,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     minHeight: '36px',
                     borderRadius: '6px',
                     border: 'none',
-                    background: receiptFormat === 'a4' ? '#059669' : 'transparent',
+                    background: receiptFormat === 'a4' ? '#0f172a' : 'transparent',
                     color: receiptFormat === 'a4' ? '#ffffff' : '#94a3b8',
                     fontSize: '0.72rem',
                     fontWeight: 700,
@@ -334,7 +334,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  📄 Dokumen A4
+                  Dokumen A4
                 </button>
               </div>
 
@@ -431,7 +431,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
 
             {emailError && (
               <div style={{ fontSize: '0.74rem', color: '#f87171', background: 'rgba(239, 68, 68, 0.15)', padding: '5px 12px', borderRadius: '8px' }}>
-                ⚠️ {emailError}
+                {emailError}
               </div>
             )}
           </div>
@@ -467,14 +467,14 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
               position: 'relative'
             }}>
               
-              {/* Top Decorative Blue Accent Bar */}
+              {/* Top Monochrome Accent Bar */}
               <div style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 right: 0,
                 height: '6px',
-                background: 'linear-gradient(90deg, #1e40af 0%, #0284c7 50%, #10b981 100%)'
+                background: '#0f172a'
               }} />
 
               {/* Header: Kop Surat Resmi Kuitansi */}
@@ -482,14 +482,14 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
-                borderBottom: '2px solid #e2e8f0',
+                borderBottom: '2px solid #cbd5e1',
                 paddingBottom: '1.25rem',
                 marginBottom: '1.5rem'
               }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                     <div style={{
-                      background: '#1e40af',
+                      background: '#0f172a',
                       color: 'white',
                       fontWeight: 900,
                       fontSize: '1.05rem',
@@ -502,11 +502,11 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     <span style={{
                       fontSize: '0.68rem',
                       fontWeight: 800,
-                      color: '#1e40af',
-                      background: '#eff6ff',
+                      color: '#0f172a',
+                      background: '#f1f5f9',
                       padding: '3px 8px',
                       borderRadius: '6px',
-                      border: '1px solid #bfdbfe',
+                      border: '1px solid #cbd5e1',
                       letterSpacing: '0.05em'
                     }}>
                       PROPERTY MANAGEMENT
@@ -560,9 +560,9 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                       gap: '4px',
                       fontSize: '0.72rem',
                       fontWeight: 800,
-                      color: '#047857',
-                      background: '#ecfdf5',
-                      border: '1px solid #a7f3d0',
+                      color: '#0f172a',
+                      background: '#f8fafc',
+                      border: '1px solid #0f172a',
                       padding: '2px 8px',
                       borderRadius: '999px'
                     }}>
@@ -578,14 +578,14 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                 gridTemplateColumns: '1fr 1fr',
                 gap: '16px',
                 background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #cbd5e1',
                 borderRadius: '14px',
                 padding: '1.15rem 1.25rem',
                 marginBottom: '1.5rem',
                 fontSize: '0.8rem'
               }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#1e40af', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#0f172a', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     <Building2 size={14} /> INFORMASI PENGHUNI
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -604,18 +604,18 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                   </div>
                 </div>
 
-                <div style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#1e40af', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ borderLeft: '1px solid #cbd5e1', paddingLeft: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#0f172a', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     <BadgeCheck size={14} /> INFORMASI TRANSAKSI
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div>
-                      <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>Tanggal & Waktu Lunas:</span>
+                      <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>Tanggal &amp; Waktu Lunas:</span>
                       <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>{formattedDate} • {formattedTime}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>Kanal Pembayaran:</span>
-                      <strong style={{ color: '#047857', fontSize: '0.85rem' }}>
+                      <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>
                         {receiptData?.paymentMethod || 'QRIS Dinamis ASPI (Bank/E-Wallet)'}
                       </strong>
                     </div>
@@ -672,10 +672,10 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                       <td style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>2</td>
                       <td style={{ padding: '8px 10px', color: '#475569' }}>
-                        Iuran Kebersihan Lingkungan, Keamanan 24 Jam & Air Bersih
+                        Iuran Kebersihan Lingkungan, Keamanan 24 Jam &amp; Air Bersih
                       </td>
                       <td style={{ padding: '8px 10px', textAlign: 'center', color: '#475569' }}>Bulanan</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#047857' }}>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
                         Termasuk
                       </td>
                     </tr>
@@ -683,10 +683,10 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     <tr style={{ borderBottom: '1.5px solid #0f172a' }}>
                       <td style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>3</td>
                       <td style={{ padding: '8px 10px', color: '#475569' }}>
-                        Biaya Layanan Sistem & Notifikasi WhatsApp Bot Otomatis
+                        Biaya Layanan Sistem &amp; Notifikasi WhatsApp Bot Otomatis
                       </td>
                       <td style={{ padding: '8px 10px', textAlign: 'center', color: '#475569' }}>Instan</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#047857' }}>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
                         Gratis
                       </td>
                     </tr>
@@ -696,7 +696,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                       <td colSpan={3} style={{ padding: '12px 10px', fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', textAlign: 'right' }}>
                         TOTAL DIBAYAR (LUNAS):
                       </td>
-                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 900, fontSize: '1.25rem', color: '#047857', fontFamily: 'monospace' }}>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 900, fontSize: '1.25rem', color: '#0f172a', fontFamily: 'monospace' }}>
                         {formatRupiah(totalAmount)}
                       </td>
                     </tr>
@@ -707,8 +707,8 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
               {/* Terbilang Box */}
               <div style={{
                 background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderLeft: '4px solid #1e40af',
+                border: '1px solid #cbd5e1',
+                borderLeft: '4px solid #0f172a',
                 borderRadius: '8px',
                 padding: '10px 14px',
                 marginBottom: '1.75rem',
@@ -734,9 +734,9 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                 {/* QR Code Verification */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {qrCodeUrl ? (
-                    <img 
-                      src={qrCodeUrl} 
-                      alt="QR Validasi" 
+                    <img
+                      src={qrCodeUrl}
+                      alt="QR Validasi"
                       style={{
                         width: '74px',
                         height: '74px',
@@ -757,7 +757,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <ShieldCheck size={32} color="#1e40af" />
+                      <ShieldCheck size={32} color="#0f172a" />
                     </div>
                   )}
                   <div>
@@ -782,7 +782,7 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     Pengelola Properti,
                   </span>
 
-                  {/* High-Precision Circular Digital Stamp SVG */}
+                  {/* High-Precision Circular Digital Stamp SVG (Monochrome) */}
                   <div style={{
                     width: '90px',
                     height: '90px',
@@ -792,25 +792,25 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                     justifyContent: 'center'
                   }}>
                     <svg viewBox="0 0 120 120" style={{ width: '100%', height: '100%' }}>
-                      <circle cx="60" cy="60" r="54" fill="none" stroke="#047857" strokeWidth="2.5" strokeDasharray="4 2" />
-                      <circle cx="60" cy="60" r="48" fill="rgba(4, 120, 87, 0.05)" stroke="#047857" strokeWidth="1.5" />
+                      <circle cx="60" cy="60" r="54" fill="none" stroke="#0f172a" strokeWidth="2.5" strokeDasharray="4 2" />
+                      <circle cx="60" cy="60" r="48" fill="rgba(15, 23, 42, 0.04)" stroke="#0f172a" strokeWidth="1.5" />
                       <path id="curve" d="M 22 60 A 38 38 0 0 1 98 60" fill="transparent" />
-                      <text fontSize="8" fontWeight="bold" fill="#047857" letterSpacing="1.2">
+                      <text fontSize="8" fontWeight="bold" fill="#0f172a" letterSpacing="1.2">
                         <textPath href="#curve" startOffset="50%" textAnchor="middle">
                           KOSTKU MANAGEMENT
                         </textPath>
                       </text>
                       <path id="curveBottom" d="M 98 60 A 38 38 0 0 1 22 60" fill="transparent" />
-                      <text fontSize="7.5" fontWeight="bold" fill="#047857" letterSpacing="1.2">
+                      <text fontSize="7.5" fontWeight="bold" fill="#0f172a" letterSpacing="1.2">
                         <textPath href="#curveBottom" startOffset="50%" textAnchor="middle">
-                          ★ LUNAS RESMI ★
+                          LUNAS RESMI
                         </textPath>
                       </text>
-                      <circle cx="60" cy="60" r="24" fill="#047857" />
+                      <circle cx="60" cy="60" r="24" fill="#0f172a" />
                       <text x="60" y="58" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">
                         LUNAS
                       </text>
-                      <text x="60" y="68" textAnchor="middle" fill="#a7f3d0" fontSize="6" fontWeight="bold">
+                      <text x="60" y="68" textAnchor="middle" fill="#e2e8f0" fontSize="6" fontWeight="bold">
                         VERIFIED
                       </text>
                     </svg>

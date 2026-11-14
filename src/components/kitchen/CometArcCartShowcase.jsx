@@ -134,7 +134,7 @@ export default function CometArcCartShowcase({ onAddToCartGlobal = null }) {
           color: isLight ? '#0369a1' : '#7dd3fc',
           fontFamily: 'var(--font-mono)'
         }}>
-          ✨ 2D Spring Physics & Ballistic Arc
+          2D Spring Physics & Ballistic Arc
         </span>
       </div>
 

@@ -127,10 +127,10 @@ export default function StaffRatingsFeed({ staff, user }) {
           </span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {[
-              { id: '⚡ Sangat Cepat & Tanggap', label: '⚡ Sangat Cepat & Tanggap' },
-              { id: '✨ Pengerjaan Rapi & Bersih', label: '✨ Pengerjaan Rapi & Bersih' },
-              { id: '🤝 Ramah, Sopan & Santun', label: '🤝 Ramah, Sopan & Santun' },
-              { id: '🔧 Ahli, Teliti & Tuntas', label: '🔧 Ahli, Teliti & Tuntas' }
+              { id: 'Sangat Cepat & Tanggap', label: 'Sangat Cepat & Tanggap' },
+              { id: 'Pengerjaan Rapi & Bersih', label: 'Pengerjaan Rapi & Bersih' },
+              { id: 'Ramah, Sopan & Santun', label: 'Ramah, Sopan & Santun' },
+              { id: 'Ahli, Teliti & Tuntas', label: 'Ahli, Teliti & Tuntas' }
             ].map(b => (
               <span
                 key={b.id}
@@ -207,7 +207,7 @@ export default function StaffRatingsFeed({ staff, user }) {
                       borderRadius: '6px',
                       fontWeight: 700
                     }}>
-                      💸 Tip: Rp {Number(r.tipAmount).toLocaleString('id-ID')}
+                      Tip: Rp {Number(r.tipAmount).toLocaleString('id-ID')}
                     </span>
                   )}
                 </div>

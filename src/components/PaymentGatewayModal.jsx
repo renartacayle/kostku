@@ -289,7 +289,7 @@ const PaymentGatewayModal = ({
                   borderRadius: '6px',
                   fontWeight: 800
                 }}>
-                  ⚡ SANDBOX / TEST MODE
+                  SANDBOX / TEST MODE
                 </span>
               </h3>
               <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#64748b' : '#94a3b8' }}>
@@ -569,7 +569,7 @@ const PaymentGatewayModal = ({
                           cursor: 'pointer'
                         }}
                       >
-                        🔄 Cek Ulang Gateway
+                        Cek Ulang Gateway
                       </button>
                       <button
                         type="button"
@@ -645,7 +645,7 @@ const PaymentGatewayModal = ({
                     </>
                   ) : (
                     <>
-                      <span>⚡ Cek Status Pembayaran</span>
+                      <span>Cek Status Pembayaran</span>
                     </>
                   )}
                 </button>

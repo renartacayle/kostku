@@ -156,7 +156,7 @@ app.use((req, res, next) => {
       try { res.setHeader('X-Response-Time', `${timeMs}ms`); } catch (_) {}
     }
     if (timeMs > 400 && req.url.startsWith('/api')) {
-      console.warn(`⚡ [SLOW QUERY WARNING] ${req.method} ${req.url} took ${timeMs}ms`);
+      console.warn(`[SLOW QUERY WARNING] ${req.method} ${req.url} took ${timeMs}ms`);
     }
   });
   next();
@@ -585,7 +585,7 @@ app.get(['/download', '/unduh'], (req, res) => {
 </head>
 <body>
   <div class="card">
-    <div class="logo">🏠</div>
+    <div class="logo">KK</div>
     <h1>KostKu Android</h1>
     <div class="badge">Versi 1.1.0 • ${sizeMb} MB • Official Build</div>
     <p class="subtitle">Aplikasi Manajemen & Pencarian Kost Pintar</p>
@@ -601,7 +601,7 @@ app.get(['/download', '/unduh'], (req, res) => {
 
     <div class="guide">
       <div class="guide-title">
-        <span>💡</span> Cara Pasang APK di Android:
+        Cara Pasang APK di Android:
       </div>
       <div class="step">
         <div class="step-num">1</div>
@@ -644,7 +644,7 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
     version: '1.3.6',
     buildNumber: 136,
     releaseDate: '2026-10-24',
-    title: 'Pembaruan KostKu v1.3.6 - Clean Desktop Dashboard & PFP Setting 🚀',
+    title: 'Pembaruan KostKu v1.3.6 - Clean Desktop Dashboard & PFP Setting',
     changelog: [
       'Menghapus icon & badge database di Navbar dan Sidebar',
       'Pembersihan total icon kanan atas pada tampilan desktop',
@@ -692,7 +692,7 @@ const ensureDbCollections = (db) => {
   const collections = [
     'users', 'kosts', 'complaints', 'activities', 'invoices', 'expenses',
     'iot_meters', 'applications', 'transactions', 'contracts', 'packages',
-    'inspections', 'staff', 'reviews', 'messages', 'partner_orders',
+    'inspections', 'staff', 'staffInvites', 'reviews', 'messages', 'partner_orders',
     'merchants', 'staffAttendance', 'staffLeaves', 'staffWorkLogs',
     'staffMutations', 'staffKasbon', 'staffPayrolls', 'staffRatings',
     'dunningLogs', 'bankMutations', 'bulletinPosts', 'guestLogs',
@@ -1141,40 +1141,133 @@ const maskOtpTarget = (target, channel) => {
   return clean;
 };
 
+// Helper: Buat Mail Transporter (SMTP / Gmail App Pass / Ethereal Dev Fallback)
+const createMailTransporter = async (timeoutMs = 3500) => {
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+  }
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASS
+      }
+    });
+  }
+  const testAccount = await Promise.race([
+    nodemailer.createTestAccount(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Ethereal mail timeout')), timeoutMs))
+  ]);
+  return nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass
+    }
+  });
+};
+
+// Helper: Kirim Link Undangan Karyawan via Gmail / Email
+const sendStaffInviteEmail = async (toEmail, inviteData, inviteUrl) => {
+  try {
+    const transporter = await createMailTransporter(3000);
+    const rolesText = (inviteData.roles || []).join(', ') || 'Penjaga Kost';
+    const recipientGreeting = inviteData.suggestedName ? `Halo ${inviteData.suggestedName}` : 'Halo Calon Karyawan';
+    const htmlContent = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #0f172a; border: 1px solid #334155; border-radius: 20px; overflow: hidden; color: #f8fafc;">
+        <div style="background: linear-gradient(135deg, #065f46 0%, #0f172a 100%); padding: 28px 24px; text-align: center; border-bottom: 1px solid #334155;">
+          <span style="display: inline-block; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.45); padding: 6px 14px; border-radius: 9999px; color: #34d399; font-weight: 800; font-size: 12px; letter-spacing: 0.5px; margin-bottom: 10px;">
+            UNDANGAN KARYAWAN KOSTKU
+          </span>
+          <h1 style="margin: 0; font-size: 22px; font-weight: 900; color: #ffffff;">Bergabung ke ${inviteData.kostName}</h1>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #cbd5e1;">Diundang oleh ${inviteData.ownerName || 'Pemilik Kost'}</p>
+        </div>
+        <div style="padding: 28px 24px;">
+          <p style="margin: 0 0 14px; font-size: 14px; color: #e2e8f0; line-height: 1.6;">
+            <strong>${recipientGreeting}</strong>,<br>
+            Anda diundang untuk bergabung sebagai staf karyawan pada properti/toko <strong>${inviteData.kostName}</strong> dengan peran: <strong>${rolesText}</strong>.
+          </p>
+          <p style="margin: 0 0 22px; font-size: 13px; color: #94a3b8; line-height: 1.5;">
+            Klik tombol di bawah ini untuk melengkapi data dan mengaktifkan akun karyawan Anda:
+          </p>
+          <div style="text-align: center; margin: 22px 0;">
+            <a href="${inviteUrl}" style="display: inline-block; background: #10b981; color: #ffffff; text-decoration: none; font-weight: 800; font-size: 14px; padding: 12px 24px; border-radius: 12px;">
+              Terima Undangan &amp; Gabung Karyawan
+            </a>
+          </div>
+          <div style="background: rgba(255,255,255,0.04); border: 1px solid #334155; border-radius: 10px; padding: 12px; font-size: 12px; color: #94a3b8; word-break: break-all;">
+            Link langsung: <a href="${inviteUrl}" style="color: #38bdf8;">${inviteUrl}</a>
+          </div>
+        </div>
+        <div style="background: #090d16; padding: 14px 20px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
+          Link undangan berlaku 7 hari • KostKu Smart Co-Living Management
+        </div>
+      </div>
+    `;
+    const info = await transporter.sendMail({
+      from: '"KostKu Team Invite" <invite@kostku.id>',
+      to: toEmail,
+      subject: `Undangan Bergabung Karyawan - ${inviteData.kostName}`,
+      html: htmlContent
+    });
+    return { success: true, method: 'smtp', messageId: info.messageId, previewUrl: nodemailer.getTestMessageUrl(info) || null };
+  } catch (err) {
+    console.warn('[Staff Invite Email Warning]:', err.message);
+    return { success: false, method: 'link_only', error: err.message, previewUrl: null };
+  }
+};
+
+// Helper: Kirim Link Undangan Karyawan via WhatsApp (Gateway atau Direct Click-to-Chat)
+const dispatchStaffInviteWhatsApp = async (toPhone, inviteData, inviteUrl) => {
+  const cleanPhone = normalizeOtpTarget(toPhone, 'whatsapp');
+  const rolesText = (inviteData.roles || []).join(', ') || 'Penjaga Kost';
+  const greeting = inviteData.suggestedName ? `Halo *${inviteData.suggestedName}*` : 'Halo';
+  const messageText = `*UNDANGAN KARYAWAN KOSTKU*\n\n${greeting}, Anda diundang bergabung sebagai staf di *${inviteData.kostName}* (Peran: *${rolesText}*).\n\nSilakan klik link berikut untuk mengaktifkan & menambahkan akun karyawan Anda:\n${inviteUrl}\n\nLink berlaku 7 hari.`;
+
+  if (process.env.WA_GATEWAY_URL && process.env.WA_API_KEY) {
+    try {
+      const resp = await fetch(process.env.WA_GATEWAY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': process.env.WA_API_KEY
+        },
+        body: JSON.stringify({ target: cleanPhone, message: messageText })
+      });
+      const data = await resp.json().catch(() => ({}));
+      return {
+        success: true,
+        method: 'gateway',
+        waDirectUrl: `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(messageText)}`,
+        data
+      };
+    } catch (err) {
+      console.warn('[WA Invite Gateway Error]:', err.message);
+    }
+  }
+
+  return {
+    success: true,
+    method: 'direct',
+    waDirectUrl: `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(messageText)}`
+  };
+};
+
 // Helper: Kirim OTP via Gmail / SMTP Nodemailer
 const sendEmailOtp = async (toEmail, code, recipientName = 'Calon Penghuni / Pemilik Kost') => {
   try {
-    let transporter = null;
-    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-      transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        }
-      });
-    } else if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASS
-        }
-      });
-    } else {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
-        }
-      });
-    }
+    const transporter = await createMailTransporter(5000);
 
     const htmlContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #0f172a; border: 1px solid #334155; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5); color: #f8fafc;">
@@ -1199,10 +1292,10 @@ const sendEmailOtp = async (toEmail, code, recipientName = 'Calon Penghuni / Pem
             </span>
           </div>
           <p style="margin: 0 0 20px; font-size: 13px; color: #f59e0b; font-weight: 600;">
-            ⏳ Kode OTP ini berlaku selama 5 menit.
+            Kode OTP ini berlaku selama 5 menit.
           </p>
           <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; text-align: left; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-            🛡️ <strong>Tips Keamanan:</strong> Jangan berikan kode OTP ini kepada siapa pun, termasuk staf atau pihak yang mengaku dari KostKu.
+            <strong>Tips Keamanan:</strong> Jangan berikan kode OTP ini kepada siapa pun, termasuk staf atau pihak yang mengaku dari KostKu.
           </div>
         </div>
         <div style="background: #090d16; padding: 18px 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
@@ -1229,7 +1322,7 @@ const sendEmailOtp = async (toEmail, code, recipientName = 'Calon Penghuni / Pem
 // Helper: Kirim OTP via WhatsApp
 const sendWhatsAppOtp = async (toPhone, code, recipientName = 'Calon Penghuni / Pemilik Kost') => {
   const cleanPhone = normalizeOtpTarget(toPhone, 'whatsapp');
-  const messageText = `*KOSTKU SECURITY - KODE OTP REGISTRASI*\n\nHalo *${recipientName}*,\n\nKode verifikasi One-Time Password (OTP) akun KostKu Anda adalah:\n\n👉 *${code}*\n\nKode ini berlaku selama 5 menit. Jangan berikan kode ini kepada siapa pun demi keamanan akun Anda.\n\n_KostKu Smart Co-Living Management_`;
+  const messageText = `*KOSTKU SECURITY - KODE OTP REGISTRASI*\n\nHalo *${recipientName}*,\n\nKode verifikasi One-Time Password (OTP) akun KostKu Anda adalah:\n\n*${code}*\n\nKode ini berlaku selama 5 menit. Jangan berikan kode ini kepada siapa pun demi keamanan akun Anda.\n\n_KostKu Smart Co-Living Management_`;
 
   // 1. Integrasi Gateway WA Eksternal (jika disetel di environment)
   if (process.env.WA_GATEWAY_URL && process.env.WA_API_KEY) {
@@ -1705,7 +1798,7 @@ app.post('/api/register', async (req, res) => {
       ownerUserId: newUser.id,
       name: storeName.trim(),
       category: category || 'Warung & Kuliner Sekitar',
-      icon: catLower.includes('laundry') ? '🧺' : catLower.includes('galon') ? '💧' : catLower.includes('makan') ? '🍱' : '🏪',
+      icon: catLower.includes('laundry') ? '' : catLower.includes('galon') ? '' : catLower.includes('makan') ? '' : '',
       phone: phone ? phone.trim() : (newUser.phone || ''),
       address: address ? address.trim() : 'Dekat Gerbang Kost',
       distanceKm: 0.1,
@@ -1775,13 +1868,14 @@ app.post('/api/login', authRateLimiter, (req, res) => {
   const identifier = (req.body.loginId || req.body.email || req.body.username || '').trim();
   const password = req.body.password;
   const db = getDB();
+  const cleanLoginPhone = normalizeOtpTarget(identifier, 'whatsapp');
 
   const isDemoAccount = ['pemilik@kostku.id', 'penghuni@kostku.id', 'staff@kostku.id', 'calon@kostku.id', 'kostbaru@kostku.id', 'mitra@kostku.id'].includes(identifier.toLowerCase());
   const user = db.users.find(u => 
     (
       (u.email && u.email.toLowerCase() === identifier.toLowerCase()) || 
       (u.name && u.name.toLowerCase() === identifier.toLowerCase()) ||
-      (u.phone && u.phone === identifier)
+      (u.phone && (u.phone === identifier || (cleanLoginPhone.length >= 9 && normalizeOtpTarget(u.phone, 'whatsapp') === cleanLoginPhone)))
     ) && 
     (u.password === password || (isDemoAccount && (password === 'password123' || !password)))
   );
@@ -1886,6 +1980,7 @@ app.get('/api/users/:id', (req, res) => {
 
   const safeUser = { ...user };
   delete safeUser.password;
+  let kostName = user.kostName || 'KostKu';
 
   // Auto-sync user kamar & kostUid from approved application if empty
   const approvedApp = (db.applications || [])
@@ -2067,7 +2162,7 @@ app.post('/api/owner/kosts', (req, res) => {
 
     if (alreadyUsed) {
       referralBonusAwarded = false;
-      referralMessage = '⚠️ Kode referral ini sudah pernah diklaim sebelumnya untuk properti Anda (hanya berlaku 1x per pemilik).';
+      referralMessage = 'Kode referral ini sudah pernah diklaim sebelumnya untuk properti Anda (hanya berlaku 1x per pemilik).';
     } else {
       referrerUser = db.users.find(u => {
         if (u.referralCode && u.referralCode.toUpperCase() === cleanReferral) return true;
@@ -2094,7 +2189,7 @@ app.post('/api/owner/kosts', (req, res) => {
 
         addActivity(db, generatedUid, 'pengguna', `Pemilik mendaftarkan kost "${kostName}" menggunakan referral penghuni ${referrerUser.name} (${cleanReferral}). Penghuni +${tenantBonus} Poin, Pemilik +${ownerBonus} Poin.`);
 
-        referralMessage = `🎉 Kode referral ${cleanReferral} aktif! Penghuni ${referrerUser.name} menerima +${tenantBonus} Poin loyalty, dan akun Pemilik Anda mendapat bonus +${ownerBonus} Poin!`;
+        referralMessage = `Kode referral ${cleanReferral} aktif! Penghuni ${referrerUser.name} menerima +${tenantBonus} Poin loyalty, dan akun Pemilik Anda mendapat bonus +${ownerBonus} Poin!`;
       } else {
         referralBonusAwarded = false;
         referralMessage = `Kode referral ${cleanReferral} tidak ditemukan, namun properti kost Anda tetap berhasil didaftarkan.`;
@@ -2357,7 +2452,7 @@ app.put('/api/settings', (req, res) => {
   
   const roomList = Array.isArray(rooms) ? rooms : [];
   const effectiveUtilityScheme = utilityScheme || db.kosts[index].settings?.utilityScheme || db.kosts[index].utilityScheme || 'all_kost';
-  const effectivePromoted = promoted !== undefined ? promoted : (db.kosts[index].settings?.promoted || db.kosts[index].promoted || { active: false, plan: '7d', badgeText: '🔥 Rekomendasi Utama', expiresAt: '' });
+  const effectivePromoted = promoted !== undefined ? promoted : (db.kosts[index].settings?.promoted || db.kosts[index].promoted || { active: false, plan: '7d', badgeText: 'Rekomendasi Utama', expiresAt: '' });
   const effectiveWaQuota = waBotQuota !== undefined ? Number(waBotQuota) : (db.kosts[index].settings?.waBotQuota ?? 25);
   const effectiveIsPro = isPro !== undefined ? Boolean(isPro) : Boolean(db.kosts[index].settings?.isPro);
 
@@ -2415,92 +2510,155 @@ app.get('/api/owner/staff', (req, res) => {
   res.json(enrichedStaff);
 });
 
-// Endpoint: Create or link staff account with login credentials (Gmail / Password)
-app.post('/api/owner/staff', (req, res) => {
-  const { ownerId, kostUid, name, email, password, phone, jobTitle, salary, roles } = req.body;
-  if (!name || !email) {
-    return res.status(400).json({ error: 'Nama karyawan dan alamat Gmail wajib diisi' });
-  }
-
-  const db = getDB();
-  const cleanEmail = email.trim().toLowerCase();
-  const assignedKost = (kostUid ? db.kosts.find(k => k.uid === kostUid) : null)
+// Helper: Resolve assigned kost branch by UID or ownerId
+const resolveAssignedKost = (db, kostUid, ownerId) => {
+  return (kostUid ? db.kosts.find(k => k.uid === kostUid) : null)
     || (ownerId ? db.kosts.find(k => String(k.ownerId) === String(ownerId)) : null)
-    || db.kosts[0];
-  if (!assignedKost) {
-    return res.status(404).json({ error: 'Cabang kost tidak ditemukan' });
+    || db.kosts[0]
+    || null;
+};
+
+// Helper: Normalize role array and display title
+const normalizeAssignedRoles = (roles, jobTitle) => {
+  const assignedRoles = Array.isArray(roles) && roles.length > 0
+    ? roles.map(r => String(r).trim()).filter(Boolean)
+    : (jobTitle ? String(jobTitle).split(',').map(r => r.trim()).filter(Boolean) : ['Penjaga Kost']);
+  const finalRoles = assignedRoles.length > 0 ? assignedRoles : ['Penjaga Kost'];
+  return {
+    roles: finalRoles,
+    titleDisplay: finalRoles.join(', ')
+  };
+};
+
+// Helper: Match user in db.users by email or normalized WhatsApp phone
+const findUserByEmailOrPhone = (db, cleanEmail, cleanPhone) => {
+  return db.users.find(u => {
+    const emailMatch = cleanEmail && u.email && u.email.toLowerCase() === cleanEmail;
+    const phoneMatch = cleanPhone && cleanPhone.length >= 9 && u.phone && normalizeOtpTarget(u.phone, 'whatsapp') === cleanPhone;
+    return emailMatch || phoneMatch;
+  }) || null;
+};
+
+// Helper: Sync staff record into kost.settings.employees
+const syncEmployeeToKostSettings = (assignedKost, staffUser) => {
+  if (!assignedKost?.settings) return;
+  if (!Array.isArray(assignedKost.settings.employees)) {
+    assignedKost.settings.employees = [];
   }
-  const effectiveKostUid = assignedKost.uid;
+  const cleanUserPhone = staffUser.phone ? normalizeOtpTarget(staffUser.phone, 'whatsapp') : '';
+  const empIndex = assignedKost.settings.employees.findIndex(e => {
+    if (String(e.id) === String(staffUser.id)) return true;
+    if (staffUser.email && e.email && e.email.toLowerCase() === staffUser.email.toLowerCase()) return true;
+    if (cleanUserPhone && e.phone && normalizeOtpTarget(e.phone, 'whatsapp') === cleanUserPhone) return true;
+    return false;
+  });
+  const empPayload = {
+    id: String(staffUser.id),
+    name: staffUser.name,
+    role: staffUser.jobTitle,
+    salary: staffUser.salary,
+    phone: staffUser.phone,
+    email: staffUser.email,
+    hasLogin: true
+  };
+  if (empIndex >= 0) {
+    assignedKost.settings.employees[empIndex] = {
+      ...assignedKost.settings.employees[empIndex],
+      ...empPayload
+    };
+  } else {
+    assignedKost.settings.employees.push(empPayload);
+  }
+};
 
-  const assignedRoles = Array.isArray(roles) && roles.length > 0 
-    ? roles 
-    : (jobTitle ? jobTitle.split(',').map(r => r.trim()).filter(Boolean) : ['Penjaga Kost']);
-  const titleDisplay = assignedRoles.join(', ') || 'Penjaga Kost';
+// Helper: Create or promote staff user inside db.users and sync to assignedKost
+const upsertStaffAccount = (db, assignedKost, opts) => {
+  const cleanEmail = (opts.email || '').trim().toLowerCase();
+  const cleanPhone = opts.phone ? normalizeOtpTarget(opts.phone, 'whatsapp') : '';
+  const effectiveOwnerId = opts.ownerId || assignedKost.ownerId;
+  const { roles: assignedRoles, titleDisplay } = normalizeAssignedRoles(opts.roles, opts.jobTitle);
 
-  let staffUser = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
-
+  let staffUser = findUserByEmailOrPhone(db, cleanEmail, cleanPhone);
   if (staffUser) {
-    if (staffUser.role === 'owner' && String(staffUser.id) !== String(ownerId)) {
-      return res.status(400).json({ error: 'Email ini terdaftar sebagai akun Pemilik Kost (Owner) lain.' });
+    if (staffUser.role === 'owner' && String(staffUser.id) !== String(effectiveOwnerId)) {
+      return { error: 'Kontak ini sudah terdaftar sebagai akun Pemilik Kost (Owner) lain.', status: 400 };
     }
-    // Promosikan / tautkan akun karyawan yang sudah ada
-    staffUser.name = name.trim() || staffUser.name;
+    staffUser.name = (opts.name || '').trim() || staffUser.name;
     staffUser.role = 'staff';
     staffUser.roles = assignedRoles;
     staffUser.jobTitle = titleDisplay;
-    staffUser.salary = Number(salary) || staffUser.salary || 0;
-    staffUser.kostUid = effectiveKostUid;
-    staffUser.ownerId = ownerId || assignedKost.ownerId;
-    if (phone) staffUser.phone = phone.trim();
-    if (password && password.trim()) staffUser.password = password.trim();
+    staffUser.salary = Number(opts.salary) || staffUser.salary || 0;
+    staffUser.kostUid = assignedKost.uid;
+    staffUser.ownerId = effectiveOwnerId;
+    if (cleanEmail && !staffUser.email) staffUser.email = cleanEmail;
+    if (cleanPhone) staffUser.phone = cleanPhone;
+    if (opts.password && String(opts.password).trim()) staffUser.password = String(opts.password).trim();
+    if (opts.picture && !staffUser.picture) staffUser.picture = opts.picture;
+    if (opts.googleId && !staffUser.googleId) staffUser.googleId = opts.googleId;
+    if (opts.authProvider) staffUser.authProvider = opts.authProvider;
+    if (opts.joinedVia) staffUser.joinedVia = opts.joinedVia;
   } else {
-    // Buat akun staf baru dengan Gmail mereka sendiri
     staffUser = {
       id: Date.now(),
-      name: name.trim(),
+      name: (opts.name || '').trim(),
       email: cleanEmail,
-      password: (password && password.trim()) ? password.trim() : 'kostku123',
-      phone: phone ? phone.trim() : '',
+      password: (opts.password && String(opts.password).trim()) ? String(opts.password).trim() : 'kostku123',
+      phone: cleanPhone,
       role: 'staff',
       roles: assignedRoles,
       jobTitle: titleDisplay,
-      salary: Number(salary) || 0,
-      kostUid: effectiveKostUid,
-      ownerId: ownerId || assignedKost.ownerId,
+      salary: Number(opts.salary) || 0,
+      kostUid: assignedKost.uid,
+      ownerId: effectiveOwnerId,
+      ...(opts.picture ? { picture: opts.picture } : {}),
+      ...(opts.googleId ? { googleId: opts.googleId } : {}),
+      ...(opts.authProvider ? { authProvider: opts.authProvider } : {}),
+      ...(opts.joinedVia ? { joinedVia: opts.joinedVia } : {}),
       createdAt: new Date().toISOString()
     };
     db.users.push(staffUser);
   }
 
-  // Sync to assigned kost settings.employees if present
-  if (assignedKost.settings) {
-    if (!assignedKost.settings.employees) assignedKost.settings.employees = [];
-    const empIndex = assignedKost.settings.employees.findIndex(e => e.email === cleanEmail);
-    if (empIndex >= 0) {
-      assignedKost.settings.employees[empIndex] = {
-        ...assignedKost.settings.employees[empIndex],
-        id: String(staffUser.id),
-        name: staffUser.name,
-        role: staffUser.jobTitle,
-        salary: staffUser.salary,
-        phone: staffUser.phone,
-        email: staffUser.email,
-        hasLogin: true
-      };
-    } else {
-      assignedKost.settings.employees.push({
-        id: String(staffUser.id),
-        name: staffUser.name,
-        role: staffUser.jobTitle,
-        salary: staffUser.salary,
-        phone: staffUser.phone,
-        email: staffUser.email,
-        hasLogin: true
-      });
-    }
+  syncEmployeeToKostSettings(assignedKost, staffUser);
+  return { staffUser };
+};
+
+// Endpoint: Create or link staff account directly (Gmail atau No. WhatsApp)
+app.post('/api/owner/staff', (req, res) => {
+  const { ownerId, kostUid, name, email, password, phone, jobTitle, salary, roles } = req.body;
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanPhone = phone ? normalizeOtpTarget(phone, 'whatsapp') : '';
+
+  if (!name || !String(name).trim() || (!cleanEmail && cleanPhone.length < 9)) {
+    return res.status(400).json({ error: 'Nama karyawan serta minimal alamat Gmail atau No. WhatsApp valid wajib diisi' });
+  }
+  if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    return res.status(400).json({ error: 'Format alamat Gmail/email tidak valid' });
   }
 
-  addActivity(db, kostUid, 'pengaturan', `Akun staf karyawan "${staffUser.name}" (${staffUser.jobTitle}) berhasil ditambahkan dengan Gmail ${staffUser.email}`);
+  const db = getDB();
+  const assignedKost = resolveAssignedKost(db, kostUid, ownerId);
+  if (!assignedKost) {
+    return res.status(404).json({ error: 'Cabang kost tidak ditemukan' });
+  }
+
+  const result = upsertStaffAccount(db, assignedKost, {
+    ownerId,
+    name,
+    email: cleanEmail,
+    phone: cleanPhone,
+    password,
+    jobTitle,
+    salary,
+    roles
+  });
+  if (result.error) {
+    return res.status(result.status || 400).json({ error: result.error });
+  }
+
+  const staffUser = result.staffUser;
+  const contactSummary = staffUser.email || staffUser.phone;
+  addActivity(db, assignedKost.uid, 'pengaturan', `Akun staf karyawan "${staffUser.name}" (${staffUser.jobTitle}) berhasil ditambahkan (${contactSummary})`);
   writeDB(db);
 
   const safe = { ...staffUser };
@@ -2508,7 +2666,7 @@ app.post('/api/owner/staff', (req, res) => {
   safe.kostName = assignedKost.kostName;
 
   res.status(201).json({
-    message: 'Akun staf berhasil disimpan! Karyawan dapat login menggunakan akun Gmail mereka sendiri.',
+    message: 'Akun staf berhasil disimpan! Karyawan dapat login menggunakan Gmail atau No. WhatsApp terdaftar.',
     staff: safe
   });
 });
@@ -2595,6 +2753,324 @@ app.delete('/api/owner/staff/:id', (req, res) => {
 
   writeDB(db);
   res.json({ message: `Akun karyawan ${deletedName} berhasil dihapus dari sistem kost.` });
+});
+
+// ── STAFF INVITATION LINKS (WA & GMAIL) — CLICK LINK TO JOIN AS STAFF ───────
+
+const buildInvitePublicPayload = (invite, kost) => ({
+  id: invite.id,
+  token: invite.token,
+  channel: invite.channel,
+  target: invite.target,
+  phone: invite.phone || '',
+  email: invite.email || '',
+  suggestedName: invite.suggestedName || '',
+  ownerName: invite.ownerName || 'Pemilik Kost',
+  kostUid: invite.kostUid,
+  kostName: kost?.kostName || invite.kostName || 'KostKu',
+  kostAddress: kost?.address || '',
+  roles: Array.isArray(invite.roles) ? invite.roles : ['Penjaga Kost'],
+  jobTitle: invite.jobTitle || 'Penjaga Kost',
+  salary: Number(invite.salary) || 0,
+  status: invite.status,
+  inviteUrl: invite.inviteUrl,
+  waDirectUrl: invite.waDirectUrl || null,
+  createdAt: invite.createdAt,
+  expiresAt: invite.expiresAt,
+  acceptedAt: invite.acceptedAt || null,
+  acceptedName: invite.acceptedName || null
+});
+
+const refreshExpiredInvites = (invites) => {
+  const now = Date.now();
+  let changed = false;
+  for (const inv of invites) {
+    if (inv.status === 'pending' && inv.expiresAt && new Date(inv.expiresAt).getTime() < now) {
+      inv.status = 'expired';
+      changed = true;
+    }
+  }
+  return changed;
+};
+
+// Owner: List pending/history staff invite links
+app.get('/api/owner/staff-invites', (req, res) => {
+  const { kostUid, ownerId, status } = req.query;
+  const db = getDB();
+  if (!Array.isArray(db.staffInvites)) db.staffInvites = [];
+
+  if (refreshExpiredInvites(db.staffInvites)) {
+    writeDB(db);
+  }
+
+  let list = [...db.staffInvites];
+  if (kostUid) {
+    list = list.filter(i => i.kostUid === kostUid);
+  } else if (ownerId) {
+    const ownedKostUids = db.kosts.filter(k => String(k.ownerId) === String(ownerId)).map(k => k.uid);
+    list = list.filter(i => ownedKostUids.includes(i.kostUid) || String(i.ownerId) === String(ownerId));
+  }
+  if (status) {
+    list = list.filter(i => i.status === status);
+  }
+
+  list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const payload = list.map(inv => buildInvitePublicPayload(inv, db.kosts.find(k => k.uid === inv.kostUid)));
+  res.json(payload);
+});
+
+// Owner: Create & dispatch staff invite link via WhatsApp OR Gmail
+app.post('/api/owner/staff-invites', async (req, res) => {
+  const { ownerId, kostUid, channel, target, phone, email, name, salary, roles, jobTitle, origin } = req.body;
+  const selectedChannel = channel === 'email' ? 'email' : 'whatsapp';
+  const rawTarget = selectedChannel === 'email' ? (target || email || '') : (target || phone || '');
+
+  const cleanEmail = selectedChannel === 'email'
+    ? String(rawTarget).trim().toLowerCase()
+    : (email ? String(email).trim().toLowerCase() : '');
+  const cleanPhone = selectedChannel === 'whatsapp'
+    ? normalizeOtpTarget(rawTarget, 'whatsapp')
+    : (phone ? normalizeOtpTarget(phone, 'whatsapp') : '');
+
+  if (selectedChannel === 'email') {
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Harap masukkan alamat Gmail karyawan yang valid.' });
+    }
+  } else {
+    if (!cleanPhone || cleanPhone.length < 9) {
+      return res.status(400).json({ error: 'Harap masukkan nomor WhatsApp karyawan minimal 9 digit (contoh: 08123456789).' });
+    }
+  }
+
+  const db = getDB();
+  if (!Array.isArray(db.staffInvites)) db.staffInvites = [];
+  const assignedKost = resolveAssignedKost(db, kostUid, ownerId);
+  if (!assignedKost) {
+    return res.status(404).json({ error: 'Cabang kost tidak ditemukan' });
+  }
+
+  const cleanTarget = selectedChannel === 'email' ? cleanEmail : cleanPhone;
+  const conflictOwner = findUserByEmailOrPhone(db, cleanEmail, cleanPhone);
+  if (conflictOwner && conflictOwner.role === 'owner' && String(conflictOwner.id) !== String(ownerId || assignedKost.ownerId)) {
+    return res.status(400).json({ error: 'Kontak ini sudah terdaftar sebagai akun Pemilik Kost lain.' });
+  }
+
+  const { roles: assignedRoles, titleDisplay } = normalizeAssignedRoles(roles, jobTitle);
+  const ownerUser = db.users.find(u => String(u.id) === String(ownerId || assignedKost.ownerId));
+  const token = 'INV-' + crypto.randomBytes(8).toString('hex');
+  const baseOrigin = (origin && /^https?:\/\//i.test(String(origin).trim()))
+    ? String(origin).trim().replace(/\/+$/, '')
+    : (req.headers.origin ? String(req.headers.origin).replace(/\/+$/, '') : `${req.protocol}://${req.get('host')}`);
+  const inviteUrl = `${baseOrigin}/invite-staff/${token}`;
+
+  // Supersede previous unaccepted pending invites to the exact same target and branch
+  db.staffInvites.forEach(inv => {
+    if (inv.status === 'pending' && inv.kostUid === assignedKost.uid && inv.channel === selectedChannel && inv.target === cleanTarget) {
+      inv.status = 'cancelled';
+    }
+  });
+
+  const inviteObj = {
+    id: 'inv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    token,
+    channel: selectedChannel,
+    target: cleanTarget,
+    phone: cleanPhone,
+    email: cleanEmail,
+    suggestedName: (name || '').trim(),
+    ownerId: ownerId || assignedKost.ownerId,
+    ownerName: ownerUser?.name || 'Pemilik Kost',
+    kostUid: assignedKost.uid,
+    kostName: assignedKost.kostName,
+    roles: assignedRoles,
+    jobTitle: titleDisplay,
+    salary: Number(salary) || 0,
+    status: 'pending',
+    inviteUrl,
+    waDirectUrl: null,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  };
+
+  let dispatchResult = null;
+  if (selectedChannel === 'email') {
+    dispatchResult = await sendStaffInviteEmail(cleanEmail, inviteObj, inviteUrl);
+  } else {
+    dispatchResult = await dispatchStaffInviteWhatsApp(cleanPhone, inviteObj, inviteUrl);
+    inviteObj.waDirectUrl = dispatchResult?.waDirectUrl || null;
+  }
+
+  db.staffInvites.push(inviteObj);
+  addActivity(db, assignedKost.uid, 'pengaturan', `Undangan link karyawan dikirim via ${selectedChannel === 'email' ? 'Gmail' : 'WhatsApp'} ke ${cleanTarget} (${titleDisplay})`);
+  writeDB(db);
+
+  res.status(201).json({
+    success: true,
+    message: selectedChannel === 'whatsapp'
+      ? `Link undangan WhatsApp siap dikirim ke ${cleanPhone}. Karyawan otomatis bergabung setelah klik & konfirmasi link.`
+      : `Link undangan Gmail siap dikirim ke ${cleanEmail}. Karyawan otomatis bergabung setelah klik & konfirmasi link.`,
+    invite: buildInvitePublicPayload(inviteObj, assignedKost),
+    inviteUrl,
+    waDirectUrl: inviteObj.waDirectUrl,
+    emailPreviewUrl: dispatchResult?.previewUrl || null
+  });
+});
+
+// Owner: Resend / refresh dispatch info for a pending staff invite
+app.post('/api/owner/staff-invites/:id/resend', async (req, res) => {
+  const { id } = req.params;
+  const { origin } = req.body || {};
+  const db = getDB();
+  const inv = (db.staffInvites || []).find(i => String(i.id) === String(id));
+  if (!inv) return res.status(404).json({ error: 'Undangan karyawan tidak ditemukan' });
+  if (inv.status !== 'pending') return res.status(400).json({ error: 'Undangan ini sudah tidak aktif' });
+
+  if (origin && /^https?:\/\//i.test(String(origin).trim())) {
+    inv.inviteUrl = `${String(origin).trim().replace(/\/+$/, '')}/invite-staff/${inv.token}`;
+  }
+
+  let dispatchResult = null;
+  if (inv.channel === 'email') {
+    dispatchResult = await sendStaffInviteEmail(inv.email || inv.target, inv, inv.inviteUrl);
+  } else {
+    dispatchResult = await dispatchStaffInviteWhatsApp(inv.phone || inv.target, inv, inv.inviteUrl);
+    inv.waDirectUrl = dispatchResult?.waDirectUrl || inv.waDirectUrl;
+  }
+  writeDB(db);
+
+  const kost = db.kosts.find(k => k.uid === inv.kostUid);
+  res.json({
+    success: true,
+    invite: buildInvitePublicPayload(inv, kost),
+    inviteUrl: inv.inviteUrl,
+    waDirectUrl: inv.waDirectUrl,
+    emailPreviewUrl: dispatchResult?.previewUrl || null
+  });
+});
+
+// Owner: Cancel / revoke pending staff invite
+app.delete('/api/owner/staff-invites/:id', (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  if (!Array.isArray(db.staffInvites)) return res.status(404).json({ error: 'Undangan tidak ditemukan' });
+
+  const idx = db.staffInvites.findIndex(i => String(i.id) === String(id));
+  if (idx === -1) return res.status(404).json({ error: 'Undangan karyawan tidak ditemukan' });
+
+  const removed = db.staffInvites[idx];
+  db.staffInvites.splice(idx, 1);
+  writeDB(db);
+  res.json({ success: true, message: `Undangan untuk ${removed.target} dibatalkan.` });
+});
+
+// Public: Fetch invite details by token when employee opens the link
+app.get('/api/staff-invites/:token', (req, res) => {
+  const { token } = req.params;
+  const db = getDB();
+  const inv = (db.staffInvites || []).find(i => i.token === token);
+  if (!inv) {
+    return res.status(404).json({ error: 'Link undangan karyawan tidak valid atau sudah dicabut.' });
+  }
+
+  if (inv.status === 'pending' && inv.expiresAt && new Date(inv.expiresAt).getTime() < Date.now()) {
+    inv.status = 'expired';
+    writeDB(db);
+  }
+
+  const kost = db.kosts.find(k => k.uid === inv.kostUid);
+  res.json({ invite: buildInvitePublicPayload(inv, kost) });
+});
+
+// Public: Accept invitation via link -> officially add employee to db.users & kost settings!
+app.post('/api/staff-invites/:token/accept', (req, res) => {
+  const { token } = req.params;
+  const { name, email, phone, password, picture, googleId, authProvider } = req.body || {};
+
+  const db = getDB();
+  const inv = (db.staffInvites || []).find(i => i.token === token);
+  if (!inv) {
+    return res.status(404).json({ error: 'Link undangan karyawan tidak ditemukan atau sudah dihapus.' });
+  }
+
+  if (inv.status === 'pending' && inv.expiresAt && new Date(inv.expiresAt).getTime() < Date.now()) {
+    inv.status = 'expired';
+    writeDB(db);
+  }
+
+  if (inv.status === 'accepted') {
+    return res.status(409).json({ error: 'Link undangan ini sudah pernah digunakan dan akun karyawan sudah aktif.' });
+  }
+  if (inv.status !== 'pending') {
+    return res.status(410).json({ error: `Link undangan berstatus "${inv.status}" dan tidak dapat digunakan lagi.` });
+  }
+
+  const finalName = String(name || inv.suggestedName || '').trim();
+  if (!finalName) {
+    return res.status(400).json({ error: 'Nama lengkap Anda wajib diisi untuk bergabung.' });
+  }
+
+  const finalEmail = (email || inv.email || '').trim().toLowerCase();
+  if (finalEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(finalEmail)) {
+    return res.status(400).json({ error: 'Format alamat Gmail/email tidak valid.' });
+  }
+  const finalPhone = phone
+    ? normalizeOtpTarget(phone, 'whatsapp')
+    : (inv.phone ? normalizeOtpTarget(inv.phone, 'whatsapp') : '');
+
+  if (!finalEmail && finalPhone.length < 9) {
+    return res.status(400).json({ error: 'Minimal alamat Gmail atau nomor WhatsApp valid harus tersedia.' });
+  }
+
+  const assignedKost = resolveAssignedKost(db, inv.kostUid, inv.ownerId);
+  if (!assignedKost) {
+    return res.status(404).json({ error: 'Cabang kost tujuan undangan tidak ditemukan.' });
+  }
+
+  const result = upsertStaffAccount(db, assignedKost, {
+    ownerId: inv.ownerId,
+    name: finalName,
+    email: finalEmail,
+    phone: finalPhone,
+    password: password && String(password).trim() ? String(password).trim() : 'kostku123',
+    roles: inv.roles,
+    jobTitle: inv.jobTitle,
+    salary: inv.salary,
+    picture,
+    googleId,
+    authProvider,
+    joinedVia: inv.channel
+  });
+
+  if (result.error) {
+    return res.status(result.status || 400).json({ error: result.error });
+  }
+
+  const staffUser = result.staffUser;
+  staffUser.inviteId = inv.id;
+  inv.status = 'accepted';
+  inv.acceptedAt = new Date().toISOString();
+  inv.acceptedUserId = staffUser.id;
+  inv.acceptedName = staffUser.name;
+
+  addActivity(
+    db,
+    assignedKost.uid,
+    'pengguna',
+    `Karyawan ${staffUser.name} (${staffUser.jobTitle}) resmi bergabung via link undangan ${inv.channel === 'email' ? 'Gmail' : 'WhatsApp'}`
+  );
+  writeDB(db);
+
+  const safeUser = { ...staffUser };
+  delete safeUser.password;
+  safeUser.kostName = assignedKost.kostName;
+
+  res.json({
+    success: true,
+    message: `Selamat bergabung ${staffUser.name}! Akun karyawan Anda resmi aktif di ${assignedKost.kostName}.`,
+    user: safeUser,
+    kostName: assignedKost.kostName,
+    staffRole: staffUser.jobTitle
+  });
 });
 
 // ── STAFF ATTENDANCE ENDPOINTS (GPS + PHOTO PROXIMITY) ───────────────────────
@@ -2695,7 +3171,7 @@ app.post('/api/staff/attendance/check-in', (req, res) => {
 
   writeDB(db);
   res.status(201).json({
-    message: isNearKost ? '✅ Absensi masuk berhasil diverifikasi!' : '⚠️ Absensi masuk tercatat di luar radius kost (tetap tersimpan dengan peringatan).',
+    message: isNearKost ? 'Absensi masuk berhasil diverifikasi!' : 'Absensi masuk tercatat di luar radius kost (tetap tersimpan dengan peringatan).',
     attendance: record
   });
 });
@@ -2745,7 +3221,7 @@ app.post('/api/staff/attendance/check-out', (req, res) => {
 
   writeDB(db);
   res.json({
-    message: `✅ Absensi selesai kerja berhasil disimpan! Durasi kerja: ${workDurationHours} jam.`,
+    message: `Absensi selesai kerja berhasil disimpan! Durasi kerja: ${workDurationHours} jam.`,
     attendance: record
   });
 });
@@ -2784,7 +3260,7 @@ app.put('/api/owner/staff/leave-settings', (req, res) => {
 
   writeDB(db);
   res.json({
-    message: `✅ Aturan cuti berhasil disimpan: Setiap ${wDays} hari kerja mendapat ${lDays} hari cuti.`,
+    message: `Aturan cuti berhasil disimpan: Setiap ${wDays} hari kerja mendapat ${lDays} hari cuti.`,
     setting: db.leaveSettings[key]
   });
 });
@@ -2871,7 +3347,7 @@ app.post('/api/staff/leaves', (req, res) => {
   writeDB(db);
 
   res.status(201).json({
-    message: '✅ Pengajuan izin/cuti berhasil dikirim ke Owner untuk diverifikasi.',
+    message: 'Pengajuan izin/cuti berhasil dikirim ke Owner untuk diverifikasi.',
     leave: newLeave
   });
 });
@@ -2896,7 +3372,7 @@ app.put('/api/staff/leaves/:id', (req, res) => {
 
   writeDB(db);
   res.json({
-    message: status === 'approved' ? '✅ Pengajuan cuti/izin telah disetujui.' : '❌ Pengajuan cuti/izin ditolak.',
+    message: status === 'approved' ? 'Pengajuan cuti/izin telah disetujui.' : 'Pengajuan cuti/izin ditolak.',
     leave
   });
 });
@@ -2956,7 +3432,7 @@ app.post('/api/staff/work-logs', (req, res) => {
   writeDB(db);
 
   res.status(201).json({
-    message: '✅ Foto dan laporan pekerjaan harian berhasil disimpan!',
+    message: 'Foto dan laporan pekerjaan harian berhasil disimpan!',
     workLog: newLog
   });
 });
@@ -3026,7 +3502,7 @@ app.post('/api/staff/mutations', (req, res) => {
   db.staffMutations.push(newMutation);
   addActivity(db, newMutation.kostUid, 'karyawan', `Buku Mutasi: ${newMutation.staffName} mencatat laporan shift ${newMutation.shift}`);
   writeDB(db);
-  res.status(201).json({ message: '✅ Laporan buku mutasi shift berhasil disimpan!', mutation: newMutation });
+  res.status(201).json({ message: 'Laporan buku mutasi shift berhasil disimpan!', mutation: newMutation });
 });
 
 app.put('/api/staff/mutations/:id/handover', (req, res) => {
@@ -3042,7 +3518,7 @@ app.put('/api/staff/mutations/:id/handover', (req, res) => {
   mut.handoverAt = new Date().toISOString();
   mut.status = 'diserahkan';
   writeDB(db);
-  res.json({ message: `✅ Serah terima shift ke ${mut.handoverToStaffName} berhasil dicatat!`, mutation: mut });
+  res.json({ message: `Serah terima shift ke ${mut.handoverToStaffName} berhasil dicatat!`, mutation: mut });
 });
 
 // ── PAKET 1: KASBON & CLOSED-LOOP PAYROLL ENGINE ────────────────────────────
@@ -3084,7 +3560,7 @@ app.post('/api/staff/kasbon', (req, res) => {
   db.staffKasbon.push(newKasbon);
   addActivity(db, newKasbon.kostUid, 'keuangan', `Pencatatan kasbon karyawan ${newKasbon.staffName} sebesar Rp ${Number(amount).toLocaleString('id-ID')}`);
   writeDB(db);
-  res.status(201).json({ message: '✅ Kasbon staf berhasil dicatat.', kasbon: newKasbon });
+  res.status(201).json({ message: 'Kasbon staf berhasil dicatat.', kasbon: newKasbon });
 });
 
 app.put('/api/staff/kasbon/:id', (req, res) => {
@@ -3227,7 +3703,7 @@ app.post('/api/staff/payroll/generate', (req, res) => {
   addActivity(db, staff.kostUid, 'keuangan', `Slip gaji ${slipNumber} diterbitkan untuk ${staff.name}: Rp ${payrollRecord.netSalary.toLocaleString('id-ID')}`);
   writeDB(db);
 
-  res.status(201).json({ message: '✅ Slip gaji resmi berhasil diterbitkan!', payroll: payrollRecord });
+  res.status(201).json({ message: 'Slip gaji resmi berhasil diterbitkan!', payroll: payrollRecord });
 });
 
 app.get('/api/staff/payrolls', (req, res) => {
@@ -3260,7 +3736,7 @@ app.put('/api/complaints/:id/assign', (req, res) => {
 
   addActivity(db, comp.kostUid, 'komplain', `Komplain Kamar ${comp.kamar} ditugaskan ke ${comp.assignedStaffName}`);
   writeDB(db);
-  res.json({ message: `✅ Komplain berhasil ditugaskan ke ${comp.assignedStaffName}`, complaint: comp });
+  res.json({ message: `Komplain berhasil ditugaskan ke ${comp.assignedStaffName}`, complaint: comp });
 });
 
 app.put('/api/complaints/:id/resolve', (req, res) => {
@@ -3299,7 +3775,7 @@ app.put('/api/complaints/:id/resolve', (req, res) => {
 
   addActivity(db, comp.kostUid, 'komplain', `Komplain Kamar ${comp.kamar} diselesaikan oleh ${comp.resolvedByStaffName}`);
   writeDB(db);
-  res.json({ message: '✅ Komplain selesai dan bukti pengerjaan tersimpan ke kalender kerja!', complaint: comp });
+  res.json({ message: 'Komplain selesai dan bukti pengerjaan tersimpan ke kalender kerja!', complaint: comp });
 });
 
 app.get('/api/staff/tasks', (req, res) => {
@@ -3361,10 +3837,10 @@ app.post('/api/complaints/:id/rating', (req, res) => {
     }
   }
 
-  addActivity(db, comp.kostUid, 'komplain', `Penghuni Kamar ${comp.kamar} memberikan rating ⭐${rating} & tip Rp ${Number(tipAmount || 0).toLocaleString('id-ID')} untuk staf ${ratingEntry.staffName}`);
+  addActivity(db, comp.kostUid, 'komplain', `Penghuni Kamar ${comp.kamar} memberikan rating ${rating} & tip Rp ${Number(tipAmount || 0).toLocaleString('id-ID')} untuk staf ${ratingEntry.staffName}`);
   writeDB(db);
 
-  res.status(201).json({ message: '⭐ Terima kasih atas penilaian dan apresiasi untuk staf!', rating: ratingData });
+  res.status(201).json({ message: 'Terima kasih atas penilaian dan apresiasi untuk staf!', rating: ratingData });
 });
 
 app.get('/api/staff/:id/ratings', (req, res) => {
@@ -3407,7 +3883,7 @@ app.post('/api/fintech/dunning/settings', (req, res) => {
   const db = getDB();
   db.dunningSettings = { ...db.dunningSettings, ...req.body };
   writeDB(db);
-  res.json({ message: '✅ Pengaturan otomatisasi dunning & denda berhasil disimpan!', settings: db.dunningSettings });
+  res.json({ message: 'Pengaturan otomatisasi dunning & denda berhasil disimpan!', settings: db.dunningSettings });
 });
 
 // 2. Trigger/Send WhatsApp Reminder
@@ -3443,7 +3919,7 @@ app.post('/api/fintech/dunning/send-reminder', (req, res) => {
 
   if (reminderType === 'H-3') {
     reminderTitle = 'Pemberitahuan Tagihan (H-3)';
-    messageText = `Halo Kak ${tenant.name || inv.userName || 'Penghuni'}, menginfokan tagihan sewa Kamar ${inv.kamar} sebesar ${formattedTotal} akan jatuh tempo dalam 3 hari pada tanggal ${inv.dueDate}. Silakan lakukan pembayaran via aplikasi KostKu. Terima kasih! 🙏`;
+    messageText = `Halo Kak ${tenant.name || inv.userName || 'Penghuni'}, menginfokan tagihan sewa Kamar ${inv.kamar} sebesar ${formattedTotal} akan jatuh tempo dalam 3 hari pada tanggal ${inv.dueDate}. Silakan lakukan pembayaran via aplikasi KostKu. Terima kasih!`;
   } else if (reminderType === 'H-1') {
     reminderTitle = 'Pengingat H-1 Jatuh Tempo';
     messageText = `Halo Kak ${tenant.name || inv.userName || 'Penghuni'}, besok (${inv.dueDate}) adalah batas jatuh tempo tagihan sewa Kamar ${inv.kamar} sebesar ${formattedTotal}. Pembayaran dapat dilakukan via transfer bank atau QRIS instan di KostKu.`;
@@ -3480,7 +3956,7 @@ app.post('/api/fintech/dunning/send-reminder', (req, res) => {
   writeDB(db);
 
   res.json({
-    message: '✅ Pengingat dunning WhatsApp berhasil disiapkan!',
+    message: 'Pengingat dunning WhatsApp berhasil disiapkan!',
     waLink,
     log: logEntry
   });
@@ -3527,7 +4003,7 @@ app.put('/api/invoices/:id/split-terms', (req, res) => {
   ];
 
   writeDB(db);
-  res.json({ message: '✅ Opsi cicilan sewa (Split Payment 2x) berhasil diaktifkan!', invoice: inv });
+  res.json({ message: 'Opsi cicilan sewa (Split Payment 2x) berhasil diaktifkan!', invoice: inv });
 });
 
 app.put('/api/invoices/:id/pay-term', (req, res) => {
@@ -3556,7 +4032,7 @@ app.put('/api/invoices/:id/pay-term', (req, res) => {
 
   addActivity(db, inv.kostUid, 'pembayaran', `Pembayaran Termin ${termNumber} Kamar ${inv.kamar} sebesar Rp ${Number(term.amount).toLocaleString('id-ID')} diterima (${term.paymentMethod})`);
   writeDB(db);
-  res.json({ message: `✅ Pembayaran Termin ${termNumber} berhasil!`, invoice: inv });
+  res.json({ message: `Pembayaran Termin ${termNumber} berhasil!`, invoice: inv });
 });
 
 // 4. Bank Mutation Auto-Reconcile
@@ -3587,7 +4063,7 @@ app.post('/api/fintech/mutations/simulate', (req, res) => {
   db.bankMutations.unshift(newMut);
   writeDB(db);
 
-  res.status(201).json({ message: '✅ Mutasi rekening bank baru berhasil disimulasikan!', mutation: newMut });
+  res.status(201).json({ message: 'Mutasi rekening bank baru berhasil disimulasikan!', mutation: newMut });
 });
 
 app.post('/api/fintech/mutations/:id/reconcile', (req, res) => {
@@ -3611,7 +4087,7 @@ app.post('/api/fintech/mutations/:id/reconcile', (req, res) => {
   addActivity(db, inv.kostUid, 'pembayaran', `Mutasi Bank ${mut.bank} Rp ${Number(mut.amount).toLocaleString('id-ID')} berhasil direkonsiliasi otomatis untuk tagihan Kamar ${inv.kamar}`);
   writeDB(db);
 
-  res.json({ message: '✅ Rekonsiliasi mutasi sukses! Status invoice kamar kini LUNAS.', mutation: mut, invoice: inv });
+  res.json({ message: 'Rekonsiliasi mutasi sukses! Status invoice kamar kini LUNAS.', mutation: mut, invoice: inv });
 });
 
 
@@ -3665,7 +4141,7 @@ app.post('/api/community/bulletin', (req, res) => {
   }
   writeDB(db);
 
-  res.status(201).json({ message: '📢 Pengumuman berhasil dipublikasikan di Mading Digital!', post: newPost });
+  res.status(201).json({ message: 'Pengumuman berhasil dipublikasikan di Mading Digital!', post: newPost });
 });
 
 app.delete('/api/community/bulletin/:id', (req, res) => {
@@ -3728,7 +4204,7 @@ app.post('/api/community/guests', (req, res) => {
   }
   writeDB(db);
 
-  res.status(201).json({ message: '✅ Izin tamu menginap berhasil dicatat!', guest: newGuest });
+  res.status(201).json({ message: 'Izin tamu menginap berhasil dicatat!', guest: newGuest });
 });
 
 app.put('/api/community/guests/:id/checkout', (req, res) => {
@@ -3790,7 +4266,7 @@ app.post('/api/community/preloved', (req, res) => {
   }
   writeDB(db);
 
-  res.status(201).json({ message: '🛒 Barang berhasil dipasang di Pasar Preloved Anak Kost!', item: newItem });
+  res.status(201).json({ message: 'Barang berhasil dipasang di Pasar Preloved Anak Kost!', item: newItem });
 });
 
 app.put('/api/community/preloved/:id/status', (req, res) => {
@@ -3867,7 +4343,7 @@ app.post('/api/iot/smartlock/generate-pin', (req, res) => {
   }
 
   writeDB(db);
-  res.json({ message: '🔑 PIN Smart Lock baru berhasil di-generate & disinkronkan ke gateway pintu!', newPasscode: newPin, lock });
+  res.json({ message: 'PIN Smart Lock baru berhasil di-generate & disinkronkan ke gateway pintu!', newPasscode: newPin, lock });
 });
 
 // 5. Electronic Appliance Surcharge Calculator
@@ -3927,7 +4403,7 @@ app.post('/api/iot/appliances/declare-room', (req, res) => {
   addActivity(db, declarationEntry.kostUid, 'iot', `Deklarasi alat elektronik Kamar ${roomNumber} diperbarui: ${items.length} item (+Rp ${totalExtraMonthly.toLocaleString('id-ID')}/bln)`);
   writeDB(db);
 
-  res.json({ message: '⚡ Deklarasi beban alat elektronik kamar berhasil disimpan!', declaration: declarationEntry });
+  res.json({ message: 'Deklarasi beban alat elektronik kamar berhasil disimpan!', declaration: declarationEntry });
 });
 
 // --- IOT METERAN ENDPOINTS ---
@@ -4263,7 +4739,7 @@ app.post('/api/auth/google', (req, res) => {
         ownerUserId: newUserId,
         name: finalStoreName,
         category: effectiveCategory,
-        icon: '🍱',
+        icon: '',
         phone: '',
         address: 'Area Kantin Kost',
         distanceKm: 0.1,
@@ -4536,7 +5012,7 @@ app.post('/api/kosts/promote', (req, res) => {
     active: true,
     plan: plan || '7d',
     days,
-    badgeText: badgeText || '🔥 Rekomendasi Utama',
+    badgeText: badgeText || 'Rekomendasi Utama',
     activatedAt: new Date().toISOString(),
     expiresAt: exp.toISOString(),
     price: finalPrice,
@@ -4933,12 +5409,12 @@ app.post('/api/merchants', (req, res) => {
     if (isAlreadyRegistered) {
       // Mitra sudah pernah ada/terdaftar sebelumnya -> extra point & 500 kuota TIDAK ter-trigger lagi!
       bonusAwarded = false;
-      responseMsg = '⚠️ Nama/nomor mitra ini sudah pernah didaftarkan sebelumnya. Toko baru disimpan dengan kuota reguler 50 nota.';
+      responseMsg = 'Nama/nomor mitra ini sudah pernah didaftarkan sebelumnya. Toko baru disimpan dengan kuota reguler 50 nota.';
     } else {
       // Mitra baru & ada kode referral -> TWO-SIDED INCENTIVE!
       bonusAwarded = true;
       bonusPoints = 500;
-      responseMsg = `🎉 Selamat! Toko mitra baru berhasil didaftarkan via referral. Anda mendapatkan BONUS 500 Transaksi Kasir GRATIS (Hemat Rp 50.000)! (Kode: ${cleanReferral})`;
+      responseMsg = `Selamat! Toko mitra baru berhasil didaftarkan via referral. Anda mendapatkan BONUS 500 Transaksi Kasir GRATIS (Hemat Rp 50.000)! (Kode: ${cleanReferral})`;
 
       // 2. Cari Akun Referrer & Berikan +500 Poin Loyalitas
       const referrerUser = (db.users || []).find(u => 
@@ -4974,7 +5450,7 @@ app.post('/api/merchants', (req, res) => {
         });
 
         addActivity(db, referrerUser.kostUid || 'GLOBAL', 'mitra', 
-          `🎉 Bonus Referral Mitra: ${referrerUser.name || 'Teman KostKu'} mendapatkan +500 Poin atas pendaftaran toko "${name.trim()}"!`
+          `Bonus Referral Mitra: ${referrerUser.name || 'Teman KostKu'} mendapatkan +500 Poin atas pendaftaran toko "${name.trim()}"!`
         );
 
         if (refPhone) {
@@ -5004,7 +5480,7 @@ app.post('/api/merchants', (req, res) => {
     kostUid: kostUid || 'KOST-JAKSEL-01',
     name: name.trim(),
     category: category || 'lainnya',
-    icon: icon || (category === 'galon' ? '💧' : category === 'laundry' ? '🧺' : category === 'makanan' ? '🍱' : category === 'service' ? '❄️' : '🏪'),
+    icon: icon || (category === 'galon' ? '' : category === 'laundry' ? '' : category === 'makanan' ? '' : category === 'service' ? '' : ''),
     phone: phone ? phone.trim() : '',
     address: address ? address.trim() : '',
     distanceKm: Number(distanceKm) > 0 ? Number(distanceKm) : 0.5,
@@ -5136,7 +5612,7 @@ app.post('/api/merchants/suggest', (req, res) => {
     } else {
       bonusAwarded = true;
       bonusPoints = 500;
-      responseMsg = `🎉 Usulan warung "${name.trim()}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
+      responseMsg = `Usulan warung "${name.trim()}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
 
       if (userId && Array.isArray(db.users)) {
         const u = db.users.find(usr => String(usr.id) === String(userId));
@@ -5274,7 +5750,7 @@ app.post('/api/merchants/:id/topup-nota', (req, res) => {
   };
 
   merchant.notaHistory.unshift(topupRecord);
-  addActivity(db, merchant.kostUid || 'GENERAL', 'mitra', `⚡ Top Up Saldo Nota berhasil: ${merchant.name} top up Rp ${topupAmount.toLocaleString('id-ID')} (+${additionalNotas} Kuota Nota). Total saldo: Rp ${merchant.saldoNota.toLocaleString('id-ID')}`);
+  addActivity(db, merchant.kostUid || 'GENERAL', 'mitra', `Top Up Saldo Nota berhasil: ${merchant.name} top up Rp ${topupAmount.toLocaleString('id-ID')} (+${additionalNotas} Kuota Nota). Total saldo: Rp ${merchant.saldoNota.toLocaleString('id-ID')}`);
   writeDB(db);
 
   res.json({
@@ -5519,7 +5995,7 @@ app.post('/api/partner-orders', (req, res) => {
         referrerPoints: REFERRER_POINTS,
         applied: true
       };
-      addActivity(db, referrer.kostUid || orderKostUid, 'komunitas', `🎉 Bonus Referral: ${referrer.name} mendapatkan +${REFERRER_POINTS} Poin (1/2 reward pembeli) atas transaksi teman (${cleanUserName}) dengan kode referral!`);
+      addActivity(db, referrer.kostUid || orderKostUid, 'komunitas', `Bonus Referral: ${referrer.name} mendapatkan +${REFERRER_POINTS} Poin (1/2 reward pembeli) atas transaksi teman (${cleanUserName}) dengan kode referral!`);
     } else {
       referralReward = {
         buyerPoints: BUYER_POINTS,
@@ -5544,7 +6020,7 @@ app.post('/api/partner-orders', (req, res) => {
       recruiterKostUid: orderKostUid,
       hostOwnerAmount: calcCommission,
       recruiterOwnerAmount: 0,
-      note: '👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan'
+      note: 'Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan'
     };
   } else if (isShared) {
     const hostShare = Math.floor(calcCommission / 2);
@@ -5556,7 +6032,7 @@ app.post('/api/partner-orders', (req, res) => {
       recruiterKostUid: originKostUid,
       hostOwnerAmount: hostShare,
       recruiterOwnerAmount: recruiterShare,
-      note: `🤝 Mitra Bersama Multi-Kost - Komisi Dibagi 50:50 (Host Kost Rp ${hostShare.toLocaleString('id-ID')} & Owner Mitra Rp ${recruiterShare.toLocaleString('id-ID')})`
+      note: `Mitra Bersama Multi-Kost - Komisi Dibagi 50:50 (Host Kost Rp ${hostShare.toLocaleString('id-ID')} & Owner Mitra Rp ${recruiterShare.toLocaleString('id-ID')})`
     };
   } else {
     commissionSplit = {
@@ -5566,7 +6042,7 @@ app.post('/api/partner-orders', (req, res) => {
       recruiterKostUid: originKostUid,
       hostOwnerAmount: 0,
       recruiterOwnerAmount: calcCommission,
-      note: `🌐 Mitra Jaringan Owner Lain - Komisi 100% ke Owner Pendaftar Toko (${originKostUid})`
+      note: `Mitra Jaringan Owner Lain - Komisi 100% ke Owner Pendaftar Toko (${originKostUid})`
     };
   }
 
@@ -8363,7 +8839,7 @@ app.post('/api/kosts/:kostUid/reviews', (req, res) => {
   kost.rating = avg;
   kost.reviewCount = kostReviews.length;
 
-  addActivity(db, kostUid, 'ulasan', `${newReview.userName} memberikan rating ⭐ ${newReview.rating} untuk ${kost.kostName}`);
+  addActivity(db, kostUid, 'ulasan', `${newReview.userName} memberikan rating ${newReview.rating} untuk ${kost.kostName}`);
   writeDB(db);
 
   res.status(201).json({

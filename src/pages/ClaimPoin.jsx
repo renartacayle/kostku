@@ -473,7 +473,7 @@ export default function ClaimPoin() {
               transition: 'all 0.15s ease'
             }}
           >
-            🎡 Putar Roda &amp; Klaim
+            Putar Roda &amp; Klaim
           </button>
           <button
             type="button"
@@ -492,7 +492,7 @@ export default function ClaimPoin() {
               transition: 'all 0.15s ease'
             }}
           >
-            🔍 Cek Saldo Poin WA
+            Cek Saldo Poin WA
           </button>
         </div>
 
@@ -522,7 +522,7 @@ export default function ClaimPoin() {
                   margin: '0 auto 12px',
                   boxShadow: '0 4px 14px rgba(0,0,0,0.1)'
                 }}>
-                  {claimResult.pointsAwarded === 100 ? '👑' : <Sparkles size={32} />}
+                  <Sparkles size={32} />
                 </div>
 
                 <div style={{
@@ -536,7 +536,7 @@ export default function ClaimPoin() {
                   fontWeight: 900,
                   marginBottom: '8px'
                 }}>
-                  {claimResult.pointsAwarded === 100 ? '⭐ JACKPOT EMAS' : 'KLAIM POIN SUKSES'}
+                  {claimResult.pointsAwarded === 100 ? 'JACKPOT EMAS' : 'KLAIM POIN SUKSES'}
                 </div>
 
                 <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
@@ -588,7 +588,7 @@ export default function ClaimPoin() {
                     textAlign: 'left',
                     lineHeight: 1.4
                   }}>
-                    🤝 <strong>Bonus Referral Terkirim:</strong> Teman Anda ({claimResult.referralResult.referrerName}) berhasil mendapatkan komisi <strong>+{claimResult.referralResult.bonusAwarded} Poin</strong> (50% dari hasil putaran Anda)!
+                    <strong>Bonus Referral Terkirim:</strong> Teman Anda ({claimResult.referralResult.referrerName}) berhasil mendapatkan komisi <strong>+{claimResult.referralResult.bonusAwarded} Poin</strong> (50% dari hasil putaran Anda)!
                   </div>
                 )}
 
@@ -658,7 +658,7 @@ export default function ClaimPoin() {
                   marginBottom: '16px',
                   lineHeight: 1.35
                 }}>
-                  💡 <strong>Nilai Tukar Poin:</strong> 1 Poin = Rp 1.00 diskon langsung. Minimal 100 Poin untuk aktivasi penukaran diskon belanja di kasir.
+                  <strong>Nilai Tukar Poin:</strong> 1 Poin = Rp 1.00 diskon langsung. Minimal 100 Poin untuk aktivasi penukaran diskon belanja di kasir.
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -698,7 +698,7 @@ export default function ClaimPoin() {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
               }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                  🔍 Masukkan Kode Token Struk
+                  Masukkan Kode Token Struk
                 </div>
                 <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.4 }}>
                   Ketik atau tempelkan token yang tertera di bagian bawah struk fisik kasir Anda.
@@ -928,7 +928,7 @@ export default function ClaimPoin() {
                           alignItems: 'center',
                           gap: '6px'
                         }} className="animate-bounce">
-                          <span>⚡</span>
+                          <Zap size={14} style={{ flexShrink: 0 }} />
                           <span>Nyaris Menang Jackpot 100 Poin Emas!</span>
                         </div>
                       )}
@@ -948,7 +948,7 @@ export default function ClaimPoin() {
                           alignItems: 'center',
                           gap: '6px'
                         }}>
-                          <span>🔥</span>
+                          <Award size={14} style={{ flexShrink: 0 }} />
                           <span>Garansi Hard Pity Aktif: 100 Poin Emas Dijamin!</span>
                         </div>
                       )}
@@ -973,7 +973,7 @@ export default function ClaimPoin() {
                             padding: '3px 6px',
                             borderRadius: '4px'
                           }}>
-                            🇮🇩 +62
+                            +62
                           </div>
                           <input
                             type="tel"
@@ -1052,7 +1052,7 @@ export default function ClaimPoin() {
                           }}
                         />
                         <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px', display: 'block', lineHeight: 1.3 }}>
-                          🎁 Teman Anda akan menerima komisi <strong>50%</strong> dari total angka poin yang Anda putar!
+                          Teman Anda akan menerima komisi <strong>50%</strong> dari total angka poin yang Anda putar!
                         </span>
                       </div>
 
@@ -1102,7 +1102,7 @@ export default function ClaimPoin() {
                           </>
                         ) : (
                           <>
-                            <span>🎡</span>
+                            <Sparkles size={17} />
                             <span>Putar Roda &amp; Klaim Poin Sekarang</span>
                           </>
                         )}
@@ -1247,7 +1247,7 @@ export default function ClaimPoin() {
                     padding: '3px 6px',
                     borderRadius: '4px'
                   }}>
-                    🇮🇩 +62
+                    +62
                   </div>
                   <input
                     type="tel"
@@ -1438,7 +1438,7 @@ export default function ClaimPoin() {
                       textAlign: 'center'
                     }}>
                       <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 800 }}>
-                        🎉 VOUCHER AKTIF ANDA (Diskon Rp {convertedVoucher.discountValue?.toLocaleString('id-ID')}):
+                        VOUCHER AKTIF ANDA (Diskon Rp {convertedVoucher.discountValue?.toLocaleString('id-ID')}):
                       </div>
                       <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#065f46', fontFamily: 'monospace', letterSpacing: '1.5px', margin: '4px 0' }}>
                         {convertedVoucher.code}
@@ -1457,7 +1457,7 @@ export default function ClaimPoin() {
                           cursor: 'pointer'
                         }}
                       >
-                        {copiedCode ? '✓ Kode Tersalin' : '📋 Salin Kode Voucher'}
+                        {copiedCode ? '✓ Kode Tersalin' : 'Salin Kode Voucher'}
                       </button>
                       <span style={{ display: 'block', fontSize: '0.66rem', color: '#64748b', marginTop: '4px' }}>
                         *Sebutkan atau tunjukkan kode ini ke kasir saat memesan walk-in.
@@ -1467,7 +1467,7 @@ export default function ClaimPoin() {
 
                   {convertError && (
                     <div style={{ padding: '6px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b', fontSize: '0.72rem', marginBottom: '8px' }}>
-                      ⚠️ {convertError}
+                      {convertError}
                     </div>
                   )}
 
@@ -1509,7 +1509,7 @@ export default function ClaimPoin() {
 
                 {/* History Ledger List */}
                 <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-                  📜 Riwayat Poin ({customerHistory.length})
+                  Riwayat Poin ({customerHistory.length})
                 </div>
 
                 {customerHistory.length === 0 ? (

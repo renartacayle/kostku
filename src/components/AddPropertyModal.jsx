@@ -373,7 +373,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
 
             {!gmapsValidation && (
               <span style={{ fontSize: '0.73rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block', marginTop: '4px' }}>
-                ⚠️ <strong>Wajib Tautan Profil Kost:</strong> Link harus mengarah langsung ke pin/profil bisnis kost Anda. Link yang hanya berupa nama jalan umum atau koordinat tanpa nama kost akan ditolak.
+                <strong>Wajib Tautan Profil Kost:</strong> Link harus mengarah langsung ke pin/profil bisnis kost Anda. Link yang hanya berupa nama jalan umum atau koordinat tanpa nama kost akan ditolak.
               </span>
             )}
           </div>
@@ -704,7 +704,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
               <label style={{ fontSize: '0.84rem', fontWeight: 800, color: isLight ? '#92400e' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>🎁 Kode Referral Penghuni (Opsional)</span>
+                <span>Kode Referral Penghuni (Opsional)</span>
               </label>
               <span style={{ fontSize: '0.72rem', background: '#f59e0b', color: '#ffffff', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
                 Penghuni +1.000 Poin • Owner +500 Poin

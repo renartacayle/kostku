@@ -103,7 +103,7 @@ export default function Mitra({ user }) {
   const [newStoreForm, setNewStoreForm] = useState({
     name: '',
     category: 'makanan',
-    icon: '🍱',
+    icon: '',
     phone: user?.phone || '',
     address: '',
     deliveryType: 'both',
@@ -189,7 +189,7 @@ export default function Mitra({ user }) {
   const [newMerchant, setNewMerchant] = useState({
     name: '',
     category: 'Warung & Kuliner',
-    icon: '🍱',
+    icon: '',
     phone: '',
     address: '',
     distanceKm: '0.2',
@@ -377,12 +377,12 @@ export default function Mitra({ user }) {
       });
       if (res?.merchant || res?.success) {
         const created = res.merchant || res;
-        showToast('🎉 Toko baru berhasil dibuat!');
+        showToast('Toko baru berhasil dibuat!');
         setShowAddStoreModal(false);
         setNewStoreForm({
           name: '',
           category: 'makanan',
-          icon: '🍱',
+          icon: '',
           phone: user?.phone || '',
           address: '',
           deliveryType: 'both',
@@ -484,7 +484,7 @@ export default function Mitra({ user }) {
       const updated = { ...currentMerchant, products: updatedProducts };
       setCurrentMerchant(updated);
       setMerchants(prev => prev.map(m => m.id === updated.id ? updated : m));
-      showToast('✅ Harga menu berhasil diperbarui!');
+      showToast('Harga menu berhasil diperbarui!');
     } catch (e) {
       alert(e.message || 'Gagal menyimpan harga menu');
     }
@@ -525,7 +525,7 @@ export default function Mitra({ user }) {
       setCurrentMerchant(updated);
       setMerchants(prev => prev.map(m => m.id === updated.id ? updated : m));
       const targetProd = updatedProducts.find(p => String(p.id) === String(productId));
-      showToast(targetProd?.isBestSeller ? '🔥 Berhasil diset sebagai Best Seller!' : 'Status Best Seller dinonaktifkan');
+      showToast(targetProd?.isBestSeller ? 'Berhasil diset sebagai Best Seller!' : 'Status Best Seller dinonaktifkan');
     } catch (e) {
       alert(e.message || 'Gagal mengubah status Best Seller');
     }
@@ -575,9 +575,9 @@ export default function Mitra({ user }) {
       }));
 
       if (result.verdict === 'REAL_CAMERA') {
-        showToast(`🛡️ Foto Lolos! Terverifikasi Sensor Kamera Asli (${result.sensorScore}%)`);
+        showToast(`Foto Lolos! Terverifikasi Sensor Kamera Asli (${result.sensorScore}%)`);
       } else if (result.verdict === 'AI_GENERATED') {
-        showToast(`⚠️ Ditolak: Gambar terdeteksi render AI (${result.aiProbability}% AI)`);
+        showToast(`Ditolak: Gambar terdeteksi render AI (${result.aiProbability}% AI)`);
       }
     } catch (err) {
       console.error('Scan error:', err);
@@ -607,13 +607,13 @@ export default function Mitra({ user }) {
 
     if (isCurrentFnB) {
       if (!newMenuItem.image) {
-        alert('⚠️ Foto produk makanan/minuman wajib diunggah/diambil langsung dengan kamera.');
+        alert('Foto produk makanan/minuman wajib diunggah/diambil langsung dengan kamera.');
         return;
       }
 
       // Validasi Anti-AI Strict Guardrail khusus FnB
       if (imageDetectorState.result?.verdict === 'AI_GENERATED') {
-        alert('❌ FOTO DITOLAK: Gambar terdeteksi hasil generate AI (Zero Defect / Pure Synthetic).\n\nMitra Kuliner KostKu diwajibkan menggunakan foto produk asli dari kamera nyata agar anak kost menerima pesanan yang sesuai realitas.');
+        alert('FOTO DITOLAK: Gambar terdeteksi hasil generate AI (Zero Defect / Pure Synthetic).\n\nMitra Kuliner KostKu diwajibkan menggunakan foto produk asli dari kamera nyata agar anak kost menerima pesanan yang sesuai realitas.');
         return;
       }
     }
@@ -657,7 +657,7 @@ export default function Mitra({ user }) {
         sourceType: 'none',
         error: null
       });
-      showToast(isCurrentFnB ? '✅ Menu baru dengan foto kamera asli berhasil ditambahkan!' : '✅ Layanan non-FnB baru berhasil ditambahkan!');
+      showToast(isCurrentFnB ? 'Menu baru dengan foto kamera asli berhasil ditambahkan!' : 'Layanan non-FnB baru berhasil ditambahkan!');
     } catch (err) {
       alert(err.message || 'Gagal menambah menu baru');
     }
@@ -709,7 +709,7 @@ export default function Mitra({ user }) {
       const updated = { ...currentMerchant, ...payload };
       setCurrentMerchant(updated);
       setMerchants(prev => prev.map(m => m.id === updated.id ? updated : m));
-      showToast('✅ Pengaturan tarif ongkir per km & jam kirim berhasil disimpan!');
+      showToast('Pengaturan tarif ongkir per km & jam kirim berhasil disimpan!');
     } catch (err) {
       alert(err.message || 'Gagal menyimpan pengaturan toko');
     }
@@ -746,7 +746,7 @@ export default function Mitra({ user }) {
       const updated = { ...currentMerchant, ...payload };
       setCurrentMerchant(updated);
       setMerchants(prev => prev.map(m => m.id === updated.id ? updated : m));
-      showToast('✅ Pengaturan QRIS mandiri & transfer rekening pribadi berhasil disimpan!');
+      showToast('Pengaturan QRIS mandiri & transfer rekening pribadi berhasil disimpan!');
     } catch (err) {
       alert(err.message || 'Gagal menyimpan pengaturan pembayaran mandiri');
     } finally {
@@ -773,7 +773,7 @@ export default function Mitra({ user }) {
         setNotaHistory(prev => [res.topup, ...prev]);
       }
       setShowTopupModal(false);
-      showToast(`🎉 Top Up Berhasil! +${addedNotas} Kuota Nota (Rp ${amount.toLocaleString('id-ID')}) telah aktif.`);
+      showToast(`Top Up Berhasil! +${addedNotas} Kuota Nota (Rp ${amount.toLocaleString('id-ID')}) telah aktif.`);
     } catch (err) {
       const addedNotas = Math.floor(amount / 100);
       const newBal = saldoNota + amount;
@@ -789,7 +789,7 @@ export default function Mitra({ user }) {
         createdAt: new Date().toISOString()
       }, ...prev]);
       setShowTopupModal(false);
-      showToast(`🎉 Top Up Berhasil! +${addedNotas} Kuota Nota (Rp ${amount.toLocaleString('id-ID')}) telah aktif.`);
+      showToast(`Top Up Berhasil! +${addedNotas} Kuota Nota (Rp ${amount.toLocaleString('id-ID')}) telah aktif.`);
     } finally {
       setTopupLoading(false);
     }
@@ -866,7 +866,7 @@ export default function Mitra({ user }) {
       </head>
       <body>
         <div class="no-print" style="margin-bottom: 15px; display: flex; gap: 10px;">
-          <button onclick="window.print()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">🖨️ Cetak / Simpan PDF</button>
+          <button onclick="window.print()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Cetak / Simpan PDF</button>
           <button onclick="window.close()" style="padding: 8px 16px; background: #e2e8f0; color: #334155; border: none; border-radius: 6px; cursor: pointer;">Tutup</button>
         </div>
         <div class="header">
@@ -902,13 +902,13 @@ export default function Mitra({ user }) {
 
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
           <div style="background: #eff6ff; padding: 10px; border-radius: 6px; font-size: 12px; border: 1px solid #bfdbfe;">
-            <div>💳 <strong>QRIS Gateway KostKu:</strong> Rp ${qrisPlatform.toLocaleString('id-ID')}</div>
+            <div><strong>QRIS Gateway KostKu:</strong> Rp ${qrisPlatform.toLocaleString('id-ID')}</div>
           </div>
           <div style="background: #faf5ff; padding: 10px; border-radius: 6px; font-size: 12px; border: 1px solid #e9d5ff;">
-            <div>📱 <strong>QRIS & TF Pribadi Mitra:</strong> Rp ${mandiriDirect.toLocaleString('id-ID')}</div>
+            <div><strong>QRIS & TF Pribadi Mitra:</strong> Rp ${mandiriDirect.toLocaleString('id-ID')}</div>
           </div>
           <div style="background: #f0fdf4; padding: 10px; border-radius: 6px; font-size: 12px; border: 1px solid #bbf7d0;">
-            <div>💵 <strong>Tunai (COD):</strong> Rp ${tunai.toLocaleString('id-ID')}</div>
+            <div><strong>Tunai (COD):</strong> Rp ${tunai.toLocaleString('id-ID')}</div>
           </div>
         </div>
 
@@ -991,7 +991,7 @@ export default function Mitra({ user }) {
         setNewMerchant({
           name: '',
           category: 'Warung & Kuliner',
-          icon: '🍱',
+          icon: '',
           phone: '',
           address: '',
           distanceKm: '0.2',
@@ -1020,9 +1020,9 @@ export default function Mitra({ user }) {
               window.dispatchEvent(new Event('kostUser_updated'));
             }
           } catch (_) {}
-          showToast(`🎉 ${res.message || 'Mitra baru berhasil didaftarkan dan bonus +500 Poin referral berhasil diklaim!'}`);
+          showToast(`${res.message || 'Mitra baru berhasil didaftarkan dan bonus +500 Poin referral berhasil diklaim!'}`);
         } else {
-          showToast(res.message || '✅ Mitra baru berhasil didaftarkan');
+          showToast(res.message || 'Mitra baru berhasil didaftarkan');
         }
       }
     } catch (err) {
@@ -1161,7 +1161,7 @@ export default function Mitra({ user }) {
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      <span style={{ fontSize: '1rem' }}>{store.icon || '🏪'}</span>
+                      <Store size={14} style={{ flexShrink: 0 }} />
                       <span>{store.name}</span>
                       {isActive && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3b82f6' }} />}
                     </button>
@@ -1190,7 +1190,7 @@ export default function Mitra({ user }) {
                 }}
                 title="Klik untuk Top Up Saldo Kuota Nota"
               >
-                <span>🪙 Saldo Nota:</span>
+                <Sparkles size={14} /> <span>Saldo Nota:</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}>Rp {saldoNota.toLocaleString('id-ID')}</span>
                 <span style={{ fontSize: '0.7rem', opacity: 0.9 }}>({kuotaNota} nota)</span>
                 {saldoNota < 100 && (
@@ -1242,7 +1242,7 @@ export default function Mitra({ user }) {
                   fontSize: '1.75rem',
                   boxShadow: '0 8px 20px rgba(245, 158, 11, 0.35)'
                 }}>
-                  {currentMerchant?.icon || '🏪'}
+                  <Store size={26} color="#ffffff" />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -1258,16 +1258,16 @@ export default function Mitra({ user }) {
                       color: storeIsOpen ? '#4ade80' : '#f87171',
                       border: `1px solid ${storeIsOpen ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`
                     }}>
-                      {storeIsOpen ? '🟢 Toko Buka (Menerima Pesanan)' : '🔴 Toko Tutup'}
+                      {storeIsOpen ? 'Toko Buka (Menerima Pesanan)' : 'Toko Tutup'}
                     </span>
                   </div>
                   <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span>🏷️ {currentMerchant?.category || 'Warung & Kuliner'}</span>
+                    <span>{currentMerchant?.category || 'Warung & Kuliner'}</span>
                     <span>•</span>
-                    <span>⏰ {storeOpeningHours}</span>
+                    <span>{storeOpeningHours}</span>
                     <span>•</span>
                     <span style={{ color: '#38bdf8' }}>
-                      {storeDeliveryType === 'both' ? '🛵 & 🏪 Bisa Diantar Maupun Ambil di Ruko' : storeDeliveryType === 'pickup' ? '🏪 Wajib Ambil di Ruko' : '🛵 Bisa Diantar ke Kamar'}
+                      {storeDeliveryType === 'both' ? 'Bisa Diantar Maupun Ambil di Ruko' : storeDeliveryType === 'pickup' ? 'Wajib Ambil di Ruko' : 'Bisa Diantar ke Kamar'}
                     </span>
                   </p>
                 </div>
@@ -1309,28 +1309,28 @@ export default function Mitra({ user }) {
               borderTop: '1px solid rgba(255, 255, 255, 0.08)'
             }}>
               <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '0.72rem', color: '#fca5a5', fontWeight: 600 }}>🚨 Belum di-ACC (Baru)</div>
+                <div style={{ fontSize: '0.72rem', color: '#fca5a5', fontWeight: 600 }}>Belum di-ACC (Baru)</div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#f87171', marginTop: '2px' }}>
                   {pendingAccCount} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Pesanan</span>
                 </div>
               </div>
 
               <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '0.72rem', color: '#93c5fd', fontWeight: 600 }}>⏳ Sedang Diproses</div>
+                <div style={{ fontSize: '0.72rem', color: '#93c5fd', fontWeight: 600 }}>Sedang Diproses</div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#60a5fa', marginTop: '2px' }}>
                   {inProgressCount} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Pesanan</span>
                 </div>
               </div>
 
               <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '0.72rem', color: '#fcd34d', fontWeight: 600 }}>🛵 Diantar / Siap Ambil</div>
+                <div style={{ fontSize: '0.72rem', color: '#fcd34d', fontWeight: 600 }}>Diantar / Siap Ambil</div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#fbbf24', marginTop: '2px' }}>
                   {deliveringCount} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Pesanan</span>
                 </div>
               </div>
 
               <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '12px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 600 }}>✅ Pesanan Selesai</div>
+                <div style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 600 }}>Pesanan Selesai</div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#4ade80', marginTop: '2px' }}>
                   {completedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Pesanan</span>
                 </div>
@@ -1368,7 +1368,7 @@ export default function Mitra({ user }) {
                 boxShadow: '0 4px 12px rgba(236, 72, 153, 0.35)',
                 flexShrink: 0
               }}>
-                🏪
+                
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1383,7 +1383,7 @@ export default function Mitra({ user }) {
                     background: '#ec4899',
                     color: '#ffffff'
                   }}>
-                    👑 Akses Penuh Pemilik Usaha
+                    Akses Penuh Pemilik Usaha
                   </span>
                   <span style={{
                     fontSize: '0.7rem',
@@ -1571,10 +1571,10 @@ export default function Mitra({ user }) {
               <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', overflowX: 'auto', paddingBottom: '4px' }}>
                 {[
                   { id: 'all', label: 'Semua Pesanan', count: orders.length },
-                  { id: 'pending_acc', label: '🚨 Belum di-ACC', count: pendingAccCount },
-                  { id: 'accepted', label: '⏳ Sedang Diproses', count: inProgressCount },
-                  { id: 'delivering', label: '🛵 Sedang Diantar / Ambil', count: deliveringCount },
-                  { id: 'completed', label: '✅ Selesai', count: completedCount }
+                  { id: 'pending_acc', label: 'Belum di-ACC', count: pendingAccCount },
+                  { id: 'accepted', label: 'Sedang Diproses', count: inProgressCount },
+                  { id: 'delivering', label: 'Sedang Diantar / Ambil', count: deliveringCount },
+                  { id: 'completed', label: 'Selesai', count: completedCount }
                 ].map(f => (
                   <button
                     key={f.id}
@@ -1678,7 +1678,7 @@ export default function Mitra({ user }) {
                             alignItems: 'center',
                             gap: '5px'
                           }}>
-                            {isPickupMode ? '🏪 Ambil di Ruko' : '🛵 Diantar ke Kamar'}
+                            {isPickupMode ? 'Ambil di Ruko' : 'Diantar ke Kamar'}
                           </div>
                         </div>
 
@@ -1726,7 +1726,7 @@ export default function Mitra({ user }) {
                           </div>
                           {order.notes && (
                             <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#fde047', background: 'rgba(234, 179, 8, 0.1)', padding: '6px 10px', borderRadius: '8px' }}>
-                              📝 Catatan: {order.notes}
+                              Catatan: {order.notes}
                             </div>
                           )}
                         </div>
@@ -1911,7 +1911,7 @@ export default function Mitra({ user }) {
                           {prod.image ? (
                             <img src={prod.image} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <span style={{ fontSize: '1.8rem' }}>🍱</span>
+                            <Package size={24} color="#64748b" />
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1933,7 +1933,7 @@ export default function Mitra({ user }) {
                                   alignItems: 'center',
                                   gap: '2px'
                                 }}>
-                                  🔥 Best Seller
+                                  Best Seller
                                 </span>
                               )}
                               {prod.isCameraVerified === true ? (
@@ -2034,7 +2034,7 @@ export default function Mitra({ user }) {
                             transition: 'all 0.2s'
                           }}
                         >
-                          🔥 {prod.isBestSeller ? 'Best Seller Aktif' : 'Set Best Seller'}
+                          {prod.isBestSeller ? 'Best Seller Aktif' : 'Set Best Seller'}
                         </button>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -2116,7 +2116,7 @@ export default function Mitra({ user }) {
                   fontWeight: 800,
                   color: checkDeliveryHoursActive(storeDeliveryStartTime, storeDeliveryEndTime) ? '#34d399' : '#fbbf24'
                 }}>
-                  <span>{checkDeliveryHoursActive(storeDeliveryStartTime, storeDeliveryEndTime) ? '🟢' : '🟠'}</span>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: checkDeliveryHoursActive(storeDeliveryStartTime, storeDeliveryEndTime) ? '#10b981' : '#f59e0b', display: 'inline-block', flexShrink: 0 }} />
                   <span>
                     {checkDeliveryHoursActive(storeDeliveryStartTime, storeDeliveryEndTime)
                       ? 'Jam Kirim Buka Sekarang'
@@ -2135,7 +2135,7 @@ export default function Mitra({ user }) {
                   padding: '14px'
                 }}>
                   <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', marginBottom: '8px' }}>
-                    🛵 Opsi Layanan Pesanan ke Kamar Kost:
+                    Opsi Layanan Pesanan ke Kamar Kost:
                   </label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {[
@@ -2191,7 +2191,7 @@ export default function Mitra({ user }) {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                       <label style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                        💰 Skema Tarif Ongkos Kirim (Ongkir):
+                        Skema Tarif Ongkos Kirim (Ongkir):
                       </label>
 
                       {/* Skema Switcher Buttons */}
@@ -2210,7 +2210,7 @@ export default function Mitra({ user }) {
                             cursor: 'pointer'
                           }}
                         >
-                          📍 Hitung Per KM (Jarak)
+                          Hitung Per KM (Jarak)
                         </button>
                         <button
                           type="button"
@@ -2226,7 +2226,7 @@ export default function Mitra({ user }) {
                             cursor: 'pointer'
                           }}
                         >
-                          🏷️ Tarif Flat ke Kamar
+                          Tarif Flat ke Kamar
                         </button>
                       </div>
                     </div>
@@ -2347,7 +2347,7 @@ export default function Mitra({ user }) {
                     {/* Bebas Ongkir Threshold */}
                     <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '10px' }}>
                       <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '4px' }}>
-                        🎁 Bebas Ongkir Otomatis Jika Belanja Minimal (Rp):
+                        Bebas Ongkir Otomatis Jika Belanja Minimal (Rp):
                       </label>
                       <input
                         type="number"
@@ -2378,7 +2378,7 @@ export default function Mitra({ user }) {
                     gap: '12px'
                   }}>
                     <label style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                      🕒 Jam Kirim & Jadwal Pengantaran Toko:
+                      Jam Kirim & Jadwal Pengantaran Toko:
                     </label>
 
                     {/* Jam Mulai & Akhir Kirim */}
@@ -2437,7 +2437,7 @@ export default function Mitra({ user }) {
                             textAlign: 'left'
                           }}
                         >
-                          ⚡ Kirim Kapan Saja (Instan 15-20 Menit)
+                          Kirim Kapan Saja (Instan 15-20 Menit)
                         </button>
                         <button
                           type="button"
@@ -2454,7 +2454,7 @@ export default function Mitra({ user }) {
                             textAlign: 'left'
                           }}
                         >
-                          ⏰ Slot Jam Makan Terjadwal
+                          Slot Jam Makan Terjadwal
                         </button>
                       </div>
                     </div>
@@ -2502,7 +2502,7 @@ export default function Mitra({ user }) {
                   gap: '12px'
                 }}>
                   <label style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                    🏪 Profil Ruko, Kontak & Jam Operasional Umum:
+                    Profil Ruko, Kontak & Jam Operasional Umum:
                   </label>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -2599,7 +2599,7 @@ export default function Mitra({ user }) {
 
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                       <span style={{ fontSize: '0.76rem', fontWeight: 700, color: customPaymentEnabled ? '#34d399' : '#94a3b8' }}>
-                        {customPaymentEnabled ? '✅ Mandiri Aktif' : 'Nonaktif'}
+                        {customPaymentEnabled ? 'Mandiri Aktif' : 'Nonaktif'}
                       </span>
                       <input
                         type="checkbox"
@@ -2624,7 +2624,7 @@ export default function Mitra({ user }) {
                   }}>
                     <div>
                       <div style={{ fontSize: '0.7rem', color: '#93c5fd', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                        🎟️ Saldo Kuota Nota Aktif (Rp 100 / Nota)
+                        Saldo Kuota Nota Aktif (Rp 100 / Nota)
                       </div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
                         <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#f8fafc', fontFamily: 'var(--font-mono)' }}>
@@ -2642,7 +2642,7 @@ export default function Mitra({ user }) {
                         </span>
                       </div>
                       <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
-                        💡 Syarat sistem: Setiap transaksi lewat QRIS/TF pribadi memotong 1 kuota nota (Rp 100). Harga nota sama dengan biaya admin KostKu.
+                        Syarat sistem: Setiap transaksi lewat QRIS/TF pribadi memotong 1 kuota nota (Rp 100). Harga nota sama dengan biaya admin KostKu.
                       </span>
                     </div>
 
@@ -2845,7 +2845,7 @@ export default function Mitra({ user }) {
                       }}
                     >
                       <Printer size={16} />
-                      <span>🖨️ Cetak Rekap Laporan</span>
+                      <span>Cetak Rekap Laporan</span>
                     </button>
                   </div>
                 </div>
@@ -2870,7 +2870,7 @@ export default function Mitra({ user }) {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
                         <div style={{ fontSize: '0.72rem', color: '#c084fc', textTransform: 'uppercase', fontWeight: 800 }}>
-                          💳 Saldo Dompet Terpadu (Kasir POS &amp; Mitra Toko)
+                          Saldo Dompet Terpadu (Kasir POS &amp; Mitra Toko)
                         </div>
                         <span style={{
                           fontSize: '0.68rem',
@@ -2943,7 +2943,7 @@ export default function Mitra({ user }) {
                   }}>
                     <div>
                       <div style={{ fontSize: '0.72rem', color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>
-                        🎟️ Saldo Kuota Nota (Metode Mandiri)
+                        Saldo Kuota Nota (Metode Mandiri)
                       </div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
                         <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#f8fafc', fontFamily: 'var(--font-mono)' }}>
@@ -3081,9 +3081,9 @@ export default function Mitra({ user }) {
                       <div style={{ background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.7)', border: '1px solid var(--border-color)', borderRadius: '14px', padding: '14px' }}>
                         <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Rincian Kanal Bayar</div>
                         <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <div>💳 QRIS TriPay: <strong>Rp {qrisPlatform.toLocaleString('id-ID')}</strong></div>
-                          <div>📱 QRIS/TF Mandiri: <strong>Rp {customDirect.toLocaleString('id-ID')}</strong></div>
-                          <div>💵 Tunai (COD): <strong>Rp {tunai.toLocaleString('id-ID')}</strong></div>
+                          <div>QRIS TriPay: <strong>Rp {qrisPlatform.toLocaleString('id-ID')}</strong></div>
+                          <div>QRIS/TF Mandiri: <strong>Rp {customDirect.toLocaleString('id-ID')}</strong></div>
+                          <div>Tunai (COD): <strong>Rp {tunai.toLocaleString('id-ID')}</strong></div>
                         </div>
                       </div>
                     </div>
@@ -3236,7 +3236,7 @@ export default function Mitra({ user }) {
 
               <div style={{ background: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.08)', border: isLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '12px', padding: '12px 14px' }}>
                 <div style={{ fontSize: '0.72rem', color: isLight ? '#b45309' : '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>🪙</span> Reward Poin Transaksi Mitra
+                  <Sparkles size={13} /> Reward Poin Transaksi Mitra
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 900, color: isLight ? '#d97706' : '#fbbf24', marginTop: '2px' }}>
                   {((orders.length || 0) * 100).toLocaleString('id-ID')} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Poin (Rp {((orders.length || 0) * 100).toLocaleString('id-ID')})</span>
@@ -3280,7 +3280,7 @@ export default function Mitra({ user }) {
                 transition: 'all 0.2s'
               }}
             >
-              🏪 Direktori Mitra ({merchants.length})
+              Direktori Mitra ({merchants.length})
             </button>
 
             <button
@@ -3384,7 +3384,7 @@ export default function Mitra({ user }) {
                   maxWidth: '560px',
                   margin: '1.5rem auto'
                 }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🏪</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: '#38bdf8' }}><Store size={42} /></div>
                   <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                     Mitra Belum Ada
                   </h3>
@@ -3449,7 +3449,7 @@ export default function Mitra({ user }) {
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '1.75rem' }}>{merchant.icon || '🏪'}</span>
+                            <Store size={24} color="#3b82f6" style={{ flexShrink: 0 }} />
                             <div>
                               <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                                 {merchant.name}
@@ -3504,7 +3504,7 @@ export default function Mitra({ user }) {
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
                             <span>Reward Poin Transaksi:</span>
-                            <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>🪙 +100 Poin (Rp 100) / trx</strong>
+                            <strong style={{ color: isLight ? '#b45309' : '#fbbf24' }}>+100 Poin (Rp 100) / trx</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginTop: '2px' }}>
                             <span>Potongan Biaya Mitra:</span>
@@ -3587,7 +3587,7 @@ export default function Mitra({ user }) {
 
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.78rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
-                      🪙 +100 Poin (Rp 100) Reward
+                      +100 Poin (Rp 100) Reward
                     </div>
                     <div style={{ fontSize: '0.7rem', color: isLight ? '#16a34a' : '#4ade80', fontWeight: 600 }}>
                       Bebas Biaya Extra Mitra (0%)
@@ -3669,7 +3669,7 @@ export default function Mitra({ user }) {
                     }}
                   >
                     <Printer size={15} />
-                    <span>🖨️ Cetak Rekap Owner</span>
+                    <span>Cetak Rekap Owner</span>
                   </button>
                 </div>
               </div>
@@ -4049,24 +4049,24 @@ export default function Mitra({ user }) {
                     onChange={e => {
                       const cat = e.target.value;
                       const iconMap = {
-                        makanan: '🍱',
-                        laundry: '🧺',
-                        galon: '💧',
-                        service: '❄️',
-                        kelontong: '🏪',
-                        lainnya: '✨'
+                        makanan: '',
+                        laundry: '',
+                        galon: '',
+                        service: '',
+                        kelontong: '',
+                        lainnya: ''
                       };
-                      setNewStoreForm(prev => ({ ...prev, category: cat, icon: iconMap[cat] || '🏪' }));
+                      setNewStoreForm(prev => ({ ...prev, category: cat, icon: iconMap[cat] || '' }));
                     }}
                     className="form-control"
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '12px' }}
                   >
-                    <option value="makanan">🍱 Makanan & Minuman</option>
-                    <option value="laundry">🧺 Laundry & Cuci</option>
-                    <option value="galon">💧 Air Galon & Gas</option>
-                    <option value="service">❄️ Service AC & Elektronik</option>
-                    <option value="kelontong">🏪 Toko Kelontong & Snack</option>
-                    <option value="lainnya">✨ Layanan Lainnya</option>
+                    <option value="makanan">Makanan & Minuman</option>
+                    <option value="laundry">Laundry & Cuci</option>
+                    <option value="galon">Air Galon & Gas</option>
+                    <option value="service">Service AC & Elektronik</option>
+                    <option value="kelontong">Toko Kelontong & Snack</option>
+                    <option value="lainnya">Layanan Lainnya</option>
                   </select>
                 </div>
 
@@ -4124,9 +4124,9 @@ export default function Mitra({ user }) {
                     className="form-control"
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '12px' }}
                   >
-                    <option value="both">🛵 Antar & Ambil di Ruko</option>
-                    <option value="delivery">🛵 Hanya Antar ke Kamar</option>
-                    <option value="pickup">🏪 Hanya Ambil di Toko</option>
+                    <option value="both">Antar & Ambil di Ruko</option>
+                    <option value="delivery">Hanya Antar ke Kamar</option>
+                    <option value="pickup">Hanya Ambil di Toko</option>
                   </select>
                 </div>
 
@@ -4323,13 +4323,13 @@ export default function Mitra({ user }) {
                         flexShrink: 0,
                         boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)'
                       }}>
-                        {currentMerchant?.icon || '💧'}
+                        <Store size={22} color="#ffffff" />
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span>Layanan Non-FnB ({currentMerchant?.name || 'Toko'})</span>
                           <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', fontWeight: 800 }}>
-                            🏷️ Cukup Logo Toko
+                            Cukup Logo Toko
                           </span>
                         </div>
                         <p style={{ margin: '3px 0 0', fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.4 }}>
@@ -4356,7 +4356,7 @@ export default function Mitra({ user }) {
                     <span>Foto Produk Asli (Wajib Kamera Nyata)</span>
                   </label>
                   <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', fontWeight: 700 }}>
-                    🔍 Anti-AI Detector
+                    Anti-AI Detector
                   </span>
                 </div>
 
@@ -4498,7 +4498,7 @@ export default function Mitra({ user }) {
                         cursor: 'pointer'
                       }}
                     >
-                      📸 Uji Jepretan Kamera HP Asli (Ada Sensor Noise)
+                      Uji Jepretan Kamera HP Asli (Ada Sensor Noise)
                     </button>
                     <button
                       type="button"
@@ -4514,7 +4514,7 @@ export default function Mitra({ user }) {
                         cursor: 'pointer'
                       }}
                     >
-                      🤖 Uji Render AI Murni (Zero-Defect)
+                      Uji Render AI Murni (Zero-Defect)
                     </button>
                     <button
                       type="button"
@@ -4530,7 +4530,7 @@ export default function Mitra({ user }) {
                         cursor: 'pointer'
                       }}
                     >
-                      🌐 Uji Foto Stock Internet (Airbrushed Ditolak)
+                      Uji Foto Stock Internet (Airbrushed Ditolak)
                     </button>
                   </div>
                 </div>
@@ -4660,7 +4660,7 @@ export default function Mitra({ user }) {
                               border: '1px solid #f59e0b',
                               fontWeight: 800
                             }}>
-                              ⚠️ PERLU CEK ULANG KAMERA
+                              PERLU CEK ULANG KAMERA
                             </span>
                           )}
 
@@ -4745,7 +4745,7 @@ export default function Mitra({ user }) {
                   />
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      🔥 Tandai Sebagai Menu Best Seller
+                      Tandai Sebagai Menu Best Seller
                     </div>
                     <div style={{ fontSize: '0.70rem', color: '#94a3b8', marginTop: '2px' }}>
                       Menu ini akan ditampilkan paling depan dengan badge Best Seller di dashboard anak kost.
@@ -4801,14 +4801,14 @@ export default function Mitra({ user }) {
                       }}
                     >
                       {!isCurrentFnB
-                        ? '✅ Simpan Layanan Non-FnB (Logo Resmi)'
+                        ? 'Simpan Layanan Non-FnB (Logo Resmi)'
                         : imageDetectorState.isScanning
                         ? 'Memindai Sensor Noise...'
                         : !imageDetectorState.result
                         ? 'Wajib Foto Kamera Asli'
                         : imageDetectorState.result?.verdict === 'AI_GENERATED'
-                        ? '❌ Foto AI / Stock Ditolak'
-                        : '🛡️ Simpan Menu Kamera Asli'}
+                        ? 'Foto AI / Stock Ditolak'
+                        : 'Simpan Menu Kamera Asli'}
                     </button>
                   </div>
                 );
@@ -4908,7 +4908,7 @@ export default function Mitra({ user }) {
                   marginTop: '6px',
                   lineHeight: 1.3
                 }}>
-                  🎁 Masukkan kode referral untuk mendapatkan <strong>500 Kuota Transaksi Kasir GRATIS</strong> (Hemat Rp 50.000)!
+                  Masukkan kode referral untuk mendapatkan <strong>500 Kuota Transaksi Kasir GRATIS</strong> (Hemat Rp 50.000)!
                 </div>
 
                 {newMerchant.referralCode && newMerchant.referralCode.trim().length >= 3 && (
@@ -5062,7 +5062,7 @@ export default function Mitra({ user }) {
                 padding: '12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700 }}>
-                  <span>🪙</span> Reward Poin Transaksi (Bebas Biaya Extra Owner)
+                  <Sparkles size={14} /> Reward Poin Transaksi (Bebas Biaya Extra Owner)
                 </div>
                 <div style={{ fontSize: '0.72rem', color: isLight ? '#78350f' : '#fef3c7', marginTop: '4px', lineHeight: 1.4 }}>
                   Biaya extra owner dihapus (0% potongan ke mitra). Sebagai gantinya, Anda mendapatkan reward <strong>+100 Poin (Rp 100)</strong> per transaksi pesanan berhasil. Admin KostKu tetap Flat Rp 500.

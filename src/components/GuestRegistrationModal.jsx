@@ -95,7 +95,7 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
       setDurationDays(1);
       setActiveTab('active');
       await fetchGuests();
-      alert('✅ Izin tamu menginap berhasil didaftarkan ke sistem manajemen kost!');
+      alert('Izin tamu menginap berhasil didaftarkan ke sistem manajemen kost!');
     } catch (err) {
       alert('Gagal mendaftarkan tamu: ' + (err.message || 'Terjadi kesalahan'));
     } finally {
@@ -436,11 +436,11 @@ export default function GuestRegistrationModal({ isOpen, onClose, user, kostUid 
                   className="input-field"
                   style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
                 >
-                  <option value="Keluarga / Saudara">👨‍👩‍👦 Keluarga / Saudara Kandung</option>
-                  <option value="Orang Tua">👵 Orang Tua</option>
-                  <option value="Teman Kuliah / Kampus">🎓 Teman Kuliah / Kampus</option>
-                  <option value="Rekan Kerja">💼 Rekan Kerja</option>
-                  <option value="Lainnya">🤝 Lainnya</option>
+                  <option value="Keluarga / Saudara">Keluarga / Saudara Kandung</option>
+                  <option value="Orang Tua">Orang Tua</option>
+                  <option value="Teman Kuliah / Kampus">Teman Kuliah / Kampus</option>
+                  <option value="Rekan Kerja">Rekan Kerja</option>
+                  <option value="Lainnya">Lainnya</option>
                 </select>
               </div>
 

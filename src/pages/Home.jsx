@@ -71,23 +71,23 @@ import {
 import KostCardSkeleton from '../components/KostCardSkeleton';
 
 export const CITY_BADGES = [
-  { id: 'all', name: 'Semua Kota', icon: '🌐' },
-  { id: 'Semarang', name: 'Semarang', icon: '☕' },
-  { id: 'Jakarta', name: 'Jakarta', icon: '🏙️' },
-  { id: 'Bandung', name: 'Bandung', icon: '🌲' },
-  { id: 'Yogyakarta', name: 'Yogyakarta', icon: '🏛️' },
-  { id: 'Surabaya', name: 'Surabaya', icon: '⚓' },
-  { id: 'Malang', name: 'Malang', icon: '🏔️' },
-  { id: 'Bali', name: 'Bali', icon: '🌴' },
-  { id: 'Tangerang', name: 'Tangerang', icon: '🏢' }
+  { id: 'all', name: 'Semua Kota', icon: '' },
+  { id: 'Semarang', name: 'Semarang', icon: '' },
+  { id: 'Jakarta', name: 'Jakarta', icon: '' },
+  { id: 'Bandung', name: 'Bandung', icon: '' },
+  { id: 'Yogyakarta', name: 'Yogyakarta', icon: '' },
+  { id: 'Surabaya', name: 'Surabaya', icon: '' },
+  { id: 'Malang', name: 'Malang', icon: '' },
+  { id: 'Bali', name: 'Bali', icon: '' },
+  { id: 'Tangerang', name: 'Tangerang', icon: '' }
 ];
 
 export const KOST_TYPES = [
   { id: 'all', label: 'Semua Tipe' },
-  { id: 'Putri', label: '🌸 Khusus Putri' },
-  { id: 'Putra', label: '👔 Khusus Putra' },
-  { id: 'Campur', label: '🏡 Campur' },
-  { id: 'Pasutri', label: '👫 Boleh Pasutri' }
+  { id: 'Putri', label: 'Khusus Putri' },
+  { id: 'Putra', label: 'Khusus Putra' },
+  { id: 'Campur', label: 'Campur' },
+  { id: 'Pasutri', label: 'Boleh Pasutri' }
 ];
 
 export const MARKETING_BANNERS = [
@@ -96,7 +96,7 @@ export const MARKETING_BANNERS = [
     track: 'banner-asli',
     borderColor: '#10B981',
     badgeColor: '#10b981',
-    badge: '🛡️ VERIFIKASI FISIK & FOTO',
+    badge: 'VERIFIKASI FISIK & FOTO',
     titleMain: '100%',
     titleAccent: 'Asli',
     accentColor: '#10b981',
@@ -107,7 +107,7 @@ export const MARKETING_BANNERS = [
     track: 'banner-rp0',
     borderColor: '#2563EB',
     badgeColor: '#2563EB',
-    badge: '⚡ BIAYA TRANSPARAN',
+    badge: 'BIAYA TRANSPARAN',
     titleMain: '< 1K',
     titleAccent: 'Biaya Admin',
     accentColor: '#2563EB',
@@ -118,7 +118,7 @@ export const MARKETING_BANNERS = [
     track: 'banner-rating',
     borderColor: '#F59E0B',
     badgeColor: '#D97706',
-    badge: '⭐ KEPUASAN PENGHUNI',
+    badge: 'KEPUASAN PENGHUNI',
     titleMain: '4.9',
     titleAccent: '/ 5.0',
     accentColor: '#D97706',
@@ -311,7 +311,7 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
           boxShadow: '0 4px 14px rgba(245, 158, 11, 0.55)',
           border: '1px solid rgba(255, 255, 255, 0.4)'
         }}>
-          <span>🚀</span>
+          <Star size={11} fill="currentColor" />
           <span>{promotedBadge || 'Rekomendasi Utama'}</span>
         </div>
       )}
@@ -1036,19 +1036,19 @@ export default function Home({ user }) {
               }}>
                 {activeUser.role === 'owner' || activeUser.role === 'master' ? (
                   <>
-                    Selamat Datang Kembali, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Juragan'}</span> 👋
+                    Selamat Datang Kembali, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Juragan'}</span>
                   </>
                 ) : activeUser.role === 'mitra' ? (
                   <>
-                    Selamat Datang, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Mitra Usaha'}</span> 🏪
+                    Selamat Datang, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Mitra Usaha'}</span>
                   </>
                 ) : activeUser.role === 'staff' ? (
                   <>
-                    Semangat Bertugas, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Staf Operasional'}</span> 👷
+                    Semangat Bertugas, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Staf Operasional'}</span>
                   </>
                 ) : (
                   <>
-                    Halo, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Sobat Kost'}</span> 👋
+                    Halo, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Sobat Kost'}</span>
                   </>
                 )}
               </h1>
@@ -1098,12 +1098,12 @@ export default function Home({ user }) {
                 >
                   <span>
                     {activeUser.role === 'owner' || activeUser.role === 'master'
-                      ? '🏢 Buka Dashboard Juragan'
+                      ? 'Buka Dashboard Juragan'
                       : activeUser.role === 'mitra'
-                      ? '🏪 Buka Portal Toko & Kasir'
+                      ? 'Buka Portal Toko & Kasir'
                       : activeUser.role === 'staff'
-                      ? '🛠️ Buka Tugas & Meteran'
-                      : '🏢 Ke Kost Saya'}
+                      ? 'Buka Tugas & Meteran'
+                      : 'Ke Kost Saya'}
                   </span>
                   <ChevronRight size={14} />
                 </Link>
@@ -1148,7 +1148,7 @@ export default function Home({ user }) {
               <Search size={20} color={userLocation ? "#10b981" : "#60a5fa"} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, color: userLocation ? '#10b981' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {userLocation ? '📍 Lokasi / GPS Terkunci' : 'Cari Kosan'}
+                  {userLocation ? 'Lokasi / GPS Terkunci' : 'Cari Kosan'}
                 </label>
                 <input
                   type="text"
@@ -1298,7 +1298,7 @@ export default function Home({ user }) {
                   }}
                   title="Hapus filter kota"
                 >
-                  <span>📍 {selectedCity}</span>
+                  <span>{selectedCity}</span>
                   <X size={12} />
                 </button>
               )}
@@ -1346,7 +1346,7 @@ export default function Home({ user }) {
                   }}
                   title="Hapus filter harga"
                 >
-                  <span>💰 {selectedPriceRange === 'under-1.5m' ? '< 1.5 Jt' : selectedPriceRange === '1.5m-2.5m' ? '1.5 - 2.5 Jt' : '> 2.5 Jt'}</span>
+                  <span>{selectedPriceRange === 'under-1.5m' ? '< 1.5 Jt' : selectedPriceRange === '1.5m-2.5m' ? '1.5 - 2.5 Jt' : '> 2.5 Jt'}</span>
                   <X size={12} />
                 </button>
               )}
@@ -1370,7 +1370,7 @@ export default function Home({ user }) {
                   }}
                   title="Hapus patokan lokasi"
                 >
-                  <span>📍 {userLocation.label} {maxDistanceRadius !== 'all' ? `(< ${maxDistanceRadius}km)` : ''}</span>
+                  <span>{userLocation.label} {maxDistanceRadius !== 'all' ? `(< ${maxDistanceRadius}km)` : ''}</span>
                   <X size={12} />
                 </button>
               )}
@@ -2011,9 +2011,9 @@ export default function Home({ user }) {
             border: '1px solid var(--border-color)',
             color: 'var(--text-secondary)'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏡</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: 'var(--accent-primary)' }}><Building size={42} /></div>
             <h3 style={{ color: 'var(--text-primary)', fontWeight: 800, margin: '0 0 0.5rem 0' }}>
-              Belum Ada Kost yang Cocok? Ayok, Mari Tambah Kost di Sini! 🚀
+              Belum Ada Kost yang Cocok? Ayok, Mari Tambah Kost di Sini!
             </h3>
             <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
               Punya properti hunian di area ini atau ingin mendaftarkan kamar kost Anda secara gratis? Daftarkan properti Anda sekarang agar langsung dilihat oleh ribuan mahasiswa & pencari kost!
@@ -2102,7 +2102,7 @@ export default function Home({ user }) {
                     fontWeight: 600,
                     marginBottom: '0.85rem'
                   }}>
-                    <span>⏸️</span>
+                    <Pause size={13} />
                     <span>Auto-scroll dijeda sementara saat kursor diarahkan ke kartu kost</span>
                   </div>
                 )}
@@ -2468,7 +2468,7 @@ function KostCard({ kost, userLocation }) {
               borderRadius: '6px',
               marginBottom: '6px'
             }}>
-              <span>⭐ Rekomendasi Unggulan #1</span>
+              <span>Rekomendasi Unggulan #1</span>
             </div>
           )}
           
@@ -2552,7 +2552,7 @@ function KostCard({ kost, userLocation }) {
               borderRadius: '6px',
               flexShrink: 0
             }}>
-              📐 {roomDimension}
+              {roomDimension}
             </span>
           </div>
 
@@ -2656,7 +2656,7 @@ function KostCard({ kost, userLocation }) {
                       fontSize: '0.68rem',
                       fontWeight: 700
                     }}>
-                      🏷️ {kost.discount.type === 'percent' ? `Diskon ${kost.discount.value}%` : `Hemat ${Math.round(kost.discount.value / 1000)}rb`}
+                      {kost.discount.type === 'percent' ? `Diskon ${kost.discount.value}%` : `Hemat ${Math.round(kost.discount.value / 1000)}rb`}
                     </span>
                   </div>
                 )}
@@ -2691,7 +2691,7 @@ function KostCard({ kost, userLocation }) {
                   style={{ textDecoration: 'none' }}
                   title="Tanya langsung ke pemilik via WhatsApp"
                 >
-                  <TactileButton variant="whatsapp" size="sm" icon={<span style={{ fontSize: '13px' }}>💬</span>}>
+                  <TactileButton variant="whatsapp" size="sm" icon={<ArrowUpRight size={13} />}>
                     Tanya Pemilik
                   </TactileButton>
                 </a>

@@ -363,7 +363,7 @@ export default function CloudSyncModal({ isOpen, onClose }) {
             )}
 
             <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              💡 <strong>Tips Multi-Device:</strong> Jalankan script <code>bash scripts/start-online.sh</code> di terminal untuk membuat link online HTTPS gratis via Pinggy secara instan!
+              <strong>Tips Multi-Device:</strong> Jalankan script <code>bash scripts/start-online.sh</code> di terminal untuk membuat link online HTTPS gratis via Pinggy secara instan!
             </div>
           </div>
         )}
@@ -448,7 +448,7 @@ export default function CloudSyncModal({ isOpen, onClose }) {
             )}
 
             <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              📄 <strong>File SQL Schema:</strong> Skema database lengkap telah disediakan di file <code>supabase-schema.sql</code>. Anda cukup copy-paste ke SQL Editor Supabase!
+              <strong>File SQL Schema:</strong> Skema database lengkap telah disediakan di file <code>supabase-schema.sql</code>. Anda cukup copy-paste ke SQL Editor Supabase!
             </div>
           </div>
         )}
@@ -533,7 +533,7 @@ export default function CloudSyncModal({ isOpen, onClose }) {
             )}
 
             <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              🔥 <strong>Cara Setup Cepat di Firebase Console:</strong>
+              <strong>Cara Setup Cepat di Firebase Console:</strong>
               <ol style={{ margin: '6px 0 0 16px', padding: 0 }}>
                 <li>Buka <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" style={{ color: '#38bdf8' }}>console.firebase.google.com</a> dan buat project baru.</li>
                 <li>Pilih menu <strong>Firestore Database</strong> &gt; Klik <strong>Create database</strong>.</li>

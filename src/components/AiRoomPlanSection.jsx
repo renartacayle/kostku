@@ -90,12 +90,12 @@ export default function AiRoomPlanSection({
   ];
 
   const FURNITURE_OPTIONS = [
-    { id: 'wardrobe', label: 'Lemari Pakaian 2 Pintu', icon: '🚪' },
-    { id: 'desk', label: 'Meja Kerja / Belajar & Kursi', icon: '💻' },
-    { id: 'bathroom', label: 'Kamar Mandi Dalam (Ensuite)', icon: '🚿' },
-    { id: 'ac', label: 'AC Dinding 1 PK', icon: '❄️' },
-    { id: 'window', label: 'Jendela Menghadap Luar', icon: '🪟' },
-    { id: 'fridge', label: 'Kulkas Mini', icon: '🧊' }
+    { id: 'wardrobe', label: 'Lemari Pakaian 2 Pintu', icon: '' },
+    { id: 'desk', label: 'Meja Kerja / Belajar & Kursi', icon: '' },
+    { id: 'bathroom', label: 'Kamar Mandi Dalam (Ensuite)', icon: '' },
+    { id: 'ac', label: 'AC Dinding 1 PK', icon: '' },
+    { id: 'window', label: 'Jendela Menghadap Luar', icon: '' },
+    { id: 'fridge', label: 'Kulkas Mini', icon: '' }
   ];
 
   const DIMENSION_OPTIONS = [
@@ -317,7 +317,7 @@ export default function AiRoomPlanSection({
               marginTop: '2px',
               boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)'
             }}>
-              🤖
+              
             </div>
             <div>
               <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc' }}>
@@ -332,7 +332,7 @@ export default function AiRoomPlanSection({
           {/* Question 1: Bed Size */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#93c5fd', marginBottom: '8px' }}>
-              ❓ 1. Di foto kamar ini, kasurnya ukuran berapa?
+              1. Di foto kamar ini, kasurnya ukuran berapa?
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
               {BED_OPTIONS.map(b => (
@@ -365,7 +365,7 @@ export default function AiRoomPlanSection({
           {/* Question 2: Furnitures Checklist */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#93c5fd', marginBottom: '8px' }}>
-              ❓ 2. Furniture & Fasilitas apa saja yang tersedia di kamar ini?
+              2. Furniture & Fasilitas apa saja yang tersedia di kamar ini?
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
               {FURNITURE_OPTIONS.map(f => {
@@ -385,7 +385,7 @@ export default function AiRoomPlanSection({
                       gap: '8px'
                     }}
                   >
-                    <span style={{ fontSize: '1.1rem' }}>{f.icon}</span>
+                    <Layers size={15} color={isChecked ? '#60a5fa' : '#94a3b8'} style={{ flexShrink: 0 }} />
                     <span style={{ fontSize: '0.78rem', color: isChecked ? '#93c5fd' : '#cbd5e1', flex: 1 }}>
                       {f.label}
                     </span>
@@ -410,7 +410,7 @@ export default function AiRoomPlanSection({
           {/* Question 3: Room Dimensions */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#93c5fd', marginBottom: '8px' }}>
-              ❓ 3. Berapa perkiraan ukuran ruangan kamar?
+              3. Berapa perkiraan ukuran ruangan kamar?
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
               {DIMENSION_OPTIONS.map(d => (
@@ -451,7 +451,7 @@ export default function AiRoomPlanSection({
               boxShadow: '0 4px 20px rgba(37, 99, 235, 0.45)'
             }}
           >
-            <Sparkles size={16} /> ✨ Generate Denah 2D Otomatis Sekarang
+            <Sparkles size={16} /> Generate Denah 2D Otomatis Sekarang
           </button>
         </div>
       )}

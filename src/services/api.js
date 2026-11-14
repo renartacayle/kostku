@@ -486,7 +486,7 @@ export const apiCreateOwnerKost = async (data) => {
 
       if (refCode) {
         referralBonusAwarded = true;
-        referralMessage = `🎉 Kode referral ${refCode} berhasil diterapkan! Penghuni menerima +1.000 Poin loyalty dan akun Pemilik Anda mendapat bonus sambutan +500 Poin!`;
+        referralMessage = `Kode referral ${refCode} berhasil diterapkan! Penghuni menerima +1.000 Poin loyalty dan akun Pemilik Anda mendapat bonus sambutan +500 Poin!`;
         try {
           const uStr = localStorage.getItem('kostUser');
           if (uStr) {
@@ -554,6 +554,51 @@ export const apiUpdateStaff = (id, data) => {
 export const apiDeleteStaff = (id) => {
   return request(`/owner/staff/${id}`, {
     method: 'DELETE'
+  });
+};
+
+// ── Staff Invitation Links (WhatsApp & Gmail) ───────────────
+export const apiGetStaffInvites = (kostUid = null, ownerId = null, status = null) => {
+  const params = new URLSearchParams();
+  if (kostUid) params.append('kostUid', kostUid);
+  if (ownerId) params.append('ownerId', ownerId);
+  if (status) params.append('status', status);
+  return request(`/owner/staff-invites?${params.toString()}`);
+};
+
+export const apiCreateStaffInvite = (data) => {
+  return request('/owner/staff-invites', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...data,
+      origin: typeof window !== 'undefined' ? window.location.origin : ''
+    })
+  });
+};
+
+export const apiResendStaffInvite = (id) => {
+  return request(`/owner/staff-invites/${id}/resend`, {
+    method: 'POST',
+    body: JSON.stringify({
+      origin: typeof window !== 'undefined' ? window.location.origin : ''
+    })
+  });
+};
+
+export const apiCancelStaffInvite = (id) => {
+  return request(`/owner/staff-invites/${id}`, {
+    method: 'DELETE'
+  });
+};
+
+export const apiGetPublicStaffInvite = (token) => {
+  return request(`/staff-invites/${encodeURIComponent(token)}`);
+};
+
+export const apiAcceptStaffInvite = (token, data) => {
+  return request(`/staff-invites/${encodeURIComponent(token)}/accept`, {
+    method: 'POST',
+    body: JSON.stringify(data)
   });
 };
 
@@ -1066,7 +1111,7 @@ export const apiCreateMerchant = async (data) => {
       res.bonusAwarded = false;
       res.bonusPoints = 0;
       res.isAlreadyRegistered = true;
-      res.message = '⚠️ Mitra ini sudah pernah didaftarkan sebelumnya. Data mitra disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang (hanya berlaku 1x per mitra baru).';
+      res.message = 'Mitra ini sudah pernah didaftarkan sebelumnya. Data mitra disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang (hanya berlaku 1x per mitra baru).';
     } else if (res?.bonusAwarded && !history.includes(normKey)) {
       history.push(normKey);
       try { localStorage.setItem('kostku_registered_partners', JSON.stringify(history)); } catch (_) {}
@@ -1083,11 +1128,11 @@ export const apiCreateMerchant = async (data) => {
       if (refCode) {
         if (isAlreadyRegistered) {
           bonusAwarded = false;
-          responseMsg = '⚠️ Mitra ini sudah pernah didaftarkan sebelumnya. Data mitra disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang (hanya berlaku 1x per mitra baru).';
+          responseMsg = 'Mitra ini sudah pernah didaftarkan sebelumnya. Data mitra disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang (hanya berlaku 1x per mitra baru).';
         } else {
           bonusAwarded = true;
           bonusPoints = 500;
-          responseMsg = `🎉 Selamat! Mitra baru berhasil didaftarkan dan bonus referral +${bonusPoints} Poin berhasil diklaim! (Kode: ${refCode})`;
+          responseMsg = `Selamat! Mitra baru berhasil didaftarkan dan bonus referral +${bonusPoints} Poin berhasil diklaim! (Kode: ${refCode})`;
           history.push(normKey);
           localStorage.setItem('kostku_registered_partners', JSON.stringify(history));
 
@@ -1108,7 +1153,7 @@ export const apiCreateMerchant = async (data) => {
         id: 'PTR-' + Date.now(),
         name,
         category: data.category || 'Warung & Kuliner',
-        icon: data.icon || '🏪',
+        icon: data.icon || '',
         phone: data.phone || '',
         address: data.address || 'Sekitar Kost',
         distanceKm: Number(data.distanceKm) || 0.2,
@@ -1177,7 +1222,7 @@ export const apiSuggestMerchant = async (data) => {
         } else {
           bonusAwarded = true;
           bonusPoints = 500;
-          responseMsg = `🎉 Usulan warung "${name}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
+          responseMsg = `Usulan warung "${name}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
           history.push(normKey);
           localStorage.setItem('kostku_registered_partners', JSON.stringify(history));
 

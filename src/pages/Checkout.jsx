@@ -701,7 +701,7 @@ export default function Checkout({ user }) {
                             {selectedKost.kostName}
                           </h3>
                           <p style={{ fontSize: '0.8rem', color: themeStyles.textMuted, margin: '0 0 6px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            📍 {selectedKost.address || 'Semarang, Jawa Tengah (Area Kampus UDINUS)'}
+                            {selectedKost.address || 'Semarang, Jawa Tengah (Area Kampus UDINUS)'}
                           </p>
                           <span style={{
                             display: 'inline-block',
@@ -1009,7 +1009,7 @@ export default function Checkout({ user }) {
                       </h2>
                     </div>
                     <span style={{ fontSize: '0.72rem', color: '#059669', background: 'rgba(16, 185, 129, 0.15)', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                      🔒 TriPay Gateway BI
+                      TriPay Gateway BI
                     </span>
                   </div>
 
@@ -1456,7 +1456,7 @@ export default function Checkout({ user }) {
 
                 <div style={{ textAlign: 'center', marginTop: '6px' }}>
                   <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                    💡 Verifikasi gateway berjalan otomatis di latar belakang setiap 3.5 detik.
+                    Verifikasi gateway berjalan otomatis di latar belakang setiap 3.5 detik.
                   </span>
                 </div>
               </div>
@@ -1496,7 +1496,7 @@ export default function Checkout({ user }) {
               </div>
 
               <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: isLight ? '#0f172a' : '#ffffff', margin: '0 0 6px 0' }}>
-                Pembayaran Berhasil! 🎉
+                Pembayaran Berhasil!
               </h2>
               <p style={{ fontSize: '0.86rem', color: isLight ? '#64748b' : '#94a3b8', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
                 Transaksi sewa kamar telah diverifikasi lunas melalui Payment Gateway resmi. Unit kamar Anda telah siap ditempati.

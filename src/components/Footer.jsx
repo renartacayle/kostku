@@ -153,7 +153,7 @@ export default function Footer() {
           title="Lihat Program Jaminan Pelindung KostKu"
         >
           <ShieldCheck size={15} color="#10b981" />
-          <span>🛡️ Dilindungi Program Pelindung KostKu • Jaminan Transaksi Aman &amp; Anti-Zonk</span>
+          <span>Dilindungi Program Pelindung KostKu • Jaminan Transaksi Aman &amp; Anti-Zonk</span>
         </Link>
 
         {/* Copyright & Location (Clean Single Line) */}

@@ -6,7 +6,7 @@ import { PartyPopper } from 'lucide-react';
  * "A tap bursts confetti out of the button; the pieces flutter and fall."
  */
 export default function ConfettiBurstButton({
-  label = 'Rayakan Sukses 🎉',
+  label = 'Rayakan Sukses',
   onClick,
   className = '',
   style = {}

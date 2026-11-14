@@ -319,7 +319,7 @@ export default function AutoUpdateModal() {
                 color: '#6ee7b7',
                 lineHeight: 1.4
               }}>
-                ℹ️ {downloadNotice}
+                {downloadNotice}
               </div>
             )}
 

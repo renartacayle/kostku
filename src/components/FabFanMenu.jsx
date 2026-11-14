@@ -103,7 +103,9 @@ export default function FabFanMenu() {
     location.pathname.startsWith('/order') ||
     location.pathname.startsWith('/meja') ||
     location.pathname.startsWith('/kasir') ||
-    location.pathname.startsWith('/pos');
+    location.pathname.startsWith('/pos') ||
+    location.pathname.startsWith('/invite-staff') ||
+    location.pathname.startsWith('/gabung-karyawan');
 
   // Determine current active role
   const role = (currentUser?.role || '').toLowerCase();
@@ -278,24 +280,24 @@ export default function FabFanMenu() {
     if (role === 'owner' || role === 'master') {
       return {
         label: 'Aksi Juragan',
-        roleBadge: '👑 Owner'
+        roleBadge: 'Owner'
       };
     }
     if (role === 'mitra' || role === 'bisnis' || role === 'merchant') {
       return {
         label: 'Aksi Toko & Kasir',
-        roleBadge: '🏪 Mitra UMKM'
+        roleBadge: 'Mitra UMKM'
       };
     }
     if (role === 'staff' || role === 'karyawan' || role === 'pegawai') {
       return {
         label: 'Aksi Staf Lapangan',
-        roleBadge: '👔 Pegawai'
+        roleBadge: 'Pegawai'
       };
     }
     return {
       label: 'Aksi Cepat Penghuni',
-      roleBadge: '🔍 Pencari Kost'
+      roleBadge: 'Pencari Kost'
     };
   }, [role]);
 

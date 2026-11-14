@@ -66,7 +66,7 @@ export default function FloorPlanModal({ isOpen, onClose, kost, selectedRoomNumb
                 fontSize: '0.72rem',
                 fontWeight: 700
               }}>
-                📐 Denah Kamar 2D
+                Denah Kamar 2D
               </span>
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'white' }}>
                 {kost.kostName}
@@ -121,7 +121,7 @@ export default function FloorPlanModal({ isOpen, onClose, kost, selectedRoomNumb
           color: '#94A3B8'
         }}>
           <span>
-            💡 Denah memvisualisasikan sirkulasi udara, posisi stopkontak, dan pintu kamar mandi.
+            Denah memvisualisasikan sirkulasi udara, posisi stopkontak, dan pintu kamar mandi.
           </span>
           <button
             onClick={onClose}

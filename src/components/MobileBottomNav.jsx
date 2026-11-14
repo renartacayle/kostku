@@ -39,7 +39,7 @@ export default function MobileBottomNav({ user }) {
     user: {
       key: 'user',
       label: 'Pencari',
-      emoji: '🔍',
+      emoji: '',
       title: 'Pencari Kost',
       rootPath: '/search',
       color: '#38bdf8',
@@ -49,7 +49,7 @@ export default function MobileBottomNav({ user }) {
     owner: {
       key: 'owner',
       label: 'Owner',
-      emoji: '👑',
+      emoji: '',
       title: 'Pemilik Kost (Juragan)',
       rootPath: '/dashboard',
       color: '#f59e0b',
@@ -59,7 +59,7 @@ export default function MobileBottomNav({ user }) {
     mitra: {
       key: 'mitra',
       label: 'Mitra',
-      emoji: '🏪',
+      emoji: '',
       title: 'Mitra UMKM / Kantin',
       rootPath: '/mitra',
       color: '#ec4899',
@@ -69,7 +69,7 @@ export default function MobileBottomNav({ user }) {
     staff: {
       key: 'staff',
       label: 'Pegawai',
-      emoji: '👔',
+      emoji: '',
       title: 'Pegawai / Staf Lapangan',
       rootPath: '/dashboard',
       color: '#10b981',
@@ -235,7 +235,9 @@ export default function MobileBottomNav({ user }) {
     location.pathname.startsWith('/order') ||
     location.pathname.startsWith('/meja') ||
     location.pathname.startsWith('/kasir') ||
-    location.pathname.startsWith('/pos');
+    location.pathname.startsWith('/pos') ||
+    location.pathname.startsWith('/invite-staff') ||
+    location.pathname.startsWith('/gabung-karyawan');
 
   if (shouldHide) {
     return null;

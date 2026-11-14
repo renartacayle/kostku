@@ -29,7 +29,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
     if (role === 'owner' || role === 'master') {
       return [
         { path: '/dashboard', name: 'Kamar & Overview', icon: <LayoutDashboard size={20} /> },
-        { path: '/dashboard?view=staff', name: '🛠️ Tugas & Meteran Staf', icon: <Wrench size={20} /> },
+        { path: '/dashboard?view=staff', name: 'Tugas & Meteran Staf', icon: <Wrench size={20} /> },
         { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} /> },
         { path: '/keuangan', name: 'Keuangan & Laporan', icon: <DollarSign size={20} /> },
         { path: '/kasir', name: 'Terminal Kasir POS', icon: <Store size={20} /> },

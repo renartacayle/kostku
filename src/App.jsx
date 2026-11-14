@@ -65,6 +65,7 @@ const StressTestReport = lazyRetry(() => import('./pages/StressTestReport'), 'St
 const Kasir = lazyRetry(() => import('./pages/Kasir'), 'Kasir');
 const OrderMeja = lazyRetry(() => import('./pages/OrderMeja'), 'OrderMeja');
 const ClaimPoin = lazyRetry(() => import('./pages/ClaimPoin'), 'ClaimPoin');
+const StaffInviteAccept = lazyRetry(() => import('./pages/StaffInviteAccept'), 'StaffInviteAccept');
 
 // Lightweight, tactile loading indicator during route chunks hydration with adaptive buffer feedback
 const PageLoadingFallback = () => {
@@ -399,6 +400,10 @@ function App() {
           <Route path="/klaim" element={<Navigate to="/claim" replace />} />
           <Route path="/loyalty" element={<Navigate to="/claim" replace />} />
           <Route path="/klaim-poin" element={<Navigate to="/claim" replace />} />
+
+          {/* Staff Invitation Accept Links (WhatsApp & Gmail) */}
+          <Route path="/invite-staff/:token" element={<StaffInviteAccept activeUser={activeUser} onLogin={handleLogin} />} />
+          <Route path="/gabung-karyawan/:token" element={<StaffInviteAccept activeUser={activeUser} onLogin={handleLogin} />} />
           
           {/* Redirect legacy /blueprint routes */}
           <Route path="/blueprint" element={<Navigate to={activeUser ? "/dashboard" : "/"} replace />} />

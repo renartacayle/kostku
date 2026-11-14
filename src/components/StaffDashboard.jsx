@@ -99,11 +99,11 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
     setMeterMsg('');
     try {
       await apiSaveIoTMeteran(user.kostUid, meterKamar, meterType, Number(meterValue));
-      setMeterMsg(`✅ Berhasil catat meteran ${meterType} Kamar ${meterKamar}: ${meterValue}`);
+      setMeterMsg(`Berhasil catat meteran ${meterType} Kamar ${meterKamar}: ${meterValue}`);
       setMeterValue('');
       setTimeout(() => setMeterMsg(''), 4000);
     } catch (err) {
-      setMeterMsg('❌ Gagal mencatat meteran. Silakan coba lagi.');
+      setMeterMsg('Gagal mencatat meteran. Silakan coba lagi.');
     } finally {
       setMeterLoading(false);
     }
@@ -116,12 +116,12 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
     setExpMsg('');
     try {
       await apiAddExpense(user.kostUid, expTitle.trim(), Number(expAmount), 'Operasional Lapangan');
-      setExpMsg(`✅ Berhasil catat pengeluaran: Rp ${Number(expAmount).toLocaleString('id-ID')}`);
+      setExpMsg(`Berhasil catat pengeluaran: Rp ${Number(expAmount).toLocaleString('id-ID')}`);
       setExpTitle('');
       setExpAmount('');
       setTimeout(() => setExpMsg(''), 4000);
     } catch (err) {
-      setExpMsg('❌ Gagal mencatat pengeluaran.');
+      setExpMsg('Gagal mencatat pengeluaran.');
     } finally {
       setExpLoading(false);
     }
@@ -165,12 +165,12 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
               : '0 4px 14px rgba(16, 185, 129, 0.4)',
             fontSize: isOwner ? '24px' : 'inherit'
           }}>
-            {isOwner ? '👑' : <Wrench size={26} />}
+            {isOwner ? <ShieldCheck size={26} /> : <Wrench size={26} />}
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
-                Halo, {user?.name || (isOwner ? 'Juragan' : 'Staf Operasional')}! {isOwner ? '👑' : '👋'}
+                Halo, {user?.name || (isOwner ? 'Juragan' : 'Staf Operasional')}!
               </h2>
               <span style={{
                 background: isOwner ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.2)',
@@ -181,7 +181,7 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
                 fontSize: '0.75rem',
                 fontWeight: 700
               }}>
-                {isOwner ? '👑 Mode Ambil Alih Juragan' : `👷 ${user?.jobTitle || 'Penjaga Kost'}`}
+                {isOwner ? 'Mode Ambil Alih Juragan' : (user?.jobTitle || 'Penjaga Kost')}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.88rem' }}>
@@ -237,7 +237,7 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
             {pendingComplaints.length}
           </div>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-            {pendingComplaints.length > 0 ? 'Perlu tindakan atau perbaikan' : 'Semua komplain selesai ✅'}
+            {pendingComplaints.length > 0 ? 'Perlu tindakan atau perbaikan' : 'Semua komplain selesai'}
           </span>
         </div>
 
@@ -577,8 +577,8 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
                 borderRadius: '8px',
                 marginBottom: '12px',
                 fontSize: '0.82rem',
-                background: meterMsg.includes('✅') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                color: meterMsg.includes('✅') ? '#6ee7b7' : '#fca5a5'
+                background: !/gagal/i.test(meterMsg) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                color: !/gagal/i.test(meterMsg) ? '#6ee7b7' : '#fca5a5'
               }}>
                 {meterMsg}
               </div>
@@ -623,7 +623,7 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
                       fontSize: '0.82rem'
                     }}
                   >
-                    ⚡ Listrik (kWh)
+                    Listrik (kWh)
                   </button>
                   <button
                     type="button"
@@ -640,7 +640,7 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
                       fontSize: '0.82rem'
                     }}
                   >
-                    💧 Air (m³)
+                    Air (m³)
                   </button>
                 </div>
               </div>
@@ -684,8 +684,8 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
                 borderRadius: '8px',
                 marginBottom: '12px',
                 fontSize: '0.82rem',
-                background: expMsg.includes('✅') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                color: expMsg.includes('✅') ? '#6ee7b7' : '#fca5a5'
+                background: !/gagal/i.test(expMsg) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                color: !/gagal/i.test(expMsg) ? '#6ee7b7' : '#fca5a5'
               }}>
                 {expMsg}
               </div>

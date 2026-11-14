@@ -38,9 +38,9 @@ const PLANS = [
 ];
 
 const BADGE_OPTIONS = [
-  '🔥 Rekomendasi Utama',
-  '⚡ Prioritas Pencarian',
-  '🌟 Kost Terverifikasi Unggulan'
+  'Rekomendasi Utama',
+  'Prioritas Pencarian',
+  'Kost Terverifikasi Unggulan'
 ];
 
 export default function SundulCheckoutModal({
@@ -49,12 +49,12 @@ export default function SundulCheckoutModal({
   kostName = 'Kost Anda',
   kostUid,
   currentPlan = '7d',
-  currentBadge = '🔥 Rekomendasi Utama',
+  currentBadge = 'Rekomendasi Utama',
   isRenewal = false,
   onSuccess
 }) {
   const [selectedPlanId, setSelectedPlanId] = useState(currentPlan || '7d');
-  const [selectedBadge, setSelectedBadge] = useState(currentBadge || '🔥 Rekomendasi Utama');
+  const [selectedBadge, setSelectedBadge] = useState(currentBadge || 'Rekomendasi Utama');
   const [paymentMethod, setPaymentMethod] = useState('qris'); // 'qris' | 'saldo'
   const [step, setStep] = useState(1); // 1: Pilih Paket & Konfirmasi, 2: Pembayaran QRIS / Saldo, 3: Sukses
   const [loading, setLoading] = useState(false);
@@ -64,7 +64,7 @@ export default function SundulCheckoutModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedPlanId(currentPlan || '7d');
-      setSelectedBadge(currentBadge || '🔥 Rekomendasi Utama');
+      setSelectedBadge(currentBadge || 'Rekomendasi Utama');
       setStep(1);
       setCountdownSeconds(900);
       setLoading(false);
@@ -559,7 +559,7 @@ export default function SundulCheckoutModal({
 
             <div>
               <h3 style={{ margin: '0 0 6px 0', fontSize: '1.3rem', fontWeight: 900, color: '#FFFFFF' }}>
-                🚀 Sundul Kost Berhasil Aktif!
+                Sundul Kost Berhasil Aktif!
               </h3>
               <p style={{ margin: 0, fontSize: '0.84rem', color: '#94A3B8', maxWidth: '400px' }}>
                 Properti Anda kini berada di <strong>Posisi #1 Paling Teratas</strong> pada Beranda dan halaman Pencarian Kost dengan label <strong>{selectedBadge}</strong>.

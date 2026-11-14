@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Store, Star, MapPin, Bike, Clock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, hasOrderedBefore }) {
@@ -240,9 +241,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                   onError={e => { e.currentTarget.style.display = 'none'; }}
                 />
               ) : (
-                <span style={{ fontSize: isMobileScreen ? '1.8rem' : '2.2rem', lineHeight: 1 }}>
-                  {item.icon || (isLaundry ? '🧺' : isGalon ? '💧' : isGas ? '🔥' : '🏪')}
-                </span>
+                <Store size={isMobileScreen ? 26 : 30} color={isLaundry ? '#c084fc' : isGas ? '#fb923c' : '#38bdf8'} />
               )}
             </div>
 
@@ -254,13 +253,12 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
               letterSpacing: '0.02em',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '2px',
+              gap: '3px',
               background: 'rgba(0, 0, 0, 0.35)',
-              padding: '1px 6px',
+              padding: '2px 7px',
               borderRadius: '999px',
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              <span>{item.icon || (isLaundry ? '🧺' : isGalon ? '💧' : '🏪')}</span>
               <span>{isLaundry ? 'Laundry Kiloan' : isGalon ? 'Depot Galon' : isGas ? 'Gas Elpiji' : (item.category || 'Layanan Resmi')}</span>
             </div>
           </div>
@@ -290,7 +288,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
               alignItems: 'center',
               gap: '3px'
             }} title="Kamu pernah memesan di mitra ini (Beli Lagi)">
-              ⚡ Beli Lagi
+              Beli Lagi
             </span>
           ) : (
             <>
@@ -308,7 +306,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                   alignItems: 'center',
                   gap: '2px'
                 }} title="UMKM Baru di KostKu: Dapatkan bonus +150 Poin pada pesanan pertamamu!">
-                  🆕 Baru (+150 Pts)
+                  Baru (+150 Pts)
                 </span>
               ) : activeItem.isRealTopSeller ? (
                 <span style={{
@@ -324,7 +322,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                   alignItems: 'center',
                   gap: '2px'
                 }} title={`Beneran Terlaris: Akumulasi ${activeItem.effectiveSold || activeItem.totalSold || 30}+ pesanan nyata`}>
-                  🔥 Terlaris ({activeItem.effectiveSold || activeItem.totalSold || 30}x)
+                  Terlaris ({activeItem.effectiveSold || activeItem.totalSold || 30}x)
                 </span>
               ) : activeItem.isStorePick ? (
                 <span style={{
@@ -340,7 +338,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                   alignItems: 'center',
                   gap: '2px'
                 }} title="Rekomendasi Toko: Dipilih langsung oleh pemilik toko/mitra">
-                  ⭐ Rekomendasi
+                  Rekomendasi
                 </span>
               ) : (
                 <span style={{
@@ -374,7 +372,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                     gap: '2px',
                     lineHeight: 1.1
                   }} title="Foto Asli Kamera (Sensor Fingerprint Terverifikasi Bebas AI)">
-                    📷 Kamera Asli
+                    Kamera Asli
                   </span>
                 ) : (
                   <span style={{
@@ -391,7 +389,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                     gap: '2px',
                     lineHeight: 1.1
                   }} title="Foto Stock Internet / Olahan Digital (Belum Verifikasi Sensor Kamera Asli)">
-                    ⚠️ Belum Asli
+                    Belum Asli
                   </span>
                 )
               )}
@@ -413,7 +411,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 lineHeight: 1
               }}>
-                👑 Utama
+                Utama
               </span>
             ) : isShared ? (
               <span style={{
@@ -426,7 +424,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 lineHeight: 1
               }}>
-                🤝 Bersama
+                Bersama
               </span>
             ) : isIndependent ? (
               <span style={{
@@ -439,7 +437,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 lineHeight: 1
               }} title="UMKM Mandiri Sekitar Kost (Terbuka tanpa kontrak khusus pemilik kost)">
-                🏪 Mandiri
+                Mandiri
               </span>
             ) : (
               <span style={{
@@ -452,7 +450,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 lineHeight: 1
               }}>
-                🌐 Jaringan
+                Jaringan
               </span>
             )}
           </div>
@@ -515,7 +513,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-            <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{item.icon || '🏪'}</span>
+            <Store size={13} color={isLight ? '#0284c7' : '#38bdf8'} style={{ flexShrink: 0 }} />
             <div style={{
               fontSize: isMobileScreen ? '0.78rem' : '0.86rem',
               fontWeight: 800,
@@ -530,19 +528,19 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             </div>
           </div>
 
-          <div style={{ fontSize: isMobileScreen ? '0.56rem' : '0.62rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap' }}>
-            <span>⭐ 4.8</span>
+          <div style={{ fontSize: isMobileScreen ? '0.56rem' : '0.62rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}><Star size={10} color="#f59e0b" fill="#f59e0b" /> 4.8</span>
             <span>•</span>
-            <span>📍 {item.distanceKm || 0.2} km</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}><MapPin size={10} /> {item.distanceKm || 0.2} km</span>
             <span>•</span>
-            <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>
-              🛵 {item.deliveryFeeType === 'per_km' ? `Rp ${(item.deliveryFeePerKm || 2500).toLocaleString('id-ID')}/km` : `Rp ${(item.deliveryFee || 2000).toLocaleString('id-ID')}`}
+            <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+              <Bike size={10} /> {item.deliveryFeeType === 'per_km' ? `Rp ${(item.deliveryFeePerKm || 2500).toLocaleString('id-ID')}/km` : `Rp ${(item.deliveryFee || 2000).toLocaleString('id-ID')}`}
             </span>
             {item.deliveryStartTime && item.deliveryEndTime && (
               <>
                 <span>•</span>
-                <span style={{ color: isLight ? '#059669' : '#34d399', fontWeight: 600 }}>
-                  🕒 {item.deliveryStartTime}-{item.deliveryEndTime}
+                <span style={{ color: isLight ? '#059669' : '#34d399', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                  <Clock size={10} /> {item.deliveryStartTime}-{item.deliveryEndTime}
                 </span>
               </>
             )}

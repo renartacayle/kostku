@@ -174,7 +174,7 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
               <Sparkles size={12} /> Tambah & Daftarkan Kost Gratis
             </div>
             <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: isLight ? '#0f172a' : 'white' }}>
-              Ayok, Mari Tambah Kost Baru! 🏡
+              Ayok, Mari Tambah Kost Baru!
             </h3>
             <span style={{ fontSize: '0.82rem', color: isLight ? '#64748b' : '#94a3b8' }}>
               Daftarkan kamar & gedung kost Anda agar langsung dilihat ribuan pencari hunian
@@ -195,7 +195,7 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
               <CheckCircle2 size={42} />
             </div>
             <h4 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 8px 0', color: isLight ? '#0f172a' : 'white' }}>
-              Properti Kost Berhasil Ditambahkan! 🎉
+              Properti Kost Berhasil Ditambahkan!
             </h4>
             <p style={{ color: isLight ? '#475569' : '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
               Selamat! <strong>{successData.kostName}</strong> ({successData.city}) kini resmi aktif di direktori pencarian KostKu. Calon penyewa dapat langsung melihat kamar, fasilitas, dan mengajukan sewa secara instan.
@@ -264,9 +264,9 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
                   className="input-field"
                   style={{ width: '100%', padding: '9px 12px', fontSize: '0.88rem' }}
                 >
-                  <option value="Campur">🏡 Campur</option>
-                  <option value="Putri">🌸 Khusus Putri</option>
-                  <option value="Putra">👔 Khusus Putra</option>
+                  <option value="Campur">Campur</option>
+                  <option value="Putri">Khusus Putri</option>
+                  <option value="Putra">Khusus Putra</option>
                 </select>
               </div>
             </div>

@@ -19,11 +19,11 @@ import { apiGetKostReviews, apiSubmitKostReview, apiLikeReview } from '../servic
 import { useTheme } from '../context/ThemeContext';
 
 const RATING_DESCRIPTIONS = {
-  1: '😞 Sangat Kurang',
-  2: '🙁 Kurang Memuaskan',
-  3: '😐 Cukup Baik',
-  4: '😊 Bagus & Nyaman',
-  5: '🤩 Luar Biasa & Sangat Direkomendasikan!'
+  1: 'Sangat Kurang',
+  2: 'Kurang Memuaskan',
+  3: 'Cukup Baik',
+  4: 'Bagus & Nyaman',
+  5: 'Luar Biasa & Sangat Direkomendasikan!'
 };
 
 export default function KostRatingReviewSection({ kostUid, kostName, currentUser, onRatingUpdated }) {
@@ -291,19 +291,19 @@ export default function KostRatingReviewSection({ kostUid, kostName, currentUser
         {/* Aspect Score Breakdown */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>🧹 Kebersihan Kamar:</span>
+            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>Kebersihan Kamar:</span>
             <strong style={{ color: isLight ? '#b45309' : '#facc15' }}>{reviewsData.aspects.cleanliness || 4.9} / 5.0</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>📶 Fasilitas & WiFi:</span>
+            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>Fasilitas & WiFi:</span>
             <strong style={{ color: isLight ? '#b45309' : '#facc15' }}>{reviewsData.aspects.facility || 4.8} / 5.0</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>🛡️ Keamanan & Akses 24 Jam:</span>
+            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>Keamanan & Akses 24 Jam:</span>
             <strong style={{ color: isLight ? '#b45309' : '#facc15' }}>{reviewsData.aspects.security || 5.0} / 5.0</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>📍 Lokasi & Akses Jalan:</span>
+            <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>Lokasi & Akses Jalan:</span>
             <strong style={{ color: isLight ? '#b45309' : '#facc15' }}>{reviewsData.aspects.location || 4.9} / 5.0</strong>
           </div>
         </div>
@@ -467,9 +467,9 @@ export default function KostRatingReviewSection({ kostUid, kostName, currentUser
                   fontSize: '0.75rem' 
                 }}>
                   <div style={{ display: 'flex', gap: '10px', color: isLight ? '#64748b' : '#94a3b8', flexWrap: 'wrap' }}>
-                    {rev.cleanlinessRating && <span>Kebersihan: ⭐{rev.cleanlinessRating}</span>}
-                    {rev.facilityRating && <span>Fasilitas: ⭐{rev.facilityRating}</span>}
-                    {rev.securityRating && <span>Keamanan: ⭐{rev.securityRating}</span>}
+                    {rev.cleanlinessRating && <span>Kebersihan: {rev.cleanlinessRating}</span>}
+                    {rev.facilityRating && <span>Fasilitas: {rev.facilityRating}</span>}
+                    {rev.securityRating && <span>Keamanan: {rev.securityRating}</span>}
                   </div>
 
                   <button
@@ -606,10 +606,10 @@ export default function KostRatingReviewSection({ kostUid, kostName, currentUser
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {[
-                    { label: '🧹 Kebersihan & Kerapian', val: cleanliness, setVal: setCleanliness },
-                    { label: '📶 Fasilitas & WiFi', val: facility, setVal: setFacility },
-                    { label: '🛡️ Keamanan & Penjaga', val: security, setVal: setSecurity },
-                    { label: '📍 Akses Lokasi & Parkir', val: locationScore, setVal: setLocationScore }
+                    { label: 'Kebersihan & Kerapian', val: cleanliness, setVal: setCleanliness },
+                    { label: 'Fasilitas & WiFi', val: facility, setVal: setFacility },
+                    { label: 'Keamanan & Penjaga', val: security, setVal: setSecurity },
+                    { label: 'Akses Lokasi & Parkir', val: locationScore, setVal: setLocationScore }
                   ].map((asp, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
                       <span style={{ color: isLight ? '#334155' : '#cbd5e1' }}>{asp.label}</span>

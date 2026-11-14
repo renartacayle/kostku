@@ -382,7 +382,7 @@ const AccountRecoveryModal = ({ isOpen, onClose, onSuccessLogin }) => {
                 </>
               ) : (
                 <>
-                  Simpan Password & Masuk Otomatis 🚀
+                  Simpan Password & Masuk Otomatis
                 </>
               )}
             </button>

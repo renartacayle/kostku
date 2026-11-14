@@ -233,7 +233,7 @@ const Komplain = ({ user }) => {
                 borderRadius: '6px',
                 border: '1px solid rgba(56, 189, 248, 0.3)'
               }}>
-                ⚡ Disposisi Kalender Staf & Rating
+                Disposisi Kalender Staf & Rating
               </span>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -443,12 +443,12 @@ const Komplain = ({ user }) => {
                         </span>
                         {c.scheduledDate && (
                           <span style={{ color: '#38bdf8' }}>
-                            📅 Jadwal: {c.scheduledDate}
+                            Jadwal: {c.scheduledDate}
                           </span>
                         )}
                         {c.resolvedAt && (
                           <span style={{ color: '#34d399' }}>
-                            ✅ Selesai: {new Date(c.resolvedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            Selesai: {new Date(c.resolvedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         )}
                       </div>
@@ -545,7 +545,7 @@ const Komplain = ({ user }) => {
                           alignItems: 'center',
                           gap: '4px'
                         }}>
-                          💸 Tip Diterima Staf: Rp {Number(c.ratingData.tipAmount).toLocaleString('id-ID')}
+                          Tip Diterima Staf: Rp {Number(c.ratingData.tipAmount).toLocaleString('id-ID')}
                         </span>
                       )}
                     </div>
@@ -660,11 +660,11 @@ const Komplain = ({ user }) => {
                   className="input-field"
                   style={{ width: '100%', padding: '10px 12px' }}
                 >
-                  <option value="Teknisi Listrik & Air">🔧 Teknisi Listrik & Air (Pompa/Kran/MCB)</option>
-                  <option value="Petugas Kebersihan">🧹 Petugas Kebersihan & Sanitasi Kamar</option>
-                  <option value="Penjaga Kost">🏠 Penjaga Kost (General Maintenance)</option>
-                  <option value="Keamanan & Kunci">🛡️ Keamanan & Kunci Pintu / Gembok</option>
-                  <option value="Ganti Sprei & Linen">🛏️ Ganti Sprei & Kasur</option>
+                  <option value="Teknisi Listrik & Air">Teknisi Listrik & Air (Pompa/Kran/MCB)</option>
+                  <option value="Petugas Kebersihan">Petugas Kebersihan & Sanitasi Kamar</option>
+                  <option value="Penjaga Kost">Penjaga Kost (General Maintenance)</option>
+                  <option value="Keamanan & Kunci">Keamanan & Kunci Pintu / Gembok</option>
+                  <option value="Ganti Sprei & Linen">Ganti Sprei & Kasur</option>
                 </select>
               </div>
 
@@ -850,7 +850,7 @@ const Komplain = ({ user }) => {
                 fontSize: '0.75rem',
                 color: isLight ? '#065f46' : '#6ee7b7'
               }}>
-                ✨ Foto ini otomatis tersimpan di kalender kerja harian staf dan langsung muncul di dashboard anak kost agar mereka dapat memberikan ulasan & tip apresiasi.
+                Foto ini otomatis tersimpan di kalender kerja harian staf dan langsung muncul di dashboard anak kost agar mereka dapat memberikan ulasan & tip apresiasi.
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>

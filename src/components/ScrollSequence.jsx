@@ -199,8 +199,8 @@ const ScrollSequence = () => {
           <p style={{ margin: '4px 0 20px', fontSize: '0.9rem', fontWeight: 600, color: '#666' }}>Nyaman • Aman • Bersih</p>
           
           <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>📱 @rumahsinggah</span>
-            <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>✉️ hello@rumahsinggah.id</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>@rumahsinggah</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>hello@rumahsinggah.id</span>
           </div>
 
           <button style={{

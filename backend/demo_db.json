@@ -465,7 +465,7 @@
           "active": false,
           "plan": "7d",
           "days": 7,
-          "badgeText": "🔥 Rekomendasi Utama",
+          "badgeText": "Rekomendasi Utama",
           "activatedAt": "2026-10-13T11:39:28.243Z",
           "expiresAt": "2026-10-20T11:39:28.243Z",
           "price": 20000,
@@ -525,7 +525,7 @@
         "active": true,
         "plan": "7d",
         "days": 7,
-        "badgeText": "🔥 Rekomendasi Utama",
+        "badgeText": "Rekomendasi Utama",
         "activatedAt": "2026-10-13T11:39:28.243Z",
         "expiresAt": "2026-10-20T11:39:28.243Z",
         "price": 20000,
@@ -1344,7 +1344,7 @@
           "active": false,
           "plan": "7d",
           "days": 7,
-          "badgeText": "🔥 Rekomendasi Utama",
+          "badgeText": "Rekomendasi Utama",
           "activatedAt": "2026-10-13T07:17:53.106Z",
           "expiresAt": "2026-10-20T07:17:53.106Z",
           "expired": true
@@ -1388,7 +1388,7 @@
         "active": true,
         "plan": "7d",
         "days": 7,
-        "badgeText": "🔥 Rekomendasi Utama",
+        "badgeText": "Rekomendasi Utama",
         "activatedAt": "2026-10-13T07:17:53.106Z",
         "expiresAt": "2026-10-20T07:17:53.106Z"
       },
@@ -2059,7 +2059,7 @@
       "id": "ACT-1791759350670",
       "kostUid": "KOST-JAKSEL-01",
       "type": "ulasan",
-      "text": "Testing Reviewer memberikan rating ⭐ 5 untuk Kost Taman Sukun Co-Living & Exclusive",
+      "text": "Testing Reviewer memberikan rating 5 untuk Kost Taman Sukun Co-Living & Exclusive",
       "time": "2026-10-11T22:55:50.670Z"
     },
     {
@@ -2108,7 +2108,7 @@
       "id": "ACT-1791875873106",
       "kostUid": "KOST-K12DQR",
       "type": "pengaturan",
-      "text": "Sundul Kost aktif selama 7 hari (🔥 Rekomendasi Utama)",
+      "text": "Sundul Kost aktif selama 7 hari (Rekomendasi Utama)",
       "time": "2026-10-13T07:17:53.106Z"
     },
     {
@@ -2136,14 +2136,14 @@
       "id": "ACT-1791890603100",
       "kostUid": "KOST-JAKSEL-01",
       "type": "pengaturan",
-      "text": "Sundul Kost aktif selama 7 hari (🔥 Rekomendasi Utama)",
+      "text": "Sundul Kost aktif selama 7 hari (Rekomendasi Utama)",
       "time": "2026-10-13T11:23:23.100Z"
     },
     {
       "id": "ACT-1791891568260",
       "kostUid": "KOST-JAKSEL-01",
       "type": "pengaturan",
-      "text": "Sundul Kost aktif 7 hari (🔥 Rekomendasi Utama) - Rp 20.000 via QRIS",
+      "text": "Sundul Kost aktif 7 hari (Rekomendasi Utama) - Rp 20.000 via QRIS",
       "time": "2026-10-13T11:39:28.260Z"
     },
     {
@@ -24607,6 +24607,17 @@
       "isProduction": false,
       "serverKey": "",
       "merchantId": ""
+    },
+    "posStore": {
+      "uid": "MTR-KASIR-MASTER",
+      "merchantId": "MTR-KASIR-MASTER",
+      "location": "Lantai 1 Dekat Gazebo",
+      "address": "Jl. Imam Bonjol No. 45, Semarang Tengah",
+      "city": "Semarang",
+      "phone": "081299990001",
+      "mapsUrl": "https://maps.google.com/?q=-6.9825,110.4091",
+      "latitude": -6.9825,
+      "longitude": 110.4091
     }
   },
   "google_config": {},
@@ -25078,7 +25089,7 @@
     {
       "id": 1792850651836,
       "title": "Fuzzing Title",
-      "content": "🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉",
+      "content": "",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -27262,7 +27273,7 @@
     {
       "id": 1792850334354,
       "title": "Fuzzing Title",
-      "content": "🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉🔥🚀🚨🎉",
+      "content": "",
       "category": "Pengumuman Umum",
       "pinned": false,
       "authorRole": "Pengelola Kost",
@@ -27797,7 +27808,7 @@
       "dutyCycle": 0.35,
       "estKwhPerMonth": 21.4,
       "defaultFeeMonthly": 45000,
-      "icon": "❄️"
+      "icon": ""
     },
     {
       "id": "dispenser_panas",
@@ -27807,7 +27818,7 @@
       "dutyCycle": 0.5,
       "estKwhPerMonth": 21,
       "defaultFeeMonthly": 45000,
-      "icon": "♨️"
+      "icon": ""
     },
     {
       "id": "pc_gaming",
@@ -27817,7 +27828,7 @@
       "dutyCycle": 0.7,
       "estKwhPerMonth": 56.7,
       "defaultFeeMonthly": 95000,
-      "icon": "🖥️"
+      "icon": ""
     },
     {
       "id": "air_fryer",
@@ -27827,7 +27838,7 @@
       "dutyCycle": 0.9,
       "estKwhPerMonth": 13.2,
       "defaultFeeMonthly": 40000,
-      "icon": "🍳"
+      "icon": ""
     },
     {
       "id": "setrika_baju",
@@ -27837,7 +27848,7 @@
       "dutyCycle": 0.8,
       "estKwhPerMonth": 3.6,
       "defaultFeeMonthly": 20000,
-      "icon": "👔"
+      "icon": ""
     },
     {
       "id": "akuarium",
@@ -27847,7 +27858,7 @@
       "dutyCycle": 1,
       "estKwhPerMonth": 18,
       "defaultFeeMonthly": 35000,
-      "icon": "🐠"
+      "icon": ""
     }
   ],
   "roomAppliances": [
@@ -27875,5 +27886,15 @@
   ],
   "_dbVersion": "v138_clean_dual_db",
   "registeredPartnerHistory": [],
-  "unified_wallets": {}
+  "unified_wallets": {
+    "PTR-1794447017666": {
+      "uid": "PTR-1794447017666",
+      "name": "Kasir POS & Mitra Terpadu",
+      "balance": 0,
+      "totalEarned": 0,
+      "totalSettled": 0,
+      "gateway": "TriPay Master KostKu (T53543)",
+      "history": []
+    }
+  }
 }

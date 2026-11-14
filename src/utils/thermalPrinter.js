@@ -154,11 +154,47 @@ function buildEscPosQrCode(url) {
 /**
  * Build Raw ESC/POS Binary Buffer for thermal printer
  */
+export function formatStoreHeaderLines(source = {}) {
+  const storeName = String(source.storeName || source.name || 'Kantin Berkah Kost').trim();
+  const rawLocation = String(source.storeLocation || source.location || '').trim();
+  const rawAddress = String(source.storeAddress || source.address || '').trim();
+  const rawCity = String(source.storeCity || source.city || '').trim();
+  const rawPhone = String(source.storePhone || source.phone || '').trim();
+
+  const standLine = rawLocation ? `Stand: ${rawLocation}` : '';
+  const cleanedAddress = rawAddress && rawLocation && rawAddress.toLowerCase() === rawLocation.toLowerCase()
+    ? ''
+    : rawAddress;
+  const addressParts = [cleanedAddress, rawCity].filter(Boolean);
+  const addressLine = addressParts.join(', ');
+  const phoneLine = rawPhone ? `Telp/WA: ${rawPhone}` : '';
+  const mapsUrl = String(source.mapsUrl || '').trim() ||
+    (source.latitude !== undefined && source.latitude !== null && source.longitude !== undefined && source.longitude !== null
+      ? `https://maps.google.com/?q=${source.latitude},${source.longitude}`
+      : '');
+
+  return {
+    storeName,
+    standLine,
+    addressLine,
+    phoneLine,
+    mapsUrl,
+    lines: [storeName, standLine, addressLine, phoneLine].filter(Boolean)
+  };
+}
+
 export function buildEscPosBuffer(order, options = {}) {
   const settings = { ...getSavedPrinterSettings(), ...options };
   const maxCols = settings.paperWidth === '80mm' ? 48 : 32;
   const divider = '-'.repeat(maxCols);
   const doubleDivider = '='.repeat(maxCols);
+  const headerInfo = formatStoreHeaderLines({
+    storeName: settings.storeName || order.storeName,
+    storeLocation: settings.storeLocation || order.storeLocation || order.location,
+    storeAddress: settings.storeAddress || order.storeAddress || order.address,
+    storeCity: settings.storeCity || order.storeCity || order.city,
+    storePhone: settings.storePhone || order.storePhone || order.phone
+  });
 
   const bytes = [];
 
@@ -174,13 +210,21 @@ export function buildEscPosBuffer(order, options = {}) {
   bytes.push(0x1B, 0x61, 0x01); // Center align
   bytes.push(0x1B, 0x45, 0x01); // Bold ON
   bytes.push(0x1D, 0x21, 0x01); // Double height
-  bytes.push(...textToBytes((settings.storeName || order.storeName || 'KANTIN RIUPH POS') + '\n'));
-  
+  bytes.push(...textToBytes(headerInfo.storeName + '\n'));
+
   bytes.push(0x1D, 0x21, 0x00); // Normal size
   bytes.push(0x1B, 0x45, 0x00); // Bold OFF
-  bytes.push(...textToBytes((settings.storeAddress || order.storeLocation || 'Jl. Operasional Kostku') + '\n'));
-  
-  const dateStr = order.createdAt 
+  if (headerInfo.standLine) {
+    bytes.push(...textToBytes(headerInfo.standLine + '\n'));
+  }
+  if (headerInfo.addressLine) {
+    bytes.push(...textToBytes(headerInfo.addressLine + '\n'));
+  }
+  if (headerInfo.phoneLine) {
+    bytes.push(...textToBytes(headerInfo.phoneLine + '\n'));
+  }
+
+  const dateStr = order.createdAt
     ? new Date(order.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
     : new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   bytes.push(...textToBytes(dateStr + '\n'));
@@ -190,6 +234,9 @@ export function buildEscPosBuffer(order, options = {}) {
   bytes.push(...textToBytes(divider + '\n'));
   bytes.push(...textToBytes(formatTwoColumns('Order ID:', order.id || 'POS-TEST', maxCols) + '\n'));
   bytes.push(...textToBytes(formatTwoColumns('Meja / Lokasi:', order.tableNumber || 'Meja Walk-in', maxCols) + '\n'));
+  if (order.cashierName) {
+    bytes.push(...textToBytes(formatTwoColumns('Kasir:', order.cashierName, maxCols) + '\n'));
+  }
   if (order.customerName) {
     bytes.push(...textToBytes(formatTwoColumns('Pelanggan:', order.customerName, maxCols) + '\n'));
   }
@@ -718,7 +765,7 @@ export async function kickCashDrawer(options = {}) {
     }
     if (activeBluetoothCharacteristic) {
       await sendBluetoothChunks(activeBluetoothCharacteristic, buffer, 50);
-      return { success: true, message: '⚡ Sinyal pulsa laci kasir (RJ11 via Bluetooth) berhasil dikirim! Laci terbuka.' };
+      return { success: true, message: 'Sinyal pulsa laci kasir (RJ11 via Bluetooth) berhasil dikirim! Laci terbuka.' };
     }
     throw new Error('Printer Bluetooth belum terhubung.');
   }
@@ -734,19 +781,19 @@ export async function kickCashDrawer(options = {}) {
       } finally {
         writer.releaseLock();
       }
-      return { success: true, message: '⚡ Sinyal pulsa laci kasir (RJ11 via USB Serial) berhasil dikirim! Laci terbuka.' };
+      return { success: true, message: 'Sinyal pulsa laci kasir (RJ11 via USB Serial) berhasil dikirim! Laci terbuka.' };
     }
     if (activeUsbDevice && activeUsbEndpoint) {
       await activeUsbDevice.transferOut(activeUsbEndpoint.endpointNumber, buffer);
-      return { success: true, message: '⚡ Sinyal pulsa laci kasir (RJ11 via WebUSB) berhasil dikirim! Laci terbuka.' };
+      return { success: true, message: 'Sinyal pulsa laci kasir (RJ11 via WebUSB) berhasil dikirim! Laci terbuka.' };
     }
     throw new Error('Printer USB belum terhubung.');
   }
 
   // Fallback in browser dialog mode
-  return { 
-    success: true, 
-    simulated: true, 
-    message: '⚡ Laci Kasir: Pulsa berhasil dikirim. Pastikan kabel RJ11 laci kasir terpasang di port DK printer thermal.' 
+  return {
+    success: true,
+    simulated: true,
+    message: 'Laci Kasir: Pulsa berhasil dikirim. Pastikan kabel RJ11 laci kasir terpasang di port DK printer thermal.'
   };
 }

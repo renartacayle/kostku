@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Plus, 
-  Trash2, 
-  Key, 
-  Copy, 
-  Check, 
-  ShieldCheck, 
-  Phone, 
-  Mail, 
-  Building2, 
+import { Link } from 'react-router-dom';
+import {
+  Users,
+  Plus,
+  Trash2,
+  Key,
+  Copy,
+  Check,
+  ShieldCheck,
+  Phone,
+  Mail,
+  Building2,
   Wrench,
   AlertCircle,
   Tag,
@@ -17,16 +18,27 @@ import {
   Square,
   Layers,
   UserCheck,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Link2,
+  MessageCircle,
+  ExternalLink,
+  Clock,
+  Send,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { 
-  apiGetOwnerStaff, 
-  apiCreateStaff, 
-  apiUpdateStaff, 
-  apiDeleteStaff, 
-  apiGetOwnerKosts 
+import {
+  apiGetOwnerStaff,
+  apiCreateStaff,
+  apiUpdateStaff,
+  apiDeleteStaff,
+  apiGetOwnerKosts,
+  apiGetStaffInvites,
+  apiCreateStaffInvite,
+  apiCancelStaffInvite
 } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const AVAILABLE_ROLES = [
   { id: 'Penjaga Kost', label: 'Penjaga Kost (All-round)', color: '#10b981' },
@@ -38,14 +50,31 @@ const AVAILABLE_ROLES = [
 ];
 
 export default function StaffManagementCard({ user, selectedStaffId, onSelectStaff }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  const modalBg = isLight ? '#ffffff' : '#0f172a';
+  const modalText = isLight ? '#0f172a' : '#f8fafc';
+  const modalSubText = isLight ? '#475569' : '#94a3b8';
+  const modalPanelBg = isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)';
+  const modalBorder = isLight ? '#e2e8f0' : 'var(--border-color)';
+
   const [staffList, setStaffList] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
   const [ownedKosts, setOwnedKosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [copiedInviteId, setCopiedInviteId] = useState(null);
   const [actionMsg, setActionMsg] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
-  // Form State for creating staff
+  // Add Mode: 'invite' (via WA / Gmail link — employee clicks link to add) | 'direct' (immediate manual)
+  const [addMode, setAddMode] = useState('invite');
+  const [inviteChannel, setInviteChannel] = useState('whatsapp'); // 'whatsapp' | 'email'
+  const [createdInviteResult, setCreatedInviteResult] = useState(null);
+
+  // Form State for creating staff or sending invite
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -62,24 +91,32 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
   // Reset Password State
   const [resetModalStaff, setResetModalStaff] = useState(null);
   const [newPassword, setNewPassword] = useState('');
+  const [resetError, setResetError] = useState('');
   const [resetting, setResetting] = useState(false);
 
   // Edit Role Modal State
   const [roleModalStaff, setRoleModalStaff] = useState(null);
   const [editRoleMode, setEditRoleMode] = useState('single');
   const [editSelectedRoles, setEditSelectedRoles] = useState([]);
+  const [editRoleError, setEditRoleError] = useState('');
   const [savingRoles, setSavingRoles] = useState(false);
+
+  // Inline Confirm Delete Staff State (Zero window.confirm)
+  const [deleteConfirmStaff, setDeleteConfirmStaff] = useState(null);
+  const [deletingStaff, setDeletingStaff] = useState(false);
 
   const loadStaffAndKosts = async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const [staffData, kostsData] = await Promise.all([
+      const [staffData, kostsData, invitesData] = await Promise.all([
         apiGetOwnerStaff(null, user.id).catch(() => []),
-        apiGetOwnerKosts(user.id).catch(() => [])
+        apiGetOwnerKosts(user.id).catch(() => []),
+        apiGetStaffInvites(null, user.id, 'pending').catch(() => [])
       ]);
       const sList = Array.isArray(staffData) ? staffData : [];
       setStaffList(sList);
+      setPendingInvites(Array.isArray(invitesData) ? invitesData : []);
       if (onSelectStaff && sList.length > 0 && !selectedStaffId) {
         onSelectStaff(sList[0]);
       }
@@ -99,23 +136,101 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     loadStaffAndKosts();
   }, [user?.id, user?.kostUid]);
 
-  const handleCreateStaff = async (e) => {
+  const resetFormFields = () => {
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      phone: '',
+      salary: '',
+      kostUid: ownedKosts[0]?.uid || user?.kostUid || ''
+    });
+    setFormSelectedRoles(['Penjaga Kost']);
+    setFormRoleMode('single');
+    setErrorMsg('');
+  };
+
+  const handleOpenAddModal = () => {
+    resetFormFields();
+    setAddMode('invite');
+    setInviteChannel('whatsapp');
+    setCreatedInviteResult(null);
+    setShowModal(true);
+  };
+
+  const handleCreateStaffOrInvite = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.kostUid) {
-      setErrorMsg('Harap lengkapi nama, alamat Gmail, dan cabang penempatan karyawan.');
-      return;
-    }
+    setErrorMsg('');
+
+    const effectiveKostUid = formData.kostUid || ownedKosts[0]?.uid || user?.kostUid || '';
     if (formSelectedRoles.length === 0) {
       setErrorMsg('Pilih minimal 1 role penugasan karyawan.');
       return;
     }
 
+    if (addMode === 'invite') {
+      if (inviteChannel === 'whatsapp') {
+        const cleanDigits = String(formData.phone || '').replace(/\D/g, '');
+        if (cleanDigits.length < 9) {
+          setErrorMsg('Masukkan nomor WhatsApp karyawan minimal 9 digit (contoh: 08123456789).');
+          return;
+        }
+      } else {
+        const cleanEmail = String(formData.email || '').trim();
+        if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+          setErrorMsg('Masukkan alamat Gmail karyawan yang valid.');
+          return;
+        }
+      }
+
+      setSubmitting(true);
+      try {
+        const res = await apiCreateStaffInvite({
+          ownerId: user.id,
+          kostUid: effectiveKostUid,
+          channel: inviteChannel,
+          target: inviteChannel === 'whatsapp' ? formData.phone.trim() : formData.email.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim(),
+          name: formData.name.trim(),
+          salary: formData.salary,
+          roles: formSelectedRoles,
+          jobTitle: formSelectedRoles.join(', ')
+        });
+        setCreatedInviteResult(res);
+        setActionMsg(res.message || 'Link undangan karyawan berhasil dibuat!');
+        setTimeout(() => setActionMsg(null), 5000);
+        loadStaffAndKosts();
+      } catch (err) {
+        setErrorMsg(err.message || 'Gagal membuat link undangan karyawan.');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Direct / manual creation mode (requires Name and at least WA OR Gmail)
+    if (!formData.name.trim()) {
+      setErrorMsg('Nama lengkap karyawan wajib diisi.');
+      return;
+    }
+    const cleanEmail = String(formData.email || '').trim();
+    const cleanPhoneDigits = String(formData.phone || '').replace(/\D/g, '');
+    if (!cleanEmail && cleanPhoneDigits.length < 9) {
+      setErrorMsg('Isi minimal alamat Gmail atau nomor WhatsApp aktif karyawan.');
+      return;
+    }
+    if (!effectiveKostUid) {
+      setErrorMsg('Pilih cabang penempatan karyawan terlebih dahulu.');
+      return;
+    }
+
     setSubmitting(true);
-    setErrorMsg('');
     try {
       const effectivePassword = formData.password && formData.password.trim() ? formData.password.trim() : 'kostku123';
       const res = await apiCreateStaff({
         ...formData,
+        kostUid: effectiveKostUid,
         password: effectivePassword,
         roles: formSelectedRoles,
         jobTitle: formSelectedRoles.join(', '),
@@ -126,17 +241,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
         return;
       }
       setShowModal(false);
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        salary: '',
-        kostUid: ownedKosts[0]?.uid || user?.kostUid || ''
-      });
-      setFormSelectedRoles(['Penjaga Kost']);
-      setFormRoleMode('single');
-      setActionMsg('✅ Akun login staf berhasil dibuat!');
+      resetFormFields();
+      setActionMsg('Akun login staf berhasil dibuat!');
       setTimeout(() => setActionMsg(null), 4000);
       loadStaffAndKosts();
     } catch (err) {
@@ -146,30 +252,59 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     }
   };
 
-  const handleDeleteStaff = async (id, name) => {
-    if (!window.confirm(`Yakin ingin menghapus akses login untuk ${name}?`)) return;
+  const handleCopyInviteLink = (inv) => {
+    const link = inv?.inviteUrl || `${window.location.origin}/invite-staff/${inv.token}`;
+    navigator.clipboard.writeText(link);
+    setCopiedInviteId(inv.id);
+    setTimeout(() => setCopiedInviteId(null), 3000);
+  };
+
+  const handleCancelPendingInvite = async (inv) => {
     try {
-      await apiDeleteStaff(id);
-      setStaffList(prev => prev.filter(s => s.id !== id));
-      setActionMsg(`🗑️ Akun staf ${name} berhasil dihapus.`);
+      await apiCancelStaffInvite(inv.id);
+      setPendingInvites(prev => prev.filter(item => item.id !== inv.id));
+      setActionMsg(`Undangan link untuk ${inv.target} dibatalkan.`);
       setTimeout(() => setActionMsg(null), 4000);
     } catch (err) {
-      alert('Gagal menghapus akun staf: ' + err.message);
+      setActionError('Gagal membatalkan undangan: ' + (err.message || 'Kesalahan server'));
+      setTimeout(() => setActionError(null), 5000);
+    }
+  };
+
+  const confirmDeleteStaff = async () => {
+    if (!deleteConfirmStaff) return;
+    setDeletingStaff(true);
+    try {
+      await apiDeleteStaff(deleteConfirmStaff.id);
+      setStaffList(prev => prev.filter(s => s.id !== deleteConfirmStaff.id));
+      setActionMsg(`Akun staf ${deleteConfirmStaff.name} berhasil dihapus.`);
+      setTimeout(() => setActionMsg(null), 4000);
+      setDeleteConfirmStaff(null);
+    } catch (err) {
+      setActionError('Gagal menghapus akun staf: ' + (err.message || 'Terjadi kesalahan'));
+      setTimeout(() => setActionError(null), 5000);
+      setDeleteConfirmStaff(null);
+    } finally {
+      setDeletingStaff(false);
     }
   };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (!resetModalStaff || !newPassword) return;
+    if (!resetModalStaff || !newPassword.trim()) {
+      setResetError('Masukkan password baru terlebih dahulu.');
+      return;
+    }
     setResetting(true);
+    setResetError('');
     try {
-      await apiUpdateStaff(resetModalStaff.id, { newPassword });
+      await apiUpdateStaff(resetModalStaff.id, { newPassword: newPassword.trim() });
       setResetModalStaff(null);
       setNewPassword('');
-      setActionMsg(`🔑 Password untuk ${resetModalStaff.name} berhasil diubah.`);
+      setActionMsg(`Password untuk ${resetModalStaff.name} berhasil diubah.`);
       setTimeout(() => setActionMsg(null), 4000);
     } catch (err) {
-      alert('Gagal reset password: ' + err.message);
+      setResetError('Gagal reset password: ' + (err.message || 'Terjadi kesalahan'));
     } finally {
       setResetting(false);
     }
@@ -177,6 +312,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
   const handleOpenEditRoles = (staff) => {
     setRoleModalStaff(staff);
+    setEditRoleError('');
     const existingRoles = Array.isArray(staff.roles) && staff.roles.length > 0
       ? staff.roles
       : (staff.jobTitle ? staff.jobTitle.split(',').map(r => r.trim()).filter(Boolean) : ['Penjaga Kost']);
@@ -187,21 +323,22 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
   const handleSaveEditedRoles = async () => {
     if (!roleModalStaff) return;
     if (editSelectedRoles.length === 0) {
-      alert('Pilih minimal 1 role untuk karyawan.');
+      setEditRoleError('Pilih minimal 1 role untuk karyawan.');
       return;
     }
     setSavingRoles(true);
+    setEditRoleError('');
     try {
       await apiUpdateStaff(roleModalStaff.id, {
         roles: editSelectedRoles,
         jobTitle: editSelectedRoles.join(', ')
       });
       setRoleModalStaff(null);
-      setActionMsg(`🏷️ Penugasan role untuk ${roleModalStaff.name} berhasil diperbarui.`);
+      setActionMsg(`Penugasan role untuk ${roleModalStaff.name} berhasil diperbarui.`);
       loadStaffAndKosts();
       setTimeout(() => setActionMsg(null), 4000);
     } catch (err) {
-      alert('Gagal memperbarui role: ' + err.message);
+      setEditRoleError('Gagal memperbarui role: ' + (err.message || 'Terjadi kesalahan'));
     } finally {
       setSavingRoles(false);
     }
@@ -212,7 +349,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       setFormSelectedRoles([roleId]);
     } else {
       if (formSelectedRoles.includes(roleId)) {
-        if (formSelectedRoles.length === 1) return; // Keep at least one
+        if (formSelectedRoles.length === 1) return;
         setFormSelectedRoles(formSelectedRoles.filter(r => r !== roleId));
       } else {
         setFormSelectedRoles([...formSelectedRoles, roleId]);
@@ -235,7 +372,11 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
   const copyCredentials = (staff) => {
     const rolesStr = Array.isArray(staff.roles) && staff.roles.length > 0 ? staff.roles.join(', ') : (staff.jobTitle || 'Penjaga Kost');
-    const text = `Halo ${staff.name}, berikut adalah akun login aplikasi KostKu Anda:\n\n📧 Email: ${staff.email}\n🏢 Cabang Kost: ${staff.kostName}\n💼 Posisi / Peran: ${rolesStr}\n\nSilakan download dan login di aplikasi KostKu untuk mulai mengelola operasional kost. Terima kasih!`;
+    const loginLine = [
+      staff.email ? `Gmail: ${staff.email}` : '',
+      staff.phone ? `No. WhatsApp: ${staff.phone}` : ''
+    ].filter(Boolean).join('\n');
+    const text = `Halo ${staff.name}, berikut adalah akun login aplikasi KostKu Anda:\n\n${loginLine}\nCabang: ${staff.kostName}\nPosisi / Peran: ${rolesStr}\n\nSilakan buka aplikasi KostKu dan masuk menggunakan Gmail atau No. WhatsApp terdaftar. Terima kasih!`;
     navigator.clipboard.writeText(text);
     setCopiedId(staff.id);
     setTimeout(() => setCopiedId(null), 3000);
@@ -249,7 +390,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
   return (
     <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      
+
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -275,21 +416,17 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)' }}>
-              Profil & Role Karyawan ({staffList.length})
+              Profil &amp; Role Karyawan ({staffList.length})
             </h3>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              Kelola penugasan peran (Single Role atau Multiple Roles), kontak WhatsApp, dan akses login staf.
+              Undang karyawan via link WhatsApp / Gmail (klik link langsung bergabung) atau buat akun manual.
             </span>
           </div>
         </div>
 
         <button
-          onClick={() => {
-            setErrorMsg('');
-            setFormRoleMode('single');
-            setFormSelectedRoles(['Penjaga Kost']);
-            setShowModal(true);
-          }}
+          type="button"
+          onClick={handleOpenAddModal}
           className="btn btn-primary btn-sm"
           style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981', gap: '6px' }}
         >
@@ -301,16 +438,184 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
         <div style={{
           padding: '10px 14px',
           borderRadius: '10px',
-          background: 'rgba(16, 185, 129, 0.15)',
+          background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
           border: '1px solid rgba(16, 185, 129, 0.35)',
-          color: '#6ee7b7',
+          color: isLight ? '#065f46' : '#6ee7b7',
           fontSize: '0.85rem',
           display: 'flex',
           alignItems: 'center',
           gap: '8px'
         }}>
-          <Check size={16} />
+          <Check size={16} style={{ flexShrink: 0 }} />
           <span>{actionMsg}</span>
+        </div>
+      )}
+
+      {actionError && (
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: '10px',
+          background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          color: isLight ? '#991b1b' : '#fca5a5',
+          fontSize: '0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px'
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            {actionError}
+          </span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex' }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Pending Invitation Links List (Menunggu Karyawan Klik Link) */}
+      {pendingInvites.length > 0 && (
+        <div style={{
+          background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.35)',
+          borderRadius: '14px',
+          padding: '12px 14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.88rem', color: isLight ? '#92400e' : '#fcd34d' }}>
+              <Clock size={16} />
+              <span>Undangan Link Menunggu Konfirmasi ({pendingInvites.length})</span>
+            </div>
+            <span style={{ fontSize: '0.74rem', color: isLight ? '#b45309' : '#fde68a' }}>
+              Karyawan otomatis masuk daftar aktif begitu mereka klik link &amp; konfirmasi.
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {pendingInvites.map(inv => {
+              const linkUrl = inv.inviteUrl || `${window.location.origin}/invite-staff/${inv.token}`;
+              return (
+                <div
+                  key={inv.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.75)',
+                    border: `1px solid ${modalBorder}`
+                  }}
+                >
+                  <div style={{ minWidth: '210px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 7px',
+                        borderRadius: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        background: inv.channel === 'email' ? 'rgba(239, 68, 68, 0.14)' : 'rgba(16, 185, 129, 0.16)',
+                        color: inv.channel === 'email' ? '#ef4444' : '#10b981',
+                        border: `1px solid ${inv.channel === 'email' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                      }}>
+                        {inv.channel === 'email' ? <Mail size={11} /> : <MessageCircle size={11} />}
+                        {inv.channel === 'email' ? 'Via Gmail' : 'Via WhatsApp'}
+                      </span>
+                      <strong style={{ fontSize: '0.88rem', color: modalText }}>
+                        {inv.suggestedName ? `${inv.suggestedName} (${inv.target})` : inv.target}
+                      </strong>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        padding: '2px 7px',
+                        borderRadius: '999px',
+                        background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
+                        color: isLight ? '#b45309' : '#fbbf24',
+                        fontWeight: 700
+                      }}>
+                        Belum Klik Link
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: modalSubText }}>
+                      Peran: <strong style={{ color: modalText }}>{inv.jobTitle}</strong> · Cabang: {inv.kostName}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyInviteLink(inv)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ gap: '4px', fontSize: '0.74rem', padding: '5px 9px' }}
+                      title="Salin link undangan"
+                    >
+                      {copiedInviteId === inv.id ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                      <span>{copiedInviteId === inv.id ? 'Tersalin!' : 'Salin Link'}</span>
+                    </button>
+
+                    {inv.channel === 'whatsapp' && inv.waDirectUrl && (
+                      <a
+                        href={inv.waDirectUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm"
+                        style={{
+                          gap: '4px',
+                          fontSize: '0.74rem',
+                          padding: '5px 10px',
+                          background: '#10b981',
+                          color: '#ffffff',
+                          textDecoration: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Send size={12} /> Kirim WA
+                      </a>
+                    )}
+
+                    <Link
+                      to={`/invite-staff/${inv.token}`}
+                      className="btn btn-secondary btn-sm"
+                      style={{ gap: '4px', fontSize: '0.74rem', padding: '5px 9px', textDecoration: 'none' }}
+                      title={linkUrl}
+                    >
+                      <ExternalLink size={12} /> Buka Link
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCancelPendingInvite(inv)}
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        gap: '4px',
+                        fontSize: '0.74rem',
+                        padding: '5px 9px',
+                        color: '#ef4444',
+                        borderColor: 'rgba(239, 68, 68, 0.3)'
+                      }}
+                    >
+                      <X size={12} /> Batalkan
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -412,7 +717,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                         color: '#6ee7b7',
                         fontWeight: 700
                       }}>
-                        🟢 Login Aktif
+                        Login Aktif
                       </span>
                       {isSelected && (
                         <span style={{
@@ -424,7 +729,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                           fontWeight: 700,
                           border: '1px solid #3b82f6'
                         }}>
-                          ⭐ Kalender Aktif
+                          Kalender Aktif
                         </span>
                       )}
                       {staff.avgRating && (
@@ -437,7 +742,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                           fontWeight: 700,
                           border: '1px solid rgba(245, 158, 11, 0.35)'
                         }}>
-                          ⭐ {staff.avgRating} ({staff.totalReviews || 0})
+                          {staff.avgRating} ({staff.totalReviews || 0})
                         </span>
                       )}
                       {isMultiRole && (
@@ -450,7 +755,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                           fontWeight: 700,
                           border: '1px solid rgba(139, 92, 246, 0.3)'
                         }}>
-                          ⚡ Multiple Roles ({rolesArr.length})
+                          Multiple Roles ({rolesArr.length})
                         </span>
                       )}
                     </div>
@@ -486,36 +791,51 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
                 {/* Contact info & salary */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        color: '#f87171',
-                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.68rem',
-                        fontWeight: 700
-                      }}>
-                        Gmail
-                      </span>
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{staff.email}</span>
-                    </div>
+                  <div style={{ fontSize: '0.78rem', color: modalSubText, lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {staff.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          background: 'rgba(239, 68, 68, 0.14)',
+                          color: isLight ? '#dc2626' : '#f87171',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700
+                        }}>
+                          <Mail size={10} /> Gmail
+                        </span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{staff.email}</span>
+                      </div>
+                    )}
                     {staff.phone && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
-                        <Phone size={12} color="#4ade80" />
-                        <span>{staff.phone}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          background: 'rgba(16, 185, 129, 0.14)',
+                          color: isLight ? '#059669' : '#4ade80',
+                          border: '1px solid rgba(16, 185, 129, 0.28)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700
+                        }}>
+                          <MessageCircle size={10} /> WA
+                        </span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{staff.phone}</span>
                       </div>
                     )}
                   </div>
 
                   {staff.salary > 0 && (
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Gaji Pokok</span>
-                      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fbbf24' }}>
+                      <span style={{ fontSize: '0.7rem', color: modalSubText, display: 'block' }}>Gaji Pokok</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: isLight ? '#d97706' : '#fbbf24' }}>
                         {formatRupiah(staff.salary)}
                       </span>
                     </div>
@@ -534,15 +854,15 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                         fontSize: '0.78rem',
                         padding: '6px 12px',
                         background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'rgba(59, 130, 246, 0.15)',
-                        color: 'white',
-                        border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.3)',
-                        boxShadow: isSelected ? '0 0 12px rgba(59, 130, 246, 0.4)' : 'none',
-                        fontWeight: isSelected ? 700 : 500
+                        color: isSelected ? '#ffffff' : (isLight ? '#1d4ed8' : '#ffffff'),
+                        border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.35)',
+                        boxShadow: isSelected ? '0 0 12px rgba(59, 130, 246, 0.35)' : 'none',
+                        fontWeight: isSelected ? 700 : 600
                       }}
                       title="Buka Kalender Kerja & Riwayat Harian Karyawan Ini"
                     >
-                      <CalendarIcon size={13} />
-                      <span>{isSelected ? '✓ Kalender Aktif' : 'Buka Kalender'}</span>
+                      {isSelected ? <Check size={13} /> : <CalendarIcon size={13} />}
+                      <span>{isSelected ? 'Kalender Aktif' : 'Buka Kalender'}</span>
                     </button>
                   )}
 
@@ -550,7 +870,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                     type="button"
                     onClick={() => handleOpenEditRoles(staff)}
                     className="btn btn-secondary btn-sm"
-                    style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                    style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px', color: isLight ? '#2563eb' : '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.35)' }}
                     title="Ubah peran kerja (Single Role / Multiple Roles)"
                   >
                     <Tag size={13} />
@@ -564,7 +884,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                     style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px' }}
                     title="Salin pesan info login untuk dikirim ke WhatsApp staf"
                   >
-                    {copiedId === staff.id ? <Check size={13} color="#4ade80" /> : <Copy size={13} />}
+                    {copiedId === staff.id ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
                     <span>{copiedId === staff.id ? 'Tersalin!' : 'Salin Info WA'}</span>
                   </button>
 
@@ -573,6 +893,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                     onClick={() => {
                       setResetModalStaff(staff);
                       setNewPassword('');
+                      setResetError('');
                     }}
                     className="btn btn-secondary btn-sm"
                     style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px' }}
@@ -584,14 +905,14 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
                   <button
                     type="button"
-                    onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                    onClick={() => setDeleteConfirmStaff(staff)}
                     className="btn btn-secondary btn-sm"
                     style={{
                       gap: '5px',
                       fontSize: '0.78rem',
                       padding: '6px 12px',
                       background: 'rgba(239, 68, 68, 0.12)',
-                      color: '#f87171',
+                      color: isLight ? '#dc2626' : '#f87171',
                       border: '1px solid rgba(239, 68, 68, 0.35)',
                       borderRadius: '8px',
                       fontWeight: 700,
@@ -609,32 +930,41 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
         </div>
       )}
 
-      {/* CREATE STAFF MODAL (WITH SINGLE / MULTIPLE ROLE SELECTOR) */}
+      {/* CREATE / INVITE STAFF MODAL (LINK VIA WA / GMAIL OR DIRECT CREATE) */}
       {showModal && createPortal(
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 999999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          overflowY: 'auto'
-        }}>
-          <div style={{
-            background: '#0f172a',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
-            borderRadius: '20px',
-            maxWidth: '540px',
-            width: '100%',
-            padding: '1.75rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
-            maxHeight: '92vh',
+        <div
+          onClick={() => setShowModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
             overflowY: 'auto'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          }}
+        >
+          <div
+            data-testid="staff-add-modal"
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: modalBg,
+              color: modalText,
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              borderRadius: '20px',
+              maxWidth: '560px',
+              width: '100%',
+              padding: '1.5rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              boxSizing: 'border-box'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '36px',
@@ -644,250 +974,579 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'white'
+                  color: '#ffffff',
+                  flexShrink: 0
                 }}>
                   <Users size={18} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)' }}>Tambah Akun Karyawan</h3>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Karyawan login pakai akun Gmail pribadi mereka sendiri</span>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: modalText }}>
+                    Tambah Karyawan
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: modalSubText }}>
+                    {addMode === 'invite'
+                      ? 'Kirim link ke No. WhatsApp atau Gmail — karyawan klik link untuk bergabung'
+                      : 'Aktifkan akun karyawan langsung menggunakan No. WhatsApp atau Gmail'}
+                  </span>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}
+                aria-label="Tutup modal"
+                style={{
+                  background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: modalSubText,
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
               >
-                &times;
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Mode Switcher: Via Link Undangan vs Buat Akun Langsung */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px',
+              padding: '4px',
+              borderRadius: '12px',
+              background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+              border: `1px solid ${modalBorder}`,
+              marginBottom: '1rem'
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddMode('invite');
+                  setCreatedInviteResult(null);
+                  setErrorMsg('');
+                }}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  background: addMode === 'invite' ? '#10b981' : 'transparent',
+                  color: addMode === 'invite' ? '#ffffff' : modalSubText
+                }}
+              >
+                <Link2 size={14} />
+                <span>Via Link (WA / Gmail)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddMode('direct');
+                  setCreatedInviteResult(null);
+                  setErrorMsg('');
+                }}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  background: addMode === 'direct' ? '#2563eb' : 'transparent',
+                  color: addMode === 'direct' ? '#ffffff' : modalSubText
+                }}
+              >
+                <UserCheck size={14} />
+                <span>Tambah Langsung</span>
               </button>
             </div>
 
             {errorMsg && (
               <div style={{
-                padding: '10px',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#fca5a5',
-                fontSize: '0.82rem',
-                marginBottom: '1rem'
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                color: isLight ? '#b91c1c' : '#fca5a5',
+                fontSize: '0.8rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}>
-                {errorMsg}
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span>{errorMsg}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateStaff} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                  Nama Lengkap Karyawan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Budi Santoso (Kasir / Koki)"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                    Alamat Akun Gmail Karyawan *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="budi.karyawan@gmail.com"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="input-field"
-                  />
-                  <span style={{ fontSize: '0.68rem', color: '#10b981', display: 'block', marginTop: '3px' }}>
-                    * Karyawan dapat 1-klik login Google
-                  </span>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                    Password Awal (Opsional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Default: kostku123"
-                    value={formData.password}
-                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    className="input-field"
-                  />
-                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
-                    * Jika login manual tanpa Google
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                    No WhatsApp / HP
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="08123456789"
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                    Gaji Pokok (Rp/bulan)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="Contoh: 2000000"
-                    value={formData.salary}
-                    onChange={e => setFormData({ ...formData, salary: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-              </div>
-
-              {/* ROLE MODE SWITCHER (SINGLE VS MULTIPLE ROLES) */}
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                padding: '12px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Layers size={14} color="#60a5fa" /> Mode Penugasan Peran (Role) *
-                  </label>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormRoleMode('single');
-                        setFormSelectedRoles(prev => prev.slice(0, 1));
-                      }}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        border: '1px solid',
-                        borderColor: formRoleMode === 'single' ? '#10b981' : 'var(--border-color)',
-                        background: formRoleMode === 'single' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-                        color: formRoleMode === 'single' ? '#34d399' : 'var(--text-secondary)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Single Role
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormRoleMode('multiple')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        border: '1px solid',
-                        borderColor: formRoleMode === 'multiple' ? '#8b5cf6' : 'var(--border-color)',
-                        background: formRoleMode === 'multiple' ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
-                        color: formRoleMode === 'multiple' ? '#c4b5fd' : 'var(--text-secondary)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Multiple Roles
-                    </button>
+            {addMode === 'invite' && createdInviteResult ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{
+                  padding: '14px',
+                  borderRadius: '14px',
+                  background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.14)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  display: 'flex',
+                  gap: '10px',
+                  alignItems: 'flex-start'
+                }}>
+                  <CheckCircle2 size={22} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: isLight ? '#065f46' : '#6ee7b7' }}>
+                      Link Undangan Karyawan Siap!
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: isLight ? '#047857' : '#a7f3d0', lineHeight: 1.45 }}>
+                      {createdInviteResult.message}
+                    </p>
                   </div>
                 </div>
 
-                <p style={{ margin: '0 0 10px 0', fontSize: '0.75rem', color: '#94a3b8' }}>
-                  {formRoleMode === 'single'
-                    ? 'Pilih 1 peran fokus untuk staf ini.'
-                    : 'Pilih beberapa peran sekaligus jika staf merangkap tugas (misal: Penjaga + Teknisi + Kebersihan).'}
-                </p>
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: modalPanelBg,
+                  border: `1px solid ${modalBorder}`
+                }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: modalSubText, marginBottom: '4px' }}>
+                    Link Konfirmasi Karyawan:
+                  </div>
+                  <div style={{
+                    fontSize: '0.78rem',
+                    fontFamily: 'monospace',
+                    color: modalText,
+                    wordBreak: 'break-all',
+                    marginBottom: '8px'
+                  }}>
+                    {createdInviteResult.inviteUrl}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyInviteLink(createdInviteResult.invite)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ gap: '5px', fontSize: '0.76rem' }}
+                    >
+                      {copiedInviteId === createdInviteResult.invite?.id ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                      <span>{copiedInviteId === createdInviteResult.invite?.id ? 'Link Tersalin!' : 'Salin Link'}</span>
+                    </button>
 
-                {/* Role Options */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
-                  {AVAILABLE_ROLES.map(r => {
-                    const isSelected = formSelectedRoles.includes(r.id);
-                    return (
-                      <div
-                        key={r.id}
-                        onClick={() => toggleFormRole(r.id)}
+                    {createdInviteResult.waDirectUrl && (
+                      <a
+                        href={createdInviteResult.waDirectUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm"
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '8px 12px',
+                          gap: '5px',
+                          fontSize: '0.76rem',
+                          background: '#10b981',
+                          color: '#ffffff',
+                          textDecoration: 'none',
                           borderRadius: '8px',
-                          border: isSelected ? `1.5px solid ${r.color}` : '1px solid var(--border-color)',
-                          background: isSelected ? `${r.color}15` : 'rgba(255, 255, 255, 0.02)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s'
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '6px 12px'
                         }}
                       >
-                        {isSelected ? (
-                          <CheckSquare size={16} color={r.color} />
-                        ) : (
-                          <Square size={16} color="#64748b" />
-                        )}
-                        <span style={{ fontSize: '0.82rem', color: isSelected ? 'white' : '#cbd5e1', fontWeight: isSelected ? 700 : 500 }}>
-                          {r.label}
+                        <MessageCircle size={13} /> Kirim ke WhatsApp
+                      </a>
+                    )}
+
+                    {createdInviteResult.emailPreviewUrl && (
+                      <a
+                        href={createdInviteResult.emailPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary btn-sm"
+                        style={{ gap: '5px', fontSize: '0.76rem', textDecoration: 'none' }}
+                      >
+                        <Mail size={13} /> Preview Email
+                      </a>
+                    )}
+
+                    {createdInviteResult.invite?.token && (
+                      <Link
+                        to={`/invite-staff/${createdInviteResult.invite.token}`}
+                        onClick={() => setShowModal(false)}
+                        className="btn btn-primary btn-sm"
+                        style={{ gap: '5px', fontSize: '0.76rem', textDecoration: 'none' }}
+                      >
+                        <ExternalLink size={13} /> Buka Halaman Link
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetFormFields();
+                      setCreatedInviteResult(null);
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Undang Lagi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreatedInviteResult(null);
+                      setShowModal(false);
+                    }}
+                    className="btn btn-primary"
+                    style={{ background: '#10b981', borderColor: '#10b981' }}
+                  >
+                    Selesai
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateStaffOrInvite} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {addMode === 'invite' ? (
+                  <>
+                    {/* Channel Selection: Via No. WA vs Via Gmail */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: modalSubText, marginBottom: '6px' }}>
+                        Kirim Link Undangan Melalui *
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => { setInviteChannel('whatsapp'); setErrorMsg(''); }}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '10px',
+                            border: inviteChannel === 'whatsapp' ? '2px solid #10b981' : `1px solid ${modalBorder}`,
+                            background: inviteChannel === 'whatsapp'
+                              ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)')
+                              : modalPanelBg,
+                            color: inviteChannel === 'whatsapp' ? (isLight ? '#047857' : '#34d399') : modalSubText,
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '7px'
+                          }}
+                        >
+                          <MessageCircle size={15} />
+                          <span>No. WhatsApp</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setInviteChannel('email'); setErrorMsg(''); }}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '10px',
+                            border: inviteChannel === 'email' ? '2px solid #ef4444' : `1px solid ${modalBorder}`,
+                            background: inviteChannel === 'email'
+                              ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)')
+                              : modalPanelBg,
+                            color: inviteChannel === 'email' ? (isLight ? '#b91c1c' : '#fca5a5') : modalSubText,
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '7px'
+                          }}
+                        >
+                          <Mail size={15} />
+                          <span>Alamat Gmail</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {inviteChannel === 'whatsapp' ? (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: modalText, marginBottom: '4px' }}>
+                          No. WhatsApp Karyawan *
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="Contoh: 081234567890"
+                          value={formData.phone}
+                          onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                          className="input-field"
+                        />
+                        <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'block', marginTop: '3px' }}>
+                          Sistem membuat link undangan khusus WA. Karyawan klik link baru resmi masuk daftar staf.
                         </span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                    ) : (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: modalText, marginBottom: '4px' }}>
+                          Alamat Gmail Karyawan *
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="Contoh: budi.karyawan@gmail.com"
+                          value={formData.email}
+                          onChange={e => setFormData({ ...formData, email: e.target.value })}
+                          className="input-field"
+                        />
+                        <span style={{ fontSize: '0.7rem', color: isLight ? '#dc2626' : '#fca5a5', display: 'block', marginTop: '3px' }}>
+                          Undangan dikirim ke Gmail &amp; link dapat disalin. Karyawan klik link baru resmi masuk daftar staf.
+                        </span>
+                      </div>
+                    )}
 
-              {ownedKosts.length > 0 && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
-                    Tugaskan di Cabang Kost *
-                  </label>
-                  <select
-                    value={formData.kostUid}
-                    onChange={e => setFormData({ ...formData, kostUid: e.target.value })}
-                    className="input-field"
-                    required
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                          Nama Calon Karyawan (Opsional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Isi sendiri saat staf klik link"
+                          value={formData.name}
+                          onChange={e => setFormData({ ...formData, name: e.target.value })}
+                          className="input-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                          Gaji Pokok (Rp/bulan)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Contoh: 2000000"
+                          value={formData.salary}
+                          onChange={e => setFormData({ ...formData, salary: e.target.value })}
+                          className="input-field"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                        Nama Lengkap Karyawan *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Budi Santoso (Kasir / Koki)"
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                          No. WhatsApp (WA / Gmail min. 1)
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="08123456789"
+                          value={formData.phone}
+                          onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                          className="input-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                          Alamat Gmail (WA / Gmail min. 1)
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="budi.karyawan@gmail.com"
+                          value={formData.email}
+                          onChange={e => setFormData({ ...formData, email: e.target.value })}
+                          className="input-field"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                          Password Awal (Opsional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Default: kostku123"
+                          value={formData.password}
+                          onChange={e => setFormData({ ...formData, password: e.target.value })}
+                          className="input-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                          Gaji Pokok (Rp/bulan)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Contoh: 2000000"
+                          value={formData.salary}
+                          onChange={e => setFormData({ ...formData, salary: e.target.value })}
+                          className="input-field"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ROLE MODE SWITCHER (SINGLE VS MULTIPLE ROLES) */}
+                <div style={{
+                  background: modalPanelBg,
+                  border: `1px solid ${modalBorder}`,
+                  borderRadius: '12px',
+                  padding: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: modalText, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Layers size={14} color="#3b82f6" /> Mode Penugasan Peran (Role) *
+                    </label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormRoleMode('single');
+                          setFormSelectedRoles(prev => prev.slice(0, 1));
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          border: '1px solid',
+                          borderColor: formRoleMode === 'single' ? '#10b981' : modalBorder,
+                          background: formRoleMode === 'single' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                          color: formRoleMode === 'single' ? (isLight ? '#047857' : '#34d399') : modalSubText,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Single Role
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormRoleMode('multiple')}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          border: '1px solid',
+                          borderColor: formRoleMode === 'multiple' ? '#8b5cf6' : modalBorder,
+                          background: formRoleMode === 'multiple' ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
+                          color: formRoleMode === 'multiple' ? (isLight ? '#6d28d9' : '#c4b5fd') : modalSubText,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Multiple Roles
+                      </button>
+                    </div>
+                  </div>
+
+                  <p style={{ margin: '0 0 10px 0', fontSize: '0.75rem', color: modalSubText }}>
+                    {formRoleMode === 'single'
+                      ? 'Pilih 1 peran fokus untuk staf ini.'
+                      : 'Pilih beberapa peran sekaligus jika staf merangkap tugas.'}
+                  </p>
+
+                  {/* Role Options */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
+                    {AVAILABLE_ROLES.map(r => {
+                      const isSelected = formSelectedRoles.includes(r.id);
+                      return (
+                        <div
+                          key={r.id}
+                          onClick={() => toggleFormRole(r.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: isSelected ? `1.5px solid ${r.color}` : `1px solid ${modalBorder}`,
+                            background: isSelected ? `${r.color}18` : 'transparent',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          {isSelected ? (
+                            <CheckSquare size={16} color={r.color} />
+                          ) : (
+                            <Square size={16} color="#64748b" />
+                          )}
+                          <span style={{ fontSize: '0.82rem', color: isSelected ? modalText : modalSubText, fontWeight: isSelected ? 700 : 500 }}>
+                            {r.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {ownedKosts.length > 0 && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
+                      Tugaskan di Cabang Kost *
+                    </label>
+                    <select
+                      value={formData.kostUid}
+                      onChange={e => setFormData({ ...formData, kostUid: e.target.value })}
+                      className="input-field"
+                      required
+                    >
+                      {ownedKosts.map(k => (
+                        <option key={k.uid} value={k.uid}>
+                          {k.kostName} ({k.totalRooms || k.roomCount || 0} Kamar)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div style={{
+                  display: 'flex',
+                  gap: '10px',
+                  marginTop: '10px',
+                  justifyContent: 'flex-end',
+                  flexWrap: 'wrap'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="btn btn-secondary"
+                    disabled={submitting}
                   >
-                    {ownedKosts.map(k => (
-                      <option key={k.uid} value={k.uid} style={{ background: '#0f172a' }}>
-                        {k.kostName} ({k.totalRooms || k.roomCount || 0} Kamar)
-                      </option>
-                    ))}
-                  </select>
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="btn btn-primary"
+                    style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981' }}
+                  >
+                    {submitting
+                      ? 'Memproses...'
+                      : (addMode === 'invite' ? 'Buat & Kirim Link Undangan' : 'Simpan & Buat Akun')}
+                  </button>
                 </div>
-              )}
-
-              <div style={{
-                display: 'flex',
-                gap: '10px',
-                marginTop: '10px',
-                justifyContent: 'flex-end'
-              }}>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn btn-secondary"
-                  disabled={submitting}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn btn-primary"
-                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981' }}
-                >
-                  {submitting ? 'Membuat Akun...' : 'Simpan & Buat Akun'}
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>,
         document.body
@@ -895,44 +1554,65 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
       {/* EDIT ROLE MODAL (SINGLE VS MULTIPLE) */}
       {roleModalStaff && createPortal(
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 999999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          overflowY: 'auto'
-        }}>
-          <div style={{
-            background: '#0f172a',
-            border: '1px solid rgba(59, 130, 246, 0.4)',
-            borderRadius: '20px',
-            maxWidth: '480px',
-            width: '100%',
-            padding: '1.5rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
-          }}>
+        <div
+          onClick={() => setRoleModalStaff(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            overflowY: 'auto'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: modalBg,
+              color: modalText,
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              borderRadius: '20px',
+              maxWidth: '480px',
+              width: '100%',
+              padding: '1.5rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
+              boxSizing: 'border-box'
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: modalText }}>
                   Atur Penugasan Role Karyawan
                 </h3>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.78rem', color: modalSubText }}>
                   Staf: <strong>{roleModalStaff.name}</strong> ({roleModalStaff.kostName})
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setRoleModalStaff(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: modalSubText, cursor: 'pointer', display: 'flex' }}
               >
-                &times;
+                <X size={18} />
               </button>
             </div>
+
+            {editRoleError && (
+              <div style={{
+                padding: '9px 12px',
+                borderRadius: '8px',
+                background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)',
+                color: isLight ? '#b91c1c' : '#fca5a5',
+                fontSize: '0.8rem',
+                marginBottom: '10px'
+              }}>
+                {editRoleError}
+              </div>
+            )}
 
             {/* Mode Switcher */}
             <div style={{
@@ -941,10 +1621,11 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
               justifyContent: 'space-between',
               padding: '8px 12px',
               borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.03)',
+              background: modalPanelBg,
+              border: `1px solid ${modalBorder}`,
               marginBottom: '12px'
             }}>
-              <span style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: 600 }}>Tipe Penugasan:</span>
+              <span style={{ fontSize: '0.8rem', color: modalText, fontWeight: 600 }}>Tipe Penugasan:</span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
                   type="button"
@@ -958,9 +1639,9 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                     fontSize: '0.75rem',
                     fontWeight: 700,
                     border: '1px solid',
-                    borderColor: editRoleMode === 'single' ? '#10b981' : 'var(--border-color)',
+                    borderColor: editRoleMode === 'single' ? '#10b981' : modalBorder,
                     background: editRoleMode === 'single' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-                    color: editRoleMode === 'single' ? '#34d399' : 'var(--text-secondary)',
+                    color: editRoleMode === 'single' ? (isLight ? '#047857' : '#34d399') : modalSubText,
                     cursor: 'pointer'
                   }}
                 >
@@ -975,9 +1656,9 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                     fontSize: '0.75rem',
                     fontWeight: 700,
                     border: '1px solid',
-                    borderColor: editRoleMode === 'multiple' ? '#8b5cf6' : 'var(--border-color)',
+                    borderColor: editRoleMode === 'multiple' ? '#8b5cf6' : modalBorder,
                     background: editRoleMode === 'multiple' ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
-                    color: editRoleMode === 'multiple' ? '#c4b5fd' : 'var(--text-secondary)',
+                    color: editRoleMode === 'multiple' ? (isLight ? '#6d28d9' : '#c4b5fd') : modalSubText,
                     cursor: 'pointer'
                   }}
                 >
@@ -1000,8 +1681,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                       gap: '10px',
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      border: isSelected ? `1.5px solid ${r.color}` : '1px solid var(--border-color)',
-                      background: isSelected ? `${r.color}15` : 'rgba(255, 255, 255, 0.02)',
+                      border: isSelected ? `1.5px solid ${r.color}` : `1px solid ${modalBorder}`,
+                      background: isSelected ? `${r.color}18` : 'transparent',
                       cursor: 'pointer'
                     }}
                   >
@@ -1010,7 +1691,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                     ) : (
                       <Square size={16} color="#64748b" />
                     )}
-                    <span style={{ fontSize: '0.82rem', color: isSelected ? 'white' : '#cbd5e1', fontWeight: isSelected ? 700 : 500 }}>
+                    <span style={{ fontSize: '0.82rem', color: isSelected ? modalText : modalSubText, fontWeight: isSelected ? 700 : 500 }}>
                       {r.label}
                     </span>
                   </div>
@@ -1045,35 +1726,56 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
       {/* RESET PASSWORD MODAL */}
       {resetModalStaff && createPortal(
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 999999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#0f172a',
-            border: '1px solid rgba(59, 130, 246, 0.35)',
-            borderRadius: '20px',
-            maxWidth: '420px',
-            width: '100%',
-            padding: '1.5rem'
-          }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: 'var(--text-primary)' }}>
+        <div
+          onClick={() => setResetModalStaff(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: modalBg,
+              color: modalText,
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              borderRadius: '20px',
+              maxWidth: '420px',
+              width: '100%',
+              padding: '1.5rem',
+              boxSizing: 'border-box'
+            }}
+          >
+            <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: modalText }}>
               Reset Password Staf
             </h3>
-            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#94a3b8' }}>
-              Ganti password untuk <strong>{resetModalStaff.name}</strong> ({resetModalStaff.email}).
+            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: modalSubText }}>
+              Ganti password untuk <strong>{resetModalStaff.name}</strong> ({resetModalStaff.email || resetModalStaff.phone}).
             </p>
+
+            {resetError && (
+              <div style={{
+                padding: '9px 12px',
+                borderRadius: '8px',
+                background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)',
+                color: isLight ? '#b91c1c' : '#fca5a5',
+                fontSize: '0.8rem',
+                marginBottom: '10px'
+              }}>
+                {resetError}
+              </div>
+            )}
 
             <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: modalSubText, marginBottom: '4px' }}>
                   Password Baru
                 </label>
                 <input
@@ -1104,6 +1806,74 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* INLINE DELETE STAFF CONFIRM MODAL */}
+      {deleteConfirmStaff && createPortal(
+        <div
+          onClick={() => !deletingStaff && setDeleteConfirmStaff(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: modalBg,
+              color: modalText,
+              border: '1px solid rgba(239, 68, 68, 0.45)',
+              borderRadius: '20px',
+              maxWidth: '420px',
+              width: '100%',
+              padding: '1.5rem',
+              boxSizing: 'border-box'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <AlertCircle size={22} color="#ef4444" />
+              <h3 style={{ margin: 0, fontSize: '1.08rem', color: modalText }}>Hapus Akses Karyawan?</h3>
+            </div>
+            <p style={{ margin: '0 0 1.25rem', fontSize: '0.84rem', color: modalSubText, lineHeight: 1.5 }}>
+              Yakin ingin mencabut akses login dan menghapus <strong>{deleteConfirmStaff.name}</strong> dari daftar staf?
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmStaff(null)}
+                className="btn btn-secondary"
+                disabled={deletingStaff}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteStaff}
+                disabled={deletingStaff}
+                className="btn"
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                {deletingStaff ? 'Menghapus...' : 'Ya, Hapus Akses'}
+              </button>
+            </div>
           </div>
         </div>,
         document.body

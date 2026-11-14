@@ -24,7 +24,7 @@ const DEMO_ACCOUNTS = [
     id: 'owner',
     role: 'owner',
     title: 'Pemilik Kost (Juragan)',
-    badge: '👑 Owner / Juragan',
+    badge: 'Owner / Juragan',
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(15, 23, 42, 0.85) 100%)',
     borderColor: 'rgba(245, 158, 11, 0.45)',
@@ -34,19 +34,19 @@ const DEMO_ACCOUNTS = [
     targetKost: 'Kost Putri Griya Asri Dago & Kost Melati Indah (Multi-Cabang)',
     desc: 'Akses penuh pengelola: approval sewa masuk, manajemen penghuni & ekspor laporan, laporan laba rugi, mutasi payout Flip/Tripay, penugasan staf, & kontrol utilitas.',
     features: [
-      '🏢 Multi-Cabang Dago & Melati',
-      '🛏️ Manajemen Kamar & Denah Arsitektural',
-      '👥 Manajemen Penghuni & Ekspor Laporan',
-      '💰 Laporan Laba Rugi, Pemasukan, & Payout',
-      '🛠️ Manajemen Staf Lapangan & Utilitas',
-      '🔥 Sundul Kost Posisi #1 & Merchant UMKM'
+      'Multi-Cabang Dago & Melati',
+      'Manajemen Kamar & Denah Arsitektural',
+      'Manajemen Penghuni & Ekspor Laporan',
+      'Laporan Laba Rugi, Pemasukan, & Payout',
+      'Manajemen Staf Lapangan & Utilitas',
+      'Sundul Kost Posisi #1 & Merchant UMKM'
     ]
   },
   {
     id: 'new_owner',
     role: 'owner',
     title: 'Pemilik Kost Baru (Baru Buka / Kosong)',
-    badge: '🌱 Baru Buka (0 Penghuni)',
+    badge: 'Baru Buka (0 Penghuni)',
     color: '#10b981',
     gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
     borderColor: 'rgba(16, 185, 129, 0.45)',
@@ -56,18 +56,18 @@ const DEMO_ACCOUNTS = [
     targetKost: 'Kost Harmoni Asri Banyumanik (Baru Buka — 0 Penghuni)',
     desc: 'Simulasi pemilik kost yang baru merintis & grand opening: properti baru selesai dibangun, kamar 100% kosong (belum ada isinya), laporan keuangan Rp 0, siap onboarding dari awal.',
     features: [
-      '🌱 Kost Baru Buka (0 Penghuni & 0 Tunggakan)',
-      '🚪 6 Kamar Bersih Siap Huni (Status Kosong)',
-      '💰 Laporan Finansial Awal (Mulai dari Rp 0)',
-      '✨ Panduan Onboarding Kost Baru & Cek Denah',
-      '👥 Uji Coba Daftarkan Penghuni Pertama'
+      'Kost Baru Buka (0 Penghuni & 0 Tunggakan)',
+      '6 Kamar Bersih Siap Huni (Status Kosong)',
+      'Laporan Finansial Awal (Mulai dari Rp 0)',
+      'Panduan Onboarding Kost Baru & Cek Denah',
+      'Uji Coba Daftarkan Penghuni Pertama'
     ]
   },
   {
     id: 'tenant',
     role: 'user',
     title: 'Anak Kost (Penghuni Kamar 101)',
-    badge: '🏠 Penghuni Aktif',
+    badge: 'Penghuni Aktif',
     color: '#38bdf8',
     gradient: 'linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(15, 23, 42, 0.85) 100%)',
     borderColor: 'rgba(56, 189, 248, 0.45)',
@@ -77,19 +77,19 @@ const DEMO_ACCOUNTS = [
     targetKost: 'Kost Putri Griya Asri Dago — Kamar 101',
     desc: 'Pengalaman anak kost: bayar sewa bulanan via Dynamic QRIS (dengan Simulator Bayar Instan), unduh e-kuitansi resmi ber-QR, token PLN, tagihan air PDAM, pesan makan/laundry warung, & loker paket.',
     features: [
-      '💳 Dynamic QRIS (+ Simulator Bayar Realtime)',
-      '🧾 Unduh E-Kuitansi Pembayaran Digital',
-      '⚡ Token Listrik PLN & Tagihan PDAM',
-      '🛍️ Order Hyperlocal Warung Makan & Laundry Kilat',
-      '📦 Notifikasi Loker Paket Kurir (Kode OTP)',
-      '🔧 Lapor Komplain Kerusakan Fasilitas Kamar'
+      'Dynamic QRIS (+ Simulator Bayar Realtime)',
+      'Unduh E-Kuitansi Pembayaran Digital',
+      'Token Listrik PLN & Tagihan PDAM',
+      'Order Hyperlocal Warung Makan & Laundry Kilat',
+      'Notifikasi Loker Paket Kurir (Kode OTP)',
+      'Lapor Komplain Kerusakan Fasilitas Kamar'
     ]
   },
   {
     id: 'staff',
     role: 'staff',
     title: 'Staf Lapangan (Penjaga Kost)',
-    badge: '🛠️ Penjaga & Teknisi',
+    badge: 'Penjaga & Teknisi',
     color: '#34d399',
     gradient: 'linear-gradient(135deg, rgba(52, 211, 153, 0.14) 0%, rgba(15, 23, 42, 0.85) 100%)',
     borderColor: 'rgba(52, 211, 153, 0.45)',
@@ -99,18 +99,18 @@ const DEMO_ACCOUNTS = [
     targetKost: 'Kost Putri Griya Asri Dago (Operasional)',
     desc: 'Dashboard operasional lapangan: catat meteran utilitas (listrik kWh & air m³), intake paket kurir & buat kode OTP pickup untuk penghuni, proses tiket perbaikan, & kas kecil.',
     features: [
-      '⚡ Catat Meteran Listrik & Air Bulanan',
-      '📦 Intake Paket Masuk Kurir & Generate OTP',
-      '🔧 Tiket Penugasan & Perbaikan Fasilitas',
-      '💵 Kasbon & Pencatatan Pengeluaran Lapangan',
-      '📅 Logbook Kehadiran & Patroli Keamanan'
+      'Catat Meteran Listrik & Air Bulanan',
+      'Intake Paket Masuk Kurir & Generate OTP',
+      'Tiket Penugasan & Perbaikan Fasilitas',
+      'Kasbon & Pencatatan Pengeluaran Lapangan',
+      'Logbook Kehadiran & Patroli Keamanan'
     ]
   },
   {
     id: 'candidate',
     role: 'user',
     title: 'Calon Penghuni (Pencari Kost)',
-    badge: '🔍 Calon Penyewa',
+    badge: 'Calon Penyewa',
     color: '#a855f7',
     gradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.14) 0%, rgba(15, 23, 42, 0.85) 100%)',
     borderColor: 'rgba(168, 85, 247, 0.45)',
@@ -120,17 +120,17 @@ const DEMO_ACCOUNTS = [
     targetKost: 'Belum Terikat Kost (Eksplorasi Pencarian Bebas)',
     desc: 'Simulasi calon penghuni baru: cari kost radius kampus, filter fasilitas/tipe, hitung sewa, isi data penyewa, dan ajukan sewa kamar online.',
     features: [
-      '🔍 Jelajah Kost & Filter Kampus Terdekat',
-      '📋 Form Pengajuan Sewa & Konfirmasi Kamar',
-      '✍️ Tanda Tangan E-Kontrak Digital',
-      '💳 Simulasi Pembayaran Uang Muka / Booking'
+      'Jelajah Kost & Filter Kampus Terdekat',
+      'Form Pengajuan Sewa & Konfirmasi Kamar',
+      'Tanda Tangan E-Kontrak Digital',
+      'Simulasi Pembayaran Uang Muka / Booking'
     ]
   },
   {
     id: 'merchant',
     role: 'mitra',
     title: 'Mitra UMKM Sekitar Kost (Warung & Laundry)',
-    badge: '🛍️ Mitra Toko & Laundry',
+    badge: 'Mitra Toko & Laundry',
     color: '#ec4899',
     gradient: 'linear-gradient(135deg, rgba(236, 72, 153, 0.14) 0%, rgba(15, 23, 42, 0.85) 100%)',
     borderColor: 'rgba(236, 72, 153, 0.45)',
@@ -140,10 +140,10 @@ const DEMO_ACCOUNTS = [
     targetKost: 'Mitra Resmi Sekitar Kost Griya Asri & Melati',
     desc: 'Simulasi pedagang UMKM lokal: kelola katalog menu makanan / paket laundry, terima pesanan antar ke kamar kost, dan tarik hasil penjualan.',
     features: [
-      '🍲 Manajemen Katalog Menu & Paket Laundry',
-      '🔔 Notifikasi Pesanan Masuk Antar ke Kamar',
-      '💰 Rekonsiliasi Dana Penjualan Otomatis',
-      '⭐ Rating Layanan & Feedback Anak Kost'
+      'Manajemen Katalog Menu & Paket Laundry',
+      'Notifikasi Pesanan Masuk Antar ke Kamar',
+      'Rekonsiliasi Dana Penjualan Otomatis',
+      'Rating Layanan & Feedback Anak Kost'
     ]
   }
 ];
@@ -375,7 +375,7 @@ export default function Demo({ onLogin }) {
                   </h3>
 
                   <span style={{ fontSize: '0.78rem', color: isLight ? '#0284c7' : '#38bdf8', display: 'block', marginBottom: '10px', fontWeight: 600 }}>
-                    📍 {demo.targetKost}
+                    {demo.targetKost}
                   </span>
 
                   <p style={{ margin: '0 0 14px 0', fontSize: '0.82rem', color: isLight ? '#334155' : '#e2e8f0', lineHeight: 1.5 }}>

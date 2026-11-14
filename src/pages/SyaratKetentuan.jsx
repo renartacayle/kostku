@@ -474,7 +474,7 @@ export default function SyaratKetentuan() {
             {/* 1. Pelindung Pemilik Kost */}
             <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #3b82f6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#93c5fd', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
-                <span>🏢 Pelindung Pemilik Kost</span>
+                <span>Pelindung Pemilik Kost</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <li><strong>Anti-Bukti Transfer Palsu:</strong> Seluruh pembayaran sewa terverifikasi otomatis via sistem bank/QRIS TriPay tanpa risiko struk editan.</li>
@@ -486,7 +486,7 @@ export default function SyaratKetentuan() {
             {/* 2. Pelindung Pemilik Bisnis / Mitra */}
             <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #f59e0b' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fde68a', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
-                <span>🏪 Pelindung Pemilik Bisnis (Mitra)</span>
+                <span>Pelindung Pemilik Bisnis (Mitra)</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <li><strong>Anti-Fake Order Meja:</strong> Pemesanan menu hanya sah bila dipicu melalui token barcode QR fisik meja yang aktif.</li>
@@ -498,7 +498,7 @@ export default function SyaratKetentuan() {
             {/* 3. Pelindung Penghuni / Penyewa */}
             <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #8b5cf6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#d8b4fe', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
-                <span>🏠 Pelindung Penghuni &amp; Penyewa</span>
+                <span>Pelindung Penghuni &amp; Penyewa</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <li><strong>Garansi 100% Anti-Kost Fiktif:</strong> Setiap listing telah melewati kurasi titik koordinat GPS dan verifikasi foto bangunan asli.</li>
@@ -510,7 +510,7 @@ export default function SyaratKetentuan() {
             {/* 4. Pelindung Karyawan &amp; Staf */}
             <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '14px', borderRadius: '12px', borderLeft: '3px solid #10b981' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6ee7b7', fontWeight: 800, fontSize: '0.88rem', marginBottom: '6px' }}>
-                <span>👷 Pelindung Karyawan &amp; Staf</span>
+                <span>Pelindung Karyawan &amp; Staf</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <li><strong>Login Mandiri Gmail Pribadi:</strong> Hak akses operasional kasir/dapur melekat pada akun Gmail staf masing-masing secara transparan.</li>

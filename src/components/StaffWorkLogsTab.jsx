@@ -26,12 +26,12 @@ import {
 import { useTheme } from '../context/ThemeContext';
 
 const WORK_CATEGORIES = [
-  { id: 'Kebersihan', label: '🧹 Kebersihan & Sapu/Pel', color: '#10b981' },
-  { id: 'Perbaikan', label: '🔧 Perbaikan & Servis Teknisi', color: '#f59e0b' },
-  { id: 'Ganti Sprei', label: '🛏️ Ganti Sprei & Linen', color: '#8b5cf6' },
-  { id: 'Cek Meteran', label: '⚡ Cek Meteran PLN / Air PDAM', color: '#3b82f6' },
-  { id: 'Keamanan', label: '🛡️ Keamanan, Kunci & Ronda Malam', color: '#ec4899' },
-  { id: 'Fasilitas Kost', label: '🏢 Pengecekan Fasilitas Umum Kost', color: '#14b8a6' }
+  { id: 'Kebersihan', label: 'Kebersihan & Sapu/Pel', color: '#10b981' },
+  { id: 'Perbaikan', label: 'Perbaikan & Servis Teknisi', color: '#f59e0b' },
+  { id: 'Ganti Sprei', label: 'Ganti Sprei & Linen', color: '#8b5cf6' },
+  { id: 'Cek Meteran', label: 'Cek Meteran PLN / Air PDAM', color: '#3b82f6' },
+  { id: 'Keamanan', label: 'Keamanan, Kunci & Ronda Malam', color: '#ec4899' },
+  { id: 'Fasilitas Kost', label: 'Pengecekan Fasilitas Umum Kost', color: '#14b8a6' }
 ];
 
 export default function StaffWorkLogsTab({ user, currentKostUid }) {
@@ -182,7 +182,7 @@ export default function StaffWorkLogsTab({ user, currentKostUid }) {
     try {
       await apiDeleteWorkLog(id);
       setLogsList(prev => prev.filter(l => l.id !== id));
-      setActionMsg('🗑️ Laporan foto kerja berhasil dihapus.');
+      setActionMsg('Laporan foto kerja berhasil dihapus.');
       setTimeout(() => setActionMsg(null), 4000);
     } catch (err) {
       alert('Gagal menghapus laporan: ' + err.message);
@@ -497,7 +497,7 @@ export default function StaffWorkLogsTab({ user, currentKostUid }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-                  📸 Upload Laporan Foto Kerja
+                  Upload Laporan Foto Kerja
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                   Ambil foto bukti pekerjaan harian untuk dipantau oleh Owner

@@ -76,7 +76,7 @@ export default function Navbar({
                 fontWeight: 700,
                 fontSize: '0.82rem'
               }}>
-                <span>🏪 {user?.storeName || 'Kantin Barokah UMKM'}</span>
+                <span>{user?.storeName || 'Kantin Barokah UMKM'}</span>
                 <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800 }}>Buka</span>
               </div>
               <Link
@@ -112,7 +112,7 @@ export default function Navbar({
               fontWeight: 700,
               fontSize: '0.82rem'
             }}>
-              <span>👔 Staf: {user?.name || 'Pak Joko'}</span>
+              <span>Staf: {user?.name || 'Pak Joko'}</span>
               <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800 }}>Shift Aktif</span>
             </div>
           ) : (
@@ -128,7 +128,7 @@ export default function Navbar({
               fontWeight: 700,
               fontSize: '0.82rem'
             }}>
-              <span>🔍 {user?.name ? `Penghuni: ${user.name}` : 'Pencari Kost: Cari & Sewa'}</span>
+              <span>{user?.name ? `Penghuni: ${user.name}` : 'Pencari Kost: Cari & Sewa'}</span>
             </div>
           )
         )}
@@ -153,7 +153,7 @@ export default function Navbar({
             flexShrink: 0
           }}>
             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: isLight ? '#d97706' : '#fbbf24' }} />
-            <span>🧪 <span className="desktop-only">Mode </span>Demo</span>
+            <span><span className="desktop-only">Mode </span>Demo</span>
             <Link
               to="/login"
               title="Beralih ke Login Data Real"

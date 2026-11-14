@@ -6,11 +6,11 @@ import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
 
 const RATING_DESCRIPTIONS = {
-  1: '😞 Sangat Kurang',
-  2: '🙁 Kurang Memuaskan',
-  3: '😐 Cukup Baik',
-  4: '😊 Bagus & Nyaman',
-  5: '🤩 Luar Biasa & Sangat Direkomendasikan!'
+  1: 'Sangat Kurang',
+  2: 'Kurang Memuaskan',
+  3: 'Cukup Baik',
+  4: 'Bagus & Nyaman',
+  5: 'Luar Biasa & Sangat Direkomendasikan!'
 };
 
 export default function TenantRatingModal({
@@ -121,7 +121,7 @@ export default function TenantRatingModal({
               <CheckCircle2 size={40} />
             </div>
             <h4 style={{ fontSize: '1.3rem', fontWeight: 800, margin: '0 0 8px 0', color: isLight ? '#0f172a' : 'white' }}>
-              Rating Berhasil Dikirim! 🎉
+              Rating Berhasil Dikirim!
             </h4>
             <p style={{ color: isLight ? '#475569' : '#94a3b8', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
               Terima kasih <strong>{userName}</strong>! Ulasan bintang <strong>{formRating}</strong> Anda telah berhasil disimpan dan ditampilkan di halaman publik kost untuk membantu calon anak kost lainnya.
@@ -207,10 +207,10 @@ export default function TenantRatingModal({
               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)'
             }}>
               {[
-                { label: '🧹 Kebersihan', value: cleanliness, setter: setCleanliness },
-                { label: '🛏️ Fasilitas', value: facility, setter: setFacility },
-                { label: '🔒 Keamanan', value: security, setter: setSecurity },
-                { label: '📍 Lokasi & Akses', value: locationScore, setter: setLocationScore }
+                { label: 'Kebersihan', value: cleanliness, setter: setCleanliness },
+                { label: 'Fasilitas', value: facility, setter: setFacility },
+                { label: 'Keamanan', value: security, setter: setSecurity },
+                { label: 'Lokasi & Akses', value: locationScore, setter: setLocationScore }
               ].map(asp => (
                 <div key={asp.label} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '0.74rem', color: isLight ? '#475569' : '#cbd5e1', fontWeight: 600 }}>{asp.label}</span>

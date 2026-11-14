@@ -108,7 +108,7 @@ export default function StaffShiftMutations({ staff, user }) {
       setOperationalNotes('');
       setGuestNotes('');
       setIncidentNotes('');
-      setActionMsg('✅ Laporan serah-terima shift berhasil disimpan!');
+      setActionMsg('Laporan serah-terima shift berhasil disimpan!');
       setTimeout(() => setActionMsg(null), 4000);
       loadData();
     } catch (err) {
@@ -131,7 +131,7 @@ export default function StaffShiftMutations({ staff, user }) {
       });
       setHandoverModalMutation(null);
       setHandoverNotes('');
-      setActionMsg('✅ Serah-terima shift berhasil diverifikasi!');
+      setActionMsg('Serah-terima shift berhasil diverifikasi!');
       setTimeout(() => setActionMsg(null), 4000);
       loadData();
     } catch (err) {
@@ -144,7 +144,7 @@ export default function StaffShiftMutations({ staff, user }) {
   const handlePickupPackage = async (pkgId) => {
     try {
       await apiPickupPackage(pkgId);
-      setActionMsg('📦 Status paket diperbarui: Telah diserahkan ke penghuni');
+      setActionMsg('Status paket diperbarui: Telah diserahkan ke penghuni');
       setTimeout(() => setActionMsg(null), 3000);
       loadData();
     } catch (err) {
@@ -155,10 +155,10 @@ export default function StaffShiftMutations({ staff, user }) {
   const handleSendPackageWa = (pkg) => {
     const text = encodeURIComponent(
       `Halo Kak ${pkg.tenantName} (Kamar ${pkg.roomNumber})!\n\n` +
-      `📦 Paket kiriman Anda dari kurir *${pkg.courier || 'Ekspedisi'}* telah tiba di pos resepsionis.\n` +
+      `Paket kiriman Anda dari kurir *${pkg.courier || 'Ekspedisi'}* telah tiba di pos resepsionis.\n` +
       `No. Resi: ${pkg.trackingNumber || '-'}\n` +
       `Pencatat: ${staff.name} (Penjaga Kost)\n\n` +
-      `Silakan mampir ke pos untuk mengambil paket Anda. Terima kasih! 🙏`
+      `Silakan mampir ke pos untuk mengambil paket Anda. Terima kasih!`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
@@ -240,7 +240,7 @@ export default function StaffShiftMutations({ staff, user }) {
               padding: '2px 8px',
               borderRadius: '6px'
             }}>
-              {pendingPackages.length > 0 ? '📦 Ada Paket di Pos' : 'Rak Bersih'}
+              {pendingPackages.length > 0 ? 'Ada Paket di Pos' : 'Rak Bersih'}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
@@ -294,7 +294,7 @@ export default function StaffShiftMutations({ staff, user }) {
                     <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>• {pkg.tenantName}</span>
                   </div>
                   <div style={{ fontSize: '0.74rem', color: '#38bdf8', marginTop: '2px' }}>
-                    🚚 {pkg.courier || 'Ekspedisi'} • Resi: {pkg.trackingNumber || '-'}
+                    {pkg.courier || 'Ekspedisi'} • Resi: {pkg.trackingNumber || '-'}
                   </div>
                 </div>
 
@@ -473,7 +473,7 @@ export default function StaffShiftMutations({ staff, user }) {
                 {/* Handover Details (if handed over) */}
                 {mut.handoverNotes && (
                   <div style={{ fontSize: '0.74rem', color: '#93c5fd', borderTop: '1px dashed var(--border-light)', paddingTop: '6px' }}>
-                    💬 Pesan Serah-Terima: "{mut.handoverNotes}"
+                    Pesan Serah-Terima: "{mut.handoverNotes}"
                   </div>
                 )}
               </div>
@@ -547,10 +547,10 @@ export default function StaffShiftMutations({ staff, user }) {
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {[
-                    { key: 'gateLocked', label: '🔒 Pagar Tergembok Rapat' },
-                    { key: 'pumpNormal', label: '💧 Pompa / Toren Air Normal' },
-                    { key: 'lightsChecked', label: '💡 Lampu Lorong Berfungsi' },
-                    { key: 'trashDisposed', label: '🗑️ Tempat Sampah Diangkut' }
+                    { key: 'gateLocked', label: 'Pagar Tergembok Rapat' },
+                    { key: 'pumpNormal', label: 'Pompa / Toren Air Normal' },
+                    { key: 'lightsChecked', label: 'Lampu Lorong Berfungsi' },
+                    { key: 'trashDisposed', label: 'Tempat Sampah Diangkut' }
                   ].map(chk => (
                     <label 
                       key={chk.key} 

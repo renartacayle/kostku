@@ -295,7 +295,7 @@ export default function Layanan({ user }) {
     const newTotal = currentLoyaltyPoints + 100;
     saveAccountPoints(newTotal);
     setFriendReferralInput('');
-    setFriendReferralStatus({ type: 'success', message: '🎉 +100 Poin referral tersimpan otomatis!' });
+    setFriendReferralStatus({ type: 'success', message: '+100 Poin referral tersimpan otomatis!' });
     setTimeout(() => setFriendReferralStatus(null), 3000);
   };
 
@@ -340,12 +340,12 @@ export default function Layanan({ user }) {
         saveAccountPoints(currentLoyaltyPoints + (res.bonusPoints || 500));
         setSuggestNotice({
           type: 'success',
-          message: res.message || `🎉 Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
+          message: res.message || `Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
         });
       } else if (res?.isAlreadyRegistered) {
         setSuggestNotice({
           type: 'info',
-          message: `⚠️ Usulan warung "${suggestForm.name}" berhasil dikirim. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.`
+          message: `Usulan warung "${suggestForm.name}" berhasil dikirim. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.`
         });
       } else {
         setSuggestNotice({
@@ -373,10 +373,10 @@ export default function Layanan({ user }) {
       : independentForm.category === 'galon' ? 'Air & Gas'
       : 'Jasa & Servis';
 
-    const defaultIcon = independentForm.category === 'makanan' ? '🍲'
-      : independentForm.category === 'laundry' ? '🧺'
-      : independentForm.category === 'galon' ? '💧'
-      : '🛠️';
+    const defaultIcon = independentForm.category === 'makanan' ? ''
+      : independentForm.category === 'laundry' ? ''
+      : independentForm.category === 'galon' ? ''
+      : '';
 
     const defaultPhoto = independentForm.category === 'makanan'
       ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80'
@@ -437,17 +437,17 @@ export default function Layanan({ user }) {
         saveAccountPoints(currentLoyaltyPoints + (res.bonusPoints || 500));
         setIndependentNotice({
           type: 'success',
-          message: `🏪 Selamat! Toko "${createdMerchant.name}" berhasil terpasang dan bonus referral +500 Poin berhasil diklaim!`
+          message: `Selamat! Toko "${createdMerchant.name}" berhasil terpasang dan bonus referral +500 Poin berhasil diklaim!`
         });
       } else if (res?.isAlreadyRegistered) {
         setIndependentNotice({
           type: 'info',
-          message: `⚠️ Toko "${createdMerchant.name}" berhasil terpasang. Namun toko/nomor ini sudah pernah didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim ulang.`
+          message: `Toko "${createdMerchant.name}" berhasil terpasang. Namun toko/nomor ini sudah pernah didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim ulang.`
         });
       } else {
         setIndependentNotice({
           type: 'success',
-          message: `🏪 Selamat! Toko "${createdMerchant.name}" berhasil terpasang. Gunakan kode referral untuk mendapatkan bonus poin.`
+          message: `Selamat! Toko "${createdMerchant.name}" berhasil terpasang. Gunakan kode referral untuk mendapatkan bonus poin.`
         });
       }
     } catch (err) {
@@ -673,7 +673,7 @@ export default function Layanan({ user }) {
         }}>
           {/* Baris 1: Total Poin */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '1.25rem' }}>🪙</span>
+            <Sparkles size={18} color="#f59e0b" />
             <span style={{ fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#b45309' : '#fbbf24' }}>
               {currentLoyaltyPoints} Poin
             </span>
@@ -785,7 +785,7 @@ export default function Layanan({ user }) {
               justifyContent: 'center'
             }}
           >
-            <span>🍜</span>
+            <Store size={14} />
             <span>Usulkan Warung</span>
           </button>
           <button
@@ -828,12 +828,12 @@ export default function Layanan({ user }) {
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
             {[
               { id: 'all', label: 'Semua' },
-              { id: 'beli_lagi', label: '⚡ Beli Lagi' },
-              { id: 'mandiri', label: '🏪 Mandiri' },
-              { id: 'makanan', label: '🍱 Warung' },
-              { id: 'galon', label: '💧 Galon' },
-              { id: 'laundry', label: '🧺 Laundry' },
-              { id: 'gas', label: '🔥 Gas' }
+              { id: 'beli_lagi', label: 'Beli Lagi' },
+              { id: 'mandiri', label: 'Mandiri' },
+              { id: 'makanan', label: 'Warung' },
+              { id: 'galon', label: 'Galon' },
+              { id: 'laundry', label: 'Laundry' },
+              { id: 'gas', label: 'Gas' }
             ].map(cat => {
               const isSelected = partnerCategory === cat.id;
               const isBeliLagi = cat.id === 'beli_lagi';
@@ -895,14 +895,14 @@ export default function Layanan({ user }) {
               }}
               title="Prioritaskan toko mitra utama kost di urutan pertama"
             >
-              👑 Utama: {pinMainPartner ? 'ON' : 'OFF'}
+              Utama: {pinMainPartner ? 'ON' : 'OFF'}
             </button>
 
             <span style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b' }}>Urut:</span>
             {[
-              { id: 'cheapest', label: '🏷️ Termurah' },
-              { id: 'highest', label: '💎 Tertinggi' },
-              { id: 'distance', label: '📍 Terdekat' }
+              { id: 'cheapest', label: 'Termurah' },
+              { id: 'highest', label: 'Tertinggi' },
+              { id: 'distance', label: 'Terdekat' }
             ].map(s => (
               <button
                 key={s.id}
@@ -942,7 +942,7 @@ export default function Layanan({ user }) {
             maxWidth: '560px',
             margin: '2rem auto'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🏪</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#38bdf8' }}><Store size={42} /></div>
             <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
               {rawList.length === 0 
                 ? 'Mitra Belum Ada' 
@@ -954,7 +954,7 @@ export default function Layanan({ user }) {
               {rawList.length === 0
                 ? 'Mitra belum ada, tambahkan mitra untuk mendapat bonus poin! Masukkan kode referral saat mengusulkan atau mendaftarkan toko mitra untuk mengaktifkan extra bonus poin.'
                 : partnerCategory === 'beli_lagi'
-                ? '⚡ Belum ada toko yang pernah kamu beli. Pesan galon, laundry, atau makanan sekali untuk fitur re-order kilat!'
+                ? 'Belum ada toko yang pernah kamu beli. Pesan galon, laundry, atau makanan sekali untuk fitur re-order kilat!'
                 : 'Coba ubah kata kunci atau kategori filter untuk menemukan toko lainnya.'}
             </p>
             {rawList.length === 0 ? (
@@ -989,7 +989,7 @@ export default function Layanan({ user }) {
                     className="btn btn-secondary"
                     style={{ fontSize: '0.82rem', padding: '9px 18px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
                   >
-                    <span>🍜</span> Usulkan Warung (+ Bonus Poin)
+                    <Store size={15} /> Usulkan Warung (+ Bonus Poin)
                   </button>
                 </div>
               </div>
@@ -1052,7 +1052,7 @@ export default function Layanan({ user }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1rem', color: isLight ? '#0f172a' : '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🍜</span> Usulkan Warung Langganan
+                  <Store size={17} color="#38bdf8" /> Usulkan Warung Langganan
                 </h3>
                 <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Dapatkan <strong style={{ color: '#f59e0b' }}>+500 Poin loyalty</strong> saat warung kamu daftarkan!
@@ -1121,10 +1121,10 @@ export default function Layanan({ user }) {
                     fontSize: '0.8rem'
                   }}
                 >
-                  <option value="makanan">🍲 Warung Makan & Jajanan</option>
-                  <option value="laundry">🧺 Laundry Kiloan</option>
-                  <option value="galon">💧 Air Galon & Gas LPG</option>
-                  <option value="jasa">🛠️ Jasa / Fotokopi / Servis</option>
+                  <option value="makanan">Warung Makan & Jajanan</option>
+                  <option value="laundry">Laundry Kiloan</option>
+                  <option value="galon">Air Galon & Gas LPG</option>
+                  <option value="jasa">Jasa / Fotokopi / Servis</option>
                 </select>
               </div>
 
@@ -1193,7 +1193,7 @@ export default function Layanan({ user }) {
                   }}
                 />
                 <span style={{ fontSize: '0.66rem', color: isLight ? '#15803d' : '#86efac', marginTop: '2px', display: 'block' }}>
-                  💡 Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per warung baru).</em>
+                  Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per warung baru).</em>
                 </span>
               </div>
 
@@ -1245,7 +1245,7 @@ export default function Layanan({ user }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1rem', color: isLight ? '#0f172a' : '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🏪</span> Pasang Toko Mandiri (UMKM Sekitar Kost)
+                  <Store size={17} color="#38bdf8" /> Pasang Toko Mandiri (UMKM Sekitar Kost)
                 </h3>
                 <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Langsung tayang di aplikasi penghuni tanpa perlu kontrak khusus pemilik kost
@@ -1315,10 +1315,10 @@ export default function Layanan({ user }) {
                       fontSize: '0.8rem'
                     }}
                   >
-                    <option value="makanan">🍲 Warung & Kuliner</option>
-                    <option value="laundry">🧺 Laundry Kiloan</option>
-                    <option value="galon">💧 Air & Gas Elpiji</option>
-                    <option value="jasa">🛠️ Jasa & Servis</option>
+                    <option value="makanan">Warung & Kuliner</option>
+                    <option value="laundry">Laundry Kiloan</option>
+                    <option value="galon">Air & Gas Elpiji</option>
+                    <option value="jasa">Jasa & Servis</option>
                   </select>
                 </div>
                 <div>
@@ -1372,7 +1372,7 @@ export default function Layanan({ user }) {
                 padding: '10px 12px'
               }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#0284c7' : '#38bdf8', display: 'block', marginBottom: '6px' }}>
-                  📦 Produk / Menu Utama Pertama:
+                  Produk / Menu Utama Pertama:
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '8px' }}>
                   <div>
@@ -1445,7 +1445,7 @@ export default function Layanan({ user }) {
                   }}
                 />
                 <span style={{ fontSize: '0.66rem', color: isLight ? '#15803d' : '#86efac', marginTop: '2px', display: 'block' }}>
-                  🎁 Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per toko baru).</em>
+                  Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per toko baru).</em>
                 </span>
               </div>
 
@@ -1472,7 +1472,7 @@ export default function Layanan({ user }) {
                     boxShadow: '0 2px 8px rgba(14, 165, 233, 0.4)'
                   }}
                 >
-                  🚀 Pasang Sekarang & Aktifkan Toko
+                  Pasang Sekarang & Aktifkan Toko
                 </button>
               </div>
             </form>

@@ -206,7 +206,7 @@
       "id": "ACT-1794408562463",
       "kostUid": "KOST-JAKSEL-01",
       "type": "mitra",
-      "text": "⚡ Top Up Saldo Nota berhasil: Warung Nasi Uduk Bu Nanik 2212 top up Rp 10.000 (+100 Kuota Nota). Total saldo: Rp 10.050",
+      "text": "Top Up Saldo Nota berhasil: Warung Nasi Uduk Bu Nanik 2212 top up Rp 10.000 (+100 Kuota Nota). Total saldo: Rp 10.050",
       "time": "2026-11-11T14:49:22.463Z"
     },
     {
@@ -255,7 +255,7 @@
       "id": "ACT-1794409438586",
       "kostUid": "KOST-JAKSEL-01",
       "type": "mitra",
-      "text": "⚡ Top Up Saldo Nota berhasil: Warung Nasi Uduk Bu Nanik 8346 top up Rp 10.000 (+100 Kuota Nota). Total saldo: Rp 10.050",
+      "text": "Top Up Saldo Nota berhasil: Warung Nasi Uduk Bu Nanik 8346 top up Rp 10.000 (+100 Kuota Nota). Total saldo: Rp 10.050",
       "time": "2026-11-11T15:03:58.586Z"
     },
     {
@@ -332,7 +332,7 @@
       "id": "ACT-1794410951508",
       "kostUid": "KOST-JAKSEL-01",
       "type": "mitra",
-      "text": "⚡ Top Up Saldo Nota berhasil: Warung Nasi Uduk Bu Nanik 1251 top up Rp 10.000 (+100 Kuota Nota). Total saldo: Rp 10.050",
+      "text": "Top Up Saldo Nota berhasil: Warung Nasi Uduk Bu Nanik 1251 top up Rp 10.000 (+100 Kuota Nota). Total saldo: Rp 10.050",
       "time": "2026-11-11T15:29:11.508Z"
     },
     {
@@ -377,7 +377,7 @@
       "dutyCycle": 0.35,
       "estKwhPerMonth": 21.4,
       "hoursPerDay": 24,
-      "icon": "❄️",
+      "icon": "",
       "id": "kulkas_mini",
       "name": "Kulkas Mini / Bar Fridge",
       "watt": 85
@@ -387,7 +387,7 @@
       "dutyCycle": 0.5,
       "estKwhPerMonth": 21,
       "hoursPerDay": 4,
-      "icon": "♨️",
+      "icon": "",
       "id": "dispenser_panas",
       "name": "Dispenser Galon Pemanas",
       "watt": 350
@@ -397,7 +397,7 @@
       "dutyCycle": 0.7,
       "estKwhPerMonth": 56.7,
       "hoursPerDay": 6,
-      "icon": "🖥️",
+      "icon": "",
       "id": "pc_gaming",
       "name": "PC Gaming High-End & Dual Monitor",
       "watt": 450
@@ -407,7 +407,7 @@
       "dutyCycle": 0.9,
       "estKwhPerMonth": 13.2,
       "hoursPerDay": 0.75,
-      "icon": "🍳",
+      "icon": "",
       "id": "air_fryer",
       "name": "Air Fryer / Oven Mini Listrik",
       "watt": 650
@@ -417,7 +417,7 @@
       "dutyCycle": 0.8,
       "estKwhPerMonth": 3.6,
       "hoursPerDay": 0.5,
-      "icon": "👔",
+      "icon": "",
       "id": "setrika_baju",
       "name": "Setrika Pakaian Uap / Biasa",
       "watt": 300
@@ -427,7 +427,7 @@
       "dutyCycle": 1,
       "estKwhPerMonth": 18,
       "hoursPerDay": 24,
-      "icon": "🐠",
+      "icon": "",
       "id": "akuarium",
       "name": "Akuarium Ikan Hias (Pompa & Lampu)",
       "watt": 25
@@ -576,7 +576,10 @@
             "tenantName": "Oscar Herdian Wijaya"
           }
         ],
-        "employees": []
+        "employees": [],
+        "promoted": {
+          "active": false
+        }
       },
       "uid": "KOST-OJN64X"
     },
@@ -1253,7 +1256,7 @@
       "ownerUserId": "1794126789381",
       "name": "Kantin Riuh & Cafe Barokah",
       "category": "Kantin & Kuliner",
-      "icon": "🏪",
+      "icon": "",
       "phone": "08129998882",
       "address": "Dekat Gerbang Kost",
       "distanceKm": 0.1,
@@ -1290,7 +1293,7 @@
       "ownerUserId": "1794126835913",
       "name": "Kantin Riuh & Cafe Barokah",
       "category": "Kantin & Kuliner",
-      "icon": "🏪",
+      "icon": "",
       "phone": "08129998882",
       "address": "Dekat Gerbang Kost",
       "distanceKm": 0.1,
@@ -1327,7 +1330,7 @@
       "ownerUserId": "1794126890027",
       "name": "Kantin Riuh & Cafe Barokah",
       "category": "Kantin & Kuliner",
-      "icon": "🏪",
+      "icon": "",
       "phone": "08129998882",
       "address": "Dekat Gerbang Kost",
       "distanceKm": 0.1,
@@ -1364,7 +1367,7 @@
       "ownerUserId": "1794126949309",
       "name": "Kantin Riuh & Cafe Barokah",
       "category": "Kantin & Kuliner",
-      "icon": "🏪",
+      "icon": "",
       "phone": "08129998882",
       "address": "Dekat Gerbang Kost",
       "distanceKm": 0.1,
@@ -1412,7 +1415,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Warung Nasi Uduk Bu Nanik 2212",
       "category": "Kuliner",
-      "icon": "🏪",
+      "icon": "",
       "phone": "081831001408",
       "address": "Jl. Riau No. 12",
       "distanceKm": 0.5,
@@ -1474,7 +1477,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Warung Nasi Uduk Bu Nanik 8346",
       "category": "Kuliner",
-      "icon": "🏪",
+      "icon": "",
       "phone": "081835081636",
       "address": "Jl. Riau No. 12",
       "distanceKm": 0.5,
@@ -1537,7 +1540,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Kantin Berkah Kost",
       "category": "makanan",
-      "icon": "🍱",
+      "icon": "",
       "phone": "081299990001",
       "address": "Lantai 1 Belakang Gazebo",
       "distanceKm": 0.5,
@@ -1595,7 +1598,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Laundry Kilat 24 Jam",
       "category": "laundry",
-      "icon": "🧺",
+      "icon": "",
       "phone": "081299990001",
       "address": "Ruko Depan Gerbang Kost",
       "distanceKm": 0.5,
@@ -1653,7 +1656,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Kantin Berkah Kost",
       "category": "makanan",
-      "icon": "🍱",
+      "icon": "",
       "phone": "081299990001",
       "address": "Lantai 1 Belakang Gazebo",
       "distanceKm": 0.5,
@@ -1773,7 +1776,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Laundry Kilat 24 Jam",
       "category": "laundry",
-      "icon": "🧺",
+      "icon": "",
       "phone": "081299990001",
       "address": "Ruko Depan Gerbang Kost",
       "distanceKm": 0.5,
@@ -1831,7 +1834,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Warung Nasi Uduk Bu Nanik 1251",
       "category": "Kuliner",
-      "icon": "🏪",
+      "icon": "",
       "phone": "081884563780",
       "address": "Jl. Riau No. 12",
       "distanceKm": 0.5,
@@ -1913,7 +1916,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Kantin Berkah Kost",
       "category": "makanan",
-      "icon": "🍱",
+      "icon": "",
       "phone": "081299990001",
       "address": "Lantai 1 Belakang Gazebo",
       "distanceKm": 0.5,
@@ -2003,7 +2006,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Laundry Kilat 24 Jam",
       "category": "laundry",
-      "icon": "🧺",
+      "icon": "",
       "phone": "081299990001",
       "address": "Ruko Depan Gerbang Kost",
       "distanceKm": 0.5,
@@ -2061,7 +2064,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Kantin Berkah Kost",
       "category": "makanan",
-      "icon": "🍱",
+      "icon": "",
       "phone": "081299990001",
       "address": "Lantai 1 Belakang Gazebo",
       "distanceKm": 0.5,
@@ -2141,7 +2144,7 @@
       "kostUid": "KOST-JAKSEL-01",
       "name": "Laundry Kilat 24 Jam",
       "category": "laundry",
-      "icon": "🧺",
+      "icon": "",
       "phone": "081299990001",
       "address": "Ruko Depan Gerbang Kost",
       "distanceKm": 0.5,
@@ -2237,7 +2240,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 1000,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 500,
       "deliveryMode": "delivery",
@@ -2278,7 +2281,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -2328,7 +2331,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -2375,7 +2378,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -2420,7 +2423,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -2470,7 +2473,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -2517,7 +2520,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -2562,7 +2565,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -2612,7 +2615,7 @@
         "recruiterKostUid": "KOST-JAKSEL-01",
         "hostOwnerAmount": 0,
         "recruiterOwnerAmount": 0,
-        "note": "👑 Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
+        "note": "Mitra Utama Kost Renter - 100% Full ke Owner Kost Pemesan"
       },
       "platformFee": 100,
       "deliveryMode": "delivery",
@@ -3062,14 +3065,17 @@
     },
     "posStore": {
       "storeName": "Kantin Berkah Kost",
-      "location": "Lantai 1 Didekat Gazebo",
-      "address": "Lantai 1 Belakang Gazebo",
+      "location": "Lantai 1 Dekat Gazebo",
+      "address": "Jl. Imam Bonjol No. 45, Semarang Tengah",
       "city": "Semarang",
       "phone": "081299990001",
       "isValidated": true,
       "updatedAt": "2026-11-12T01:30:17.848Z",
       "uid": "PTR-1794447017666",
-      "merchantId": "PTR-1794447017666"
+      "merchantId": "PTR-1794447017666",
+      "mapsUrl": "https://maps.google.com/?q=-6.9825,110.4091",
+      "latitude": -6.9825,
+      "longitude": 110.4091
     }
   },
   "smartLocks": [
@@ -10594,6 +10600,12 @@
       "id": "tbl-5",
       "number": "Meja 05",
       "qrToken": "MEJA-05-TKN885"
+    },
+    {
+      "id": "tbl-1794637139964",
+      "number": "Meja 06",
+      "qrToken": "MEJA-MEJA-06-3EB12D",
+      "createdAt": "2026-11-14T06:18:59.964Z"
     }
   ],
   "pos_orders": [
@@ -26528,5 +26540,8 @@
   "receipt_claims": [],
   "customers": {},
   "points_ledger": [],
-  "wallet_mutations": []
+  "wallet_mutations": [],
+  "pos_custom_categories": {},
+  "staffInvites": [],
+  "_posTablesSeeded": true
 }

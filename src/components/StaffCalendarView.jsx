@@ -47,12 +47,12 @@ const MONTH_NAMES = [
 ];
 
 const WORK_CATEGORIES = [
-  { id: 'Kebersihan', label: '🧹 Kebersihan & Sapu/Pel', color: '#10b981' },
-  { id: 'Perbaikan', label: '🔧 Perbaikan & Servis Teknisi', color: '#f59e0b' },
-  { id: 'Ganti Sprei', label: '🛏️ Ganti Sprei & Linen', color: '#8b5cf6' },
-  { id: 'Cek Meteran', label: '⚡ Cek Meteran PLN / Air PDAM', color: '#3b82f6' },
-  { id: 'Keamanan', label: '🛡️ Keamanan, Kunci & Ronda Malam', color: '#ec4899' },
-  { id: 'Fasilitas Kost', label: '🏢 Pengecekan Fasilitas Umum Kost', color: '#14b8a6' }
+  { id: 'Kebersihan', label: 'Kebersihan & Sapu/Pel', color: '#10b981' },
+  { id: 'Perbaikan', label: 'Perbaikan & Servis Teknisi', color: '#f59e0b' },
+  { id: 'Ganti Sprei', label: 'Ganti Sprei & Linen', color: '#8b5cf6' },
+  { id: 'Cek Meteran', label: 'Cek Meteran PLN / Air PDAM', color: '#3b82f6' },
+  { id: 'Keamanan', label: 'Keamanan, Kunci & Ronda Malam', color: '#ec4899' },
+  { id: 'Fasilitas Kost', label: 'Pengecekan Fasilitas Umum Kost', color: '#14b8a6' }
 ];
 
 export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
@@ -324,7 +324,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
           lng: gpsLocation?.lng || null,
           kostUid: staff.kostUid
         });
-        setActionMsg('✅ Absensi masuk berhasil dicatat!');
+        setActionMsg('Absensi masuk berhasil dicatat!');
       } else if (quickModal === 'checkOut') {
         await apiCheckOutStaff({
           staffId: staff.id,
@@ -332,7 +332,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
           lat: gpsLocation?.lat || null,
           lng: gpsLocation?.lng || null
         });
-        setActionMsg('✅ Absensi selesai kerja berhasil dicatat!');
+        setActionMsg('Absensi selesai kerja berhasil dicatat!');
       } else if (quickModal === 'uploadTask') {
         await apiSubmitWorkLog({
           staffId: staff.id,
@@ -345,7 +345,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
           lat: gpsLocation?.lat || null,
           lng: gpsLocation?.lng || null
         });
-        setActionMsg('✅ Laporan foto tugas berhasil diunggah!');
+        setActionMsg('Laporan foto tugas berhasil diunggah!');
       }
       setQuickModal(null);
       loadData();
@@ -427,7 +427,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                   alignItems: 'center',
                   gap: '3px'
                 }}>
-                  ⭐ {staff.avgRating} ({staff.totalReviews || 0} Ulasan)
+                  {staff.avgRating} ({staff.totalReviews || 0} Ulasan)
                 </span>
               )}
             </div>
@@ -494,10 +494,10 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
         scrollbarWidth: 'none'
       }}>
         {[
-          { id: 'calendar', label: '📅 Kalender & Tugas Harian', icon: <CalendarIcon size={16} /> },
-          { id: 'handover', label: '📖 Buku Mutasi & Titipan Paket', icon: <FileText size={16} /> },
-          { id: 'payroll', label: '💰 Kasbon & Slip Gaji', icon: <Briefcase size={16} /> },
-          { id: 'ratings', label: '⭐ Rating & Ulasan', icon: <Sparkles size={16} /> },
+          { id: 'calendar', label: 'Kalender & Tugas Harian', icon: <CalendarIcon size={16} /> },
+          { id: 'handover', label: 'Buku Mutasi & Titipan Paket', icon: <FileText size={16} /> },
+          { id: 'payroll', label: 'Kasbon & Slip Gaji', icon: <Briefcase size={16} /> },
+          { id: 'ratings', label: 'Rating & Ulasan', icon: <Sparkles size={16} /> },
         ].map(tab => (
           <button
             key={tab.id}
@@ -844,7 +844,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'
                 }}>
-                  <span>{details.leave.type === 'sakit' ? '🏥 Sakit' : '🏖️ Cuti'}</span>
+                  <span>{details.leave.type === 'sakit' ? 'Sakit' : 'Cuti'}</span>
                 </div>
               )}
             </div>
@@ -886,7 +886,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
           width: '260px'
         }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8', marginBottom: '6px' }}>
-            📅 {new Date(hoveredDay.dateStr).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            {new Date(hoveredDay.dateStr).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
 
           {hoveredDay.attendance ? (
@@ -895,7 +895,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                 ✓ Masuk: {hoveredDay.attendance.checkIn?.time || '-'}
               </div>
               <div style={{ color: hoveredDay.attendance.checkOut ? '#60a5fa' : '#fbbf24', fontWeight: 700 }}>
-                {hoveredDay.attendance.checkOut ? `✓ Selesai: ${hoveredDay.attendance.checkOut.time} (${hoveredDay.attendance.checkOut.workDurationHours} Jam)` : '⏳ Belum Absen Selesai'}
+                {hoveredDay.attendance.checkOut ? `✓ Selesai: ${hoveredDay.attendance.checkOut.time} (${hoveredDay.attendance.checkOut.workDurationHours} Jam)` : 'Belum Absen Selesai'}
               </div>
             </div>
           ) : (
@@ -906,7 +906,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
 
           {hoveredDay.tasks.length > 0 && (
             <div style={{ marginTop: '6px', fontSize: '0.74rem', color: '#c4b5fd', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
-              📸 <strong>{hoveredDay.tasks.length} Laporan Tugas:</strong>
+              <strong>{hoveredDay.tasks.length} Laporan Tugas:</strong>
               <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'white' }}>
                 {hoveredDay.tasks.map(t => t.title).join(', ')}
               </div>
@@ -915,7 +915,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
 
           {hoveredDay.assignedTasks?.length > 0 && (
             <div style={{ marginTop: '6px', fontSize: '0.74rem', color: '#fbbf24', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
-              ⚡ <strong>{hoveredDay.assignedTasks.length} Tugas Komplain:</strong>
+              <strong>{hoveredDay.assignedTasks.length} Tugas Komplain:</strong>
               <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'white' }}>
                 {hoveredDay.assignedTasks.map(t => `Kamar ${t.kamar || t.roomNumber || '-'}: ${t.text || t.title}`).join(', ')}
               </div>
@@ -924,7 +924,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
 
           {hoveredDay.leave && (
             <div style={{ marginTop: '6px', fontSize: '0.74rem', color: '#f472b6', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
-              🏖️ {hoveredDay.leave.type.toUpperCase()}: {hoveredDay.leave.reason}
+              {hoveredDay.leave.type.toUpperCase()}: {hoveredDay.leave.reason}
             </div>
           )}
 
@@ -1242,7 +1242,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                             background: t.status === 'selesai' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
                             color: t.status === 'selesai' ? '#34d399' : '#fbbf24'
                           }}>
-                            {t.status === 'selesai' ? '✓ Selesai' : '⏳ Dalam Pengerjaan'}
+                            {t.status === 'selesai' ? '✓ Selesai' : 'Dalam Pengerjaan'}
                           </span>
                         </div>
 
@@ -1333,11 +1333,11 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                     color: 'white',
                     fontWeight: 800
                   }}>
-                    🏖️
+                    
                   </div>
                   <div>
                     <strong style={{ fontSize: '0.9rem', color: 'white' }}>
-                      Status: {selectedDayDetail.leave.type === 'sakit' ? '🏥 Izin Sakit' : '🏖️ Cuti Tahunan'}
+                      Status: {selectedDayDetail.leave.type === 'sakit' ? 'Izin Sakit' : 'Cuti Tahunan'}
                     </strong>
                     <div style={{ fontSize: '0.78rem', color: '#f472b6', marginTop: '2px' }}>
                       Alasan: {selectedDayDetail.leave.reason} ({selectedDayDetail.leave.daysCount} hari)
@@ -1418,7 +1418,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', padding: '8px 10px', borderRadius: '8px' }}>
-                ℹ️ <strong>Rasio Aktif:</strong> Setiap {workDaysRequired} hari kerja hadir penuh = dapat {leaveDaysEarned} hari cuti.
+                <strong>Rasio Aktif:</strong> Setiap {workDaysRequired} hari kerja hadir penuh = dapat {leaveDaysEarned} hari cuti.
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
@@ -1465,7 +1465,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
             border: '1px solid var(--border-light)'
           }}>
             <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', color: 'white' }}>
-              {quickModal === 'checkIn' ? '📸 Absen Masuk Karyawan' : quickModal === 'checkOut' ? '🏁 Absen Selesai Kerja' : '📸 Upload Laporan Foto Tugas'}
+              {quickModal === 'checkIn' ? 'Absen Masuk Karyawan' : quickModal === 'checkOut' ? 'Absen Selesai Kerja' : 'Upload Laporan Foto Tugas'}
             </h3>
             <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               Staf: <strong>{staff.name}</strong> • Tanggal: {targetDateForAction}
@@ -1678,7 +1678,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                   resolvedByStaffId: staff.id,
                   resolvedByStaffName: staff.name
                 });
-                setActionMsg('✅ Komplain berhasil diselesaikan & bukti pengerjaan tersimpan!');
+                setActionMsg('Komplain berhasil diselesaikan & bukti pengerjaan tersimpan!');
                 setComplaintToResolve(null);
                 loadData();
                 if (selectedDayDetail) {

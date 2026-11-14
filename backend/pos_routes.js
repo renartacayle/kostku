@@ -229,7 +229,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         category: 'Protein & Daging',
         unit: 'gram',
         currentStock: 450,
-        minAlertStock: 500, // ⚠️ MENIPIS!
+        minAlertStock: 500, // MENIPIS
         costPerUnit: 45,
         supplier: 'Rumah Potong Unggas Sejahtera',
         lastRestocked: new Date().toISOString()
@@ -251,7 +251,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         category: 'Bumbu & Saus',
         unit: 'ml',
         currentStock: 180,
-        minAlertStock: 200, // ⚠️ MENIPIS!
+        minAlertStock: 200, // MENIPIS
         costPerUnit: 25,
         supplier: 'Dapur Rempah KostKu',
         lastRestocked: new Date().toISOString()
@@ -295,7 +295,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         category: 'Protein & Daging',
         unit: 'potong',
         currentStock: 12,
-        minAlertStock: 15, // ⚠️ MENIPIS!
+        minAlertStock: 15, // MENIPIS
         costPerUnit: 8000,
         supplier: 'Rumah Potong Unggas Sejahtera',
         lastRestocked: new Date().toISOString()
@@ -328,7 +328,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         category: 'Kopi & Minuman',
         unit: 'ml',
         currentStock: 420,
-        minAlertStock: 500, // ⚠️ MENIPIS!
+        minAlertStock: 500, // MENIPIS
         costPerUnit: 20,
         supplier: 'Koperasi Susu Boyolali',
         lastRestocked: new Date().toISOString()
@@ -675,7 +675,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         id: m.id,
         name: m.name,
         category: m.category || 'makanan',
-        icon: m.icon || '🏪',
+        icon: '',
         saldoNota: Number(m.saldoNota ?? 5000),
         kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / 100)),
         phone: m.phone || '',
@@ -686,10 +686,13 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       uid: store.uid,
       merchantId: store.merchantId,
       storeName: store.storeName || currentMerchant?.name || 'Kantin Riuph Kasir',
-      location: store.location || currentMerchant?.address || 'Lantai 1 Didekat Gazebo',
+      location: store.location || 'Lantai 1 Dekat Gazebo',
       address: store.address || currentMerchant?.address || '',
       city: store.city || '',
       phone: store.phone || currentMerchant?.phone || '',
+      mapsUrl: store.mapsUrl || currentMerchant?.mapsUrl || '',
+      latitude: store.latitude ?? currentMerchant?.latitude ?? null,
+      longitude: store.longitude ?? currentMerchant?.longitude ?? null,
       isValidated: isValid,
       saldoNota: currentSaldoNota,
       kuotaNota: currentKuotaNota,
@@ -700,7 +703,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   });
 
   router.post('/store', (req, res) => {
-    const { storeName, location, address, city, phone, merchantId } = req.body;
+    const { storeName, location, address, city, phone, merchantId, mapsUrl, latitude, longitude } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
     db.merchants = db.merchants || [];
@@ -710,6 +713,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const cleanAddress = String(address || '').trim();
     const cleanCity = String(city || '').trim();
     const cleanPhone = String(phone || '').trim();
+    const cleanMapsUrl = String(mapsUrl || '').trim();
+    const parsedLat = latitude !== undefined && latitude !== null && String(latitude).trim() !== '' ? Number(latitude) : null;
+    const parsedLng = longitude !== undefined && longitude !== null && String(longitude).trim() !== '' ? Number(longitude) : null;
 
     if (!cleanName) {
       return res.status(400).json({ error: 'Nama toko/kantin kasir wajib diisi!' });
@@ -726,6 +732,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       targetMerchant.name = cleanName;
       if (cleanAddress) targetMerchant.address = cleanAddress;
       if (cleanPhone) targetMerchant.phone = cleanPhone;
+      if (cleanMapsUrl) targetMerchant.mapsUrl = cleanMapsUrl;
+      if (Number.isFinite(parsedLat)) targetMerchant.latitude = parsedLat;
+      if (Number.isFinite(parsedLng)) targetMerchant.longitude = parsedLng;
     }
 
     db.settings.posStore = {
@@ -733,9 +742,12 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       merchantId: sharedUid,
       storeName: cleanName,
       location: cleanLocation,
-      address: cleanAddress || cleanLocation,
+      address: cleanAddress || db.settings.posStore?.address || '',
       city: cleanCity,
       phone: cleanPhone,
+      mapsUrl: cleanMapsUrl || (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) ? `https://maps.google.com/?q=${parsedLat},${parsedLng}` : ''),
+      latitude: Number.isFinite(parsedLat) ? parsedLat : null,
+      longitude: Number.isFinite(parsedLng) ? parsedLng : null,
       isValidated: true,
       updatedAt: new Date().toISOString()
     };
@@ -979,7 +991,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
               success: false,
               isPaid: false,
               status,
-              error: `⚠️ Status di TriPay masih ${status || 'UNPAID'} (Belum Dibayar). Sistem telah mengecek ke TriPay namun dana belum masuk. Silakan selesaikan pembayaran QRIS terlebih dahulu.`,
+              error: `Status di TriPay masih ${status || 'UNPAID'} (Belum Dibayar). Sistem telah mengecek ke TriPay namun dana belum masuk. Silakan selesaikan pembayaran QRIS terlebih dahulu.`,
               tripayDetail: tripayData.data
             });
           }
@@ -987,11 +999,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         } else {
           const tripayMsg = tripayData?.message || 'Gagal menghubungi server TriPay';
           const ipMatch = tripayMsg.match(/\((.*?)\)/)?.[1] || '';
-          let userError = `⚠️ Pengecekan TriPay: ${tripayMsg}`;
+          let userError = `Pengecekan TriPay: ${tripayMsg}`;
           if (ipMatch) {
-            userError = `⚠️ IP Server (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Silakan kosongkan Whitelist IP di dashboard TriPay.`;
+            userError = `IP Server (${ipMatch}) belum terdaftar di Whitelist IP TriPay (T53543). Silakan kosongkan Whitelist IP di dashboard TriPay.`;
           } else if (tripayMsg.toLowerCase().includes('undefined parameter') || tripayMsg.toLowerCase().includes('tidak ditemukan')) {
-            userError = `ℹ️ Status TriPay: Pembayaran QRIS belum terdeteksi masuk (UNPAID). Silakan selesaikan pembayaran QRIS di aplikasi e-wallet/m-banking Anda terlebih dahulu.`;
+            userError = `Status TriPay: Pembayaran QRIS belum terdeteksi masuk (UNPAID). Silakan selesaikan pembayaran QRIS di aplikasi e-wallet/m-banking Anda terlebih dahulu.`;
           }
           return res.status(400).json({
             success: false,
@@ -1066,7 +1078,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       kuotaNota: merchant.kuotaNota,
       addedNota,
       reference,
-      message: `🎉 Pembayaran TriPay TERVERIFIKASI (PAID)! +${addedNota} lembar nota telah ditambahkan ke saldo kasir.`
+      message: `Pembayaran TriPay TERVERIFIKASI (PAID)! +${addedNota} lembar nota telah ditambahkan ke saldo kasir.`
     });
   });
 
@@ -1237,7 +1249,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     return res.json({
       success: true,
-      message: `🎉 Berhasil! Kode '${cleanCode}' berhasil diklaim. Kuota nota bertambah +${bonusNota} lembar (Rp ${bonusSaldo.toLocaleString('id-ID')})!`,
+      message: `Berhasil! Kode '${cleanCode}' berhasil diklaim. Kuota nota bertambah +${bonusNota} lembar (Rp ${bonusSaldo.toLocaleString('id-ID')})!`,
       bonusNota,
       bonusSaldo,
       newSaldoNota: targetStore.saldoNota,
@@ -1971,7 +1983,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     if (effectiveKuota <= 0 && (existingWallet.available_balance || 0) < TOTAL_ADMIN_DEDUCT) {
       return res.status(402).json({
-        error: '⚠️ Kuota nota kasir habis! Silakan lakukan Top Up Saldo Nota untuk melanjutkan transaksi pencetakan struk.',
+        error: 'Kuota nota kasir habis! Silakan lakukan Top Up Saldo Nota untuk melanjutkan transaksi pencetakan struk.',
         requiresTopupNota: true,
         kuotaNota: 0,
         saldoNota: existingWallet.available_balance || 0
@@ -2003,7 +2015,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       : Math.floor(mWallet.available_balance / 100);
     const isLowQuota = remainingKuotaNota <= 15;
     const lowQuotaWarning = isLowQuota
-      ? `⚠️ Kuota nota gratis Anda tersisa ${remainingKuotaNota} transaksi. Lakukan top up agar operasional kasir tetap lancar.`
+      ? `Kuota nota gratis Anda tersisa ${remainingKuotaNota} transaksi. Lakukan top up agar operasional kasir tetap lancar.`
       : null;
 
     // Record receipt claim
@@ -2276,12 +2288,15 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   // ── 7. EXECUTE PAYMENT (OPSI A: TRIPAY, OPSI B: TAGIH KE KAMAR) ────────
   router.post('/orders/:id/pay', async (req, res) => {
     const { id } = req.params;
-    const { method, roomNumber, phoneLast4 } = req.body;
+    const { method, roomNumber, phoneLast4, cashierName, cashierId } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
 
     const order = db.pos_orders.find(o => o.id === id);
     if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+
+    if (cashierName) order.cashierName = cashierName;
+    if (cashierId) order.cashierId = cashierId;
 
     if (order.status !== 'WAITING_PAYMENT') {
       return res.status(400).json({ error: 'Pesanan belum di-ACC oleh dapur atau sudah dibayar' });
@@ -2456,6 +2471,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     const order = db.pos_orders.find(o => o.id === id);
     if (!order) return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+    if (req.body?.cashierName) order.cashierName = req.body.cashierName;
+    if (req.body?.cashierId) order.cashierId = req.body.cashierId;
 
     const store = db.settings.posStore || {};
     const primaryMerchant = (db.merchants || [])[0];
@@ -2958,7 +2975,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     res.json({
       success: true,
-      message: `🎉 Berhasil menukar ${pts} Poin menjadi Voucher Rp ${discountVal.toLocaleString('id-ID')}!`,
+      message: `Berhasil menukar ${pts} Poin menjadi Voucher Rp ${discountVal.toLocaleString('id-ID')}!`,
       voucher: {
         code: voucherCode,
         discountValue: discountVal,
@@ -3205,8 +3222,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     res.json({
       success: true,
       message: pointsAwarded === 100
-        ? `🎉 JACKPOT! Selamat Anda memenangkan 100 Poin Emas!`
-        : `🎉 Selamat! Roda berhenti di ${pointsAwarded} Poin loyalitas.`,
+        ? `JACKPOT! Selamat Anda memenangkan 100 Poin Emas!`
+        : `Selamat! Roda berhenti di ${pointsAwarded} Poin loyalitas.`,
       pointsAwarded,
       sliceIndex: spinOutcome.sliceIndex,
       slice: spinOutcome.slice,

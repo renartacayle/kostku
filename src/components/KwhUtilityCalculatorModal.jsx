@@ -170,7 +170,7 @@ export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKos
             {/* Rent input */}
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#E2E8F0', marginBottom: '6px' }}>
-                🏠 Harga Sewa Kamar Bulanan
+                Harga Sewa Kamar Bulanan
               </label>
               <div style={{
                 display: 'flex',
@@ -201,7 +201,7 @@ export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKos
               </div>
               {selectedKost && (
                 <span style={{ fontSize: '0.74rem', color: '#60A5FA', marginTop: '4px', display: 'block' }}>
-                  📌 Menggunakan tarif: {selectedKost.kostName}
+                  Menggunakan tarif: {selectedKost.kostName}
                 </span>
               )}
             </div>
@@ -209,7 +209,7 @@ export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKos
             {/* AC Selection */}
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#E2E8F0', marginBottom: '6px' }}>
-                ❄️ Spesifikasi Pendingin Ruangan (AC)
+                Spesifikasi Pendingin Ruangan (AC)
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {[
@@ -248,7 +248,7 @@ export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKos
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#E2E8F0' }}>
-                    ⏰ Durasi Nyala AC Harian
+                    Durasi Nyala AC Harian
                   </label>
                   <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#38BDF8', fontFamily: "'JetBrains Mono', monospace" }}>
                     {acHours} Jam / hari
@@ -277,7 +277,7 @@ export default function KwhUtilityCalculatorModal({ isOpen, onClose, selectedKos
             {/* Additional Electronics Checklist */}
             <div>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#E2E8F0', marginBottom: '8px' }}>
-                🔌 Alat Elektronik Tambahan di Kamar
+                Alat Elektronik Tambahan di Kamar
               </label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {[

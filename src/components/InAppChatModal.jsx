@@ -225,7 +225,7 @@ const InAppChatModal = ({
               }}
               title="Lanjutkan tanya via WhatsApp langsung"
             >
-              <span>💬</span>
+              <MessageCircle size={14} />
               <span>Buka WhatsApp</span>
             </a>
 
@@ -289,7 +289,7 @@ const InAppChatModal = ({
             maxWidth: '90%',
             boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.03)' : 'none'
           }}>
-            👋 Selamat datang di obrolan langsung <strong>{kost?.kostName}</strong>! Silakan tanyakan ketersediaan kamar, jadwal survei fisik, atau fasilitas.
+            Selamat datang di obrolan langsung <strong>{kost?.kostName}</strong>! Silakan tanyakan ketersediaan kamar, jadwal survei fisik, atau fasilitas.
           </div>
 
           {messages.length === 0 ? (

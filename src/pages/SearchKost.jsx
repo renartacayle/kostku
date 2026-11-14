@@ -59,22 +59,22 @@ import KostCardSkeleton from '../components/KostCardSkeleton';
 import MarketingBanners from '../components/MarketingBanners';
 
 export const FACILITY_OPTIONS = [
-  { id: 'AC', label: '❄️ AC' },
-  { id: 'KMDalam', label: '🚿 KM Dalam' },
-  { id: 'AirPanas', label: '♨️ Air Panas' },
-  { id: 'WiFi', label: '📶 WiFi Cepat' },
-  { id: 'KamarLuas', label: '📐 Kamar Luas' },
-  { id: 'Parkir', label: '🚗 Parkir Kendaraan' },
-  { id: 'Token', label: '⚡ Listrik Mandiri' },
-  { id: 'Dapur', label: '🍳 Dapur Bersama' },
-  { id: 'CCTV', label: '🔒 CCTV & Security' },
-  { id: 'Kasur', label: '🛏️ Kasur Springbed' },
-  { id: 'Pet', label: '🐾 Hewan Boleh' },
-  { id: 'TV', label: '📺 Smart TV' },
-  { id: 'Akses24Jam', label: '🔑 Akses 24 Jam' },
-  { id: 'Laundry', label: '🧺 Free Laundry' },
-  { id: 'Kulkas', label: '🧊 Kulkas Bersama' },
-  { id: 'PoolGym', label: '🏊 Pool / Gym' }
+  { id: 'AC', label: 'AC' },
+  { id: 'KMDalam', label: 'KM Dalam' },
+  { id: 'AirPanas', label: 'Air Panas' },
+  { id: 'WiFi', label: 'WiFi Cepat' },
+  { id: 'KamarLuas', label: 'Kamar Luas' },
+  { id: 'Parkir', label: 'Parkir Kendaraan' },
+  { id: 'Token', label: 'Listrik Mandiri' },
+  { id: 'Dapur', label: 'Dapur Bersama' },
+  { id: 'CCTV', label: 'CCTV & Security' },
+  { id: 'Kasur', label: 'Kasur Springbed' },
+  { id: 'Pet', label: 'Hewan Boleh' },
+  { id: 'TV', label: 'Smart TV' },
+  { id: 'Akses24Jam', label: 'Akses 24 Jam' },
+  { id: 'Laundry', label: 'Free Laundry' },
+  { id: 'Kulkas', label: 'Kulkas Bersama' },
+  { id: 'PoolGym', label: 'Pool / Gym' }
 ];
 
 export const checkFacilityMatch = (kost, facId) => {
@@ -481,23 +481,23 @@ export default function SearchKost({ user }) {
   }, [kosts, debouncedSearch, selectedCity, selectedType, selectedPriceRange, selectedFacilities, sortBy, showWishlistOnly, wishlist, userLocation, maxDistanceRadius]);
 
   const cityBadges = [
-    { id: 'all', name: 'Semua Kota', icon: '🌐' },
-    { id: 'Jakarta', name: 'Jakarta', icon: '🏙️' },
-    { id: 'Bandung', name: 'Bandung', icon: '🌲' },
-    { id: 'Yogyakarta', name: 'Yogyakarta', icon: '🏛️' },
-    { id: 'Bali', name: 'Bali', icon: '🌴' },
-    { id: 'Surabaya', name: 'Surabaya', icon: '⚓' },
-    { id: 'Malang', name: 'Malang', icon: '🏔️' },
-    { id: 'Semarang', name: 'Semarang', icon: '☕' },
-    { id: 'Tangerang', name: 'Tangerang', icon: '🏢' },
+    { id: 'all', name: 'Semua Kota', icon: '' },
+    { id: 'Jakarta', name: 'Jakarta', icon: '' },
+    { id: 'Bandung', name: 'Bandung', icon: '' },
+    { id: 'Yogyakarta', name: 'Yogyakarta', icon: '' },
+    { id: 'Bali', name: 'Bali', icon: '' },
+    { id: 'Surabaya', name: 'Surabaya', icon: '' },
+    { id: 'Malang', name: 'Malang', icon: '' },
+    { id: 'Semarang', name: 'Semarang', icon: '' },
+    { id: 'Tangerang', name: 'Tangerang', icon: '' },
   ];
 
   const types = [
     { id: 'all', label: 'Semua Tipe' },
-    { id: 'Putri', label: '🌸 Khusus Putri' },
-    { id: 'Putra', label: '👔 Khusus Putra' },
-    { id: 'Campur', label: '🏡 Campur' },
-    { id: 'Pasutri', label: '👫 Boleh Pasutri' }
+    { id: 'Putri', label: 'Khusus Putri' },
+    { id: 'Putra', label: 'Khusus Putra' },
+    { id: 'Campur', label: 'Campur' },
+    { id: 'Pasutri', label: 'Boleh Pasutri' }
   ];
 
   return (
@@ -731,7 +731,7 @@ export default function SearchKost({ user }) {
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    <span>📍 {userLocation.label}</span>
+                    <span>{userLocation.label}</span>
                     <X size={12} />
                   </button>
                 )}
@@ -755,7 +755,7 @@ export default function SearchKost({ user }) {
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    <span>🏙️ {selectedCity}</span>
+                    <span>{selectedCity}</span>
                     <X size={12} />
                   </button>
                 )}
@@ -803,7 +803,7 @@ export default function SearchKost({ user }) {
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    <span>💰 {selectedPriceRange === 'under-1.5m' ? '< 1.5 Jt' : selectedPriceRange === '1.5m-2.5m' ? '1.5 - 2.5 Jt' : '> 2.5 Jt'}</span>
+                    <span>{selectedPriceRange === 'under-1.5m' ? '< 1.5 Jt' : selectedPriceRange === '1.5m-2.5m' ? '1.5 - 2.5 Jt' : '> 2.5 Jt'}</span>
                     <X size={12} />
                   </button>
                 )}
@@ -968,11 +968,11 @@ export default function SearchKost({ user }) {
               value={sortBy}
               onChange={val => setSortBy(val)}
               options={[
-                { value: 'recommended', label: 'Rekomendasi', icon: '⭐', subtitle: 'Pilihan kurasi terbaik' },
-                { value: 'nearest', label: 'Jarak Terdekat', icon: '📍', subtitle: userLocation ? `Terdekat dari ${userLocation.label}` : 'Urutkan dari yang paling dekat' },
-                { value: 'lowest', label: 'Harga Termurah', icon: '💰', subtitle: 'Mulai dari yang paling hemat' },
-                { value: 'highest', label: 'Harga Tertinggi', icon: '💎', subtitle: 'Kamar VIP & eksklusif' },
-                { value: 'rating', label: 'Rating Tertinggi', icon: '🏆', subtitle: 'Ulasan penghuni terbaik' }
+                { value: 'recommended', label: 'Rekomendasi', icon: '', subtitle: 'Pilihan kurasi terbaik' },
+                { value: 'nearest', label: 'Jarak Terdekat', icon: '', subtitle: userLocation ? `Terdekat dari ${userLocation.label}` : 'Urutkan dari yang paling dekat' },
+                { value: 'lowest', label: 'Harga Termurah', icon: '', subtitle: 'Mulai dari yang paling hemat' },
+                { value: 'highest', label: 'Harga Tertinggi', icon: '', subtitle: 'Kamar VIP & eksklusif' },
+                { value: 'rating', label: 'Rating Tertinggi', icon: '', subtitle: 'Ulasan penghuni terbaik' }
               ]}
             />
           </div>
@@ -1004,7 +1004,7 @@ export default function SearchKost({ user }) {
               margin: '0 auto 1.25rem',
               fontSize: '2.5rem'
             }}>
-              🏡
+              
             </div>
 
             <div style={{
@@ -1030,7 +1030,7 @@ export default function SearchKost({ user }) {
               color: isLight ? '#0f172a' : 'white',
               lineHeight: 1.3
             }}>
-              Ayok, Mari Tambah Kost di Sini! 🚀
+              Ayok, Mari Tambah Kost di Sini!
             </h3>
 
             <p style={{ 
@@ -1219,7 +1219,7 @@ export default function SearchKost({ user }) {
                       letterSpacing: '0.02em',
                       boxShadow: '0 2px 10px rgba(245, 158, 11, 0.3)'
                     }}>
-                      <span>⭐</span>
+                      <Star size={12} fill="currentColor" />
                       <span>PROPERTI ANDA TERVERIFIKASI AKTIF DI POSISI #1 (SUNDUL KOST)</span>
                     </div>
                   )}
@@ -1396,7 +1396,7 @@ export default function SearchKost({ user }) {
                           boxShadow: '0 2px 10px rgba(245, 158, 11, 0.5)',
                           letterSpacing: '0.02em'
                         }}>
-                          {kost.promoted.badgeText || '🔥 Rekomendasi Utama'}
+                          {kost.promoted.badgeText ? kost.promoted.badgeText.replace(/^[\p{Extended_Pictographic}\s\uFE0F]+/gu, '') : 'Rekomendasi Utama'}
                         </span>
                       )}
                       <span style={{
@@ -1595,7 +1595,7 @@ export default function SearchKost({ user }) {
                             color: isLight ? '#0284c7' : '#38bdf8',
                             fontWeight: 600
                           }}>
-                            📐 {layout.roomArea}
+                            {layout.roomArea}
                           </span>
                         )}
                       </div>
@@ -1670,7 +1670,7 @@ export default function SearchKost({ user }) {
                           }}
                           title="Buka rute navigasi di Google Maps"
                         >
-                          <span>🗺️ GMaps</span>
+                          <span>GMaps</span>
                         </a>
 
                         {/* Main Detail Button */}
@@ -1771,7 +1771,7 @@ export default function SearchKost({ user }) {
             className="btn btn-primary btn-sm"
             style={{ borderRadius: '12px', padding: '6px 14px', fontWeight: 800, fontSize: '0.82rem' }}
           >
-            Lihat Perbandingan ⚖️
+            Lihat Perbandingan
           </button>
 
           <button

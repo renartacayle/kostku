@@ -24,11 +24,11 @@ import { useTheme } from '../context/ThemeContext';
 
 const CATEGORIES = [
   { id: 'semua', label: 'Semua Kategori' },
-  { id: 'Elektronik', label: '🔌 Elektronik' },
-  { id: 'Perabot', label: '🪑 Perabot & Meja' },
-  { id: 'Dapur', label: '🍳 Alat Dapur' },
-  { id: 'Buku', label: '📚 Buku & Kuliah' },
-  { id: 'Lainnya', label: '📦 Lainnya' }
+  { id: 'Elektronik', label: 'Elektronik' },
+  { id: 'Perabot', label: 'Perabot & Meja' },
+  { id: 'Dapur', label: 'Alat Dapur' },
+  { id: 'Buku', label: 'Buku & Kuliah' },
+  { id: 'Lainnya', label: 'Lainnya' }
 ];
 
 const PRESET_IMAGES = [
@@ -386,7 +386,7 @@ export default function PrelovedMarketplace({ user, kostUid }) {
                     borderRadius: '6px',
                     border: '1px solid rgba(255, 255, 255, 0.15)'
                   }}>
-                    📍 Kamar {item.sellerRoom}
+                    Kamar {item.sellerRoom}
                   </div>
                 </div>
 
@@ -591,9 +591,9 @@ export default function PrelovedMarketplace({ user, kostUid }) {
                     className="input-field"
                     style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
                   >
-                    <option value="Seperti Baru">✨ Seperti Baru (Mulus)</option>
-                    <option value="Layak Pakai">👍 Layak Pakai (Normal)</option>
-                    <option value="Baru (Batal Pakai)">🆕 Baru (Batal Pakai)</option>
+                    <option value="Seperti Baru">Seperti Baru (Mulus)</option>
+                    <option value="Layak Pakai">Layak Pakai (Normal)</option>
+                    <option value="Baru (Batal Pakai)">Baru (Batal Pakai)</option>
                   </select>
                 </div>
               </div>
@@ -609,11 +609,11 @@ export default function PrelovedMarketplace({ user, kostUid }) {
                     className="input-field"
                     style={{ width: '100%', padding: '9px 12px', fontSize: '0.84rem' }}
                   >
-                    <option value="Elektronik">🔌 Elektronik</option>
-                    <option value="Perabot">🪑 Perabot & Meja</option>
-                    <option value="Dapur">🍳 Alat Dapur</option>
-                    <option value="Buku">📚 Buku & Kuliah</option>
-                    <option value="Lainnya">📦 Lainnya</option>
+                    <option value="Elektronik">Elektronik</option>
+                    <option value="Perabot">Perabot & Meja</option>
+                    <option value="Dapur">Alat Dapur</option>
+                    <option value="Buku">Buku & Kuliah</option>
+                    <option value="Lainnya">Lainnya</option>
                   </select>
                 </div>
 

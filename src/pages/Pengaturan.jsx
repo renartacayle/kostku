@@ -275,7 +275,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         }
         setProfileMsg({ 
           type: 'success', 
-          title: 'Profil Berhasil Disimpan! 🎉',
+          title: 'Profil Berhasil Disimpan!',
           text: 'Perubahan profil & identitas akun Anda telah diperbarui dan langsung disinkronkan ke seluruh halaman KostKu.' 
         });
         setCurrentPassword('');
@@ -325,7 +325,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
               borderRadius: '8px',
               border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)'
             }}>
-              {user?.role === 'owner' ? '👑 Mode Pemilik Kost' : user?.role === 'mitra' ? '🏪 Mode Mitra UMKM' : user?.role === 'staff' ? '👷 Mode Staf Kost' : '🏠 Mode Anak Kost'}
+              {user?.role === 'owner' ? 'Mode Pemilik Kost' : user?.role === 'mitra' ? 'Mode Mitra UMKM' : user?.role === 'staff' ? 'Mode Staf Kost' : 'Mode Anak Kost'}
             </span>
           </div>
           <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -619,7 +619,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                   {user?.name || 'Pengguna'}
                 </h2>
                 <span className={`badge ${user?.role === 'owner' ? 'badge-primary' : user?.role === 'mitra' ? 'badge-warning' : user?.role === 'staff' ? 'badge-warning' : 'badge-success'}`}>
-                  {user?.role === 'owner' ? '👑 Pemilik Kost' : user?.role === 'mitra' ? '🏪 Mitra UMKM' : user?.role === 'staff' ? `👷 Staf (${user?.jobTitle || 'Penjaga'})` : '🏠 Anak Kost'}
+                  {user?.role === 'owner' ? 'Pemilik Kost' : user?.role === 'mitra' ? 'Mitra UMKM' : user?.role === 'staff' ? `Staf (${user?.jobTitle || 'Penjaga'})` : 'Anak Kost'}
                 </span>
               </div>
               
@@ -645,7 +645,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                 fontSize: '0.78rem'
               }}>
                 <span style={{ fontWeight: 800, color: isLight ? '#92400e' : '#fbbf24' }}>
-                  🎁 Kode Referral: <code style={{ fontFamily: 'monospace', fontWeight: 900, background: isLight ? '#ffffff' : 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>{userRefCode}</code>
+                  Kode Referral: <code style={{ fontFamily: 'monospace', fontWeight: 900, background: isLight ? '#ffffff' : 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>{userRefCode}</code>
                 </span>
                 <button
                   type="button"
@@ -799,7 +799,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                     color: '#eab308',
                     border: '1px solid rgba(234, 179, 8, 0.35)'
                   }}>
-                    ⚠️ Jangan lupa klik Simpan Perubahan di bawah
+                    Jangan lupa klik Simpan Perubahan di bawah
                   </span>
                 )}
               </div>
@@ -1334,7 +1334,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
             fontSize: '0.8rem',
             color: 'var(--text-secondary)'
           }}>
-            <span>💡 <strong>Tip Cepat:</strong> Anda juga bisa mengganti mode terang/gelap langsung dari tombol di Navbar atas atau Sidebar kapan saja.</span>
+            <span><strong>Tip Cepat:</strong> Anda juga bisa mengganti mode terang/gelap langsung dari tombol di Navbar atas atau Sidebar kapan saja.</span>
           </div>
         </div>
       )}

@@ -99,7 +99,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
       setShowKasbonModal(false);
       setKasbonAmount('');
       setKasbonReason('');
-      setActionMsg('✅ Pencatatan kasbon berhasil disimpan!');
+      setActionMsg('Pencatatan kasbon berhasil disimpan!');
       setTimeout(() => setActionMsg(null), 4000);
       loadData();
     } catch (err) {
@@ -113,7 +113,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
     if (!window.confirm('Yakin ingin menghapus catatan kasbon ini?')) return;
     try {
       await apiDeleteStaffKasbon(id);
-      setActionMsg('🗑️ Catatan kasbon dihapus.');
+      setActionMsg('Catatan kasbon dihapus.');
       setTimeout(() => setActionMsg(null), 3000);
       loadData();
     } catch (err) {
@@ -141,7 +141,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
       if (res?.payroll) {
         setViewingSlip(res.payroll);
       }
-      setActionMsg('✅ Slip gaji resmi berhasil diterbitkan!');
+      setActionMsg('Slip gaji resmi berhasil diterbitkan!');
       setTimeout(() => setActionMsg(null), 4000);
       loadData();
     } catch (err) {
@@ -158,7 +158,7 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
 
     const message = 
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📄 *SLIP GAJI KARYAWAN KOSTKU*\n` +
+      `*SLIP GAJI KARYAWAN KOSTKU*\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `No. Slip : *${slip.slipNumber}*\n` +
       `Periode  : *${slip.month}*\n` +
@@ -175,10 +175,10 @@ export default function StaffPayrollAndKasbon({ staff, user }) {
       `*Total Potongan    : Rp ${Number(slip.kasbonDeduction).toLocaleString('id-ID')}*\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `*GAJI BERSIH (TAKE HOME PAY):*\n` +
-      `💰 *Rp ${Number(slip.netSalary).toLocaleString('id-ID')}*\n` +
+      `*Rp ${Number(slip.netSalary).toLocaleString('id-ID')}*\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `Status: *LUNAS & DITRANSFER*\n\n` +
-      `Terima kasih atas kerja keras dan dedikasi Anda menjaga keamanan & kenyamanan hunian kost. 🙏✨`;
+      `Terima kasih atas kerja keras dan dedikasi Anda menjaga keamanan & kenyamanan hunian kost.`;
 
     const url = waNumber 
       ? `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`

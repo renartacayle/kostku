@@ -86,7 +86,7 @@ export default function ThanksMorph({ onComplete }) {
             letterSpacing: '0.02em'
           }}>
             <Check size={18} strokeWidth={3} />
-            <span>Thanks! 🎉</span>
+            <span>Thanks!</span>
           </div>
 
           {/* Reset Action */}

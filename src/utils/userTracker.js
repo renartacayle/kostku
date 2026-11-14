@@ -229,7 +229,7 @@ function handlePointerClick(e) {
   // Developer / Google Console Log
   if (trackType === 'kost-card') {
     console.info(
-      `%c[KostKu GA Telemetry]%c 🖱️ Clicked Kos Card: %c${clickData.textSnippet || trackId}%c at (${xPct}%, ${yPct}%)`,
+      `%c[KostKu GA Telemetry]%c Clicked Kos Card: %c${clickData.textSnippet || trackId}%c at (${xPct}%, ${yPct}%)`,
       'background: #2563eb; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700;',
       'color: #94a3b8;',
       'color: #38bdf8; font-weight: 700;',
@@ -309,7 +309,7 @@ function handlePointerOut(e) {
       }
 
       console.info(
-        `%c[KostKu GA Telemetry]%c ⏱️ Hover Dwell: %c${name}%c for ${dwellSeconds}s (Preference Signal Added)`,
+        `%c[KostKu GA Telemetry]%c Hover Dwell: %c${name}%c for ${dwellSeconds}s (Preference Signal Added)`,
         'background: #10b981; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700;',
         'color: #94a3b8;',
         'color: #34d399; font-weight: 700;',
@@ -444,11 +444,11 @@ export function initUserTracker() {
     const duration = Math.round((Date.now() - state.sessionStart) / 1000);
 
     console.group(
-      `%c📊 KOSTKU USER PREFERENCE REPORT (Google Console Diagnostics)`,
+      `%c KOSTKU USER PREFERENCE REPORT (Google Console Diagnostics)`,
       'background: #1e293b; color: #38bdf8; font-size: 14px; font-weight: 800; padding: 6px 12px; border-radius: 6px; border: 1px solid #38bdf8;'
     );
 
-    console.log('%c🎯 RINGKASAN PREFERENSI PENGUNJUNG:', 'font-weight: 800; color: #f8fafc;');
+    console.log('%c RINGKASAN PREFERENSI PENGUNJUNG:', 'font-weight: 800; color: #f8fafc;');
     console.table([
       { 'Indikator': 'Tipe Gender Favorit', 'Nilai': p.preferredGender, 'Keterangan': `Skor Minat: ${JSON.stringify(p.genderWeights)}` },
       { 'Indikator': 'Kampus / Area Favorit', 'Nilai': p.preferredCampus, 'Keterangan': `Skor Minat Kampus: ${JSON.stringify(p.campusWeights)}` },
@@ -460,20 +460,20 @@ export function initUserTracker() {
     ]);
 
     if (p.topKosts.length > 0) {
-      console.log('%c🏡 TOP 5 KOST PALING DIMINATI (Berdasarkan Dwell-Time & Clicks):', 'font-weight: 800; color: #34d399;');
+      console.log('%c TOP 5 KOST PALING DIMINATI (Berdasarkan Dwell-Time & Clicks):', 'font-weight: 800; color: #34d399;');
       console.table(p.topKosts);
     } else {
-      console.log('%cℹ️ Belum ada kost yang di-hover lebih dari 700ms. Arahkan kursor ke kartu kost untuk merekam minat.', 'color: #94a3b8;');
+      console.log('%c Belum ada kost yang di-hover lebih dari 700ms. Arahkan kursor ke kartu kost untuk merekam minat.', 'color: #94a3b8;');
     }
 
-    console.log('%c💡 Tips Google Console: Ketik window.kostkuHeatmap() untuk melihat koordinat titik klik heatmap.', 'color: #94a3b8; font-style: italic;');
+    console.log('%c Tips Google Console: Ketik window.kostkuHeatmap() untuk melihat koordinat titik klik heatmap.', 'color: #94a3b8; font-style: italic;');
     console.groupEnd();
 
     return state.preferences;
   };
 
   window.kostkuHeatmap = function() {
-    console.group('%c🔥 KOSTKU MOUSE CLICK & ATTENTION HEATMAP', 'background: #b91c1c; color: white; padding: 4px 8px; border-radius: 4px;');
+    console.group('%c KOSTKU MOUSE CLICK & ATTENTION HEATMAP', 'background: #b91c1c; color: white; padding: 4px 8px; border-radius: 4px;');
     console.table(state.clicks.map((c, i) => ({
       '#': i + 1,
       'Target': c.trackType,

@@ -153,7 +153,7 @@ export default function MaintenanceModal() {
               fontWeight: 600 
             }}
           >
-            🔒 Halaman ini terkunci otomatis hingga proses peningkatan keamanan selesai.
+            Halaman ini terkunci otomatis hingga proses peningkatan keamanan selesai.
           </p>
         </div>
 

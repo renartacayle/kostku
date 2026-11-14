@@ -88,7 +88,7 @@ export default function RoomFloorPlanViewer({
             alignItems: 'center',
             gap: '6px'
           }}>
-            <Grid size={15} /> 📐 Denah 2D Arsitektural
+            <Grid size={15} /> Denah 2D Arsitektural
           </span>
         </div>
 
@@ -468,27 +468,27 @@ export default function RoomFloorPlanViewer({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {hasBathroom && (
             <span style={{ fontSize: '0.75rem', background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(14, 165, 233, 0.3)' }}>
-              🚿 KM Dalam
+              KM Dalam
             </span>
           )}
           {hasAc && (
             <span style={{ fontSize: '0.75rem', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-              ❄️ AC
+              AC
             </span>
           )}
           {hasDesk && (
             <span style={{ fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-              💻 Meja Kerja
+              Meja Kerja
             </span>
           )}
           {hasWardrobe && (
             <span style={{ fontSize: '0.75rem', background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-              🚪 Lemari
+              Lemari
             </span>
           )}
           {hasWindow && (
             <span style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              🪟 Jendela
+              Jendela
             </span>
           )}
         </div>

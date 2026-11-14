@@ -104,7 +104,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
     setSavingSettings(true);
     try {
       await apiUpdateDunningSettings(settings);
-      setActionMsg('✅ Pengaturan otomatisasi dunning & denda harian berhasil disimpan!');
+      setActionMsg('Pengaturan otomatisasi dunning & denda harian berhasil disimpan!');
       setTimeout(() => setActionMsg(null), 4000);
     } catch (err) {
       alert('Gagal menyimpan pengaturan: ' + err.message);
@@ -119,7 +119,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
         invoiceId: invoice.id,
         reminderType
       });
-      setActionMsg(`✅ Pesan pengingat (${reminderType}) siap dikirim ke Kamar ${invoice.kamar}!`);
+      setActionMsg(`Pesan pengingat (${reminderType}) siap dikirim ke Kamar ${invoice.kamar}!`);
       loadAllData();
       if (res.waLink) {
         window.open(res.waLink, '_blank');
@@ -138,7 +138,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
       await apiSplitInvoiceTerms(splitModalInvoice.id, {
         secondDueDate: splitDueDateTerm2
       });
-      setActionMsg(`✅ Opsi cicilan (Split Payment 2x) berhasil diaktifkan untuk Kamar ${splitModalInvoice.kamar}!`);
+      setActionMsg(`Opsi cicilan (Split Payment 2x) berhasil diaktifkan untuk Kamar ${splitModalInvoice.kamar}!`);
       setSplitModalInvoice(null);
       loadAllData();
       setTimeout(() => setActionMsg(null), 4000);
@@ -160,7 +160,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
       await apiReconcileBankMutation(reconcileMutation.id, {
         invoiceId: reconcileTargetInvoiceId
       });
-      setActionMsg(`✅ Mutasi Bank ${reconcileMutation.bank} berhasil direkonsiliasi otomatis! Tagihan lunas.`);
+      setActionMsg(`Mutasi Bank ${reconcileMutation.bank} berhasil direkonsiliasi otomatis! Tagihan lunas.`);
       setReconcileMutation(null);
       loadAllData();
       setTimeout(() => setActionMsg(null), 4000);
@@ -181,7 +181,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
         senderName: simSender,
         description: simDesc
       });
-      setActionMsg('✅ Mutasi bank baru berhasil disimulasikan di pipeline rekening!');
+      setActionMsg('Mutasi bank baru berhasil disimulasikan di pipeline rekening!');
       setShowSimulateModal(false);
       loadAllData();
       setTimeout(() => setActionMsg(null), 4000);
@@ -277,9 +277,9 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
       {/* Subtab Navigation Pills */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
         {[
-          { id: 'pipeline', label: '📱 WhatsApp Dunning & Denda Dinamis', count: unpaidInvoices.length },
-          { id: 'mutations', label: '🏦 Rekonsiliasi Mutasi Bank', count: bankMutations.filter(m => m.status === 'pending').length },
-          { id: 'split', label: '✂️ Opsi Cicilan (Split Payment 2x)', count: invoices.filter(i => i.isSplit).length }
+          { id: 'pipeline', label: 'WhatsApp Dunning & Denda Dinamis', count: unpaidInvoices.length },
+          { id: 'mutations', label: 'Rekonsiliasi Mutasi Bank', count: bankMutations.filter(m => m.status === 'pending').length },
+          { id: 'split', label: 'Opsi Cicilan (Split Payment 2x)', count: invoices.filter(i => i.isSplit).length }
         ].map(tab => (
           <button
             key={tab.id}
@@ -438,7 +438,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
 
             {unpaidInvoices.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border-color)', color: '#34d399' }}>
-                🎉 Luar biasa! Semua tagihan sewa periode ini telah lunas.
+                Luar biasa! Semua tagihan sewa periode ini telah lunas.
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
@@ -485,7 +485,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                           background: isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
                           color: isOverdue ? (isLight ? '#b91c1c' : '#fca5a5') : (isLight ? '#b45309' : '#fbbf24')
                         }}>
-                          {isOverdue ? `⚠️ Lewat ${diffDays} Hari` : `Jatuh Tempo: ${displayDueDate}`}
+                          {isOverdue ? `Lewat ${diffDays} Hari` : `Jatuh Tempo: ${displayDueDate}`}
                         </span>
                       </div>
 
@@ -662,7 +662,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
                           color: isMatched ? '#34d399' : '#fbbf24',
                           fontWeight: 700
                         }}>
-                          {isMatched ? '✓ Cocok & Terekonsiliasi' : '⏳ Menunggu Rekonsiliasi'}
+                          {isMatched ? '✓ Cocok & Terekonsiliasi' : 'Menunggu Rekonsiliasi'}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'white', marginTop: '2px', fontWeight: 600 }}>
@@ -717,7 +717,7 @@ export default function FintechDunningAndReconcile({ user, kostUid }) {
             fontSize: '0.82rem',
             color: '#cbd5e1'
           }}>
-            ℹ️ <strong>Tentang Fitur Split Payment:</strong> Dirancang khusus untuk mahasiswa dan pekerja yang memiliki siklus uang kiriman 2 kali sebulan (tanggal 1 dan tanggal 15). Opsi ini memecah tagihan menjadi Termin 1 (50%) dan Termin 2 (50%) secara otomatis tanpa biaya tambahan.
+            <strong>Tentang Fitur Split Payment:</strong> Dirancang khusus untuk mahasiswa dan pekerja yang memiliki siklus uang kiriman 2 kali sebulan (tanggal 1 dan tanggal 15). Opsi ini memecah tagihan menjadi Termin 1 (50%) dan Termin 2 (50%) secara otomatis tanpa biaya tambahan.
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
