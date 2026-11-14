@@ -1321,6 +1321,11 @@ export const apiGetPosAnalytics = (params = {}) => {
   return request(`/pos/analytics${qs ? `?${qs}` : ''}`);
 };
 
+export const apiGetPosConsolidatedSummary = (ownerId = null) => {
+  const qs = ownerId ? `?ownerId=${encodeURIComponent(ownerId)}` : '';
+  return request(`/pos/consolidated-summary${qs}`);
+};
+
 export const apiSwitchPosStore = (merchantId) => {
   return request('/pos/store/switch', {
     method: 'POST',

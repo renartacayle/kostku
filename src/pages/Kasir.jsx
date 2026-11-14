@@ -100,10 +100,12 @@ import {
   apiGetAccountWallet,
   apiMutateAccountWallet,
   apiGetStaffAttendance,
-  apiGetOwnerStaff
+  apiGetOwnerStaff,
+  apiGetPosConsolidatedSummary
 } from '../services/api';
 import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
 import KasirInventoryModal from '../components/kasir/KasirInventoryModal';
+import ActionTutorialBadge from '../components/kasir/ActionTutorialBadge';
 import StaffManagementCard from '../components/StaffManagementCard';
 import StaffCalendarView from '../components/StaffCalendarView';
 
@@ -373,7 +375,9 @@ export default function Kasir({ user }) {
     address: '',
     city: '',
     phone: '',
-    mapsUrl: ''
+    mapsUrl: '',
+    cloneMenu: true,
+    sourceStoreId: ''
   });
 
   const isErrorFeedback = (msg) => {
@@ -414,10 +418,20 @@ export default function Kasir({ user }) {
     return [];
   });
 
-  // Produk terisolasi hanya untuk akun ini & stafnya (+ produk default generik tanpa merchantId)
+  // Produk terisolasi per akun & cabang toko aktif (+ produk legacy default hanya di toko utama)
   const scopedProducts = useMemo(() => {
-    return products.filter(p => !p.merchantId || String(p.merchantId) === effectiveAccountId);
-  }, [products, effectiveAccountId]);
+    const activeSid = String(storeInfo?.merchantId || '').trim();
+    const firstOwnerStoreId = String(storeInfo?.allOwnerStores?.[0]?.id || '').trim();
+    const isPrimaryBranch = !activeSid || !firstOwnerStoreId || activeSid === firstOwnerStoreId;
+    return products.filter(p => {
+      if (p.merchantId && String(p.merchantId) !== effectiveAccountId) return false;
+      if (activeSid) {
+        if (p.storeId) return String(p.storeId) === activeSid;
+        return isPrimaryBranch && !p.clonedFromProductId;
+      }
+      return true;
+    });
+  }, [products, effectiveAccountId, storeInfo?.merchantId, storeInfo?.allOwnerStores]);
 
   // Sync kategori khusus toko saat akun / toko dimuat
   useEffect(() => {
@@ -533,6 +547,9 @@ export default function Kasir({ user }) {
     itemId: 'all',
     cashierId: 'all'
   });
+  const [consolidatedSummary, setConsolidatedSummary] = useState(null);
+  const [loadingConsolidated, setLoadingConsolidated] = useState(false);
+  const [dashboardReceiptScope, setDashboardReceiptScope] = useState('active'); // 'active' | 'all'
 
   // ── GUDANG, RESEP & ALERT STOK MENIPIS STATE ──
   const DEFAULT_INITIAL_INVENTORY = [
@@ -880,6 +897,7 @@ export default function Kasir({ user }) {
       description: newMenuForm.description.trim(),
       image: newMenuForm.image.trim(),
       merchantId: effectiveAccountId,
+      storeId: storeInfo.merchantId || storeInfo.uid || undefined,
       stock: Number(newMenuForm.stock !== undefined && newMenuForm.stock !== '' ? newMenuForm.stock : 99),
       isAvailable: editingProduct ? (newMenuForm.isAvailable !== false) : true,
       createdAt: editingProduct?.createdAt || new Date().toISOString(),
@@ -1060,7 +1078,9 @@ export default function Kasir({ user }) {
       address: '',
       city: storeInfo.city || '',
       phone: storeInfo.phone || '',
-      mapsUrl: ''
+      mapsUrl: '',
+      cloneMenu: true,
+      sourceStoreId: storeInfo.merchantId || storeInfo.allOwnerStores?.[0]?.id || ''
     });
     setShowCreateStoreModal(true);
   };
@@ -1093,7 +1113,11 @@ export default function Kasir({ user }) {
           mapsUrl: String(createStoreForm.mapsUrl || '').trim(),
           ownerUserId: user?.id || user?.uid || effectiveAccountId,
           kostUid: user?.kostUid || undefined,
-          switchAfterCreate: true
+          switchAfterCreate: true,
+          cloneMenu: createStoreForm.cloneMenu !== false,
+          sourceStoreId: createStoreForm.cloneMenu !== false
+            ? (createStoreForm.sourceStoreId || storeInfo.merchantId || undefined)
+            : undefined
         })
       });
       const data = await parseJsonSafe(res);
@@ -1113,10 +1137,15 @@ export default function Kasir({ user }) {
           longitude: data.store.longitude ?? ''
         });
       }
+      const clonedCount = Number(data?.clonedProductsCount || 0);
       setShowCreateStoreModal(false);
-      setStoreSwitchMsg(`Toko baru "${cleanName}" berhasil dibuat dan diaktifkan.`);
+      setStoreSwitchMsg(
+        clonedCount > 0
+          ? `Toko baru "${cleanName}" berhasil dibuat (${clonedCount} menu disalin) dan diaktifkan.`
+          : `Toko baru "${cleanName}" berhasil dibuat dan diaktifkan.`
+      );
       setTimeout(() => setStoreSwitchMsg(''), 4500);
-      await fetchData();
+      await fetchData(data?.store?.merchantId || null);
       loadAnalytics();
       try { playChime(880, 0.12); } catch (_) {}
     } catch (err) {
@@ -1427,41 +1456,62 @@ export default function Kasir({ user }) {
   const [tripaySavedMsg, setTripaySavedMsg] = useState('');
 
   // 1. Fetch Orders, Products, Tables, TriPay Config & Store Validity
-  const fetchData = async () => {
+  const fetchData = async (overrideStoreId = null) => {
     try {
       setLoadingOrders(true);
+      setLoadingConsolidated(true);
       const accountQuery = `merchantId=${encodeURIComponent(effectiveAccountId)}`;
-      const ownerQuery = `ownerId=${encodeURIComponent(user?.id || user?.uid || effectiveAccountId)}`;
-      const [resOrders, resProd, resTables, resConfig, resStore] = await Promise.all([
+      const ownerIdVal = user?.id || user?.uid || effectiveAccountId;
+      const ownerQuery = `ownerId=${encodeURIComponent(ownerIdVal)}`;
+
+      const [resOrders, resTables, resConfig, resStore, consolidatedRes] = await Promise.all([
         fetch('/api/pos/orders'),
-        fetch(`/api/pos/products?${accountQuery}`),
         fetch('/api/pos/tables'),
         fetch('/api/pos/config/tripay'),
-        fetch(`/api/pos/store?${ownerQuery}`)
+        fetch(`/api/pos/store?${ownerQuery}`),
+        apiGetPosConsolidatedSummary(ownerIdVal).catch(() => null)
       ]);
 
-      const [remoteOrders, remoteProds, tbls, remoteConfig, st] = await Promise.all([
+      const [remoteOrders, tbls, remoteConfig, st] = await Promise.all([
         parseJsonIfOk(resOrders),
-        parseJsonIfOk(resProd),
         parseJsonIfOk(resTables),
         parseJsonIfOk(resConfig),
         parseJsonIfOk(resStore)
       ]);
 
+      if (consolidatedRes && consolidatedRes.success) {
+        setConsolidatedSummary(consolidatedRes);
+      }
+      setLoadingConsolidated(false);
+
+      const safeOverrideStoreId = typeof overrideStoreId === 'string' && overrideStoreId.trim() ? overrideStoreId.trim() : null;
+      const resolvedStoreId = safeOverrideStoreId || st?.merchantId || storeInfo?.merchantId || '';
+      const prodQuery = resolvedStoreId
+        ? `${accountQuery}&${ownerQuery}&storeId=${encodeURIComponent(resolvedStoreId)}`
+        : `${accountQuery}&${ownerQuery}`;
+      const resProd = await fetch(`/api/pos/products?${prodQuery}`);
+      const remoteProds = await parseJsonIfOk(resProd);
+
       if (Array.isArray(remoteOrders)) setOrders(remoteOrders);
-      if (Array.isArray(remoteProds) && remoteProds.length > 0) {
+      if (Array.isArray(remoteProds)) {
         const filteredRemote = remoteProds.filter(
           p => !p.merchantId || String(p.merchantId) === effectiveAccountId
         );
         setProducts(prev => {
-          // Pertahankan produk lokal milik akun yang baru ditambah saat offline / belum ada di backend
+          // Pertahankan produk lokal milik cabang aktif yang baru ditambah saat offline
           const remoteIds = new Set(filteredRemote.map(p => p.id));
           const localOnly = prev.filter(
-            p => String(p.merchantId || '') === effectiveAccountId && !remoteIds.has(p.id)
+            p =>
+              String(p.merchantId || '') === effectiveAccountId &&
+              (!resolvedStoreId || String(p.storeId || '') === String(resolvedStoreId)) &&
+              !remoteIds.has(p.id)
           );
           const merged = [...localOnly, ...filteredRemote];
           try {
-            localStorage.setItem(`kostku_pos_products_${effectiveAccountId}`, JSON.stringify(merged));
+            localStorage.setItem(
+              `kostku_pos_products_${effectiveAccountId}_${resolvedStoreId || 'default'}`,
+              JSON.stringify(merged)
+            );
           } catch (_) {}
           return merged;
         });
@@ -1511,6 +1561,7 @@ export default function Kasir({ user }) {
       console.warn('Gagal memuat data kasir:', err);
     } finally {
       setLoadingOrders(false);
+      setLoadingConsolidated(false);
     }
   };
 
@@ -1681,7 +1732,7 @@ export default function Kasir({ user }) {
         if (data?.store) {
           setStoreInfo(prev => ({ ...prev, ...data.store }));
         }
-        await fetchData();
+        await fetchData(data?.store?.merchantId || targetId);
         loadAnalytics();
         setStoreSwitchMsg(`Aktif di toko: ${data?.store?.storeName || 'Toko'}`);
         setTimeout(() => setStoreSwitchMsg(''), 3500);
@@ -2650,6 +2701,45 @@ export default function Kasir({ user }) {
   const completedOrders = sortNewestFirst(orders.filter(o => o.status === 'COMPLETED'));
   const latestOrders = sortNewestFirst(orders);
 
+  const displayedDashboardOrders = useMemo(() => {
+    const storeNameMap = {};
+    (storeInfo?.allOwnerStores || []).forEach(s => {
+      if (s && s.id) storeNameMap[String(s.id)] = s.name;
+    });
+    const activeSid = String(storeInfo?.merchantId || '').trim();
+    const firstOwnerStoreId = String(storeInfo?.allOwnerStores?.[0]?.id || '').trim();
+    const isPrimaryBranch = !activeSid || !firstOwnerStoreId || activeSid === firstOwnerStoreId;
+
+    if (dashboardReceiptScope === 'all') {
+      if (Array.isArray(consolidatedSummary?.recentOrders) && consolidatedSummary.recentOrders.length > 0) {
+        return consolidatedSummary.recentOrders;
+      }
+      return latestOrders.map(o => ({
+        ...o,
+        storeName: o.storeName || storeNameMap[String(o.storeId || o.merchantId || '')] || storeInfo?.storeName || 'Toko Utama'
+      }));
+    }
+
+    return latestOrders
+      .filter(o => {
+        const oid = String(o.storeId || o.merchantId || '').trim();
+        if (!oid || !activeSid) return isPrimaryBranch;
+        if (oid === activeSid) return true;
+        return isPrimaryBranch && !storeNameMap[oid];
+      })
+      .map(o => ({
+        ...o,
+        storeName: o.storeName || storeNameMap[String(o.storeId || o.merchantId || '')] || storeInfo?.storeName || 'Toko Aktif'
+      }));
+  }, [
+    dashboardReceiptScope,
+    consolidatedSummary?.recentOrders,
+    latestOrders,
+    storeInfo?.merchantId,
+    storeInfo?.storeName,
+    storeInfo?.allOwnerStores
+  ]);
+
   // Keuangan Metrics
   const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const qrisRevenue = completedOrders
@@ -3427,32 +3517,40 @@ export default function Kasir({ user }) {
                     : `Sisa Nota: ${storeInfo.kuotaNota ?? 50} lembar`}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPosTopupModal(true)}
-                style={{
-                  padding: '2px 7px',
-                  borderRadius: '5px',
-                  border: 'none',
-                  background: '#3b82f6',
-                  color: '#ffffff',
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                + Top Up
-              </button>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPosTopupModal(true)}
+                  style={{
+                    padding: '2px 7px',
+                    borderRadius: '5px',
+                    border: 'none',
+                    background: '#3b82f6',
+                    color: '#ffffff',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Top Up
+                </button>
+                <ActionTutorialBadge
+                  title="Top Up Saldo Kuota Nota"
+                  description="Setiap transaksi tunai memotong saldo nota Rp 100. Isi ulang di sini agar transaksi kasir tidak terhenti."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
             </div>
 
             {/* Manual Cash Drawer Quick Kick Button */}
-            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
               <button
                 type="button"
                 onClick={handleKickDrawerManual}
                 disabled={drawerKicking}
                 style={{
-                  width: '100%',
+                  flex: 1,
                   padding: '7px 10px',
                   borderRadius: '8px',
                   border: isLight ? '1px dashed #10b981' : '1px dashed rgba(16, 185, 129, 0.4)',
@@ -3471,33 +3569,47 @@ export default function Kasir({ user }) {
                 <Unlock size={13} />
                 <span>{drawerKicking ? 'Membuka Laci...' : 'Buka Laci Uang Kasir (RJ11)'}</span>
               </button>
+              <ActionTutorialBadge
+                title="Buka Laci Kasir Manual"
+                description="Mengirim sinyal pulsa RJ11 ke printer thermal untuk membuka laci uang tanpa harus menyelesaikan transaksi."
+                size="sm"
+                isLight={isLight}
+              />
             </div>
 
-            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('Kosongkan semua item di keranjang?')) {
-                    setPosCart({});
-                    setActiveCartPromo(null);
-                    setPosCashReceived('');
-                    if (showMobileCartDrawer) setShowMobileCartDrawer(false);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  color: textSecondary,
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Kosongkan
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Kosongkan semua item di keranjang?')) {
+                      setPosCart({});
+                      setActiveCartPromo(null);
+                      setPosCashReceived('');
+                      if (showMobileCartDrawer) setShowMobileCartDrawer(false);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f1f5f9' : '#1e293b',
+                    color: textSecondary,
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Kosongkan
+                </button>
+                <ActionTutorialBadge
+                  title="Kosongkan Keranjang"
+                  description="Menghapus seluruh menu yang ada di keranjang kasir saat ini untuk memulai pesanan baru."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
 
               <button
                 type="button"
@@ -3642,6 +3754,17 @@ export default function Kasir({ user }) {
                       ? `Validasi QRIS Rp ${posFinalTotal.toLocaleString('id-ID')}`
                       : `Validasi Transfer Rp ${posFinalTotal.toLocaleString('id-ID')}`}
               </button>
+              <ActionTutorialBadge
+                title="Proses & Validasi Pembayaran"
+                description="Membuat nota pesanan, memotong saldo nota Rp 100 (khusus Tunai), membuka laci kasir otomatis, lalu menampilkan struk untuk dicetak."
+                steps={[
+                  'Pastikan metode bayar (Tunai / QRIS / Transfer) sudah dipilih.',
+                  'Untuk tunai, isi nominal uang diterima lalu tekan Bayar Tunai.',
+                  'Pilih nomor meja pelanggan pada dialog yang muncul.'
+                ]}
+                size="sm"
+                isLight={isLight}
+              />
             </div>
           </div>
         )}
@@ -3795,31 +3918,40 @@ export default function Kasir({ user }) {
           </div>
 
           {/* Tombol Menonjol Utama: + Tambah Menu Pelanggan */}
-          <button
-            type="button"
-            onClick={handleOpenAddMenu}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '9px 12px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
-              transition: 'all 0.15s ease'
-            }}
-            title="Tambah Menu Makanan/Minuman Baru untuk Pelanggan"
-          >
-            <Plus size={17} strokeWidth={2.8} />
-            <span>+ Tambah Menu</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+            <button
+              type="button"
+              onClick={handleOpenAddMenu}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '9px 12px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
+                transition: 'all 0.15s ease'
+              }}
+              title="Tambah Menu Makanan/Minuman Baru untuk Pelanggan"
+            >
+              <Plus size={17} strokeWidth={2.8} />
+              <span>+ Tambah Menu</span>
+            </button>
+            <ActionTutorialBadge
+              title="Tambah Menu Baru"
+              description="Menambahkan item makanan atau minuman baru beserta harga, foto, stok harian, dan kategori ke cabang yang sedang aktif."
+              size="sm"
+              isLight={isLight}
+            />
+          </div>
 
           {/* Group 1: Modul Utama Kasir */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -4034,56 +4166,73 @@ export default function Kasir({ user }) {
               <span style={{ fontSize: '0.64rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                 Toko Aktif ({(storeInfo.allOwnerStores || []).length || 1})
               </span>
-              <button
-                type="button"
-                onClick={handleOpenCreateStoreModal}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={handleOpenCreateStoreModal}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '2px 7px',
+                    borderRadius: '6px',
+                    border: '1px solid #2563eb',
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                    color: '#2563eb',
+                    fontSize: '0.66rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Buat toko / cabang kasir baru"
+                >
+                  <Plus size={11} />
+                  <span>Buat Toko</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Buat & Kelola Banyak Toko"
+                  description="Tambah cabang baru dari satu akun owner. Anda bisa menyalin menu dari toko lama atau mulai dari katalog kosong."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <select
+                value={storeInfo.merchantId || ''}
+                onChange={(e) => handleSwitchPosStore(e.target.value)}
+                aria-label="Pilih Toko Aktif"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  padding: '2px 7px',
-                  borderRadius: '6px',
-                  border: '1px solid #2563eb',
-                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
-                  color: '#2563eb',
-                  fontSize: '0.66rem',
-                  fontWeight: 800,
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '6px 8px',
+                  borderRadius: '8px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  color: textPrimary,
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
                   cursor: 'pointer'
                 }}
-                title="Buat toko / cabang kasir baru"
               >
-                <Plus size={11} />
-                <span>Buat Toko</span>
-              </button>
-            </div>
-            <select
-              value={storeInfo.merchantId || ''}
-              onChange={(e) => handleSwitchPosStore(e.target.value)}
-              aria-label="Pilih Toko Aktif"
-              style={{
-                width: '100%',
-                padding: '6px 8px',
-                borderRadius: '8px',
-                border: `1px solid ${borderColor}`,
-                background: isLight ? '#f8fafc' : '#0f172a',
-                color: textPrimary,
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0) ? (
-                storeInfo.allOwnerStores.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.kuotaNota} nota)
+                {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0) ? (
+                  storeInfo.allOwnerStores.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.kuotaNota} nota)
+                    </option>
+                  ))
+                ) : (
+                  <option value={storeInfo.merchantId || ''}>
+                    {storeInfo.storeName || 'Toko Utama'}
                   </option>
-                ))
-              ) : (
-                <option value={storeInfo.merchantId || ''}>
-                  {storeInfo.storeName || 'Toko Utama'}
-                </option>
-              )}
-            </select>
+                )}
+              </select>
+              <ActionTutorialBadge
+                title="Ganti Cabang Toko Aktif"
+                description="Memindahkan tampilan kasir, katalog menu, meja QR, dan statistik ke cabang lain yang dipilih."
+                size="sm"
+                isLight={isLight}
+              />
+            </div>
             {storeSwitchMsg && (
               <div style={{
                 fontSize: '0.67rem',
@@ -4352,63 +4501,79 @@ export default function Kasir({ user }) {
             {/* Right: Sisa Nota + Desktop Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               {/* Buka Laci Cepat RJ11 di Desktop */}
-              <button
-                type="button"
-                className="desktop-only-flex"
-                onClick={handleKickDrawerManual}
-                disabled={drawerKicking}
-                style={{
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  border: `1px solid ${borderColor}`,
-                  background: drawerKicking ? '#10b981' : (isLight ? '#f1f5f9' : '#1e293b'),
-                  color: drawerKicking ? '#ffffff' : textPrimary,
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-                title="Buka Laci Uang Kasir (Pulsa RJ11)"
-              >
-                <Unlock size={13} />
-                <span>{drawerKicking ? 'Buka...' : 'Buka Laci'}</span>
-              </button>
+              <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '3px' }}>
+                <button
+                  type="button"
+                  onClick={handleKickDrawerManual}
+                  disabled={drawerKicking}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    border: `1px solid ${borderColor}`,
+                    background: drawerKicking ? '#10b981' : (isLight ? '#f1f5f9' : '#1e293b'),
+                    color: drawerKicking ? '#ffffff' : textPrimary,
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Buka Laci Uang Kasir (Pulsa RJ11)"
+                >
+                  <Unlock size={13} />
+                  <span>{drawerKicking ? 'Buka...' : 'Buka Laci'}</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Buka Laci Cepat"
+                  description="Pintasan cepat untuk membuka laci uang kasir melalui kabel RJ11 di belakang printer thermal."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
 
               {/* Saldo Kuota Nota Chip */}
-              <button
-                type="button"
-                onClick={() => setShowPosTopupModal(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 9px',
-                  borderRadius: '999px',
-                  background: Number(storeInfo.saldoNota ?? 5000) < 100 
-                    ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
-                    : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
-                  border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
-                  cursor: 'pointer',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-                }}
-                title="Klik untuk Top Up Saldo Kuota Nota Kasir"
-              >
-                <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#d97706'} />
-                <span>{storeInfo.kuotaNota ?? 50}</span>
-                <span style={{
-                  fontSize: '0.62rem',
-                  fontWeight: 900,
-                  background: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#2563eb',
-                  color: '#ffffff',
-                  padding: '1px 5px',
-                  borderRadius: '999px',
-                  marginLeft: '1px'
-                }}>+Top Up</span>
-              </button>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPosTopupModal(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 9px',
+                    borderRadius: '999px',
+                    background: Number(storeInfo.saldoNota ?? 5000) < 100 
+                      ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
+                      : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
+                    border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                  }}
+                  title="Klik untuk Top Up Saldo Kuota Nota Kasir"
+                >
+                  <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#d97706'} />
+                  <span>{storeInfo.kuotaNota ?? 50}</span>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 900,
+                    background: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#2563eb',
+                    color: '#ffffff',
+                    padding: '1px 5px',
+                    borderRadius: '999px',
+                    marginLeft: '1px'
+                  }}>+Top Up</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Kuota & Top Up Saldo Nota"
+                  description="Menampilkan sisa transaksi tunai toko aktif. Biaya sistem Rp 100 per nota tunai. Klik chip ini untuk mengisi saldo via QRIS/VA."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
 
               {/* Desktop-Only Secondary Controls: Theme, Sound, Refresh */}
               <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '5px' }}>
@@ -4873,75 +5038,99 @@ export default function Kasir({ user }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {cashierShift.isOpen ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => setShowPettyCashModal(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '7px 13px',
-                      borderRadius: '10px',
-                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                      background: bgCard,
-                      color: textPrimary,
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-                    }}
-                  >
-                    <Coins size={15} color="#f59e0b" />
-                    <span>Catat Kas</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setClosingActualCash('');
-                      setClosingNote('');
-                      setShowShiftClosingModal(true);
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '7px 13px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                      color: '#ffffff',
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
-                    }}
-                  >
-                    <Lock size={15} />
-                    <span>Tutup Shift</span>
-                  </button>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowPettyCashModal(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '7px 13px',
+                        borderRadius: '10px',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                        background: bgCard,
+                        color: textPrimary,
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                      }}
+                    >
+                      <Coins size={15} color="#f59e0b" />
+                      <span>Catat Kas</span>
+                    </button>
+                    <ActionTutorialBadge
+                      title="Catat Kas Masuk / Keluar (Petty Cash)"
+                      description="Mencatat uang masuk tambahan (modal susuk) atau pengeluaran kas laci (belanja es/gas) selama shift berjalan agar hitungan saldo laci akurat."
+                      size="sm"
+                      isLight={isLight}
+                    />
+                  </div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setClosingActualCash('');
+                        setClosingNote('');
+                        setShowShiftClosingModal(true);
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '7px 13px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+                      }}
+                    >
+                      <Lock size={15} />
+                      <span>Tutup Shift</span>
+                    </button>
+                    <ActionTutorialBadge
+                      title="Tutup Shift & Rekonsiliasi Kas"
+                      description="Menutup sesi kasir aktif, membandingkan uang tunai fisik di laci vs sistem, serta mencetak struk ringkasan tutup kasir."
+                      size="sm"
+                      isLight={isLight}
+                    />
+                  </div>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowShiftOpeningModal(true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    fontSize: '0.82rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(37, 99, 235, 0.35)'
-                  }}
-                >
-                  <Unlock size={16} />
-                  <span>Buka Shift Baru</span>
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowShiftOpeningModal(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 3px 10px rgba(37, 99, 235, 0.35)'
+                    }}
+                  >
+                    <Unlock size={16} />
+                    <span>Buka Shift Baru</span>
+                  </button>
+                  <ActionTutorialBadge
+                    title="Buka Shift Kasir Baru"
+                    description="Memulai sesi kerja kasir baru dengan mencatat nama kasir bertugas dan nominal modal awal (uang kembalian) di laci."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -5188,26 +5377,235 @@ export default function Kasir({ user }) {
                 <span style={{ color: textSecondary }}>
                   ~{storeInfo.kuotaNota ?? Math.floor((Number(storeInfo.saldoNota) || 5000) / 100)} lembar nota
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setShowPosTopupModal(true)}
-                  style={{
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '2px 8px',
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 4px rgba(37, 99, 235, 0.3)'
-                  }}
-                >
-                  + Top Up
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowPosTopupModal(true)}
+                    style={{
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '2px 8px',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 4px rgba(37, 99, 235, 0.3)'
+                    }}
+                  >
+                    + Top Up
+                  </button>
+                  <ActionTutorialBadge
+                    title="Top Up Saldo Kuota Nota"
+                    description="Mengisi ulang saldo nota prabayar toko aktif agar transaksi pembayaran tunai terus berjalan lancar."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* ═════════════════════════════════════════════════════════════════ */}
+          {/* ── RINGKASAN KONSOLIDASI SEMUA TOKO (MULTI-BRANCH) ── */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
+          {consolidatedSummary && Array.isArray(consolidatedSummary.stores) && consolidatedSummary.stores.length > 0 && (
+            <div
+              data-testid="consolidated-summary-card"
+              style={{
+                background: bgCard,
+                border: `1.5px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '16px 18px',
+                boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
+                marginBottom: '1.25rem'
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+                marginBottom: '12px',
+                paddingBottom: '10px',
+                borderBottom: `1px solid ${borderColor}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <Layers size={18} color="#2563eb" />
+                  <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 900, color: textPrimary }}>
+                    Ringkasan Konsolidasi Semua Toko
+                  </h3>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
+                    color: '#2563eb'
+                  }}>
+                    {consolidatedSummary.totalStores || consolidatedSummary.stores.length} Cabang
+                  </span>
+                  <ActionTutorialBadge
+                    title="Dashboard Konsolidasi Multi-Cabang"
+                    description="Menggabungkan performa omset dan jumlah nota dari seluruh cabang toko milik Anda dalam satu layar."
+                    steps={[
+                      'Bandingkan pendapatan hari ini, bulan ini, dan sisa kuota nota tiap cabang.',
+                      'Klik tombol Aktifkan Cabang untuk berpindah operasional kasir ke cabang tersebut.'
+                    ]}
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
+                {loadingConsolidated && (
+                  <span style={{ fontSize: '0.72rem', color: textSecondary, fontWeight: 700 }}>
+                    Memperbarui...
+                  </span>
+                )}
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 175px), 1fr))',
+                gap: '10px',
+                marginBottom: '12px'
+              }}>
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: isLight ? '#f0fdf4' : 'rgba(16,185,129,0.12)',
+                  border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(16,185,129,0.3)'
+                }}>
+                  <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
+                    Omset Hari Ini (Gabungan)
+                  </span>
+                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)' }}>
+                    Rp {Number(consolidatedSummary.totals?.todayRevenue || 0).toLocaleString('id-ID')}
+                  </strong>
+                  <span style={{ display: 'block', fontSize: '0.68rem', color: textSecondary, marginTop: '2px' }}>
+                    {consolidatedSummary.totals?.todayOrders || 0} transaksi hari ini
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: isLight ? '#eff6ff' : 'rgba(37,99,235,0.14)',
+                  border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(37,99,235,0.35)'
+                }}>
+                  <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
+                    Omset Bulan Ini (Gabungan)
+                  </span>
+                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: isLight ? '#1d4ed8' : '#60a5fa', fontFamily: 'var(--font-mono)' }}>
+                    Rp {Number(consolidatedSummary.totals?.monthRevenue || 0).toLocaleString('id-ID')}
+                  </strong>
+                  <span style={{ display: 'block', fontSize: '0.68rem', color: textSecondary, marginTop: '2px' }}>
+                    {consolidatedSummary.totals?.monthOrders || 0} transaksi bulan ini
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: isLight ? '#f8fafc' : 'rgba(148,163,184,0.1)',
+                  border: `1px solid ${borderColor}`
+                }}>
+                  <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
+                    Akumulasi All-Time
+                  </span>
+                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                    Rp {Number(consolidatedSummary.totals?.allTimeRevenue || 0).toLocaleString('id-ID')}
+                  </strong>
+                  <span style={{ display: 'block', fontSize: '0.68rem', color: textSecondary, marginTop: '2px' }}>
+                    {consolidatedSummary.totals?.allTimeOrders || 0} nota total
+                  </span>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))',
+                gap: '10px'
+              }}>
+                {consolidatedSummary.stores.map((cs) => {
+                  const isCurrent = String(cs.storeId) === String(storeInfo?.merchantId || consolidatedSummary.activeStoreId);
+                  return (
+                    <div
+                      key={cs.storeId}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '12px',
+                        border: isCurrent ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                        background: isLight ? (isCurrent ? '#f8fafc' : '#ffffff') : (isCurrent ? '#1e293b' : 'rgba(15, 23, 42, 0.55)'),
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.84rem', color: textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {cs.storeName}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {cs.location || cs.address || 'Cabang POS'}
+                          </div>
+                        </div>
+                        {isCurrent && (
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: '999px',
+                            background: '#2563eb',
+                            color: '#ffffff',
+                            flexShrink: 0
+                          }}>
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.73rem', color: textSecondary }}>
+                        <span>Hari Ini: <strong style={{ color: textPrimary }}>Rp {Number(cs.todayRevenue || 0).toLocaleString('id-ID')}</strong></span>
+                        <span>{cs.todayOrders || 0} nota</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: textSecondary }}>
+                        <span>Bulan Ini: <strong style={{ color: textPrimary }}>Rp {Number(cs.monthRevenue || 0).toLocaleString('id-ID')}</strong></span>
+                        <span>Sisa {cs.kuotaNota ?? 0} nota</span>
+                      </div>
+                      {!isCurrent && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchPosStore(cs.storeId)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 10px',
+                              borderRadius: '8px',
+                              border: `1px solid ${borderColor}`,
+                              background: isLight ? '#eff6ff' : 'rgba(37,99,235,0.2)',
+                              color: '#2563eb',
+                              fontSize: '0.71rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Aktifkan Cabang
+                          </button>
+                          <ActionTutorialBadge
+                            title="Aktifkan Cabang Ini"
+                            description="Memindahkan mode kasir, katalog menu, dan antrean transaksi ke cabang yang dipilih."
+                            size="sm"
+                            isLight={isLight}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ═════════════════════════════════════════════════════════════════ */}
           {/* ── SECTION DETAIL: KARYAWAN YG ONLINE & STATISTIK FNB TOP 10 ── */}
@@ -5535,7 +5933,7 @@ export default function Kasir({ user }) {
               paddingBottom: '10px',
               borderBottom: `1px solid ${borderColor}`
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <Receipt size={18} color="#2563eb" />
                 <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: textPrimary }}>
                   Daftar Nota Terbaru
@@ -5548,21 +5946,77 @@ export default function Kasir({ user }) {
                   background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
                   color: '#2563eb'
                 }}>
-                  {latestOrders.length} Nota
+                  {displayedDashboardOrders.length} Nota
+                </span>
+                <ActionTutorialBadge
+                  title="Daftar Nota Terbaru"
+                  description="Menampilkan riwayat transaksi terkini beserta nama kasir dan detail menu. Gunakan toggle untuk melihat nota cabang aktif saja atau seluruh cabang."
+                  steps={[
+                    'Pilih Toko Aktif untuk fokus pada cabang yang sedang dibuka.',
+                    'Pilih Semua Toko untuk memantau transaksi lintas semua cabang.',
+                    'Klik kartu nota untuk membuka rincian item & mencetak ulang struk.'
+                  ]}
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  padding: '3px',
+                  borderRadius: '9px',
+                  background: isLight ? '#f1f5f9' : '#1e293b',
+                  border: `1px solid ${borderColor}`
+                }}>
+                  <button
+                    type="button"
+                    data-testid="receipt-scope-active"
+                    onClick={() => setDashboardReceiptScope('active')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '7px',
+                      border: 'none',
+                      background: dashboardReceiptScope === 'active' ? '#2563eb' : 'transparent',
+                      color: dashboardReceiptScope === 'active' ? '#ffffff' : textSecondary,
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Toko Aktif
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="receipt-scope-all"
+                    onClick={() => setDashboardReceiptScope('all')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '7px',
+                      border: 'none',
+                      background: dashboardReceiptScope === 'all' ? '#2563eb' : 'transparent',
+                      color: dashboardReceiptScope === 'all' ? '#ffffff' : textSecondary,
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Semua Toko
+                  </button>
+                </div>
+                <span style={{ fontSize: '0.74rem', color: textSecondary }}>
+                  Klik nota untuk rincian menu &amp; cetak struk
                 </span>
               </div>
-              <span style={{ fontSize: '0.74rem', color: textSecondary }}>
-                Klik salah satu nota untuk melihat rincian menu, kasir &amp; cetak struk
-              </span>
             </div>
 
-            {latestOrders.length === 0 ? (
+            {displayedDashboardOrders.length === 0 ? (
               <div style={{ padding: '2rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.8rem' }}>
-                Belum ada nota transaksi tercatat pada shift ini.
+                Belum ada nota transaksi tercatat pada filter ini.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {latestOrders.slice(0, 15).map((ord) => {
+                {displayedDashboardOrders.slice(0, 15).map((ord) => {
                   const isExpanded = selectedDashboardOrderId === ord.id;
                   const cashierDisplay = ord.cashierName || cashierShift.cashierName || 'Kasir Shift';
                   const statusLabel = ord.status === 'COMPLETED'
@@ -5608,6 +6062,18 @@ export default function Kasir({ user }) {
                               <span style={{ fontWeight: 800, fontSize: '0.84rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
                                 {ord.invoice || `#${String(ord.id).slice(-8)}`}
                               </span>
+                              {dashboardReceiptScope === 'all' && ord.storeName && (
+                                <span style={{
+                                  fontSize: '0.66rem',
+                                  fontWeight: 800,
+                                  padding: '2px 7px',
+                                  borderRadius: '6px',
+                                  background: isLight ? '#e0e7ff' : 'rgba(99,102,241,0.2)',
+                                  color: isLight ? '#3730a3' : '#a5b4fc'
+                                }}>
+                                  {ord.storeName}
+                                </span>
+                              )}
                               <span style={{
                                 fontSize: '0.68rem',
                                 fontWeight: 700,
@@ -5899,79 +6365,107 @@ export default function Kasir({ user }) {
                     )}
 
                     {/* Diskon Khusus Admin Button */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                       {order.adminDiscount ? (
                         <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
-                          ✓ Diskon Admin: -Rp {order.adminDiscount.amount?.toLocaleString('id-ID')} ({order.adminDiscount.reason})
+                          Diskon Admin: -Rp {order.adminDiscount.amount?.toLocaleString('id-ID')} ({order.adminDiscount.reason})
                         </span>
                       ) : (
                         <span style={{ fontSize: '0.7rem', color: textSecondary }}>
                           Belum ada diskon admin
                         </span>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedOrderForDiscount(order);
-                          setDiscountForm({ type: 'FIXED', value: '', reason: '' });
-                          setShowDiscountModal(true);
-                        }}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(245, 158, 11, 0.4)',
-                          background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
-                          color: isLight ? '#b45309' : '#fbbf24',
-                          fontSize: '0.74rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Percent size={12} />
-                        <span>{order.adminDiscount ? 'Ubah Diskon' : '+ Diskon Admin'}</span>
-                      </button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrderForDiscount(order);
+                            setDiscountForm({ type: 'FIXED', value: '', reason: '' });
+                            setShowDiscountModal(true);
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(245, 158, 11, 0.4)',
+                            background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
+                            color: isLight ? '#b45309' : '#fbbf24',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Percent size={12} />
+                          <span>{order.adminDiscount ? 'Ubah Diskon' : '+ Diskon Admin'}</span>
+                        </button>
+                        <ActionTutorialBadge
+                          title="Diskon Khusus Admin"
+                          description="Memberikan potongan harga tambahan (Rp atau %) ke pesanan masuk sebelum pesanan di-ACC."
+                          size="sm"
+                          isLight={isLight}
+                        />
+                      </div>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px', marginTop: '4px' }}>
-                      <button
-                        onClick={() => handleRejectOrder(order.id)}
-                        style={{
-                          padding: '9px 12px',
-                          borderRadius: '10px',
-                          border: `1px solid ${borderColor}`,
-                          background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
-                          color: isLight ? '#b91c1c' : '#f87171',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Tolak
-                      </button>
-                      <button
-                        onClick={() => handleAccOrder(order.id)}
-                        style={{
-                          padding: '9px 12px',
-                          borderRadius: '10px',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          color: '#ffffff',
-                          fontWeight: 800,
-                          fontSize: '0.82rem',
-                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        <Check size={16} strokeWidth={3} /> ACC PESANAN
-                      </button>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.8fr)', gap: '8px', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                        <button
+                          onClick={() => handleRejectOrder(order.id)}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            padding: '9px 10px',
+                            borderRadius: '10px',
+                            border: `1px solid ${borderColor}`,
+                            background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
+                            color: isLight ? '#b91c1c' : '#f87171',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Tolak
+                        </button>
+                        <ActionTutorialBadge
+                          title="Tolak Pesanan"
+                          description="Membatalkan pesanan masuk jika stok habis atau pelanggan membatalkan order."
+                          size="sm"
+                          isLight={isLight}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                        <button
+                          onClick={() => handleAccOrder(order.id)}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            padding: '9px 10px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: '#ffffff',
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <Check size={16} strokeWidth={3} /> ACC PESANAN
+                        </button>
+                        <ActionTutorialBadge
+                          title="ACC Pesanan ke Pembayaran"
+                          description="Menyetujui pesanan dari meja QR agar lanjut ke tahap konfirmasi bayar atau langsung dimasak di dapur."
+                          size="sm"
+                          isLight={isLight}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))
@@ -6083,25 +6577,34 @@ export default function Kasir({ user }) {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleConfirmPaid(order.id)}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '10px',
-                        border: '1px solid #10b981',
-                        background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
-                        color: isLight ? '#065f46' : '#34d399',
-                        fontWeight: 700,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <CheckCircle2 size={15} /> Konfirmasi Bayar Tunai (Kasir)
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        onClick={() => handleConfirmPaid(order.id)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: '10px',
+                          border: '1px solid #10b981',
+                          background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
+                          color: isLight ? '#065f46' : '#34d399',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <CheckCircle2 size={15} /> Konfirmasi Bayar Tunai (Kasir)
+                      </button>
+                      <ActionTutorialBadge
+                        title="Konfirmasi Pembayaran Tunai"
+                        description="Mengonfirmasi uang tunai telah diterima kasir, memotong saldo nota Rp 100, lalu mengirim pesanan ke layar dapur (Sedang Dimasak)."
+                        size="sm"
+                        isLight={isLight}
+                      />
+                    </div>
                   </div>
                 ))
               )}
@@ -6359,51 +6862,68 @@ export default function Kasir({ user }) {
                       </div>
 
                       {/* Ticket Action Buttons */}
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                        <button
-                          onClick={() => setReceiptOrder(order)}
-                          style={{
-                            padding: '10px 14px',
-                            borderRadius: '12px',
-                            border: `1px solid ${borderColor}`,
-                            background: isLight ? '#f1f5f9' : '#1e293b',
-                            color: textPrimary,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="Cetak Struk Thermal"
-                        >
-                          <Printer size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleCompleteOrder(order.id)}
-                          style={{
-                            flex: 1,
-                            padding: '10px 14px',
-                            borderRadius: '12px',
-                            background: allItemsReady
-                              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                              : (isLight ? '#f1f5f9' : '#1e293b'),
-                            color: allItemsReady ? '#ffffff' : textSecondary,
-                            border: allItemsReady ? 'none' : `1px solid ${borderColor}`,
-                            fontWeight: 800,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            boxShadow: allItemsReady ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <CheckCircle2 size={16} />
-                          {allItemsReady
-                            ? 'Semua Siap — Antar ke Meja!'
-                            : `Antar ke Meja (${readyCount}/${totalItems} Siap)`}
-                        </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <button
+                            onClick={() => setReceiptOrder(order)}
+                            style={{
+                              padding: '10px 12px',
+                              borderRadius: '12px',
+                              border: `1px solid ${borderColor}`,
+                              background: isLight ? '#f1f5f9' : '#1e293b',
+                              color: textPrimary,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Cetak Struk Thermal"
+                          >
+                            <Printer size={16} />
+                          </button>
+                          <ActionTutorialBadge
+                            title="Cetak Ulang Struk"
+                            description="Membuka pratinjau struk thermal monochrome untuk dicetak ke printer Bluetooth/USB atau dialog OS."
+                            size="sm"
+                            isLight={isLight}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                          <button
+                            onClick={() => handleCompleteOrder(order.id)}
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              padding: '10px 12px',
+                              borderRadius: '12px',
+                              background: allItemsReady
+                                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                                : (isLight ? '#f1f5f9' : '#1e293b'),
+                              color: allItemsReady ? '#ffffff' : textSecondary,
+                              border: allItemsReady ? 'none' : `1px solid ${borderColor}`,
+                              fontWeight: 800,
+                              fontSize: '0.82rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              boxShadow: allItemsReady ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <CheckCircle2 size={16} />
+                            {allItemsReady
+                              ? 'Semua Siap — Antar ke Meja!'
+                              : `Antar ke Meja (${readyCount}/${totalItems} Siap)`}
+                          </button>
+                          <ActionTutorialBadge
+                            title="Selesaikan & Antar ke Meja"
+                            description="Menandai seluruh hidangan selesai dimasak dan telah diantar ke pelanggan, serta memperbarui status order menjadi Selesai."
+                            size="sm"
+                            isLight={isLight}
+                          />
+                        </div>
                       </div>
                     </div>
                   );
@@ -7797,29 +8317,37 @@ export default function Kasir({ user }) {
                 Tambah, ubah nama, hapus meja, serta unduh QR Code self-order langsung tanpa pop-up browser.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleOpenAddTable}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '9px 16px',
-                borderRadius: '10px',
-                border: showAddTablePanel ? `1px solid ${borderColor}` : 'none',
-                background: showAddTablePanel
-                  ? (isLight ? '#f1f5f9' : '#1e293b')
-                  : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                color: showAddTablePanel ? textPrimary : '#ffffff',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                boxShadow: showAddTablePanel ? 'none' : '0 4px 12px rgba(37, 99, 235, 0.25)'
-              }}
-            >
-              {showAddTablePanel ? <X size={16} /> : <Plus size={16} />}
-              <span>{showAddTablePanel ? 'Tutup Form' : 'Tambah Meja'}</span>
-            </button>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={handleOpenAddTable}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '9px 16px',
+                  borderRadius: '10px',
+                  border: showAddTablePanel ? `1px solid ${borderColor}` : 'none',
+                  background: showAddTablePanel
+                    ? (isLight ? '#f1f5f9' : '#1e293b')
+                    : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: showAddTablePanel ? textPrimary : '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  boxShadow: showAddTablePanel ? 'none' : '0 4px 12px rgba(37, 99, 235, 0.25)'
+                }}
+              >
+                {showAddTablePanel ? <X size={16} /> : <Plus size={16} />}
+                <span>{showAddTablePanel ? 'Tutup Form' : 'Tambah Meja'}</span>
+              </button>
+              <ActionTutorialBadge
+                title="Tambah Meja & Generate QR"
+                description="Membuat nomor meja baru dan otomatis menghasilkan barcode QR agar pelanggan dapat memesan langsung dari meja."
+                size="sm"
+                isLight={isLight}
+              />
+            </div>
           </div>
 
           {tableActionFeedback && (
@@ -8212,59 +8740,77 @@ export default function Kasir({ user }) {
 
                           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {/* Direct Download Button */}
-                            <a
-                              href={tbl.qrDataUrl}
-                              download={`QR-${String(tbl.number).replace(/\s+/g, '-')}.png`}
-                              style={{
-                                width: '100%',
-                                padding: '7px 8px',
-                                borderRadius: '10px',
-                                border: 'none',
-                                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                                color: '#ffffff',
-                                fontWeight: 800,
-                                fontSize: '0.72rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '4px',
-                                textDecoration: 'none',
-                                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                                boxSizing: 'border-box'
-                              }}
-                              title={`Download Barcode QR ${tbl.number}`}
-                            >
-                              <Download size={12} strokeWidth={2.5} />
-                              <span>Download QR</span>
-                            </a>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
+                              <a
+                                href={tbl.qrDataUrl}
+                                download={`QR-${String(tbl.number).replace(/\s+/g, '-')}.png`}
+                                style={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  padding: '7px 8px',
+                                  borderRadius: '10px',
+                                  border: 'none',
+                                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                                  color: '#ffffff',
+                                  fontWeight: 800,
+                                  fontSize: '0.72rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '4px',
+                                  textDecoration: 'none',
+                                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+                                  boxSizing: 'border-box'
+                                }}
+                                title={`Download Barcode QR ${tbl.number}`}
+                              >
+                                <Download size={12} strokeWidth={2.5} />
+                                <span>Download QR</span>
+                              </a>
+                              <ActionTutorialBadge
+                                title="Download Gambar QR Meja"
+                                description="Mengunduh file PNG barcode QR meja ini untuk dicetak dan ditempel di meja pelanggan."
+                                size="sm"
+                                isLight={isLight}
+                              />
+                            </div>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedTableReceiptKey((prev) => String(prev) === String(tbl.id) ? null : tbl.id);
-                                setSelectedTableOrderId(null);
-                              }}
-                              style={{
-                                width: '100%',
-                                padding: '6px 8px',
-                                borderRadius: '9px',
-                                border: isNotaSelected ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
-                                background: isNotaSelected ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.18)') : (isLight ? '#ffffff' : '#0f172a'),
-                                color: isNotaSelected ? '#2563eb' : textPrimary,
-                                fontWeight: 700,
-                                fontSize: '0.7rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '4px',
-                                boxSizing: 'border-box'
-                              }}
-                            >
-                              <FileText size={12} />
-                              <span>{isNotaSelected ? `Tutup Nota (${matchingOrders.length})` : `Nota Meja (${matchingOrders.length})`}</span>
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTableReceiptKey((prev) => String(prev) === String(tbl.id) ? null : tbl.id);
+                                  setSelectedTableOrderId(null);
+                                }}
+                                style={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  padding: '6px 8px',
+                                  borderRadius: '9px',
+                                  border: isNotaSelected ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                                  background: isNotaSelected ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.18)') : (isLight ? '#ffffff' : '#0f172a'),
+                                  color: isNotaSelected ? '#2563eb' : textPrimary,
+                                  fontWeight: 700,
+                                  fontSize: '0.7rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '4px',
+                                  boxSizing: 'border-box'
+                                }}
+                              >
+                                <FileText size={12} />
+                                <span>{isNotaSelected ? `Tutup Nota (${matchingOrders.length})` : `Nota Meja (${matchingOrders.length})`}</span>
+                              </button>
+                              <ActionTutorialBadge
+                                title="Lihat Riwayat Nota Meja"
+                                description="Menampilkan daftar pesanan dan total omset khusus dari meja ini."
+                                size="sm"
+                                isLight={isLight}
+                              />
+                            </div>
 
                             {isDeletingThis ? (
                               <div style={{
@@ -8649,30 +9195,39 @@ export default function Kasir({ user }) {
               <Wallet size={15} />
               <span>Ringkasan &amp; Rekap Kasir</span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setKeuanganSubTab('analytics');
-                loadAnalytics();
-              }}
-              style={{
-                padding: '10px 12px',
-                borderRadius: '10px',
-                border: 'none',
-                background: keuanganSubTab === 'analytics' ? '#4f46e5' : 'transparent',
-                color: keuanganSubTab === 'analytics' ? '#ffffff' : textSecondary,
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              <BarChart3 size={15} />
-              <span>Statistik &amp; Analitik</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setKeuanganSubTab('analytics');
+                  loadAnalytics();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: keuanganSubTab === 'analytics' ? '#4f46e5' : 'transparent',
+                  color: keuanganSubTab === 'analytics' ? '#ffffff' : textSecondary,
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <BarChart3 size={15} />
+                <span>Statistik &amp; Analitik</span>
+              </button>
+              <ActionTutorialBadge
+                title="Buka Grafik Statistik & Filter"
+                description="Membuka analitik lengkap: tren omset, perbandingan metode bayar Tunai vs QRIS, jam ramai WIB, perbandingan cabang, serta export CSV/Excel."
+                size="sm"
+                isLight={isLight}
+              />
+            </div>
           </div>
 
           {keuanganSubTab === 'analytics' ? (
@@ -8781,6 +9336,12 @@ export default function Kasir({ user }) {
                 >
                   <CreditCard size={14} /> Tarik Saldo (Payout)
                 </button>
+                <ActionTutorialBadge
+                  title="Tarik Saldo Dompet Terpadu"
+                  description="Mencairkan saldo pembayaran QRIS Kasir & Mitra ke rekening bank terdaftar melalui jalur transfer bank."
+                  size="sm"
+                  isLight={isLight}
+                />
               </div>
             </div>
 
@@ -8857,27 +9418,35 @@ export default function Kasir({ user }) {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowPosTopupModal(true)}
-                style={{
-                  padding: '9px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
-                }}
-              >
-                <Zap size={16} />
-                <span>+ Top Up Kuota Nota</span>
-              </button>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPosTopupModal(true)}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                  }}
+                >
+                  <Zap size={16} />
+                  <span>+ Top Up Kuota Nota</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Top Up Saldo Kuota Nota"
+                  description="Menambah saldo prabayar nota kasir (Rp 100 per nota tunai) untuk cabang aktif agar tidak terblokir saat melayani cash."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
             </div>
           </div>
 
@@ -9021,7 +9590,7 @@ export default function Kasir({ user }) {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 {/* Filter Hari Ini vs Semua */}
                 <div style={{
                   display: 'flex',
@@ -9065,80 +9634,96 @@ export default function Kasir({ user }) {
                 </div>
 
                 {/* Tombol Cetak Rekap */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const todayStr = new Date().toLocaleDateString('id-ID');
-                    const filtered = orders.filter(o => {
-                      if (recapFilter === 'today') {
-                        const d = new Date().toISOString().slice(0, 10);
-                        return o.createdAt && o.createdAt.startsWith(d);
-                      }
-                      return true;
-                    });
-                    const total = filtered.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
-                    const recapSummaryOrder = {
-                      id: `REKAP-${Date.now().toString().slice(-6)}`,
-                      tableNumber: 'REKAP KASIR',
-                      customerName: `Kasir (${recapFilter === 'today' ? todayStr : 'Semua Transaksi'})`,
-                      createdAt: new Date().toISOString(),
-                      notes: `Total ${filtered.length} Pesanan | Omset Rp ${total.toLocaleString('id-ID')}`,
-                      items: filtered.slice(0, 15).map(o => ({
-                        name: `#${o.id.slice(-5)} (Meja ${o.tableNumber})`,
-                        qty: (o.items || []).length,
-                        subtotal: o.totalAmount || 0
-                      })),
-                      subtotal: total,
-                      discountAmount: 0,
-                      totalAmount: total,
-                      paymentMethod: 'REKAP LAPORAN'
-                    };
-                    handlePrintReceipt(recapSummaryOrder);
-                  }}
-                  style={{
-                    padding: '7px 12px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-                  }}
-                >
-                  <Printer size={13} />
-                  <span>Cetak Rekap</span>
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const todayStr = new Date().toLocaleDateString('id-ID');
+                      const filtered = orders.filter(o => {
+                        if (recapFilter === 'today') {
+                          const d = new Date().toISOString().slice(0, 10);
+                          return o.createdAt && o.createdAt.startsWith(d);
+                        }
+                        return true;
+                      });
+                      const total = filtered.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+                      const recapSummaryOrder = {
+                        id: `REKAP-${Date.now().toString().slice(-6)}`,
+                        tableNumber: 'REKAP KASIR',
+                        customerName: `Kasir (${recapFilter === 'today' ? todayStr : 'Semua Transaksi'})`,
+                        createdAt: new Date().toISOString(),
+                        notes: `Total ${filtered.length} Pesanan | Omset Rp ${total.toLocaleString('id-ID')}`,
+                        items: filtered.slice(0, 15).map(o => ({
+                          name: `#${o.id.slice(-5)} (Meja ${o.tableNumber})`,
+                          qty: (o.items || []).length,
+                          subtotal: o.totalAmount || 0
+                        })),
+                        subtotal: total,
+                        discountAmount: 0,
+                        totalAmount: total,
+                        paymentMethod: 'REKAP LAPORAN'
+                      };
+                      handlePrintReceipt(recapSummaryOrder);
+                    }}
+                    style={{
+                      padding: '7px 12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <Printer size={13} />
+                    <span>Cetak Rekap</span>
+                  </button>
+                  <ActionTutorialBadge
+                    title="Cetak Rekap Thermal"
+                    description="Mencetak ringkasan omset dan daftar transaksi sesuai filter aktif (Hari Ini atau Semua) ke printer struk thermal."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
 
                 {/* Tombol Export ke Excel (.xlsx) */}
-                <button
-                  type="button"
-                  disabled={exportingExcel}
-                  onClick={handleExportExcel}
-                  style={{
-                    padding: '7px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid #10b981',
-                    background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
-                    color: '#059669',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)',
-                    transition: 'all 0.15s ease'
-                  }}
-                  title="Unduh seluruh riwayat transaksi kasir ke Microsoft Excel (.xlsx)"
-                >
-                  <FileSpreadsheet size={15} color="#059669" />
-                  <span>{exportingExcel ? 'Mengekspor...' : 'Export ke Excel'}</span>
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    disabled={exportingExcel}
+                    onClick={handleExportExcel}
+                    style={{
+                      padding: '7px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid #10b981',
+                      background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
+                      color: '#059669',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Unduh seluruh riwayat transaksi kasir ke Microsoft Excel (.xlsx)"
+                  >
+                    <FileSpreadsheet size={15} color="#059669" />
+                    <span>{exportingExcel ? 'Mengekspor...' : 'Export ke Excel'}</span>
+                  </button>
+                  <ActionTutorialBadge
+                    title="Export Buku Kasir ke Excel"
+                    description="Mengunduh seluruh riwayat transaksi kasir dalam format Microsoft Excel (.xlsx) siap pakai untuk pembukuan."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </div>
             </div>
 
@@ -9547,52 +10132,68 @@ export default function Kasir({ user }) {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  loadInventory();
-                  loadRecipes();
-                }}
-                disabled={loadingInventory || loadingRecipes}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 12px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#ffffff' : '#1e293b',
-                  color: textPrimary,
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                <RefreshCw size={13} className={(loadingInventory || loadingRecipes) ? 'animate-spin' : ''} />
-                <span>{(loadingInventory || loadingRecipes) ? 'Memuat...' : 'Refresh'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddInventoryForm(prev => !prev)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  color: '#ffffff',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
-                }}
-              >
-                <Plus size={14} strokeWidth={2.5} />
-                <span>{showAddInventoryForm ? 'Tutup Form' : 'Tambah Bahan'}</span>
-              </button>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    loadInventory();
+                    loadRecipes();
+                  }}
+                  disabled={loadingInventory || loadingRecipes}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <RefreshCw size={13} className={(loadingInventory || loadingRecipes) ? 'animate-spin' : ''} />
+                  <span>{(loadingInventory || loadingRecipes) ? 'Memuat...' : 'Refresh'}</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Segarkan Data Gudang & Resep"
+                  description="Memuat ulang sisa stok bahan baku terkini dan daftar komposisi resep HPP dari server."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddInventoryForm(prev => !prev)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                  }}
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span>{showAddInventoryForm ? 'Tutup Form' : 'Tambah Bahan'}</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Tambah Bahan Baku Baru"
+                  description="Mencatat item bahan dapur baru (kopi, susu, beras, dll) lengkap dengan stok awal, satuan, ambang peringatan menipis, dan harga beli rata-rata."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => setActiveTab('pos')}
@@ -10851,24 +11452,32 @@ export default function Kasir({ user }) {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={savingPromo}
-                  style={{
-                    marginTop: '4px',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.84rem',
-                    cursor: savingPromo ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
-                  }}
-                >
-                  {savingPromo ? 'Menerbitkan...' : 'Terbitkan Promo Makanan'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <button
+                    type="submit"
+                    disabled={savingPromo}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: savingPromo ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
+                    }}
+                  >
+                    {savingPromo ? 'Menerbitkan...' : 'Terbitkan Promo Makanan'}
+                  </button>
+                  <ActionTutorialBadge
+                    title="Terbitkan Promo Makanan"
+                    description="Mengaktifkan promo diskon untuk menu pilihan Anda dengan batasan kuota porsi, batas tanggal berakhir, atau keduanya."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </form>
             </div>
 
@@ -11115,23 +11724,31 @@ export default function Kasir({ user }) {
                     boxSizing: 'border-box'
                   }}
                 />
-                <button
-                  type="button"
-                  onClick={() => handleSearchLoyalty()}
-                  disabled={loyaltyLoading}
-                  style={{
-                    padding: '10px 18px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: loyaltyLoading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {loyaltyLoading ? 'Mencari...' : 'Cari Member'}
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSearchLoyalty()}
+                    disabled={loyaltyLoading}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: loyaltyLoading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {loyaltyLoading ? 'Mencari...' : 'Cari Member'}
+                  </button>
+                  <ActionTutorialBadge
+                    title="Cari Kartu Stamp & Poin Member"
+                    description="Masukkan nomor WhatsApp pelanggan untuk membuka kartu stamp (5 kunjungan = hadiah gratis) serta riwayat poin loyalti."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </div>
             </div>
 
@@ -11211,46 +11828,62 @@ export default function Kasir({ user }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleGrantStamp(1)}
-                      style={{
-                        flex: '1 1 140px',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: '#f59e0b',
-                        color: '#ffffff',
-                        fontWeight: 800,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      + Beri 1 Stamp
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRedeemStamp}
-                      disabled={currentStamps < maxStamps}
-                      style={{
-                        flex: '1 1 160px',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: currentStamps >= maxStamps ? '#16a34a' : '#94a3b8',
-                        color: '#ffffff',
-                        fontWeight: 800,
-                        fontSize: '0.78rem',
-                        cursor: currentStamps >= maxStamps ? 'pointer' : 'not-allowed',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Gift size={14} />
-                      <span>Tukar Hadiah (Min. {maxStamps})</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 150px', minWidth: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleGrantStamp(1)}
+                        style={{
+                          flex: 1,
+                          padding: '9px 12px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: '#f59e0b',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + Beri 1 Stamp
+                      </button>
+                      <ActionTutorialBadge
+                        title="Tambah 1 Stamp Pelanggan"
+                        description="Memberikan stempel digital ke kartu loyalti pelanggan setelah melakukan pembelian memenuhi syarat."
+                        size="sm"
+                        isLight={isLight}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 175px', minWidth: 0 }}>
+                      <button
+                        type="button"
+                        onClick={handleRedeemStamp}
+                        disabled={currentStamps < maxStamps}
+                        style={{
+                          flex: 1,
+                          padding: '9px 12px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: currentStamps >= maxStamps ? '#16a34a' : '#94a3b8',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: currentStamps >= maxStamps ? 'pointer' : 'not-allowed',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Gift size={14} />
+                        <span>Tukar Hadiah (Min. {maxStamps})</span>
+                      </button>
+                      <ActionTutorialBadge
+                        title="Tukar Hadiah Stamp Penuh"
+                        description="Menukarkan 5 stamp terkumpul menjadi gratis menu atau diskon hadiah dan mereset slot kartu stamp pelanggan."
+                        size="sm"
+                        isLight={isLight}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -11420,26 +12053,34 @@ export default function Kasir({ user }) {
               'Owner dapat membuat dan mengelola banyak cabang toko dari satu akun, mengatur posisi stand, serta memvalidasi titik Google Maps.',
               <MapPin size={20} color="#14b8a6" />,
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={handleOpenCreateStoreModal}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    fontSize: '0.76rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <Plus size={14} />
-                  <span>Buat Toko Baru</span>
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateStoreModal}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Plus size={14} />
+                    <span>Buat Toko Baru</span>
+                  </button>
+                  <ActionTutorialBadge
+                    title="Buat Cabang Toko Baru"
+                    description="Menambahkan cabang POS baru pada akun owner ini. Anda bisa memilih menyalin katalog menu yang ada atau mulai dari nol."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
                 <span style={{
                   padding: '5px 11px',
                   borderRadius: '999px',
@@ -11912,24 +12553,32 @@ export default function Kasir({ user }) {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={savingStore}
-                  style={{
-                    marginTop: '4px',
-                    padding: '10px 16px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    fontSize: '0.84rem',
-                    fontWeight: 800,
-                    cursor: savingStore ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
-                  }}
-                >
-                  {savingStore ? 'Menyimpan Lokasi...' : 'Simpan & Validasi Toko'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <button
+                    type="submit"
+                    disabled={savingStore}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      cursor: savingStore ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+                    }}
+                  >
+                    {savingStore ? 'Menyimpan Lokasi...' : 'Simpan & Validasi Toko'}
+                  </button>
+                  <ActionTutorialBadge
+                    title="Simpan & Validasi Identitas Toko"
+                    description="Menyimpan nama toko, nomor WA, koordinat Google Maps, dan langsung memperbarui kop header struk thermal serta halaman pesan QR pelanggan."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </form>
 
               {/* Kolom Kanan: Pratinjau Header Struk Thermal (Monochrome) + Peta Google Maps */}
@@ -12230,31 +12879,40 @@ export default function Kasir({ user }) {
                   Laci kasir terhubung via kabel RJ11 di port belakang printer thermal bertuliskan <strong>"DK" (Drawer Kick)</strong>. Saat transaksi tunai selesai, pulsa 12V/24V otomatis membuka laci.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={handleKickDrawerManual}
-                  disabled={drawerKicking}
-                  style={{
-                    padding: '13px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: drawerKicking
-                      ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
-                      : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.88rem',
-                    cursor: drawerKicking ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)'
-                  }}
-                >
-                  <Unlock size={17} />
-                  <span>{drawerKicking ? 'Mengirim Pulsa Listrik...' : 'TES BUKA LACI SEKARANG (KICK DRAWER)'}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={handleKickDrawerManual}
+                    disabled={drawerKicking}
+                    style={{
+                      flex: 1,
+                      padding: '13px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: drawerKicking
+                        ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                        : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      cursor: drawerKicking ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)'
+                    }}
+                  >
+                    <Unlock size={17} />
+                    <span>{drawerKicking ? 'Mengirim Pulsa Listrik...' : 'TES BUKA LACI SEKARANG (KICK DRAWER)'}</span>
+                  </button>
+                  <ActionTutorialBadge
+                    title="Uji Buka Laci Kasir (RJ11)"
+                    description="Mengirim pulsa listrik 12V/24V ESC/POS ke port DK/RJ11 printer thermal untuk memastikan laci uang terbuka dengan normal."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
@@ -12419,60 +13077,76 @@ export default function Kasir({ user }) {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 175px), 1fr))', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={handleConnectBluetooth}
-                    style={{
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      minWidth: 0,
-                      padding: '10px 12px',
-                      borderRadius: '10px',
-                      border: `1px solid ${borderColor}`,
-                      background: isLight ? '#f8fafc' : '#1e293b',
-                      color: textPrimary,
-                      fontWeight: 700,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <Bluetooth size={14} color="#3b82f6" />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {printerSettings.pairedBluetoothDeviceName ? `BT: ${printerSettings.pairedBluetoothDeviceName}` : 'Pair Printer Bluetooth'}
-                    </span>
-                  </button>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 195px), 1fr))', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                    <button
+                      type="button"
+                      onClick={handleConnectBluetooth}
+                      style={{
+                        flex: 1,
+                        boxSizing: 'border-box',
+                        minWidth: 0,
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Bluetooth size={14} color="#3b82f6" />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {printerSettings.pairedBluetoothDeviceName ? `BT: ${printerSettings.pairedBluetoothDeviceName}` : 'Pair Printer Bluetooth'}
+                      </span>
+                    </button>
+                    <ActionTutorialBadge
+                      title="Hubungkan Printer Bluetooth"
+                      description="Memindai dan menyandingkan printer struk thermal 58mm/80mm melalui Web Bluetooth tanpa kabel (Chrome Android/Desktop)."
+                      size="sm"
+                      isLight={isLight}
+                    />
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={handleConnectUsb}
-                    style={{
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      minWidth: 0,
-                      padding: '10px 12px',
-                      borderRadius: '10px',
-                      border: `1px solid ${borderColor}`,
-                      background: isLight ? '#f8fafc' : '#1e293b',
-                      color: textPrimary,
-                      fontWeight: 700,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <Usb size={14} color="#10b981" />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {printerSettings.pairedUsbPortName ? `USB: ${printerSettings.pairedUsbPortName}` : 'Pair Kabel USB OTG'}
-                    </span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                    <button
+                      type="button"
+                      onClick={handleConnectUsb}
+                      style={{
+                        flex: 1,
+                        boxSizing: 'border-box',
+                        minWidth: 0,
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Usb size={14} color="#10b981" />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {printerSettings.pairedUsbPortName ? `USB: ${printerSettings.pairedUsbPortName}` : 'Pair Kabel USB OTG'}
+                      </span>
+                    </button>
+                    <ActionTutorialBadge
+                      title="Hubungkan Printer Kabel USB"
+                      description="Menyambungkan printer thermal melalui kabel USB/OTG (Web Serial) untuk cetak ESC/POS berkecepatan tinggi."
+                      size="sm"
+                      isLight={isLight}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -12544,29 +13218,38 @@ export default function Kasir({ user }) {
                   <span>Auto-Cut Kertas Otomatis (Pemotong Kertas)</span>
                 </label>
 
-                <button
-                  type="button"
-                  onClick={() => handleTestPrint()}
-                  disabled={isPrinting}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.84rem',
-                    cursor: isPrinting ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
-                  }}
-                >
-                  <Printer size={15} />
-                  <span>{isPrinting ? 'Mencetak Struk...' : 'TES CETAK STRUK THERMAL'}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleTestPrint()}
+                    disabled={isPrinting}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: isPrinting ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                    }}
+                  >
+                    <Printer size={15} />
+                    <span>{isPrinting ? 'Mencetak Struk...' : 'TES CETAK STRUK THERMAL'}</span>
+                  </button>
+                  <ActionTutorialBadge
+                    title="Tes Cetak Struk Monochrome"
+                    description="Mencetak struk percobaan berisi kop nama toko, alamat, dan rincian sampel guna memastikan lebar kertas (58mm/80mm) serta pemotong kertas bekerja baik."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -15666,54 +16349,71 @@ export default function Kasir({ user }) {
                   <span style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
                     Toko Aktif ({(storeInfo.allOwnerStores || []).length || 1} Cabang)
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => { setShowMobileMenuHub(false); handleOpenCreateStoreModal(); }}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setShowMobileMenuHub(false); handleOpenCreateStoreModal(); }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 9px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={12} />
+                      <span>Buat Toko Baru</span>
+                    </button>
+                    <ActionTutorialBadge
+                      title="Buat Cabang Toko Baru"
+                      description="Menambahkan cabang kasir baru dari satu akun owner (bisa salin menu otomatis)."
+                      size="sm"
+                      isLight={isLight}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <select
+                    value={storeInfo.merchantId || ''}
+                    onChange={(e) => handleSwitchPosStore(e.target.value)}
+                    aria-label="Pilih Toko Aktif Mobile"
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '4px 9px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: '#2563eb',
-                      color: '#ffffff',
-                      fontSize: '0.7rem',
-                      fontWeight: 800,
-                      cursor: 'pointer'
+                      flex: 1,
+                      minWidth: 0,
+                      padding: '7px 10px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#ffffff' : '#0f172a',
+                      color: textPrimary,
+                      fontSize: '0.78rem',
+                      fontWeight: 700
                     }}
                   >
-                    <Plus size={12} />
-                    <span>Buat Toko Baru</span>
-                  </button>
-                </div>
-                <select
-                  value={storeInfo.merchantId || ''}
-                  onChange={(e) => handleSwitchPosStore(e.target.value)}
-                  aria-label="Pilih Toko Aktif Mobile"
-                  style={{
-                    width: '100%',
-                    padding: '7px 10px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#ffffff' : '#0f172a',
-                    color: textPrimary,
-                    fontSize: '0.78rem',
-                    fontWeight: 700
-                  }}
-                >
-                  {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0) ? (
-                    storeInfo.allOwnerStores.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.kuotaNota} nota)
+                    {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0) ? (
+                      storeInfo.allOwnerStores.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.kuotaNota} nota)
+                        </option>
+                      ))
+                    ) : (
+                      <option value={storeInfo.merchantId || ''}>
+                        {storeInfo.storeName || 'Toko Utama'}
                       </option>
-                    ))
-                  ) : (
-                    <option value={storeInfo.merchantId || ''}>
-                      {storeInfo.storeName || 'Toko Utama'}
-                    </option>
-                  )}
-                </select>
+                    )}
+                  </select>
+                  <ActionTutorialBadge
+                    title="Ganti Cabang Toko Aktif"
+                    description="Memindahkan mode kasir mobile ke cabang yang dipilih."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </div>
 
               {/* PRIMARY ACTION CARD: + TAMBAH MENU BARU UNTUK PELANGGAN */}
@@ -16221,6 +16921,78 @@ export default function Kasir({ user }) {
                   />
                 </div>
               </div>
+
+              <div style={{
+                padding: '10px 12px',
+                borderRadius: '12px',
+                background: isLight ? '#f8fafc' : 'rgba(15,23,42,0.7)',
+                border: `1px solid ${borderColor}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <label style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: textPrimary,
+                    cursor: 'pointer'
+                  }}>
+                    <input
+                      type="checkbox"
+                      data-testid="clone-menu-checkbox"
+                      checked={createStoreForm.cloneMenu !== false}
+                      onChange={(e) => setCreateStoreForm(p => ({ ...p, cloneMenu: e.target.checked }))}
+                      style={{ width: '16px', height: '16px', accentColor: '#2563eb' }}
+                    />
+                    <span>Salin Katalog Menu ke Cabang Baru</span>
+                  </label>
+                  <ActionTutorialBadge
+                    title="Opsi Salin Menu Cabang Baru"
+                    description="Jika dicentang, seluruh menu beserta harga dan kategori dari toko sumber langsung disalin ke cabang baru. Jika dimatikan, cabang baru dimulai dengan katalog menu kosong."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
+
+                {createStoreForm.cloneMenu !== false && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.71rem', fontWeight: 700, color: textSecondary, marginBottom: '4px' }}>
+                      Sumber Katalog Menu:
+                    </label>
+                    <select
+                      data-testid="clone-source-select"
+                      value={createStoreForm.sourceStoreId || storeInfo.merchantId || ''}
+                      onChange={(e) => setCreateStoreForm(p => ({ ...p, sourceStoreId: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '7px 10px',
+                        borderRadius: '9px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#ffffff' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.78rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0) ? (
+                        storeInfo.allOwnerStores.map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value={storeInfo.merchantId || ''}>
+                          {storeInfo.storeName || 'Toko Utama'}
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{
@@ -16228,6 +17000,7 @@ export default function Kasir({ user }) {
               borderTop: `1px solid ${borderColor}`,
               display: 'flex',
               justifyContent: 'flex-end',
+              alignItems: 'center',
               gap: '8px'
             }}>
               <button
@@ -16246,22 +17019,30 @@ export default function Kasir({ user }) {
               >
                 Batal
               </button>
-              <button
-                type="submit"
-                disabled={creatingStore}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  cursor: creatingStore ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {creatingStore ? 'Menyimpan...' : 'Simpan & Buka Toko'}
-              </button>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="submit"
+                  disabled={creatingStore}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: creatingStore ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {creatingStore ? 'Menyimpan...' : 'Simpan & Buka Toko'}
+                </button>
+                <ActionTutorialBadge
+                  title="Simpan & Buka Toko Baru"
+                  description="Membuat cabang kasir baru di server, menyalin menu jika dipilih, dan langsung mengaktifkan operasional ke cabang baru."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
             </div>
           </form>
         </div>

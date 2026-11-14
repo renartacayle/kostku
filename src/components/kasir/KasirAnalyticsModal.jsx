@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
+import ActionTutorialBadge from './ActionTutorialBadge';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -30,7 +32,14 @@ import {
   Tag,
   Wallet,
   ArrowLeft,
-  Filter
+  Filter,
+  Download,
+  FileSpreadsheet,
+  Clock,
+  CreditCard,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus
 } from 'lucide-react';
 
 const CHART_COLORS = [
@@ -96,6 +105,7 @@ export default function KasirAnalyticsModal({
 }) {
   const [chartType, setChartType] = useState('area'); // 'area' | 'bar'
   const [metric, setMetric] = useState('revenue'); // 'revenue' | 'qty' | 'orders'
+  const [exportFeedback, setExportFeedback] = useState(null);
 
   if (!isOpen) return null;
 
@@ -142,6 +152,138 @@ export default function KasirAnalyticsModal({
   const byStore = breakdowns.byStore || analyticsData?.perStore || [];
   const byEmployee = breakdowns.byEmployee || analyticsData?.perCashier || [];
   const combineMatrix = breakdowns.combineMatrix || [];
+  const paymentSplit = analyticsData?.paymentSplit || [];
+  const peakHours = analyticsData?.peakHours || [];
+  const peakHourSummary = analyticsData?.peakHourSummary || {};
+  const comparison = analyticsData?.comparison || { available: false };
+
+  const renderDeltaBadge = (deltaPct) => {
+    if (!comparison?.available || deltaPct === undefined || deltaPct === null) return null;
+    const val = Number(deltaPct);
+    const isPos = val > 0;
+    const isNeg = val < 0;
+    const bg = isPos
+      ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)')
+      : isNeg
+        ? (isLight ? '#fff1f2' : 'rgba(244, 63, 94, 0.16)')
+        : (isLight ? '#f1f5f9' : 'rgba(148, 163, 184, 0.14)');
+    const fg = isPos
+      ? (isLight ? '#047857' : '#34d399')
+      : isNeg
+        ? (isLight ? '#be123c' : '#fb7185')
+        : textSecondary;
+    return (
+      <span
+        data-testid="kpi-delta-badge"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          marginTop: '4px',
+          padding: '2px 7px',
+          borderRadius: '999px',
+          background: bg,
+          color: fg,
+          fontSize: '0.67rem',
+          fontWeight: 800
+        }}
+      >
+        {isPos ? <ArrowUpRight size={11} /> : isNeg ? <ArrowDownRight size={11} /> : <Minus size={11} />}
+        <span>{isPos ? `+${val}%` : `${val}%`} {comparison.label}</span>
+      </span>
+    );
+  };
+
+  const buildExportSections = () => {
+    const presetLabel = DATE_PRESETS.find(d => d.id === activeFilters.range)?.label || activeFilters.range || 'All Time';
+    const modeLabel = FILTER_MODES.find(m => m.id === activeFilters.filterMode)?.label || activeFilters.filterMode || 'All';
+    const summaryRows = [
+      { Metrik: 'Periode', Nilai: presetLabel },
+      { Metrik: 'Rentang Tanggal', Nilai: analyticsData?.appliedFilters?.startDate ? `${analyticsData.appliedFilters.startDate} s/d ${analyticsData.appliedFilters.endDate}` : 'Semua Waktu' },
+      { Metrik: 'Mode Filter', Nilai: modeLabel },
+      { Metrik: 'Total Omset (Rp)', Nilai: Number(summary.totalGrossOmset || 0) },
+      { Metrik: 'Total Transaksi (Nota)', Nilai: Number(summary.totalOrdersAll || 0) },
+      { Metrik: 'Item Terjual (Porsi)', Nilai: Number(summary.totalItemsSold || 0) },
+      { Metrik: 'Rata-Rata Order (Rp)', Nilai: Number(summary.averageOrderValue || 0) },
+      ...(comparison?.available ? [
+        { Metrik: `Perbandingan Omset (${comparison.label})`, Nilai: `${comparison.revenueDeltaPct >= 0 ? '+' : ''}${comparison.revenueDeltaPct}%` },
+        { Metrik: `Perbandingan Transaksi (${comparison.label})`, Nilai: `${comparison.ordersDeltaPct >= 0 ? '+' : ''}${comparison.ordersDeltaPct}%` }
+      ] : [])
+    ];
+    return {
+      Ringkasan: summaryRows,
+      Timeline: timelineSeries.map(t => ({ Waktu: t.label, Omset_Rp: Number(t.revenue || 0), Transaksi: Number(t.orders || 0), Qty: Number(t.qty || 0) })),
+      Metode_Pembayaran: paymentSplit.map(p => ({ Metode: p.label, Transaksi: Number(p.ordersCount || 0), Omset_Rp: Number(p.revenue || 0), Persentase_Persen: Number(p.pct || 0) })),
+      Jam_Ramai: peakHours.map(h => ({ Jam_WIB: h.label, Transaksi: Number(h.orders || 0), Omset_Rp: Number(h.revenue || 0), Qty: Number(h.qty || 0) })),
+      Per_Item: byItem.map(it => ({ Nama_Menu: it.name, Kategori: it.category || '-', Qty: Number(it.qty || 0), Omset_Rp: Number(it.revenue || 0), Order: Number(it.ordersCount || 0) })),
+      Per_Kategori: byCategory.map(c => ({ Kategori: c.name, Qty: Number(c.qty || 0), Omset_Rp: Number(c.revenue || 0), Order: Number(c.ordersCount || 0) })),
+      Per_Toko: byStore.map(s => ({ Toko_Cabang: s.name, Transaksi: Number(s.ordersCount || 0), Omset_Rp: Number(s.revenue || 0), Tunai_Rp: Number(s.cashRevenue || 0), QRIS_Rp: Number(s.qrisRevenue || 0) })),
+      Per_Karyawan: byEmployee.map(e => ({ Karyawan: e.name, Role: e.role || '-', Transaksi: Number(e.ordersCount || 0), Omset_Rp: Number(e.revenue || 0) }))
+    };
+  };
+
+  const getExportFilename = (ext) => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    return `statistik-pos-${activeFilters.range || 'all'}-${activeFilters.filterMode || 'all'}-${stamp}.${ext}`;
+  };
+
+  const handleExportCsv = () => {
+    if (!analyticsData) {
+      setExportFeedback({ type: 'error', text: 'Data statistik belum tersedia untuk diexport.' });
+      return;
+    }
+    try {
+      const sections = buildExportSections();
+      const lines = [];
+      const escapeCsv = (v) => {
+        const s = String(v ?? '');
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      Object.entries(sections).forEach(([title, rows]) => {
+        if (!rows || rows.length === 0) return;
+        lines.push(`[${title}]`);
+        const headers = Object.keys(rows[0]);
+        lines.push(headers.map(escapeCsv).join(','));
+        rows.forEach(r => lines.push(headers.map(h => escapeCsv(r[h])).join(',')));
+        lines.push('');
+      });
+      const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = getExportFilename('csv');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setExportFeedback({ type: 'success', text: `Laporan CSV (${getExportFilename('csv')}) berhasil diunduh!` });
+      setTimeout(() => setExportFeedback(null), 4500);
+    } catch (err) {
+      setExportFeedback({ type: 'error', text: 'Gagal export CSV: ' + (err.message || 'Kesalahan') });
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (!analyticsData) {
+      setExportFeedback({ type: 'error', text: 'Data statistik belum tersedia untuk diexport.' });
+      return;
+    }
+    try {
+      const sections = buildExportSections();
+      const wb = XLSX.utils.book_new();
+      Object.entries(sections).forEach(([sheetName, rows]) => {
+        const safeRows = rows && rows.length > 0 ? rows : [{ Info: 'Tidak ada data pada filter ini' }];
+        const ws = XLSX.utils.json_to_sheet(safeRows);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+      });
+      const filename = getExportFilename('xlsx');
+      XLSX.writeFile(wb, filename);
+      setExportFeedback({ type: 'success', text: `Laporan Excel (${filename}) berhasil diunduh!` });
+      setTimeout(() => setExportFeedback(null), 4500);
+    } catch (err) {
+      setExportFeedback({ type: 'error', text: 'Gagal export Excel: ' + (err.message || 'Kesalahan') });
+    }
+  };
 
   const updateFilters = (patch) => {
     const next = { ...activeFilters, ...patch };
@@ -505,27 +647,96 @@ export default function KasirAnalyticsModal({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => (onRefresh ? onRefresh(activeFilters) : null)}
-          disabled={loadingAnalytics}
-          style={{
-            background: bgCard,
-            border: `1px solid ${borderColor}`,
-            borderRadius: '10px',
-            padding: '7px 12px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: textPrimary,
-            fontSize: '0.76rem',
-            fontWeight: 700
-          }}
-        >
-          <RefreshCw size={13} className={loadingAnalytics ? 'animate-spin' : ''} />
-          <span>{loadingAnalytics ? 'Memuat...' : 'Refresh Grafik'}</span>
-        </button>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={loadingAnalytics || !analyticsData}
+            style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '10px',
+              padding: '7px 11px',
+              cursor: loadingAnalytics || !analyticsData ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: textPrimary,
+              fontSize: '0.75rem',
+              fontWeight: 700
+            }}
+            title="Download Laporan Statistik Terfilter (.csv)"
+          >
+            <Download size={13} color="#2563eb" />
+            <span>Export CSV</span>
+          </button>
+          <ActionTutorialBadge
+            isLight={isLight}
+            size="sm"
+            title="Export CSV"
+            description="Mengunduh data statistik sesuai filter tanggal & dimensi yang sedang aktif ke format CSV (UTF-8)."
+            steps={['Atur rentang tanggal dan filter grafik yang diinginkan.', 'Klik Export CSV lalu buka file di Excel atau Google Sheets.']}
+          />
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={loadingAnalytics || !analyticsData}
+            style={{
+              background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              borderRadius: '10px',
+              padding: '7px 11px',
+              cursor: loadingAnalytics || !analyticsData ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: isLight ? '#047857' : '#34d399',
+              fontSize: '0.75rem',
+              fontWeight: 800
+            }}
+            title="Download Workbook Statistik Lengkap (.xlsx)"
+          >
+            <FileSpreadsheet size={13} />
+            <span>Export Excel</span>
+          </button>
+          <ActionTutorialBadge
+            isLight={isLight}
+            size="sm"
+            title="Export Excel (.xlsx)"
+            description="Mengunduh workbook Excel multi-sheet berisi Ringkasan, Timeline, Metode Pembayaran, Jam Ramai, Item, Kategori, Toko, dan Karyawan."
+          />
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            type="button"
+            onClick={() => (onRefresh ? onRefresh(activeFilters) : null)}
+            disabled={loadingAnalytics}
+            style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '10px',
+              padding: '7px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: textPrimary,
+              fontSize: '0.76rem',
+              fontWeight: 700
+            }}
+          >
+            <RefreshCw size={13} className={loadingAnalytics ? 'animate-spin' : ''} />
+            <span>{loadingAnalytics ? 'Memuat...' : 'Refresh Grafik'}</span>
+          </button>
+          <ActionTutorialBadge
+            isLight={isLight}
+            size="sm"
+            title="Refresh Grafik"
+            description="Memuat ulang angka omset, transaksi, dan grafik terbaru langsung dari database server."
+          />
+        </div>
         {isFullPage ? (
           onClose && (
             <button
@@ -588,6 +799,37 @@ export default function KasirAnalyticsModal({
       gap: '14px',
       minWidth: 0
     }}>
+      {exportFeedback && (
+        <div
+          role="status"
+          style={{
+            padding: '9px 14px',
+            borderRadius: '12px',
+            background: exportFeedback.type === 'error'
+              ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)')
+              : (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)'),
+            border: `1px solid ${exportFeedback.type === 'error' ? '#ef4444' : '#10b981'}`,
+            color: exportFeedback.type === 'error'
+              ? (isLight ? '#b91c1c' : '#fca5a5')
+              : (isLight ? '#047857' : '#34d399'),
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px'
+          }}
+        >
+          <span>{exportFeedback.text}</span>
+          <button
+            type="button"
+            onClick={() => setExportFeedback(null)}
+            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex' }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {/* ── FILTER & DATE CONTROL PANEL ── */}
       <div style={{
         background: bgCard,
@@ -605,6 +847,12 @@ export default function KasirAnalyticsModal({
             <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, display: 'inline-flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
               <Calendar size={14} color="#2563eb" />
               <span>Periode Tanggal</span>
+              <ActionTutorialBadge
+                isLight={isLight}
+                size="sm"
+                title="Periode & Rentang Tanggal"
+                description="Pilih preset Hari Ini, Minggu Ini, Bulan Ini, Tahun Ini, All Time, atau Custom Tanggal untuk menyaring seluruh grafik sekaligus melihat persentase naik/turun terhadap periode sebelumnya."
+              />
             </span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -747,6 +995,12 @@ export default function KasirAnalyticsModal({
             <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, display: 'inline-flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
               <Filter size={14} color="#4f46e5" />
               <span>Filter Dimensi Grafik</span>
+              <ActionTutorialBadge
+                isLight={isLight}
+                size="sm"
+                title="Filter Dimensi & Combine"
+                description="Gunakan All untuk ringkasan total, Per Item/Kategori/Toko/Karyawan untuk fokus satu dimensi, atau Combine untuk menggabungkan beberapa filter secara bersamaan."
+              />
             </span>
 
             {activeFilterBadges.length > 0 && (
@@ -916,6 +1170,7 @@ export default function KasirAnalyticsModal({
             <div style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
               {formatIDR(summary.totalGrossOmset)}
             </div>
+            {renderDeltaBadge(comparison.revenueDeltaPct)}
           </div>
         </div>
 
@@ -947,6 +1202,7 @@ export default function KasirAnalyticsModal({
             <div style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
               {Number(summary.totalOrdersAll || 0).toLocaleString('id-ID')} nota
             </div>
+            {renderDeltaBadge(comparison.ordersDeltaPct)}
           </div>
         </div>
 
@@ -978,6 +1234,7 @@ export default function KasirAnalyticsModal({
             <div style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
               {Number(summary.totalItemsSold || 0).toLocaleString('id-ID')} porsi
             </div>
+            {renderDeltaBadge(comparison.itemsDeltaPct)}
           </div>
         </div>
 
@@ -1009,6 +1266,7 @@ export default function KasirAnalyticsModal({
             <div style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
               {formatIDR(summary.averageOrderValue)}
             </div>
+            {renderDeltaBadge(comparison.aovDeltaPct)}
           </div>
         </div>
       </div>
@@ -1225,6 +1483,194 @@ export default function KasirAnalyticsModal({
           </div>
         </div>
       )}
+
+      {/* ── PAYMENT SPLIT (TUNAI VS QRIS) & PEAK HOURS (JAM RAMAI) ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+        gap: '14px'
+      }}>
+        {/* Payment Method Donut Chart */}
+        <div
+          data-testid="payment-split-card"
+          style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '18px', padding: '16px', minWidth: 0 }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CreditCard size={15} color="#10b981" />
+                <span>Grafik Metode Pembayaran (Tunai vs QRIS)</span>
+              </h4>
+              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
+                Komposisi pendapatan &amp; jumlah nota berdasarkan kanal pembayaran
+              </p>
+            </div>
+          </div>
+
+          {paymentSplit.every(p => p.revenue === 0 && p.ordersCount === 0) ? (
+            <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.8rem' }}>
+              Belum ada transaksi pada rentang filter ini
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ width: '100%', height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={paymentSplit.filter(p => (metric === 'orders' ? p.ordersCount : p.revenue) > 0)}
+                      dataKey={metric === 'orders' ? 'ordersCount' : 'revenue'}
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={52}
+                      outerRadius={82}
+                      paddingAngle={4}
+                    >
+                      {paymentSplit
+                        .filter(p => (metric === 'orders' ? p.ordersCount : p.revenue) > 0)
+                        .map((entry) => (
+                          <Cell key={entry.key} fill={entry.color} />
+                        ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const row = payload[0]?.payload;
+                        return (
+                          <div style={{
+                            background: isLight ? '#ffffff' : '#0f172a',
+                            border: `1px solid ${borderColor}`,
+                            borderRadius: '10px',
+                            padding: '8px 12px',
+                            boxShadow: '0 8px 20px rgba(0,0,0,0.18)',
+                            fontSize: '0.75rem'
+                          }}>
+                            <div style={{ fontWeight: 800, color: textPrimary, marginBottom: '2px' }}>{row.label} ({row.pct}%)</div>
+                            <div style={{ color: row.color, fontWeight: 700 }}>{formatIDR(row.revenue)}</div>
+                            <div style={{ color: textSecondary }}>{row.ordersCount} transaksi</div>
+                          </div>
+                        );
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                {paymentSplit.map((pm) => (
+                  <div
+                    key={pm.key}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      background: bgSubtle,
+                      border: `1px solid ${borderColor}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: pm.color, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '999px', background: pm.color }} />
+                        {pm.label}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: textPrimary }}>{pm.pct}%</span>
+                    </div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                      {formatIDR(pm.revenue)}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: textSecondary }}>
+                      {Number(pm.ordersCount || 0).toLocaleString('id-ID')} transaksi
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Peak Hours Bar Chart */}
+        <div
+          data-testid="peak-hours-card"
+          style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '18px', padding: '16px', minWidth: 0 }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={15} color="#f59e0b" />
+                <span>Grafik Jam Ramai (Peak Hours WIB)</span>
+              </h4>
+              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
+                Distribusi kepadatan order per jam operasional toko
+              </p>
+            </div>
+            {peakHourSummary?.busiestOrders > 0 && (
+              <span style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                color: isLight ? '#b45309' : '#fbbf24',
+                fontSize: '0.7rem',
+                fontWeight: 800
+              }}>
+                Jam Tersibuk: {peakHourSummary.busiestLabel} ({peakHourSummary.busiestOrders} trx)
+              </span>
+            )}
+          </div>
+
+          {peakHours.length === 0 || peakHours.every(h => h.orders === 0 && h.revenue === 0) ? (
+            <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.8rem' }}>
+              Belum ada aktivitas jam transaksi pada rentang filter ini
+            </div>
+          ) : (
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={peakHours} margin={{ top: 10, right: 10, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
+                  <XAxis dataKey="shortLabel" tick={{ fill: textSecondary, fontSize: 11 }} tickLine={false} axisLine={{ stroke: borderColor }} />
+                  <YAxis
+                    tickFormatter={(v) => formatAxisCompact(v, metric === 'qty' ? 'qty' : (metric === 'revenue' ? 'revenue' : 'orders'))}
+                    tick={{ fill: textSecondary, fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={46}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const row = payload[0]?.payload;
+                      return (
+                        <div style={{
+                          background: isLight ? '#ffffff' : '#0f172a',
+                          border: `1px solid ${borderColor}`,
+                          borderRadius: '10px',
+                          padding: '8px 12px',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.18)',
+                          fontSize: '0.75rem'
+                        }}>
+                          <div style={{ fontWeight: 800, color: textPrimary, marginBottom: '2px' }}>
+                            Pukul {row.label} WIB {row.isPeak ? '(Puncak)' : ''}
+                          </div>
+                          <div style={{ color: '#2563eb', fontWeight: 700 }}>{row.orders} transaksi</div>
+                          <div style={{ color: '#10b981', fontWeight: 700 }}>{formatIDR(row.revenue)}</div>
+                          <div style={{ color: textSecondary }}>{row.qty} porsi terjual</div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey={metric === 'qty' ? 'qty' : (metric === 'revenue' ? 'revenue' : 'orders')} radius={[6, 6, 0, 0]} maxBarSize={26}>
+                    {peakHours.map((entry) => (
+                      <Cell key={entry.key} fill={entry.isPeak ? '#f59e0b' : '#2563eb'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 

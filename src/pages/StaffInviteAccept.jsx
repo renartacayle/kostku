@@ -451,6 +451,25 @@ export default function StaffInviteAccept({ activeUser, onLogin }) {
                   ))}
                 </div>
 
+                {Array.isArray(invite.assignedStoreNames) && invite.assignedStoreNames.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', color: textSecondary, fontWeight: 700 }}>Cabang Toko POS:</span>
+                    {invite.assignedStoreNames.map((stName, idx) => (
+                      <span key={idx} style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
+                        color: isLight ? '#047857' : '#6ee7b7',
+                        border: '1px solid rgba(16, 185, 129, 0.28)'
+                      }}>
+                        {stName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',

@@ -2504,11 +2504,29 @@ app.get('/api/owner/staff', (req, res) => {
     const safe = { ...u };
     delete safe.password;
     safe.kostName = assignedKost ? assignedKost.kostName : 'KostKu';
+    const rawStoreIds = Array.isArray(u.assignedStoreIds) && u.assignedStoreIds.length > 0 ? u.assignedStoreIds : ['all'];
+    safe.assignedStoreIds = rawStoreIds;
+    safe.assignedStoreNames = rawStoreIds.includes('all')
+      ? ['Semua Cabang']
+      : rawStoreIds.map(sid => {
+          const m = (db.merchants || []).find(st => String(st.id) === String(sid));
+          if (m) return m.name;
+          const k = (db.kosts || []).find(ks => String(ks.uid) === String(sid));
+          return k ? k.kostName : sid;
+        });
     return safe;
   });
 
   res.json(enrichedStaff);
 });
+
+// Helper: Normalize assigned POS store IDs (['all'] = all branches, or array of store IDs)
+const normalizeAssignedStoreIds = (input) => {
+  if (!Array.isArray(input) || input.length === 0) return ['all'];
+  const cleaned = Array.from(new Set(input.map(id => String(id).trim()).filter(Boolean)));
+  if (cleaned.length === 0 || cleaned.includes('all')) return ['all'];
+  return cleaned;
+};
 
 // Helper: Resolve assigned kost branch by UID or ownerId
 const resolveAssignedKost = (db, kostUid, ownerId) => {
@@ -2559,6 +2577,7 @@ const syncEmployeeToKostSettings = (assignedKost, staffUser) => {
     salary: staffUser.salary,
     phone: staffUser.phone,
     email: staffUser.email,
+    assignedStoreIds: Array.isArray(staffUser.assignedStoreIds) && staffUser.assignedStoreIds.length > 0 ? staffUser.assignedStoreIds : ['all'],
     hasLogin: true
   };
   if (empIndex >= 0) {
@@ -2577,6 +2596,8 @@ const upsertStaffAccount = (db, assignedKost, opts) => {
   const cleanPhone = opts.phone ? normalizeOtpTarget(opts.phone, 'whatsapp') : '';
   const effectiveOwnerId = opts.ownerId || assignedKost.ownerId;
   const { roles: assignedRoles, titleDisplay } = normalizeAssignedRoles(opts.roles, opts.jobTitle);
+  const hasExplicitStores = opts.assignedStoreIds !== undefined;
+  const resolvedStoreIds = hasExplicitStores ? normalizeAssignedStoreIds(opts.assignedStoreIds) : null;
 
   let staffUser = findUserByEmailOrPhone(db, cleanEmail, cleanPhone);
   if (staffUser) {
@@ -2590,6 +2611,7 @@ const upsertStaffAccount = (db, assignedKost, opts) => {
     staffUser.salary = Number(opts.salary) || staffUser.salary || 0;
     staffUser.kostUid = assignedKost.uid;
     staffUser.ownerId = effectiveOwnerId;
+    staffUser.assignedStoreIds = resolvedStoreIds || (Array.isArray(staffUser.assignedStoreIds) && staffUser.assignedStoreIds.length > 0 ? staffUser.assignedStoreIds : ['all']);
     if (cleanEmail && !staffUser.email) staffUser.email = cleanEmail;
     if (cleanPhone) staffUser.phone = cleanPhone;
     if (opts.password && String(opts.password).trim()) staffUser.password = String(opts.password).trim();
@@ -2610,6 +2632,7 @@ const upsertStaffAccount = (db, assignedKost, opts) => {
       salary: Number(opts.salary) || 0,
       kostUid: assignedKost.uid,
       ownerId: effectiveOwnerId,
+      assignedStoreIds: resolvedStoreIds || ['all'],
       ...(opts.picture ? { picture: opts.picture } : {}),
       ...(opts.googleId ? { googleId: opts.googleId } : {}),
       ...(opts.authProvider ? { authProvider: opts.authProvider } : {}),
@@ -2625,7 +2648,7 @@ const upsertStaffAccount = (db, assignedKost, opts) => {
 
 // Endpoint: Create or link staff account directly (Gmail atau No. WhatsApp)
 app.post('/api/owner/staff', (req, res) => {
-  const { ownerId, kostUid, name, email, password, phone, jobTitle, salary, roles } = req.body;
+  const { ownerId, kostUid, name, email, password, phone, jobTitle, salary, roles, assignedStoreIds } = req.body;
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPhone = phone ? normalizeOtpTarget(phone, 'whatsapp') : '';
 
@@ -2650,7 +2673,8 @@ app.post('/api/owner/staff', (req, res) => {
     password,
     jobTitle,
     salary,
-    roles
+    roles,
+    assignedStoreIds
   });
   if (result.error) {
     return res.status(result.status || 400).json({ error: result.error });
@@ -2674,7 +2698,7 @@ app.post('/api/owner/staff', (req, res) => {
 // Endpoint: Update staff details or reset password
 app.put('/api/owner/staff/:id', (req, res) => {
   const { id } = req.params;
-  const { name, phone, jobTitle, salary, kostUid, newPassword, roles } = req.body;
+  const { name, phone, jobTitle, salary, kostUid, newPassword, roles, assignedStoreIds } = req.body;
   const db = getDB();
 
   const staff = db.users.find(u => String(u.id) === String(id) && u.role === 'staff');
@@ -2689,6 +2713,9 @@ app.put('/api/owner/staff/:id', (req, res) => {
     staff.jobTitle = jobTitle;
     staff.roles = jobTitle.split(',').map(r => r.trim()).filter(Boolean);
   }
+  if (assignedStoreIds !== undefined) {
+    staff.assignedStoreIds = normalizeAssignedStoreIds(assignedStoreIds);
+  }
   if (salary !== undefined) staff.salary = Number(salary);
   if (kostUid) staff.kostUid = kostUid;
   if (newPassword && newPassword.trim()) staff.password = newPassword.trim();
@@ -2702,6 +2729,9 @@ app.put('/api/owner/staff/:id', (req, res) => {
       emp.role = staff.jobTitle;
       emp.salary = staff.salary;
       emp.phone = staff.phone;
+      if (assignedStoreIds !== undefined) {
+        emp.assignedStoreIds = staff.assignedStoreIds;
+      }
     }
   }
 
@@ -2757,29 +2787,42 @@ app.delete('/api/owner/staff/:id', (req, res) => {
 
 // ── STAFF INVITATION LINKS (WA & GMAIL) — CLICK LINK TO JOIN AS STAFF ───────
 
-const buildInvitePublicPayload = (invite, kost) => ({
-  id: invite.id,
-  token: invite.token,
-  channel: invite.channel,
-  target: invite.target,
-  phone: invite.phone || '',
-  email: invite.email || '',
-  suggestedName: invite.suggestedName || '',
-  ownerName: invite.ownerName || 'Pemilik Kost',
-  kostUid: invite.kostUid,
-  kostName: kost?.kostName || invite.kostName || 'KostKu',
-  kostAddress: kost?.address || '',
-  roles: Array.isArray(invite.roles) ? invite.roles : ['Penjaga Kost'],
-  jobTitle: invite.jobTitle || 'Penjaga Kost',
-  salary: Number(invite.salary) || 0,
-  status: invite.status,
-  inviteUrl: invite.inviteUrl,
-  waDirectUrl: invite.waDirectUrl || null,
-  createdAt: invite.createdAt,
-  expiresAt: invite.expiresAt,
-  acceptedAt: invite.acceptedAt || null,
-  acceptedName: invite.acceptedName || null
-});
+const buildInvitePublicPayload = (invite, kost, db = null) => {
+  const storeIds = Array.isArray(invite.assignedStoreIds) && invite.assignedStoreIds.length > 0 ? invite.assignedStoreIds : ['all'];
+  const storeNames = Array.isArray(invite.assignedStoreNames) && invite.assignedStoreNames.length > 0
+    ? invite.assignedStoreNames
+    : (storeIds.includes('all')
+        ? ['Semua Cabang']
+        : storeIds.map(sid => {
+            const m = (db?.merchants || []).find(st => String(st.id) === String(sid));
+            return m ? m.name : sid;
+          }));
+  return {
+    id: invite.id,
+    token: invite.token,
+    channel: invite.channel,
+    target: invite.target,
+    phone: invite.phone || '',
+    email: invite.email || '',
+    suggestedName: invite.suggestedName || '',
+    ownerName: invite.ownerName || 'Pemilik Kost',
+    kostUid: invite.kostUid,
+    kostName: kost?.kostName || invite.kostName || 'KostKu',
+    kostAddress: kost?.address || '',
+    roles: Array.isArray(invite.roles) ? invite.roles : ['Penjaga Kost'],
+    jobTitle: invite.jobTitle || 'Penjaga Kost',
+    assignedStoreIds: storeIds,
+    assignedStoreNames: storeNames,
+    salary: Number(invite.salary) || 0,
+    status: invite.status,
+    inviteUrl: invite.inviteUrl,
+    waDirectUrl: invite.waDirectUrl || null,
+    createdAt: invite.createdAt,
+    expiresAt: invite.expiresAt,
+    acceptedAt: invite.acceptedAt || null,
+    acceptedName: invite.acceptedName || null
+  };
+};
 
 const refreshExpiredInvites = (invites) => {
   const now = Date.now();
@@ -2815,13 +2858,13 @@ app.get('/api/owner/staff-invites', (req, res) => {
   }
 
   list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const payload = list.map(inv => buildInvitePublicPayload(inv, db.kosts.find(k => k.uid === inv.kostUid)));
+  const payload = list.map(inv => buildInvitePublicPayload(inv, db.kosts.find(k => k.uid === inv.kostUid), db));
   res.json(payload);
 });
 
 // Owner: Create & dispatch staff invite link via WhatsApp OR Gmail
 app.post('/api/owner/staff-invites', async (req, res) => {
-  const { ownerId, kostUid, channel, target, phone, email, name, salary, roles, jobTitle, origin } = req.body;
+  const { ownerId, kostUid, channel, target, phone, email, name, salary, roles, jobTitle, assignedStoreIds, origin } = req.body;
   const selectedChannel = channel === 'email' ? 'email' : 'whatsapp';
   const rawTarget = selectedChannel === 'email' ? (target || email || '') : (target || phone || '');
 
@@ -2856,6 +2899,13 @@ app.post('/api/owner/staff-invites', async (req, res) => {
   }
 
   const { roles: assignedRoles, titleDisplay } = normalizeAssignedRoles(roles, jobTitle);
+  const normalizedStoreIds = normalizeAssignedStoreIds(assignedStoreIds);
+  const resolvedStoreNames = normalizedStoreIds.includes('all')
+    ? ['Semua Cabang']
+    : normalizedStoreIds.map(sid => {
+        const m = (db.merchants || []).find(st => String(st.id) === String(sid));
+        return m ? m.name : sid;
+      });
   const ownerUser = db.users.find(u => String(u.id) === String(ownerId || assignedKost.ownerId));
   const token = 'INV-' + crypto.randomBytes(8).toString('hex');
   const baseOrigin = (origin && /^https?:\/\//i.test(String(origin).trim()))
@@ -2884,6 +2934,8 @@ app.post('/api/owner/staff-invites', async (req, res) => {
     kostName: assignedKost.kostName,
     roles: assignedRoles,
     jobTitle: titleDisplay,
+    assignedStoreIds: normalizedStoreIds,
+    assignedStoreNames: resolvedStoreNames,
     salary: Number(salary) || 0,
     status: 'pending',
     inviteUrl,
@@ -2909,7 +2961,7 @@ app.post('/api/owner/staff-invites', async (req, res) => {
     message: selectedChannel === 'whatsapp'
       ? `Link undangan WhatsApp siap dikirim ke ${cleanPhone}. Karyawan otomatis bergabung setelah klik & konfirmasi link.`
       : `Link undangan Gmail siap dikirim ke ${cleanEmail}. Karyawan otomatis bergabung setelah klik & konfirmasi link.`,
-    invite: buildInvitePublicPayload(inviteObj, assignedKost),
+    invite: buildInvitePublicPayload(inviteObj, assignedKost, db),
     inviteUrl,
     waDirectUrl: inviteObj.waDirectUrl,
     emailPreviewUrl: dispatchResult?.previewUrl || null
@@ -2978,7 +3030,7 @@ app.get('/api/staff-invites/:token', (req, res) => {
   }
 
   const kost = db.kosts.find(k => k.uid === inv.kostUid);
-  res.json({ invite: buildInvitePublicPayload(inv, kost) });
+  res.json({ invite: buildInvitePublicPayload(inv, kost, db) });
 });
 
 // Public: Accept invitation via link -> officially add employee to db.users & kost settings!
@@ -3034,6 +3086,7 @@ app.post('/api/staff-invites/:token/accept', (req, res) => {
     password: password && String(password).trim() ? String(password).trim() : 'kostku123',
     roles: inv.roles,
     jobTitle: inv.jobTitle,
+    assignedStoreIds: inv.assignedStoreIds,
     salary: inv.salary,
     picture,
     googleId,

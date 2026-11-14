@@ -813,7 +813,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       ownerUserId,
       ownerId,
       kostUid,
-      switchAfterCreate = true
+      switchAfterCreate = true,
+      cloneMenu = false,
+      sourceStoreId = null
     } = req.body || {};
 
     const cleanName = String(storeName || name || '').trim();
@@ -841,6 +843,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const currentStoreId = db.settings.posStore?.merchantId || db.settings.posStore?.uid;
     const currentMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(currentStoreId)) || db.merchants[0];
     const requestedOwner = ownerUserId || ownerId || req.user?.id || null;
+    const ownerStoresBefore = getOwnerStoresList(db, currentMerchant, requestedOwner);
+    const primaryStoreIdForClone = ownerStoresBefore[0]?.id || currentMerchant?.id || null;
     const canonicalOwnerId = currentMerchant?.ownerUserId || requestedOwner || 'USR-OWNER-01';
     const resolvedKostUid = kostUid || currentMerchant?.kostUid || 'KOST-JAKSEL-01';
 
@@ -896,6 +900,31 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       updated_at: nowIso
     };
 
+    let clonedProductsCount = 0;
+    if (Boolean(cloneMenu)) {
+      const effectiveSourceStoreId = String(sourceStoreId || currentStoreId || primaryStoreIdForClone || '');
+      const isSourcePrimary = !primaryStoreIdForClone || effectiveSourceStoreId === String(primaryStoreIdForClone);
+      const sourceProducts = (db.pos_products || []).filter(p => {
+        if (!p) return false;
+        if (p.storeId) return String(p.storeId) === effectiveSourceStoreId;
+        return isSourcePrimary;
+      });
+      sourceProducts.forEach((srcProd, idx) => {
+        const cloneId = `prod-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
+        db.pos_products.unshift({
+          ...srcProd,
+          id: cloneId,
+          storeId: newStoreId,
+          merchantId: requestedOwner ? String(requestedOwner) : (srcProd.merchantId || canonicalOwnerId),
+          clonedFromStoreId: effectiveSourceStoreId || null,
+          clonedFromProductId: srcProd.id,
+          createdAt: nowIso,
+          updatedAt: nowIso
+        });
+        clonedProductsCount += 1;
+      });
+    }
+
     let activeMerchant = currentMerchant || newStore;
     if (switchAfterCreate !== false) {
       activeMerchant = newStore;
@@ -922,7 +951,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const activePayload = buildActiveStorePayload(db, activeMerchant, requestedOwner);
     res.status(201).json({
       success: true,
-      message: `Toko baru "${cleanName}" berhasil dibuat!`,
+      message: clonedProductsCount > 0
+        ? `Toko baru "${cleanName}" berhasil dibuat dengan ${clonedProductsCount} menu hasil clone!`
+        : `Toko baru "${cleanName}" berhasil dibuat!`,
+      clonedProductsCount,
       createdStore: serializeOwnerStore(newStore),
       store: activePayload,
       allOwnerStores: activePayload.allOwnerStores
@@ -1870,20 +1902,43 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     res.json({ success: true, message: 'Konfigurasi TriPay POS berhasil disimpan!' });
   });
 
-  // ── 2. PRODUCTS & CATEGORY MANAGEMENT (ISOLATED PER MERCHANT/ACCOUNT) ──
+  // ── 2. PRODUCTS & CATEGORY MANAGEMENT (ISOLATED PER MERCHANT/ACCOUNT & STORE) ──
   router.get('/products', (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
-    const { merchantId } = req.query;
+    const { merchantId, storeId, ownerId } = req.query;
+
+    let list = db.pos_products || [];
+    if (storeId) {
+      const targetSid = String(storeId);
+      const activeMerchants = (db.merchants || []).filter(m => m && m.status !== 'deleted');
+      const targetStore = activeMerchants.find(m => String(m.id) === targetSid);
+      const ownerSet = new Set(
+        [ownerId, merchantId, targetStore?.ownerUserId, targetStore?.posOwnerId]
+          .filter(Boolean)
+          .map(v => String(v))
+      );
+      const primaryStore =
+        activeMerchants.find(
+          m => ownerSet.has(String(m.ownerUserId || '')) || ownerSet.has(String(m.posOwnerId || ''))
+        ) || activeMerchants[0] || null;
+      const primaryStoreId = primaryStore?.id || null;
+      const isPrimaryTarget = !primaryStoreId || targetSid === String(primaryStoreId);
+      list = list.filter(p => {
+        if (p.storeId) return String(p.storeId) === targetSid;
+        return isPrimaryTarget && (!merchantId || !p.merchantId || String(p.merchantId) === String(merchantId));
+      });
+      return res.json(list);
+    }
     if (merchantId) {
-      const filtered = db.pos_products.filter(p => !p.merchantId || String(p.merchantId) === String(merchantId));
+      const filtered = list.filter(p => !p.clonedFromProductId && (!p.merchantId || String(p.merchantId) === String(merchantId)));
       return res.json(filtered);
     }
-    res.json(db.pos_products);
+    res.json(list);
   });
 
   router.post('/products', (req, res) => {
-    const { id, name, category, price, stock, isAvailable, description, image, merchantId } = req.body;
+    const { id, name, category, price, stock, isAvailable, description, image, merchantId, storeId } = req.body;
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: 'Nama menu wajib diisi' });
     }
@@ -1913,6 +1968,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       description: String(description).trim(),
       image: String(image).trim(),
       merchantId: merchantId ? String(merchantId) : null,
+      storeId: storeId ? String(storeId) : null,
       createdAt: new Date().toISOString()
     };
 
@@ -3984,21 +4040,34 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     });
 
-    // Employee / cashier catalog: merge db.staff + default cashiers + historical cashiers in orders
+    // Employee / cashier catalog: merge db.users staff + db.staff + default cashiers + historical cashiers in orders
     const employeeCatalogMap = {
-      'KSR-01': { id: 'KSR-01', name: 'Siti Rahmawati (Kasir Shift Pagi)', role: 'Kasir Pagi' },
-      'KSR-02': { id: 'KSR-02', name: 'Budi Santoso (Kasir Shift Siang)', role: 'Kasir Siang' },
-      'KSR-03': { id: 'KSR-03', name: 'Rian Pratama (Kasir Shift Malam)', role: 'Kasir Malam' },
-      'KSR-STF': { id: 'KSR-STF', name: 'Pak Joko (Staf Operasional)', role: 'Staf & Runner' }
+      'KSR-01': { id: 'KSR-01', name: 'Siti Rahmawati (Kasir Shift Pagi)', role: 'Kasir Pagi', assignedStoreIds: ['all'] },
+      'KSR-02': { id: 'KSR-02', name: 'Budi Santoso (Kasir Shift Siang)', role: 'Kasir Siang', assignedStoreIds: ['all'] },
+      'KSR-03': { id: 'KSR-03', name: 'Rian Pratama (Kasir Shift Malam)', role: 'Kasir Malam', assignedStoreIds: ['all'] },
+      'KSR-STF': { id: 'KSR-STF', name: 'Pak Joko (Staf Operasional)', role: 'Staf & Runner', assignedStoreIds: ['all'] }
     };
-    (db.staff || []).forEach(st => {
-      if (!st || st.status === 'deleted') return;
-      const eid = String(st.id || st.userId || st.email || st.whatsapp || '');
+    (db.users || []).forEach(u => {
+      if (!u || u.role !== 'staff' || u.status === 'deleted') return;
+      const eid = String(u.id || u.email || u.phone || '');
       if (eid) {
         employeeCatalogMap[eid] = {
           id: eid,
+          name: u.name || 'Karyawan',
+          role: u.jobTitle || (Array.isArray(u.roles) ? u.roles.join(', ') : 'Staf'),
+          assignedStoreIds: Array.isArray(u.assignedStoreIds) && u.assignedStoreIds.length > 0 ? u.assignedStoreIds : ['all']
+        };
+      }
+    });
+    (db.staff || []).forEach(st => {
+      if (!st || st.status === 'deleted') return;
+      const eid = String(st.id || st.userId || st.email || st.whatsapp || '');
+      if (eid && !employeeCatalogMap[eid]) {
+        employeeCatalogMap[eid] = {
+          id: eid,
           name: st.name || 'Karyawan',
-          role: st.role === 'kasir' ? 'Kasir' : (st.role || 'Staf')
+          role: st.role === 'kasir' ? 'Kasir' : (st.role || 'Staf'),
+          assignedStoreIds: Array.isArray(st.assignedStoreIds) && st.assignedStoreIds.length > 0 ? st.assignedStoreIds : ['all']
         };
       }
     });
@@ -4093,6 +4162,43 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       if (boundEndDate && dateStr > boundEndDate) return false;
       return true;
     };
+
+    const shiftDateStr = (dateStr, deltaDays) => {
+      const ms = Date.parse(`${dateStr}T00:00:00Z`);
+      if (!Number.isFinite(ms)) return dateStr;
+      return new Date(ms + deltaDays * 86400000).toISOString().slice(0, 10);
+    };
+
+    let prevBounds = null;
+    if (range === 'today' && boundStartDate) {
+      const d = shiftDateStr(boundStartDate, -1);
+      prevBounds = { startDate: d, endDate: d, label: 'vs Kemarin' };
+    } else if (range === 'week' && boundStartDate && boundEndDate) {
+      prevBounds = {
+        startDate: shiftDateStr(boundStartDate, -7),
+        endDate: shiftDateStr(boundEndDate, -7),
+        label: 'vs Minggu Lalu'
+      };
+    } else if (range === 'month' && boundStartDate) {
+      const curY = Number(boundStartDate.slice(0, 4));
+      const curM = Number(boundStartDate.slice(5, 7));
+      const prevY = curM === 1 ? curY - 1 : curY;
+      const prevM = curM === 1 ? 12 : curM - 1;
+      const lastD = new Date(Date.UTC(prevY, prevM, 0)).getUTCDate();
+      const ym = `${prevY}-${String(prevM).padStart(2, '0')}`;
+      prevBounds = { startDate: `${ym}-01`, endDate: `${ym}-${String(lastD).padStart(2, '0')}`, label: 'vs Bulan Lalu' };
+    } else if (range === 'year' && boundStartDate) {
+      const prevY = Number(boundStartDate.slice(0, 4)) - 1;
+      prevBounds = { startDate: `${prevY}-01-01`, endDate: `${prevY}-12-31`, label: 'vs Tahun Lalu' };
+    } else if (range === 'custom' && boundStartDate && boundEndDate) {
+      const spanDays = Math.max(
+        1,
+        Math.round((Date.parse(`${boundEndDate}T00:00:00Z`) - Date.parse(`${boundStartDate}T00:00:00Z`)) / 86400000) + 1
+      );
+      const prevEnd = shiftDateStr(boundStartDate, -1);
+      const prevStart = shiftDateStr(prevEnd, -(spanDays - 1));
+      prevBounds = { startDate: prevStart, endDate: prevEnd, label: 'vs Periode Sebelumnya' };
+    }
 
     // Determine timeline granularity
     let granularity = 'day';
@@ -4215,6 +4321,22 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     let totalRevenue = 0;
     let totalOrders = 0;
     let totalItemsSold = 0;
+    const prevStats = { revenue: 0, orders: 0, items: 0 };
+    const paymentStats = { cashRevenue: 0, cashOrders: 0, qrisRevenue: 0, qrisOrders: 0 };
+    const peakHoursMap = {};
+    for (let h = 0; h < 24; h++) {
+      const hStr = String(h).padStart(2, '0');
+      peakHoursMap[hStr] = {
+        hour: h,
+        key: hStr,
+        label: `${hStr}:00`,
+        shortLabel: hStr,
+        orders: 0,
+        revenue: 0,
+        qty: 0
+      };
+    }
+
     const itemCatalogSeen = new Map();
     products.forEach(p => {
       itemCatalogSeen.set(String(p.id), {
@@ -4227,6 +4349,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     allOrders.forEach(order => {
       const dateStr = resolveOrderDateStr(order);
+      const hourStr = resolveOrderHourStr(order);
       const sid = order.storeId && storeCatalogMap[String(order.storeId)]
         ? String(order.storeId)
         : primaryStoreId;
@@ -4253,7 +4376,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         }
       });
 
-      if (!matchesDateRange(dateStr)) return;
+      const inCurrentWindow = matchesDateRange(dateStr);
+      const inPrevWindow = Boolean(prevBounds && dateStr >= prevBounds.startDate && dateStr <= prevBounds.endDate);
+      if (!inCurrentWindow && !inPrevWindow) return;
       if (storeFilterSet.size > 0 && !storeFilterSet.has(sid)) return;
       if (empFilterSet.size > 0 && !empFilterSet.has(cid) && !empFilterSet.has(empMeta.name)) return;
 
@@ -4287,9 +4412,29 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         ? matchedItems.reduce((s, it) => s + it.qty, 0)
         : Math.max(allItemsQty, 0);
 
+      if (inPrevWindow) {
+        prevStats.revenue += orderContributionRev;
+        prevStats.orders += 1;
+        prevStats.items += orderContributionQty;
+      }
+      if (!inCurrentWindow) return;
+
       totalRevenue += orderContributionRev;
       totalOrders += 1;
       totalItemsSold += orderContributionQty;
+
+      if (isCash) {
+        paymentStats.cashRevenue += orderContributionRev;
+        paymentStats.cashOrders += 1;
+      } else {
+        paymentStats.qrisRevenue += orderContributionRev;
+        paymentStats.qrisOrders += 1;
+      }
+
+      const hourBucket = peakHoursMap[hourStr] || peakHoursMap['12'];
+      hourBucket.orders += 1;
+      hourBucket.revenue += orderContributionRev;
+      hourBucket.qty += orderContributionQty;
 
       // Timeline bucket
       const bucketKey = granularity === 'hour'
@@ -4587,6 +4732,78 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         costPerUnit: i.costPerUnit || 0
       }));
 
+    const payTotalRev = paymentStats.cashRevenue + paymentStats.qrisRevenue;
+    const payTotalOrd = paymentStats.cashOrders + paymentStats.qrisOrders;
+    const calcPayPct = (rev, cnt) => (
+      payTotalRev > 0
+        ? Math.round((rev / payTotalRev) * 1000) / 10
+        : (payTotalOrd > 0 ? Math.round((cnt / payTotalOrd) * 1000) / 10 : 0)
+    );
+    const paymentSplit = [
+      {
+        key: 'CASH',
+        label: 'Tunai (Cash)',
+        revenue: paymentStats.cashRevenue,
+        ordersCount: paymentStats.cashOrders,
+        pct: calcPayPct(paymentStats.cashRevenue, paymentStats.cashOrders),
+        color: '#10b981'
+      },
+      {
+        key: 'QRIS',
+        label: 'QRIS / Non-Tunai',
+        revenue: paymentStats.qrisRevenue,
+        ordersCount: paymentStats.qrisOrders,
+        pct: calcPayPct(paymentStats.qrisRevenue, paymentStats.qrisOrders),
+        color: '#2563eb'
+      }
+    ];
+
+    const allPeakHours = Object.values(peakHoursMap).sort((a, b) => a.hour - b.hour);
+    const activeHourNums = allPeakHours.filter(h => h.orders > 0 || h.revenue > 0).map(h => h.hour);
+    const spanMinHour = activeHourNums.length > 0 ? Math.min(7, ...activeHourNums) : 7;
+    const spanMaxHour = activeHourNums.length > 0 ? Math.max(22, ...activeHourNums) : 22;
+    const peakSortedByOrders = [...allPeakHours].sort((a, b) => (b.orders - a.orders) || (b.revenue - a.revenue));
+    const busiestHour = peakSortedByOrders[0] && peakSortedByOrders[0].orders > 0 ? peakSortedByOrders[0] : null;
+    const peakSortedByRev = [...allPeakHours].sort((a, b) => (b.revenue - a.revenue) || (b.orders - a.orders));
+    const busiestRevHour = peakSortedByRev[0] && peakSortedByRev[0].revenue > 0 ? peakSortedByRev[0] : null;
+    const peakHours = allPeakHours
+      .filter(h => h.hour >= spanMinHour && h.hour <= spanMaxHour)
+      .map(h => ({
+        ...h,
+        isPeak: Boolean(busiestHour && h.hour === busiestHour.hour)
+      }));
+    const peakHourSummary = {
+      busiestLabel: busiestHour ? busiestHour.label : '-',
+      busiestOrders: busiestHour ? busiestHour.orders : 0,
+      busiestRevenue: busiestHour ? busiestHour.revenue : 0,
+      busiestRevenueLabel: busiestRevHour ? busiestRevHour.label : '-',
+      busiestRevenueValue: busiestRevHour ? busiestRevHour.revenue : 0
+    };
+
+    const calcDeltaPct = (curr, prev) => {
+      if (prev === 0 && curr === 0) return 0;
+      if (prev === 0 && curr > 0) return 100;
+      return Math.round(((curr - prev) / prev) * 1000) / 10;
+    };
+    const currAov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+    const prevAov = prevStats.orders > 0 ? Math.round(prevStats.revenue / prevStats.orders) : 0;
+    const comparison = prevBounds
+      ? {
+          available: true,
+          label: prevBounds.label,
+          startDate: prevBounds.startDate,
+          endDate: prevBounds.endDate,
+          prevRevenue: prevStats.revenue,
+          prevOrders: prevStats.orders,
+          prevItemsSold: prevStats.items,
+          prevAov,
+          revenueDeltaPct: calcDeltaPct(totalRevenue, prevStats.revenue),
+          ordersDeltaPct: calcDeltaPct(totalOrders, prevStats.orders),
+          itemsDeltaPct: calcDeltaPct(totalItemsSold, prevStats.items),
+          aovDeltaPct: calcDeltaPct(currAov, prevAov)
+        }
+      : { available: false, label: 'All Time' };
+
     res.json({
       success: true,
       appliedFilters: {
@@ -4604,7 +4821,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         stores: Object.values(storeCatalogMap).map(s => ({ id: s.id, name: s.name })),
         categories: Array.from(categorySet).sort((a, b) => a.localeCompare(b)),
         items: Array.from(itemCatalogSeen.values()).sort((a, b) => a.name.localeCompare(b.name)),
-        employees: Object.values(employeeCatalogMap).sort((a, b) => a.name.localeCompare(b.name))
+        employees: Object.values(employeeCatalogMap)
+          .map(e => ({ id: e.id, name: e.name, role: e.role, assignedStoreIds: e.assignedStoreIds || ['all'] }))
+          .sort((a, b) => a.name.localeCompare(b.name))
       },
       timelineSeries,
       seriesMeta,
@@ -4615,6 +4834,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         byEmployee,
         combineMatrix
       },
+      paymentSplit,
+      peakHours,
+      peakHourSummary,
+      comparison,
       perMenu: byItem,
       perStore: byStore,
       crossBranchPerMenu: crossBranchMatrix,
@@ -4624,7 +4847,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         totalOrdersAll: totalOrders,
         totalGrossOmset: totalRevenue,
         totalItemsSold,
-        averageOrderValue: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
+        averageOrderValue: currAov,
         activeBranchesCount: byStore.length,
         activeCategoriesCount: byCategory.length,
         activeItemsCount: byItem.length,
@@ -4632,6 +4855,108 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         totalMenuItems: products.length,
         inventoryAlertsCount: inventoryAlerts.length
       }
+    });
+  });
+
+  // ── 8B. CONSOLIDATED MULTI-STORE DASHBOARD SUMMARY ────────────────────────
+  router.get('/consolidated-summary', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const requestedOwner = req.query.ownerId || req.user?.id || null;
+    const currentId = db.settings?.posStore?.merchantId || db.settings?.posStore?.uid;
+    const currentMerchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(currentId))
+      || (db.merchants || []).find(m => m && m.status !== 'deleted')
+      || null;
+    const stores = getOwnerStoresList(db, currentMerchant, requestedOwner);
+    const primaryStoreId = stores[0]?.id || currentMerchant?.id || 'PRIMARY-STORE';
+
+    const storeMap = {};
+    stores.forEach(s => {
+      storeMap[String(s.id)] = {
+        storeId: String(s.id),
+        storeName: s.name || 'Toko POS',
+        location: s.location || '',
+        address: s.address || '',
+        kuotaNota: Number(s.kuotaNota ?? 0),
+        saldoNota: Number(s.saldoNota ?? 0),
+        isActive: String(s.id) === String(currentId),
+        todayRevenue: 0,
+        todayOrders: 0,
+        monthRevenue: 0,
+        monthOrders: 0,
+        allTimeRevenue: 0,
+        allTimeOrders: 0
+      };
+    });
+
+    const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const toWibIso = (d) => {
+      const ms = d ? new Date(d).getTime() : Date.now();
+      return new Date((Number.isFinite(ms) ? ms : Date.now()) + WIB_OFFSET_MS).toISOString();
+    };
+    const todayWibStr = toWibIso(new Date()).slice(0, 10);
+    const monthWibStr = todayWibStr.slice(0, 7);
+
+    const totals = {
+      todayRevenue: 0,
+      todayOrders: 0,
+      monthRevenue: 0,
+      monthOrders: 0,
+      allTimeRevenue: 0,
+      allTimeOrders: 0
+    };
+
+    const validOrders = (db.pos_orders || []).filter(o => o && o.status !== 'CANCELLED');
+    const enrichedOrders = [];
+
+    validOrders.forEach(order => {
+      const rawSid = order.storeId ? String(order.storeId) : String(primaryStoreId);
+      const targetSid = storeMap[rawSid] ? rawSid : String(primaryStoreId);
+      const stEntry = storeMap[targetSid];
+      if (!stEntry) return;
+
+      const rev = Number(order.totalAmount || order.subtotal || 0);
+      const ordWibDate = toWibIso(order.createdAt || order.paidAt || order.completedAt).slice(0, 10);
+      const ordWibMonth = ordWibDate.slice(0, 7);
+
+      stEntry.allTimeRevenue += rev;
+      stEntry.allTimeOrders += 1;
+      totals.allTimeRevenue += rev;
+      totals.allTimeOrders += 1;
+
+      if (ordWibMonth === monthWibStr) {
+        stEntry.monthRevenue += rev;
+        stEntry.monthOrders += 1;
+        totals.monthRevenue += rev;
+        totals.monthOrders += 1;
+      }
+
+      if (ordWibDate === todayWibStr) {
+        stEntry.todayRevenue += rev;
+        stEntry.todayOrders += 1;
+        totals.todayRevenue += rev;
+        totals.todayOrders += 1;
+      }
+
+      enrichedOrders.push({
+        ...order,
+        storeId: targetSid,
+        storeName: order.storeName || stEntry.storeName
+      });
+    });
+
+    enrichedOrders.sort((a, b) => new Date(b.createdAt || b.paidAt || 0).getTime() - new Date(a.createdAt || a.paidAt || 0).getTime());
+
+    const storesSummary = Object.values(storeMap).sort((a, b) => b.todayRevenue - a.todayRevenue || b.monthRevenue - a.monthRevenue);
+
+    res.json({
+      success: true,
+      totalStores: storesSummary.length,
+      activeStoreId: currentId ? String(currentId) : primaryStoreId,
+      totals,
+      stores: storesSummary,
+      recentOrders: enrichedOrders.slice(0, 25)
     });
   });
 

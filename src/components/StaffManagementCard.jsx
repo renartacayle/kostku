@@ -25,15 +25,18 @@ import {
   Clock,
   Send,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Store
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import ActionTutorialBadge from './kasir/ActionTutorialBadge';
 import {
   apiGetOwnerStaff,
   apiCreateStaff,
   apiUpdateStaff,
   apiDeleteStaff,
   apiGetOwnerKosts,
+  apiGetPosStores,
   apiGetStaffInvites,
   apiCreateStaffInvite,
   apiCancelStaffInvite
@@ -62,6 +65,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
   const [staffList, setStaffList] = useState([]);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [ownedKosts, setOwnedKosts] = useState([]);
+  const [posStores, setPosStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
@@ -85,6 +89,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
   });
   const [formRoleMode, setFormRoleMode] = useState('single'); // 'single' | 'multiple'
   const [formSelectedRoles, setFormSelectedRoles] = useState(['Penjaga Kost']);
+  const [formAssignedStoreIds, setFormAssignedStoreIds] = useState(['all']);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -94,10 +99,11 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
   const [resetError, setResetError] = useState('');
   const [resetting, setResetting] = useState(false);
 
-  // Edit Role Modal State
+  // Edit Role & Branch Modal State
   const [roleModalStaff, setRoleModalStaff] = useState(null);
   const [editRoleMode, setEditRoleMode] = useState('single');
   const [editSelectedRoles, setEditSelectedRoles] = useState([]);
+  const [editAssignedStoreIds, setEditAssignedStoreIds] = useState(['all']);
   const [editRoleError, setEditRoleError] = useState('');
   const [savingRoles, setSavingRoles] = useState(false);
 
@@ -109,14 +115,21 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     if (!user?.id) return;
     setLoading(true);
     try {
-      const [staffData, kostsData, invitesData] = await Promise.all([
+      const [staffData, kostsData, invitesData, storesData] = await Promise.all([
         apiGetOwnerStaff(null, user.id).catch(() => []),
         apiGetOwnerKosts(user.id).catch(() => []),
-        apiGetStaffInvites(null, user.id, 'pending').catch(() => [])
+        apiGetStaffInvites(null, user.id, 'pending').catch(() => []),
+        apiGetPosStores(user.id).catch(() => [])
       ]);
       const sList = Array.isArray(staffData) ? staffData : [];
       setStaffList(sList);
       setPendingInvites(Array.isArray(invitesData) ? invitesData : []);
+      const storeArr = Array.isArray(storesData)
+        ? storesData
+        : Array.isArray(storesData?.stores)
+          ? storesData.stores
+          : (Array.isArray(storesData?.allOwnerStores) ? storesData.allOwnerStores : []);
+      setPosStores(storeArr);
       if (onSelectStaff && sList.length > 0 && !selectedStaffId) {
         onSelectStaff(sList[0]);
       }
@@ -146,6 +159,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       kostUid: ownedKosts[0]?.uid || user?.kostUid || ''
     });
     setFormSelectedRoles(['Penjaga Kost']);
+    setFormAssignedStoreIds(['all']);
     setFormRoleMode('single');
     setErrorMsg('');
   };
@@ -195,7 +209,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
           name: formData.name.trim(),
           salary: formData.salary,
           roles: formSelectedRoles,
-          jobTitle: formSelectedRoles.join(', ')
+          jobTitle: formSelectedRoles.join(', '),
+          assignedStoreIds: formAssignedStoreIds
         });
         setCreatedInviteResult(res);
         setActionMsg(res.message || 'Link undangan karyawan berhasil dibuat!');
@@ -234,6 +249,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
         password: effectivePassword,
         roles: formSelectedRoles,
         jobTitle: formSelectedRoles.join(', '),
+        assignedStoreIds: formAssignedStoreIds,
         ownerId: user.id
       });
       if (res.error) {
@@ -317,6 +333,9 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       ? staff.roles
       : (staff.jobTitle ? staff.jobTitle.split(',').map(r => r.trim()).filter(Boolean) : ['Penjaga Kost']);
     setEditSelectedRoles(existingRoles);
+    setEditAssignedStoreIds(
+      Array.isArray(staff.assignedStoreIds) && staff.assignedStoreIds.length > 0 ? staff.assignedStoreIds : ['all']
+    );
     setEditRoleMode(existingRoles.length > 1 ? 'multiple' : 'single');
   };
 
@@ -331,10 +350,11 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     try {
       await apiUpdateStaff(roleModalStaff.id, {
         roles: editSelectedRoles,
-        jobTitle: editSelectedRoles.join(', ')
+        jobTitle: editSelectedRoles.join(', '),
+        assignedStoreIds: editAssignedStoreIds
       });
       setRoleModalStaff(null);
-      setActionMsg(`Penugasan role untuk ${roleModalStaff.name} berhasil diperbarui.`);
+      setActionMsg(`Penugasan role & cabang untuk ${roleModalStaff.name} berhasil diperbarui.`);
       loadStaffAndKosts();
       setTimeout(() => setActionMsg(null), 4000);
     } catch (err) {
@@ -342,6 +362,100 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     } finally {
       setSavingRoles(false);
     }
+  };
+
+  const toggleStoreSelection = (currentIds, targetStoreId) => {
+    if (targetStoreId === 'all') return ['all'];
+    const withoutAll = (currentIds || []).filter(id => id !== 'all');
+    if (withoutAll.includes(targetStoreId)) {
+      const next = withoutAll.filter(id => id !== targetStoreId);
+      return next.length === 0 ? ['all'] : next;
+    }
+    return [...withoutAll, targetStoreId];
+  };
+
+  const resolveAssignedStoreLabels = (assignedIds, assignedNames) => {
+    const ids = Array.isArray(assignedIds) && assignedIds.length > 0 ? assignedIds : ['all'];
+    if (ids.includes('all')) return ['Semua Cabang'];
+    if (Array.isArray(assignedNames) && assignedNames.length > 0) return assignedNames;
+    return ids.map(sid => {
+      const matched = posStores.find(st => String(st.id) === String(sid));
+      return matched ? matched.name : sid;
+    });
+  };
+
+  const renderStoreAssignmentPicker = (selectedIds, onChangeIds, prefix) => {
+    const activeIds = Array.isArray(selectedIds) && selectedIds.length > 0 ? selectedIds : ['all'];
+    const isAll = activeIds.includes('all');
+    return (
+      <div style={{
+        padding: '12px',
+        borderRadius: '12px',
+        background: modalPanelBg,
+        border: `1px solid ${modalBorder}`,
+        marginBottom: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: modalText, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Store size={14} color="#10b981" /> Penugasan Cabang Toko POS
+          </label>
+          <span style={{ fontSize: '0.7rem', color: modalSubText }}>
+            {isAll ? 'Akses semua cabang' : `${activeIds.length} cabang dipilih`}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          <button
+            type="button"
+            data-testid={`${prefix}-store-all`}
+            onClick={() => onChangeIds(toggleStoreSelection(activeIds, 'all'))}
+            style={{
+              padding: '5px 10px',
+              borderRadius: '8px',
+              border: isAll ? '1.5px solid #10b981' : `1px solid ${modalBorder}`,
+              background: isAll ? 'rgba(16, 185, 129, 0.16)' : 'transparent',
+              color: isAll ? (isLight ? '#047857' : '#34d399') : modalSubText,
+              fontSize: '0.74rem',
+              fontWeight: isAll ? 800 : 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            {isAll ? <CheckSquare size={13} color="#10b981" /> : <Square size={13} color="#64748b" />}
+            <span>Semua Cabang</span>
+          </button>
+          {posStores.map((st) => {
+            const sid = String(st.id);
+            const checked = !isAll && activeIds.includes(sid);
+            return (
+              <button
+                key={sid}
+                type="button"
+                data-testid={`${prefix}-store-${sid}`}
+                onClick={() => onChangeIds(toggleStoreSelection(activeIds, sid))}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  border: checked ? '1.5px solid #2563eb' : `1px solid ${modalBorder}`,
+                  background: checked ? 'rgba(37, 99, 235, 0.15)' : 'transparent',
+                  color: checked ? (isLight ? '#1d4ed8' : '#93c5fd') : modalSubText,
+                  fontSize: '0.74rem',
+                  fontWeight: checked ? 800 : 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                {checked ? <CheckSquare size={13} color="#2563eb" /> : <Square size={13} color="#64748b" />}
+                <span>{st.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const toggleFormRole = (roleId) => {
@@ -424,14 +538,25 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenAddModal}
-          className="btn btn-primary btn-sm"
-          style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981', gap: '6px' }}
-        >
-          <Plus size={15} /> Tambah Karyawan Baru
-        </button>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={handleOpenAddModal}
+            className="btn btn-primary btn-sm"
+            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981', gap: '6px' }}
+          >
+            <Plus size={15} /> Tambah Karyawan Baru
+          </button>
+          <ActionTutorialBadge
+            isLight={isLight}
+            title="Tambah Karyawan Baru"
+            steps={[
+              'Pilih mode Link Undangan via WhatsApp atau Gmail agar karyawan tinggal klik link lalu bergabung otomatis.',
+              'Atau pilih Input Langsung jika ingin membuat akun & password secara manual.',
+              'Tentukan role tugas dan cabang toko POS tempat karyawan berjaga.'
+            ]}
+          />
+        </div>
       </div>
 
       {actionMsg && (
@@ -549,7 +674,10 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                       </span>
                     </div>
                     <div style={{ fontSize: '0.75rem', color: modalSubText }}>
-                      Peran: <strong style={{ color: modalText }}>{inv.jobTitle}</strong> · Cabang: {inv.kostName}
+                      Peran: <strong style={{ color: modalText }}>{inv.jobTitle}</strong> · Cabang Kost: {inv.kostName} · Toko POS:{' '}
+                      <strong style={{ color: modalText }}>
+                        {resolveAssignedStoreLabels(inv.assignedStoreIds, inv.assignedStoreNames).join(', ')}
+                      </strong>
                     </div>
                   </div>
 
@@ -783,8 +911,29 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                       })}
                     </div>
 
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
-                      Cabang: <strong style={{ color: 'var(--text-primary)' }}>{staff.kostName}</strong>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span>Cabang Kost: <strong style={{ color: 'var(--text-primary)' }}>{staff.kostName}</strong></span>
+                      <span>·</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <Store size={12} color="#10b981" />
+                        {resolveAssignedStoreLabels(staff.assignedStoreIds, staff.assignedStoreNames).map((stName, idx) => (
+                          <span
+                            key={idx}
+                            data-testid="staff-assigned-store-badge"
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '1px 7px',
+                              borderRadius: '5px',
+                              background: 'rgba(16, 185, 129, 0.14)',
+                              color: isLight ? '#047857' : '#6ee7b7',
+                              border: '1px solid rgba(16, 185, 129, 0.28)',
+                              fontWeight: 700
+                            }}
+                          >
+                            {stName}
+                          </span>
+                        ))}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -845,84 +994,124 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                   {onSelectStaff && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectStaff(staff)}
+                        className="btn btn-sm"
+                        style={{
+                          gap: '5px',
+                          fontSize: '0.78rem',
+                          padding: '6px 12px',
+                          background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'rgba(59, 130, 246, 0.15)',
+                          color: isSelected ? '#ffffff' : (isLight ? '#1d4ed8' : '#ffffff'),
+                          border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.35)',
+                          boxShadow: isSelected ? '0 0 12px rgba(59, 130, 246, 0.35)' : 'none',
+                          fontWeight: isSelected ? 700 : 600
+                        }}
+                        title="Buka Kalender Kerja & Riwayat Harian Karyawan Ini"
+                      >
+                        {isSelected ? <Check size={13} /> : <CalendarIcon size={13} />}
+                        <span>{isSelected ? 'Kalender Aktif' : 'Buka Kalender'}</span>
+                      </button>
+                      <ActionTutorialBadge
+                        isLight={isLight}
+                        size="sm"
+                        title="Kalender Tugas Karyawan"
+                        description="Menampilkan jadwal absensi dan laporan foto kerja harian milik karyawan ini."
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <button
                       type="button"
-                      onClick={() => onSelectStaff(staff)}
-                      className="btn btn-sm"
+                      onClick={() => handleOpenEditRoles(staff)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px', color: isLight ? '#2563eb' : '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.35)' }}
+                      title="Ubah peran kerja & penugasan cabang toko"
+                    >
+                      <Tag size={13} />
+                      <span>Atur Role &amp; Cabang</span>
+                    </button>
+                    <ActionTutorialBadge
+                      isLight={isLight}
+                      size="sm"
+                      title="Atur Role & Cabang"
+                      description="Ubah tugas (Single / Multiple Roles) serta pilih cabang toko POS mana saja yang dikelola karyawan ini."
+                    />
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => copyCredentials(staff)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px' }}
+                      title="Salin pesan info login untuk dikirim ke WhatsApp staf"
+                    >
+                      {copiedId === staff.id ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                      <span>{copiedId === staff.id ? 'Tersalin!' : 'Salin Info WA'}</span>
+                    </button>
+                    <ActionTutorialBadge
+                      isLight={isLight}
+                      size="sm"
+                      title="Salin Info Login WA"
+                      description="Menyalin teks ringkasan akun Gmail/WA & cabang ke clipboard untuk dikirim ulang ke karyawan."
+                    />
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetModalStaff(staff);
+                        setNewPassword('');
+                        setResetError('');
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px' }}
+                      title="Ganti atau reset password staf"
+                    >
+                      <Key size={13} />
+                      <span>Reset Sandi</span>
+                    </button>
+                    <ActionTutorialBadge
+                      isLight={isLight}
+                      size="sm"
+                      title="Reset Sandi Karyawan"
+                      description="Mengatur ulang kata sandi login jika karyawan lupa password."
+                    />
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmStaff(staff)}
+                      className="btn btn-secondary btn-sm"
                       style={{
                         gap: '5px',
                         fontSize: '0.78rem',
                         padding: '6px 12px',
-                        background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'rgba(59, 130, 246, 0.15)',
-                        color: isSelected ? '#ffffff' : (isLight ? '#1d4ed8' : '#ffffff'),
-                        border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(59, 130, 246, 0.35)',
-                        boxShadow: isSelected ? '0 0 12px rgba(59, 130, 246, 0.35)' : 'none',
-                        fontWeight: isSelected ? 700 : 600
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: isLight ? '#dc2626' : '#f87171',
+                        border: '1px solid rgba(239, 68, 68, 0.35)',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
                       }}
-                      title="Buka Kalender Kerja & Riwayat Harian Karyawan Ini"
+                      title="Hapus akun karyawan dan cabut hak akses dari sistem kost"
                     >
-                      {isSelected ? <Check size={13} /> : <CalendarIcon size={13} />}
-                      <span>{isSelected ? 'Kalender Aktif' : 'Buka Kalender'}</span>
+                      <Trash2 size={13} />
+                      <span>Hapus Akses</span>
                     </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditRoles(staff)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px', color: isLight ? '#2563eb' : '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.35)' }}
-                    title="Ubah peran kerja (Single Role / Multiple Roles)"
-                  >
-                    <Tag size={13} />
-                    <span>Atur Role</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => copyCredentials(staff)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px' }}
-                    title="Salin pesan info login untuk dikirim ke WhatsApp staf"
-                  >
-                    {copiedId === staff.id ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
-                    <span>{copiedId === staff.id ? 'Tersalin!' : 'Salin Info WA'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setResetModalStaff(staff);
-                      setNewPassword('');
-                      setResetError('');
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ gap: '5px', fontSize: '0.78rem', padding: '6px 10px' }}
-                    title="Ganti atau reset password staf"
-                  >
-                    <Key size={13} />
-                    <span>Reset Sandi</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDeleteConfirmStaff(staff)}
-                    className="btn btn-secondary btn-sm"
-                    style={{
-                      gap: '5px',
-                      fontSize: '0.78rem',
-                      padding: '6px 12px',
-                      background: 'rgba(239, 68, 68, 0.12)',
-                      color: isLight ? '#dc2626' : '#f87171',
-                      border: '1px solid rgba(239, 68, 68, 0.35)',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                    title="Hapus akun karyawan dan cabut hak akses dari sistem kost"
-                  >
-                    <Trash2 size={13} />
-                    <span>Hapus Akses</span>
-                  </button>
+                    <ActionTutorialBadge
+                      isLight={isLight}
+                      size="sm"
+                      title="Hapus Akses Karyawan"
+                      description="Mencabut akses login karyawan dari sistem secara permanen (memerlukan konfirmasi di layar)."
+                    />
+                  </div>
                 </div>
               </div>
             );
@@ -1519,6 +1708,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                   </div>
                 )}
 
+                {posStores.length > 0 && renderStoreAssignmentPicker(formAssignedStoreIds, setFormAssignedStoreIds, 'add-staff')}
+
                 <div style={{
                   display: 'flex',
                   gap: '10px',
@@ -1586,7 +1777,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.15rem', color: modalText }}>
-                  Atur Penugasan Role Karyawan
+                  Atur Role &amp; Penugasan Cabang Toko
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: modalSubText }}>
                   Staf: <strong>{roleModalStaff.name}</strong> ({roleModalStaff.kostName})
@@ -1699,6 +1890,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
               })}
             </div>
 
+            {posStores.length > 0 && renderStoreAssignmentPicker(editAssignedStoreIds, setEditAssignedStoreIds, 'edit-staff')}
+
             {/* Actions */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
@@ -1716,7 +1909,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                 className="btn btn-primary"
                 style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}
               >
-                {savingRoles ? 'Menyimpan...' : 'Simpan Penugasan Role'}
+                {savingRoles ? 'Menyimpan...' : 'Simpan Role & Cabang'}
               </button>
             </div>
           </div>
