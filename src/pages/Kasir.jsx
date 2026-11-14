@@ -101,11 +101,15 @@ import {
   apiMutateAccountWallet,
   apiGetStaffAttendance,
   apiGetOwnerStaff,
-  apiGetPosConsolidatedSummary
+  apiGetPosConsolidatedSummary,
+  apiLookupPoolCustomer,
+  apiPreviewPoolCheckout
 } from '../services/api';
 import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
 import KasirInventoryModal from '../components/kasir/KasirInventoryModal';
 import ActionTutorialBadge from '../components/kasir/ActionTutorialBadge';
+import LoyaltyPoolsPanel from '../components/kasir/LoyaltyPoolsPanel';
+import DemandForecastPanel from '../components/kasir/DemandForecastPanel';
 import StaffManagementCard from '../components/StaffManagementCard';
 import StaffCalendarView from '../components/StaffCalendarView';
 
@@ -318,6 +322,17 @@ export default function Kasir({ user }) {
   const [quickQtyValue, setQuickQtyValue] = useState(1);
   const [cardSelectedQty, setCardSelectedQty] = useState({});
 
+  // Cart Shared Loyalty Pool & Checkout Feedback States
+  const [cartCustomerPhone, setCartCustomerPhone] = useState('');
+  const [cartCustomerName, setCartCustomerName] = useState('');
+  const [cartMemberLookup, setCartMemberLookup] = useState(null);
+  const [cartRedeemPoints, setCartRedeemPoints] = useState(0);
+  const [cartPoolPreview, setCartPoolPreview] = useState(null);
+  const [cartLookupLoading, setCartLookupLoading] = useState(false);
+  const [posCheckoutFeedback, setPosCheckoutFeedback] = useState(null);
+  const [confirmClearCart, setConfirmClearCart] = useState(false);
+  const [loyaltySubTab, setLoyaltySubTab] = useState('pools'); // 'pools' | 'stamps'
+
   // Store Location & Validity State (Validasi Toko Resmi)
   const [storeInfo, setStoreInfo] = useState({
     storeName: '',
@@ -329,7 +344,11 @@ export default function Kasir({ user }) {
     merchantId: '',
     uid: '',
     saldoNota: 5000,
-    kuotaNota: 50,
+    kuotaNota: 200,
+    loyaltyPoolId: null,
+    loyaltyPoolName: null,
+    billingTier: 'TIER_1_FLAT',
+    notaFeePerNotaIdr: 25,
     notaHistory: [],
     allOwnerStores: []
   });
@@ -592,7 +611,7 @@ export default function Kasir({ user }) {
   ];
 
   const [showInventoryModal, setShowInventoryModal] = useState(false);
-  const [inventoryTab, setInventoryTab] = useState('stock'); // 'stock' | 'recipes'
+  const [inventoryTab, setInventoryTab] = useState('stock'); // 'stock' | 'recipes' | 'forecast'
   const [inventoryList, setInventoryList] = useState(() => {
     try {
       const saved = localStorage.getItem('kostku_pos_inventory');
@@ -1957,9 +1976,13 @@ export default function Kasir({ user }) {
   };
 
   const handleConfirmPaid = async (orderId) => {
-    if (Number(storeInfo.saldoNota ?? 5000) < 100) {
+    const activeNotaFee = Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25));
+    if (Number(storeInfo.saldoNota ?? 5000) < activeNotaFee) {
       setShowPosTopupModal(true);
-      alert(`Saldo nota toko tidak mencukupi untuk konfirmasi bayar tunai (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota kasir terlebih dahulu.`);
+      setPosCheckoutFeedback({
+        type: 'error',
+        text: `Saldo nota toko tidak mencukupi (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp ${activeNotaFee.toLocaleString('id-ID')}). Silakan top up saldo nota.`
+      });
       return;
     }
     try {
@@ -1969,13 +1992,16 @@ export default function Kasir({ user }) {
         if (data.requiresTopupNota) {
           setShowPosTopupModal(true);
         }
-        alert(data.error || 'Gagal konfirmasi pembayaran');
+        setPosCheckoutFeedback({ type: 'error', text: data.error || 'Gagal konfirmasi pembayaran.' });
         return;
       }
       fetchData();
-      alert('Pembayaran tunai berhasil dikonfirmasi! 1 nota (Rp 100) dipotong dari saldo toko.');
+      setPosCheckoutFeedback({
+        type: 'success',
+        text: `Pembayaran tunai berhasil dikonfirmasi (${storeInfo.loyaltyPoolId ? 'Tier 2 Rp 100/nota' : 'Tier 1 Rp 25/nota'}).`
+      });
     } catch (err) {
-      alert('Gagal konfirmasi pembayaran: ' + err.message);
+      setPosCheckoutFeedback({ type: 'error', text: 'Gagal konfirmasi pembayaran: ' + err.message });
     }
   };
 
@@ -3064,11 +3090,77 @@ export default function Kasir({ user }) {
     } catch (_) {}
   };
 
+  const refreshCartPoolPreview = async (phoneArg, nameArg, redeemArg, cartArg = posCart, promoArg = activeCartPromo) => {
+    const sid = storeInfo.merchantId || storeInfo.uid || 'MTR-KASIR-MASTER';
+    const itemsList = Object.values(cartArg || {});
+    const sub = itemsList.reduce((s, it) => s + (it.product.price * it.qty), 0);
+    const pDisc = promoArg ? calculatePromoDiscountForCart(promoArg, cartArg) : 0;
+    if (sub <= 0) {
+      setCartPoolPreview(null);
+      return null;
+    }
+    try {
+      const prev = await apiPreviewPoolCheckout(sid, {
+        customerPhone: phoneArg,
+        customerName: nameArg,
+        redeemPoints: Number(redeemArg) || 0,
+        grossSubtotalIdr: sub,
+        otherDiscountIdr: pDisc
+      });
+      setCartPoolPreview(prev);
+      return prev;
+    } catch (err) {
+      setCartPoolPreview(null);
+      setPosCheckoutFeedback({ type: 'error', text: err.message });
+      return null;
+    }
+  };
+
+  const handleLookupCartMember = async () => {
+    const cleanPhone = String(cartCustomerPhone || '').replace(/\D/g, '');
+    if (!cleanPhone) {
+      setPosCheckoutFeedback({ type: 'error', text: 'Masukkan nomor HP/WA pelanggan terlebih dahulu untuk cek saldo Loyalty Pool.' });
+      return;
+    }
+    try {
+      setCartLookupLoading(true);
+      setPosCheckoutFeedback(null);
+      const sid = storeInfo.merchantId || storeInfo.uid || 'MTR-KASIR-MASTER';
+      const data = await apiLookupPoolCustomer(sid, cleanPhone);
+      setCartMemberLookup(data);
+      if (data.customer?.name && !cartCustomerName.trim()) {
+        setCartCustomerName(data.customer.name);
+      }
+      setCartRedeemPoints(0);
+      await refreshCartPoolPreview(cleanPhone, data.customer?.name || cartCustomerName, 0);
+    } catch (err) {
+      setPosCheckoutFeedback({ type: 'error', text: err.message || 'Gagal mencari member Loyalty Pool.' });
+    } finally {
+      setCartLookupLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!storeInfo.loyaltyPoolId || !cartCustomerPhone.trim()) {
+      setCartPoolPreview(null);
+      return;
+    }
+    const itemsList = Object.values(posCart);
+    if (itemsList.length === 0) {
+      setCartPoolPreview(null);
+      return;
+    }
+    refreshCartPoolPreview(cartCustomerPhone, cartCustomerName, cartRedeemPoints, posCart, activeCartPromo);
+  }, [posCart, activeCartPromo, cartRedeemPoints, storeInfo.merchantId, storeInfo.loyaltyPoolId]);
+
   const renderCartSummaryContent = () => {
     const posCartItems = Object.values(posCart);
     const posCartSubtotal = posCartItems.reduce((s, it) => s + (it.product.price * it.qty), 0);
     const posPromoDiscount = activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0;
-    const posFinalTotal = Math.max(0, posCartSubtotal - posPromoDiscount);
+    const activeNotaFee = Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25));
+    const activeBillingTier = storeInfo.billingTier || (storeInfo.loyaltyPoolId ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT');
+    const posPointDiscount = Number(cartPoolPreview?.pointDiscountIdr || 0);
+    const posFinalTotal = Math.max(0, posCartSubtotal - posPromoDiscount - posPointDiscount);
     const numCashReceived = Number(posCashReceived.replace(/\D/g, '')) || 0;
     const cashChange = Math.max(0, numCashReceived - posFinalTotal);
 
@@ -3299,7 +3391,180 @@ export default function Kasir({ user }) {
               </div>
             )}
 
-            {/* DEF-10: Rincian Biaya Transparan (Rp 40 flat + Rp 60 held escrow per nota) */}
+            {/* Track A: Shared Loyalty Pool Member Lookup & Tukar Poin / Tier 1 Notice */}
+            {storeInfo.loyaltyPoolId ? (
+              <div style={{
+                background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.12)',
+                border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.35)',
+                borderRadius: '10px',
+                padding: '8px 9px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Award size={13} color="#2563eb" />
+                    <span style={{ fontSize: '0.73rem', fontWeight: 800, color: textPrimary }}>
+                      Pool: {storeInfo.loyaltyPoolName || 'Loyalty Pool'}
+                    </span>
+                  </div>
+                  <ActionTutorialBadge
+                    title="Kumpul & Tukar Poin Pool"
+                    description="Masukkan nomor HP/WA pelanggan untuk mengumpulkan poin otomatis atau menukar saldo poin dari toko mana pun di pool ini."
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                  <input
+                    type="tel"
+                    placeholder="No. HP/WA Member (opsional)..."
+                    value={cartCustomerPhone}
+                    onChange={e => setCartCustomerPhone(e.target.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      padding: '5px 7px',
+                      borderRadius: '7px',
+                      fontSize: '0.73rem',
+                      border: `1px solid ${borderColor}`,
+                      background: bgCard,
+                      color: textPrimary
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleLookupCartMember}
+                    disabled={cartLookupLoading}
+                    style={{
+                      padding: '5px 9px',
+                      borderRadius: '7px',
+                      border: 'none',
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: cartLookupLoading ? 'wait' : 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {cartLookupLoading ? '...' : 'Cek Poin'}
+                  </button>
+                </div>
+
+                {cartPoolPreview?.canonicalPhone && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '5px',
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    background: bgCard,
+                    border: `1px solid ${borderColor}`,
+                    fontSize: '0.71rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, color: textPrimary }}>
+                        {cartPoolPreview.customerName || 'Member'} • Saldo: <strong style={{ color: '#16a34a' }}>{cartPoolPreview.currentPoolBalance} poin</strong>
+                      </span>
+                      <span style={{ color: '#0284c7', fontWeight: 700 }}>
+                        +{cartPoolPreview.pointsEarned} poin baru
+                      </span>
+                    </div>
+
+                    {cartPoolPreview.maxRedeemablePoints > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ color: textSecondary }}>Tukar poin:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={cartPoolPreview.maxRedeemablePoints}
+                          value={cartRedeemPoints}
+                          onChange={e => {
+                            const val = Math.max(0, Math.min(cartPoolPreview.maxRedeemablePoints, Math.floor(Number(e.target.value) || 0)));
+                            setCartRedeemPoints(val);
+                          }}
+                          style={{
+                            width: '68px',
+                            padding: '3px 6px',
+                            borderRadius: '6px',
+                            border: `1px solid ${borderColor}`,
+                            background: bgCard,
+                            color: textPrimary,
+                            fontSize: '0.72rem',
+                            fontWeight: 700
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCartRedeemPoints(cartPoolPreview.maxRedeemablePoints)}
+                          style={{
+                            padding: '3px 7px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                            color: '#16a34a',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Maks ({cartPoolPreview.maxRedeemablePoints})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 9px',
+                borderRadius: '9px',
+                background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${borderColor}`,
+                fontSize: '0.71rem'
+              }}>
+                <span style={{ color: textSecondary, fontWeight: 700 }}>
+                  Tier 1 Flat (Rp 25/nota • Fitur Poin Nonaktif)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoyaltySubTab('pools');
+                    setActiveTab('loyalty');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#2563eb',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0
+                  }}
+                >
+                  Atur Pool
+                </button>
+              </div>
+            )}
+
+            {posPointDiscount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 700 }}>
+                <span>Tukar {cartRedeemPoints} Poin Loyalty Pool:</span>
+                <span style={{ fontFamily: 'var(--font-mono)' }}>
+                  -Rp {posPointDiscount.toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+
+            {/* Rincian Tarif Nota Transparan: Tier 1 Rp 25 vs Tier 2 Rp 100 */}
             <div style={{
               background: isLight ? '#f8fafc' : 'rgba(0,0,0,0.15)',
               padding: '6px 8px',
@@ -3309,17 +3574,31 @@ export default function Kasir({ user }) {
               flexDirection: 'column',
               gap: '3px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary, fontSize: '0.72rem' }}>
-                <span>Biaya Layanan POS & Cloud:</span>
-                <span style={{ fontFamily: 'var(--font-mono)' }}>Rp 40</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontSize: '0.72rem' }}>
-                <span>Deposit Promo Poin (100% Refundable):</span>
-                <span style={{ fontFamily: 'var(--font-mono)' }}>Rp 60</span>
-              </div>
-              <div style={{ fontSize: '0.64rem', color: textSecondary, fontStyle: 'italic', textAlign: 'right' }}>
-                *Dipotong 1 kuota nota toko. Refund Rp 60 otomatis kembali di jam 00:01 jika nota unclaimed.
-              </div>
+              {activeBillingTier === 'TIER_2_LOYALTY' ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary, fontSize: '0.72rem' }}>
+                    <span>Biaya Layanan POS &amp; Cloud:</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>Rp 40</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontSize: '0.72rem' }}>
+                    <span>Deposit Shared Pool ({storeInfo.loyaltyPoolName || 'Aktif'}):</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>Rp 60</span>
+                  </div>
+                  <div style={{ fontSize: '0.64rem', color: textSecondary, textAlign: 'right' }}>
+                    Tier 2 Loyalty Pool aktif: total Rp 100 / nota (pelanggan mendapat poin lintas toko).
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: textPrimary, fontSize: '0.72rem', fontWeight: 700 }}>
+                    <span>Tarif Flat Nota Tier 1 (Tanpa Poin):</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: '#16a34a' }}>Rp 25 / nota</span>
+                  </div>
+                  <div style={{ fontSize: '0.64rem', color: textSecondary, textAlign: 'right' }}>
+                    Hemat Rp 75/transaksi saat toko belum terhubung ke Loyalty Pool.
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{
@@ -3500,21 +3779,21 @@ export default function Kasir({ user }) {
               alignItems: 'center',
               padding: '6px 8px',
               borderRadius: '8px',
-              background: Number(storeInfo.saldoNota ?? 5000) < 100 
+              background: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
                 ? 'rgba(239, 68, 68, 0.12)' 
                 : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)'),
-              border: Number(storeInfo.saldoNota ?? 5000) < 100 
+              border: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
                 ? '1px solid #ef4444' 
                 : '1px solid rgba(16, 185, 129, 0.25)',
               marginTop: '4px',
               fontSize: '0.72rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#d97706'} />
-                <span style={{ fontWeight: 700, color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981' }}>
-                  {Number(storeInfo.saldoNota ?? 5000) < 100
+                <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < activeNotaFee ? '#ef4444' : '#d97706'} />
+                <span style={{ fontWeight: 700, color: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee ? '#ef4444' : '#10b981' }}>
+                  {Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
                     ? `Saldo Nota: Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')} (Habis!)`
-                    : `Sisa Nota: ${storeInfo.kuotaNota ?? 50} lembar`}
+                    : `Sisa Nota: ${storeInfo.kuotaNota ?? Math.floor(Number(storeInfo.saldoNota ?? 5000) / activeNotaFee)} lbr (@ Rp ${activeNotaFee})`}
                 </span>
               </div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -3536,12 +3815,41 @@ export default function Kasir({ user }) {
                 </button>
                 <ActionTutorialBadge
                   title="Top Up Saldo Kuota Nota"
-                  description="Setiap transaksi tunai memotong saldo nota Rp 100. Isi ulang di sini agar transaksi kasir tidak terhenti."
+                  description={`Setiap transaksi memotong saldo nota sesuai tier toko saat ini (Rp ${activeNotaFee}/nota). Isi ulang di sini agar operasional kasir lancar.`}
                   size="sm"
                   isLight={isLight}
                 />
               </div>
             </div>
+
+            {posCheckoutFeedback && (
+              <div style={{
+                padding: '7px 9px',
+                borderRadius: '8px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '6px',
+                background: posCheckoutFeedback.type === 'error'
+                  ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)')
+                  : (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)'),
+                color: posCheckoutFeedback.type === 'error'
+                  ? (isLight ? '#991b1b' : '#fca5a5')
+                  : (isLight ? '#166534' : '#86efac'),
+                border: `1px solid ${posCheckoutFeedback.type === 'error' ? '#fca5a5' : '#86efac'}`
+              }}>
+                <span>{posCheckoutFeedback.text}</span>
+                <button
+                  type="button"
+                  onClick={() => setPosCheckoutFeedback(null)}
+                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '1px' }}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
 
             {/* Manual Cash Drawer Quick Kick Button */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
@@ -3579,49 +3887,100 @@ export default function Kasir({ user }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Kosongkan semua item di keranjang?')) {
-                      setPosCart({});
-                      setActiveCartPromo(null);
-                      setPosCashReceived('');
-                      if (showMobileCartDrawer) setShowMobileCartDrawer(false);
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#f1f5f9' : '#1e293b',
-                    color: textSecondary,
-                    fontWeight: 700,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Kosongkan
-                </button>
-                <ActionTutorialBadge
-                  title="Kosongkan Keranjang"
-                  description="Menghapus seluruh menu yang ada di keranjang kasir saat ini untuk memulai pesanan baru."
-                  size="sm"
-                  isLight={isLight}
-                />
+                {confirmClearCart ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPosCart({});
+                        setActiveCartPromo(null);
+                        setPosCashReceived('');
+                        setCartCustomerPhone('');
+                        setCartCustomerName('');
+                        setCartMemberLookup(null);
+                        setCartRedeemPoints(0);
+                        setCartPoolPreview(null);
+                        setConfirmClearCart(false);
+                        if (showMobileCartDrawer) setShowMobileCartDrawer(false);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '9px 8px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#dc2626',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Ya, Kosongkan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClearCart(false)}
+                      style={{
+                        padding: '9px 8px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f1f5f9' : '#1e293b',
+                        color: textSecondary,
+                        fontWeight: 700,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Batal
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClearCart(true)}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f1f5f9' : '#1e293b',
+                        color: textSecondary,
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Kosongkan
+                    </button>
+                    <ActionTutorialBadge
+                      title="Kosongkan Keranjang"
+                      description="Menghapus seluruh menu yang ada di keranjang kasir saat ini untuk memulai pesanan baru."
+                      size="sm"
+                      isLight={isLight}
+                    />
+                  </>
+                )}
               </div>
 
               <button
                 type="button"
                 onClick={async () => {
-                  if (Number(storeInfo.saldoNota ?? 5000) < 100) {
+                  setPosCheckoutFeedback(null);
+                  if (Number(storeInfo.saldoNota ?? 5000) < activeNotaFee) {
                     setShowPosTopupModal(true);
-                    alert(`Saldo nota toko tidak mencukupi untuk transaksi kasir (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp 100). Silakan top up saldo nota terlebih dahulu.`);
+                    setPosCheckoutFeedback({
+                      type: 'error',
+                      text: `Saldo nota toko tidak mencukupi (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp ${activeNotaFee.toLocaleString('id-ID')}). Silakan top up saldo nota.`
+                    });
                     return;
                   }
 
                   if (posPaymentMethod === 'CASH' && numCashReceived > 0 && numCashReceived < posFinalTotal) {
-                    alert(`Uang tunai yang diterima kurang dari total tagihan (Kurang Rp ${(posFinalTotal - numCashReceived).toLocaleString('id-ID')}).`);
+                    setPosCheckoutFeedback({
+                      type: 'error',
+                      text: `Uang tunai diterima kurang Rp ${(posFinalTotal - numCashReceived).toLocaleString('id-ID')} dari total tagihan.`
+                    });
                     return;
                   }
 
@@ -3640,7 +3999,9 @@ export default function Kasir({ user }) {
                     body: JSON.stringify({
                       tableToken: null,
                       tableNumber: 'Menunggu Meja',
-                      customerName: 'Kasir Walk-in',
+                      customerName: cartCustomerName.trim() || (cartCustomerPhone.trim() ? `Member ${cartCustomerPhone.trim()}` : 'Kasir Walk-in'),
+                      customerPhone: cartCustomerPhone.trim() || undefined,
+                      redeemPoints: cartRedeemPoints > 0 ? cartRedeemPoints : 0,
                       storeId: storeInfo.merchantId || storeInfo.uid || undefined,
                       storeName: storeInfo.storeName || undefined,
                       cashierId: user?.id || 'KSR-01',
@@ -3670,12 +4031,18 @@ export default function Kasir({ user }) {
                     const payData = await payRes.json();
                     if (!payRes.ok) {
                       if (payData.requiresTopupNota) setShowPosTopupModal(true);
-                      alert(payData.error || 'Gagal memproses pembayaran');
+                      setPosCheckoutFeedback({ type: 'error', text: payData.error || 'Gagal memproses pembayaran.' });
                       return;
                     }
                     setPosCart({});
                     setActiveCartPromo(null);
                     setPosCashReceived('');
+                    setCartCustomerPhone('');
+                    setCartCustomerName('');
+                    setCartMemberLookup(null);
+                    setCartRedeemPoints(0);
+                    setCartPoolPreview(null);
+                    setConfirmClearCart(false);
                     if (showMobileCartDrawer) setShowMobileCartDrawer(false);
                     fetchData();
                     loadPromos();
@@ -3697,6 +4064,11 @@ export default function Kasir({ user }) {
                       invoice_number: newO.invoice || newO.invoice_number || newO.id,
                       totalAmount: posFinalTotal,
                       subtotal: posCartSubtotal,
+                      pointDiscountIdr: posPointDiscount,
+                      pointsRedeemed: newO.pointsRedeemed || 0,
+                      pointsEarned: newO.pointsEarned || 0,
+                      loyaltyPoolName: newO.loyaltyPoolName || storeInfo.loyaltyPoolName || null,
+                      billingTier: newO.billing_tier || activeBillingTier,
                       paymentMethod: posPaymentMethod === 'CASH' ? 'TUNAI (CASH)' : posPaymentMethod === 'QRIS' ? 'QRIS DINAMIS' : 'TRANSFER BANK',
                       cashReceived: effectiveCashReceived,
                       cashChange: effectiveChange,
@@ -3728,7 +4100,7 @@ export default function Kasir({ user }) {
                     });
                   } else {
                     const err = await res.json();
-                    alert(err.error || 'Gagal membuat pesanan');
+                    setPosCheckoutFeedback({ type: 'error', text: err.error || 'Gagal membuat pesanan.' });
                   }
                 }}
                 style={{
@@ -3736,17 +4108,17 @@ export default function Kasir({ user }) {
                   padding: '10px 14px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: Number(storeInfo.saldoNota ?? 5000) < 100
+                  background: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
                     ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
                     : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: '#ffffff',
                   fontWeight: 800,
                   fontSize: '0.82rem',
                   cursor: 'pointer',
-                  boxShadow: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  boxShadow: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
                 }}
               >
-                {Number(storeInfo.saldoNota ?? 5000) < 100 
+                {Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
                   ? 'Top Up Nota' 
                   : posPaymentMethod === 'CASH'
                     ? `Bayar Tunai Rp ${posFinalTotal.toLocaleString('id-ID')}`
@@ -3756,11 +4128,11 @@ export default function Kasir({ user }) {
               </button>
               <ActionTutorialBadge
                 title="Proses & Validasi Pembayaran"
-                description="Membuat nota pesanan, memotong saldo nota Rp 100 (khusus Tunai), membuka laci kasir otomatis, lalu menampilkan struk untuk dicetak."
+                description={`Membuat nota pesanan, memotong biaya nota Rp ${activeNotaFee} (${activeBillingTier === 'TIER_2_LOYALTY' ? 'Tier 2 Poin' : 'Tier 1 Flat'}), membuka laci kasir otomatis, lalu menampilkan struk untuk dicetak.`}
                 steps={[
                   'Pastikan metode bayar (Tunai / QRIS / Transfer) sudah dipilih.',
-                  'Untuk tunai, isi nominal uang diterima lalu tekan Bayar Tunai.',
-                  'Pilih nomor meja pelanggan pada dialog yang muncul.'
+                  'Jika toko terhubung ke Loyalty Pool, isi No. HP member bila ingin kumpul/tukar poin.',
+                  'Tekan tombol Bayar lalu pilih nomor meja pelanggan pada dialog yang muncul.'
                 ]}
                 size="sm"
                 isLight={isLight}
@@ -4555,12 +4927,12 @@ export default function Kasir({ user }) {
                   }}
                   title="Klik untuk Top Up Saldo Kuota Nota Kasir"
                 >
-                  <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#d97706'} />
-                  <span>{storeInfo.kuotaNota ?? 50}</span>
+                  <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25)) ? '#ef4444' : '#d97706'} />
+                  <span>{storeInfo.kuotaNota ?? 200}</span>
                   <span style={{
                     fontSize: '0.62rem',
                     fontWeight: 900,
-                    background: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#2563eb',
+                    background: Number(storeInfo.saldoNota ?? 5000) < Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25)) ? '#ef4444' : '#2563eb',
                     color: '#ffffff',
                     padding: '1px 5px',
                     borderRadius: '999px',
@@ -4569,7 +4941,7 @@ export default function Kasir({ user }) {
                 </button>
                 <ActionTutorialBadge
                   title="Kuota & Top Up Saldo Nota"
-                  description="Menampilkan sisa transaksi tunai toko aktif. Biaya sistem Rp 100 per nota tunai. Klik chip ini untuk mengisi saldo via QRIS/VA."
+                  description={`Menampilkan sisa kuota nota toko aktif (${storeInfo.loyaltyPoolId ? `Tier 2 Pool: Rp 100/nota` : `Tier 1 Flat: Rp 25/nota`}). Klik chip ini untuk isi ulang saldo nota.`}
                   size="sm"
                   isLight={isLight}
                 />
@@ -5124,14 +5496,45 @@ export default function Kasir({ user }) {
                     <Unlock size={16} />
                     <span>Buka Shift Baru</span>
                   </button>
-                  <ActionTutorialBadge
-                    title="Buka Shift Kasir Baru"
-                    description="Memulai sesi kerja kasir baru dengan mencatat nama kasir bertugas dan nominal modal awal (uang kembalian) di laci."
-                    size="sm"
-                    isLight={isLight}
-                  />
-                </div>
-              )}
+                    <ActionTutorialBadge
+                      title="Buka Shift Kasir Baru"
+                      description="Memulai sesi kerja kasir baru dengan mencatat nama kasir bertugas dan nominal modal awal (uang kembalian) di laci."
+                      size="sm"
+                      isLight={isLight}
+                    />
+                  </div>
+                )}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInventoryTab('forecast');
+                    setActiveTab('inventory');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 13px',
+                    borderRadius: '10px',
+                    border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.35)',
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)',
+                    color: isLight ? '#1d4ed8' : '#93c5fd',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <TrendingUp size={15} />
+                  <span>Demand Forecast (ML)</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Buka Demand & Sales Forecasting ML"
+                  description="Melihat proyeksi penjualan SKU rentang P10–P90 untuk Besok (H+1), Minggu Depan (H+7), dan Bulan Depan (H+30) beserta rekomendasi restock."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
             </div>
           </div>
 
@@ -7894,7 +8297,7 @@ export default function Kasir({ user }) {
                 Order Kasir Walk-in
               </div>
               <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-                Rp {Math.max(0, Object.values(posCart).reduce((s, it) => s + (it.product.price * it.qty), 0) - (activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0)).toLocaleString('id-ID')}
+                Rp {Math.max(0, Object.values(posCart).reduce((s, it) => s + (it.product.price * it.qty), 0) - (activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0) - Number(cartPoolPreview?.pointDiscountIdr || 0)).toLocaleString('id-ID')}
               </div>
             </div>
           </div>
@@ -10650,6 +11053,35 @@ export default function Kasir({ user }) {
               <ChefHat size={15} />
               <span>Resep Menu &amp; HPP Otomatis ({recipesList.length})</span>
             </button>
+
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '-2px' }}>
+              <button
+                type="button"
+                onClick={() => setInventoryTab('forecast')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  border: 'none',
+                  borderBottom: inventoryTab === 'forecast' ? '2.5px solid #2563eb' : '2.5px solid transparent',
+                  background: 'transparent',
+                  color: inventoryTab === 'forecast' ? '#2563eb' : textSecondary,
+                  fontSize: '0.82rem',
+                  fontWeight: inventoryTab === 'forecast' ? 800 : 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <TrendingUp size={15} />
+                <span>Demand Forecast (ML)</span>
+              </button>
+              <ActionTutorialBadge
+                title="Demand & Sales Forecasting (LightGBM)"
+                description="Memprediksi kebutuhan stok SKU H+1, H+7, dan H+30 rentang P10–P90 dengan koreksi hari habis stok (is_stockout) dan WMAPE backtest guard."
+                size="sm"
+                isLight={isLight}
+              />
+            </div>
           </div>
 
           {/* ── SUB-TAB 1: DAFTAR SEMUA STOK BAHAN BAKU ── */}
@@ -11084,6 +11516,15 @@ export default function Kasir({ user }) {
                 );
               })()}
             </div>
+          )}
+
+          {/* ── SUB-TAB 3: DEMAND & SALES FORECASTING (ML LIGHTGBM) ── */}
+          {inventoryTab === 'forecast' && (
+            <DemandForecastPanel
+              storeInfo={storeInfo}
+              user={user}
+              isLight={isLight}
+            />
           )}
         </main>
       )}
@@ -11674,10 +12115,89 @@ export default function Kasir({ user }) {
         return (
           <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {renderManajemenHeader(
-              'Program Stamp & Loyalti Member',
-              'Cari pelanggan via nomor WhatsApp untuk melihat kartu 5-stamp, menukar hadiah, dan memberi bonus poin loyalitas.',
-              <Award size={20} color="#d97706" />
+              'Program Loyalty Pools & Kartu Stamp Member',
+              'Kelola Multiple Shared Loyalty Pools (Tier 2 Rp 100/nota), hubungkan cabang ke pool, pantau tarif Tier 1 (Rp 25/nota), serta kelola kartu 5-stamp member.',
+              <Award size={20} color="#2563eb" />
             )}
+
+            {/* Sub-tab Switcher: Multiple Shared Pools vs Kartu 5-Stamp */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              borderBottom: `1.5px solid ${borderColor}`,
+              paddingBottom: '6px'
+            }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setLoyaltySubTab('pools')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: loyaltySubTab === 'pools' ? '#2563eb' : (isLight ? '#f1f5f9' : '#1e293b'),
+                    color: loyaltySubTab === 'pools' ? '#ffffff' : textPrimary,
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Layers size={15} />
+                  <span>Multiple Shared Pools (Rp 100 vs Rp 25)</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Shared Loyalty Pools & Billing Tiers"
+                  description="Atur banyak pool loyalti per owner (misal Kuliner & Otomotif), hubungkan toko ke pool, dan pantau pemisahan biaya Tier 1 (Rp 25/nota) vs Tier 2 (Rp 100/nota)."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
+
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setLoyaltySubTab('stamps')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: loyaltySubTab === 'stamps' ? '#2563eb' : (isLight ? '#f1f5f9' : '#1e293b'),
+                    color: loyaltySubTab === 'stamps' ? '#ffffff' : textPrimary,
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Gift size={15} />
+                  <span>Kartu 5-Stamp &amp; Bonus</span>
+                </button>
+                <ActionTutorialBadge
+                  title="Kartu 5-Stamp & Bonus WA"
+                  description="Kelola kartu cap 5 kunjungan per nomor WhatsApp dan kirim bonus poin manual."
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
+            </div>
+
+            {loyaltySubTab === 'pools' && (
+              <LoyaltyPoolsPanel
+                storeInfo={storeInfo}
+                user={user}
+                isLight={isLight}
+                onStoreBillingUpdated={fetchData}
+              />
+            )}
+
+            {loyaltySubTab === 'stamps' && (
+            <>
 
             {loyaltyFeedback && (
               <div style={{
@@ -11987,6 +12507,8 @@ export default function Kasir({ user }) {
                   Masukkan nomor WA pelanggan di kotak atas lalu tekan <strong>Cari Member</strong> untuk mengelola kartu stamp (5x kunjungan gratis hadiah) dan poin member.
                 </p>
               </div>
+            )}
+            </>
             )}
           </main>
         );
@@ -14381,7 +14903,9 @@ export default function Kasir({ user }) {
                 <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: textSecondary }}>
                   {tripayTopupData 
                     ? 'Pindai barcode QRIS resmi atau buka halaman checkout TriPay (T53543).'
-                    : 'Harga flat: Rp 100 / Lembar Nota (Dibutuhkan untuk transaksi kasir tunai).'}
+                    : (storeInfo.loyaltyPoolId
+                        ? `Tarif Tier 2 (Shared Loyalty Pool): Rp 100 / Lembar Nota.`
+                        : `Tarif Tier 1 Flat (Tanpa Fitur Poin): Rp 25 / Lembar Nota.`)}
                 </p>
               </div>
               <button

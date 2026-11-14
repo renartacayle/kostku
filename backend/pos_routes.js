@@ -6,6 +6,27 @@
 const express = require('express');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
+const {
+  TIER_1_FEE_IDR,
+  TIER_2_FEE_IDR,
+  ensureLoyaltyCollections,
+  buildAuthorizedOwnerAliasSet,
+  doesOwnerOwnMerchant,
+  doesOwnerOwnPool,
+  getStoreBillingProfile,
+  previewPoolCheckout,
+  commitPoolCheckoutLoyalty,
+  reverseOrderPoolPoints,
+  deductStoreNotaFeeOnce,
+  findOrCreateLoyaltyCustomer,
+  normalizePhoneDigits
+} = require('./loyalty_pool_engine');
+const {
+  runAndCacheForecastBatch,
+  getCachedForecastBundle,
+  formatStoreForecastApiResponse,
+  toWibDateStr
+} = require('./forecast_bridge');
 
 function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDeltaToFirebase }) {
   const router = express.Router();
@@ -104,6 +125,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     db.customer_points = db.customer_points || {};
     db.customer_stamps = db.customer_stamps || {};
     db.pos_spin_logs = db.pos_spin_logs || [];
+    ensureLoyaltyCollections(db);
     db.pos_redeem_codes = db.pos_redeem_codes || [
       {
         id: 'REDEEM-KASIR-50',
@@ -641,10 +663,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   };
 
   // ── 0. STORE & CASHIER LOCATION (MULTI-STORE PER OWNER ENGINE) ─────────
-  const serializeOwnerStore = (m) => {
+  const serializeOwnerStore = (m, db = null) => {
     if (!m) return null;
+    const profile = getStoreBillingProfile(db || { loyalty_pools: [] }, m);
     const saldo = Number(m.saldoNota ?? 5000);
-    const kuota = Number(m.kuotaNota ?? Math.max(0, Math.floor(saldo / 100)));
+    const kuota = Math.max(0, Math.floor(saldo / profile.notaFeeIdr));
     return {
       id: m.id,
       name: m.name || 'Toko Mitra',
@@ -659,6 +682,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       icon: '',
       saldoNota: saldo,
       kuotaNota: kuota,
+      loyalty_pool_id: profile.loyaltyPoolId,
+      loyaltyPoolId: profile.loyaltyPoolId,
+      loyaltyPoolName: profile.loyaltyPoolName,
+      billingTier: profile.billingTier,
+      notaFeePerNotaIdr: profile.notaFeeIdr,
       isValidated: Boolean((m.name || m.storeName) && (typeof m.location === 'string' ? m.location : m.address || m.storeLocation)),
       isPosStore: Boolean(m.isPosStore),
       ownerUserId: m.ownerUserId || null,
@@ -682,7 +710,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const pushStore = (m) => {
       if (!m || !m.id || seen.has(String(m.id))) return;
       seen.add(String(m.id));
-      list.push(serializeOwnerStore(m));
+      list.push(serializeOwnerStore(m, db));
     };
 
     if (currentMerchant) {
@@ -706,16 +734,17 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   const buildActiveStorePayload = (db, currentMerchant, requestedOwnerId = null) => {
     const store = db.settings.posStore || {};
     const target = currentMerchant || (db.merchants || []).find(m => String(m.id) === String(store.merchantId || store.uid)) || (db.merchants || []).find(m => m.status !== 'deleted');
+    const billingProfile = getStoreBillingProfile(db, target || store);
 
     if (target) {
       if (target.saldoNota === undefined) target.saldoNota = 5000;
-      if (target.kuotaNota === undefined) target.kuotaNota = Math.max(0, Math.floor(Number(target.saldoNota) / 100));
+      target.kuotaNota = Math.max(0, Math.floor(Number(target.saldoNota) / billingProfile.notaFeeIdr));
       target.notaHistory = target.notaHistory || [];
     }
 
     const activeUid = target ? target.id : (store.merchantId || store.uid || 'MTR-KASIR-MASTER');
     const currentSaldoNota = target ? Number(target.saldoNota ?? 5000) : Number(store.saldoNota ?? 5000);
-    const currentKuotaNota = target ? Number(target.kuotaNota ?? Math.floor(currentSaldoNota / 100)) : Number(store.kuotaNota ?? 50);
+    const currentKuotaNota = Math.max(0, Math.floor(currentSaldoNota / billingProfile.notaFeeIdr));
 
     const resolvedName = (target && target.name) || store.storeName || 'Kantin Berkah Kost';
     const resolvedLocation =
@@ -748,6 +777,12 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       isValidated: isValid,
       saldoNota: currentSaldoNota,
       kuotaNota: currentKuotaNota,
+      loyalty_pool_id: billingProfile.loyaltyPoolId,
+      loyaltyPoolId: billingProfile.loyaltyPoolId,
+      loyaltyPoolName: billingProfile.loyaltyPoolName,
+      loyaltyPool: billingProfile.activePool,
+      billingTier: billingProfile.billingTier,
+      notaFeePerNotaIdr: billingProfile.notaFeeIdr,
       notaHistory: target?.notaHistory || [],
       allOwnerStores,
       updatedAt: target?.updatedAt || store.updatedAt || null
@@ -941,7 +976,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         latitude: Number.isFinite(parsedLat) ? parsedLat : null,
         longitude: Number.isFinite(parsedLng) ? parsedLng : null,
         saldoNota: 5000,
-        kuotaNota: 50,
+        kuotaNota: Math.floor(5000 / TIER_1_FEE_IDR),
+        loyalty_pool_id: null,
+        billing_tier: 'TIER_1_FLAT',
         isValidated: true,
         updatedAt: nowIso
       };
@@ -955,7 +992,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         ? `Toko baru "${cleanName}" berhasil dibuat dengan ${clonedProductsCount} menu hasil clone!`
         : `Toko baru "${cleanName}" berhasil dibuat!`,
       clonedProductsCount,
-      createdStore: serializeOwnerStore(newStore),
+      createdStore: serializeOwnerStore(newStore, db),
       store: activePayload,
       allOwnerStores: activePayload.allOwnerStores
     });
@@ -990,7 +1027,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       const remaining = ownerStores.filter(s => String(s.id) !== targetId);
       nextActive = remaining.length > 0 ? db.merchants.find(m => String(m.id) === String(remaining[0].id)) : null;
       if (nextActive) {
-        const nextSer = serializeOwnerStore(nextActive);
+        const nextSer = serializeOwnerStore(nextActive, db);
         db.settings.posStore = {
           uid: nextSer.id,
           merchantId: nextSer.id,
@@ -1005,6 +1042,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           longitude: nextSer.longitude,
           saldoNota: nextSer.saldoNota,
           kuotaNota: nextSer.kuotaNota,
+          loyaltyPoolId: nextSer.loyaltyPoolId,
+          loyaltyPoolName: nextSer.loyaltyPoolName,
+          billingTier: nextSer.billingTier,
+          notaFeePerNotaIdr: nextSer.notaFeePerNotaIdr,
           isValidated: true,
           updatedAt: new Date().toISOString()
         };
@@ -1118,9 +1159,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     }
 
     if (target.saldoNota === undefined) target.saldoNota = 5000;
-    if (target.kuotaNota === undefined) target.kuotaNota = Math.max(0, Math.floor(target.saldoNota / 100));
+    const billingProfileSwitch = getStoreBillingProfile(db, target);
+    target.kuotaNota = Math.max(0, Math.floor(Number(target.saldoNota) / billingProfileSwitch.notaFeeIdr));
 
-    const ser = serializeOwnerStore(target);
+    const ser = serializeOwnerStore(target, db);
     db.settings.posStore = {
       uid: ser.id,
       merchantId: ser.id,
@@ -1135,6 +1177,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       longitude: ser.longitude,
       saldoNota: ser.saldoNota,
       kuotaNota: ser.kuotaNota,
+      loyaltyPoolId: ser.loyaltyPoolId,
+      loyaltyPoolName: ser.loyaltyPoolName,
+      billingTier: ser.billingTier,
+      notaFeePerNotaIdr: ser.notaFeePerNotaIdr,
       isValidated: true,
       updatedAt: new Date().toISOString()
     };
@@ -1175,7 +1221,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     }
 
-    const NOTA_PRICE = 100;
+    const storeProfileTopup = getStoreBillingProfile(db, merchant);
+    const NOTA_PRICE = storeProfileTopup.notaFeeIdr;
     const topupAmount = Number(amount) > 0 
       ? Number(amount) 
       : (Number(notaCount) > 0 ? Number(notaCount) * NOTA_PRICE : 5000);
@@ -1196,6 +1243,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       channel: 'POS Kasir Top Up',
       amount: topupAmount,
       addedNota,
+      notaFeePerNotaIdr: NOTA_PRICE,
+      billingTier: storeProfileTopup.billingTier,
       balanceAfter: merchant.saldoNota,
       paymentMethod: paymentMethod || 'qris_pos',
       status: 'success',
@@ -1203,14 +1252,30 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     };
 
     merchant.notaHistory.unshift(record);
+    db.nota_billing_ledger.unshift({
+      id: `NBL-TOPUP-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      store_id: String(merchant.id),
+      store_name: merchant.name || 'Toko POS',
+      order_id: null,
+      invoice_number: record.id,
+      loyalty_pool_id: storeProfileTopup.loyaltyPoolId,
+      loyalty_pool_name: storeProfileTopup.loyaltyPoolName,
+      billing_tier: storeProfileTopup.billingTier,
+      entry_type: 'TOP_UP',
+      amount_idr: topupAmount,
+      balance_after: merchant.saldoNota,
+      channel: 'POS Kasir Top Up',
+      created_at: record.createdAt
+    });
     writeDB(db, req);
 
     res.json({
       success: true,
       saldoNota: merchant.saldoNota,
       kuotaNota: merchant.kuotaNota,
+      notaFeePerNotaIdr: NOTA_PRICE,
       addedNota,
-      message: `Top up kasir berhasil! +${addedNota} lembar nota ditambahkan ke saldo toko.`
+      message: `Top up kasir berhasil! +${addedNota} lembar nota (@ Rp ${NOTA_PRICE}/nota) ditambahkan ke saldo toko.`
     });
   });
 
@@ -1237,7 +1302,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     }
 
-    const NOTA_PRICE = 100;
+    const NOTA_PRICE = getStoreBillingProfile(db, merchant).notaFeeIdr;
     const chosenAmount = Number(amount) > 0 ? Number(amount) : (Number(quota) > 0 ? Number(quota) * NOTA_PRICE : 10000);
     const chosenQuota = Number(quota) > 0 ? Number(quota) : Math.max(1, Math.floor(chosenAmount / NOTA_PRICE));
     const reference = 'TRIPAY-NOTA-' + Date.now();
@@ -1401,7 +1466,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     }
 
-    const NOTA_PRICE = 100;
+    const storeProfileVerify = getStoreBillingProfile(db, merchant);
+    const NOTA_PRICE = storeProfileVerify.notaFeeIdr;
     const topupAmount = Number(amount) > 0 ? Number(amount) : (Number(quota) > 0 ? Number(quota) * NOTA_PRICE : 10000);
     const addedNota = Number(quota) > 0 ? Number(quota) : Math.max(1, Math.floor(topupAmount / NOTA_PRICE));
 
@@ -1420,6 +1486,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       channel: 'TriPay Payment Gateway (QRIS)',
       amount: topupAmount,
       addedNota,
+      notaFeePerNotaIdr: NOTA_PRICE,
+      billingTier: storeProfileVerify.billingTier,
       balanceAfter: merchant.saldoNota,
       paymentMethod: 'TRIPAY_QRIS',
       status: 'PAID',
@@ -1427,6 +1495,21 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     };
 
     merchant.notaHistory.unshift(record);
+    db.nota_billing_ledger.unshift({
+      id: `NBL-TRIPAY-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      store_id: String(merchant.id),
+      store_name: merchant.name || 'Toko POS',
+      order_id: null,
+      invoice_number: record.id,
+      loyalty_pool_id: storeProfileVerify.loyaltyPoolId,
+      loyalty_pool_name: storeProfileVerify.loyaltyPoolName,
+      billing_tier: storeProfileVerify.billingTier,
+      entry_type: 'TOP_UP',
+      amount_idr: topupAmount,
+      balance_after: merchant.saldoNota,
+      channel: 'TriPay Payment Gateway (QRIS)',
+      created_at: record.createdAt
+    });
     writeDB(db, req);
 
     res.json({
@@ -2224,35 +2307,33 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       return res.status(400).json({ error: 'Item yang dipilih tidak valid di katalog' });
     }
 
-    // ATURAN POIN: Hanya pelanggan login yang berhak menukar atau mendapatkan poin!
-    const userIsLoggedIn = Boolean(isLoggedIn);
-    let pointsDiscount = 0;
-    const cleanPhone = String(customerPhone || '').replace(/\D/g, '');
-    let redeemAmount = 0;
-
-    if (userIsLoggedIn && cleanPhone) {
-      const userPoints = db.customer_points[cleanPhone] || (db.customers && db.customers[cleanPhone]?.total_points) || 0;
-      const requestedRedeem = Number(pointsToRedeem) || 0;
-      if (requestedRedeem > 0) {
-        if (userPoints < 100) {
-          return res.status(400).json({ error: `Penukaran poin minimal 100 Poin. Poin pelanggan saat ini: ${userPoints} Poin.` });
-        }
-        if (requestedRedeem < 100) {
-          return res.status(400).json({ error: 'Penukaran poin minimal 100 Poin (Rp 100).' });
-        }
-        redeemAmount = Math.min(requestedRedeem, userPoints);
-        // 1 Poin = Rp 1.00 diskon langsung
-        pointsDiscount = redeemAmount;
-        db.customer_points[cleanPhone] = Math.max(0, userPoints - redeemAmount);
-        if (db.customers && db.customers[cleanPhone]) {
-          db.customers[cleanPhone].total_points = db.customer_points[cleanPhone];
-        }
-      }
+    // ── IDENTIFIKASI TOKO & BILLING PROFILE (TIER 1 Rp 25 vs TIER 2 Rp 100) ──
+    const currentActiveStore = db.settings.posStore || {};
+    const storeId = req.body.storeId || currentActiveStore.merchantId || currentActiveStore.uid || 'MTR-KASIR-MASTER';
+    let resolvedMerchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(storeId))
+      || (db.merchants || []).find(m => m && m.status !== 'deleted');
+    if (!resolvedMerchant) {
+      resolvedMerchant = {
+        id: storeId,
+        name: req.body.storeName || currentActiveStore.storeName || 'Kantin Berkah Kost',
+        ownerUserId: currentActiveStore.ownerUserId || null,
+        loyalty_pool_id: currentActiveStore.loyaltyPoolId || null,
+        saldoNota: Number(currentActiveStore.saldoNota ?? 5000)
+      };
+    } else if (resolvedMerchant.saldoNota === undefined) {
+      resolvedMerchant.saldoNota = 5000;
     }
+    const storeName = req.body.storeName || resolvedMerchant.name || currentActiveStore.storeName || 'Kantin Berkah Kost';
+    const cashierId = req.body.cashierId || (req.body.user && req.body.user.id) || 'KSR-01';
+    const cashierName = req.body.cashierName || (req.body.user && req.body.user.name) || 'Siti Rahmawati (Kasir Shift Pagi)';
 
-    // ── PROMO MAKANAN BERKUOTA ATAU TANGGAL ──
+    const userIsLoggedIn = Boolean(isLoggedIn);
+    const cleanPhone = String(customerPhone || '').replace(/\D/g, '');
+
+    // ── PROMO MAKANAN BERKUOTA ATAU TANGGAL (validasi dulu sebelum mutasi) ──
     let promoDiscount = 0;
     let appliedPromo = null;
+    let appliedPromoObj = null;
 
     if (promoId || promoCode) {
       const pId = promoId ? String(promoId).trim() : null;
@@ -2269,7 +2350,6 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         return res.status(404).json({ error: 'Kode promo tidak ditemukan atau non-aktif' });
       }
 
-      // Check date expiration
       if (promo.limitType === 'DATE' || promo.limitType === 'BOTH') {
         if (promo.expiryDate) {
           const exp = new Date(promo.expiryDate + 'T23:59:59');
@@ -2279,7 +2359,6 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         }
       }
 
-      // Check quota exhaustion
       if (promo.limitType === 'QUOTA' || promo.limitType === 'BOTH') {
         const maxQ = Number(promo.maxQuota) || 0;
         const used = Number(promo.usedCount) || 0;
@@ -2288,13 +2367,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         }
       }
 
-      // Check minimum order
       const minOrder = Number(promo.minOrder) || 0;
       if (subtotal < minOrder) {
         return res.status(400).json({ error: `Minimum pembelanjaan untuk promo '${promo.code}' adalah Rp ${minOrder.toLocaleString('id-ID')}` });
       }
 
-      // Check specific item scope
       if (promo.scope === 'SPECIFIC_ITEM' && promo.targetProductId) {
         const targetItems = validatedItems.filter(it => it.productId === promo.targetProductId);
         const targetSubtotal = targetItems.reduce((s, it) => s + it.subtotal, 0);
@@ -2317,7 +2394,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
 
       if (promoDiscount > 0) {
-        promo.usedCount = (promo.usedCount || 0) + 1;
+        appliedPromoObj = promo;
         appliedPromo = {
           id: promo.id,
           code: promo.code,
@@ -2330,18 +2407,50 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     }
 
+    // ── PREVIEW SHARED LOYALTY POOL & TIERED BILLING FEE ──
+    const requestedRedeemPoints = Math.max(0, Math.floor(Number(req.body.redeemPoints ?? pointsToRedeem) || 0));
+    const poolPreview = previewPoolCheckout(db, {
+      merchant: resolvedMerchant,
+      customerPhone: cleanPhone,
+      customerName: cleanCustomerName,
+      redeemPoints: requestedRedeemPoints,
+      grossSubtotalIdr: subtotal,
+      otherDiscountIdr: promoDiscount
+    });
+
+    if (!poolPreview.ok) {
+      return res.status(poolPreview.status || 422).json({
+        error: poolPreview.error,
+        code: poolPreview.code
+      });
+    }
+
+    const billingTier = poolPreview.billingTier;
+    const billingFeeIdr = poolPreview.billingFeeIdr;
+    const currentSaldoBefore = Number(resolvedMerchant.saldoNota ?? 5000);
+
+    if (currentSaldoBefore < billingFeeIdr) {
+      return res.status(402).json({
+        error: `Saldo nota kasir tidak mencukupi (${billingTier === 'TIER_2_LOYALTY' ? 'Tier 2 Poin Rp 100/nota' : 'Tier 1 Flat Rp 25/nota'}). Silakan lakukan Top Up Saldo Nota terlebih dahulu.`,
+        requiresTopupNota: true,
+        kuotaNota: 0,
+        saldoNota: currentSaldoBefore,
+        billingTier,
+        neededNota: billingFeeIdr
+      });
+    }
+
+    const pointsDiscount = poolPreview.pointDiscountIdr || 0;
+    const redeemAmount = poolPreview.pointsRedeemed || 0;
     const finalTotalDiscount = pointsDiscount + promoDiscount;
-    const adminFee = 100; // Flat Rp 100 per transaksi
-    const platformFee = 0; // Rp 0 ke pelanggan
-    const ownerDeduction = adminFee; // Rp 100 dipotong dari omset owner
+    const adminFee = billingFeeIdr;
+    const platformFee = 0;
+    const ownerDeduction = billingFeeIdr;
     const totalAmount = Math.max(0, subtotal - finalTotalDiscount);
 
-    // ── IDENTIFIKASI CABANG & KARYAWAN KASIR ──
-    const currentActiveStore = db.settings.posStore || {};
-    const storeId = req.body.storeId || currentActiveStore.merchantId || currentActiveStore.uid || 'MTR-KASIR-MASTER';
-    const storeName = req.body.storeName || currentActiveStore.storeName || 'Kantin Berkah Kost';
-    const cashierId = req.body.cashierId || (req.body.user && req.body.user.id) || 'KSR-01';
-    const cashierName = req.body.cashierName || (req.body.user && req.body.user.name) || 'Siti Rahmawati (Kasir Shift Pagi)';
+    if (appliedPromoObj) {
+      appliedPromoObj.usedCount = (appliedPromoObj.usedCount || 0) + 1;
+    }
 
     // ── AUTO-DEDUCT INVENTORY STOK GUDANG (SETIAP MENU DI PESAN MENGURANGI GUDANG) ──
     const inventoryDeductions = [];
@@ -2371,93 +2480,27 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const claimToken = 'clm_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
     const qrClaimUrl = `https://kostku.riuph.me/claim?token=${claimToken}`;
 
-    const BASE_ADMIN_FEE = 40.00;
-    const HELD_PROMO_FEE = 60.00;
-    const TOTAL_ADMIN_DEDUCT = 100.00;
+    const BASE_ADMIN_FEE = billingTier === 'TIER_2_LOYALTY' ? 40.00 : 25.00;
+    const HELD_PROMO_FEE = billingTier === 'TIER_2_LOYALTY' ? 60.00 : 0.00;
+    const TOTAL_ADMIN_DEDUCT = billingFeeIdr;
 
-    // Periksa sisa kuota nota toko sebelum transaksi diproses
-    db.merchant_wallets = db.merchant_wallets || {};
-    const existingWallet = db.merchant_wallets[storeId] || { available_balance: 100000.00 };
-    const effectiveKuota = (currentActiveStore && currentActiveStore.kuotaNota !== undefined)
-      ? currentActiveStore.kuotaNota
-      : Math.floor((existingWallet.available_balance || 0) / 100);
-
-    if (effectiveKuota <= 0 && (existingWallet.available_balance || 0) < TOTAL_ADMIN_DEDUCT) {
-      return res.status(402).json({
-        error: 'Kuota nota kasir habis! Silakan lakukan Top Up Saldo Nota untuk melanjutkan transaksi pencetakan struk.',
-        requiresTopupNota: true,
-        kuotaNota: 0,
-        saldoNota: existingWallet.available_balance || 0
+    // ── COMMIT LOYALTY POOL REDEEM/EARN & SINGLE-CHARGE NOTA BILLING ──
+    const poolCommit = commitPoolCheckoutLoyalty(db, {
+      merchant: resolvedMerchant,
+      orderId,
+      invoiceNumber,
+      customerPhone: cleanPhone,
+      customerName: cleanCustomerName,
+      redeemPoints: requestedRedeemPoints,
+      grossSubtotalIdr: subtotal,
+      otherDiscountIdr: promoDiscount
+    });
+    if (!poolCommit.ok) {
+      return res.status(poolCommit.status || 422).json({
+        error: poolCommit.error,
+        code: poolCommit.code
       });
     }
-
-    // Update merchant escrow wallet
-    if (!db.merchant_wallets[storeId]) {
-      db.merchant_wallets[storeId] = {
-        merchant_id: storeId,
-        available_balance: 100000.00,
-        held_promo_balance: 0.00,
-        updated_at: new Date().toISOString()
-      };
-    }
-    const mWallet = db.merchant_wallets[storeId];
-    mWallet.available_balance = Math.max(0, (mWallet.available_balance || 100000) - TOTAL_ADMIN_DEDUCT);
-    mWallet.held_promo_balance = (mWallet.held_promo_balance || 0) + HELD_PROMO_FEE;
-    mWallet.updated_at = new Date().toISOString();
-
-    // Mirror to merchant saldoNota & kurangi kuotaNota
-    if (currentActiveStore && (currentActiveStore.merchantId === storeId || currentActiveStore.uid === storeId)) {
-      currentActiveStore.saldoNota = mWallet.available_balance;
-      currentActiveStore.kuotaNota = Math.max(0, (currentActiveStore.kuotaNota !== undefined ? currentActiveStore.kuotaNota - 1 : Math.floor(mWallet.available_balance / 100)));
-    }
-
-    const remainingKuotaNota = (currentActiveStore && currentActiveStore.kuotaNota !== undefined)
-      ? currentActiveStore.kuotaNota
-      : Math.floor(mWallet.available_balance / 100);
-    const isLowQuota = remainingKuotaNota <= 15;
-    const lowQuotaWarning = isLowQuota
-      ? `Kuota nota gratis Anda tersisa ${remainingKuotaNota} transaksi. Lakukan top up agar operasional kasir tetap lancar.`
-      : null;
-
-    // Record receipt claim
-    const claimRecord = {
-      id: 'CLM-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
-      order_id: orderId,
-      merchant_id: storeId,
-      merchant_name: storeName,
-      invoice_number: invoiceNumber,
-      total_amount: totalAmount,
-      base_admin_fee: BASE_ADMIN_FEE,
-      held_promo_fee: HELD_PROMO_FEE,
-      claim_token: claimToken,
-      qr_claim_url: qrClaimUrl,
-      status: 'PENDING',
-      claimed_by_whatsapp: null,
-      points_awarded: 0,
-      referral_code_used: null,
-      referrer_whatsapp: null,
-      referrer_points_awarded: 0,
-      claim_deadline: claimDeadline.toISOString(),
-      claimed_at: null,
-      refunded_at: null,
-      createdAt: new Date().toISOString()
-    };
-    db.receipt_claims = db.receipt_claims || [];
-    db.receipt_claims.unshift(claimRecord);
-
-    // Record wallet mutation
-    db.wallet_mutations = db.wallet_mutations || [];
-    db.wallet_mutations.unshift({
-      id: 'MUT-DED-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
-      merchant_id: storeId,
-      type: 'FEE_DEDUCT',
-      amount: -TOTAL_ADMIN_DEDUCT,
-      base_admin_fee: BASE_ADMIN_FEE,
-      held_promo_fee: HELD_PROMO_FEE,
-      description: `Biaya Nota #${invoiceNumber} (Rp 40 Platform & Server + Rp 60 Deposit Promo Tertahan)`,
-      balance_after: mWallet.available_balance,
-      createdAt: new Date().toISOString()
-    });
 
     const newOrder = {
       id: orderId,
@@ -2468,7 +2511,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       customerName: cleanCustomerName,
       customerPhone: cleanPhone,
       isLoggedIn: userIsLoggedIn,
-      pointsEligible: userIsLoggedIn,
+      pointsEligible: Boolean(poolCommit.loyaltyPoolId),
       storeId,
       storeName,
       cashierId,
@@ -2478,12 +2521,19 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       subtotal,
       discount: finalTotalDiscount,
       pointsDiscount,
+      pointDiscountIdr: pointsDiscount,
       promoDiscount,
       promoId: appliedPromo ? appliedPromo.id : null,
       promoCode: appliedPromo ? appliedPromo.code : null,
       appliedPromo,
       adminDiscount: null,
       pointsRedeemed: redeemAmount,
+      pointsEarned: poolCommit.pointsEarned || 0,
+      loyalty_pool_id: poolCommit.loyaltyPoolId || null,
+      loyaltyPoolName: poolCommit.loyaltyPoolName || null,
+      loyalty_customer_id: poolCommit.customer?.id || null,
+      billing_tier: billingTier,
+      billing_fee_idr: billingFeeIdr,
       platformFee: 0,
       adminFee,
       base_admin_fee: BASE_ADMIN_FEE,
@@ -2506,6 +2556,71 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       pointsWon: 0,
       createdAt: new Date().toISOString()
     };
+
+    const deductRes = deductStoreNotaFeeOnce(db, resolvedMerchant, newOrder, {
+      channel: 'POS Order Checkout'
+    });
+    if (!deductRes.ok) {
+      return res.status(deductRes.status || 402).json(deductRes);
+    }
+
+    const mWallet = db.merchant_wallets?.[resolvedMerchant.id] || {
+      merchant_id: resolvedMerchant.id,
+      available_balance: resolvedMerchant.saldoNota,
+      held_promo_balance: HELD_PROMO_FEE,
+      updated_at: new Date().toISOString()
+    };
+
+    const remainingKuotaNota = deductRes.kuotaAfter;
+    const isLowQuota = remainingKuotaNota <= 15;
+    const lowQuotaWarning = isLowQuota
+      ? `Kuota nota tersisa ${remainingKuotaNota} transaksi (@ Rp ${billingFeeIdr}/nota). Lakukan top up agar operasional kasir tetap lancar.`
+      : null;
+
+    // Record receipt claim
+    const claimRecord = {
+      id: 'CLM-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      order_id: orderId,
+      merchant_id: storeId,
+      merchant_name: storeName,
+      invoice_number: invoiceNumber,
+      total_amount: totalAmount,
+      base_admin_fee: BASE_ADMIN_FEE,
+      held_promo_fee: HELD_PROMO_FEE,
+      billing_tier: billingTier,
+      loyalty_pool_id: poolCommit.loyaltyPoolId || null,
+      claim_token: claimToken,
+      qr_claim_url: qrClaimUrl,
+      status: 'PENDING',
+      claimed_by_whatsapp: null,
+      points_awarded: poolCommit.pointsEarned || 0,
+      referral_code_used: null,
+      referrer_whatsapp: null,
+      referrer_points_awarded: 0,
+      claim_deadline: claimDeadline.toISOString(),
+      claimed_at: null,
+      refunded_at: null,
+      createdAt: new Date().toISOString()
+    };
+    db.receipt_claims = db.receipt_claims || [];
+    db.receipt_claims.unshift(claimRecord);
+
+    // Record wallet mutation
+    db.wallet_mutations = db.wallet_mutations || [];
+    db.wallet_mutations.unshift({
+      id: 'MUT-DED-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      merchant_id: storeId,
+      type: 'FEE_DEDUCT',
+      amount: -TOTAL_ADMIN_DEDUCT,
+      base_admin_fee: BASE_ADMIN_FEE,
+      held_promo_fee: HELD_PROMO_FEE,
+      billing_tier: billingTier,
+      description: billingTier === 'TIER_2_LOYALTY'
+        ? `Biaya Nota Tier 2 #${invoiceNumber} (Rp 100 • Pool ${poolCommit.loyaltyPoolName || '-'})`
+        : `Biaya Nota Tier 1 #${invoiceNumber} (Rp 25 Flat Tanpa Poin)`,
+      balance_after: resolvedMerchant.saldoNota,
+      createdAt: new Date().toISOString()
+    });
 
     db.pos_orders.unshift(newOrder);
     writeDB(db, req);
@@ -2537,7 +2652,20 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       qr_claim_url: qrClaimUrl,
       claim_token: claimToken,
       claim_deadline: claimDeadline.toISOString(),
+      saldoNota: resolvedMerchant.saldoNota,
       kuotaNota: remainingKuotaNota,
+      billingTier,
+      billingFeeIdr,
+      loyalty: {
+        billingTier,
+        billingFeeIdr,
+        loyaltyPoolId: poolCommit.loyaltyPoolId || null,
+        loyaltyPoolName: poolCommit.loyaltyPoolName || null,
+        pointsRedeemed: redeemAmount,
+        pointDiscountIdr: pointsDiscount,
+        pointsEarned: poolCommit.pointsEarned || 0,
+        customerPoolBalanceAfter: poolCommit.balanceAfter ?? 0
+      },
       isLowQuota,
       lowQuotaWarning
     });
@@ -2672,8 +2800,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     order.cancelReason = reason || 'Menu habis atau dapur sedang penuh';
     order.cancelledAt = new Date().toISOString();
 
-    // Kembalikan poin jika sebelumnya sempat redeem
-    if (order.pointsRedeemed > 0 && order.customerPhone) {
+    // Kembalikan poin jika sebelumnya sempat redeem / earn di Shared Pool atau Legacy
+    if (order.loyalty_pool_id && order.loyalty_customer_id) {
+      reverseOrderPoolPoints(db, order);
+    } else if (order.pointsRedeemed > 0 && order.customerPhone) {
       db.customer_points[order.customerPhone] = (db.customer_points[order.customerPhone] || 0) + order.pointsRedeemed;
     }
 
@@ -2796,47 +2926,18 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       });
     }
 
-    // Cash Payment from Cashier Register (Kasir boleh cash tapi tetap kepotong harga nota Rp 100)
+    // Cash Payment from Cashier Register (Tier 1 Rp 25 vs Tier 2 Rp 100, single atomic deduction)
     if (method === 'CASH') {
       const store = db.settings.posStore || {};
       const primaryMerchant = (db.merchants || [])[0];
-      const sharedUid = store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
-      let merchant = (db.merchants || []).find(m => String(m.id) === String(sharedUid)) || primaryMerchant;
+      const sharedUid = order.storeId || store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
+      let merchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(sharedUid)) || primaryMerchant;
 
-      if (merchant && merchant.saldoNota === undefined) {
-        merchant.saldoNota = 5000;
-        merchant.kuotaNota = 50;
-        merchant.notaHistory = [];
-      }
-
-      const currentSaldoNota = Number(merchant?.saldoNota) || 0;
-      const NOTA_PRICE = 100; // Flat Rp 100 per nota / transaksi
-
-      if (currentSaldoNota < NOTA_PRICE) {
-        return res.status(400).json({
-          error: `Saldo nota tidak mencukupi untuk transaksi tunai kasir (sisa Rp ${currentSaldoNota.toLocaleString('id-ID')}, dibutuhkan Rp ${NOTA_PRICE.toLocaleString('id-ID')}). Silakan top up saldo nota terlebih dahulu.`,
-          requiresTopupNota: true,
-          currentSaldoNota,
-          neededNota: NOTA_PRICE
-        });
-      }
-
-      // Deduct 1 nota (flat Rp 100) if not deducted yet
-      if (!order.notaDeducted && merchant) {
-        merchant.saldoNota = Math.max(0, currentSaldoNota - NOTA_PRICE);
-        merchant.kuotaNota = Math.max(0, Math.floor(merchant.saldoNota / NOTA_PRICE));
-        merchant.notaHistory = merchant.notaHistory || [];
-        merchant.notaHistory.unshift({
-          id: 'NOTADED-' + Date.now(),
-          type: 'DEDUCT',
-          amount: NOTA_PRICE,
-          channel: 'POS Kasir (Tunai)',
-          description: `Potongan 1 nota transaksi tunai Kasir POS #${order.id} (Meja ${order.tableNumber})`,
-          saldoAfter: merchant.saldoNota,
-          orderId: order.id,
-          createdAt: new Date().toISOString()
-        });
-        order.notaDeducted = NOTA_PRICE;
+      const deductRes = deductStoreNotaFeeOnce(db, merchant, order, {
+        channel: 'POS Kasir (Tunai)'
+      });
+      if (!deductRes.ok) {
+        return res.status(deductRes.status === 402 ? 400 : (deductRes.status || 400)).json(deductRes);
       }
 
       order.paymentMethod = 'CASH';
@@ -2848,10 +2949,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         success: true,
         method: 'CASH',
         status: 'PREPARING',
-        notaDeducted: order.notaDeducted || NOTA_PRICE,
-        sisaSaldoNota: merchant ? merchant.saldoNota : null,
-        sisaKuotaNota: merchant ? merchant.kuotaNota : null,
-        message: 'Pembayaran tunai kasir berhasil dicatat. 1 lembar nota (Rp 100) dipotong dari saldo toko.',
+        notaDeducted: deductRes.feeDeducted,
+        billingTier: deductRes.billingTier,
+        sisaSaldoNota: deductRes.saldoAfter,
+        sisaKuotaNota: deductRes.kuotaAfter,
+        message: `Pembayaran tunai kasir berhasil dicatat (${deductRes.billingTier === 'TIER_2_LOYALTY' ? 'Tier 2 Rp 100/nota' : 'Tier 1 Rp 25/nota'}).`,
         order
       });
     }
@@ -2890,45 +2992,18 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     const store = db.settings.posStore || {};
     const primaryMerchant = (db.merchants || [])[0];
-    const sharedUid = store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
-    let merchant = (db.merchants || []).find(m => String(m.id) === String(sharedUid)) || primaryMerchant;
+    const sharedUid = order.storeId || store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
+    let merchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(sharedUid)) || primaryMerchant;
 
-    if (merchant && merchant.saldoNota === undefined) {
-      merchant.saldoNota = 5000;
-      merchant.kuotaNota = 50;
-      merchant.notaHistory = [];
-    }
-
-    const NOTA_PRICE = 100;
     const isCashOrCounter = order.paymentMethod === 'CASH' || !order.paymentMethod || order.paymentMethod === 'TUNAI';
 
-    // Konfirmasi kasir untuk transaksi cash: wajib potong harga nota
-    if (isCashOrCounter && !order.notaDeducted) {
-      const currentSaldoNota = Number(merchant?.saldoNota) || 0;
-      if (currentSaldoNota < NOTA_PRICE) {
-        return res.status(400).json({
-          error: `Saldo nota tidak mencukupi untuk konfirmasi bayar tunai (sisa Rp ${currentSaldoNota.toLocaleString('id-ID')}, dibutuhkan Rp ${NOTA_PRICE.toLocaleString('id-ID')}). Silakan top up saldo nota kasir terlebih dahulu.`,
-          requiresTopupNota: true,
-          currentSaldoNota,
-          neededNota: NOTA_PRICE
-        });
-      }
-
-      if (merchant) {
-        merchant.saldoNota = Math.max(0, currentSaldoNota - NOTA_PRICE);
-        merchant.kuotaNota = Math.max(0, Math.floor(merchant.saldoNota / NOTA_PRICE));
-        merchant.notaHistory = merchant.notaHistory || [];
-        merchant.notaHistory.unshift({
-          id: 'NOTADED-' + Date.now(),
-          type: 'DEDUCT',
-          amount: NOTA_PRICE,
-          channel: 'POS Kasir (Konfirmasi Tunai)',
-          description: `Potongan 1 nota konfirmasi tunai #${order.id} (Meja ${order.tableNumber})`,
-          saldoAfter: merchant.saldoNota,
-          orderId: order.id,
-          createdAt: new Date().toISOString()
-        });
-        order.notaDeducted = NOTA_PRICE;
+    // Konfirmasi kasir untuk transaksi cash: wajib potong sesuai Tier (Rp 25 vs Rp 100) sekali saja
+    if (isCashOrCounter && merchant) {
+      const deductRes = deductStoreNotaFeeOnce(db, merchant, order, {
+        channel: 'POS Kasir (Konfirmasi Tunai)'
+      });
+      if (!deductRes.ok) {
+        return res.status(deductRes.status === 402 ? 400 : (deductRes.status || 400)).json(deductRes);
       }
       order.paymentMethod = 'CASH';
     }
@@ -2960,7 +3035,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           history: []
         };
       }
-      const netAmount = Math.max(0, (Number(order.totalAmount) || 0) - 100);
+      const netAmount = Math.max(0, (Number(order.totalAmount) || 0) - Number(order.billing_fee_idr || 100));
       db.unified_wallets[sharedUid].balance = (Number(db.unified_wallets[sharedUid].balance) || 0) + netAmount;
       db.unified_wallets[sharedUid].totalEarned = (Number(db.unified_wallets[sharedUid].totalEarned) || 0) + netAmount;
       db.unified_wallets[sharedUid].history = db.unified_wallets[sharedUid].history || [];
@@ -4959,6 +5034,604 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       recentOrders: enrichedOrders.slice(0, 25)
     });
   });
+
+  // =========================================================================
+  // TRACK A: MULTIPLE SHARED LOYALTY POOLS & TIERED BILLING (Rp 25 vs Rp 100)
+  // =========================================================================
+  router.get('/loyalty-pools', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const requestedOwnerId = req.query.ownerId || req.user?.id || null;
+    const ownerAliases = buildAuthorizedOwnerAliasSet(db, requestedOwnerId);
+
+    const store = db.settings.posStore || {};
+    const currentMerchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(store.merchantId || store.uid)) || null;
+    const ownerStores = getOwnerStoresList(db, currentMerchant, requestedOwnerId);
+    const ownerStoreIds = new Set(ownerStores.map(s => String(s.id)));
+
+    const pools = (db.loyalty_pools || []).filter(p => {
+      if (!p || p.is_active === false) return false;
+      if (!requestedOwnerId) return true;
+      return doesOwnerOwnPool(db, requestedOwnerId, p) || ownerAliases.has(String(p.owner_id));
+    });
+
+    const enrichedPools = pools.map(pool => {
+      const attachedStores = ownerStores.filter(s => String(s.loyaltyPoolId || '') === String(pool.id));
+      const poolWallets = (db.loyalty_pool_balances || []).filter(w => String(w.loyalty_pool_id) === String(pool.id));
+      const poolTxs = (db.point_transactions || []).filter(tx => String(tx.loyalty_pool_id) === String(pool.id));
+      return {
+        ...pool,
+        store_count: attachedStores.length,
+        attachedStores,
+        stats: {
+          active_wallets: poolWallets.length,
+          outstanding_points: poolWallets.reduce((s, w) => s + Number(w.balance_points || 0), 0),
+          total_earned_points: poolTxs.filter(t => t.tx_type === 'EARN').reduce((s, t) => s + Number(t.points_delta || 0), 0),
+          total_redeemed_points: poolTxs.filter(t => t.tx_type === 'REDEEM').reduce((s, t) => s + Math.abs(Number(t.points_delta || 0)), 0),
+          total_redeem_discount_idr: poolTxs.filter(t => t.tx_type === 'REDEEM').reduce((s, t) => s + Number(t.idr_amount || 0), 0)
+        }
+      };
+    });
+
+    const recentPointTransactions = (db.point_transactions || [])
+      .filter(tx => ownerStoreIds.has(String(tx.store_id)) || pools.some(p => String(p.id) === String(tx.loyalty_pool_id)))
+      .slice(0, 60);
+
+    const storeLedger = (db.nota_billing_ledger || [])
+      .filter(l => ownerStoreIds.has(String(l.store_id)))
+      .slice(0, 60);
+
+    const tier1Entries = storeLedger.filter(l => l.entry_type === 'NOTA_TIER_1');
+    const tier2Entries = storeLedger.filter(l => l.entry_type === 'NOTA_TIER_2');
+
+    res.json({
+      success: true,
+      tierPricing: {
+        tier1FeeIdr: TIER_1_FEE_IDR,
+        tier2FeeIdr: TIER_2_FEE_IDR
+      },
+      pools: enrichedPools,
+      ownerStores,
+      recentPointTransactions,
+      notaBillingSummary: {
+        tier1Count: tier1Entries.length,
+        tier1TotalIdr: tier1Entries.reduce((s, e) => s + Math.abs(Number(e.amount_idr || 0)), 0),
+        tier2Count: tier2Entries.length,
+        tier2TotalIdr: tier2Entries.reduce((s, e) => s + Math.abs(Number(e.amount_idr || 0)), 0)
+      },
+      recentNotaLedger: storeLedger
+    });
+  });
+
+  router.post('/loyalty-pools', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const body = req.body || {};
+    const requestedOwnerId = body.ownerId || body.ownerUserId || req.user?.id || 'OWNER-DEFAULT';
+    const name = String(body.name || '').trim();
+    if (!name) {
+      return res.status(400).json({ error: 'Nama Loyalty Pool wajib diisi.' });
+    }
+
+    const attachStoreIds = Array.isArray(body.storeIds) ? body.storeIds.map(String) : [];
+    for (const sid of attachStoreIds) {
+      const m = (db.merchants || []).find(x => x && x.status !== 'deleted' && String(x.id) === sid);
+      if (!m) {
+        return res.status(404).json({ error: `Toko "${sid}" tidak ditemukan.` });
+      }
+      if (!doesOwnerOwnMerchant(db, requestedOwnerId, m)) {
+        return res.status(403).json({
+          error: `Akses ditolak: Toko "${m.name || sid}" bukan milik owner ini.`
+        });
+      }
+    }
+
+    const aliases = Array.from(buildAuthorizedOwnerAliasSet(db, requestedOwnerId));
+    const nowIso = new Date().toISOString();
+    const pool = {
+      id: `POOL-${Date.now()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`,
+      owner_id: String(requestedOwnerId),
+      owner_aliases: aliases,
+      name,
+      description: String(body.description || '').trim(),
+      min_spend_per_point: Math.max(100, Number(body.min_spend_per_point ?? body.minSpendPerPoint) || 10000),
+      points_per_unit: Math.max(1, Number(body.points_per_unit ?? body.pointsPerUnit) || 1),
+      point_value_idr: Math.max(1, Number(body.point_value_idr ?? body.pointValueIdr) || 500),
+      min_redeem_points: Math.max(1, Number(body.min_redeem_points ?? body.minRedeemPoints) || 1),
+      max_redeem_percent: Math.min(100, Math.max(1, Number(body.max_redeem_percent ?? body.maxRedeemPercent) || 50)),
+      is_active: true,
+      created_at: nowIso,
+      updated_at: nowIso
+    };
+    db.loyalty_pools.unshift(pool);
+
+    attachStoreIds.forEach(sid => {
+      const m = (db.merchants || []).find(x => x && x.status !== 'deleted' && String(x.id) === sid);
+      if (m) {
+        const prevPoolId = m.loyalty_pool_id || null;
+        m.loyalty_pool_id = pool.id;
+        m.kuotaNota = Math.max(0, Math.floor(Number(m.saldoNota ?? 5000) / TIER_2_FEE_IDR));
+        db.store_pool_history.unshift({
+          id: `SPH-${Date.now()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`,
+          store_id: String(m.id),
+          store_name: m.name || 'Toko POS',
+          from_pool_id: prevPoolId,
+          to_pool_id: pool.id,
+          to_pool_name: pool.name,
+          changed_by: String(requestedOwnerId),
+          note: `Dihubungkan saat pembuatan pool "${pool.name}" (Tier 2 Rp 100/nota)`,
+          changed_at: nowIso
+        });
+        if (db.settings?.posStore && String(db.settings.posStore.merchantId || db.settings.posStore.uid) === String(m.id)) {
+          db.settings.posStore.loyaltyPoolId = pool.id;
+          db.settings.posStore.loyaltyPoolName = pool.name;
+          db.settings.posStore.billingTier = 'TIER_2_LOYALTY';
+          db.settings.posStore.notaFeePerNotaIdr = TIER_2_FEE_IDR;
+          db.settings.posStore.kuotaNota = m.kuotaNota;
+        }
+      }
+    });
+
+    writeDB(db, req);
+    res.status(201).json({
+      success: true,
+      message: `Loyalty Pool "${pool.name}" berhasil dibuat.`,
+      pool
+    });
+  });
+
+  router.patch('/loyalty-pools/:poolId', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { poolId } = req.params;
+    const body = req.body || {};
+    const requestedOwnerId = body.ownerId || body.ownerUserId || req.user?.id || null;
+
+    const pool = (db.loyalty_pools || []).find(p => p && String(p.id) === String(poolId));
+    if (!pool) return res.status(404).json({ error: 'Loyalty Pool tidak ditemukan.' });
+    if (requestedOwnerId && !doesOwnerOwnPool(db, requestedOwnerId, pool)) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda bukan pemilik Loyalty Pool ini.' });
+    }
+
+    if (body.name !== undefined && String(body.name).trim()) pool.name = String(body.name).trim();
+    if (body.description !== undefined) pool.description = String(body.description).trim();
+    if (body.min_spend_per_point !== undefined) pool.min_spend_per_point = Math.max(100, Number(body.min_spend_per_point) || 10000);
+    if (body.points_per_unit !== undefined) pool.points_per_unit = Math.max(1, Number(body.points_per_unit) || 1);
+    if (body.point_value_idr !== undefined) pool.point_value_idr = Math.max(1, Number(body.point_value_idr) || 500);
+    if (body.min_redeem_points !== undefined) pool.min_redeem_points = Math.max(1, Number(body.min_redeem_points) || 1);
+    if (body.max_redeem_percent !== undefined) pool.max_redeem_percent = Math.min(100, Math.max(1, Number(body.max_redeem_percent) || 50));
+    if (body.is_active !== undefined) pool.is_active = Boolean(body.is_active);
+    pool.updated_at = new Date().toISOString();
+
+    if (db.settings?.posStore && String(db.settings.posStore.loyaltyPoolId || '') === String(pool.id)) {
+      db.settings.posStore.loyaltyPoolName = pool.name;
+    }
+
+    writeDB(db, req);
+    res.json({ success: true, message: `Aturan pool "${pool.name}" diperbarui.`, pool });
+  });
+
+  router.delete('/loyalty-pools/:poolId', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { poolId } = req.params;
+    const requestedOwnerId = req.query.ownerId || req.body?.ownerId || req.user?.id || null;
+
+    const pool = (db.loyalty_pools || []).find(p => p && String(p.id) === String(poolId));
+    if (!pool) return res.status(404).json({ error: 'Loyalty Pool tidak ditemukan.' });
+    if (requestedOwnerId && !doesOwnerOwnPool(db, requestedOwnerId, pool)) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda bukan pemilik Loyalty Pool ini.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    pool.is_active = false;
+    pool.updated_at = nowIso;
+
+    // Lepas toko ke Tier 1 (Rp 25/nota) sambil mempertahankan seluruh saldo poin member di pool_balances
+    (db.merchants || []).forEach(m => {
+      if (m && String(m.loyalty_pool_id || '') === String(pool.id)) {
+        m.loyalty_pool_id = null;
+        m.kuotaNota = Math.max(0, Math.floor(Number(m.saldoNota ?? 5000) / TIER_1_FEE_IDR));
+        db.store_pool_history.unshift({
+          id: `SPH-${Date.now()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`,
+          store_id: String(m.id),
+          store_name: m.name || 'Toko POS',
+          from_pool_id: pool.id,
+          to_pool_id: null,
+          changed_by: String(requestedOwnerId || 'owner'),
+          note: `Pool "${pool.name}" dinonaktifkan -> Toko kembali ke Tier 1 Flat (Rp 25/nota). Saldo poin member tetap tersimpan.`,
+          changed_at: nowIso
+        });
+        if (db.settings?.posStore && String(db.settings.posStore.merchantId || db.settings.posStore.uid) === String(m.id)) {
+          db.settings.posStore.loyaltyPoolId = null;
+          db.settings.posStore.loyaltyPoolName = null;
+          db.settings.posStore.billingTier = 'TIER_1_FLAT';
+          db.settings.posStore.notaFeePerNotaIdr = TIER_1_FEE_IDR;
+          db.settings.posStore.kuotaNota = m.kuotaNota;
+        }
+      }
+    });
+
+    writeDB(db, req);
+    res.json({
+      success: true,
+      message: `Pool "${pool.name}" dinonaktifkan. Toko terkait beralih ke Tier 1 (Rp 25/nota) & saldo poin member tetap aman.`
+    });
+  });
+
+  router.patch('/stores/:storeId/loyalty-pool', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { storeId } = req.params;
+    const body = req.body || {};
+    const requestedOwnerId = body.ownerId || body.ownerUserId || req.user?.id || null;
+    const rawPoolId = body.loyalty_pool_id !== undefined ? body.loyalty_pool_id : body.loyaltyPoolId;
+    const nextPoolId = (!rawPoolId || rawPoolId === 'null') ? null : String(rawPoolId).trim();
+
+    const store = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(storeId));
+    if (!store) return res.status(404).json({ error: 'Toko tidak ditemukan.' });
+
+    if (requestedOwnerId && !doesOwnerOwnMerchant(db, requestedOwnerId, store)) {
+      return res.status(403).json({ error: 'Akses ditolak: Owner tidak memiliki hak atas toko ini.' });
+    }
+
+    let nextPool = null;
+    if (nextPoolId) {
+      nextPool = (db.loyalty_pools || []).find(p => p && p.is_active !== false && String(p.id) === nextPoolId);
+      if (!nextPool) return res.status(404).json({ error: 'Loyalty Pool tujuan tidak ditemukan atau nonaktif.' });
+      const effectiveOwner = requestedOwnerId || store.ownerUserId || store.posOwnerId;
+      if (effectiveOwner && !doesOwnerOwnPool(db, effectiveOwner, nextPool)) {
+        return res.status(403).json({
+          error: 'Akses ditolak: Owner hanya bisa memasukkan tokonya ke dalam Loyalty Pool miliknya sendiri.'
+        });
+      }
+    }
+
+    const prevPoolId = store.loyalty_pool_id || null;
+    const nowIso = new Date().toISOString();
+    store.loyalty_pool_id = nextPool ? nextPool.id : null;
+    const newFee = nextPool ? TIER_2_FEE_IDR : TIER_1_FEE_IDR;
+    store.kuotaNota = Math.max(0, Math.floor(Number(store.saldoNota ?? 5000) / newFee));
+    store.updatedAt = nowIso;
+
+    // Preserved-balance audit trail: NEVER mutates loyalty_pool_balances on pool move
+    if (String(prevPoolId || '') !== String(store.loyalty_pool_id || '')) {
+      db.store_pool_history.unshift({
+        id: `SPH-${Date.now()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`,
+        store_id: String(store.id),
+        store_name: store.name || 'Toko POS',
+        from_pool_id: prevPoolId,
+        to_pool_id: store.loyalty_pool_id,
+        to_pool_name: nextPool ? nextPool.name : null,
+        changed_by: String(requestedOwnerId || store.ownerUserId || 'owner'),
+        note: nextPool
+          ? `Terhubung ke pool "${nextPool.name}" (Tier 2 Rp 100/nota). Saldo member di pool sebelumnya tetap aman.`
+          : 'Poin dinonaktifkan -> Toko menggunakan Tier 1 Flat (Rp 25/nota). Saldo poin member tetap utuh.',
+        changed_at: nowIso
+      });
+    }
+
+    if (db.settings?.posStore && String(db.settings.posStore.merchantId || db.settings.posStore.uid) === String(store.id)) {
+      db.settings.posStore.loyaltyPoolId = store.loyalty_pool_id;
+      db.settings.posStore.loyaltyPoolName = nextPool ? nextPool.name : null;
+      db.settings.posStore.billingTier = nextPool ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT';
+      db.settings.posStore.notaFeePerNotaIdr = newFee;
+      db.settings.posStore.kuotaNota = store.kuotaNota;
+    }
+
+    writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, store, requestedOwnerId);
+    res.json({
+      success: true,
+      message: nextPool
+        ? `Toko "${store.name}" terhubung ke Pool "${nextPool.name}" (Tier 2 Rp 100/nota).`
+        : `Fitur poin "${store.name}" dinonaktifkan -> Billing otomatis menjadi Tier 1 Flat (Rp 25/nota).`,
+      store: serializeOwnerStore(store, db),
+      activeStore: activePayload
+    });
+  });
+
+  router.get('/stores/:storeId/pool-history', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { storeId } = req.params;
+    const history = (db.store_pool_history || []).filter(h => String(h.store_id) === String(storeId));
+    res.json({ success: true, storeId, history });
+  });
+
+  router.get('/loyalty-pools/:poolId/analytics', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { poolId } = req.params;
+    const requestedOwnerId = req.query.ownerId || req.user?.id || null;
+
+    const pool = (db.loyalty_pools || []).find(p => p && String(p.id) === String(poolId));
+    if (!pool) return res.status(404).json({ error: 'Loyalty Pool tidak ditemukan.' });
+    if (requestedOwnerId && !doesOwnerOwnPool(db, requestedOwnerId, pool)) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda bukan pemilik Loyalty Pool ini.' });
+    }
+
+    const txs = (db.point_transactions || []).filter(tx => String(tx.loyalty_pool_id) === String(pool.id));
+    const storeMap = {};
+    txs.forEach(tx => {
+      const sid = String(tx.store_id || 'UNKNOWN');
+      if (!storeMap[sid]) {
+        storeMap[sid] = {
+          store_id: sid,
+          store_name: tx.store_name || sid,
+          earn_tx_count: 0,
+          earned_points: 0,
+          redeem_tx_count: 0,
+          redeemed_points: 0,
+          reversal_points: 0,
+          redeem_discount_idr: 0
+        };
+      }
+      const row = storeMap[sid];
+      if (tx.tx_type === 'EARN') {
+        row.earn_tx_count += 1;
+        row.earned_points += Number(tx.points_delta || 0);
+      } else if (tx.tx_type === 'REDEEM') {
+        row.redeem_tx_count += 1;
+        row.redeemed_points += Math.abs(Number(tx.points_delta || 0));
+        row.redeem_discount_idr += Number(tx.idr_amount || 0);
+      } else if (tx.tx_type === 'VOID_REVERSAL') {
+        row.reversal_points += Number(tx.points_delta || 0);
+      }
+    });
+
+    const memberWallets = (db.loyalty_pool_balances || [])
+      .filter(w => String(w.loyalty_pool_id) === String(pool.id))
+      .sort((a, b) => Number(b.balance_points || 0) - Number(a.balance_points || 0));
+
+    const attachedStores = (db.merchants || [])
+      .filter(m => m && m.status !== 'deleted' && String(m.loyalty_pool_id || '') === String(pool.id))
+      .map(m => serializeOwnerStore(m, db));
+
+    res.json({
+      success: true,
+      pool,
+      attachedStores,
+      perStoreBreakdown: Object.values(storeMap),
+      memberWallets,
+      recentTransactions: txs.slice(0, 60)
+    });
+  });
+
+  router.get('/stores/:storeId/customers/lookup', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { storeId } = req.params;
+    const rawQuery = String(req.query.phone || req.query.q || '').trim();
+    const store = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(storeId))
+      || { id: storeId, loyalty_pool_id: db.settings?.posStore?.loyaltyPoolId || null };
+    const profile = getStoreBillingProfile(db, store);
+    const canonicalPhone = normalizePhoneDigits(rawQuery);
+    const ownerId = store.ownerUserId || store.posOwnerId || req.query.ownerId || 'OWNER-DEFAULT';
+
+    let customer = null;
+    if (canonicalPhone) {
+      customer = findOrCreateLoyaltyCustomer(db, ownerId, canonicalPhone, '', false);
+    } else if (rawQuery) {
+      const qLower = rawQuery.toLowerCase();
+      customer = (db.loyalty_customers || []).find(c =>
+        (c.name && c.name.toLowerCase().includes(qLower)) ||
+        (c.phone_display && c.phone_display.includes(rawQuery))
+      ) || null;
+    }
+
+    const poolById = new Map((db.loyalty_pools || []).map(p => [String(p.id), p]));
+    const allPoolWallets = customer
+      ? (db.loyalty_pool_balances || [])
+          .filter(w => String(w.customer_id) === String(customer.id))
+          .map(w => ({
+            ...w,
+            pool_name: poolById.get(String(w.loyalty_pool_id))?.name || w.loyalty_pool_id,
+            point_value_idr: poolById.get(String(w.loyalty_pool_id))?.point_value_idr || 500,
+            is_active_pool_here: Boolean(profile.loyaltyPoolId && String(w.loyalty_pool_id) === String(profile.loyaltyPoolId))
+          }))
+      : [];
+
+    const activePoolWallet = profile.loyaltyPoolId
+      ? (allPoolWallets.find(w => String(w.loyalty_pool_id) === String(profile.loyaltyPoolId)) || null)
+      : null;
+
+    res.json({
+      success: true,
+      found: Boolean(customer),
+      storeBillingProfile: {
+        billingTier: profile.billingTier,
+        notaFeePerNotaIdr: profile.notaFeeIdr,
+        loyaltyPoolId: profile.loyaltyPoolId,
+        loyaltyPoolName: profile.loyaltyPoolName,
+        rule: profile.activePool
+      },
+      customer,
+      activePoolBalance: activePoolWallet ? Number(activePoolWallet.balance_points || 0) : 0,
+      allPoolWallets
+    });
+  });
+
+  router.get('/customers/:customerId/points', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { customerId } = req.params;
+    const poolById = new Map((db.loyalty_pools || []).map(p => [String(p.id), p]));
+    const canonicalPhone = normalizePhoneDigits(customerId);
+    const customer = (db.loyalty_customers || []).find(
+      c => String(c.id) === String(customerId) || (canonicalPhone && c.phone_e164 === canonicalPhone)
+    ) || null;
+
+    const targetCid = customer ? customer.id : customerId;
+    const wallets = (db.loyalty_pool_balances || [])
+      .filter(w => String(w.customer_id) === String(targetCid) || (canonicalPhone && w.customer_phone === canonicalPhone))
+      .map(w => ({
+        ...w,
+        pool_name: poolById.get(String(w.loyalty_pool_id))?.name || w.loyalty_pool_id,
+        point_value_idr: poolById.get(String(w.loyalty_pool_id))?.point_value_idr || 500
+      }));
+
+    const transactions = (db.point_transactions || [])
+      .filter(tx => String(tx.customer_id) === String(targetCid))
+      .slice(0, 40);
+
+    res.json({
+      success: true,
+      customer,
+      wallets,
+      transactions
+    });
+  });
+
+  router.post('/stores/:storeId/checkout/preview', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { storeId } = req.params;
+    const body = req.body || {};
+    const store = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(storeId))
+      || { id: storeId, loyalty_pool_id: db.settings?.posStore?.loyaltyPoolId || null };
+
+    const preview = previewPoolCheckout(db, {
+      merchant: store,
+      customerPhone: body.customerPhone,
+      customerName: body.customerName,
+      redeemPoints: body.redeemPoints ?? body.pointsToRedeem ?? 0,
+      grossSubtotalIdr: body.grossSubtotalIdr ?? body.subtotal ?? 0,
+      otherDiscountIdr: body.otherDiscountIdr ?? body.promoDiscount ?? 0
+    });
+    if (!preview.ok) {
+      return res.status(preview.status || 422).json(preview);
+    }
+    res.json({ success: true, ...preview });
+  });
+
+  router.get('/stores/:storeId/nota-billing-ledger', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { storeId } = req.params;
+    const entries = (db.nota_billing_ledger || []).filter(e => String(e.store_id) === String(storeId)).slice(0, 100);
+    const tier1 = entries.filter(e => e.entry_type === 'NOTA_TIER_1');
+    const tier2 = entries.filter(e => e.entry_type === 'NOTA_TIER_2');
+    res.json({
+      success: true,
+      storeId,
+      summary: {
+        tier1Count: tier1.length,
+        tier1TotalIdr: tier1.reduce((s, e) => s + Math.abs(Number(e.amount_idr || 0)), 0),
+        tier2Count: tier2.length,
+        tier2TotalIdr: tier2.reduce((s, e) => s + Math.abs(Number(e.amount_idr || 0)), 0)
+      },
+      entries
+    });
+  });
+
+  // =========================================================================
+  // TRACK B: DEMAND & SALES FORECASTING (LightGBM + Tiered Routing + WMAPE)
+  // =========================================================================
+  router.get('/forecasts', async (req, res) => {
+    try {
+      const db = getDB(req);
+      ensurePosCollections(db);
+      const requestedStoreId = req.query.storeId || db.settings?.posStore?.merchantId || db.settings?.posStore?.uid;
+      const horizon = String(req.query.horizon || 'H1_TOMORROW').toUpperCase();
+      const requestedOwnerId = req.query.ownerId || req.user?.id || null;
+
+      const activeMerchants = (db.merchants || []).filter(m => m && m.status !== 'deleted');
+      const currentMerchant = activeMerchants.find(m => String(m.id) === String(requestedStoreId)) || activeMerchants[0] || null;
+      const ownerStores = getOwnerStoresList(db, currentMerchant, requestedOwnerId);
+
+      let bundle = getCachedForecastBundle(db);
+      const targetSid = String(currentMerchant?.id || requestedStoreId || ownerStores[0]?.id || 'MTR-KASIR-MASTER');
+      const hasStoreRows = (bundle?.forecasts || []).some(r => String(r.store_id) === targetSid);
+
+      if (!bundle || !hasStoreRows) {
+        bundle = await runAndCacheForecastBatch(db, ownerStores, {}, false);
+      }
+
+      const formatted = formatStoreForecastApiResponse(db, bundle, targetSid, horizon);
+      res.json(formatted);
+    } catch (err) {
+      console.error('[GET /pos/forecasts Error]:', err);
+      res.status(500).json({ error: 'Gagal memproses Demand & Sales Forecast: ' + err.message });
+    }
+  });
+
+  router.post('/forecasts/run-batch', async (req, res) => {
+    try {
+      const db = getDB(req);
+      ensurePosCollections(db);
+      const body = req.body || {};
+      const requestedStoreId = body.storeId || db.settings?.posStore?.merchantId || db.settings?.posStore?.uid;
+      const horizon = String(body.horizon || 'H1_TOMORROW').toUpperCase();
+      const requestedOwnerId = body.ownerId || req.user?.id || null;
+      const persist = body.persist !== false;
+
+      const activeMerchants = (db.merchants || []).filter(m => m && m.status !== 'deleted');
+      const overrideStores = Array.isArray(body.stores_override) ? body.stores_override : [];
+      const matchedOverride = overrideStores.find(s => String(s?.store_id || s?.id) === String(requestedStoreId));
+      const currentMerchant = activeMerchants.find(m => String(m.id) === String(requestedStoreId))
+        || (matchedOverride ? null : activeMerchants[0])
+        || null;
+      const ownerStores = matchedOverride ? [] : getOwnerStoresList(db, currentMerchant, requestedOwnerId);
+      const targetSid = String(
+        matchedOverride
+          ? (matchedOverride.store_id || matchedOverride.id)
+          : (currentMerchant?.id || requestedStoreId || ownerStores[0]?.id || 'MTR-KASIR-MASTER')
+      );
+
+      const bundle = await runAndCacheForecastBatch(
+        db,
+        ownerStores,
+        {
+          runDate: body.runDate,
+          daily_sku_sales_override: body.daily_sku_sales_override,
+          stores_override: body.stores_override,
+          products_override: body.products_override,
+          weather_override: body.weather_override,
+          macro_override: body.macro_override
+        },
+        persist,
+        writeDB,
+        req
+      );
+
+      const formatted = formatStoreForecastApiResponse(db, bundle, targetSid, horizon);
+      res.json({
+        ...formatted,
+        persisted: persist,
+        all_store_diagnostics: bundle.store_diagnostics,
+        raw_forecasts_count: (bundle.forecasts || []).length
+      });
+    } catch (err) {
+      console.error('[POST /pos/forecasts/run-batch Error]:', err);
+      res.status(500).json({ error: 'Gagal menjalankan batch ML forecasting: ' + err.message });
+    }
+  });
+
+  // Nightly Batch Scheduler: 01:00–03:00 WIB (cek tiap 15 menit, timer unref agar tidak menggantung CLI)
+  let _lastForecastWibDay = null;
+  const _forecastNightlyTimer = setInterval(async () => {
+    try {
+      const now = new Date();
+      const wib = new Date(now.getTime() + 7 * 3600 * 1000);
+      const hour = wib.getUTCHours();
+      const dayStr = toWibDateStr(now);
+      if (hour >= 1 && hour < 3 && _lastForecastWibDay !== dayStr) {
+        _lastForecastWibDay = dayStr;
+        const db = getDB(false);
+        ensurePosCollections(db);
+        const activeMerchants = (db.merchants || []).filter(m => m && m.status !== 'deleted');
+        const ownerStores = activeMerchants.map(m => serializeOwnerStore(m, db));
+        await runAndCacheForecastBatch(db, ownerStores, { runDate: dayStr }, true, writeDB, null);
+        console.log(`[FORECAST NIGHTLY BATCH] Completed LightGBM quantile forecast for ${dayStr} WIB.`);
+      }
+    } catch (err) {
+      console.warn('[FORECAST NIGHTLY BATCH] Skipped:', err.message);
+    }
+  }, 15 * 60 * 1000);
+  if (typeof _forecastNightlyTimer.unref === 'function') {
+    _forecastNightlyTimer.unref();
+  }
 
   return router;
 }

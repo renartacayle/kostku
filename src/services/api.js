@@ -1340,6 +1340,83 @@ export const apiTopupPosNota = (data) => {
   });
 };
 
+// ── Shared Loyalty Pools & Tiered Nota Billing (Rp 25 vs Rp 100) ─────
+export const apiGetLoyaltyPools = (ownerId = null) => {
+  const qs = ownerId ? `?ownerId=${encodeURIComponent(ownerId)}` : '';
+  return request(`/pos/loyalty-pools${qs}`);
+};
+
+export const apiCreateLoyaltyPool = (data) => {
+  return request('/pos/loyalty-pools', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiUpdateLoyaltyPool = (poolId, data) => {
+  return request(`/pos/loyalty-pools/${encodeURIComponent(poolId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiDeleteLoyaltyPool = (poolId, ownerId = null) => {
+  const qs = ownerId ? `?ownerId=${encodeURIComponent(ownerId)}` : '';
+  return request(`/pos/loyalty-pools/${encodeURIComponent(poolId)}${qs}`, {
+    method: 'DELETE'
+  });
+};
+
+export const apiAssignStoreLoyaltyPool = (storeId, loyaltyPoolId, ownerId = null) => {
+  return request(`/pos/stores/${encodeURIComponent(storeId)}/loyalty-pool`, {
+    method: 'PATCH',
+    body: JSON.stringify({ loyalty_pool_id: loyaltyPoolId, ownerId })
+  });
+};
+
+export const apiGetStorePoolHistory = (storeId) => {
+  return request(`/pos/stores/${encodeURIComponent(storeId)}/pool-history`);
+};
+
+export const apiGetLoyaltyPoolAnalytics = (poolId, ownerId = null) => {
+  const qs = ownerId ? `?ownerId=${encodeURIComponent(ownerId)}` : '';
+  return request(`/pos/loyalty-pools/${encodeURIComponent(poolId)}/analytics${qs}`);
+};
+
+export const apiLookupPoolCustomer = (storeId, query) => {
+  return request(`/pos/stores/${encodeURIComponent(storeId)}/customers/lookup?phone=${encodeURIComponent(query || '')}&q=${encodeURIComponent(query || '')}`);
+};
+
+export const apiGetCustomerPoolPoints = (customerId) => {
+  return request(`/pos/customers/${encodeURIComponent(customerId)}/points`);
+};
+
+export const apiPreviewPoolCheckout = (storeId, data) => {
+  return request(`/pos/stores/${encodeURIComponent(storeId)}/checkout/preview`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiGetStoreNotaLedger = (storeId) => {
+  return request(`/pos/stores/${encodeURIComponent(storeId)}/nota-billing-ledger`);
+};
+
+// ── Demand & Sales Forecasting (ML Python LightGBM + Tiered Routing) ──
+export const apiGetPosForecasts = (storeId, horizon = 'H1_TOMORROW') => {
+  const sp = new URLSearchParams();
+  if (storeId) sp.set('storeId', storeId);
+  if (horizon) sp.set('horizon', horizon);
+  return request(`/pos/forecasts?${sp.toString()}`);
+};
+
+export const apiRunPosForecastBatch = (data = {}) => {
+  return request('/pos/forecasts/run-batch', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
 // ── TriPay & Bank Transfer Payout & Disbursement API ──────────────────
 export const apiGetFlipConfig = async () => {
   try {
