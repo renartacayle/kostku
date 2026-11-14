@@ -4167,6 +4167,45 @@ export default function Kasir({ user }) {
 
   const MANAJEMEN_TABS = ['promo', 'inventory', 'loyalty', 'karyawan', 'store'];
 
+  /** Non-navigable status indicator shown directly beneath Keuangan in Kasir side/mobile navbars. */
+  const renderNavBetaTesterBadge = (compact = true) => (
+    <div
+      data-testid={compact ? 'kasir-nav-beta-tester' : 'kasir-mobile-nav-beta-tester'}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '6px',
+        padding: compact ? '4px 10px' : '6px 14px',
+        margin: compact ? '2px 0' : '2px 0',
+        borderRadius: compact ? '8px' : '12px',
+        background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)',
+        border: `1px dashed ${isLight ? '#fcd34d' : 'rgba(245, 158, 11, 0.35)'}`,
+        boxSizing: 'border-box'
+      }}
+    >
+      <span style={{
+        fontSize: compact ? '0.68rem' : '0.76rem',
+        fontWeight: 800,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        color: isLight ? '#b45309' : '#fbbf24'
+      }}>
+        Beta Tester
+      </span>
+      <span style={{
+        fontSize: compact ? '0.58rem' : '0.64rem',
+        fontWeight: 800,
+        padding: compact ? '1px 6px' : '2px 8px',
+        borderRadius: '999px',
+        background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.22)',
+        color: isLight ? '#92400e' : '#fde68a'
+      }}>
+        Beta
+      </span>
+    </div>
+  );
+
   /** Shared responsive full-page header for all Manajemen Toko views (zero popups). */
   const renderManajemenHeader = (title, subtitle, iconEl, extraActions = null) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
@@ -4413,6 +4452,8 @@ export default function Kasir({ user }) {
               <DollarSign size={17} strokeWidth={activeTab === 'settings' ? 2.5 : 2} />
               <span style={{ flex: 1 }}>Keuangan</span>
             </button>
+
+            {renderNavBetaTesterBadge(true)}
 
             {/* 4. Meja QR (Di bawah Keuangan) */}
             <button
@@ -17112,8 +17153,8 @@ export default function Kasir({ user }) {
                   onClick: () => { setShowPosTopupModal(true); setShowMobileMenuHub(false); }
                 }
               ].map(item => (
+                <React.Fragment key={item.id}>
                 <button
-                  key={item.id}
                   type="button"
                   onClick={item.onClick}
                   style={{
@@ -17185,6 +17226,8 @@ export default function Kasir({ user }) {
                     <ChevronRight size={16} color={textSecondary} />
                   </div>
                 </button>
+                {item.id === 'keuangan' && renderNavBetaTesterBadge(false)}
+                </React.Fragment>
               ))}
             </div>
           </div>
