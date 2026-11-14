@@ -99,6 +99,8 @@ import {
 } from '../services/api';
 import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
 import KasirInventoryModal from '../components/kasir/KasirInventoryModal';
+import StaffManagementCard from '../components/StaffManagementCard';
+import StaffCalendarView from '../components/StaffCalendarView';
 
 // ── DEFAULT PRODUCTS & ASSET HELPERS (OFFLINE-FIRST RESILIENCE) ──
 const DEFAULT_FALLBACK_PRODUCTS = [
@@ -317,7 +319,7 @@ export default function Kasir({ user }) {
   const [tripayTopupData, setTripayTopupData] = useState(null);
   const [tripayCheckingStatus, setTripayCheckingStatus] = useState(false);
   const [tripayStatusFeedback, setTripayStatusFeedback] = useState(null);
-  const [showStoreModal, setShowStoreModal] = useState(false);
+  const [selectedKasirStaff, setSelectedKasirStaff] = useState(null);
   const [storeForm, setStoreForm] = useState({
     storeName: '',
     location: '',
@@ -385,7 +387,6 @@ export default function Kasir({ user }) {
     }
     return saved;
   });
-  const [showHardwareModal, setShowHardwareModal] = useState(false);
   const [hardwareModalTab, setHardwareModalTab] = useState('drawer'); // 'drawer' | 'printer'
   const [drawerKicking, setDrawerKicking] = useState(false);
   const [printerFeedback, setPrinterFeedback] = useState('');
@@ -402,7 +403,6 @@ export default function Kasir({ user }) {
   const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   // Member Stamp & Custom Loyalty Points State
-  const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [loyaltySearchPhone, setLoyaltySearchPhone] = useState('');
   const [loyaltyData, setLoyaltyData] = useState(null);
   const [loyaltyLoading, setLoyaltyLoading] = useState(false);
@@ -435,7 +435,6 @@ export default function Kasir({ user }) {
   // ── Promo Makanan State (Owner, Mitra, Kasir, Admin - Kuota / Tanggal) ──
   const [promosList, setPromosList] = useState([]);
   const [loadingPromos, setLoadingPromos] = useState(false);
-  const [showPromoManagerModal, setShowPromoManagerModal] = useState(false);
   const [activeCartPromo, setActiveCartPromo] = useState(null);
   const [newPromoForm, setNewPromoForm] = useState({
     title: '',
@@ -455,7 +454,6 @@ export default function Kasir({ user }) {
   const [promoSaveFeedback, setPromoSaveFeedback] = useState(null);
 
   // ── STATISTIK KEUANGAN MULTI-DIMENSI STATE ──
-  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [analyticsTab, setAnalyticsTab] = useState('perMenu'); // 'perMenu' | 'perStore' | 'crossBranch' | 'perCashier'
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
@@ -921,34 +919,49 @@ export default function Kasir({ user }) {
   // ── STORE LOCATION HANDLERS (VALIDASI TOKO WAJIB) ──
   const handleSaveStore = async (e) => {
     if (e) e.preventDefault();
-    if (!storeForm.storeName.trim()) {
-      alert('Nama toko/kantin kasir wajib diisi!');
+    const payload = {
+      storeName: (storeForm.storeName ?? storeInfo.storeName ?? '').trim(),
+      location: (storeForm.location ?? storeInfo.location ?? '').trim(),
+      address: (storeForm.address ?? storeInfo.address ?? '').trim(),
+      city: (storeForm.city ?? storeInfo.city ?? '').trim(),
+      phone: (storeForm.phone ?? storeInfo.phone ?? '').trim()
+    };
+
+    if (!payload.storeName) {
+      setStoreSaveMsg('❌ Nama toko/kantin kasir wajib diisi!');
       return;
     }
-    if (!storeForm.location.trim()) {
-      alert('Lokasi kasir (lantai/gedung/posisi fisik) wajib diinput agar toko valid!');
+    if (!payload.location) {
+      setStoreSaveMsg('❌ Lokasi kasir (lantai/gedung/posisi fisik) wajib diinput agar toko valid!');
       return;
     }
 
     try {
       setSavingStore(true);
+      setStoreSaveMsg('');
       const res = await fetch('/api/pos/store', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storeForm)
+        body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan lokasi toko');
+      const data = await parseJsonIfOk(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal menyimpan lokasi toko');
 
-      setStoreInfo(data.store);
-      setStoreSaveMsg('Lokasi dan toko kasir berhasil divalidasi resmi!');
-      setTimeout(() => {
-        setStoreSaveMsg('');
-        setShowStoreModal(false);
-      }, 1500);
+      if (data?.store) {
+        setStoreInfo(data.store);
+        setStoreForm({
+          storeName: data.store.storeName || payload.storeName,
+          location: data.store.location || payload.location,
+          address: data.store.address || payload.address,
+          city: data.store.city || payload.city,
+          phone: data.store.phone || payload.phone
+        });
+      }
+      setStoreSaveMsg('✅ Lokasi dan toko kasir berhasil divalidasi resmi!');
+      setTimeout(() => setStoreSaveMsg(''), 4000);
       try { playChime(880, 0.1); } catch (_) {}
     } catch (err) {
-      alert(err.message);
+      setStoreSaveMsg(`❌ ${err.message}`);
     } finally {
       setSavingStore(false);
     }
@@ -1094,7 +1107,7 @@ export default function Kasir({ user }) {
   const handleSearchLoyalty = async (phone) => {
     const cleanPhone = String(phone || loyaltySearchPhone || '').replace(/\D/g, '');
     if (!cleanPhone) {
-      alert('Masukkan nomor WhatsApp pelanggan!');
+      setLoyaltyFeedback('❌ Masukkan nomor WhatsApp pelanggan terlebih dahulu!');
       return;
     }
 
@@ -1102,10 +1115,11 @@ export default function Kasir({ user }) {
       setLoyaltyLoading(true);
       setLoyaltyFeedback('');
       const res = await fetch(`/api/pos/loyalty/${cleanPhone}`);
-      const data = await res.json();
+      const data = await parseJsonIfOk(res);
+      if (!res.ok || !data) throw new Error('Data member tidak ditemukan');
       setLoyaltyData(data);
     } catch (err) {
-      alert('Gagal memuat loyalty pelanggan: ' + err.message);
+      setLoyaltyFeedback('❌ Gagal memuat loyalty pelanggan: ' + err.message);
     } finally {
       setLoyaltyLoading(false);
     }
@@ -1115,7 +1129,7 @@ export default function Kasir({ user }) {
     if (!loyaltyData?.phone) return;
     const pts = parseInt(customPointsInput, 10);
     if (!pts || isNaN(pts)) {
-      alert('Masukkan jumlah poin yang valid!');
+      setLoyaltyFeedback('❌ Masukkan jumlah poin yang valid!');
       return;
     }
 
@@ -1130,14 +1144,14 @@ export default function Kasir({ user }) {
           reason: customPointsReason.trim() || 'Bonus Poin Khusus dari Owner'
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memberi poin');
-      setLoyaltyFeedback(`✅ ${data.message}`);
+      const data = await parseJsonIfOk(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal memberi poin');
+      setLoyaltyFeedback(`✅ ${data?.message || 'Poin berhasil ditambahkan!'}`);
       setCustomPointsInput('');
       setCustomPointsReason('');
       handleSearchLoyalty(loyaltyData.phone);
     } catch (err) {
-      alert(err.message);
+      setLoyaltyFeedback('❌ ' + err.message);
     }
   };
 
@@ -1154,12 +1168,12 @@ export default function Kasir({ user }) {
           reason: 'Stamp Transaksi Kasir POS'
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menambah stamp');
-      setLoyaltyFeedback(`✅ ${data.message}`);
+      const data = await parseJsonIfOk(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal menambah stamp');
+      setLoyaltyFeedback(`✅ ${data?.message || '1 Stamp ditambahkan!'}`);
       handleSearchLoyalty(loyaltyData.phone);
     } catch (err) {
-      alert(err.message);
+      setLoyaltyFeedback('❌ ' + err.message);
     }
   };
 
@@ -1177,12 +1191,12 @@ export default function Kasir({ user }) {
           reason: 'Klaim Gratis 1 Menu Spesial / Diskon Member'
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal klaim stamp');
-      setLoyaltyFeedback(`🎉 ${data.message}`);
+      const data = await parseJsonIfOk(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal klaim stamp');
+      setLoyaltyFeedback(`🎉 ${data?.message || 'Reward stamp berhasil diklaim!'}`);
       handleSearchLoyalty(loyaltyData.phone);
     } catch (err) {
-      alert(err.message);
+      setLoyaltyFeedback('❌ ' + err.message);
     }
   };
 
@@ -2811,7 +2825,7 @@ export default function Kasir({ user }) {
                   <button
                     type="button"
                     onClick={() => {
-                      setShowPromoManagerModal(true);
+                      setActiveTab('promo');
                       loadPromos();
                     }}
                     style={{ fontSize: '0.68rem', color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, textDecoration: 'underline' }}
@@ -3319,6 +3333,47 @@ export default function Kasir({ user }) {
     boxSizing: 'border-box'
   });
 
+  const MANAJEMEN_TABS = ['promo', 'inventory', 'analytics', 'loyalty', 'karyawan', 'store', 'hardware'];
+
+  /** Shared responsive full-page header for all Manajemen Toko views (zero popups). */
+  const renderManajemenHeader = (title, subtitle, iconEl, extraActions = null) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+      <div style={{ minWidth: 0 }}>
+        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ display: 'inline-flex', flexShrink: 0 }}>{iconEl}</span>
+          <span>{title}</span>
+        </h2>
+        <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: textSecondary }}>
+          {subtitle}
+        </p>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {extraActions}
+        <button
+          type="button"
+          onClick={() => setActiveTab('pos')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '7px 12px',
+            borderRadius: '10px',
+            border: `1px solid ${borderColor}`,
+            background: isLight ? '#ffffff' : '#1e293b',
+            color: textPrimary,
+            fontSize: '0.76rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-sm)'
+          }}
+        >
+          <ArrowLeft size={14} />
+          <span>Kembali ke Kasir</span>
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="pos-layout-wrapper" style={{
       minHeight: '100vh',
@@ -3552,10 +3607,10 @@ export default function Kasir({ user }) {
             {/* 5. Promo */}
             <button
               type="button"
-              onClick={() => { setShowPromoManagerModal(true); loadPromos(); }}
-              style={sidebarItemStyle(false)}
+              onClick={() => { setActiveTab('promo'); loadPromos(); }}
+              style={sidebarItemStyle(activeTab === 'promo')}
             >
-              <Tag size={17} color="#f59e0b" />
+              <Tag size={17} color={activeTab === 'promo' ? '#2563eb' : '#f59e0b'} />
               <span style={{ flex: 1 }}>Promo &amp; Diskon</span>
             </button>
 
@@ -3589,49 +3644,50 @@ export default function Kasir({ user }) {
             {/* 7. Statistik */}
             <button
               type="button"
-              onClick={() => { setShowAnalyticsModal(true); loadAnalytics(); }}
-              style={sidebarItemStyle(false)}
+              onClick={() => { setActiveTab('analytics'); loadAnalytics(); }}
+              style={sidebarItemStyle(activeTab === 'analytics')}
             >
-              <BarChart3 size={17} color="#6366f1" />
+              <BarChart3 size={17} color={activeTab === 'analytics' ? '#2563eb' : '#6366f1'} />
               <span style={{ flex: 1 }}>Statistik</span>
             </button>
 
             {/* 8. Stamp */}
             <button
               type="button"
-              onClick={() => setShowLoyaltyModal(true)}
-              style={sidebarItemStyle(false)}
+              onClick={() => setActiveTab('loyalty')}
+              style={sidebarItemStyle(activeTab === 'loyalty')}
             >
-              <Award size={17} color="#3b82f6" />
+              <Award size={17} color={activeTab === 'loyalty' ? '#2563eb' : '#3b82f6'} />
               <span style={{ flex: 1 }}>Stamp Loyalti</span>
             </button>
 
             {/* 9. Karyawan */}
-            <Link
-              to="/karyawan"
-              style={sidebarItemStyle(false)}
+            <button
+              type="button"
+              onClick={() => setActiveTab('karyawan')}
+              style={sidebarItemStyle(activeTab === 'karyawan')}
             >
-              <Users size={17} color="#a855f7" />
+              <Users size={17} color={activeTab === 'karyawan' ? '#2563eb' : '#a855f7'} />
               <span style={{ flex: 1 }}>Karyawan</span>
-            </Link>
+            </button>
 
             {/* 10. Lokasi Toko */}
             <button
               type="button"
-              onClick={() => setShowStoreModal(true)}
-              style={sidebarItemStyle(false)}
+              onClick={() => setActiveTab('store')}
+              style={sidebarItemStyle(activeTab === 'store')}
             >
-              <MapPin size={17} color="#14b8a6" />
+              <MapPin size={17} color={activeTab === 'store' ? '#2563eb' : '#14b8a6'} />
               <span style={{ flex: 1 }}>Lokasi Toko</span>
             </button>
 
             {/* 11. Printer & Laci */}
             <button
               type="button"
-              onClick={() => setShowHardwareModal(true)}
-              style={sidebarItemStyle(false)}
+              onClick={() => setActiveTab('hardware')}
+              style={sidebarItemStyle(activeTab === 'hardware')}
             >
-              <Printer size={17} color="#059669" />
+              <Printer size={17} color={activeTab === 'hardware' ? '#2563eb' : '#059669'} />
               <span style={{ flex: 1 }}>Laci &amp; Printer</span>
             </button>
           </div>
@@ -3865,7 +3921,7 @@ export default function Kasir({ user }) {
                       </span>
                     ) : (
                       <span 
-                        onClick={() => setShowStoreModal(true)}
+                        onClick={() => setActiveTab('store')}
                         style={{
                           fontSize: '0.58rem',
                           fontWeight: 800,
@@ -3907,7 +3963,13 @@ export default function Kasir({ user }) {
                   {activeTab === 'kds' && <><span>🍳</span><span>Layar Antrean Dapur (KDS)</span></>}
                   {activeTab === 'tables' && <><span>🪑</span><span>Manajemen Meja &amp; QR Barcode</span></>}
                   {activeTab === 'settings' && <><span>💰</span><span>Laporan Keuangan &amp; Kasir</span></>}
+                  {activeTab === 'promo' && <><span>🏷️</span><span>Promo &amp; Diskon Makanan</span></>}
                   {activeTab === 'inventory' && <><span>📦</span><span>Gudang &amp; Stok Bahan</span></>}
+                  {activeTab === 'analytics' && <><span>📈</span><span>Statistik &amp; Analitik Keuangan</span></>}
+                  {activeTab === 'loyalty' && <><span>🏆</span><span>Program Stamp &amp; Poin Loyalti</span></>}
+                  {activeTab === 'karyawan' && <><span>👥</span><span>Manajemen Karyawan &amp; Shift</span></>}
+                  {activeTab === 'store' && <><span>📍</span><span>Lokasi Kasir &amp; Validasi Toko</span></>}
+                  {activeTab === 'hardware' && <><span>🖨️</span><span>Laci Uang (RJ11) &amp; Printer Thermal</span></>}
                 </span>
               </div>
             </div>
@@ -4111,8 +4173,8 @@ export default function Kasir({ user }) {
 
         <button
           type="button"
-          onClick={() => { setShowPromoManagerModal(true); loadPromos(); }}
-          style={quickPillStyle('#f59e0b')}
+          onClick={() => { setActiveTab('promo'); loadPromos(); }}
+          style={quickPillStyle(activeTab === 'promo' ? '#2563eb' : '#f59e0b')}
         >
           <Tag size={12} color="#f59e0b" />
           <span>Promo</span>
@@ -4154,8 +4216,8 @@ export default function Kasir({ user }) {
 
         <button
           type="button"
-          onClick={() => { setShowAnalyticsModal(true); loadAnalytics(); }}
-          style={quickPillStyle('#6366f1')}
+          onClick={() => { setActiveTab('analytics'); loadAnalytics(); }}
+          style={quickPillStyle(activeTab === 'analytics' ? '#2563eb' : '#6366f1')}
         >
           <BarChart3 size={12} color="#6366f1" />
           <span>Statistik</span>
@@ -4163,8 +4225,8 @@ export default function Kasir({ user }) {
 
         <button
           type="button"
-          onClick={() => setShowLoyaltyModal(true)}
-          style={quickPillStyle('#3b82f6')}
+          onClick={() => setActiveTab('loyalty')}
+          style={quickPillStyle(activeTab === 'loyalty' ? '#2563eb' : '#3b82f6')}
         >
           <Award size={12} color="#3b82f6" />
           <span>Stamp</span>
@@ -4172,8 +4234,8 @@ export default function Kasir({ user }) {
 
         <button
           type="button"
-          onClick={() => setShowHardwareModal(true)}
-          style={quickPillStyle('#10b981')}
+          onClick={() => setActiveTab('hardware')}
+          style={quickPillStyle(activeTab === 'hardware' ? '#2563eb' : '#10b981')}
           title="Koneksikan Laci Kasir (RJ11) & Printer Thermal"
         >
           <Printer size={12} color="#10b981" />
@@ -4195,18 +4257,19 @@ export default function Kasir({ user }) {
           <span>{drawerKicking ? 'Buka...' : 'Buka Laci'}</span>
         </button>
 
-        <Link
-          to="/karyawan"
-          style={{ ...quickPillStyle('#8b5cf6'), textDecoration: 'none' }}
+        <button
+          type="button"
+          onClick={() => setActiveTab('karyawan')}
+          style={quickPillStyle(activeTab === 'karyawan' ? '#2563eb' : '#8b5cf6')}
         >
           <Users size={12} color="#8b5cf6" />
           <span>Karyawan</span>
-        </Link>
+        </button>
 
         <button
           type="button"
-          onClick={() => setShowStoreModal(true)}
-          style={quickPillStyle('#14b8a6')}
+          onClick={() => setActiveTab('store')}
+          style={quickPillStyle(activeTab === 'store' ? '#2563eb' : '#14b8a6')}
         >
           <MapPin size={12} color="#14b8a6" />
           <span>Lokasi Toko</span>
@@ -4224,11 +4287,12 @@ export default function Kasir({ user }) {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            flexWrap: 'wrap',
             gap: '8px',
             boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
             boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 'min(100%, 220px)', flex: '1 1 220px' }}>
               <div style={{
                 width: '28px',
                 height: '28px',
@@ -4257,7 +4321,8 @@ export default function Kasir({ user }) {
                       borderRadius: '4px',
                       background: isLight ? '#fef3c7' : '#292524',
                       color: isLight ? '#b45309' : '#d6d3d1',
-                      whiteSpace: 'nowrap'
+                      maxWidth: '100%',
+                      wordBreak: 'break-word'
                     }}>
                       {a.name} ({a.currentStock} {a.unit})
                     </span>
@@ -4684,20 +4749,25 @@ export default function Kasir({ user }) {
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {onlineStaffList[0]?.name ? `${onlineStaffList[0].name}${onlineStaffList.length > 1 ? ` +${onlineStaffList.length - 1} lainnya` : ''}` : 'Belum ada staf online'}
                 </span>
-                <Link
-                  to="/karyawan"
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('karyawan')}
                   style={{
                     fontWeight: 700,
                     color: '#6366f1',
-                    textDecoration: 'none',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '2px'
+                    gap: '2px',
+                    fontSize: 'inherit'
                   }}
                 >
                   <span>Detail</span>
                   <ChevronRight size={13} />
-                </Link>
+                </button>
               </div>
             </div>
 
@@ -4807,17 +4877,21 @@ export default function Kasir({ user }) {
                     {onlineStaffList.length} Aktif
                   </span>
                 </div>
-                <Link
-                  to="/karyawan"
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('karyawan')}
                   style={{
                     fontSize: '0.74rem',
                     fontWeight: 700,
                     color: '#2563eb',
-                    textDecoration: 'none'
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer'
                   }}
                 >
                   Kelola Staf &rarr;
-                </Link>
+                </button>
               </div>
 
               {loadingOnlineStaff ? (
@@ -6876,7 +6950,7 @@ export default function Kasir({ user }) {
                   desc: 'Kuota & tgl diskon',
                   icon: <Tag size={20} color="#f59e0b" />,
                   badge: promosList.filter(p => p.isAvailable).length ? `${promosList.filter(p => p.isAvailable).length} aktif` : null,
-                  onClick: () => { setShowPromoManagerModal(true); loadPromos(); setShowToolsDrawer(false); }
+                  onClick: () => { setActiveTab('promo'); loadPromos(); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Gudang & Resep',
@@ -6890,32 +6964,32 @@ export default function Kasir({ user }) {
                   title: 'Statistik Keuangan',
                   desc: 'Menu, cabang & staf',
                   icon: <BarChart3 size={20} color="#6366f1" />,
-                  onClick: () => { setShowAnalyticsModal(true); loadAnalytics(); setShowToolsDrawer(false); }
+                  onClick: () => { setActiveTab('analytics'); loadAnalytics(); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Stamp & Loyalty',
                   desc: 'Hadiah pelanggan',
                   icon: <Award size={20} color="#3b82f6" />,
-                  onClick: () => { setShowLoyaltyModal(true); setShowToolsDrawer(false); }
+                  onClick: () => { setActiveTab('loyalty'); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Printer & Laci Kasir',
                   desc: 'Laci uang RJ11 & printer',
                   icon: <Printer size={20} color="#10b981" />,
-                  onClick: () => { setShowHardwareModal(true); setShowToolsDrawer(false); }
+                  onClick: () => { setActiveTab('hardware'); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Kelola Karyawan',
                   desc: 'Staf & role akses',
                   icon: <Users size={20} color="#8b5cf6" />,
-                  link: '/karyawan'
+                  onClick: () => { setActiveTab('karyawan'); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Lokasi & Info Toko',
                   desc: storeInfo.storeName || 'Atur data toko',
                   icon: <Store size={20} color="#14b8a6" />,
                   badge: storeInfo.isValidated ? '✓ Resmi' : '⚠️ Validasi',
-                  onClick: () => { setShowStoreModal(true); setShowToolsDrawer(false); }
+                  onClick: () => { setActiveTab('store'); setShowToolsDrawer(false); }
                 }
               ].map((item, idx) => (
                 item.link ? (
@@ -8617,6 +8691,27 @@ export default function Kasir({ user }) {
                 <Plus size={14} strokeWidth={2.5} />
                 <span>{showAddInventoryForm ? 'Tutup Form' : 'Tambah Bahan'}</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('pos')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#ffffff' : '#1e293b',
+                  color: textPrimary,
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <ArrowLeft size={14} />
+                <span>Kembali ke Kasir</span>
+              </button>
             </div>
           </div>
 
@@ -9490,6 +9585,1660 @@ export default function Kasir({ user }) {
         </main>
       )}
 
+      {/* ── TAB 6: PROMO & DISKON MAKANAN (FULL PAGE) ── */}
+      {activeTab === 'promo' && (
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {renderManajemenHeader(
+            'Promo & Diskon Makanan',
+            'Owner, Mitra, Kasir, atau Admin dapat membuat promo makanan berbasis Batas Kuota porsi atau Batas Tanggal kadaluarsa.',
+            <Tag size={20} color="#f59e0b" />,
+            <button
+              type="button"
+              onClick={loadPromos}
+              disabled={loadingPromos}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                borderRadius: '10px',
+                border: `1px solid ${borderColor}`,
+                background: isLight ? '#ffffff' : '#1e293b',
+                color: textPrimary,
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <RefreshCw size={13} className={loadingPromos ? 'animate-spin' : ''} />
+              <span>{loadingPromos ? 'Memuat...' : 'Muat Ulang'}</span>
+            </button>
+          )}
+
+          {promoSaveFeedback && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              background: promoSaveFeedback.type === 'success' ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)'),
+              color: promoSaveFeedback.type === 'success' ? (isLight ? '#15803d' : '#86efac') : (isLight ? '#b91c1c' : '#fca5a5'),
+              border: `1px solid ${promoSaveFeedback.type === 'success' ? '#86efac' : '#fca5a5'}`
+            }}>
+              {promoSaveFeedback.message}
+            </div>
+          )}
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+            gap: '14px',
+            alignItems: 'start',
+            width: '100%'
+          }}>
+            {/* Kiri: Form Buat Promo Baru */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px',
+              boxShadow: 'var(--shadow-sm)',
+              minWidth: 0,
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <Plus size={18} color="#f59e0b" />
+                <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: textPrimary }}>
+                  Terbitkan Promo Makanan Baru
+                </h3>
+              </div>
+              <p style={{ margin: '0 0 12px', fontSize: '0.74rem', color: textSecondary, lineHeight: 1.4 }}>
+                Atur kode promo singkat, target menu, nilai potongan, dan batasan kuota/tanggal tanpa keluar dari layar kasir.
+              </p>
+
+              <form onSubmit={handleCreatePromo} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '8px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                      Diterbitkan Oleh (Role):
+                    </label>
+                    <select
+                      value={newPromoForm.createdByRole}
+                      onChange={e => setNewPromoForm(prev => ({ ...prev, createdByRole: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.8rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      <option value="owner">👑 Owner Kost / Toko</option>
+                      <option value="mitra">🏬 Mitra Merchant</option>
+                      <option value="kasir">👨‍🍳 Kasir POS</option>
+                      <option value="admin">🛡️ Administrator</option>
+                    </select>
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                      Kode Promo (Singkat):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: HEMAT10"
+                      value={newPromoForm.code}
+                      onChange={e => setNewPromoForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                    Nama / Judul Promo Makanan:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Promo Makan Siang Hemat (Diskon Rp 5.000)"
+                    value={newPromoForm.title}
+                    onChange={e => setNewPromoForm(prev => ({ ...prev, title: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderLight}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.8rem'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '8px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                      Target Menu:
+                    </label>
+                    <select
+                      value={newPromoForm.scope}
+                      onChange={e => setNewPromoForm(prev => ({ ...prev, scope: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.8rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      <option value="ALL">Semua Menu (Diskon Pesanan)</option>
+                      <option value="SPECIFIC_ITEM">Menu Makanan Spesifik</option>
+                    </select>
+                  </div>
+
+                  {newPromoForm.scope === 'SPECIFIC_ITEM' ? (
+                    <div style={{ minWidth: 0 }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                        Pilih Menu:
+                      </label>
+                      <select
+                        value={newPromoForm.targetProductId}
+                        onChange={e => setNewPromoForm(prev => ({ ...prev, targetProductId: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: `1px solid ${borderLight}`,
+                          background: isLight ? '#f8fafc' : '#1e293b',
+                          color: textPrimary,
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        <option value="">-- Pilih Menu Makanan --</option>
+                        {(scopedProducts.length > 0 ? scopedProducts : products).map(p => (
+                          <option key={p.id} value={p.id}>{p.name} (Rp {Number(p.price || 0).toLocaleString('id-ID')})</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div style={{ minWidth: 0 }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                        Minimal Belanja (Opsional):
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={newPromoForm.minOrder}
+                        onChange={e => setNewPromoForm(prev => ({ ...prev, minOrder: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: `1px solid ${borderLight}`,
+                          background: isLight ? '#f8fafc' : '#1e293b',
+                          color: textPrimary,
+                          fontSize: '0.8rem'
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '8px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                      Tipe Potongan:
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {[
+                        { id: 'FIXED', label: 'Nominal (Rp)' },
+                        { id: 'PERCENT', label: 'Persen (%)' }
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setNewPromoForm(prev => ({ ...prev, discountType: t.id }))}
+                          style={{
+                            flex: 1,
+                            padding: '7px 6px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            border: newPromoForm.discountType === t.id ? '2px solid #f59e0b' : `1px solid ${borderColor}`,
+                            background: newPromoForm.discountType === t.id ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.25)') : 'transparent',
+                            color: newPromoForm.discountType === t.id ? (isLight ? '#b45309' : '#fcd34d') : textSecondary,
+                            fontWeight: 700,
+                            fontSize: '0.74rem'
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '3px' }}>
+                      Besaran Diskon ({newPromoForm.discountType === 'PERCENT' ? '%' : 'Rp'}):
+                    </label>
+                    <input
+                      type="number"
+                      placeholder={newPromoForm.discountType === 'PERCENT' ? 'Contoh: 15' : 'Contoh: 5000'}
+                      value={newPromoForm.discountValue}
+                      onChange={e => setNewPromoForm(prev => ({ ...prev, discountValue: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.8rem',
+                        fontWeight: 700
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '12px',
+                  padding: '10px'
+                }}>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 800, color: textPrimary, display: 'block', marginBottom: '6px' }}>
+                    Batasan Berlaku Promo (Kuota atau Tanggal):
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 95px), 1fr))', gap: '6px', marginBottom: '8px' }}>
+                    {[
+                      { id: 'QUOTA', label: 'Batas Kuota', sub: 'Maks. X porsi' },
+                      { id: 'DATE', label: 'Batas Tanggal', sub: 's/d Tanggal' },
+                      { id: 'BOTH', label: 'Keduanya', sub: 'Kuota & Tgl' }
+                    ].map(lt => (
+                      <button
+                        key={lt.id}
+                        type="button"
+                        onClick={() => setNewPromoForm(prev => ({ ...prev, limitType: lt.id }))}
+                        style={{
+                          padding: '6px 4px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          border: newPromoForm.limitType === lt.id ? '2px solid #3b82f6' : `1px solid ${borderColor}`,
+                          background: newPromoForm.limitType === lt.id ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.25)') : bgCard,
+                          color: newPromoForm.limitType === lt.id ? '#2563eb' : textSecondary,
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: '0.74rem' }}>{lt.label}</div>
+                        <div style={{ fontSize: '0.64rem', opacity: 0.8 }}>{lt.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: newPromoForm.limitType === 'BOTH' ? 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))' : '1fr', gap: '8px' }}>
+                    {(newPromoForm.limitType === 'QUOTA' || newPromoForm.limitType === 'BOTH') && (
+                      <div style={{ minWidth: 0 }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
+                          Batas Kuota Porsi/Pemakaian:
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10000"
+                          placeholder="Contoh: 25"
+                          value={newPromoForm.maxQuota}
+                          onChange={e => setNewPromoForm(prev => ({ ...prev, maxQuota: e.target.value }))}
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: `1px solid ${borderLight}`,
+                            background: bgCard,
+                            color: textPrimary,
+                            fontSize: '0.78rem'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {(newPromoForm.limitType === 'DATE' || newPromoForm.limitType === 'BOTH') && (
+                      <div style={{ minWidth: 0 }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
+                          Berlaku Sampai Tanggal:
+                        </label>
+                        <input
+                          type="date"
+                          value={newPromoForm.expiryDate}
+                          onChange={e => setNewPromoForm(prev => ({ ...prev, expiryDate: e.target.value }))}
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: `1px solid ${borderLight}`,
+                            background: bgCard,
+                            color: textPrimary,
+                            fontSize: '0.78rem'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingPromo}
+                  style={{
+                    marginTop: '4px',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: savingPromo ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
+                  }}
+                >
+                  {savingPromo ? 'Menerbitkan...' : '🏷️ Terbitkan Promo Makanan'}
+                </button>
+              </form>
+            </div>
+
+            {/* Kanan: Daftar Promo Aktif */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px',
+              boxShadow: 'var(--shadow-sm)',
+              minWidth: 0,
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: textPrimary }}>
+                  Daftar Promo Makanan ({promosList.length})
+                </span>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: isLight ? '#fef3c7' : 'rgba(245,158,11,0.2)',
+                  color: isLight ? '#b45309' : '#fcd34d'
+                }}>
+                  {promosList.filter(p => p.isAvailable).length} Siap Dipakai
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {promosList.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '2rem 1rem',
+                    color: textSecondary,
+                    fontSize: '0.82rem',
+                    border: `1px dashed ${borderColor}`,
+                    borderRadius: '14px'
+                  }}>
+                    Belum ada promo makanan terdaftar. Buat promo baru lewat formulir di samping!
+                  </div>
+                ) : (
+                  promosList.map(pr => {
+                    const isExpired = pr.isDateExpired;
+                    const isQuotaEmpty = pr.isQuotaEmpty;
+                    return (
+                      <div
+                        key={pr.id}
+                        style={{
+                          background: isLight ? '#f8fafc' : '#1e293b',
+                          border: `1px solid ${pr.isAvailable ? (isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.4)') : borderColor}`,
+                          borderRadius: '14px',
+                          padding: '12px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontWeight: 900,
+                                fontSize: '0.82rem',
+                                color: '#b45309',
+                                background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
+                                padding: '2px 8px',
+                                borderRadius: '6px'
+                              }}>
+                                {pr.code}
+                              </span>
+                              <strong style={{ fontSize: '0.86rem', color: textPrimary, wordBreak: 'break-word' }}>
+                                {pr.title}
+                              </strong>
+                              <span style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: pr.createdByRole === 'owner' ? '#f3e8ff' : pr.createdByRole === 'mitra' ? '#dbeafe' : '#f1f5f9',
+                                color: pr.createdByRole === 'owner' ? '#7e22ce' : pr.createdByRole === 'mitra' ? '#1d4ed8' : '#475569',
+                                textTransform: 'uppercase'
+                              }}>
+                                oleh {pr.createdByRole}
+                              </span>
+                            </div>
+
+                            <div style={{ fontSize: '0.74rem', color: textSecondary, marginTop: '4px' }}>
+                              Potongan: <strong style={{ color: '#16a34a' }}>{pr.discountType === 'PERCENT' ? `${pr.discountValue}%` : `Rp ${Number(pr.discountValue).toLocaleString('id-ID')}`}</strong>
+                              {pr.scope === 'SPECIFIC_ITEM' && <span> • Menu: <strong>{pr.targetProductName || 'Item Tertentu'}</strong></span>}
+                              {pr.minOrder > 0 && <span> • Min. Belanja: Rp {Number(pr.minOrder).toLocaleString('id-ID')}</span>}
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-end' }}>
+                            {(pr.limitType === 'QUOTA' || pr.limitType === 'BOTH') && (
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                background: isQuotaEmpty ? '#fee2e2' : '#dcfce7',
+                                color: isQuotaEmpty ? '#dc2626' : '#15803d'
+                              }}>
+                                {isQuotaEmpty ? 'Kuota Habis' : `Sisa ${pr.remainingQuota} / ${pr.maxQuota} Kuota`}
+                              </span>
+                            )}
+                            {(pr.limitType === 'DATE' || pr.limitType === 'BOTH') && (
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                background: isExpired ? '#fee2e2' : '#eff6ff',
+                                color: isExpired ? '#dc2626' : '#2563eb'
+                              }}>
+                                {isExpired ? 'Kadaluarsa' : `s/d ${pr.expiryDate}`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${borderColor}`, paddingTop: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                          <span style={{ fontSize: '0.72rem', color: pr.isAvailable ? '#16a34a' : '#ef4444', fontWeight: 700 }}>
+                            {pr.isAvailable ? '● Siap Digunakan di Kasir' : '○ Tidak Tersedia (Nonaktif/Habis)'}
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePromo(pr.id)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                border: `1px solid ${borderColor}`,
+                                background: 'transparent',
+                                color: textSecondary,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pr.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePromo(pr.id)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                border: 'none',
+                                background: 'rgba(239, 68, 68, 0.12)',
+                                color: '#ef4444',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* ── TAB 7: STATISTIK & ANALITIK KEUANGAN MULTI-DIMENSI (FULL PAGE) ── */}
+      {activeTab === 'analytics' && (
+        <KasirAnalyticsModal
+          isFullPage={true}
+          isOpen={true}
+          onClose={() => setActiveTab('pos')}
+          isLight={isLight}
+          analyticsData={analyticsData}
+          loadingAnalytics={loadingAnalytics}
+          onRefresh={loadAnalytics}
+        />
+      )}
+
+      {/* ── TAB 8: STAMP & POIN LOYALITAS MEMBER (FULL PAGE) ── */}
+      {activeTab === 'loyalty' && (() => {
+        const currentStamps = typeof loyaltyData?.stamps === 'object'
+          ? (Number(loyaltyData?.stamps?.current) || 0)
+          : (Number(loyaltyData?.stamps) || 0);
+        const maxStamps = Number(loyaltyData?.maxStamps) || 5;
+        return (
+          <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {renderManajemenHeader(
+              'Program Stamp & Loyalti Member',
+              'Cari pelanggan via nomor WhatsApp untuk melihat kartu 5-stamp, menukar hadiah, dan memberi bonus poin loyalitas.',
+              <Award size={20} color="#d97706" />
+            )}
+
+            {loyaltyFeedback && (
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: '12px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                background: loyaltyFeedback.startsWith('❌') ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)') : (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)'),
+                color: loyaltyFeedback.startsWith('❌') ? (isLight ? '#991b1b' : '#fca5a5') : (isLight ? '#166534' : '#86efac'),
+                border: `1px solid ${loyaltyFeedback.startsWith('❌') ? '#fca5a5' : '#86efac'}`
+              }}>
+                {loyaltyFeedback}
+              </div>
+            )}
+
+            {/* Bar Pencarian Member WhatsApp */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px',
+              boxShadow: 'var(--shadow-sm)',
+              boxSizing: 'border-box'
+            }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: textPrimary, marginBottom: '8px' }}>
+                Cari Member Berdasarkan Nomor WhatsApp
+              </label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <input
+                  type="tel"
+                  placeholder="Nomor WA Pelanggan (cth: 08123456789)..."
+                  value={loyaltySearchPhone}
+                  onChange={e => setLoyaltySearchPhone(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSearchLoyalty(); }}
+                  style={{
+                    flex: '1 1 220px',
+                    minWidth: 0,
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderLight}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.84rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSearchLoyalty()}
+                  disabled={loyaltyLoading}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    cursor: loyaltyLoading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loyaltyLoading ? 'Mencari...' : 'Cari Member'}
+                </button>
+              </div>
+            </div>
+
+            {loyaltyData ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+                gap: '14px',
+                alignItems: 'start'
+              }}>
+                {/* Kartu Stamp 5-Slot */}
+                <div style={{
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '18px',
+                  padding: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  minWidth: 0,
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: textPrimary, fontSize: '0.96rem' }}>
+                        {loyaltyData.name || 'Member KostKu'}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: textSecondary, fontFamily: 'var(--font-mono)' }}>
+                        WA: {loyaltyData.phone} • Stamp {currentStamps}/{maxStamps}
+                      </div>
+                    </div>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)',
+                      color: '#16a34a',
+                      fontWeight: 800,
+                      fontSize: '0.82rem'
+                    }}>
+                      {(loyaltyData.points || 0).toLocaleString('id-ID')} Poin
+                    </span>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                    gap: '8px',
+                    padding: '12px',
+                    background: isLight ? '#f8fafc' : '#0f172a',
+                    borderRadius: '14px',
+                    border: `1px dashed ${borderColor}`
+                  }}>
+                    {Array.from({ length: maxStamps }, (_, idx) => {
+                      const isFilled = idx < currentStamps;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            aspectRatio: '1',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: isFilled ? '2px solid #d97706' : `1.5px dashed ${borderColor}`,
+                            background: isFilled ? '#fef3c7' : 'transparent',
+                            color: isFilled ? '#b45309' : textSecondary,
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Award size={16} />
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800 }}>{idx + 1}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleGrantStamp(1)}
+                      style={{
+                        flex: '1 1 140px',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#f59e0b',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Beri 1 Stamp
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRedeemStamp}
+                      disabled={currentStamps < maxStamps}
+                      style={{
+                        flex: '1 1 160px',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: currentStamps >= maxStamps ? '#16a34a' : '#94a3b8',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.78rem',
+                        cursor: currentStamps >= maxStamps ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      🎁 Tukar Hadiah (Min. {maxStamps})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bonus Poin Kustom Member */}
+                <div style={{
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '18px',
+                  padding: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  minWidth: 0,
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Gift size={18} color="#2563eb" />
+                    <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary }}>
+                      Beri Bonus / Penyesuaian Poin Member
+                    </h3>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
+                    Tambahkan atau kurangi poin member secara langsung untuk program promo pelanggan setia.
+                  </p>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: textSecondary, marginBottom: '3px' }}>
+                      Jumlah Poin (+ tambah / - kurang):
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Contoh: 100"
+                      value={customPointsInput}
+                      onChange={e => setCustomPointsInput(e.target.value)}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        fontWeight: 700
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: textSecondary, marginBottom: '3px' }}>
+                      Alasan / Keterangan:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Bonus ulang tahun / kompensasi pesanan"
+                      value={customPointsReason}
+                      onChange={e => setCustomPointsReason(e.target.value)}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.82rem'
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGrantCustomPoints}
+                    style={{
+                      padding: '9px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Terapkan Poin Member
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                background: bgCard,
+                border: `1px dashed ${borderColor}`,
+                borderRadius: '18px',
+                padding: '2rem 1.25rem',
+                textAlign: 'center',
+                color: textSecondary
+              }}>
+                <Award size={36} color="#d97706" style={{ margin: '0 auto 8px' }} />
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: textPrimary, marginBottom: '4px' }}>
+                  Cari Nomor WhatsApp Pelanggan Terlebih Dahulu
+                </div>
+                <p style={{ margin: 0, fontSize: '0.78rem' }}>
+                  Masukkan nomor WA pelanggan di kotak atas lalu tekan <strong>Cari Member</strong> untuk mengelola kartu stamp (5x kunjungan gratis hadiah) dan poin member.
+                </p>
+              </div>
+            )}
+          </main>
+        );
+      })()}
+
+      {/* ── TAB 9: MANAJEMEN KARYAWAN & JADWAL SHIFT (FULL PAGE) ── */}
+      {activeTab === 'karyawan' && (
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {renderManajemenHeader(
+            'Manajemen Karyawan & Jadwal Shift',
+            'Kelola akun staf kasir, gaji, dan jadwal kalender absensi harian langsung tanpa meninggalkan halaman kasir.',
+            <Users size={20} color="#a855f7" />
+          )}
+
+          <div style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+            <StaffManagementCard
+              user={user}
+              selectedStaffId={selectedKasirStaff?.id}
+              onSelectStaff={(staff) => setSelectedKasirStaff(staff)}
+            />
+          </div>
+
+          {selectedKasirStaff ? (
+            <div style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+              <StaffCalendarView
+                staff={selectedKasirStaff}
+                user={user}
+                onStaffUpdated={() => {}}
+              />
+            </div>
+          ) : (
+            <div style={{
+              background: bgCard,
+              border: `1px dashed ${borderColor}`,
+              borderRadius: '18px',
+              padding: '2rem 1.25rem',
+              textAlign: 'center',
+              color: textSecondary
+            }}>
+              <Calendar size={34} color="#a855f7" style={{ margin: '0 auto 8px' }} />
+              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: textPrimary, marginBottom: '4px' }}>
+                Pilih Karyawan di Atas
+              </div>
+              <p style={{ margin: 0, fontSize: '0.78rem' }}>
+                Klik kartu karyawan atau tombol <strong>"Buka Kalender"</strong> di atas untuk melihat kalender absensi dan hasil tugas harian mereka.
+              </p>
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* ── TAB 10: LOKASI KASIR & VALIDASI TOKO (FULL PAGE) ── */}
+      {activeTab === 'store' && (
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {renderManajemenHeader(
+            'Lokasi Kasir & Validasi Toko',
+            'Nama toko dan posisi fisik stand kasir wajib dilengkapi agar berstatus Resmi sebelum melayani pesanan meja & mencetak struk.',
+            <MapPin size={20} color="#14b8a6" />,
+            <span style={{
+              padding: '5px 11px',
+              borderRadius: '999px',
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              background: storeInfo.isValidated ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.18)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.18)'),
+              color: storeInfo.isValidated ? '#16a34a' : '#d97706',
+              border: `1px solid ${storeInfo.isValidated ? '#86efac' : '#fcd34d'}`
+            }}>
+              {storeInfo.isValidated ? '✓ Tervalidasi Resmi' : '⚠️ Belum Valid'}
+            </span>
+          )}
+
+          {storeSaveMsg && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              background: storeSaveMsg.startsWith('✅') ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)'),
+              color: storeSaveMsg.startsWith('✅') ? (isLight ? '#166534' : '#86efac') : (isLight ? '#991b1b' : '#fca5a5'),
+              border: `1px solid ${storeSaveMsg.startsWith('✅') ? '#86efac' : '#fca5a5'}`
+            }}>
+              {storeSaveMsg}
+            </div>
+          )}
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+            gap: '14px',
+            alignItems: 'start'
+          }}>
+            {/* Form Identitas Toko */}
+            <form
+              onSubmit={handleSaveStore}
+              noValidate
+              style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '16px',
+                boxShadow: 'var(--shadow-sm)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary }}>
+                Identitas Usaha &amp; Posisi Stand Kasir
+              </h3>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                  Nama Toko / Usaha Kasir <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Kantin Riuph Kost Barokah"
+                  value={storeForm.storeName}
+                  onChange={e => setStoreForm(prev => ({ ...prev, storeName: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderLight}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.84rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                  Lokasi Stand / Posisi Kasir <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Lantai 1 Dekat Tangga Utama / Stand Timur"
+                  value={storeForm.location}
+                  onChange={e => setStoreForm(prev => ({ ...prev, location: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderLight}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.84rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                  Alamat Lengkap (Opsional untuk Struk)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Jl. Menoreh Tengah X No. 22"
+                  value={storeForm.address}
+                  onChange={e => setStoreForm(prev => ({ ...prev, address: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderLight}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.84rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '10px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Kota
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Semarang"
+                    value={storeForm.city}
+                    onChange={e => setStoreForm(prev => ({ ...prev, city: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderLight}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.84rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    No. Telp / WA Kasir
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="08123456789"
+                    value={storeForm.phone}
+                    onChange={e => setStoreForm(prev => ({ ...prev, phone: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderLight}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.84rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingStore}
+                style={{
+                  marginTop: '4px',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  cursor: savingStore ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+                }}
+              >
+                {savingStore ? 'Menyimpan Lokasi...' : 'Simpan & Validasi Toko'}
+              </button>
+            </form>
+
+            {/* Preview Header Struk & Status */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              minWidth: 0,
+              boxSizing: 'border-box'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <Store size={17} color="#14b8a6" />
+                <span>Pratinjau Header Struk Thermal</span>
+              </h3>
+              <div style={{
+                padding: '16px 14px',
+                borderRadius: '12px',
+                background: isLight ? '#ffffff' : '#0f172a',
+                border: `1px dashed ${borderColor}`,
+                textAlign: 'center',
+                fontFamily: 'var(--font-mono)',
+                color: textPrimary,
+                lineHeight: 1.5
+              }}>
+                <div style={{ fontWeight: 900, fontSize: '0.95rem', textTransform: 'uppercase' }}>
+                  {storeForm.storeName || storeInfo.storeName || 'Nama Toko Belum Diisi'}
+                </div>
+                <div style={{ fontSize: '0.76rem', color: textSecondary }}>
+                  Stand: {storeForm.location || storeInfo.location || '-'}
+                </div>
+                {(storeForm.address || storeForm.city) && (
+                  <div style={{ fontSize: '0.74rem', color: textSecondary }}>
+                    {[storeForm.address, storeForm.city].filter(Boolean).join(', ')}
+                  </div>
+                )}
+                {storeForm.phone && (
+                  <div style={{ fontSize: '0.74rem', color: textSecondary }}>
+                    Telp/WA: {storeForm.phone}
+                  </div>
+                )}
+              </div>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary, lineHeight: 1.45 }}>
+                Informasi ini muncul pada kop struk thermal 58mm/80mm, header halaman pesan meja QR pelanggan, serta laporan rekap penjualan shift.
+              </p>
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* ── TAB 11: PERIFERAL HARDWARE LACI KASIR & PRINTER THERMAL (FULL PAGE) ── */}
+      {activeTab === 'hardware' && (
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {renderManajemenHeader(
+            'Laci Uang (RJ11) & Printer Struk Thermal',
+            'Konfigurasi laci uang otomatis (RJ11) dan koneksi printer struk thermal via Bluetooth BLE, USB OTG, atau dialog cetak sistem.',
+            <Printer size={20} color="#10b981" />,
+            <span style={{
+              padding: '5px 11px',
+              borderRadius: '999px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              background: isLight ? '#ecfdf5' : 'rgba(16,185,129,0.16)',
+              color: '#059669',
+              border: '1px solid rgba(16,185,129,0.35)'
+            }}>
+              Mode: {printerSettings.connectionType || 'browser'} • {printerSettings.openDrawer !== false ? 'Auto-Kick ON' : 'Manual'}
+            </span>
+          )}
+
+          {printerFeedback && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              background: printerFeedback.startsWith('✅') ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)'),
+              color: printerFeedback.startsWith('✅') ? '#059669' : '#dc2626',
+              border: `1px solid ${printerFeedback.startsWith('✅') ? '#10b981' : '#ef4444'}`
+            }}>
+              {printerFeedback}
+            </div>
+          )}
+
+          {/* Segmented Tab Controls: Laci Kasir vs Printer Thermal */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
+            gap: '8px',
+            background: bgCard,
+            border: `1px solid ${borderColor}`,
+            padding: '6px',
+            borderRadius: '14px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setHardwareModalTab('drawer')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: 'none',
+                background: hardwareModalTab === 'drawer' ? '#10b981' : 'transparent',
+                color: hardwareModalTab === 'drawer' ? '#ffffff' : textSecondary,
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>🗄️</span>
+              <span>Laci Uang (Cash Drawer)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setHardwareModalTab('printer')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: 'none',
+                background: hardwareModalTab === 'printer' ? '#2563eb' : 'transparent',
+                color: hardwareModalTab === 'printer' ? '#ffffff' : textSecondary,
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Printer size={16} />
+              <span>Printer Struk Thermal</span>
+            </button>
+          </div>
+
+          {hardwareModalTab === 'drawer' && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+              gap: '14px',
+              alignItems: 'start'
+            }}>
+              <div style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>
+                    ● Status Laci Kasir: Siap Konek
+                  </span>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: '#10b981',
+                    color: '#ffffff'
+                  }}>
+                    Port RJ11 / RJ12
+                  </span>
+                </div>
+
+                <div style={{
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  border: `1px solid ${borderColor}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  color: textPrimary
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', marginBottom: '2px' }}>📱</div>
+                    <span>Tablet / HP</span>
+                  </div>
+                  <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(BT/USB)──➔</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', marginBottom: '2px' }}>🖨️</div>
+                    <span>Printer Thermal</span>
+                  </div>
+                  <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(RJ11)──➔</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', marginBottom: '2px' }}>🗄️</div>
+                    <span style={{ color: '#10b981' }}>Laci Kasir</span>
+                  </div>
+                </div>
+
+                <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary, lineHeight: 1.45 }}>
+                  Laci kasir terhubung via kabel RJ11 di port belakang printer thermal bertuliskan <strong>"DK" (Drawer Kick)</strong>. Saat transaksi tunai selesai, pulsa 12V/24V otomatis membuka laci.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleKickDrawerManual}
+                  disabled={drawerKicking}
+                  style={{
+                    padding: '13px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: drawerKicking
+                      ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                      : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    cursor: drawerKicking ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)'
+                  }}
+                >
+                  <span>🔓</span>
+                  <span>{drawerKicking ? 'Mengirim Pulsa Listrik...' : 'TES BUKA LACI SEKARANG (KICK DRAWER)'}</span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
+                <div style={{
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '18px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  boxSizing: 'border-box'
+                }}>
+                  <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: textPrimary }}>
+                    Pengaturan Otomatisasi Laci
+                  </h4>
+
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    border: `1px solid ${borderColor}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: textPrimary }}>
+                        Buka Laci Otomatis saat Bayar Tunai (Cash)
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: textSecondary }}>
+                        Laci langsung melenting terbuka saat klik 'Bayar Tunai &amp; Cetak Struk'.
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={printerSettings.openDrawer !== false}
+                      onChange={e => {
+                        const next = { ...printerSettings, openDrawer: e.target.checked };
+                        setPrinterSettings(next);
+                        savePrinterSettings(next);
+                      }}
+                      style={{ width: '18px', height: '18px', accentColor: '#10b981', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                  </label>
+
+                  <div>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '6px' }}>
+                      Pilihan Pin Pulsa Sinyal RJ11:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '8px' }}>
+                      {[
+                        { id: 2, label: 'Pin 2 (Standard ESC/POS)', desc: 'Panda, Epson, Iware, Eppos, Kassen' },
+                        { id: 5, label: 'Pin 5 (Alternatif Brand)', desc: 'Sebagian printer mini POS tertentu' }
+                      ].map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            const next = { ...printerSettings, drawerPin: p.id };
+                            setPrinterSettings(next);
+                            savePrinterSettings(next);
+                          }}
+                          style={{
+                            padding: '9px 10px',
+                            borderRadius: '10px',
+                            border: (printerSettings.drawerPin || 2) === p.id ? '2px solid #10b981' : `1px solid ${borderColor}`,
+                            background: (printerSettings.drawerPin || 2) === p.id ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)') : (isLight ? '#f8fafc' : '#1e293b'),
+                            color: textPrimary,
+                            textAlign: 'left',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.76rem', color: (printerSettings.drawerPin || 2) === p.id ? '#10b981' : textPrimary }}>
+                            {p.label}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', color: textSecondary }}>
+                            {p.desc}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  fontSize: '0.74rem',
+                  color: isLight ? '#92400e' : '#fde68a'
+                }}>
+                  <strong>💡 Langkah Menyambungkan Laci Kasir:</strong>
+                  <ol style={{ margin: '5px 0 0', paddingLeft: '1.1rem', lineHeight: 1.55 }}>
+                    <li>Colokkan kabel RJ11 laci kasir ke port <strong>DK (Drawer Kick)</strong> di belakang printer thermal.</li>
+                    <li>Pastikan printer thermal tersambung via Bluetooth atau USB di tab <em>Printer Struk Thermal</em>.</li>
+                    <li>Tekan tombol <strong>"Tes Buka Laci Sekarang"</strong> untuk uji pulsa pembuka laci.</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hardwareModalTab === 'printer' && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+              gap: '14px',
+              alignItems: 'start'
+            }}>
+              <div style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: textPrimary, display: 'block', marginBottom: '6px' }}>
+                    Pilih Metode Koneksi Printer:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: '8px' }}>
+                    {[
+                      { id: 'bluetooth', label: 'Bluetooth BLE', icon: <Bluetooth size={15} />, desc: 'HP / Tablet' },
+                      { id: 'usb', label: 'USB Serial', icon: <Usb size={15} />, desc: 'Kabel USB OTG' },
+                      { id: 'browser', label: 'Dialog Cetak', icon: <Printer size={15} />, desc: 'Driver OS' }
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          const next = { ...printerSettings, connectionType: m.id };
+                          setPrinterSettings(next);
+                          savePrinterSettings(next);
+                        }}
+                        style={{
+                          padding: '10px 8px',
+                          borderRadius: '10px',
+                          border: (printerSettings.connectionType || 'browser') === m.id ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                          background: (printerSettings.connectionType || 'browser') === m.id ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.18)') : (isLight ? '#f8fafc' : '#1e293b'),
+                          color: textPrimary,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <div style={{ color: (printerSettings.connectionType || 'browser') === m.id ? '#2563eb' : textSecondary }}>{m.icon}</div>
+                        <span style={{ fontSize: '0.76rem', fontWeight: 800 }}>{m.label}</span>
+                        <span style={{ fontSize: '0.64rem', color: textSecondary }}>{m.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 175px), 1fr))', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleConnectBluetooth}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      minWidth: 0,
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Bluetooth size={14} color="#3b82f6" />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {printerSettings.pairedBluetoothDeviceName ? `BT: ${printerSettings.pairedBluetoothDeviceName}` : 'Pair Printer Bluetooth'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleConnectUsb}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      minWidth: 0,
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Usb size={14} color="#10b981" />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {printerSettings.pairedUsbPortName ? `USB: ${printerSettings.pairedUsbPortName}` : 'Pair Kabel USB OTG'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: textPrimary, display: 'block', marginBottom: '6px' }}>
+                    Lebar Kertas Struk Thermal:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['58mm', '80mm'].map(w => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => {
+                          const next = { ...printerSettings, paperWidth: w };
+                          setPrinterSettings(next);
+                          savePrinterSettings(next);
+                        }}
+                        style={{
+                          flex: '1 1 120px',
+                          padding: '9px',
+                          borderRadius: '10px',
+                          border: (printerSettings.paperWidth || '58mm') === w ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                          background: (printerSettings.paperWidth || '58mm') === w ? '#2563eb' : (isLight ? '#f8fafc' : '#1e293b'),
+                          color: (printerSettings.paperWidth || '58mm') === w ? '#ffffff' : textPrimary,
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {w} ({w === '58mm' ? '32 Kolom' : '48 Kolom'})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.78rem',
+                  color: textPrimary,
+                  cursor: 'pointer',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  background: isLight ? '#f8fafc' : '#1e293b',
+                  border: `1px solid ${borderColor}`
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={printerSettings.autoCut !== false}
+                    onChange={e => {
+                      const next = { ...printerSettings, autoCut: e.target.checked };
+                      setPrinterSettings(next);
+                      savePrinterSettings(next);
+                    }}
+                    style={{ width: '16px', height: '16px', accentColor: '#2563eb' }}
+                  />
+                  <span>Auto-Cut Kertas Otomatis (Pemotong Kertas)</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => handleTestPrint()}
+                  disabled={isPrinting}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: isPrinting ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                  }}
+                >
+                  <Printer size={15} />
+                  <span>{isPrinting ? 'Mencetak Struk...' : 'TES CETAK STRUK THERMAL'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+      )}
+
       {/* ── THERMAL RECEIPT MODAL WITH BLUETOOTH & USB DIRECT PRINTING ── */}
       {receiptOrder && (
         <div style={{
@@ -10348,232 +12097,6 @@ export default function Kasir({ user }) {
         </div>
       )}
 
-      {/* ── MODAL: LOKASI KASIR & VALIDASI TOKO ── */}
-      {showStoreModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.72)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 150,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: bgCard,
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '460px',
-            padding: '1.25rem',
-            boxShadow: 'var(--shadow-xl)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <MapPin size={18} color="#2563eb" />
-                  <span>Lokasi Kasir & Validasi Toko</span>
-                </h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: textSecondary }}>
-                  Nama toko dan lokasi kasir wajib diisi agar valid sebelum melayani pesanan meja & mencetak struk.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowStoreModal(false)}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '999px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  color: textSecondary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            {storeSaveMsg && (
-              <div style={{
-                padding: '8px 12px',
-                borderRadius: '10px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                textAlign: 'center',
-                background: storeSaveMsg.startsWith('✅') ? '#dcfce7' : '#fee2e2',
-                color: storeSaveMsg.startsWith('✅') ? '#166534' : '#991b1b',
-                border: `1px solid ${storeSaveMsg.startsWith('✅') ? '#86efac' : '#fca5a5'}`
-              }}>
-                {storeSaveMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveStore} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Nama Toko / Usaha Kasir <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Kantin Riuph Kost Barokah"
-                  value={storeInfo.storeName}
-                  onChange={e => setStoreInfo({ ...storeInfo, storeName: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Lokasi Stand / Posisi Kasir <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Lantai 1 Dekat Tangga Utama / Stand Timur"
-                  value={storeInfo.location}
-                  onChange={e => setStoreInfo({ ...storeInfo, location: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                  Alamat Lengkap (Opsional untuk Struk)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Jl. Menoreh Tengah X No. 22"
-                  value={storeInfo.address}
-                  onChange={e => setStoreInfo({ ...storeInfo, address: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderLight}`,
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                    Kota
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Semarang"
-                    value={storeInfo.city}
-                    onChange={e => setStoreInfo({ ...storeInfo, city: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '10px',
-                      border: `1px solid ${borderLight}`,
-                      background: isLight ? '#f8fafc' : '#1e293b',
-                      color: textPrimary,
-                      fontSize: '0.82rem',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
-                    No. Telp / WA Kasir
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="08123456789"
-                    value={storeInfo.phone}
-                    onChange={e => setStoreInfo({ ...storeInfo, phone: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '10px',
-                      border: `1px solid ${borderLight}`,
-                      background: isLight ? '#f8fafc' : '#1e293b',
-                      color: textPrimary,
-                      fontSize: '0.82rem',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowStoreModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: '9px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#f1f5f9' : '#1e293b',
-                    color: textSecondary,
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingStore}
-                  style={{
-                    flex: 2,
-                    padding: '9px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    cursor: savingStore ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
-                  }}
-                >
-                  {savingStore ? 'Menyimpan Lokasi...' : 'Simpan & Validasi Toko'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* ── MODAL: DISKON KHUSUS OWNER / ADMIN ── */}
       {showDiscountModal && selectedOrderForDiscount && (
         <div style={{
@@ -10789,188 +12312,6 @@ export default function Kasir({ user }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: MEMBER STAMP & LOYALTY CARD SHORTCUT ── */}
-      {showLoyaltyModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.72)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 150,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: bgCard,
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '480px',
-            padding: '1.25rem',
-            boxShadow: 'var(--shadow-xl)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Award size={18} color="#d97706" />
-                  <span>Program Stamp & Poin Member</span>
-                </h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: textSecondary }}>
-                  Cari member via nomor WhatsApp untuk melihat stamp atau memberikan poin loyalitas.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowLoyaltyModal(false)}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '999px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#f1f5f9' : '#1e293b',
-                  color: textSecondary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="tel"
-                placeholder="Nomor WA Pelanggan (cth: 08123456789)..."
-                value={loyaltySearchPhone}
-                onChange={e => setLoyaltySearchPhone(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleSearchLoyalty(); }}
-                style={{
-                  flex: 1,
-                  padding: '9px 12px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderLight}`,
-                  background: isLight ? '#f8fafc' : '#1e293b',
-                  color: textPrimary,
-                  fontSize: '0.82rem'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => handleSearchLoyalty()}
-                disabled={loyaltyLoading}
-                style={{
-                  padding: '9px 16px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer'
-                }}
-              >
-                {loyaltyLoading ? 'Cari...' : 'Cari Member'}
-              </button>
-            </div>
-
-            {loyaltyData && (
-              <div style={{
-                padding: '12px',
-                borderRadius: '12px',
-                background: isLight ? '#f8fafc' : '#0f172a',
-                border: `1px solid ${borderColor}`,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 800, color: textPrimary, fontSize: '0.85rem' }}>{loyaltyData.phone}</span>
-                  <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '0.82rem' }}>{(loyaltyData.points || 0).toLocaleString('id-ID')} Poin</span>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(5, 1fr)',
-                  gap: '6px',
-                  padding: '8px',
-                  background: isLight ? '#fff' : '#1e293b',
-                  borderRadius: '10px',
-                  border: `1px dashed ${borderColor}`
-                }}>
-                  {[0, 1, 2, 3, 4].map(idx => {
-                    const isFilled = idx < (loyaltyData.stamps?.current || 0);
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          aspectRatio: '1',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: isFilled ? '2px solid #d97706' : `1.5px dashed ${borderColor}`,
-                          background: isFilled ? '#fef3c7' : 'transparent',
-                          color: isFilled ? '#b45309' : textSecondary
-                        }}
-                      >
-                        <Award size={14} />
-                        <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{idx + 1}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={handleGrantStamp}
-                    style={{
-                      flex: 1,
-                      padding: '7px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: '#f59e0b',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.74rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    + Beri 1 Stamp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRedeemStamp}
-                    disabled={(loyaltyData.stamps?.current || 0) < 5}
-                    style={{
-                      flex: 1,
-                      padding: '7px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: (loyaltyData.stamps?.current || 0) >= 5 ? '#16a34a' : '#94a3b8',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.74rem',
-                      cursor: (loyaltyData.stamps?.current || 0) >= 5 ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    🎁 Tukar Hadiah (Min. 5)
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -11409,604 +12750,6 @@ export default function Kasir({ user }) {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL MANAJEMEN PROMO MAKANAN (OWNER, MITRA, KASIR, ADMIN) ── */}
-      {showPromoManagerModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 150,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: isLight ? '#ffffff' : '#0f172a',
-            border: isLight ? '1.5px solid #fde68a' : '1.5px solid rgba(245, 158, 11, 0.45)',
-            borderRadius: '24px',
-            maxWidth: '620px',
-            width: '100%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
-            overflow: 'hidden'
-          }}>
-            {/* Header Modal */}
-            <div style={{
-              padding: '1.25rem 1.5rem',
-              borderBottom: `1px solid ${borderColor}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Tag size={20} color="#f59e0b" />
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: textPrimary }}>
-                    Manajemen Promo Makanan
-                  </h3>
-                </div>
-                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: textSecondary }}>
-                  Owner, Mitra, Kasir, atau Admin dapat membuat promo makanan berbasis <strong>Batas Kuota</strong> atau <strong>Batas Tanggal</strong>.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPromoManagerModal(false);
-                  setPromoSaveFeedback(null);
-                }}
-                style={{ background: 'none', border: 'none', color: textSecondary, cursor: 'pointer', padding: '4px' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Content Body (Scrollable) */}
-            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-              {/* Feedback Alert */}
-              {promoSaveFeedback && (
-                <div style={{
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  background: promoSaveFeedback.type === 'success' ? '#dcfce7' : '#fee2e2',
-                  color: promoSaveFeedback.type === 'success' ? '#15803d' : '#b91c1c'
-                }}>
-                  {promoSaveFeedback.message}
-                </div>
-              )}
-
-              {/* Section 1: Daftar Promo Makanan Aktif */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: textPrimary, textTransform: 'uppercase' }}>
-                    Daftar Promo Makanan ({promosList.length})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={loadPromos}
-                    disabled={loadingPromos}
-                    style={{ fontSize: '0.72rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                  >
-                    {loadingPromos ? 'Memuat...' : 'Muat Ulang ↻'}
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {promosList.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.5rem', color: textSecondary, fontSize: '0.8rem' }}>
-                      Belum ada promo makanan yang terdaftar. Buat promo baru di bawah!
-                    </div>
-                  ) : (
-                    promosList.map(pr => {
-                      const isExpired = pr.isDateExpired;
-                      const isQuotaEmpty = pr.isQuotaEmpty;
-
-                      return (
-                        <div
-                          key={pr.id}
-                          style={{
-                            background: isLight ? '#f8fafc' : '#1e293b',
-                            border: `1px solid ${pr.isAvailable ? (isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.4)') : borderColor}`,
-                            borderRadius: '14px',
-                            padding: '12px 14px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{
-                                  fontFamily: 'var(--font-mono)',
-                                  fontWeight: 900,
-                                  fontSize: '0.85rem',
-                                  color: '#b45309',
-                                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
-                                  padding: '2px 8px',
-                                  borderRadius: '6px'
-                                }}>
-                                  {pr.code}
-                                </span>
-                                <strong style={{ fontSize: '0.88rem', color: textPrimary }}>
-                                  {pr.title}
-                                </strong>
-                                <span style={{
-                                  fontSize: '0.68rem',
-                                  fontWeight: 700,
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  background: pr.createdByRole === 'owner' ? '#f3e8ff' : pr.createdByRole === 'mitra' ? '#dbeafe' : '#f1f5f9',
-                                  color: pr.createdByRole === 'owner' ? '#7e22ce' : pr.createdByRole === 'mitra' ? '#1d4ed8' : '#475569',
-                                  textTransform: 'uppercase'
-                                }}>
-                                  oleh {pr.createdByRole}
-                                </span>
-                              </div>
-
-                              <div style={{ fontSize: '0.74rem', color: textSecondary, marginTop: '4px' }}>
-                                Potongan: <strong style={{ color: '#16a34a' }}>{pr.discountType === 'PERCENT' ? `${pr.discountValue}%` : `Rp ${Number(pr.discountValue).toLocaleString('id-ID')}`}</strong>
-                                {pr.scope === 'SPECIFIC_ITEM' && <span> • Menu: <strong>{pr.targetProductName || 'Item Tertentu'}</strong></span>}
-                                {pr.minOrder > 0 && <span> • Min. Belanja: Rp {Number(pr.minOrder).toLocaleString('id-ID')}</span>}
-                              </div>
-                            </div>
-
-                            {/* Badge Limit Kuota / Tanggal */}
-                            <div style={{ textAlign: 'right' }}>
-                              {(pr.limitType === 'QUOTA' || pr.limitType === 'BOTH') && (
-                                <div style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: 800,
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  background: isQuotaEmpty ? '#fee2e2' : '#dcfce7',
-                                  color: isQuotaEmpty ? '#dc2626' : '#15803d',
-                                  display: 'inline-block',
-                                  marginBottom: '3px'
-                                }}>
-                                  {isQuotaEmpty ? 'Kuota Habis' : `Sisa ${pr.remainingQuota} / ${pr.maxQuota} Kuota`}
-                                </div>
-                              )}
-                              {(pr.limitType === 'DATE' || pr.limitType === 'BOTH') && (
-                                <div style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: 800,
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  background: isExpired ? '#fee2e2' : '#eff6ff',
-                                  color: isExpired ? '#dc2626' : '#2563eb',
-                                  display: 'inline-block'
-                                }}>
-                                  {isExpired ? 'Kadaluarsa' : `s/d ${pr.expiryDate}`}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Action Row */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${borderColor}`, paddingTop: '6px' }}>
-                            <span style={{ fontSize: '0.7rem', color: pr.isAvailable ? '#16a34a' : '#ef4444', fontWeight: 700 }}>
-                              {pr.isAvailable ? '● Siap Digunakan di Kasir' : '○ Tidak Tersedia (Habis/Kadaluarsa)'}
-                            </span>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button
-                                type="button"
-                                onClick={() => handleTogglePromo(pr.id)}
-                                style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  border: `1px solid ${borderColor}`,
-                                  background: 'transparent',
-                                  color: textSecondary,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {pr.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePromo(pr.id)}
-                                style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  border: 'none',
-                                  background: 'rgba(239, 68, 68, 0.1)',
-                                  color: '#ef4444',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Hapus
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* Section 2: Form Buat Promo Makanan Baru */}
-              <div style={{
-                background: isLight ? '#f8fafc' : '#111827',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '16px',
-                padding: '14px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                  <Plus size={16} color="#f59e0b" />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: textPrimary }}>
-                    + Terbitkan Promo Makanan Baru
-                  </span>
-                </div>
-                <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: textSecondary }}>
-                  Bisa diterbitkan oleh <strong>Owner</strong>, <strong>Mitra</strong>, <strong>Kasir</strong>, atau <strong>Admin</strong> dengan batasan kuota porsi atau batas tanggal kadaluarsa.
-                </p>
-
-                <form onSubmit={handleCreatePromo} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {/* Row 1: Role Pembuat & Kode Promo */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                        Diterbitkan Oleh (Role):
-                      </label>
-                      <select
-                        value={newPromoForm.createdByRole}
-                        onChange={e => setNewPromoForm(prev => ({ ...prev, createdByRole: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '7px 8px',
-                          borderRadius: '8px',
-                          border: `1px solid ${borderLight}`,
-                          background: bgCard,
-                          color: textPrimary,
-                          fontSize: '0.78rem',
-                          fontWeight: 700
-                        }}
-                      >
-                        <option value="owner">👑 Owner Kost / Toko</option>
-                        <option value="mitra">🏬 Mitra Merchant</option>
-                        <option value="kasir">👨‍🍳 Kasir POS</option>
-                        <option value="admin">🛡️ Administrator</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                        Kode Promo (Singkat):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: HEMAT10"
-                        value={newPromoForm.code}
-                        onChange={e => setNewPromoForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                        style={{
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '7px 8px',
-                          borderRadius: '8px',
-                          border: `1px solid ${borderLight}`,
-                          background: bgCard,
-                          color: textPrimary,
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          textTransform: 'uppercase'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Judul Promo */}
-                  <div>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                      Nama / Judul Promo Makanan:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Promo Makan Siang Hemat (Diskon Rp 5.000)"
-                      value={newPromoForm.title}
-                      onChange={e => setNewPromoForm(prev => ({ ...prev, title: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        padding: '7px 8px',
-                        borderRadius: '8px',
-                        border: `1px solid ${borderLight}`,
-                        background: bgCard,
-                        color: textPrimary,
-                        fontSize: '0.78rem'
-                      }}
-                    />
-                  </div>
-
-                  {/* Row 3: Scope Produk (Semua Menu vs Menu Spesifik) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                        Target Menu:
-                      </label>
-                      <select
-                        value={newPromoForm.scope}
-                        onChange={e => setNewPromoForm(prev => ({ ...prev, scope: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '7px 8px',
-                          borderRadius: '8px',
-                          border: `1px solid ${borderLight}`,
-                          background: bgCard,
-                          color: textPrimary,
-                          fontSize: '0.78rem',
-                          fontWeight: 700
-                        }}
-                      >
-                        <option value="ALL">Semua Menu (Diskon Pesanan)</option>
-                        <option value="SPECIFIC_ITEM">Menu Makanan Spesifik</option>
-                      </select>
-                    </div>
-
-                    {newPromoForm.scope === 'SPECIFIC_ITEM' ? (
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                          Pilih Menu:
-                        </label>
-                        <select
-                          value={newPromoForm.targetProductId}
-                          onChange={e => setNewPromoForm(prev => ({ ...prev, targetProductId: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            boxSizing: 'border-box',
-                            padding: '7px 8px',
-                            borderRadius: '8px',
-                            border: `1px solid ${borderLight}`,
-                            background: bgCard,
-                            color: textPrimary,
-                            fontSize: '0.78rem'
-                          }}
-                        >
-                          <option value="">-- Pilih Menu Makanan --</option>
-                          {products.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} (Rp {p.price.toLocaleString('id-ID')})</option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <div>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                          Minimal Belanja (Opsional):
-                        </label>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          value={newPromoForm.minOrder}
-                          onChange={e => setNewPromoForm(prev => ({ ...prev, minOrder: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            boxSizing: 'border-box',
-                            padding: '7px 8px',
-                            borderRadius: '8px',
-                            border: `1px solid ${borderLight}`,
-                            background: bgCard,
-                            color: textPrimary,
-                            fontSize: '0.78rem'
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Row 4: Tipe Diskon & Nilai */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                        Tipe Potongan:
-                      </label>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {[
-                          { id: 'FIXED', label: 'Nominal (Rp)' },
-                          { id: 'PERCENT', label: 'Persen (%)' }
-                        ].map(t => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => setNewPromoForm(prev => ({ ...prev, discountType: t.id }))}
-                            style={{
-                              flex: 1,
-                              padding: '6px',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              border: newPromoForm.discountType === t.id ? '2px solid #f59e0b' : `1px solid ${borderColor}`,
-                              background: newPromoForm.discountType === t.id ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.25)') : 'transparent',
-                              color: newPromoForm.discountType === t.id ? '#b45309' : textSecondary,
-                              fontWeight: 700,
-                              fontSize: '0.74rem'
-                            }}
-                          >
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                        Besaran Diskon ({newPromoForm.discountType === 'PERCENT' ? '%' : 'Rp'}):
-                      </label>
-                      <input
-                        type="number"
-                        placeholder={newPromoForm.discountType === 'PERCENT' ? 'Contoh: 15' : 'Contoh: 5000'}
-                        value={newPromoForm.discountValue}
-                        onChange={e => setNewPromoForm(prev => ({ ...prev, discountValue: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '7px 8px',
-                          borderRadius: '8px',
-                          border: `1px solid ${borderLight}`,
-                          background: bgCard,
-                          color: textPrimary,
-                          fontSize: '0.78rem',
-                          fontWeight: 700
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 5: PILIHAN BATASAN PROMO (ANTARA KUOTA ATAU TANGGAL ATAU KEDUANYA) */}
-                  <div style={{
-                    background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.2)',
-                    border: `1px solid ${borderColor}`,
-                    borderRadius: '12px',
-                    padding: '10px'
-                  }}>
-                    <label style={{ fontSize: '0.74rem', fontWeight: 800, color: textPrimary, display: 'block', marginBottom: '6px' }}>
-                      Pilih Batasan Berlaku Promo (Kuota atau Tanggal):
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px' }}>
-                      {[
-                        { id: 'QUOTA', label: 'Batas Kuota', sub: 'Maks. X porsi' },
-                        { id: 'DATE', label: 'Batas Tanggal', sub: 's/d Tanggal' },
-                        { id: 'BOTH', label: 'Keduanya', sub: 'Kuota & Tgl' }
-                      ].map(lt => (
-                        <button
-                          key={lt.id}
-                          type="button"
-                          onClick={() => setNewPromoForm(prev => ({ ...prev, limitType: lt.id }))}
-                          style={{
-                            padding: '6px',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            border: newPromoForm.limitType === lt.id ? '2px solid #3b82f6' : `1px solid ${borderColor}`,
-                            background: newPromoForm.limitType === lt.id ? (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.25)') : bgCard,
-                            color: newPromoForm.limitType === lt.id ? '#2563eb' : textSecondary,
-                            textAlign: 'center'
-                          }}
-                        >
-                          <div style={{ fontWeight: 800, fontSize: '0.74rem' }}>{lt.label}</div>
-                          <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>{lt.sub}</div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: newPromoForm.limitType === 'BOTH' ? '1fr 1fr' : '1fr', gap: '8px' }}>
-                      {(newPromoForm.limitType === 'QUOTA' || newPromoForm.limitType === 'BOTH') && (
-                        <div>
-                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                            Batas Kuota Porsi/Pemakaian:
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="10000"
-                            placeholder="Contoh: 25"
-                            value={newPromoForm.maxQuota}
-                            onChange={e => setNewPromoForm(prev => ({ ...prev, maxQuota: e.target.value }))}
-                            style={{
-                              width: '100%',
-                              boxSizing: 'border-box',
-                              padding: '7px 8px',
-                              borderRadius: '8px',
-                              border: `1px solid ${borderLight}`,
-                              background: bgCard,
-                              color: textPrimary,
-                              fontSize: '0.78rem'
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {(newPromoForm.limitType === 'DATE' || newPromoForm.limitType === 'BOTH') && (
-                        <div>
-                          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '2px' }}>
-                            Berlaku Sampai Tanggal:
-                          </label>
-                          <input
-                            type="date"
-                            value={newPromoForm.expiryDate}
-                            onChange={e => setNewPromoForm(prev => ({ ...prev, expiryDate: e.target.value }))}
-                            style={{
-                              width: '100%',
-                              boxSizing: 'border-box',
-                              padding: '7px 8px',
-                              borderRadius: '8px',
-                              border: `1px solid ${borderLight}`,
-                              background: bgCard,
-                              color: textPrimary,
-                              fontSize: '0.78rem'
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={savingPromo}
-                    style={{
-                      marginTop: '4px',
-                      padding: '9px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
-                    }}
-                  >
-                    {savingPromo ? 'Menerbitkan...' : '🏷️ Terbitkan Promo Makanan'}
-                  </button>
-                </form>
-              </div>
-
-            </div>
-
-            {/* Footer Modal */}
-            <div style={{
-              padding: '10px 1.5rem',
-              borderTop: `1px solid ${borderColor}`,
-              display: 'flex',
-              justifyContent: 'flex-end',
-              background: isLight ? '#f8fafc' : '#0f172a'
-            }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPromoManagerModal(false);
-                  setPromoSaveFeedback(null);
-                }}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderColor}`,
-                  background: 'transparent',
-                  color: textSecondary,
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Tutup
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -12642,554 +13385,6 @@ export default function Kasir({ user }) {
         </div>
       )}
 
-      {/* ── MODAL PERIFERAL HARDWARE: LACI KASIR (CASH DRAWER) & PRINTER THERMAL ── */}
-      {showHardwareModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 150,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: isLight ? '#ffffff' : '#0f172a',
-            border: isLight ? '1.5px solid #86efac' : '1.5px solid rgba(16, 185, 129, 0.45)',
-            borderRadius: '24px',
-            maxWidth: '560px',
-            width: '100%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
-            overflow: 'hidden'
-          }}>
-            {/* Header Modal */}
-            <div style={{
-              padding: '1.25rem 1.5rem',
-              borderBottom: `1px solid ${borderColor}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Printer size={20} color="#10b981" />
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: textPrimary }}>
-                    Hardware POS: Laci Kasir &amp; Printer
-                  </h3>
-                </div>
-                <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: textSecondary }}>
-                  Konfigurasi laci uang otomatis (RJ11) dan printer struk thermal (Bluetooth / USB).
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowHardwareModal(false)}
-                style={{ background: 'none', border: 'none', color: textSecondary, cursor: 'pointer', padding: '4px' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Hardware Feedback Alert if any */}
-            {printerFeedback && (
-              <div style={{
-                margin: '1rem 1.5rem 0',
-                padding: '8px 12px',
-                borderRadius: '10px',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                background: printerFeedback.startsWith('✅') ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)') : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)'),
-                color: printerFeedback.startsWith('✅') ? '#059669' : '#dc2626',
-                border: `1px solid ${printerFeedback.startsWith('✅') ? '#10b981' : '#ef4444'}`
-              }}>
-                {printerFeedback}
-              </div>
-            )}
-
-            {/* Segmented Tab Controls: Laci Kasir vs Printer Thermal */}
-            <div style={{ padding: '0.75rem 1.5rem 0' }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '6px',
-                background: isLight ? '#f1f5f9' : '#1e293b',
-                padding: '4px',
-                borderRadius: '14px'
-              }}>
-                <button
-                  type="button"
-                  onClick={() => setHardwareModalTab('drawer')}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: hardwareModalTab === 'drawer' ? '#10b981' : 'transparent',
-                    color: hardwareModalTab === 'drawer' ? '#ffffff' : textSecondary,
-                    fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <span>🗄️</span>
-                  <span>Laci Uang (Cash Drawer)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHardwareModalTab('printer')}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: hardwareModalTab === 'printer' ? '#2563eb' : 'transparent',
-                    color: hardwareModalTab === 'printer' ? '#ffffff' : textSecondary,
-                    fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Printer size={15} />
-                  <span>Printer Struk Thermal</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body Content (Scrollable) */}
-            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              
-              {/* ── TAB 1: LACI UANG KASIR (CASH DRAWER RJ11 / USB) ── */}
-              {hardwareModalTab === 'drawer' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  
-                  {/* Status Card & Diagram Visual */}
-                  <div style={{
-                    padding: '1rem',
-                    borderRadius: '16px',
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    border: `1px solid ${borderColor}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        ● Status Laci Kasir: Siap Konek
-                      </span>
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 800,
-                        padding: '2px 8px',
-                        borderRadius: '999px',
-                        background: '#10b981',
-                        color: '#ffffff'
-                      }}>
-                        Port RJ11 / RJ12
-                      </span>
-                    </div>
-
-                    <div style={{
-                      background: isLight ? '#ffffff' : '#0f172a',
-                      borderRadius: '12px',
-                      padding: '10px 12px',
-                      border: `1px solid ${borderColor}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-around',
-                      fontSize: '0.74rem',
-                      fontWeight: 700,
-                      color: textPrimary
-                    }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>📱</div>
-                        <span>Tablet / HP</span>
-                      </div>
-                      <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(BT/USB)──➔</div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>🖨️</div>
-                        <span>Printer Thermal</span>
-                      </div>
-                      <div style={{ color: textSecondary, fontSize: '0.7rem' }}>──(RJ11)──➔</div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>🗄️</div>
-                        <span style={{ color: '#10b981' }}>Laci Kasir</span>
-                      </div>
-                    </div>
-
-                    <p style={{ margin: 0, fontSize: '0.72rem', color: textSecondary, lineHeight: 1.4 }}>
-                      Laci kasir terhubung via kabel RJ11 (kabel telepon) di port belakang printer thermal bertuliskan <strong>"DK" (Drawer Kick)</strong>. Saat transaksi tunai selesai, pulsa 12V/24V dikirim otomatis untuk melentingkan laci terbuka.
-                    </p>
-                  </div>
-
-                  {/* Tombol Utama: Uji Coba Buka Laci Sekarang */}
-                  <button
-                    type="button"
-                    onClick={handleKickDrawerManual}
-                    disabled={drawerKicking}
-                    style={{
-                      padding: '14px',
-                      borderRadius: '14px',
-                      border: 'none',
-                      background: drawerKicking 
-                        ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
-                        : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.92rem',
-                      cursor: drawerKicking ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span style={{ fontSize: '1.1rem' }}>🔓</span>
-                    <span>{drawerKicking ? 'Mengirim Pulsa Listrik...' : 'TES BUKA LACI SEKARANG (KICK DRAWER)'}</span>
-                  </button>
-
-                  {/* Pengaturan Otomatisasi Laci */}
-                  <div style={{
-                    padding: '1rem',
-                    borderRadius: '16px',
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    border: `1px solid ${borderColor}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px'
-                  }}>
-                    <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 800, color: textPrimary }}>
-                      Pengaturan Otomatisasi Laci
-                    </h4>
-
-                    {/* Toggle: Auto-kick on Cash */}
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer',
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      background: isLight ? '#ffffff' : '#0f172a',
-                      border: `1px solid ${borderColor}`
-                    }}>
-                      <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: textPrimary }}>
-                          Buka Laci Otomatis saat Bayar Tunai (Cash)
-                        </div>
-                        <div style={{ fontSize: '0.68rem', color: textSecondary }}>
-                          Laci langsung melenting terbuka saat klik 'Bayar Tunai &amp; Cetak Struk'.
-                        </div>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={printerSettings.openDrawer !== false}
-                        onChange={e => {
-                          const next = { ...printerSettings, openDrawer: e.target.checked };
-                          setPrinterSettings(next);
-                          savePrinterSettings(next);
-                        }}
-                        style={{ width: '18px', height: '18px', accentColor: '#10b981', cursor: 'pointer' }}
-                      />
-                    </label>
-
-                    {/* Selection: Pin RJ11 Pulsa */}
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '5px' }}>
-                        Pilihan Pin Pulsa Sinyal RJ11:
-                      </label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                        {[
-                          { id: 2, label: 'Pin 2 (Standard ESC/POS)', desc: 'Panda, Epson, Iware, Eppos, Kassen' },
-                          { id: 5, label: 'Pin 5 (Alternatif Brand)', desc: 'Sebagian printer mini POS tertentu' }
-                        ].map(p => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => {
-                              const next = { ...printerSettings, drawerPin: p.id };
-                              setPrinterSettings(next);
-                              savePrinterSettings(next);
-                            }}
-                            style={{
-                              padding: '8px 10px',
-                              borderRadius: '10px',
-                              border: (printerSettings.drawerPin || 2) === p.id ? '2px solid #10b981' : `1px solid ${borderColor}`,
-                              background: (printerSettings.drawerPin || 2) === p.id ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)') : (isLight ? '#ffffff' : '#0f172a'),
-                              color: textPrimary,
-                              textAlign: 'left',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <div style={{ fontWeight: 800, fontSize: '0.76rem', color: (printerSettings.drawerPin || 2) === p.id ? '#10b981' : textPrimary }}>
-                              {p.label}
-                            </div>
-                            <div style={{ fontSize: '0.64rem', color: textSecondary }}>
-                              {p.desc}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Panduan 3 Langkah Sambungkan Laci */}
-                  <div style={{
-                    padding: '10px 12px',
-                    borderRadius: '12px',
-                    background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)',
-                    border: '1px solid rgba(245, 158, 11, 0.35)',
-                    fontSize: '0.72rem',
-                    color: isLight ? '#92400e' : '#fde68a'
-                  }}>
-                    <strong>💡 Langkah Menyambungkan Laci Kasir:</strong>
-                    <ol style={{ margin: '4px 0 0', paddingLeft: '1.1rem', lineHeight: 1.5 }}>
-                      <li>Ambil kabel RJ11 (seperti kabel telepon) dari belakang laci kasir.</li>
-                      <li>Colokkan ke port <strong>DK (Drawer Kick)</strong> di belakang printer thermal Anda.</li>
-                      <li>Pastikan printer thermal sudah tersambung via Bluetooth atau USB di tab <em>Printer Struk Thermal</em>.</li>
-                      <li>Tekan tombol <strong>"Tes Buka Laci Sekarang"</strong> di atas.</li>
-                    </ol>
-                  </div>
-
-                </div>
-              )}
-
-              {/* ── TAB 2: PRINTER STRUK THERMAL ── */}
-              {hardwareModalTab === 'printer' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  
-                  {/* Connection Type Selector */}
-                  <div>
-                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '6px' }}>
-                      Pilih Metode Koneksi Printer:
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                      {[
-                        { id: 'bluetooth', label: 'Bluetooth BLE', icon: <Bluetooth size={14} />, desc: 'HP / Tablet' },
-                        { id: 'usb', label: 'USB Serial', icon: <Usb size={14} />, desc: 'Kabel USB OTG' },
-                        { id: 'browser', label: 'Dialog Cetak', icon: <Printer size={14} />, desc: 'Driver OS' }
-                      ].map(m => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => {
-                            const next = { ...printerSettings, connectionType: m.id };
-                            setPrinterSettings(next);
-                            savePrinterSettings(next);
-                          }}
-                          style={{
-                            padding: '8px 6px',
-                            borderRadius: '10px',
-                            border: (printerSettings.connectionType || 'browser') === m.id ? '2px solid #2563eb' : `1px solid ${borderColor}`,
-                            background: (printerSettings.connectionType || 'browser') === m.id ? (isLight ? '#eff6ff' : 'rgba(37,99,235,0.18)') : (isLight ? '#ffffff' : '#1e293b'),
-                            color: textPrimary,
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}
-                        >
-                          <div style={{ color: (printerSettings.connectionType || 'browser') === m.id ? '#2563eb' : textSecondary }}>{m.icon}</div>
-                          <span style={{ fontSize: '0.76rem', fontWeight: 800 }}>{m.label}</span>
-                          <span style={{ fontSize: '0.62rem', color: textSecondary }}>{m.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Pair Device Action Buttons */}
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={handleConnectBluetooth}
-                      style={{
-                        flex: 1,
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: `1px solid ${borderColor}`,
-                        background: isLight ? '#ffffff' : '#1e293b',
-                        color: textPrimary,
-                        fontWeight: 700,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Bluetooth size={14} color="#3b82f6" />
-                      <span>{printerSettings.pairedBluetoothDeviceName ? `BT: ${printerSettings.pairedBluetoothDeviceName}` : 'Pair Printer Bluetooth'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleConnectUsb}
-                      style={{
-                        flex: 1,
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: `1px solid ${borderColor}`,
-                        background: isLight ? '#ffffff' : '#1e293b',
-                        color: textPrimary,
-                        fontWeight: 700,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Usb size={14} color="#10b981" />
-                      <span>{printerSettings.pairedUsbPortName ? `USB: ${printerSettings.pairedUsbPortName}` : 'Pair Kabel USB OTG'}</span>
-                    </button>
-                  </div>
-
-                  {/* Paper Width & Auto Cut */}
-                  <div style={{
-                    padding: '1rem',
-                    borderRadius: '16px',
-                    background: isLight ? '#f8fafc' : '#1e293b',
-                    border: `1px solid ${borderColor}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px'
-                  }}>
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: textPrimary, display: 'block', marginBottom: '4px' }}>
-                        Lebar Kertas Struk:
-                      </label>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        {['58mm', '80mm'].map(w => (
-                          <button
-                            key={w}
-                            type="button"
-                            onClick={() => {
-                              const next = { ...printerSettings, paperWidth: w };
-                              setPrinterSettings(next);
-                              savePrinterSettings(next);
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: '8px',
-                              borderRadius: '8px',
-                              border: (printerSettings.paperWidth || '58mm') === w ? '2px solid #2563eb' : `1px solid ${borderColor}`,
-                              background: (printerSettings.paperWidth || '58mm') === w ? '#2563eb' : (isLight ? '#ffffff' : '#0f172a'),
-                              color: (printerSettings.paperWidth || '58mm') === w ? '#ffffff' : textPrimary,
-                              fontWeight: 800,
-                              fontSize: '0.76rem',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {w} ({w === '58mm' ? '32 Kolom' : '48 Kolom'})
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: textPrimary, cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={printerSettings.autoCut !== false}
-                        onChange={e => {
-                          const next = { ...printerSettings, autoCut: e.target.checked };
-                          setPrinterSettings(next);
-                          savePrinterSettings(next);
-                        }}
-                      />
-                      <span>Auto-Cut Kertas Otomatis (Pemotong Kertas)</span>
-                    </label>
-                  </div>
-
-                  {/* Test Print Receipt Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleTestPrint()}
-                    disabled={isPrinting}
-                    style={{
-                      padding: '12px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.84rem',
-                      cursor: isPrinting ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
-                    }}
-                  >
-                    <Printer size={15} />
-                    <span>{isPrinting ? 'Mencetak Struk...' : 'TES CETAK STRUK THERMAL'}</span>
-                  </button>
-
-                </div>
-              )}
-
-            </div>
-
-            {/* Footer Modal */}
-            <div style={{
-              padding: '10px 1.5rem',
-              borderTop: `1px solid ${borderColor}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: isLight ? '#f8fafc' : '#0f172a',
-              fontSize: '0.74rem',
-              color: textSecondary
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>🔌 Mode:</span>
-                <strong style={{ color: textPrimary }}>{printerSettings.connectionType || 'browser'}</strong>
-                <span>• Laci:</span>
-                <strong style={{ color: '#10b981' }}>{printerSettings.openDrawer !== false ? 'Auto-Kick ON' : 'Manual'}</strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowHardwareModal(false);
-                  setPrinterFeedback('');
-                }}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#ffffff' : '#1e293b',
-                  color: textPrimary,
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Tutup
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
       {/* ── MODAL: ATUR BANYAKNYA MENU DITAMBAHKAN (QUICK QUANTITY SELECTOR) ── */}
       {quickQtyProduct && (
         <div 
@@ -13738,16 +13933,6 @@ export default function Kasir({ user }) {
         </div>
       )}
 
-      {/* ── MODAL 1: STATISTIK & ANALITIK KEUANGAN MULTI-DIMENSI ── */}
-      <KasirAnalyticsModal
-        isOpen={showAnalyticsModal}
-        onClose={() => setShowAnalyticsModal(false)}
-        isLight={isLight}
-        analyticsData={analyticsData}
-        loadingAnalytics={loadingAnalytics}
-        onRefresh={loadAnalytics}
-      />
-
       {/* ── MODAL 2: MANAJEMEN GUDANG, RESEP & ALERT STOK ── */}
       <KasirInventoryModal
         isOpen={showInventoryModal}
@@ -14007,13 +14192,13 @@ export default function Kasir({ user }) {
               border: 'none',
               padding: '4px 0',
               cursor: 'pointer',
-              color: (activeTab === 'settings' || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              color: (activeTab === 'settings' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
               transition: 'all 0.15s ease',
               position: 'relative'
             }}
           >
             <div style={{ position: 'relative' }}>
-              <Sliders size={20} strokeWidth={(activeTab === 'settings' || showMobileMenuHub) ? 2.5 : 2} />
+              <Sliders size={20} strokeWidth={(activeTab === 'settings' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 2.5 : 2} />
               {inventoryAlerts.length > 0 && (
                 <span style={{
                   position: 'absolute',
@@ -14028,7 +14213,7 @@ export default function Kasir({ user }) {
             </div>
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: (activeTab === 'settings' || showMobileMenuHub) ? 800 : 600,
+              fontWeight: (activeTab === 'settings' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 800 : 600,
               letterSpacing: '-0.01em'
             }}>
               Kelola
@@ -14234,7 +14419,7 @@ export default function Kasir({ user }) {
                   icon: <Tag size={20} color="#f59e0b" />,
                   badge: promosList.filter(p => p.isAvailable).length ? `${promosList.filter(p => p.isAvailable).length} aktif` : null,
                   badgeBg: '#f59e0b',
-                  onClick: () => { setShowPromoManagerModal(true); loadPromos(); setShowMobileMenuHub(false); }
+                  onClick: () => { setActiveTab('promo'); loadPromos(); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'gudang',
@@ -14256,21 +14441,21 @@ export default function Kasir({ user }) {
                   title: 'Statistik Keuangan',
                   desc: 'Grafik menu & performa omset',
                   icon: <BarChart3 size={20} color="#6366f1" />,
-                  onClick: () => { setShowAnalyticsModal(true); loadAnalytics(); setShowMobileMenuHub(false); }
+                  onClick: () => { setActiveTab('analytics'); loadAnalytics(); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'stamp',
                   title: 'Stamp & Loyalty',
                   desc: 'Hadiah poin pelanggan setia',
                   icon: <Award size={20} color="#3b82f6" />,
-                  onClick: () => { setShowLoyaltyModal(true); setShowMobileMenuHub(false); }
+                  onClick: () => { setActiveTab('loyalty'); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'karyawan',
                   title: 'Kelola Karyawan',
                   desc: 'Shift kasir & staf resto',
                   icon: <Users size={20} color="#a855f7" />,
-                  onClick: () => { navigate('/karyawan'); setShowMobileMenuHub(false); }
+                  onClick: () => { setActiveTab('karyawan'); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'lokasi_toko',
@@ -14279,14 +14464,14 @@ export default function Kasir({ user }) {
                   icon: <Store size={20} color="#14b8a6" />,
                   badge: storeInfo.isValidated ? '✓ Resmi' : '⚠️ Validasi',
                   badgeBg: storeInfo.isValidated ? '#10b981' : '#f59e0b',
-                  onClick: () => { setShowStoreModal(true); setShowMobileMenuHub(false); }
+                  onClick: () => { setActiveTab('store'); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'printer',
                   title: 'Printer & Laci Kasir',
                   desc: 'Thermal Bluetooth / USB',
                   icon: <Printer size={20} color="#059669" />,
-                  onClick: () => { setShowHardwareModal(true); setShowMobileMenuHub(false); }
+                  onClick: () => { setActiveTab('hardware'); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'topup_nota',

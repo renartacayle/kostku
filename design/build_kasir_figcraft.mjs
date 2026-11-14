@@ -9,7 +9,7 @@ const SCRIPT_JSON = path.join(DESIGN_DIR, '.kasir_commands.tmp.json');
 /**
  * Modular command builder for storytold/figcraft CLI (`figcraft-cli run`).
  * Generates a 100% local, token-driven KostKu Kasir design system (Light + Dark variables)
- * and 5 responsive Auto-Layout screens ready for Dev Mode (`inspect.code`) & visual review.
+ * and 6 responsive Auto-Layout screens ready for Dev Mode (`inspect.code`) & visual review.
  */
 class FigCraftBuilder {
   constructor() {
@@ -1082,6 +1082,228 @@ function buildKasirScreens() {
   b.text(grandRow, 'Rp 46.000', { size: 18, weight: 'Bold', color: V('brand-primary'), fillH: false });
 
   b.pillButton(rightCart, 'Proses Pembayaran (Tunai / QRIS)', { bg: V('brand-primary'), fg: '#ffffff', height: 46, radius: 12, size: 13 });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SCREEN 6: Desktop - Manajemen Toko Full Page (1440x900) - Zero Popups!
+  // ═══════════════════════════════════════════════════════════════════════
+  const s6 = b.frame('Desktop - Manajemen Toko Full Page (1440x900)', 1440, 900, {
+    x: 1500,
+    y: 920,
+    fill: V('bg-main'),
+    layout: 'horizontal',
+    clip: true,
+    devStatus: 'readyForDev',
+  });
+
+  // Left Rail Sidebar (Manajemen Toko section highlighted)
+  const mRail = b.frame('ManajemenLeftRail', 248, 900, {
+    fill: V('bg-surface'),
+    stroke: V('border-subtle'),
+    strokeWeight: 1,
+    strokeSides: [false, true, false, false],
+    layout: 'vertical',
+    padding: 16,
+    gap: 8,
+    sizingH: 'fixed',
+    sizingV: 'fill',
+  }, s6);
+
+  const mBrand = b.frame('MRailBrand', 216, 48, {
+    fill: 'none',
+    layout: 'horizontal',
+    gap: 10,
+    crossAlign: 'center',
+    sizingH: 'fill',
+    sizingV: 'hug',
+  }, mRail);
+  const mBadge = b.frame('MBadgeMark', 36, 36, {
+    fill: V('brand-primary'),
+    cornerRadius: 10,
+    layout: 'vertical',
+    mainAlign: 'center',
+    crossAlign: 'center',
+    sizingH: 'fixed',
+    sizingV: 'fixed',
+  }, mBrand);
+  b.text(mBadge, 'K', { size: 17, weight: 'Bold', color: '#ffffff', fillH: false });
+  const mBrandTxt = b.frame('MBrandCopy', 160, 36, { fill: 'none', layout: 'vertical', gap: 1, sizingH: 'fill', sizingV: 'hug' }, mBrand);
+  b.text(mBrandTxt, 'KostKu POS', { size: 15, weight: 'Bold', color: V('ink-primary'), lineHeight: '120%' });
+  b.text(mBrandTxt, 'Manajemen Toko • Full Page', { size: 11, color: V('ink-muted'), lineHeight: '120%' });
+
+  b.text(mRail, 'MANAJEMEN TOKO (NO POPUP)', { size: 10, weight: 'Bold', color: V('ink-muted') });
+
+  const manajemenRailItems = [
+    ['Promo & Diskon', true],
+    ['Gudang & Stok (3!)', false],
+    ['Statistik Keuangan', false],
+    ['Stamp Loyalti Member', false],
+    ['Karyawan & Shift', false],
+    ['Lokasi Toko & Validasi', false],
+    ['Laci Uang & Printer', false],
+  ];
+  for (const [label, isActive] of manajemenRailItems) {
+    const navBtn = b.frame(`MRailNav/${label}`, 216, 38, {
+      fill: isActive ? V('brand-tint') : 'none',
+      cornerRadius: 10,
+      layout: 'horizontal',
+      padding: [0, 12, 0, 12],
+      gap: 10,
+      crossAlign: 'center',
+      sizingH: 'fill',
+      sizingV: 'fixed',
+    }, mRail);
+    b.rect('NavDot', 14, 14, { fill: isActive ? V('brand-primary') : V('bg-slate-200'), cornerRadius: 4 }, navBtn);
+    b.text(navBtn, label, {
+      size: 12,
+      weight: isActive ? 'Bold' : 'Medium',
+      color: isActive ? V('brand-primary') : V('ink-secondary'),
+    });
+  }
+
+  // Full-Page Workspace Container (<main> - Zero Popups!)
+  const mMain = b.frame('FullPageMainContainer', 1192, 900, {
+    fill: 'none',
+    layout: 'vertical',
+    padding: 24,
+    gap: 18,
+    sizingH: 'fill',
+    sizingV: 'fill',
+  }, s6);
+
+  const mHdr = b.frame('FullPageHeader', 1144, 54, {
+    fill: 'none',
+    layout: 'horizontal',
+    mainAlign: 'spaceBetween',
+    crossAlign: 'center',
+    sizingH: 'fill',
+    sizingV: 'hug',
+  }, mMain);
+  const s6HdrCopy = b.frame('MHdrCopy', 740, 48, { fill: 'none', layout: 'vertical', gap: 3, sizingH: 'fill', sizingV: 'hug' }, mHdr);
+  b.text(s6HdrCopy, 'Promo & Diskon Makanan (Full-Page Workspace)', { size: 22, weight: 'Bold', color: V('ink-primary'), lineHeight: '120%' });
+  b.text(s6HdrCopy, 'Semua modul Manajemen Toko tampil penuh di halaman utama (<main>) bebas modal overlay.', { size: 12, color: V('ink-muted'), lineHeight: '125%' });
+  const mHdrActions = b.frame('MHdrActions', 270, 36, { fill: 'none', layout: 'horizontal', gap: 10, sizingH: 'hug', sizingV: 'hug' }, mHdr);
+  b.pillButton(mHdrActions, 'Zero Popup 100%', { bg: V('status-success-tint'), fg: V('status-success'), height: 36, radius: 10, fillH: false, size: 11 });
+  b.pillButton(mHdrActions, '<- Kembali ke Kasir', { bg: V('bg-surface'), fg: V('ink-primary'), stroke: V('border-subtle'), height: 36, radius: 10, fillH: false, size: 12 });
+
+  // Module switcher pills matching all 7 Manajemen Toko views
+  const mTabs = b.frame('ManajemenFullTabs', 1144, 38, {
+    fill: 'none',
+    layout: 'horizontal',
+    gap: 8,
+    crossAlign: 'center',
+    sizingH: 'fill',
+    sizingV: 'hug',
+  }, mMain);
+  b.pillButton(mTabs, 'Promo & Diskon', { bg: V('accent-amber'), fg: '#ffffff', height: 34, radius: 9999, fillH: false, size: 12 });
+  b.pillButton(mTabs, 'Gudang & Stok (3!)', { bg: V('bg-surface'), fg: V('ink-secondary'), stroke: V('border-subtle'), height: 34, radius: 9999, fillH: false, size: 12 });
+  b.pillButton(mTabs, 'Statistik', { bg: V('bg-surface'), fg: V('ink-secondary'), stroke: V('border-subtle'), height: 34, radius: 9999, fillH: false, size: 12 });
+  b.pillButton(mTabs, 'Stamp Loyalti', { bg: V('bg-surface'), fg: V('ink-secondary'), stroke: V('border-subtle'), height: 34, radius: 9999, fillH: false, size: 12 });
+  b.pillButton(mTabs, 'Karyawan', { bg: V('bg-surface'), fg: V('ink-secondary'), stroke: V('border-subtle'), height: 34, radius: 9999, fillH: false, size: 12 });
+  b.pillButton(mTabs, 'Lokasi Toko', { bg: V('bg-surface'), fg: V('ink-secondary'), stroke: V('border-subtle'), height: 34, radius: 9999, fillH: false, size: 12 });
+  b.pillButton(mTabs, 'Laci & Printer', { bg: V('bg-surface'), fg: V('ink-secondary'), stroke: V('border-subtle'), height: 34, radius: 9999, fillH: false, size: 12 });
+
+  // Balanced 2-Column Fluid Full-Page Content Area (Form Card + List Card)
+  const mGrid = b.frame('ManajemenTwoColGrid', 1144, 710, {
+    fill: 'none',
+    layout: 'horizontal',
+    gap: 16,
+    sizingH: 'fill',
+    sizingV: 'fill',
+  }, mMain);
+
+  // Left Column: Terbitkan Promo Baru
+  const mFormCard = b.frame('Card/TerbitkanPromoFull', 564, 520, {
+    fill: V('bg-surface'),
+    stroke: V('border-subtle'),
+    strokeWeight: 1,
+    cornerRadius: 18,
+    layout: 'vertical',
+    padding: 20,
+    gap: 12,
+    sizingH: 'fill',
+    sizingV: 'hug',
+  }, mGrid);
+  b.text(mFormCard, '+ Terbitkan Promo Makanan Baru', { size: 16, weight: 'Bold', color: V('ink-primary'), lineHeight: '120%' });
+  b.text(mFormCard, 'Grid persentase/fluid CSS (minmax) agar nyaman di HP 390px dan Desktop 1440px.', { size: 11, color: V('ink-muted'), lineHeight: '130%' });
+  buildFormField(b, mFormCard, { label: 'Kode Promo & Role Pembuat', value: 'HEMAT10 • Owner Kost / Toko' });
+  buildFormField(b, mFormCard, { label: 'Nama / Judul Promo Makanan', value: 'Promo Makan Siang Hemat (Diskon Rp 5.000)' });
+  buildFormField(b, mFormCard, { label: 'Potongan & Batas Kuota', value: 'Nominal Rp 5.000 • Batas 25 Porsi' });
+  b.pillButton(mFormCard, 'Terbitkan Promo Makanan', { bg: V('accent-amber'), fg: '#ffffff', height: 42, radius: 10, size: 13 });
+
+  // Right Column: Daftar Promo & Lokasi/Hardware Summary Cards
+  const mListCol = b.frame('Col/DaftarDanPreview', 564, 620, {
+    fill: 'none',
+    layout: 'vertical',
+    gap: 14,
+    sizingH: 'fill',
+    sizingV: 'hug',
+  }, mGrid);
+
+  const mPromoList = b.frame('Card/DaftarPromoAktif', 564, 240, {
+    fill: V('bg-surface'),
+    stroke: V('border-subtle'),
+    strokeWeight: 1,
+    cornerRadius: 18,
+    layout: 'vertical',
+    padding: 20,
+    gap: 10,
+    sizingH: 'fill',
+    sizingV: 'hug',
+  }, mListCol);
+  b.text(mPromoList, 'Daftar Promo Makanan Aktif (2)', { size: 15, weight: 'Bold', color: V('ink-primary') });
+  for (const [code, desc, quota] of [
+    ['HEMAT10', 'Diskon Rp 5.000 • Min Rp 25.000', 'Sisa 24 / 25'],
+    ['JUMATBERKAH', 'Diskon 15% • Semua Menu', 's/d 30 Nov'],
+  ]) {
+    const pRow = b.frame(`PromoItem/${code}`, 524, 60, {
+      fill: V('bg-subtle'),
+      stroke: V('border-subtle'),
+      strokeWeight: 1,
+      cornerRadius: 12,
+      layout: 'horizontal',
+      padding: [10, 14, 10, 14],
+      mainAlign: 'spaceBetween',
+      crossAlign: 'center',
+      sizingH: 'fill',
+      sizingV: 'hug',
+    }, mPromoList);
+    const pLeft = b.frame('PromoCopy', 350, 38, { fill: 'none', layout: 'vertical', gap: 2, sizingH: 'fill', sizingV: 'hug' }, pRow);
+    b.text(pLeft, code, { size: 13, weight: 'Bold', color: V('accent-amber') });
+    b.text(pLeft, desc, { size: 11, color: V('ink-secondary') });
+    b.badge(pRow, quota, { bg: V('status-success-tint'), fg: V('status-success'), size: 10 });
+  }
+
+  // Unified Full-Page Module Showcase Card
+  const mOtherCard = b.frame('Card/RingkasanModulFullPage', 564, 220, {
+    fill: V('bg-surface'),
+    stroke: V('border-subtle'),
+    strokeWeight: 1,
+    cornerRadius: 18,
+    layout: 'vertical',
+    padding: 20,
+    gap: 10,
+    sizingH: 'fill',
+    sizingV: 'hug',
+  }, mListCol);
+  b.text(mOtherCard, 'Status Modul Full-Page Manajemen Toko', { size: 15, weight: 'Bold', color: V('ink-primary') });
+  for (const [modName, modState] of [
+    ['Statistik • Stamp Loyalti • Karyawan', 'Inline Full Page'],
+    ['Lokasi Toko & Validasi • Laci RJ11 & Printer', 'Form + Pratinjau Struk Live'],
+    ['Gudang & Resep HPP • Alert 3 Bahan Menipis', 'Responsive 0px Overflow'],
+  ]) {
+    const mLine = b.frame(`ModLine/${modName}`, 524, 38, {
+      fill: V('bg-main'),
+      cornerRadius: 10,
+      layout: 'horizontal',
+      padding: [6, 12, 6, 12],
+      mainAlign: 'spaceBetween',
+      crossAlign: 'center',
+      sizingH: 'fill',
+      sizingV: 'hug',
+    }, mOtherCard);
+    b.text(mLine, modName, { size: 12, weight: 'SemiBold', color: V('ink-primary') });
+    b.badge(mLine, modState, { bg: V('brand-tint'), fg: V('brand-primary'), size: 10 });
+  }
 
   return { b, mainMobileRef: s1 };
 }

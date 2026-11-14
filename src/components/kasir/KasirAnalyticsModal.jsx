@@ -17,7 +17,8 @@ import {
   Gift,
   ExternalLink,
   Clock,
-  Wallet
+  Wallet,
+  ArrowLeft
 } from 'lucide-react';
 
 export default function KasirAnalyticsModal({
@@ -26,7 +27,8 @@ export default function KasirAnalyticsModal({
   isLight,
   analyticsData,
   loadingAnalytics,
-  onRefresh
+  onRefresh,
+  isFullPage = false
 }) {
   const [activeTab, setActiveTab] = useState('perMenu'); // 'perMenu' | 'perStore' | 'crossBranch' | 'perCashier'
 
@@ -51,116 +53,124 @@ export default function KasirAnalyticsModal({
   const crossBranch = analyticsData?.crossBranchPerMenu || [];
   const perCashier = analyticsData?.perCashier || [];
 
-  return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1000,
-      background: 'rgba(0,0,0,0.68)',
-      backdropFilter: 'blur(5px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem',
-      animation: 'fadeIn 0.2s ease-out'
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '1080px',
-        maxHeight: '92vh',
-        background: bgModal,
-        borderRadius: '20px',
-        border: `1px solid ${borderColor}`,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5)'
-      }}>
-        {/* Header Modal */}
-        <div style={{
-          padding: '16px 1.5rem',
-          borderBottom: `1px solid ${borderColor}`,
+  const headerActions = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={loadingAnalytics}
+        style={{
+          background: isLight ? '#f1f5f9' : '#1e293b',
+          border: `1px solid ${borderColor}`,
+          borderRadius: '10px',
+          padding: '7px 12px',
+          cursor: 'pointer',
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          background: isLight ? '#ffffff' : '#0f172a'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '38px',
-              height: '38px',
+          gap: '6px',
+          color: textPrimary,
+          fontSize: '0.76rem',
+          fontWeight: 700
+        }}
+        title="Perbarui Data Analitik"
+      >
+        <RefreshCw size={13} className={loadingAnalytics ? 'animate-spin' : ''} />
+        <span>{loadingAnalytics ? 'Memuat...' : 'Refresh'}</span>
+      </button>
+      {isFullPage ? (
+        onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: isLight ? '#ffffff' : '#1e293b',
+              border: `1px solid ${borderColor}`,
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+              padding: '7px 12px',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
-            }}>
-              <BarChart3 size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: textPrimary, letterSpacing: '-0.3px' }}>
-                Statistik &amp; Analitik Keuangan Multi-Dimensi
-              </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: textSecondary }}>
-                Data performa komprehensif per menu, per cabang/toko, matriks cross-cabang, dan leaderboard kasir.
-              </p>
-            </div>
-          </div>
+              gap: '6px',
+              color: textPrimary,
+              fontSize: '0.76rem',
+              fontWeight: 700
+            }}
+          >
+            <ArrowLeft size={14} />
+            <span>Kembali ke Kasir</span>
+          </button>
+        )
+      ) : (
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            color: textSecondary,
+            padding: '4px',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <X size={20} />
+        </button>
+      )}
+    </div>
+  );
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={loadingAnalytics}
-              style={{
-                background: isLight ? '#f1f5f9' : '#1e293b',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                padding: '6px 12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                color: textSecondary,
-                fontSize: '0.74rem',
-                fontWeight: 600
-              }}
-              title="Perbarui Data Analitik"
-            >
-              <RefreshCw size={13} className={loadingAnalytics ? 'animate-spin' : ''} />
-              <span>{loadingAnalytics ? 'Memuat...' : 'Refresh'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: textSecondary,
-                padding: '4px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <X size={20} />
-            </button>
-          </div>
+  const headerSection = (
+    <div style={{
+      padding: isFullPage ? '0 0 12px' : '16px 1.5rem',
+      borderBottom: `1px solid ${borderColor}`,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '10px',
+      background: isFullPage ? 'transparent' : (isLight ? '#ffffff' : '#0f172a')
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div style={{
+          width: '38px',
+          height: '38px',
+          borderRadius: '10px',
+          background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffffff',
+          boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+          flexShrink: 0
+        }}>
+          <BarChart3 size={20} />
         </div>
+        <div style={{ minWidth: 0 }}>
+          <h3 style={{ margin: 0, fontSize: isFullPage ? '1.15rem' : '1.05rem', fontWeight: 800, color: textPrimary, letterSpacing: '-0.3px' }}>
+            Statistik &amp; Analitik Keuangan Multi-Dimensi
+          </h3>
+          <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: textSecondary }}>
+            Data performa komprehensif per menu, per cabang/toko, matriks cross-cabang, dan leaderboard kasir.
+          </p>
+        </div>
+      </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
-          {/* Top KPI Cards (4 Kolom) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: '12px',
-            marginBottom: '1.25rem'
-          }}>
+      {headerActions}
+    </div>
+  );
+
+  const bodySection = (
+    <div style={{ padding: isFullPage ? '0' : '1.25rem', overflowY: isFullPage ? 'visible' : 'auto', flex: 1 }}>
+      {/* Top KPI Cards (4 Kolom) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+        gap: '12px',
+        marginBottom: '1.25rem'
+      }}>
             <div style={{
               background: bgCard,
               border: `1px solid ${borderColor}`,
@@ -293,10 +303,11 @@ export default function KasirAnalyticsModal({
           {/* Navigation Tab Bar */}
           <div style={{
             display: 'flex',
+            flexWrap: isFullPage ? 'wrap' : 'nowrap',
             borderBottom: `2px solid ${borderColor}`,
-            gap: '10px',
+            gap: '8px',
             marginBottom: '1rem',
-            overflowX: 'auto',
+            overflowX: isFullPage ? 'visible' : 'auto',
             paddingBottom: '2px'
           }}>
             {[
@@ -755,7 +766,7 @@ export default function KasirAnalyticsModal({
               {/* 3 Metric Cards */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
                 gap: '12px'
               }}>
                 <div style={{
@@ -821,7 +832,53 @@ export default function KasirAnalyticsModal({
             </div>
           )}
         </div>
+  );
 
+  if (isFullPage) {
+    return (
+      <main style={{
+        width: '100%',
+        maxWidth: '100%',
+        margin: '1rem auto 0',
+        padding: '0 2%',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px'
+      }}>
+        {headerSection}
+        {bodySection}
+      </main>
+    );
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 1000,
+      background: 'rgba(0,0,0,0.68)',
+      backdropFilter: 'blur(5px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1rem',
+      animation: 'fadeIn 0.2s ease-out'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '1080px',
+        maxHeight: '92vh',
+        background: bgModal,
+        borderRadius: '20px',
+        border: `1px solid ${borderColor}`,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5)'
+      }}>
+        {headerSection}
+        {bodySection}
         {/* Footer Modal */}
         <div style={{
           padding: '12px 1.5rem',
