@@ -223,12 +223,22 @@ const resolveKasirAccountId = (userProp, storeObj) => {
   return String(accId);
 };
 
-/** Safely parse fetch response JSON only when server returns JSON (guards against SPA HTML 200 fallbacks). */
-const parseJsonIfOk = async (res) => {
-  if (!res || !res.ok) return null;
+/** Safely parse fetch response JSON regardless of HTTP status (extracts structured { error } on 4xx/5xx). */
+const parseJsonSafe = async (res) => {
+  if (!res) return null;
   const ct = res.headers.get('content-type') || '';
   if (!ct.includes('application/json')) return null;
-  return res.json();
+  try {
+    return await res.json();
+  } catch (_) {
+    return null;
+  }
+};
+
+/** Safely parse fetch response JSON only when server returns 2xx JSON (guards against SPA HTML 200 fallbacks). */
+const parseJsonIfOk = async (res) => {
+  if (!res || !res.ok) return null;
+  return parseJsonSafe(res);
 };
 
 export default function Kasir({ user }) {
@@ -320,6 +330,13 @@ export default function Kasir({ user }) {
   const [tripayCheckingStatus, setTripayCheckingStatus] = useState(false);
   const [tripayStatusFeedback, setTripayStatusFeedback] = useState(null);
   const [selectedKasirStaff, setSelectedKasirStaff] = useState(null);
+  const [showAddTablePanel, setShowAddTablePanel] = useState(false);
+  const [newTableName, setNewTableName] = useState('');
+  const [savingTable, setSavingTable] = useState(false);
+  const [editingTableId, setEditingTableId] = useState(null);
+  const [editingTableName, setEditingTableName] = useState('');
+  const [deletingTableId, setDeletingTableId] = useState(null);
+  const [tableActionFeedback, setTableActionFeedback] = useState(null);
   const [storeForm, setStoreForm] = useState({
     storeName: '',
     location: '',
@@ -1484,6 +1501,103 @@ export default function Kasir({ user }) {
       }
     } catch (err) {
       alert('Gagal beralih toko: ' + err.message);
+    }
+  };
+
+  const getSuggestedTableName = (tableList = tables) => {
+    let maxNum = 0;
+    for (const tbl of tableList) {
+      const m = String(tbl.number || '').match(/(\d+)\s*$/);
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    }
+    const next = Math.max(tableList.length + 1, maxNum + 1);
+    return `Meja ${String(next).padStart(2, '0')}`;
+  };
+
+  const handleOpenAddTable = () => {
+    setTableActionFeedback(null);
+    setEditingTableId(null);
+    setDeletingTableId(null);
+    setShowAddTablePanel((prev) => {
+      const nextOpen = !prev;
+      if (nextOpen) setNewTableName(getSuggestedTableName(tables));
+      return nextOpen;
+    });
+  };
+
+  const handleCreateTable = async (e) => {
+    if (e) e.preventDefault();
+    const cleanNum = String(newTableName || '').trim();
+    if (!cleanNum) {
+      setTableActionFeedback({ type: 'error', message: '❌ Nama / nomor meja wajib diisi!' });
+      return;
+    }
+    try {
+      setSavingTable(true);
+      setTableActionFeedback(null);
+      const res = await fetch('/api/pos/tables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: cleanNum })
+      });
+      const data = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal menambah meja baru');
+      setShowAddTablePanel(false);
+      setNewTableName('');
+      await fetchData();
+      setTableActionFeedback({ type: 'success', message: `✅ Meja "${cleanNum}" & QR Code berhasil dibuat!` });
+    } catch (err) {
+      setTableActionFeedback({ type: 'error', message: `❌ ${err.message}` });
+    } finally {
+      setSavingTable(false);
+    }
+  };
+
+  const handleUpdateTable = async (e, tableId) => {
+    if (e) e.preventDefault();
+    const cleanNum = String(editingTableName || '').trim();
+    if (!cleanNum) {
+      setTableActionFeedback({ type: 'error', message: '❌ Nama / nomor meja tidak boleh kosong!' });
+      return;
+    }
+    try {
+      setSavingTable(true);
+      setTableActionFeedback(null);
+      const res = await fetch(`/api/pos/tables/${encodeURIComponent(tableId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: cleanNum })
+      });
+      const data = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal memperbarui nama meja');
+      setEditingTableId(null);
+      setEditingTableName('');
+      await fetchData();
+      setTableActionFeedback({ type: 'success', message: `✅ Nama meja berhasil diubah menjadi "${cleanNum}".` });
+    } catch (err) {
+      setTableActionFeedback({ type: 'error', message: `❌ ${err.message}` });
+    } finally {
+      setSavingTable(false);
+    }
+  };
+
+  const handleDeleteTable = async (tableId, tableName) => {
+    try {
+      setSavingTable(true);
+      setTableActionFeedback(null);
+      const res = await fetch(`/api/pos/tables/${encodeURIComponent(tableId)}`, {
+        method: 'DELETE'
+      });
+      const data = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal menghapus meja');
+      setDeletingTableId(null);
+      if (editingTableId === tableId) setEditingTableId(null);
+      await fetchData();
+      setTableActionFeedback({ type: 'success', message: `✅ "${tableName}" berhasil dihapus.` });
+    } catch (err) {
+      setTableActionFeedback({ type: 'error', message: `❌ ${err.message}` });
+    } finally {
+      setSavingTable(false);
     }
   };
 
@@ -7182,157 +7296,497 @@ export default function Kasir({ user }) {
 
       {/* ── TAB 3: MEJA & QR CODE (TENT CARDS) ── */}
       {activeTab === 'tables' && (
-        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: textPrimary }}>
-                Kelola Meja & Cetak Barcode QR
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <QrCode size={20} color="#2563eb" style={{ flexShrink: 0 }} />
+                <span>Kelola Meja &amp; Cetak Barcode QR</span>
               </h2>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: textSecondary }}>
-                Cetak barcode ini dan tempel di masing-masing meja agar pelanggan bisa pesan sendiri dari meja.
+              <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: textSecondary }}>
+                Tambah, ubah nama, hapus meja, serta unduh QR Code self-order langsung tanpa pop-up browser.
               </p>
             </div>
             <button
-              onClick={async () => {
-                const num = prompt('Nama/Nomor Meja Baru:', `Meja 0${tables.length + 1}`);
-                if (!num) return;
-                const res = await fetch('/api/pos/tables', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ number: num })
-                });
-                if (res.ok) fetchData();
-              }}
+              type="button"
+              onClick={handleOpenAddTable}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '9px 16px',
                 borderRadius: '10px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                color: '#ffffff',
+                border: showAddTablePanel ? `1px solid ${borderColor}` : 'none',
+                background: showAddTablePanel
+                  ? (isLight ? '#f1f5f9' : '#1e293b')
+                  : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: showAddTablePanel ? textPrimary : '#ffffff',
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+                boxShadow: showAddTablePanel ? 'none' : '0 4px 12px rgba(37, 99, 235, 0.25)'
               }}
             >
-              <Plus size={16} /> Tambah Meja
+              {showAddTablePanel ? <X size={16} /> : <Plus size={16} />}
+              <span>{showAddTablePanel ? 'Tutup Form' : 'Tambah Meja'}</span>
             </button>
           </div>
 
-          {/* Table Cards: 50% : 50% di HP via .pos-tables-grid */}
-          <div className="pos-tables-grid">
-            {tables.map(tbl => (
-              <div
-                key={tbl.id}
-                style={{
-                  background: bgCard,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '16px',
-                  padding: '12px 8px',
-                  textAlign: 'center',
-                  boxShadow: 'var(--shadow-sm)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                  minWidth: 0,
-                  boxSizing: 'border-box'
-                }}
-              >
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: textPrimary, letterSpacing: '-0.01em' }}>
-                    {tbl.number}
-                  </span>
-                  <span style={{
-                    fontSize: '0.62rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
-                    color: '#2563eb'
-                  }}>
-                    Scan untuk Pesan
-                  </span>
-                </div>
+          {tableActionFeedback && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              background: tableActionFeedback.type === 'success'
+                ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)')
+                : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)'),
+              color: tableActionFeedback.type === 'success'
+                ? (isLight ? '#166534' : '#86efac')
+                : (isLight ? '#991b1b' : '#fca5a5'),
+              border: `1px solid ${tableActionFeedback.type === 'success' ? '#86efac' : '#fca5a5'}`
+            }}>
+              {tableActionFeedback.message}
+            </div>
+          )}
 
-                <div style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '2px'
-                }}>
-                  {tbl.qrDataUrl ? (
-                    <img
-                      src={tbl.qrDataUrl}
-                      alt={tbl.number}
+          {/* Inline Tambah Meja Card (Menggantikan window.prompt bawaan browser!) */}
+          {showAddTablePanel && (
+            <form
+              onSubmit={handleCreateTable}
+              noValidate
+              style={{
+                background: bgCard,
+                border: '1.5px solid #3b82f6',
+                borderRadius: '16px',
+                padding: '16px',
+                boxShadow: 'var(--shadow-sm)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: textPrimary }}>
+                    + Tambah Meja &amp; Generate QR Baru
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: textSecondary }}>
+                    Masukkan nama/nomor meja (mis. Meja 06, Gazebo 1, atau VIP).
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[getSuggestedTableName(tables), 'Gazebo 01', 'Meja VIP'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setNewTableName(preset)}
                       style={{
-                        width: '100%',
-                        maxWidth: '125px',
-                        aspectRatio: '1/1',
-                        objectFit: 'contain',
-                        background: '#ffffff',
-                        padding: '6px',
-                        borderRadius: '12px',
+                        padding: '4px 10px',
+                        borderRadius: '999px',
                         border: `1px solid ${borderColor}`,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                        display: 'block'
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textSecondary,
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
                       }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: '100px',
-                      height: '100px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: isLight ? '#f1f5f9' : '#1e293b',
-                      borderRadius: '12px',
-                      gap: '4px',
-                      color: textSecondary,
-                      fontSize: '0.65rem'
-                    }}>
-                      <QrCode size={26} opacity={0.5} />
-                      <span>Membuat QR...</span>
-                    </div>
-                  )}
+                    >
+                      {preset}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
-                {/* Direct Download Button */}
-                <a
-                  href={tbl.qrDataUrl}
-                  download={`QR-${String(tbl.number).replace(/\s+/g, '-')}.png`}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Nama / Nomor Meja (cth: Meja 06)"
+                  value={newTableName}
+                  onChange={e => setNewTableName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                      setShowAddTablePanel(false);
+                      setTableActionFeedback(null);
+                    }
+                  }}
                   style={{
-                    width: '100%',
-                    padding: '7px 8px',
+                    flex: '1 1 220px',
+                    minWidth: 0,
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderLight}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={savingTable}
+                  style={{
+                    padding: '9px 18px',
                     borderRadius: '10px',
                     border: 'none',
                     background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                     color: '#ffffff',
                     fontWeight: 800,
-                    fontSize: '0.72rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                    textDecoration: 'none',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                    boxSizing: 'border-box'
+                    fontSize: '0.8rem',
+                    cursor: savingTable ? 'not-allowed' : 'pointer'
                   }}
-                  title={`Download Barcode QR ${tbl.number}`}
                 >
-                  <Download size={12} strokeWidth={2.5} />
-                  <span>Download QR</span>
-                </a>
+                  {savingTable ? 'Menyimpan...' : 'Simpan & Buat QR'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddTablePanel(false);
+                    setNewTableName('');
+                    setTableActionFeedback(null);
+                  }}
+                  style={{
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: 'transparent',
+                    color: textSecondary,
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Batal
+                </button>
               </div>
-            ))}
-          </div>
+            </form>
+          )}
+
+          {/* Table Cards: 50% : 50% di HP via .pos-tables-grid */}
+          {tables.length === 0 ? (
+            <div style={{
+              background: bgCard,
+              border: `1px dashed ${borderColor}`,
+              borderRadius: '16px',
+              padding: '2.25rem 1rem',
+              textAlign: 'center',
+              color: textSecondary
+            }}>
+              <QrCode size={34} color="#2563eb" style={{ margin: '0 auto 8px' }} />
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', color: textPrimary, marginBottom: '4px' }}>
+                Belum Ada Meja Terdaftar
+              </div>
+              <p style={{ margin: 0, fontSize: '0.78rem' }}>
+                Klik <strong>"+ Tambah Meja"</strong> di atas untuk membuat nomor meja beserta barcode QR pesan mandiri.
+              </p>
+            </div>
+          ) : (
+            <div className="pos-tables-grid">
+              {tables.map(tbl => {
+                const isEditingThis = editingTableId === tbl.id;
+                const isDeletingThis = deletingTableId === tbl.id;
+                return (
+                  <div
+                    key={tbl.id}
+                    style={{
+                      background: bgCard,
+                      border: isEditingThis
+                        ? '1.5px solid #2563eb'
+                        : isDeletingThis
+                          ? '1.5px solid #ef4444'
+                          : `1px solid ${borderColor}`,
+                      borderRadius: '16px',
+                      padding: '12px 10px',
+                      textAlign: 'center',
+                      boxShadow: 'var(--shadow-sm)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      minWidth: 0,
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    {isEditingThis ? (
+                      <form
+                        onSubmit={(e) => handleUpdateTable(e, tbl.id)}
+                        noValidate
+                        style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}
+                      >
+                        <label style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2563eb', textAlign: 'left' }}>
+                          Ubah Nama Meja:
+                        </label>
+                        <input
+                          type="text"
+                          autoFocus
+                          value={editingTableName}
+                          onChange={e => setEditingTableName(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') {
+                              setEditingTableId(null);
+                              setEditingTableName('');
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '6px 8px',
+                            borderRadius: '8px',
+                            border: '1px solid #3b82f6',
+                            background: isLight ? '#f8fafc' : '#1e293b',
+                            color: textPrimary,
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            textAlign: 'center',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '5px', width: '100%' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingTableId(null);
+                              setEditingTableName('');
+                            }}
+                            style={{
+                              padding: '5px 4px',
+                              borderRadius: '7px',
+                              border: `1px solid ${borderColor}`,
+                              background: 'transparent',
+                              color: textSecondary,
+                              fontWeight: 700,
+                              fontSize: '0.7rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Batal
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={savingTable}
+                            style={{
+                              padding: '5px 4px',
+                              borderRadius: '7px',
+                              border: 'none',
+                              background: '#2563eb',
+                              color: '#ffffff',
+                              fontWeight: 800,
+                              fontSize: '0.7rem',
+                              cursor: savingTable ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            Simpan
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                        <span style={{ fontSize: '0.92rem', fontWeight: 900, color: textPrimary, letterSpacing: '-0.01em', wordBreak: 'break-word' }}>
+                          {tbl.number}
+                        </span>
+                        <span style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
+                          color: '#2563eb'
+                        }}>
+                          Scan untuk Pesan
+                        </span>
+                      </div>
+                    )}
+
+                    <div style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '2px'
+                    }}>
+                      {tbl.qrDataUrl ? (
+                        <img
+                          src={tbl.qrDataUrl}
+                          alt={tbl.number}
+                          style={{
+                            width: '100%',
+                            maxWidth: '125px',
+                            aspectRatio: '1/1',
+                            objectFit: 'contain',
+                            background: '#ffffff',
+                            padding: '6px',
+                            borderRadius: '12px',
+                            border: `1px solid ${borderColor}`,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                            display: 'block'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100px',
+                          height: '100px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: isLight ? '#f1f5f9' : '#1e293b',
+                          borderRadius: '12px',
+                          gap: '4px',
+                          color: textSecondary,
+                          fontSize: '0.65rem'
+                        }}>
+                          <QrCode size={26} opacity={0.5} />
+                          <span>Membuat QR...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {/* Direct Download Button */}
+                      <a
+                        href={tbl.qrDataUrl}
+                        download={`QR-${String(tbl.number).replace(/\s+/g, '-')}.png`}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.72rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          textDecoration: 'none',
+                          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+                          boxSizing: 'border-box'
+                        }}
+                        title={`Download Barcode QR ${tbl.number}`}
+                      >
+                        <Download size={12} strokeWidth={2.5} />
+                        <span>Download QR</span>
+                      </a>
+
+                      {isDeletingThis ? (
+                        <div style={{
+                          background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)',
+                          border: '1px solid #fca5a5',
+                          borderRadius: '10px',
+                          padding: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '5px'
+                        }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#dc2626' }}>
+                            Hapus {tbl.number}?
+                          </span>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '5px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingTableId(null)}
+                              style={{
+                                padding: '5px 4px',
+                                borderRadius: '7px',
+                                border: `1px solid ${borderColor}`,
+                                background: isLight ? '#ffffff' : '#1e293b',
+                                color: textSecondary,
+                                fontWeight: 700,
+                                fontSize: '0.68rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              disabled={savingTable}
+                              onClick={() => handleDeleteTable(tbl.id, tbl.number)}
+                              style={{
+                                padding: '5px 4px',
+                                borderRadius: '7px',
+                                border: 'none',
+                                background: '#dc2626',
+                                color: '#ffffff',
+                                fontWeight: 800,
+                                fontSize: '0.68rem',
+                                cursor: savingTable ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              Ya, Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingTableId(tbl.id);
+                              setEditingTableName(tbl.number);
+                              setDeletingTableId(null);
+                              setShowAddTablePanel(false);
+                              setTableActionFeedback(null);
+                            }}
+                            style={{
+                              padding: '6px 6px',
+                              borderRadius: '9px',
+                              border: `1px solid ${borderColor}`,
+                              background: isLight ? '#f8fafc' : '#1e293b',
+                              color: textPrimary,
+                              fontWeight: 700,
+                              fontSize: '0.7rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              minWidth: 0
+                            }}
+                          >
+                            <Edit3 size={12} color="#2563eb" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeletingTableId(tbl.id);
+                              setEditingTableId(null);
+                              setShowAddTablePanel(false);
+                              setTableActionFeedback(null);
+                            }}
+                            style={{
+                              padding: '6px 6px',
+                              borderRadius: '9px',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.12)',
+                              color: '#ef4444',
+                              fontWeight: 700,
+                              fontSize: '0.7rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              minWidth: 0
+                            }}
+                          >
+                            <Trash2 size={12} />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </main>
       )}
 

@@ -525,15 +525,18 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       ];
     }
 
-    // Auto-seed default tables if empty
-    if (db.pos_tables.length === 0) {
-      db.pos_tables = [
-        { id: 'tbl-1', number: 'Meja 01', qrToken: 'MEJA-01-TKN881' },
-        { id: 'tbl-2', number: 'Meja 02', qrToken: 'MEJA-02-TKN882' },
-        { id: 'tbl-3', number: 'Meja 03', qrToken: 'MEJA-03-TKN883' },
-        { id: 'tbl-4', number: 'Meja 04', qrToken: 'MEJA-04-TKN884' },
-        { id: 'tbl-5', number: 'Meja 05', qrToken: 'MEJA-05-TKN885' }
-      ];
+    // Auto-seed default tables only once on fresh database initialization
+    if (!db._posTablesSeeded) {
+      if (db.pos_tables.length === 0) {
+        db.pos_tables = [
+          { id: 'tbl-1', number: 'Meja 01', qrToken: 'MEJA-01-TKN881' },
+          { id: 'tbl-2', number: 'Meja 02', qrToken: 'MEJA-02-TKN882' },
+          { id: 'tbl-3', number: 'Meja 03', qrToken: 'MEJA-03-TKN883' },
+          { id: 'tbl-4', number: 'Meja 04', qrToken: 'MEJA-04-TKN884' },
+          { id: 'tbl-5', number: 'Meja 05', qrToken: 'MEJA-05-TKN885' }
+        ];
+      }
+      db._posTablesSeeded = true;
     }
 
     // Hybrid Loyalty & Escrow Models
@@ -1641,41 +1644,45 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   });
 
   // ── 3. TABLE MANAGEMENT & QR GENERATOR ─────────────────────────────────
+  const buildEnrichedTable = async (table, req) => {
+    const baseUrl = process.env.VITE_APP_URL || req.headers.origin || 'https://kostku.riuph.me';
+    const orderUrl = `${baseUrl}/order/${table.qrToken}`;
+    let qrDataUrl = '';
+    try {
+      qrDataUrl = await QRCode.toDataURL(orderUrl, { width: 300, margin: 2 });
+    } catch (_) {}
+    return {
+      ...table,
+      orderUrl,
+      qrDataUrl
+    };
+  };
+
   router.get('/tables', async (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
 
-    const baseUrl = process.env.VITE_APP_URL || req.headers.origin || 'https://kostku.riuph.me';
-
-    // Enrich with QR data URLs
     const enriched = await Promise.all(
-      db.pos_tables.map(async (t) => {
-        const orderUrl = `${baseUrl}/order/${t.qrToken}`;
-        let qrDataUrl = '';
-        try {
-          qrDataUrl = await QRCode.toDataURL(orderUrl, { width: 300, margin: 2 });
-        } catch (_) {}
-        return {
-          ...t,
-          orderUrl,
-          qrDataUrl
-        };
-
-
-      })
+      db.pos_tables.map((t) => buildEnrichedTable(t, req))
     );
 
     res.json(enriched);
   });
 
   router.post('/tables', async (req, res) => {
-    const { number } = req.body;
-    if (!number) return res.status(400).json({ error: 'Nomor meja wajib diisi' });
+    const cleanNum = String(req.body?.number || '').trim();
+    if (!cleanNum) return res.status(400).json({ error: 'Nama / nomor meja wajib diisi!' });
 
     const db = getDB(req);
     ensurePosCollections(db);
 
-    const cleanNum = String(number).trim();
+    const duplicate = db.pos_tables.some(
+      (t) => String(t.number || '').trim().toLowerCase() === cleanNum.toLowerCase()
+    );
+    if (duplicate) {
+      return res.status(400).json({ error: `Meja "${cleanNum}" sudah terdaftar!` });
+    }
+
     const token = 'MEJA-' + cleanNum.replace(/\s+/g, '-').toUpperCase() + '-' + crypto.randomBytes(3).toString('hex').toUpperCase();
 
     const newTable = {
@@ -1685,11 +1692,67 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       createdAt: new Date().toISOString()
     };
 
-
-
     db.pos_tables.push(newTable);
+    db._posTablesSeeded = true;
     writeDB(db, req);
-    res.json(newTable);
+    const enriched = await buildEnrichedTable(newTable, req);
+    res.json(enriched);
+  });
+
+  router.put('/tables/:id', async (req, res) => {
+    const tableId = String(req.params.id || '').trim();
+    const cleanNum = String(req.body?.number || '').trim();
+    if (!cleanNum) {
+      return res.status(400).json({ error: 'Nama / nomor meja wajib diisi!' });
+    }
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const idx = db.pos_tables.findIndex((t) => String(t.id) === tableId);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Data meja tidak ditemukan!' });
+    }
+
+    const duplicate = db.pos_tables.some(
+      (t) => String(t.id) !== tableId && String(t.number || '').trim().toLowerCase() === cleanNum.toLowerCase()
+    );
+    if (duplicate) {
+      return res.status(400).json({ error: `Nama meja "${cleanNum}" sudah digunakan meja lain!` });
+    }
+
+    const existing = db.pos_tables[idx];
+    const updatedTable = {
+      ...existing,
+      number: cleanNum,
+      qrToken: req.body?.regenerateQr
+        ? 'MEJA-' + cleanNum.replace(/\s+/g, '-').toUpperCase() + '-' + crypto.randomBytes(3).toString('hex').toUpperCase()
+        : existing.qrToken,
+      updatedAt: new Date().toISOString()
+    };
+
+    db.pos_tables[idx] = updatedTable;
+    db._posTablesSeeded = true;
+    writeDB(db, req);
+
+    const enriched = await buildEnrichedTable(updatedTable, req);
+    res.json({ success: true, table: enriched });
+  });
+
+  router.delete('/tables/:id', (req, res) => {
+    const tableId = String(req.params.id || '').trim();
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const idx = db.pos_tables.findIndex((t) => String(t.id) === tableId);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Data meja tidak ditemukan!' });
+    }
+
+    const [deleted] = db.pos_tables.splice(idx, 1);
+    db._posTablesSeeded = true;
+    writeDB(db, req);
+    res.json({ success: true, deleted });
   });
 
   // ── 4. CUSTOMER ORDER PLACEMENT (TABLE QR SCAN) ───────────────────────
