@@ -74,7 +74,8 @@ import {
   ChevronDown,
   ChevronUp,
   Navigation,
-  Eye
+  Eye,
+  Beaker
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import QRCode from 'qrcode';
@@ -4165,45 +4166,24 @@ export default function Kasir({ user }) {
     boxSizing: 'border-box'
   });
 
-  const MANAJEMEN_TABS = ['promo', 'inventory', 'loyalty', 'karyawan', 'store'];
+  const MANAJEMEN_TABS = ['forecast', 'promo', 'inventory', 'loyalty', 'karyawan', 'store'];
 
-  /** Non-navigable status indicator shown directly beneath Keuangan in Kasir side/mobile navbars. */
-  const renderNavBetaTesterBadge = (compact = true) => (
-    <div
-      data-testid={compact ? 'kasir-nav-beta-tester' : 'kasir-mobile-nav-beta-tester'}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '6px',
-        padding: compact ? '4px 10px' : '6px 14px',
-        margin: compact ? '2px 0' : '2px 0',
-        borderRadius: compact ? '8px' : '12px',
-        background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)',
-        border: `1px dashed ${isLight ? '#fcd34d' : 'rgba(245, 158, 11, 0.35)'}`,
-        boxSizing: 'border-box'
-      }}
-    >
-      <span style={{
-        fontSize: compact ? '0.68rem' : '0.76rem',
-        fontWeight: 800,
-        letterSpacing: '0.04em',
-        textTransform: 'uppercase',
-        color: isLight ? '#b45309' : '#fbbf24'
-      }}>
-        Beta Tester
-      </span>
-      <span style={{
-        fontSize: compact ? '0.58rem' : '0.64rem',
-        fontWeight: 800,
-        padding: compact ? '1px 6px' : '2px 8px',
-        borderRadius: '999px',
-        background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.22)',
-        color: isLight ? '#92400e' : '#fde68a'
-      }}>
-        Beta
-      </span>
-    </div>
+  /** Shared light-purple Beta pill badge used beside Forecast navigation labels. */
+  const renderForecastBetaPill = (compact = true) => (
+    <span style={{
+      fontSize: compact ? '0.58rem' : '0.62rem',
+      fontWeight: 800,
+      padding: compact ? '1px 6px' : '1px 7px',
+      borderRadius: '999px',
+      background: isLight ? '#f3e8ff' : 'rgba(192, 132, 252, 0.2)',
+      color: isLight ? '#7e22ce' : '#e9d5ff',
+      border: `1px solid ${isLight ? '#e9d5ff' : 'rgba(192, 132, 252, 0.38)'}`,
+      letterSpacing: '0.03em',
+      lineHeight: 1.35,
+      flexShrink: 0
+    }}>
+      Beta
+    </span>
   );
 
   /** Shared responsive full-page header for all Manajemen Toko views (zero popups). */
@@ -4453,9 +4433,19 @@ export default function Kasir({ user }) {
               <span style={{ flex: 1 }}>Keuangan</span>
             </button>
 
-            {renderNavBetaTesterBadge(true)}
+            {/* 4. Forecast (Beta — Logo Beaker Ungu Muda, di bawah Keuangan) */}
+            <button
+              type="button"
+              data-testid="kasir-nav-forecast"
+              onClick={() => setActiveTab('forecast')}
+              style={sidebarItemStyle(activeTab === 'forecast')}
+            >
+              <Beaker size={17} color="#c084fc" strokeWidth={activeTab === 'forecast' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Forecast</span>
+              {renderForecastBetaPill(true)}
+            </button>
 
-            {/* 4. Meja QR (Di bawah Keuangan) */}
+            {/* 5. Meja QR (Di bawah Keuangan/Forecast) */}
             <button
               type="button"
               onClick={() => setActiveTab('tables')}
@@ -4900,6 +4890,7 @@ export default function Kasir({ user }) {
                   {activeTab === 'kds' && <><ChefHat size={17} color="#f59e0b" /><span>Layar Antrean Dapur (KDS)</span></>}
                   {activeTab === 'tables' && <><QrCode size={17} color="#2563eb" /><span>Manajemen Meja &amp; QR Barcode</span></>}
                   {activeTab === 'settings' && <><DollarSign size={17} color="#10b981" /><span>Laporan Keuangan, Statistik &amp; Kasir</span></>}
+                  {activeTab === 'forecast' && <><Beaker size={17} color="#c084fc" /><span>Forecast Permintaan (ML)</span>{renderForecastBetaPill(false)}</>}
                   {activeTab === 'promo' && <><Tag size={17} color="#f59e0b" /><span>Promo &amp; Diskon Makanan</span></>}
                   {activeTab === 'inventory' && <><Package size={17} color="#ef4444" /><span>Gudang &amp; Stok Bahan</span></>}
                   {activeTab === 'analytics' && <><BarChart3 size={17} color="#6366f1" /><span>Statistik &amp; Analitik Keuangan</span></>}
@@ -11570,6 +11561,23 @@ export default function Kasir({ user }) {
         </main>
       )}
 
+      {/* ── TAB FORECAST: DEMAND & SALES FORECASTING (BETA) ── */}
+      {activeTab === 'forecast' && (
+        <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {renderManajemenHeader(
+            'Forecast Permintaan (ML)',
+            'Prediksi penjualan rentang P10–P50–P90 untuk besok (H+1), minggu depan (H+7), dan bulan depan (H+30) beserta rekomendasi restock.',
+            <Beaker size={20} color="#c084fc" />,
+            renderForecastBetaPill(false)
+          )}
+          <DemandForecastPanel
+            storeInfo={storeInfo}
+            user={user}
+            isLight={isLight}
+          />
+        </main>
+      )}
+
       {/* ── TAB 6: PROMO & DISKON MAKANAN (FULL PAGE) ── */}
       {activeTab === 'promo' && (
         <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -17081,6 +17089,15 @@ export default function Kasir({ user }) {
                   onClick: () => { setActiveTab('settings'); setShowMobileMenuHub(false); }
                 },
                 {
+                  id: 'forecast',
+                  title: 'Forecast',
+                  desc: 'Prediksi demand P10–P90 (H+1, H+7, H+30)',
+                  icon: <Beaker size={20} color="#c084fc" />,
+                  badge: 'Beta',
+                  badgeBg: '#a855f7',
+                  onClick: () => { setActiveTab('forecast'); setShowMobileMenuHub(false); }
+                },
+                {
                   id: 'meja_qr',
                   title: 'Meja QR & Nota Meja',
                   desc: 'QR self-order, nota & statistik per meja',
@@ -17153,8 +17170,8 @@ export default function Kasir({ user }) {
                   onClick: () => { setShowPosTopupModal(true); setShowMobileMenuHub(false); }
                 }
               ].map(item => (
-                <React.Fragment key={item.id}>
                 <button
+                  key={item.id}
                   type="button"
                   onClick={item.onClick}
                   style={{
@@ -17226,8 +17243,6 @@ export default function Kasir({ user }) {
                     <ChevronRight size={16} color={textSecondary} />
                   </div>
                 </button>
-                {item.id === 'keuangan' && renderNavBetaTesterBadge(false)}
-                </React.Fragment>
               ))}
             </div>
           </div>
