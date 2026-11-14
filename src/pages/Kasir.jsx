@@ -361,6 +361,20 @@ export default function Kasir({ user }) {
   });
   const [savingStore, setSavingStore] = useState(false);
   const [storeSaveMsg, setStoreSaveMsg] = useState('');
+  const [storeSwitchMsg, setStoreSwitchMsg] = useState('');
+  const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
+  const [creatingStore, setCreatingStore] = useState(false);
+  const [createStoreError, setCreateStoreError] = useState('');
+  const [deletingStoreId, setDeletingStoreId] = useState(null);
+  const [createStoreForm, setCreateStoreForm] = useState({
+    storeName: '',
+    location: '',
+    category: 'Makanan & Minuman',
+    address: '',
+    city: '',
+    phone: '',
+    mapsUrl: ''
+  });
 
   const isErrorFeedback = (msg) => {
     const txt = String(msg || '');
@@ -509,6 +523,16 @@ export default function Kasir({ user }) {
   const [analyticsTab, setAnalyticsTab] = useState('perMenu'); // 'perMenu' | 'perStore' | 'crossBranch' | 'perCashier'
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [analyticsFilters, setAnalyticsFilters] = useState({
+    range: 'all',
+    startDate: '',
+    endDate: '',
+    filterMode: 'all',
+    storeId: 'all',
+    category: 'all',
+    itemId: 'all',
+    cashierId: 'all'
+  });
 
   // ── GUDANG, RESEP & ALERT STOK MENIPIS STATE ──
   const DEFAULT_INITIAL_INVENTORY = [
@@ -967,10 +991,12 @@ export default function Kasir({ user }) {
     setShowAddMenuModal(true);
   };
 
-  // ── STORE LOCATION HANDLERS (VALIDASI TOKO WAJIB) ──
+  // ── STORE LOCATION HANDLERS (VALIDASI TOKO WAJIB & MULTI-STORE) ──
   const handleSaveStore = async (e) => {
     if (e) e.preventDefault();
     const payload = {
+      merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
+      ownerUserId: user?.id || user?.uid || effectiveAccountId,
       storeName: (storeForm.storeName ?? storeInfo.storeName ?? '').trim(),
       location: (storeForm.location ?? storeInfo.location ?? '').trim(),
       address: (storeForm.address ?? storeInfo.address ?? '').trim(),
@@ -1002,7 +1028,7 @@ export default function Kasir({ user }) {
       if (!res.ok) throw new Error(data?.error || 'Gagal menyimpan lokasi toko');
 
       if (data?.store) {
-        setStoreInfo(data.store);
+        setStoreInfo(prev => ({ ...prev, ...data.store }));
         setStoreForm({
           storeName: data.store.storeName || payload.storeName,
           location: data.store.location || payload.location,
@@ -1016,11 +1042,111 @@ export default function Kasir({ user }) {
       }
       setStoreSaveMsg('Lokasi, Google Maps, dan identitas toko kasir berhasil divalidasi resmi!');
       setTimeout(() => setStoreSaveMsg(''), 4000);
+      loadAnalytics();
       try { playChime(880, 0.1); } catch (_) {}
     } catch (err) {
       setStoreSaveMsg(`Gagal: ${err.message}`);
     } finally {
       setSavingStore(false);
+    }
+  };
+
+  const handleOpenCreateStoreModal = () => {
+    setCreateStoreError('');
+    setCreateStoreForm({
+      storeName: '',
+      location: '',
+      category: 'Makanan & Minuman',
+      address: '',
+      city: storeInfo.city || '',
+      phone: storeInfo.phone || '',
+      mapsUrl: ''
+    });
+    setShowCreateStoreModal(true);
+  };
+
+  const handleCreatePosStore = async (e) => {
+    if (e) e.preventDefault();
+    const cleanName = String(createStoreForm.storeName || '').trim();
+    const cleanLocation = String(createStoreForm.location || '').trim();
+    if (!cleanName) {
+      setCreateStoreError('Nama toko / cabang baru wajib diisi.');
+      return;
+    }
+    if (!cleanLocation) {
+      setCreateStoreError('Lokasi stand / alamat singkat cabang wajib diisi.');
+      return;
+    }
+    try {
+      setCreatingStore(true);
+      setCreateStoreError('');
+      const res = await fetch('/api/pos/stores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeName: cleanName,
+          location: cleanLocation,
+          category: createStoreForm.category || 'Makanan & Minuman',
+          address: String(createStoreForm.address || '').trim(),
+          city: String(createStoreForm.city || '').trim(),
+          phone: String(createStoreForm.phone || '').trim(),
+          mapsUrl: String(createStoreForm.mapsUrl || '').trim(),
+          ownerUserId: user?.id || user?.uid || effectiveAccountId,
+          kostUid: user?.kostUid || undefined,
+          switchAfterCreate: true
+        })
+      });
+      const data = await parseJsonSafe(res);
+      if (!res.ok) {
+        throw new Error(data?.error || 'Gagal membuat toko baru');
+      }
+      if (data?.store) {
+        setStoreInfo(prev => ({ ...prev, ...data.store }));
+        setStoreForm({
+          storeName: data.store.storeName || cleanName,
+          location: data.store.location || cleanLocation,
+          address: data.store.address || '',
+          city: data.store.city || '',
+          phone: data.store.phone || '',
+          mapsUrl: data.store.mapsUrl || '',
+          latitude: data.store.latitude ?? '',
+          longitude: data.store.longitude ?? ''
+        });
+      }
+      setShowCreateStoreModal(false);
+      setStoreSwitchMsg(`Toko baru "${cleanName}" berhasil dibuat dan diaktifkan.`);
+      setTimeout(() => setStoreSwitchMsg(''), 4500);
+      await fetchData();
+      loadAnalytics();
+      try { playChime(880, 0.12); } catch (_) {}
+    } catch (err) {
+      setCreateStoreError(err.message || 'Terjadi kesalahan saat membuat toko baru');
+    } finally {
+      setCreatingStore(false);
+    }
+  };
+
+  const handleDeletePosStore = async (targetStoreId, targetStoreName) => {
+    try {
+      const ownerQs = `ownerId=${encodeURIComponent(user?.id || user?.uid || effectiveAccountId)}`;
+      const res = await fetch(`/api/pos/stores/${encodeURIComponent(targetStoreId)}?${ownerQs}`, {
+        method: 'DELETE'
+      });
+      const data = await parseJsonSafe(res);
+      if (!res.ok) {
+        setStoreSaveMsg(`Gagal: ${data?.error || 'Tidak dapat menghapus toko'}`);
+        return;
+      }
+      setDeletingStoreId(null);
+      if (data?.store) {
+        setStoreInfo(prev => ({ ...prev, ...data.store }));
+      }
+      setStoreSwitchMsg(`Toko "${targetStoreName}" berhasil dihapus.`);
+      setTimeout(() => setStoreSwitchMsg(''), 4000);
+      await fetchData();
+      loadAnalytics();
+    } catch (err) {
+      setStoreSaveMsg(`Gagal menghapus toko: ${err.message}`);
     }
   };
 
@@ -1305,12 +1431,13 @@ export default function Kasir({ user }) {
     try {
       setLoadingOrders(true);
       const accountQuery = `merchantId=${encodeURIComponent(effectiveAccountId)}`;
+      const ownerQuery = `ownerId=${encodeURIComponent(user?.id || user?.uid || effectiveAccountId)}`;
       const [resOrders, resProd, resTables, resConfig, resStore] = await Promise.all([
         fetch('/api/pos/orders'),
         fetch(`/api/pos/products?${accountQuery}`),
         fetch('/api/pos/tables'),
         fetch('/api/pos/config/tripay'),
-        fetch('/api/pos/store')
+        fetch(`/api/pos/store?${ownerQuery}`)
       ]);
 
       const [remoteOrders, remoteProds, tbls, remoteConfig, st] = await Promise.all([
@@ -1544,18 +1671,25 @@ export default function Kasir({ user }) {
       const res = await fetch('/api/pos/store/switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merchantId: targetId })
+        body: JSON.stringify({
+          merchantId: targetId,
+          ownerUserId: user?.id || user?.uid || effectiveAccountId
+        })
       });
+      const data = await parseJsonSafe(res);
       if (res.ok) {
-        const data = await res.json();
+        if (data?.store) {
+          setStoreInfo(prev => ({ ...prev, ...data.store }));
+        }
         await fetchData();
-        alert(`Kasir POS berhasil beralih ke toko: ${data.store?.storeName || 'Toko'}`);
+        loadAnalytics();
+        setStoreSwitchMsg(`Aktif di toko: ${data?.store?.storeName || 'Toko'}`);
+        setTimeout(() => setStoreSwitchMsg(''), 3500);
       } else {
-        const err = await res.json();
-        alert(err.error || 'Gagal beralih toko');
+        setStoreSaveMsg(`Gagal: ${data?.error || 'Gagal beralih toko'}`);
       }
     } catch (err) {
-      alert('Gagal beralih toko: ' + err.message);
+      setStoreSaveMsg('Gagal beralih toko: ' + err.message);
     }
   };
 
@@ -2410,12 +2544,27 @@ export default function Kasir({ user }) {
   };
 
   // ── STATISTIK & ANALITIK KEUANGAN HANDLERS ──
-  const loadAnalytics = async () => {
+  const loadAnalytics = async (overrideFilters = null) => {
     try {
       setLoadingAnalytics(true);
-      const res = await fetch('/api/pos/analytics');
-      const data = await res.json();
-      if (res.ok) {
+      const active = overrideFilters || analyticsFilters || {};
+      const sp = new URLSearchParams();
+      if (active.range) sp.append('range', active.range);
+      if (active.range === 'custom') {
+        if (active.startDate) sp.append('startDate', active.startDate);
+        if (active.endDate) sp.append('endDate', active.endDate);
+      }
+      if (active.filterMode) sp.append('filterMode', active.filterMode);
+      if (active.storeId && active.storeId !== 'all') sp.append('storeId', active.storeId);
+      if (active.category && active.category !== 'all') sp.append('category', active.category);
+      if (active.itemId && active.itemId !== 'all') sp.append('itemId', active.itemId);
+      if (active.cashierId && active.cashierId !== 'all') sp.append('cashierId', active.cashierId);
+      const oid = user?.id || user?.uid || effectiveAccountId;
+      if (oid) sp.append('ownerId', String(oid));
+
+      const res = await fetch(`/api/pos/analytics?${sp.toString()}`);
+      const data = await parseJsonSafe(res);
+      if (res.ok && data) {
         setAnalyticsData(data);
       }
     } catch (err) {
@@ -2423,6 +2572,11 @@ export default function Kasir({ user }) {
     } finally {
       setLoadingAnalytics(false);
     }
+  };
+
+  const handleAnalyticsFilterChange = (nextFilters) => {
+    setAnalyticsFilters(nextFilters);
+    loadAnalytics(nextFilters);
   };
 
   const handleToggleItemReady = async (orderId, itemIndex, currentReady) => {
@@ -3375,6 +3529,8 @@ export default function Kasir({ user }) {
                       tableToken: null,
                       tableNumber: 'Menunggu Meja',
                       customerName: 'Kasir Walk-in',
+                      storeId: storeInfo.merchantId || storeInfo.uid || undefined,
+                      storeName: storeInfo.storeName || undefined,
                       cashierId: user?.id || 'KSR-01',
                       cashierName: cashierShift.cashierName || user?.name || 'Kasir Shift',
                       items,
@@ -3872,14 +4028,41 @@ export default function Kasir({ user }) {
           paddingTop: '0.75rem',
           borderTop: `1px solid ${borderColor}`
         }}>
-          {/* Multi-Store Switcher jika ada toko lain */}
-          {storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 1 && (
+          {/* Multi-Store Switcher & Buat Toko Baru */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <span style={{ fontSize: '0.64rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                Toko Aktif ({(storeInfo.allOwnerStores || []).length || 1})
+              </span>
+              <button
+                type="button"
+                onClick={handleOpenCreateStoreModal}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '2px 7px',
+                  borderRadius: '6px',
+                  border: '1px solid #2563eb',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                  color: '#2563eb',
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Buat toko / cabang kasir baru"
+              >
+                <Plus size={11} />
+                <span>Buat Toko</span>
+              </button>
+            </div>
             <select
-              value={storeInfo.merchantId}
+              value={storeInfo.merchantId || ''}
               onChange={(e) => handleSwitchPosStore(e.target.value)}
+              aria-label="Pilih Toko Aktif"
               style={{
                 width: '100%',
-                padding: '5px 8px',
+                padding: '6px 8px',
                 borderRadius: '8px',
                 border: `1px solid ${borderColor}`,
                 background: isLight ? '#f8fafc' : '#0f172a',
@@ -3889,13 +4072,32 @@ export default function Kasir({ user }) {
                 cursor: 'pointer'
               }}
             >
-              {storeInfo.allOwnerStores.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.kuotaNota} nota)
+              {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0) ? (
+                storeInfo.allOwnerStores.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.kuotaNota} nota)
+                  </option>
+                ))
+              ) : (
+                <option value={storeInfo.merchantId || ''}>
+                  {storeInfo.storeName || 'Toko Utama'}
                 </option>
-              ))}
+              )}
             </select>
-          )}
+            {storeSwitchMsg && (
+              <div style={{
+                fontSize: '0.67rem',
+                fontWeight: 700,
+                padding: '4px 7px',
+                borderRadius: '6px',
+                background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                color: isLight ? '#166534' : '#86efac',
+                border: '1px solid #86efac'
+              }}>
+                {storeSwitchMsg}
+              </div>
+            )}
+          </div>
 
           {/* Kuota Nota Status Card */}
           <div style={{
@@ -8482,6 +8684,8 @@ export default function Kasir({ user }) {
               analyticsData={analyticsData}
               loadingAnalytics={loadingAnalytics}
               onRefresh={loadAnalytics}
+              filters={analyticsFilters}
+              onFilterChange={handleAnalyticsFilterChange}
             />
           ) : (
           <>
@@ -10847,6 +11051,8 @@ export default function Kasir({ user }) {
           analyticsData={analyticsData}
           loadingAnalytics={loadingAnalytics}
           onRefresh={loadAnalytics}
+          filters={analyticsFilters}
+          onFilterChange={handleAnalyticsFilterChange}
         />
       )}
 
@@ -11210,25 +11416,220 @@ export default function Kasir({ user }) {
         return (
           <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {renderManajemenHeader(
-              'Lokasi Kasir & Validasi Toko',
-              'Nama toko, posisi fisik stand kasir, dan titik Google Maps wajib dilengkapi agar berstatus Resmi sebelum melayani pesanan meja & mencetak struk.',
+              'Lokasi Kasir & Kelola Banyak Toko',
+              'Owner dapat membuat dan mengelola banyak cabang toko dari satu akun, mengatur posisi stand, serta memvalidasi titik Google Maps.',
               <MapPin size={20} color="#14b8a6" />,
-              <span style={{
-                padding: '5px 11px',
-                borderRadius: '999px',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                background: storeInfo.isValidated ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.18)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.18)'),
-                color: storeInfo.isValidated ? '#16a34a' : '#d97706',
-                border: `1px solid ${storeInfo.isValidated ? '#86efac' : '#fcd34d'}`,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}>
-                {storeInfo.isValidated ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
-                <span>{storeInfo.isValidated ? 'Tervalidasi Resmi' : 'Belum Valid'}</span>
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleOpenCreateStoreModal}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>Buat Toko Baru</span>
+                </button>
+                <span style={{
+                  padding: '5px 11px',
+                  borderRadius: '999px',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  background: storeInfo.isValidated ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.18)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.18)'),
+                  color: storeInfo.isValidated ? '#16a34a' : '#d97706',
+                  border: `1px solid ${storeInfo.isValidated ? '#86efac' : '#fcd34d'}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}>
+                  {storeInfo.isValidated ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                  <span>{storeInfo.isValidated ? 'Tervalidasi Resmi' : 'Belum Valid'}</span>
+                </span>
+              </div>
             )}
+
+            {/* Daftar Multi-Toko Owner */}
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '16px',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Store size={16} color="#2563eb" />
+                    <span>Daftar Toko Milik Anda ({(storeInfo.allOwnerStores || []).length || 1} Toko)</span>
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
+                    Klik kartu toko untuk beralih kasir aktif atau mengedit lokasi cabang tersebut.
+                  </p>
+                </div>
+                {storeSwitchMsg && (
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                    color: '#16a34a',
+                    border: '1px solid #86efac'
+                  }}>
+                    {storeSwitchMsg}
+                  </span>
+                )}
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+                gap: '10px'
+              }}>
+                {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0 ? storeInfo.allOwnerStores : [{
+                  id: storeInfo.merchantId || 'MTR-KASIR-MASTER',
+                  name: storeInfo.storeName || 'Toko Utama',
+                  location: storeInfo.location || 'Stand Utama',
+                  kuotaNota: storeInfo.kuotaNota ?? 50
+                }]).map((stItem) => {
+                  const isCurrent = String(stItem.id) === String(storeInfo.merchantId);
+                  const isDeleting = deletingStoreId === stItem.id;
+                  const canDelete = (storeInfo.allOwnerStores || []).length > 1;
+                  return (
+                    <div
+                      key={stItem.id}
+                      style={{
+                        borderRadius: '12px',
+                        padding: '10px 12px',
+                        border: isCurrent ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                        background: isCurrent
+                          ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)')
+                          : (isLight ? '#f8fafc' : '#0f172a'),
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: textPrimary }}>
+                            {stItem.name}
+                          </div>
+                          <div style={{ fontSize: '0.71rem', color: textSecondary }}>
+                            {stItem.location || stItem.address || 'Lokasi belum diisi'}
+                          </div>
+                        </div>
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          padding: '2px 7px',
+                          borderRadius: '999px',
+                          background: isCurrent ? '#2563eb' : (isLight ? '#e2e8f0' : '#334155'),
+                          color: isCurrent ? '#ffffff' : textSecondary,
+                          flexShrink: 0
+                        }}>
+                          {isCurrent ? 'Aktif' : `${stItem.kuotaNota ?? 50} nota`}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginTop: '2px' }}>
+                        {!isCurrent ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchPosStore(stItem.id)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: '7px',
+                              border: '1px solid #2563eb',
+                              background: 'transparent',
+                              color: '#2563eb',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Aktifkan Toko
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#2563eb' }}>
+                            Sedang Dikelola
+                          </span>
+                        )}
+
+                        {canDelete && (
+                          isDeleting ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePosStore(stItem.id, stItem.name)}
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  border: 'none',
+                                  background: '#dc2626',
+                                  color: '#ffffff',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Hapus
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeletingStoreId(null)}
+                                style={{
+                                  padding: '3px 7px',
+                                  borderRadius: '6px',
+                                  border: `1px solid ${borderColor}`,
+                                  background: 'transparent',
+                                  color: textSecondary,
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setDeletingStoreId(stItem.id)}
+                              title={`Hapus toko ${stItem.name}`}
+                              style={{
+                                padding: '4px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {storeSaveMsg && (
               <div style={{
@@ -15251,6 +15652,70 @@ export default function Kasir({ user }) {
               width: '100%',
               boxSizing: 'border-box'
             }}>
+              {/* Multi-Store Switcher + Buat Toko Baru (Mobile) */}
+              <div style={{
+                padding: '10px 12px',
+                borderRadius: '14px',
+                border: `1px solid ${borderColor}`,
+                background: isLight ? '#f8fafc' : '#1e293b',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
+                    Toko Aktif ({(storeInfo.allOwnerStores || []).length || 1} Cabang)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setShowMobileMenuHub(false); handleOpenCreateStoreModal(); }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 9px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Plus size={12} />
+                    <span>Buat Toko Baru</span>
+                  </button>
+                </div>
+                <select
+                  value={storeInfo.merchantId || ''}
+                  onChange={(e) => handleSwitchPosStore(e.target.value)}
+                  aria-label="Pilih Toko Aktif Mobile"
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    color: textPrimary,
+                    fontSize: '0.78rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0) ? (
+                    storeInfo.allOwnerStores.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.kuotaNota} nota)
+                      </option>
+                    ))
+                  ) : (
+                    <option value={storeInfo.merchantId || ''}>
+                      {storeInfo.storeName || 'Toko Utama'}
+                    </option>
+                  )}
+                </select>
+              </div>
+
               {/* PRIMARY ACTION CARD: + TAMBAH MENU BARU UNTUK PELANGGAN */}
               <button
                 type="button"
@@ -15499,6 +15964,306 @@ export default function Kasir({ user }) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── MODAL BUAT TOKO / CABANG BARU (MULTI-TOKO PER OWNER) ── */}
+      {showCreateStoreModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1100,
+            background: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <form
+            onSubmit={handleCreatePosStore}
+            noValidate
+            style={{
+              width: '100%',
+              maxWidth: '500px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: isLight ? '#ffffff' : '#0f172a',
+              borderRadius: '20px',
+              border: `1px solid ${borderColor}`,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: `1px solid ${borderColor}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Store size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: textPrimary }}>
+                    Buat Toko / Cabang Baru
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: textSecondary }}>
+                    Satu akun owner dapat mengelola banyak toko kasir sekaligus.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateStoreModal(false)}
+                aria-label="Tutup Modal Buat Toko"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: textSecondary,
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
+              {createStoreError && (
+                <div style={{
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)',
+                  color: isLight ? '#991b1b' : '#fca5a5',
+                  border: '1px solid #fca5a5',
+                  fontSize: '0.76rem',
+                  fontWeight: 700
+                }}>
+                  {createStoreError}
+                </div>
+              )}
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                  Nama Toko / Cabang <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Kantin Berkah Cabang Tembalang"
+                  value={createStoreForm.storeName}
+                  onChange={(e) => setCreateStoreForm(p => ({ ...p, storeName: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '9px 11px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                  Lokasi Fisik / Stand Kasir <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Ruko Depan Gerbang Kost Lt. 1"
+                  value={createStoreForm.location}
+                  onChange={(e) => setCreateStoreForm(p => ({ ...p, location: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '9px 11px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Kategori Usaha
+                  </label>
+                  <select
+                    value={createStoreForm.category}
+                    onChange={(e) => setCreateStoreForm(p => ({ ...p, category: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.8rem',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="Makanan & Minuman">Makanan &amp; Minuman</option>
+                    <option value="Kafe & Kopi">Kafe &amp; Kopi</option>
+                    <option value="Laundry & Jasa">Laundry &amp; Jasa</option>
+                    <option value="Minimarket / Retail">Minimarket / Retail</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Kota / Wilayah
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Semarang"
+                    value={createStoreForm.city}
+                    onChange={(e) => setCreateStoreForm(p => ({ ...p, city: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                  Alamat Lengkap Cabang
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Jl. Sirojudin No. 12, Tembalang"
+                  value={createStoreForm.address}
+                  onChange={(e) => setCreateStoreForm(p => ({ ...p, address: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '9px 11px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    No. WhatsApp Toko
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="0812xxxxxxxx"
+                    value={createStoreForm.phone}
+                    onChange={(e) => setCreateStoreForm(p => ({ ...p, phone: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Link Google Maps (Opsional)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://maps.google.com/..."
+                    value={createStoreForm.mapsUrl}
+                    onChange={(e) => setCreateStoreForm(p => ({ ...p, mapsUrl: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '12px 18px',
+              borderTop: `1px solid ${borderColor}`,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setShowCreateStoreModal(false)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: 'transparent',
+                  color: textSecondary,
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={creatingStore}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: creatingStore ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {creatingStore ? 'Menyimpan...' : 'Simpan & Buka Toko'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
       {/* Closing pos-main-wrapper */}

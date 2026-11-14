@@ -640,70 +640,357 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     };
   };
 
-  // ── 0. STORE & CASHIER LOCATION (STORE VALIDITY ENGINE) ───────────────
+  // ── 0. STORE & CASHIER LOCATION (MULTI-STORE PER OWNER ENGINE) ─────────
+  const serializeOwnerStore = (m) => {
+    if (!m) return null;
+    const saldo = Number(m.saldoNota ?? 5000);
+    const kuota = Number(m.kuotaNota ?? Math.max(0, Math.floor(saldo / 100)));
+    return {
+      id: m.id,
+      name: m.name || 'Toko Mitra',
+      category: m.category || 'Makanan & Minuman',
+      location: m.storeLocation || (m.location && typeof m.location === 'string' ? m.location : '') || m.address || 'Stand Utama',
+      address: m.address || '',
+      city: m.city || '',
+      phone: m.phone || '',
+      mapsUrl: m.mapsUrl || '',
+      latitude: m.latitude ?? m.location?.lat ?? null,
+      longitude: m.longitude ?? m.location?.lng ?? null,
+      icon: '',
+      saldoNota: saldo,
+      kuotaNota: kuota,
+      isValidated: Boolean((m.name || m.storeName) && (typeof m.location === 'string' ? m.location : m.address || m.storeLocation)),
+      isPosStore: Boolean(m.isPosStore),
+      ownerUserId: m.ownerUserId || null,
+      posOwnerId: m.posOwnerId || m.ownerUserId || null,
+      kostUid: m.kostUid || null,
+      createdAt: m.createdAt || null
+    };
+  };
+
+  const getOwnerStoresList = (db, currentMerchant, requestedOwnerId = null) => {
+    const ownerIds = new Set(
+      [requestedOwnerId, currentMerchant?.ownerUserId, currentMerchant?.posOwnerId]
+        .filter(Boolean)
+        .map(v => String(v))
+    );
+
+    const activeMerchants = (db.merchants || []).filter(m => m && m.status !== 'deleted');
+    const seen = new Set();
+    const list = [];
+
+    const pushStore = (m) => {
+      if (!m || !m.id || seen.has(String(m.id))) return;
+      seen.add(String(m.id));
+      list.push(serializeOwnerStore(m));
+    };
+
+    if (currentMerchant) {
+      pushStore(currentMerchant);
+    }
+
+    activeMerchants.forEach(m => {
+      const mOwner = m.ownerUserId ? String(m.ownerUserId) : '';
+      const mPosOwner = m.posOwnerId ? String(m.posOwnerId) : '';
+      const matchesOwner =
+        (mOwner && ownerIds.has(mOwner)) ||
+        (mPosOwner && ownerIds.has(mPosOwner));
+      if (matchesOwner) {
+        pushStore(m);
+      }
+    });
+
+    return list;
+  };
+
+  const buildActiveStorePayload = (db, currentMerchant, requestedOwnerId = null) => {
+    const store = db.settings.posStore || {};
+    const target = currentMerchant || (db.merchants || []).find(m => String(m.id) === String(store.merchantId || store.uid)) || (db.merchants || []).find(m => m.status !== 'deleted');
+
+    if (target) {
+      if (target.saldoNota === undefined) target.saldoNota = 5000;
+      if (target.kuotaNota === undefined) target.kuotaNota = Math.max(0, Math.floor(Number(target.saldoNota) / 100));
+      target.notaHistory = target.notaHistory || [];
+    }
+
+    const activeUid = target ? target.id : (store.merchantId || store.uid || 'MTR-KASIR-MASTER');
+    const currentSaldoNota = target ? Number(target.saldoNota ?? 5000) : Number(store.saldoNota ?? 5000);
+    const currentKuotaNota = target ? Number(target.kuotaNota ?? Math.floor(currentSaldoNota / 100)) : Number(store.kuotaNota ?? 50);
+
+    const resolvedName = (target && target.name) || store.storeName || 'Kantin Berkah Kost';
+    const resolvedLocation =
+      (target && typeof target.location === 'string' && target.location) ||
+      target?.storeLocation ||
+      store.location ||
+      'Lantai 1 Dekat Gazebo';
+    const resolvedAddress = (target && target.address) || store.address || '';
+    const resolvedCity = (target && target.city) || store.city || '';
+    const resolvedPhone = (target && target.phone) || store.phone || '';
+    const resolvedLat = target?.latitude ?? store.latitude ?? (typeof target?.location === 'object' ? target.location?.lat : null) ?? null;
+    const resolvedLng = target?.longitude ?? store.longitude ?? (typeof target?.location === 'object' ? target.location?.lng : null) ?? null;
+    const resolvedMapsUrl = (target && target.mapsUrl) || store.mapsUrl || (Number.isFinite(Number(resolvedLat)) && Number.isFinite(Number(resolvedLng)) && resolvedLat !== null && resolvedLng !== null ? `https://maps.google.com/?q=${resolvedLat},${resolvedLng}` : '');
+
+    const allOwnerStores = getOwnerStoresList(db, target, requestedOwnerId);
+    const isValid = Boolean(resolvedName && (resolvedLocation || resolvedAddress));
+
+    return {
+      uid: activeUid,
+      merchantId: activeUid,
+      storeName: resolvedName,
+      category: target?.category || store.category || 'Makanan & Minuman',
+      location: resolvedLocation,
+      address: resolvedAddress,
+      city: resolvedCity,
+      phone: resolvedPhone,
+      mapsUrl: resolvedMapsUrl,
+      latitude: resolvedLat,
+      longitude: resolvedLng,
+      isValidated: isValid,
+      saldoNota: currentSaldoNota,
+      kuotaNota: currentKuotaNota,
+      notaHistory: target?.notaHistory || [],
+      allOwnerStores,
+      updatedAt: target?.updatedAt || store.updatedAt || null
+    };
+  };
+
   router.get('/store', (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
     db.merchants = db.merchants || [];
+    const requestedStoreId = req.query.merchantId || req.query.storeId;
+    const requestedOwnerId = req.query.ownerId || req.user?.id || null;
     const store = db.settings.posStore || {};
-    const primaryMerchant = db.merchants[0];
-    const sharedUid = store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
+    const primaryMerchant = db.merchants.find(m => m && m.status !== 'deleted') || db.merchants[0];
+    const sharedUid = requestedStoreId || store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
 
-    let currentMerchant = db.merchants.find(m => String(m.id) === String(sharedUid));
+    let currentMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(sharedUid));
     if (!currentMerchant && primaryMerchant) {
       currentMerchant = primaryMerchant;
     }
 
     if (currentMerchant) {
-      if (currentMerchant.saldoNota === undefined) currentMerchant.saldoNota = 5000;
-      if (currentMerchant.kuotaNota === undefined) currentMerchant.kuotaNota = Math.max(0, Math.floor(currentMerchant.saldoNota / 100));
-      currentMerchant.notaHistory = currentMerchant.notaHistory || [];
+      store.uid = currentMerchant.id;
+      store.merchantId = currentMerchant.id;
     }
 
-    const currentSaldoNota = currentMerchant ? Number(currentMerchant.saldoNota ?? 5000) : 5000;
-    const currentKuotaNota = currentMerchant ? Number(currentMerchant.kuotaNota ?? Math.floor(currentSaldoNota / 100)) : 50;
+    res.json(buildActiveStorePayload(db, currentMerchant, requestedOwnerId));
+  });
 
-    store.uid = currentMerchant ? currentMerchant.id : sharedUid;
-    store.merchantId = currentMerchant ? currentMerchant.id : sharedUid;
-    const isValid = Boolean((store.storeName || currentMerchant?.name) && (store.location || currentMerchant?.address));
+  // List semua toko milik owner
+  router.get('/stores', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+    const requestedOwnerId = req.query.ownerId || req.user?.id || null;
+    const store = db.settings.posStore || {};
+    const currentMerchant =
+      db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(store.merchantId || store.uid)) ||
+      db.merchants.find(m => m && m.status !== 'deleted') ||
+      db.merchants[0];
 
-    // Get all stores belonging to this owner (1 owner bisa punya banyak toko)
-    const ownerUserId = currentMerchant?.ownerUserId || 'USR-OWNER-01';
-    const allOwnerStores = db.merchants
-      .filter(m => String(m.ownerUserId) === String(ownerUserId) || (currentMerchant && m.kostUid === currentMerchant.kostUid))
-      .map(m => ({
-        id: m.id,
-        name: m.name,
-        category: m.category || 'makanan',
-        icon: '',
-        saldoNota: Number(m.saldoNota ?? 5000),
-        kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / 100)),
-        phone: m.phone || '',
-        address: m.address || ''
-      }));
-
+    const stores = getOwnerStoresList(db, currentMerchant, requestedOwnerId);
     res.json({
-      uid: store.uid,
-      merchantId: store.merchantId,
-      storeName: store.storeName || currentMerchant?.name || 'Kantin Riuph Kasir',
-      location: store.location || 'Lantai 1 Dekat Gazebo',
-      address: store.address || currentMerchant?.address || '',
-      city: store.city || '',
-      phone: store.phone || currentMerchant?.phone || '',
-      mapsUrl: store.mapsUrl || currentMerchant?.mapsUrl || '',
-      latitude: store.latitude ?? currentMerchant?.latitude ?? null,
-      longitude: store.longitude ?? currentMerchant?.longitude ?? null,
-      isValidated: isValid,
-      saldoNota: currentSaldoNota,
-      kuotaNota: currentKuotaNota,
-      notaHistory: currentMerchant?.notaHistory || [],
-      allOwnerStores,
-      updatedAt: store.updatedAt || null
+      success: true,
+      stores,
+      activeStoreId: currentMerchant?.id || store.merchantId || store.uid || null
+    });
+  });
+
+  // Buat toko/cabang POS baru (1 owner bisa punya banyak toko)
+  router.post('/stores', (req, res) => {
+    const {
+      storeName,
+      name,
+      location,
+      address,
+      city,
+      phone,
+      category,
+      mapsUrl,
+      latitude,
+      longitude,
+      ownerUserId,
+      ownerId,
+      kostUid,
+      switchAfterCreate = true
+    } = req.body || {};
+
+    const cleanName = String(storeName || name || '').trim();
+    const cleanLocation = String(location || '').trim();
+    const cleanAddress = String(address || '').trim();
+    const cleanCity = String(city || '').trim();
+    const cleanPhone = String(phone || '').trim();
+    const cleanCategory = String(category || 'Makanan & Minuman').trim();
+    const cleanMapsUrl = String(mapsUrl || '').trim();
+    const parsedLat = latitude !== undefined && latitude !== null && String(latitude).trim() !== '' ? Number(latitude) : null;
+    const parsedLng = longitude !== undefined && longitude !== null && String(longitude).trim() !== '' ? Number(longitude) : null;
+
+    if (!cleanName) {
+      return res.status(400).json({ error: 'Nama toko / cabang baru wajib diisi!' });
+    }
+    if (!cleanLocation) {
+      return res.status(400).json({ error: 'Lokasi fisik / stand kasir wajib diisi!' });
+    }
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+    db.merchant_wallets = db.merchant_wallets || {};
+
+    const currentStoreId = db.settings.posStore?.merchantId || db.settings.posStore?.uid;
+    const currentMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(currentStoreId)) || db.merchants[0];
+    const requestedOwner = ownerUserId || ownerId || req.user?.id || null;
+    const canonicalOwnerId = currentMerchant?.ownerUserId || requestedOwner || 'USR-OWNER-01';
+    const resolvedKostUid = kostUid || currentMerchant?.kostUid || 'KOST-JAKSEL-01';
+
+    const newStoreId = `PTR-${Date.now()}-${Math.floor(10 + Math.random() * 89)}`;
+    const nowIso = new Date().toISOString();
+    const resolvedMapsUrl = cleanMapsUrl || (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) ? `https://maps.google.com/?q=${parsedLat},${parsedLng}` : '');
+
+    const newStore = {
+      id: newStoreId,
+      ownerUserId: canonicalOwnerId,
+      posOwnerId: requestedOwner ? String(requestedOwner) : canonicalOwnerId,
+      kostUid: resolvedKostUid,
+      name: cleanName,
+      category: cleanCategory,
+      storeLocation: cleanLocation,
+      location: cleanLocation,
+      address: cleanAddress,
+      city: cleanCity,
+      phone: cleanPhone,
+      mapsUrl: resolvedMapsUrl,
+      latitude: Number.isFinite(parsedLat) ? parsedLat : null,
+      longitude: Number.isFinite(parsedLng) ? parsedLng : null,
+      commissionOwner: 500,
+      platformFee: 200,
+      paymentMethods: ['cash', 'qris'],
+      saldoNota: 5000,
+      kuotaNota: 50,
+      notaHistory: [
+        {
+          id: `NOTA-WELCOME-${newStoreId}`,
+          type: 'welcome_quota',
+          amount: 5000,
+          addedNota: 50,
+          balanceAfter: 5000,
+          description: 'Bonus kuota selamat datang cabang baru (50 lembar nota @ Rp 100)',
+          createdAt: nowIso
+        }
+      ],
+      isPosStore: true,
+      isValidated: true,
+      status: 'active',
+      createdAt: nowIso,
+      updatedAt: nowIso
+    };
+
+    db.merchants.push(newStore);
+    db.merchant_wallets[newStoreId] = {
+      merchant_id: newStoreId,
+      name: cleanName,
+      whatsapp_number: cleanPhone,
+      available_balance: 5000,
+      held_promo_balance: 0,
+      updated_at: nowIso
+    };
+
+    let activeMerchant = currentMerchant || newStore;
+    if (switchAfterCreate !== false) {
+      activeMerchant = newStore;
+      db.settings.posStore = {
+        uid: newStore.id,
+        merchantId: newStore.id,
+        storeName: newStore.name,
+        category: newStore.category,
+        location: cleanLocation,
+        address: cleanAddress,
+        city: cleanCity,
+        phone: cleanPhone,
+        mapsUrl: resolvedMapsUrl,
+        latitude: Number.isFinite(parsedLat) ? parsedLat : null,
+        longitude: Number.isFinite(parsedLng) ? parsedLng : null,
+        saldoNota: 5000,
+        kuotaNota: 50,
+        isValidated: true,
+        updatedAt: nowIso
+      };
+    }
+
+    writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, activeMerchant, requestedOwner);
+    res.status(201).json({
+      success: true,
+      message: `Toko baru "${cleanName}" berhasil dibuat!`,
+      createdStore: serializeOwnerStore(newStore),
+      store: activePayload,
+      allOwnerStores: activePayload.allOwnerStores
+    });
+  });
+
+  // Hapus / nonaktifkan toko cabang (minimal sisa 1 toko aktif)
+  router.delete('/stores/:id', (req, res) => {
+    const targetId = String(req.params.id || '').trim();
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+
+    const currentId = db.settings.posStore?.merchantId || db.settings.posStore?.uid;
+    const currentMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(currentId)) || db.merchants[0];
+    const requestedOwner = req.query.ownerId || req.user?.id || null;
+    const ownerStores = getOwnerStoresList(db, currentMerchant, requestedOwner);
+
+    if (ownerStores.length <= 1) {
+      return res.status(400).json({ error: 'Minimal 1 toko utama harus tetap aktif.' });
+    }
+
+    const target = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === targetId);
+    if (!target) {
+      return res.status(404).json({ error: 'Toko tidak ditemukan.' });
+    }
+
+    target.status = 'deleted';
+    target.deletedAt = new Date().toISOString();
+
+    let nextActive = currentMerchant;
+    if (String(currentId) === targetId) {
+      const remaining = ownerStores.filter(s => String(s.id) !== targetId);
+      nextActive = remaining.length > 0 ? db.merchants.find(m => String(m.id) === String(remaining[0].id)) : null;
+      if (nextActive) {
+        const nextSer = serializeOwnerStore(nextActive);
+        db.settings.posStore = {
+          uid: nextSer.id,
+          merchantId: nextSer.id,
+          storeName: nextSer.name,
+          category: nextSer.category,
+          location: nextSer.location,
+          address: nextSer.address,
+          city: nextSer.city,
+          phone: nextSer.phone,
+          mapsUrl: nextSer.mapsUrl,
+          latitude: nextSer.latitude,
+          longitude: nextSer.longitude,
+          saldoNota: nextSer.saldoNota,
+          kuotaNota: nextSer.kuotaNota,
+          isValidated: true,
+          updatedAt: new Date().toISOString()
+        };
+      }
+    }
+
+    writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, nextActive, requestedOwner);
+    res.json({
+      success: true,
+      message: `Toko "${target.name}" berhasil dihapus.`,
+      store: activePayload,
+      allOwnerStores: activePayload.allOwnerStores
     });
   });
 
   router.post('/store', (req, res) => {
-    const { storeName, location, address, city, phone, merchantId, mapsUrl, latitude, longitude } = req.body;
+    const { storeName, location, address, city, phone, merchantId, category, mapsUrl, latitude, longitude, ownerUserId, ownerId } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
     db.merchants = db.merchants || [];
@@ -724,69 +1011,109 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       return res.status(400).json({ error: 'Lokasi kasir (lantai/gedung/posisi fisik) wajib diinput agar toko valid!' });
     }
 
-    const primaryMerchant = db.merchants[0];
+    const primaryMerchant = db.merchants.find(m => m && m.status !== 'deleted') || db.merchants[0];
     const sharedUid = merchantId || req.body.uid || db.settings.posStore?.merchantId || db.settings.posStore?.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
+    const resolvedMapsUrl = cleanMapsUrl || (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) ? `https://maps.google.com/?q=${parsedLat},${parsedLng}` : '');
 
-    let targetMerchant = db.merchants.find(m => String(m.id) === String(sharedUid));
+    let targetMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(sharedUid));
     if (targetMerchant) {
       targetMerchant.name = cleanName;
+      targetMerchant.storeLocation = cleanLocation;
+      if (typeof targetMerchant.location === 'string' || !targetMerchant.location) {
+        targetMerchant.location = cleanLocation;
+      }
+      if (category) targetMerchant.category = String(category).trim();
       if (cleanAddress) targetMerchant.address = cleanAddress;
+      if (cleanCity) targetMerchant.city = cleanCity;
       if (cleanPhone) targetMerchant.phone = cleanPhone;
-      if (cleanMapsUrl) targetMerchant.mapsUrl = cleanMapsUrl;
+      if (resolvedMapsUrl) targetMerchant.mapsUrl = resolvedMapsUrl;
       if (Number.isFinite(parsedLat)) targetMerchant.latitude = parsedLat;
       if (Number.isFinite(parsedLng)) targetMerchant.longitude = parsedLng;
+      targetMerchant.updatedAt = new Date().toISOString();
     }
 
     db.settings.posStore = {
       uid: sharedUid,
       merchantId: sharedUid,
       storeName: cleanName,
+      category: category || targetMerchant?.category || db.settings.posStore?.category || 'Makanan & Minuman',
       location: cleanLocation,
-      address: cleanAddress || db.settings.posStore?.address || '',
+      address: cleanAddress || targetMerchant?.address || db.settings.posStore?.address || '',
       city: cleanCity,
       phone: cleanPhone,
-      mapsUrl: cleanMapsUrl || (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) ? `https://maps.google.com/?q=${parsedLat},${parsedLng}` : ''),
+      mapsUrl: resolvedMapsUrl,
       latitude: Number.isFinite(parsedLat) ? parsedLat : null,
       longitude: Number.isFinite(parsedLng) ? parsedLng : null,
+      saldoNota: targetMerchant ? Number(targetMerchant.saldoNota ?? 5000) : Number(db.settings.posStore?.saldoNota ?? 5000),
+      kuotaNota: targetMerchant ? Number(targetMerchant.kuotaNota ?? 50) : Number(db.settings.posStore?.kuotaNota ?? 50),
       isValidated: true,
       updatedAt: new Date().toISOString()
     };
 
     writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, targetMerchant, ownerUserId || ownerId || req.user?.id || null);
     res.json({
       success: true,
       message: 'Lokasi dan profil toko kasir berhasil divalidasi!',
-      store: db.settings.posStore
+      store: activePayload
     });
   });
 
   // ── 0B. SWITCH POS ACTIVE STORE (MULTI-STORE PER OWNER) ───────────────
   router.post('/store/switch', (req, res) => {
-    const { merchantId } = req.body;
+    const { merchantId, ownerUserId, ownerId } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
     db.merchants = db.merchants || [];
 
-    const target = db.merchants.find(m => String(m.id) === String(merchantId));
+    const target = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(merchantId));
     if (!target) return res.status(404).json({ error: 'Toko mitra tidak ditemukan' });
+
+    // Preserve any edited metadata on outgoing active store before switching
+    const prevStore = db.settings.posStore;
+    if (prevStore && prevStore.merchantId && String(prevStore.merchantId) !== String(target.id)) {
+      const prevMerchant = db.merchants.find(m => m && String(m.id) === String(prevStore.merchantId));
+      if (prevMerchant) {
+        if (prevStore.storeName) prevMerchant.name = prevStore.storeName;
+        if (prevStore.location) prevMerchant.storeLocation = prevStore.location;
+        if (prevStore.address) prevMerchant.address = prevStore.address;
+        if (prevStore.city) prevMerchant.city = prevStore.city;
+        if (prevStore.phone) prevMerchant.phone = prevStore.phone;
+        if (prevStore.mapsUrl) prevMerchant.mapsUrl = prevStore.mapsUrl;
+        if (prevStore.latitude !== null && prevStore.latitude !== undefined) prevMerchant.latitude = prevStore.latitude;
+        if (prevStore.longitude !== null && prevStore.longitude !== undefined) prevMerchant.longitude = prevStore.longitude;
+      }
+    }
 
     if (target.saldoNota === undefined) target.saldoNota = 5000;
     if (target.kuotaNota === undefined) target.kuotaNota = Math.max(0, Math.floor(target.saldoNota / 100));
 
-    db.settings.posStore = db.settings.posStore || {};
-    db.settings.posStore.uid = target.id;
-    db.settings.posStore.merchantId = target.id;
-    db.settings.posStore.storeName = target.name;
-    db.settings.posStore.address = target.address || db.settings.posStore.address || '';
-    db.settings.posStore.phone = target.phone || db.settings.posStore.phone || '';
-    db.settings.posStore.isValidated = true;
-    db.settings.posStore.updatedAt = new Date().toISOString();
+    const ser = serializeOwnerStore(target);
+    db.settings.posStore = {
+      uid: ser.id,
+      merchantId: ser.id,
+      storeName: ser.name,
+      category: ser.category,
+      location: ser.location,
+      address: ser.address,
+      city: ser.city,
+      phone: ser.phone,
+      mapsUrl: ser.mapsUrl,
+      latitude: ser.latitude,
+      longitude: ser.longitude,
+      saldoNota: ser.saldoNota,
+      kuotaNota: ser.kuotaNota,
+      isValidated: true,
+      updatedAt: new Date().toISOString()
+    };
 
     writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, target, ownerUserId || ownerId || req.user?.id || null);
     res.json({
       success: true,
       message: `Kasir POS berhasil beralih ke toko: ${target.name}`,
-      store: db.settings.posStore,
+      store: activePayload,
+      allOwnerStores: activePayload.allOwnerStores,
       saldoNota: target.saldoNota,
       kuotaNota: target.kuotaNota
     });
@@ -1673,9 +2000,24 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   router.get('/tables', async (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
+    const { storeId, merchantId } = req.query;
+    const filterStoreId = storeId || merchantId;
+    let tablesList = db.pos_tables || [];
+
+    if (filterStoreId && filterStoreId !== 'all') {
+      const targetMeta = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(filterStoreId));
+      const ownerFirstMerchant = (db.merchants || []).find(m =>
+        m && m.status !== 'deleted' && targetMeta?.ownerUserId && String(m.ownerUserId) === String(targetMeta.ownerUserId)
+      ) || (db.merchants || []).find(m => m && m.status !== 'deleted');
+      const isPrimary = !ownerFirstMerchant || String(filterStoreId) === String(ownerFirstMerchant.id);
+      tablesList = tablesList.filter(t =>
+        (t.storeId && String(t.storeId) === String(filterStoreId)) ||
+        (!t.storeId && isPrimary)
+      );
+    }
 
     const enriched = await Promise.all(
-      db.pos_tables.map((t) => buildEnrichedTable(t, req))
+      tablesList.map((t) => buildEnrichedTable(t, req))
     );
 
     res.json(enriched);
@@ -1683,13 +2025,15 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
   router.post('/tables', async (req, res) => {
     const cleanNum = String(req.body?.number || '').trim();
+    const tableStoreId = req.body?.storeId || req.body?.merchantId || null;
     if (!cleanNum) return res.status(400).json({ error: 'Nama / nomor meja wajib diisi!' });
 
     const db = getDB(req);
     ensurePosCollections(db);
 
     const duplicate = db.pos_tables.some(
-      (t) => String(t.number || '').trim().toLowerCase() === cleanNum.toLowerCase()
+      (t) => String(t.number || '').trim().toLowerCase() === cleanNum.toLowerCase() &&
+        (!tableStoreId || !t.storeId || String(t.storeId) === String(tableStoreId))
     );
     if (duplicate) {
       return res.status(400).json({ error: `Meja "${cleanNum}" sudah terdaftar!` });
@@ -1700,6 +2044,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const newTable = {
       id: 'tbl-' + Date.now(),
       number: cleanNum,
+      storeId: tableStoreId ? String(tableStoreId) : null,
       qrToken: token,
       createdAt: new Date().toISOString()
     };
@@ -2154,11 +2499,24 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
   // ── 5. GET ORDERS & SINGLE ORDER DETAILS ──────────────────────────────
   router.get('/orders', (req, res) => {
-    const { status, limit } = req.query;
+    const { status, limit, storeId, merchantId } = req.query;
     const db = getDB(req);
     ensurePosCollections(db);
 
     let list = db.pos_orders;
+    const filterStore = storeId || merchantId;
+    if (filterStore && filterStore !== 'all') {
+      const targetMeta = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(filterStore));
+      const ownerFirstMerchant = (db.merchants || []).find(m =>
+        m && m.status !== 'deleted' && targetMeta?.ownerUserId && String(m.ownerUserId) === String(targetMeta.ownerUserId)
+      ) || (db.merchants || []).find(m => m && m.status !== 'deleted');
+      const isPrimary = !ownerFirstMerchant || String(filterStore) === String(ownerFirstMerchant.id);
+      list = list.filter(o =>
+        (o.storeId && String(o.storeId) === String(filterStore)) ||
+        (!o.storeId && isPrimary)
+      );
+    }
+
     if (status) {
       list = list.filter(o => o.status === status);
     }
@@ -3531,165 +3889,654 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     });
   });
 
-  // ── 12. STATISTIK KEUANGAN MULTI-DIMENSI (PER MENU, PER CABANG, SEMUA CABANG PER MENU, PER KARYAWAN) ──
+  // ── 12. STATISTIK & GRAFIK ANALITIK MULTI-DIMENSI + RENTANG TANGGAL + COMBINE FILTER ──
   router.get('/analytics', (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
+
+    const parseMultiParam = (val) => {
+      if (!val || val === 'all' || val === 'ALL') return [];
+      return String(val)
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s && s.toLowerCase() !== 'all');
+    };
+
+    const rawRange = String(req.query.range || 'all').toLowerCase();
+    const validRanges = new Set(['today', 'week', 'month', 'year', 'all', 'custom']);
+    const range = validRanges.has(rawRange) ? rawRange : 'all';
+    const filterMode = String(req.query.filterMode || 'all').toLowerCase();
+    const selectedStoreIds = parseMultiParam(req.query.storeId);
+    const selectedCategories = parseMultiParam(req.query.category);
+    const selectedItemIds = parseMultiParam(req.query.itemId || req.query.item);
+    const selectedEmployeeIds = parseMultiParam(req.query.cashierId || req.query.employee);
+    const requestedOwnerId = req.query.ownerId || req.user?.id || null;
 
     const allOrders = (db.pos_orders || []).filter(o => o.status !== 'CANCELLED');
     const products = db.pos_products || [];
     const inventory = db.pos_inventory || [];
     const recipes = db.pos_recipes || {};
 
-    // 1. STATISTIK PER MENU
-    const menuStatsMap = {};
+    // Catalog lookup maps
+    const productById = {};
+    const productByName = {};
     products.forEach(p => {
-      const ingList = recipes[p.id] || [];
-      const hppPerPortion = ingList.reduce((sum, ing) => {
-        const inv = inventory.find(i => i.id === ing.inventoryId);
-        return sum + ((inv ? Number(inv.costPerUnit || 0) : 0) * (Number(ing.amount) || 0));
-      }, 0);
+      productById[String(p.id)] = p;
+      if (p.name) productByName[String(p.name).toLowerCase()] = p;
+    });
 
-      menuStatsMap[p.id] = {
-        productId: p.id,
-        name: p.name,
-        category: p.category,
-        price: p.price,
-        image: p.image,
-        totalQtySold: 0,
-        totalRevenue: 0,
-        orderCount: 0,
-        hppPerPortion,
-        totalHPP: 0,
-        grossProfit: 0,
-        marginPct: 0,
-        ingredientsConsumed: ingList
+    // Gather owner's active stores + any store referenced in orders
+    const currentStoreId = db.settings.posStore?.merchantId || db.settings.posStore?.uid;
+    const currentMerchant =
+      (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(currentStoreId)) ||
+      (db.merchants || []).find(m => m && m.status !== 'deleted') ||
+      (db.merchants || [])[0];
+    const ownerStores = getOwnerStoresList(db, currentMerchant, requestedOwnerId);
+
+    const storeCatalogMap = {};
+    ownerStores.forEach(s => {
+      storeCatalogMap[String(s.id)] = {
+        id: String(s.id),
+        name: s.name || 'Cabang Mitra',
+        address: s.address || s.location || 'Semarang',
+        saldoNota: Number(s.saldoNota ?? 5000),
+        kuotaNota: Number(s.kuotaNota ?? 50)
       };
+    });
+
+    if (db.settings.posStore?.merchantId && !storeCatalogMap[String(db.settings.posStore.merchantId)]) {
+      storeCatalogMap[String(db.settings.posStore.merchantId)] = {
+        id: String(db.settings.posStore.merchantId),
+        name: db.settings.posStore.storeName || 'Toko Utama',
+        address: db.settings.posStore.location || db.settings.posStore.address || 'Semarang',
+        saldoNota: Number(db.settings.posStore.saldoNota ?? 5000),
+        kuotaNota: Number(db.settings.posStore.kuotaNota ?? 50)
+      };
+    }
+
+    const storesList = Object.values(storeCatalogMap);
+    if (storesList.length === 0) {
+      const fallback = {
+        id: 'MTR-KASIR-MASTER',
+        name: 'Toko Utama',
+        address: 'Semarang',
+        saldoNota: 10000,
+        kuotaNota: 100
+      };
+      storesList.push(fallback);
+      storeCatalogMap[fallback.id] = fallback;
+    }
+
+    const canonicalPrimaryMerchant = (db.merchants || []).find(m =>
+      m && m.status !== 'deleted' && currentMerchant?.ownerUserId && String(m.ownerUserId) === String(currentMerchant.ownerUserId)
+    ) || currentMerchant || storesList[0];
+    const primaryStoreId = String(canonicalPrimaryMerchant?.id || storesList[0].id);
+
+    allOrders.forEach(o => {
+      if (o.storeId && !storeCatalogMap[String(o.storeId)]) {
+        storeCatalogMap[String(o.storeId)] = {
+          id: String(o.storeId),
+          name: o.storeName || `Toko ${o.storeId}`,
+          address: '-',
+          saldoNota: 5000,
+          kuotaNota: 50
+        };
+      }
+    });
+
+    // Employee / cashier catalog: merge db.staff + default cashiers + historical cashiers in orders
+    const employeeCatalogMap = {
+      'KSR-01': { id: 'KSR-01', name: 'Siti Rahmawati (Kasir Shift Pagi)', role: 'Kasir Pagi' },
+      'KSR-02': { id: 'KSR-02', name: 'Budi Santoso (Kasir Shift Siang)', role: 'Kasir Siang' },
+      'KSR-03': { id: 'KSR-03', name: 'Rian Pratama (Kasir Shift Malam)', role: 'Kasir Malam' },
+      'KSR-STF': { id: 'KSR-STF', name: 'Pak Joko (Staf Operasional)', role: 'Staf & Runner' }
+    };
+    (db.staff || []).forEach(st => {
+      if (!st || st.status === 'deleted') return;
+      const eid = String(st.id || st.userId || st.email || st.whatsapp || '');
+      if (eid) {
+        employeeCatalogMap[eid] = {
+          id: eid,
+          name: st.name || 'Karyawan',
+          role: st.role === 'kasir' ? 'Kasir' : (st.role || 'Staf')
+        };
+      }
+    });
+    allOrders.forEach(o => {
+      const cid = String(o.cashierId || 'KSR-01');
+      if (!employeeCatalogMap[cid]) {
+        employeeCatalogMap[cid] = {
+          id: cid,
+          name: o.cashierName || `Karyawan ${cid}`,
+          role: 'Kasir'
+        };
+      } else if (o.cashierName && !o.cashierId) {
+        employeeCatalogMap[cid].name = o.cashierName;
+      }
+    });
+
+    // Category catalog
+    const categorySet = new Set();
+    products.forEach(p => { if (p.category) categorySet.add(String(p.category).trim()); });
+    Object.values(db.pos_custom_categories || {}).forEach(list => {
+      if (Array.isArray(list)) list.forEach(c => { if (c) categorySet.add(String(c).trim()); });
+    });
+
+    // WIB Timezone helpers (+07:00)
+    const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const toWibDate = (dInput) => {
+      const ms = dInput ? new Date(dInput).getTime() : Date.now();
+      return new Date((Number.isFinite(ms) ? ms : Date.now()) + WIB_OFFSET_MS);
+    };
+    const todayWib = toWibDate(new Date());
+    const todayDateStr = todayWib.toISOString().slice(0, 10);
+
+    let boundStartDate = '';
+    let boundEndDate = '';
+
+    if (range === 'today') {
+      boundStartDate = todayDateStr;
+      boundEndDate = todayDateStr;
+    } else if (range === 'week') {
+      // Calendar week starting Monday (Senin) through Sunday (Minggu) in WIB
+      const dow = todayWib.getUTCDay(); // 0=Sun..6=Sat
+      const diffToMonday = dow === 0 ? 6 : dow - 1;
+      const monMs = todayWib.getTime() - diffToMonday * 86400000;
+      const sunMs = monMs + 6 * 86400000;
+      boundStartDate = new Date(monMs).toISOString().slice(0, 10);
+      boundEndDate = new Date(sunMs).toISOString().slice(0, 10);
+    } else if (range === 'month') {
+      const ym = todayDateStr.slice(0, 7);
+      const y = Number(ym.slice(0, 4));
+      const m = Number(ym.slice(5, 7));
+      const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      boundStartDate = `${ym}-01`;
+      boundEndDate = `${ym}-${String(lastDay).padStart(2, '0')}`;
+    } else if (range === 'year') {
+      const y = todayDateStr.slice(0, 4);
+      boundStartDate = `${y}-01-01`;
+      boundEndDate = `${y}-12-31`;
+    } else if (range === 'custom') {
+      const rawStart = String(req.query.startDate || '').slice(0, 10);
+      const rawEnd = String(req.query.endDate || '').slice(0, 10);
+      if (rawStart && rawEnd) {
+        if (rawStart <= rawEnd) {
+          boundStartDate = rawStart;
+          boundEndDate = rawEnd;
+        } else {
+          boundStartDate = rawEnd;
+          boundEndDate = rawStart;
+        }
+      } else if (rawStart) {
+        boundStartDate = rawStart;
+        boundEndDate = todayDateStr;
+      } else if (rawEnd) {
+        boundStartDate = '2000-01-01';
+        boundEndDate = rawEnd;
+      }
+    }
+
+    const resolveOrderDateStr = (order) => {
+      const rawIso = order.createdAt || order.paidAt || order.completedAt;
+      if (!rawIso) return todayDateStr;
+      return toWibDate(rawIso).toISOString().slice(0, 10);
+    };
+    const resolveOrderHourStr = (order) => {
+      const rawIso = order.createdAt || order.paidAt || order.completedAt;
+      if (!rawIso) return '12';
+      return toWibDate(rawIso).toISOString().slice(11, 13);
+    };
+
+    const matchesDateRange = (dateStr) => {
+      if (range === 'all' && !boundStartDate && !boundEndDate) return true;
+      if (boundStartDate && dateStr < boundStartDate) return false;
+      if (boundEndDate && dateStr > boundEndDate) return false;
+      return true;
+    };
+
+    // Determine timeline granularity
+    let granularity = 'day';
+    if (range === 'today') {
+      granularity = 'hour';
+    } else if (range === 'year') {
+      granularity = 'month';
+    } else if (range === 'custom' && boundStartDate && boundEndDate) {
+      if (boundStartDate === boundEndDate) {
+        granularity = 'hour';
+      } else {
+        const dayDiff = Math.round((new Date(boundEndDate) - new Date(boundStartDate)) / 86400000);
+        granularity = dayDiff > 60 ? 'month' : 'day';
+      }
+    } else if (range === 'all') {
+      const orderDates = allOrders.map(resolveOrderDateStr).sort();
+      if (orderDates.length > 0) {
+        const spanDays = Math.round((new Date(orderDates[orderDates.length - 1]) - new Date(orderDates[0])) / 86400000);
+        granularity = spanDays > 60 ? 'month' : 'day';
+      }
+    }
+
+    const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const DAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const formatBucketLabel = (bucketKey) => {
+      if (granularity === 'hour') return `${bucketKey}:00`;
+      if (granularity === 'month') {
+        const [yr, mo] = bucketKey.split('-');
+        return `${MONTH_SHORT[Math.max(0, Number(mo) - 1)]} ${yr}`;
+      }
+      const d = new Date(`${bucketKey}T00:00:00Z`);
+      const dayName = DAY_SHORT[d.getUTCDay()] || '';
+      const dd = bucketKey.slice(8, 10);
+      const mm = MONTH_SHORT[Math.max(0, Number(bucketKey.slice(5, 7)) - 1)] || '';
+      return `${dayName}, ${Number(dd)} ${mm}`;
+    };
+
+    // Pre-populate chronological slots for empty gap continuity in graphs
+    const timelineMap = {};
+    const ensureBucket = (bucketKey) => {
+      if (!timelineMap[bucketKey]) {
+        timelineMap[bucketKey] = {
+          key: bucketKey,
+          label: formatBucketLabel(bucketKey),
+          fullDate: bucketKey,
+          revenue: 0,
+          orders: 0,
+          qty: 0,
+          _series: {}
+        };
+      }
+      return timelineMap[bucketKey];
+    };
+
+    if (granularity === 'hour') {
+      for (let h = 7; h <= 22; h++) ensureBucket(String(h).padStart(2, '0'));
+    } else if (granularity === 'day' && boundStartDate && boundEndDate) {
+      const startMs = new Date(`${boundStartDate}T00:00:00Z`).getTime();
+      const endMs = Math.min(new Date(`${boundEndDate}T00:00:00Z`).getTime(), startMs + 45 * 86400000);
+      for (let t = startMs; t <= endMs; t += 86400000) {
+        ensureBucket(new Date(t).toISOString().slice(0, 10));
+      }
+    } else if (granularity === 'month' && range === 'year') {
+      const yr = todayDateStr.slice(0, 4);
+      for (let m = 1; m <= 12; m++) {
+        ensureBucket(`${yr}-${String(m).padStart(2, '0')}`);
+      }
+    }
+
+    // Filter state sets
+    const storeFilterSet = new Set(selectedStoreIds.map(String));
+    const catFilterSet = new Set(selectedCategories.map(s => s.toLowerCase()));
+    const itemFilterSet = new Set(selectedItemIds.map(s => s.toLowerCase()));
+    const empFilterSet = new Set(selectedEmployeeIds.map(String));
+    const hasItemOrCatFilter = catFilterSet.size > 0 || itemFilterSet.size > 0;
+
+    // Aggregators
+    const byItemMap = {};
+    const byCatMap = {};
+    const byStoreMap = {};
+    const byEmpMap = {};
+    const combineMap = {};
+
+    // Initialize store & employee entries when broad view or tracking all zero stores/staff in 'all'
+    Object.values(storeCatalogMap).forEach(s => {
+      if (storeFilterSet.size === 0 || storeFilterSet.has(String(s.id))) {
+        byStoreMap[s.id] = {
+          key: s.id,
+          id: s.id,
+          name: s.name,
+          address: s.address,
+          saldoNota: s.saldoNota,
+          qty: 0,
+          revenue: 0,
+          ordersCount: 0,
+          qrisRevenue: 0,
+          cashRevenue: 0,
+          notaFees: 0,
+          topMenuItems: {}
+        };
+      }
+    });
+
+    Object.values(employeeCatalogMap).forEach(e => {
+      if (empFilterSet.size === 0 || empFilterSet.has(String(e.id))) {
+        byEmpMap[e.id] = {
+          key: e.id,
+          id: e.id,
+          name: e.name,
+          role: e.role,
+          qty: 0,
+          revenue: 0,
+          ordersCount: 0,
+          cashHandled: 0,
+          qrisProcessed: 0
+        };
+      }
+    });
+
+    let totalRevenue = 0;
+    let totalOrders = 0;
+    let totalItemsSold = 0;
+    const itemCatalogSeen = new Map();
+    products.forEach(p => {
+      itemCatalogSeen.set(String(p.id), {
+        id: String(p.id),
+        name: p.name,
+        category: p.category || 'Lainnya',
+        price: Number(p.price) || 0
+      });
     });
 
     allOrders.forEach(order => {
-      (order.items || []).forEach(it => {
-        const pid = it.productId;
-        if (menuStatsMap[pid]) {
-          const qty = Number(it.qty) || 1;
-          const subtotal = Number(it.subtotal) || (menuStatsMap[pid].price * qty);
-          menuStatsMap[pid].totalQtySold += qty;
-          menuStatsMap[pid].totalRevenue += subtotal;
-          menuStatsMap[pid].orderCount += 1;
+      const dateStr = resolveOrderDateStr(order);
+      const sid = order.storeId && storeCatalogMap[String(order.storeId)]
+        ? String(order.storeId)
+        : primaryStoreId;
+      const storeMeta = storeCatalogMap[sid] || { id: sid, name: order.storeName || 'Toko Utama' };
+
+      const cid = order.cashierId && employeeCatalogMap[String(order.cashierId)]
+        ? String(order.cashierId)
+        : (order.cashierId ? String(order.cashierId) : 'KSR-01');
+      const empMeta = employeeCatalogMap[cid] || { id: cid, name: order.cashierName || 'Kasir Utama', role: 'Kasir' };
+
+      const orderItems = Array.isArray(order.items) ? order.items : [];
+      orderItems.forEach(it => {
+        const pid = String(it.productId || it.id || it.name || 'item');
+        const matchedProd = productById[pid] || (it.name ? productByName[String(it.name).toLowerCase()] : null);
+        const cat = String(it.category || matchedProd?.category || 'Lainnya').trim();
+        categorySet.add(cat);
+        if (!itemCatalogSeen.has(pid)) {
+          itemCatalogSeen.set(pid, {
+            id: pid,
+            name: it.name || matchedProd?.name || pid,
+            category: cat,
+            price: Number(it.price || matchedProd?.price || 0)
+          });
         }
       });
-    });
 
-    const perMenuStats = Object.values(menuStatsMap).map(m => {
-      m.totalHPP = m.totalQtySold * m.hppPerPortion;
-      m.grossProfit = Math.max(0, m.totalRevenue - m.totalHPP);
-      m.marginPct = m.totalRevenue > 0 ? ((m.grossProfit / m.totalRevenue) * 100).toFixed(1) : 0;
-      return m;
-    }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+      if (!matchesDateRange(dateStr)) return;
+      if (storeFilterSet.size > 0 && !storeFilterSet.has(sid)) return;
+      if (empFilterSet.size > 0 && !empFilterSet.has(cid) && !empFilterSet.has(empMeta.name)) return;
 
-    // 2. STATISTIK PER CABANG (STORE / BRANCH)
-    // Gather all known stores from db.merchants + current posStore
-    const storesList = [];
-    const seenStoreIds = new Set();
+      const matchedItems = [];
+      let allItemsQty = 0;
+      orderItems.forEach(it => {
+        const pid = String(it.productId || it.id || it.name || 'item');
+        const matchedProd = productById[pid] || (it.name ? productByName[String(it.name).toLowerCase()] : null);
+        const itemName = it.name || matchedProd?.name || 'Menu';
+        const itemCat = String(it.category || matchedProd?.category || 'Lainnya').trim();
+        const qty = Number(it.qty) || 1;
+        const unitPrice = Number(it.price || matchedProd?.price || 0);
+        const itemSub = Number(it.subtotal) || (unitPrice * qty);
+        allItemsQty += qty;
 
-    (db.merchants || []).forEach(m => {
-      if (!seenStoreIds.has(m.id)) {
-        seenStoreIds.add(m.id);
-        storesList.push({
-          id: m.id,
-          name: m.name || 'Cabang Mitra',
-          address: m.address || 'Semarang',
-          saldoNota: Number(m.saldoNota ?? 5000),
-          kuotaNota: Number(m.kuotaNota ?? 50)
+        const matchesCat = catFilterSet.size === 0 || catFilterSet.has(itemCat.toLowerCase());
+        const matchesItem = itemFilterSet.size === 0 || itemFilterSet.has(pid.toLowerCase()) || itemFilterSet.has(itemName.toLowerCase());
+        if (matchesCat && matchesItem) {
+          matchedItems.push({ pid, itemName, itemCat, qty, itemSub, unitPrice, image: matchedProd?.image || null });
+        }
+      });
+
+      if (hasItemOrCatFilter && matchedItems.length === 0) return;
+
+      const pm = String(order.paymentMethod || '').toUpperCase();
+      const isCash = pm.includes('CASH') || pm.includes('TUNAI');
+      const orderContributionRev = hasItemOrCatFilter
+        ? matchedItems.reduce((s, it) => s + it.itemSub, 0)
+        : Number(order.totalAmount || order.subtotal || matchedItems.reduce((s, it) => s + it.itemSub, 0));
+      const orderContributionQty = hasItemOrCatFilter
+        ? matchedItems.reduce((s, it) => s + it.qty, 0)
+        : Math.max(allItemsQty, 0);
+
+      totalRevenue += orderContributionRev;
+      totalOrders += 1;
+      totalItemsSold += orderContributionQty;
+
+      // Timeline bucket
+      const bucketKey = granularity === 'hour'
+        ? resolveOrderHourStr(order)
+        : granularity === 'month'
+          ? dateStr.slice(0, 7)
+          : dateStr;
+      const bucket = ensureBucket(bucketKey);
+      bucket.revenue += orderContributionRev;
+      bucket.orders += 1;
+      bucket.qty += orderContributionQty;
+
+      // Series attribution on timeline by active filterMode
+      if (filterMode === 'store') {
+        bucket._series[storeMeta.name] = (bucket._series[storeMeta.name] || 0) + orderContributionRev;
+      } else if (filterMode === 'employee') {
+        bucket._series[empMeta.name] = (bucket._series[empMeta.name] || 0) + orderContributionRev;
+      } else if (filterMode === 'category') {
+        matchedItems.forEach(mi => {
+          bucket._series[mi.itemCat] = (bucket._series[mi.itemCat] || 0) + mi.itemSub;
+        });
+      } else if (filterMode === 'item') {
+        matchedItems.forEach(mi => {
+          bucket._series[mi.itemName] = (bucket._series[mi.itemName] || 0) + mi.itemSub;
         });
       }
+
+      // Store breakdown
+      if (!byStoreMap[sid]) {
+        byStoreMap[sid] = {
+          key: sid,
+          id: sid,
+          name: storeMeta.name,
+          address: storeMeta.address || '-',
+          saldoNota: storeMeta.saldoNota ?? 5000,
+          qty: 0,
+          revenue: 0,
+          ordersCount: 0,
+          qrisRevenue: 0,
+          cashRevenue: 0,
+          notaFees: 0,
+          topMenuItems: {}
+        };
+      }
+      const stEntry = byStoreMap[sid];
+      stEntry.ordersCount += 1;
+      stEntry.qty += orderContributionQty;
+      stEntry.revenue += orderContributionRev;
+      stEntry.notaFees += Number(order.adminFee || 100);
+      if (isCash) stEntry.cashRevenue += orderContributionRev;
+      else stEntry.qrisRevenue += orderContributionRev;
+      matchedItems.forEach(mi => {
+        stEntry.topMenuItems[mi.itemName] = (stEntry.topMenuItems[mi.itemName] || 0) + mi.qty;
+      });
+
+      // Employee breakdown
+      if (!byEmpMap[cid]) {
+        byEmpMap[cid] = {
+          key: cid,
+          id: cid,
+          name: empMeta.name,
+          role: empMeta.role || 'Kasir',
+          qty: 0,
+          revenue: 0,
+          ordersCount: 0,
+          cashHandled: 0,
+          qrisProcessed: 0
+        };
+      }
+      const empEntry = byEmpMap[cid];
+      empEntry.ordersCount += 1;
+      empEntry.qty += orderContributionQty;
+      empEntry.revenue += orderContributionRev;
+      if (isCash) empEntry.cashHandled += orderContributionRev;
+      else empEntry.qrisProcessed += orderContributionRev;
+
+      // Item, Category & Combine tuple breakdowns
+      const seenCatsInOrder = new Set();
+      const seenItemsInOrder = new Set();
+
+      matchedItems.forEach(mi => {
+        // Item breakdown
+        if (!byItemMap[mi.pid]) {
+          const prod = productById[mi.pid];
+          const ingList = recipes[mi.pid] || [];
+          const hppPerPortion = ingList.reduce((sum, ing) => {
+            const inv = inventory.find(i => i.id === ing.inventoryId);
+            return sum + ((inv ? Number(inv.costPerUnit || 0) : 0) * (Number(ing.amount) || 0));
+          }, 0);
+          byItemMap[mi.pid] = {
+            key: mi.pid,
+            id: mi.pid,
+            productId: mi.pid,
+            name: mi.itemName,
+            category: mi.itemCat,
+            price: prod?.price || mi.unitPrice,
+            image: mi.image,
+            qty: 0,
+            revenue: 0,
+            ordersCount: 0,
+            hppPerPortion
+          };
+        }
+        byItemMap[mi.pid].qty += mi.qty;
+        byItemMap[mi.pid].revenue += mi.itemSub;
+        if (!seenItemsInOrder.has(mi.pid)) {
+          seenItemsInOrder.add(mi.pid);
+          byItemMap[mi.pid].ordersCount += 1;
+        }
+
+        // Category breakdown
+        if (!byCatMap[mi.itemCat]) {
+          byCatMap[mi.itemCat] = {
+            key: mi.itemCat,
+            name: mi.itemCat,
+            qty: 0,
+            revenue: 0,
+            ordersCount: 0,
+            _itemIds: new Set()
+          };
+        }
+        byCatMap[mi.itemCat].qty += mi.qty;
+        byCatMap[mi.itemCat].revenue += mi.itemSub;
+        byCatMap[mi.itemCat]._itemIds.add(mi.pid);
+        if (!seenCatsInOrder.has(mi.itemCat)) {
+          seenCatsInOrder.add(mi.itemCat);
+          byCatMap[mi.itemCat].ordersCount += 1;
+        }
+
+        // Combine breakdown tuple (Toko x Kategori x Item x Karyawan)
+        const combineKey = `${sid}::${mi.itemCat}::${mi.pid}::${cid}`;
+        if (!combineMap[combineKey]) {
+          const shortEmp = empMeta.name.split('(')[0].trim();
+          combineMap[combineKey] = {
+            key: combineKey,
+            label: `${mi.itemName} (${shortEmp} - ${storeMeta.name})`,
+            storeId: sid,
+            storeName: storeMeta.name,
+            category: mi.itemCat,
+            itemId: mi.pid,
+            itemName: mi.itemName,
+            employeeId: cid,
+            employeeName: empMeta.name,
+            qty: 0,
+            revenue: 0,
+            ordersCount: 0
+          };
+        }
+        combineMap[combineKey].qty += mi.qty;
+        combineMap[combineKey].revenue += mi.itemSub;
+        combineMap[combineKey].ordersCount += 1;
+      });
     });
 
-    if (db.settings.posStore?.merchantId && !seenStoreIds.has(db.settings.posStore.merchantId)) {
-      seenStoreIds.add(db.settings.posStore.merchantId);
-      storesList.push({
-        id: db.settings.posStore.merchantId,
-        name: db.settings.posStore.storeName || 'Kantin Berkah Kost',
-        address: db.settings.posStore.location || 'Semarang',
-        saldoNota: 10000,
-        kuotaNota: 100
-      });
-    }
+    // Finalize breakdown arrays
+    const byItem = Object.values(byItemMap).map(m => {
+      const totalHPP = m.qty * (m.hppPerPortion || 0);
+      const grossProfit = Math.max(0, m.revenue - totalHPP);
+      return {
+        ...m,
+        totalQtySold: m.qty,
+        totalRevenue: m.revenue,
+        orderCount: m.ordersCount,
+        totalHPP,
+        grossProfit,
+        marginPct: m.revenue > 0 ? ((grossProfit / m.revenue) * 100).toFixed(1) : '0.0'
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
 
-    if (storesList.length === 0) {
-      storesList.push({
-        id: 'MTR-KASIR-MASTER',
-        name: 'Kantin Berkah Kost (Pusat)',
-        address: 'Tembalang, Semarang',
-        saldoNota: 10000,
-        kuotaNota: 100
-      });
-    }
+    const byCategory = Object.values(byCatMap).map(c => ({
+      key: c.key,
+      name: c.name,
+      qty: c.qty,
+      revenue: c.revenue,
+      ordersCount: c.ordersCount,
+      itemCount: c._itemIds.size
+    })).sort((a, b) => b.revenue - a.revenue);
 
-    const perStoreMap = {};
-    storesList.forEach(s => {
-      perStoreMap[s.id] = {
+    const byStore = Object.values(byStoreMap).map(s => {
+      const netRevenue = Math.max(0, s.revenue - s.notaFees);
+      const aov = s.ordersCount > 0 ? Math.round(s.revenue / s.ordersCount) : 0;
+      return {
+        ...s,
         storeId: s.id,
         storeName: s.name,
-        address: s.address,
-        saldoNota: s.saldoNota,
-        totalOrders: 0,
-        grossRevenue: 0,
-        qrisRevenue: 0,
-        cashRevenue: 0,
-        notaFees: 0,
-        netRevenue: 0,
-        topMenuItems: {}
+        totalOrders: s.ordersCount,
+        grossRevenue: s.revenue,
+        netRevenue,
+        aov
       };
+    }).sort((a, b) => b.revenue - a.revenue);
+
+    const byEmployee = Object.values(byEmpMap).map((e, idx) => ({
+      ...e,
+      rank: idx + 1,
+      cashierId: e.id,
+      cashierName: e.name,
+      ordersCount: e.ordersCount,
+      avgOrderValue: e.ordersCount > 0 ? Math.round(e.revenue / e.ordersCount) : 0
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    const combineMatrix = Object.values(combineMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 20);
+
+    // Build chronological timelineSeries + top multi-series breakdown keys
+    const sortedBuckets = Object.values(timelineMap).sort((a, b) => a.key.localeCompare(b.key));
+    const seriesTotals = {};
+    sortedBuckets.forEach(b => {
+      Object.entries(b._series).forEach(([k, val]) => {
+        seriesTotals[k] = (seriesTotals[k] || 0) + val;
+      });
+    });
+    const SERIES_PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const topSeriesNames = Object.entries(seriesTotals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name]) => name);
+    const seriesMeta = topSeriesNames.map((name, idx) => ({
+      key: `series_${idx}`,
+      name,
+      color: SERIES_PALETTE[idx % SERIES_PALETTE.length]
+    }));
+
+    const timelineSeries = sortedBuckets.map(b => {
+      const row = {
+        key: b.key,
+        label: b.label,
+        fullDate: b.fullDate,
+        revenue: b.revenue,
+        orders: b.orders,
+        qty: b.qty
+      };
+      seriesMeta.forEach(meta => {
+        row[meta.key] = b._series[meta.name] || 0;
+      });
+      return row;
     });
 
-    const primaryStoreId = storesList[0].id;
-
-    allOrders.forEach(o => {
-      const sid = o.storeId && perStoreMap[o.storeId] ? o.storeId : primaryStoreId;
-      const target = perStoreMap[sid];
-      if (target) {
-        target.totalOrders += 1;
-        const total = Number(o.totalAmount || o.subtotal || 0);
-        target.grossRevenue += total;
-
-        const pm = String(o.paymentMethod || '').toUpperCase();
-        if (pm.includes('CASH') || pm.includes('TUNAI')) {
-          target.cashRevenue += total;
-        } else {
-          target.qrisRevenue += total;
-        }
-
-        const fee = Number(o.adminFee || 100);
-        target.notaFees += fee;
-
-        (o.items || []).forEach(it => {
-          target.topMenuItems[it.name] = (target.topMenuItems[it.name] || 0) + (Number(it.qty) || 1);
-        });
-      }
-    });
-
-    const perStoreStats = Object.values(perStoreMap).map(s => {
-      s.netRevenue = Math.max(0, s.grossRevenue - s.notaFees);
-      s.aov = s.totalOrders > 0 ? Math.round(s.grossRevenue / s.totalOrders) : 0;
-      return s;
-    }).sort((a, b) => b.grossRevenue - a.grossRevenue);
-
-    // 3. STATISTIK SEMUA CABANG PER MENU (CROSS-BRANCH MATRIX)
+    // Preserve legacy crossBranchMatrix + inventoryAlerts
     const crossBranchMatrix = products.map(prod => {
       const branchBreakdown = {};
       let totalAllBranchesQty = 0;
       let totalAllBranchesRevenue = 0;
-
       storesList.forEach(st => {
-        branchBreakdown[st.id] = {
-          storeId: st.id,
-          storeName: st.name,
-          qty: 0,
-          revenue: 0
-        };
+        branchBreakdown[st.id] = { storeId: st.id, storeName: st.name, qty: 0, revenue: 0 };
       });
-
       allOrders.forEach(ord => {
         const sid = ord.storeId && branchBreakdown[ord.storeId] ? ord.storeId : primaryStoreId;
         (ord.items || []).forEach(it => {
@@ -3705,8 +4552,6 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           }
         });
       });
-
-      // Find top branch for this specific menu
       let topBranchName = '-';
       let maxQty = -1;
       Object.values(branchBreakdown).forEach(b => {
@@ -3715,7 +4560,6 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           topBranchName = b.storeName;
         }
       });
-
       return {
         productId: prod.id,
         productName: prod.name,
@@ -3729,38 +4573,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       };
     }).sort((a, b) => b.totalAllBranchesRevenue - a.totalAllBranchesRevenue);
 
-    // 4. STATISTIK PER KARYAWAN (CASHIER / STAFF LEADERBOARD)
-    const cashierMap = {
-      'KSR-01': { cashierId: 'KSR-01', cashierName: 'Siti Rahmawati (Kasir Shift Pagi)', role: 'Kasir Pagi', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 },
-      'KSR-02': { cashierId: 'KSR-02', cashierName: 'Budi Santoso (Kasir Shift Siang)', role: 'Kasir Siang', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 },
-      'KSR-03': { cashierId: 'KSR-03', cashierName: 'Rian Pratama (Kasir Shift Malam)', role: 'Kasir Malam', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 },
-      'KSR-STF': { cashierId: 'KSR-STF', cashierName: 'Pak Joko (Staf Operasional)', role: 'Staf & Runner', ordersCount: 0, revenue: 0, cashHandled: 0, qrisProcessed: 0 }
-    };
-
-    allOrders.forEach(o => {
-      const cid = o.cashierId && cashierMap[o.cashierId] ? o.cashierId : 'KSR-01';
-      const c = cashierMap[cid];
-      c.ordersCount += 1;
-      const amt = Number(o.totalAmount || o.subtotal || 0);
-      c.revenue += amt;
-
-      const pm = String(o.paymentMethod || '').toUpperCase();
-      if (pm.includes('CASH') || pm.includes('TUNAI')) {
-        c.cashHandled += amt;
-      } else {
-        c.qrisProcessed += amt;
-      }
-    });
-
-    const perCashierStats = Object.values(cashierMap).map((c, idx) => {
-      c.rank = idx + 1;
-      c.avgOrderValue = c.ordersCount > 0 ? Math.round(c.revenue / c.ordersCount) : 0;
-      c.performanceRating = c.ordersCount >= 20 ? 'Performa Unggul (Bintang 5 ★★★★★)' : c.ordersCount >= 10 ? 'Sangat Baik (Bintang 4 ★★★★☆)' : 'Baik (Bintang 3 ★★★☆☆)';
-      return c;
-    }).sort((a, b) => b.revenue - a.revenue);
-
-    // 5. ALERT GUDANG MAU HABIS
-    const inventoryAlerts = (db.pos_inventory || [])
+    const inventoryAlerts = inventory
       .filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0))
       .map(i => ({
         id: i.id,
@@ -3776,15 +4589,46 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     res.json({
       success: true,
-      perMenu: perMenuStats,
-      perStore: perStoreStats,
+      appliedFilters: {
+        range,
+        startDate: boundStartDate || null,
+        endDate: boundEndDate || null,
+        filterMode,
+        storeIds: selectedStoreIds,
+        categories: selectedCategories,
+        itemIds: selectedItemIds,
+        employeeIds: selectedEmployeeIds,
+        granularity
+      },
+      filterOptions: {
+        stores: Object.values(storeCatalogMap).map(s => ({ id: s.id, name: s.name })),
+        categories: Array.from(categorySet).sort((a, b) => a.localeCompare(b)),
+        items: Array.from(itemCatalogSeen.values()).sort((a, b) => a.name.localeCompare(b.name)),
+        employees: Object.values(employeeCatalogMap).sort((a, b) => a.name.localeCompare(b.name))
+      },
+      timelineSeries,
+      seriesMeta,
+      breakdowns: {
+        byItem,
+        byCategory,
+        byStore,
+        byEmployee,
+        combineMatrix
+      },
+      perMenu: byItem,
+      perStore: byStore,
       crossBranchPerMenu: crossBranchMatrix,
-      perCashier: perCashierStats,
+      perCashier: byEmployee,
       inventoryAlerts,
       summary: {
-        totalOrdersAll: allOrders.length,
-        totalGrossOmset: allOrders.reduce((s, o) => s + (o.totalAmount || 0), 0),
-        activeBranchesCount: storesList.length,
+        totalOrdersAll: totalOrders,
+        totalGrossOmset: totalRevenue,
+        totalItemsSold,
+        averageOrderValue: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
+        activeBranchesCount: byStore.length,
+        activeCategoriesCount: byCategory.length,
+        activeItemsCount: byItem.length,
+        activeEmployeesCount: byEmployee.length,
         totalMenuItems: products.length,
         inventoryAlertsCount: inventoryAlerts.length
       }

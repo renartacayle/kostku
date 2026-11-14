@@ -1291,6 +1291,36 @@ export const apiUpdateMerchantCustomPayment = (merchantId, data) => {
   });
 };
 
+export const apiGetPosStores = (ownerId = null) => {
+  const qs = ownerId ? `?ownerId=${encodeURIComponent(ownerId)}` : '';
+  return request(`/pos/stores${qs}`);
+};
+
+export const apiCreatePosStore = (data) => {
+  return request('/pos/stores', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiDeletePosStore = (id, ownerId = null) => {
+  const qs = ownerId ? `?ownerId=${encodeURIComponent(ownerId)}` : '';
+  return request(`/pos/stores/${encodeURIComponent(id)}${qs}`, {
+    method: 'DELETE'
+  });
+};
+
+export const apiGetPosAnalytics = (params = {}) => {
+  const sp = new URLSearchParams();
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && String(v).trim() !== '') {
+      sp.append(k, String(v));
+    }
+  });
+  const qs = sp.toString();
+  return request(`/pos/analytics${qs ? `?${qs}` : ''}`);
+};
+
 export const apiSwitchPosStore = (merchantId) => {
   return request('/pos/store/switch', {
     method: 'POST',
