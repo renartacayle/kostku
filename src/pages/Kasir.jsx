@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Utensils,
@@ -201,6 +201,34 @@ const compressImageFile = (file, maxWidth = 640, maxHeight = 640, quality = 0.72
   });
 };
 
+/** Resolve canonical merchant/account ID so owner and all their staff share isolated POS catalog & categories. */
+const resolveKasirAccountId = (userProp, storeObj) => {
+  let currentUser = userProp;
+  if (!currentUser) {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) currentUser = JSON.parse(stored);
+    } catch (_) {}
+  }
+  const accId =
+    currentUser?.ownerId ||
+    currentUser?.ownerUid ||
+    currentUser?.employerId ||
+    currentUser?.id ||
+    currentUser?.uid ||
+    storeObj?.merchantId ||
+    'default_account';
+  return String(accId);
+};
+
+/** Safely parse fetch response JSON only when server returns JSON (guards against SPA HTML 200 fallbacks). */
+const parseJsonIfOk = async (res) => {
+  if (!res || !res.ok) return null;
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) return null;
+  return res.json();
+};
+
 export default function Kasir({ user }) {
   const navigate = useNavigate();
   const { isLight, toggleTheme } = useTheme();
@@ -223,10 +251,18 @@ export default function Kasir({ user }) {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState(() => {
     try {
+      const accId = resolveKasirAccountId(user, null);
+      const scopedSaved = localStorage.getItem(`kostku_pos_products_${accId}`);
+      if (scopedSaved) {
+        const parsed = JSON.parse(scopedSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
       const saved = localStorage.getItem('kostku_pos_products');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(p => !p.merchantId || String(p.merchantId) === accId);
+        }
       }
     } catch (_) {}
     return DEFAULT_FALLBACK_PRODUCTS;
@@ -294,26 +330,13 @@ export default function Kasir({ user }) {
 
   // Multi-tenant Account Identifier (Unifies Owner & Staff under 1 Account ID)
   const effectiveAccountId = useMemo(() => {
-    let currentUser = user;
-    if (!currentUser) {
-      try {
-        const stored = localStorage.getItem('user');
-        if (stored) currentUser = JSON.parse(stored);
-      } catch (_) {}
-    }
-    const accId = currentUser?.ownerId || currentUser?.ownerUid || currentUser?.employerId || currentUser?.id || currentUser?.uid || storeInfo?.merchantId || 'default_account';
-    return String(accId);
+    return resolveKasirAccountId(user, storeInfo);
   }, [user, storeInfo?.merchantId]);
 
   // Kategori Kustom Terisolasi per Akun & Pegawainya
   const [accountCustomCategories, setAccountCustomCategories] = useState(() => {
     try {
-      let currentUser = user;
-      if (!currentUser) {
-        const stored = localStorage.getItem('user');
-        if (stored) currentUser = JSON.parse(stored);
-      }
-      const accId = currentUser?.ownerId || currentUser?.ownerUid || currentUser?.employerId || currentUser?.id || currentUser?.uid || storeInfo?.merchantId || 'default_account';
+      const accId = resolveKasirAccountId(user, storeInfo);
       const saved = localStorage.getItem(`kostku_categories_${accId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -322,6 +345,11 @@ export default function Kasir({ user }) {
     } catch (_) {}
     return [];
   });
+
+  // Produk terisolasi hanya untuk akun ini & stafnya (+ produk default generik tanpa merchantId)
+  const scopedProducts = useMemo(() => {
+    return products.filter(p => !p.merchantId || String(p.merchantId) === effectiveAccountId);
+  }, [products, effectiveAccountId]);
 
   // Sync kategori khusus toko saat akun / toko dimuat
   useEffect(() => {
@@ -803,6 +831,7 @@ export default function Kasir({ user }) {
         console.warn('LocalStorage save warning:', lsErr);
       }
       setPosCategory(targetCategory);
+      setActiveTab('pos');
       try { playChime(880, 0.1); } catch (_) {}
 
       // 2. Background Sync with Backend API (Non-blocking & Safe from HTML/SPA response)
@@ -1162,7 +1191,10 @@ export default function Kasir({ user }) {
     try {
       setProducts(prev => {
         const next = prev.filter(p => p.id !== productId);
-        try { localStorage.setItem('kostku_pos_products', JSON.stringify(next)); } catch (_) {}
+        try {
+          localStorage.setItem(`kostku_pos_products_${effectiveAccountId}`, JSON.stringify(next));
+          localStorage.setItem('kostku_pos_products', JSON.stringify(next));
+        } catch (_) {}
         return next;
       });
       setPosCart(prev => {
@@ -1189,24 +1221,42 @@ export default function Kasir({ user }) {
   const fetchData = async () => {
     try {
       setLoadingOrders(true);
+      const accountQuery = `merchantId=${encodeURIComponent(effectiveAccountId)}`;
       const [resOrders, resProd, resTables, resConfig, resStore] = await Promise.all([
         fetch('/api/pos/orders'),
-        fetch('/api/pos/products'),
+        fetch(`/api/pos/products?${accountQuery}`),
         fetch('/api/pos/tables'),
         fetch('/api/pos/config/tripay'),
         fetch('/api/pos/store')
       ]);
 
-      if (resOrders.ok) setOrders(await resOrders.json());
-      if (resProd.ok) {
-        const remoteProds = await resProd.json();
-        if (Array.isArray(remoteProds) && remoteProds.length > 0) {
-          setProducts(remoteProds);
-          try { localStorage.setItem('kostku_pos_products', JSON.stringify(remoteProds)); } catch (_) {}
-        }
+      const [remoteOrders, remoteProds, tbls, remoteConfig, st] = await Promise.all([
+        parseJsonIfOk(resOrders),
+        parseJsonIfOk(resProd),
+        parseJsonIfOk(resTables),
+        parseJsonIfOk(resConfig),
+        parseJsonIfOk(resStore)
+      ]);
+
+      if (Array.isArray(remoteOrders)) setOrders(remoteOrders);
+      if (Array.isArray(remoteProds) && remoteProds.length > 0) {
+        const filteredRemote = remoteProds.filter(
+          p => !p.merchantId || String(p.merchantId) === effectiveAccountId
+        );
+        setProducts(prev => {
+          // Pertahankan produk lokal milik akun yang baru ditambah saat offline / belum ada di backend
+          const remoteIds = new Set(filteredRemote.map(p => p.id));
+          const localOnly = prev.filter(
+            p => String(p.merchantId || '') === effectiveAccountId && !remoteIds.has(p.id)
+          );
+          const merged = [...localOnly, ...filteredRemote];
+          try {
+            localStorage.setItem(`kostku_pos_products_${effectiveAccountId}`, JSON.stringify(merged));
+          } catch (_) {}
+          return merged;
+        });
       }
-      if (resTables.ok) {
-        const tbls = await resTables.json();
+      if (Array.isArray(tbls)) {
         const tablesWithQR = await Promise.all(tbls.map(async (tbl) => {
           if (tbl.qrDataUrl) return tbl;
           const orderUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://kostku.riuph.me'}/order/${tbl.qrToken || tbl.id}`;
@@ -1224,9 +1274,8 @@ export default function Kasir({ user }) {
         setTables(tablesWithQR);
         if (tablesWithQR.length > 0 && !selectedTable) setSelectedTable(tablesWithQR[0].number);
       }
-      if (resConfig.ok) setTripayConfig(await resConfig.json());
-      if (resStore.ok) {
-        const st = await resStore.json();
+      if (remoteConfig) setTripayConfig(remoteConfig);
+      if (st) {
         setStoreInfo(st);
         setStoreForm({
           storeName: st.storeName || '',
@@ -1257,8 +1306,8 @@ export default function Kasir({ user }) {
     const interval = setInterval(async () => {
       try {
         const res = await fetch('/api/pos/orders');
-        if (res.ok) {
-          const fresh = await res.json();
+        const fresh = await parseJsonIfOk(res);
+        if (Array.isArray(fresh)) {
           if (audioAlert) {
             const hasNew = fresh.some(
               fo => fo.status === 'PENDING_CONFIRMATION' && !orders.some(oo => oo.id === fo.id)
@@ -1271,7 +1320,7 @@ export default function Kasir({ user }) {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [audioAlert, orders.length]);
+  }, [audioAlert, orders.length, effectiveAccountId]);
 
   // ── FETCH KARYAWAN ONLINE & ABSENSI HARI INI ──
   useEffect(() => {
@@ -5826,8 +5875,8 @@ export default function Kasir({ user }) {
                 {posCategories.map(cat => {
                   const isActive = posCategory === cat;
                   const count = cat === 'Semua'
-                    ? products.length
-                    : products.filter(p => p.category === cat).length;
+                    ? scopedProducts.length
+                    : scopedProducts.filter(p => p.category === cat).length;
                   return (
                     <button
                       key={cat}
@@ -5872,7 +5921,7 @@ export default function Kasir({ user }) {
               {/* Product Cards: GRID OR LIST VIEW */}
               {(() => {
                 const q = posSearchQuery.trim().toLowerCase();
-                const filteredPosProducts = products.filter(p => {
+                const filteredPosProducts = scopedProducts.filter(p => {
                   const matchesCat = posCategory === 'Semua' || p.category === posCategory;
                   const matchesSearch = !q || 
                     (p.name && p.name.toLowerCase().includes(q)) ||
@@ -9876,7 +9925,7 @@ export default function Kasir({ user }) {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSaveNewMenu} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form noValidate onSubmit={handleSaveNewMenu} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {/* 1. Nama Menu */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
@@ -10224,6 +10273,28 @@ export default function Kasir({ user }) {
                   <span>{newMenuForm.image ? 'Unggah Foto Lain' : 'Ambil Foto Kamera / Galeri HP (Max 5MB)'}</span>
                 </button>
               </div>
+
+              {/* Validation Error Summary right above CTA so always visible on mobile scroll */}
+              {addMenuError && (
+                <div
+                  role="alert"
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)',
+                    border: '1.5px solid #ef4444',
+                    color: isLight ? '#b91c1c' : '#fca5a5',
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontWeight: 700
+                  }}
+                >
+                  <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                  <span>{addMenuError}</span>
+                </div>
+              )}
 
               {/* Submit / Cancel Buttons */}
               <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
@@ -14052,6 +14123,7 @@ export default function Kasir({ user }) {
               <button
                 type="button"
                 onClick={() => {
+                  setActiveTab('pos');
                   handleOpenAddMenu();
                   setShowMobileMenuHub(false);
                 }}
