@@ -38,6 +38,7 @@ import AutoUpdateModal from './components/AutoUpdateModal';
 import AddPropertyModal from './components/AddPropertyModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import CustomerServiceFloatingButton from './components/CustomerServiceFloatingButton';
+import { isOwnerRole, isEmployeeRole, isMitraStaff } from './utils/staffRole';
 import RouteMetadataManager from './components/RouteMetadataManager';
 import { apiSwitchOwnerKost, apiGetUserProfile } from './services/api';
 import { lazyRetry, getAdaptiveBufferTimeout } from './utils/lazyRetry';
@@ -57,6 +58,7 @@ const SearchKost = lazyRetry(() => import('./pages/SearchKost'), 'SearchKost');
 const KostDetail = lazyRetry(() => import('./pages/KostDetail'), 'KostDetail');
 const Mitra = lazyRetry(() => import('./pages/Mitra'), 'Mitra');
 const Layanan = lazyRetry(() => import('./pages/Layanan'), 'Layanan');
+const Utilitas = lazyRetry(() => import('./pages/Utilitas'), 'Utilitas');
 const KebijakanPrivasi = lazyRetry(() => import('./pages/KebijakanPrivasi'), 'KebijakanPrivasi');
 const SyaratKetentuan = lazyRetry(() => import('./pages/SyaratKetentuan'), 'SyaratKetentuan');
 const TentangKami = lazyRetry(() => import('./pages/TentangKami'), 'TentangKami');
@@ -178,7 +180,10 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
         display: 'flex', 
         flexDirection: 'column', 
         minHeight: '100vh',
-        overflowX: 'hidden'
+        minWidth: 0,
+        width: '100%',
+        boxSizing: 'border-box',
+        overflowX: 'clip'
       }}>
         {/* Top Navbar */}
         <Navbar 
@@ -193,11 +198,12 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
         {/* Page View Container */}
         <main style={{ 
           flex: 1, 
-          padding: 'clamp(1rem, 3vw, 1.75rem) clamp(0.75rem, 3vw, 1.75rem) calc(6rem + env(safe-area-inset-bottom, 0px))',
+          padding: 'clamp(0.75rem, 2.5vw, 1.5rem) clamp(0.625rem, 2.5vw, 1.5rem) calc(5.75rem + env(safe-area-inset-bottom, 0px))',
           maxWidth: '1400px',
           width: '100%',
           margin: '0 auto',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          minWidth: 0
         }} className="safe-pb">
           {children}
         </main>
@@ -223,15 +229,14 @@ const MainLayout = ({ children, user, onLogout, onSwitchKost }) => {
 };
 
 function App() {
-  // Helper to ensure role integrity (preserves owner, mitra, staff, master)
+  // Helper to ensure role integrity (preserves owner, admin, mitra, staff, master, user; defaults missing to 'mitra')
   const normalizeDefaultRole = (u) => {
     if (!u) return null;
-    if (u.role === 'owner' || u.role === 'mitra' || u.role === 'staff' || u.role === 'master') {
+    if (['owner', 'admin', 'mitra', 'staff', 'master', 'user'].includes(u.role)) {
       return u;
     }
     if (!u.role) {
-      u.role = 'user';
-      if (!u.kamar) u.kamar = '122';
+      u.role = 'mitra';
     }
     return u;
   };
@@ -308,11 +313,13 @@ function App() {
   }, []);
 
   const handleLogin = (userData, customKostName) => {
-    const normalized = normalizeDefaultRole({ ...userData });
+    const rawUser = (userData && userData.user && !userData.id) ? userData.user : userData;
+    const resolvedKostName = customKostName || (userData && userData.kostName) || undefined;
+    const normalized = normalizeDefaultRole({ ...rawUser });
     localStorage.setItem('kostUser', JSON.stringify(normalized));
     setUser(normalized);
-    if (customKostName) {
-      localStorage.setItem('kostName', customKostName);
+    if (resolvedKostName) {
+      localStorage.setItem('kostName', resolvedKostName);
     }
   };
 
@@ -364,6 +371,10 @@ function App() {
           <Route path="/cari-kost" element={<SearchKost user={activeUser} />} />
           <Route path="/cari" element={<Navigate to="/search" replace />} />
           <Route path="/kost/:id" element={<KostDetail user={activeUser} />} />
+          <Route path="/utilitas" element={<Utilitas user={activeUser} />} />
+          <Route path="/pln" element={<Navigate to="/utilitas?tab=pln" replace />} />
+          <Route path="/pdam" element={<Navigate to="/utilitas?tab=pdam" replace />} />
+          <Route path="/tagihan" element={<Navigate to="/utilitas" replace />} />
           
           {/* Checkout & On-Site Payment Flow (TriPay Verified Gateway) */}
           <Route path="/checkout" element={<Checkout user={activeUser} />} />
@@ -389,17 +400,25 @@ function App() {
           <Route path="/denah-500" element={<Navigate to="/stress-test-report" replace />} />
 
           {/* Kasir POS & Table Self-Ordering (kasir.riuph.me) */}
-          <Route path="/kasir" element={<Kasir user={activeUser} />} />
-          <Route path="/pos" element={<Navigate to="/kasir" replace />} />
+          <Route
+            path="/kasir"
+            element={activeUser ? <Kasir user={activeUser} onLogout={handleLogout} /> : <Navigate to="/login?redirect=%2Fkasir" replace />}
+          />
+          <Route
+            path="/pos"
+            element={activeUser ? <Navigate to="/kasir" replace /> : <Navigate to="/login?redirect=%2Fkasir" replace />}
+          />
           <Route path="/order/:tableToken" element={<OrderMeja />} />
           <Route path="/order" element={<OrderMeja />} />
           <Route path="/meja/:tableToken" element={<OrderMeja />} />
 
-          {/* Hybrid Loyalty Receipt Claim Page (Passwordless Instant Claim) */}
+          {/* Hybrid Loyalty Receipt Claim & Customer QR Scanner Page (Unified Full Page) */}
           <Route path="/claim" element={<ClaimPoin />} />
           <Route path="/klaim" element={<Navigate to="/claim" replace />} />
           <Route path="/loyalty" element={<Navigate to="/claim" replace />} />
           <Route path="/klaim-poin" element={<Navigate to="/claim" replace />} />
+          <Route path="/scan-qr" element={<Navigate to="/claim" replace />} />
+          <Route path="/qr" element={<Navigate to="/claim" replace />} />
 
           {/* Staff Invitation Accept Links (WhatsApp & Gmail) */}
           <Route path="/invite-staff/:token" element={<StaffInviteAccept activeUser={activeUser} onLogin={handleLogin} />} />
@@ -440,7 +459,7 @@ function App() {
             path="/penghuni" 
             element={activeUser ? (
               <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Penghuni user={activeUser} /> : <Navigate to="/dashboard" replace />}
+                {(isOwnerRole(activeUser.role) || (isEmployeeRole(activeUser.role) && !isMitraStaff(activeUser))) ? <Penghuni user={activeUser} /> : <Navigate to={isMitraStaff(activeUser) ? '/kasir' : '/dashboard'} replace />}
               </MainLayout>
             ) : (
               <Navigate to="/login" replace />
@@ -451,7 +470,7 @@ function App() {
             path="/keuangan" 
             element={activeUser ? (
               <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                {activeUser.role === 'owner' || activeUser.role === 'master' || activeUser.role === 'staff' ? <Keuangan user={activeUser} /> : <Navigate to="/dashboard" replace />}
+                {['owner', 'mitra', 'master', 'admin', 'staff', 'karyawan', 'pegawai'].includes(String(activeUser.role || '').toLowerCase()) ? <Keuangan user={activeUser} /> : <Navigate to="/dashboard" replace />}
               </MainLayout>
             ) : (
               <Navigate to="/login" replace />
@@ -516,7 +535,7 @@ function App() {
             path="/karyawan" 
             element={activeUser ? (
               <MainLayout user={activeUser} onLogout={handleLogout} onSwitchKost={handleSwitchKost}>
-                {activeUser.role === 'owner' || activeUser.role === 'master' ? (
+                {['owner', 'mitra', 'master', 'admin'].includes(activeUser.role) ? (
                   <Karyawan user={activeUser} />
                 ) : (
                   <Navigate to="/dashboard" replace />

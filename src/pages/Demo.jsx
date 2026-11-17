@@ -18,6 +18,7 @@ import {
 import { apiLogin } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { KitchenShowcaseSection } from '../components/kitchen';
+import { getStaffDefaultPath } from '../utils/staffRole';
 
 const DEMO_ACCOUNTS = [
   {
@@ -182,7 +183,7 @@ export default function Demo({ onLogin }) {
         onLogin(demoUser, data.kostName);
       }
 
-      const targetPath = demoUser.role === 'mitra' ? '/mitra' : '/dashboard';
+      const targetPath = getStaffDefaultPath(demoUser);
       navigate(targetPath, { replace: true });
     } catch (err) {
       setError(err.message || `Gagal login simulasi sebagai ${demo.title}.`);
@@ -198,7 +199,7 @@ export default function Demo({ onLogin }) {
     <div style={{
       minHeight: '100vh',
       background: isLight ? '#f8fafc' : 'radial-gradient(circle at 50% 10%, rgba(37, 99, 235, 0.18) 0%, var(--bg-main) 70%)',
-      padding: '2.5rem 1.25rem 4rem',
+      padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3vw, 1.25rem) clamp(2rem, 5vw, 4rem)',
       color: isLight ? '#0f172a' : '#f8fafc',
       boxSizing: 'border-box'
     }}>
@@ -271,12 +272,13 @@ export default function Demo({ onLogin }) {
         <div style={{
           background: isLight ? '#ffffff' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
           border: isLight ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(59, 130, 246, 0.35)',
-          borderRadius: '18px',
-          padding: '1.5rem 1.75rem',
-          marginBottom: '2rem',
+          borderRadius: '16px',
+          padding: 'clamp(0.9rem, 3vw, 1.5rem)',
+          marginBottom: '1.25rem',
           display: 'flex',
           alignItems: 'flex-start',
-          gap: '16px',
+          flexWrap: 'wrap',
+          gap: '12px',
           boxShadow: isLight ? '0 4px 16px rgba(15, 23, 42, 0.05)' : '0 10px 30px rgba(0, 0, 0, 0.35)'
         }}>
           <div style={{
@@ -320,8 +322,8 @@ export default function Demo({ onLogin }) {
         {/* Demo Roles Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-          gap: '1.25rem'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+          gap: '1rem'
         }}>
           {DEMO_ACCOUNTS.map((demo) => {
             const isLoggingThis = loggingInDemoId === demo.id;
@@ -331,12 +333,14 @@ export default function Demo({ onLogin }) {
                 style={{
                   background: isLight ? '#ffffff' : demo.gradient,
                   border: isLight ? `1.5px solid ${demo.color}40` : `1px solid ${demo.borderColor}`,
-                  borderRadius: '18px',
-                  padding: '1.5rem',
+                  borderRadius: '16px',
+                  padding: 'clamp(0.95rem, 3vw, 1.45rem)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  gap: '1.25rem',
+                  gap: '1rem',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
                   boxShadow: isLight ? '0 4px 16px rgba(15, 23, 42, 0.05)' : '0 10px 25px rgba(0, 0, 0, 0.35)',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative'
@@ -487,9 +491,9 @@ export default function Demo({ onLogin }) {
 
         {/* Bottom Callout */}
         <div style={{
-          marginTop: '3rem',
+          marginTop: '2rem',
           textAlign: 'center',
-          padding: '1.75rem',
+          padding: 'clamp(1rem, 3.5vw, 1.75rem)',
           background: 'rgba(255, 255, 255, 0.03)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '16px'

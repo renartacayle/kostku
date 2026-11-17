@@ -37,15 +37,13 @@ import {
   Droplet,
   Copy,
   Navigation,
-  Grid,
-  Calculator
+  Calculator,
+  Flag,
+  AlertTriangle
 } from 'lucide-react';
-import { apiGetPublicKosts, apiApplyKost } from '../services/api';
+import { apiGetPublicKosts, apiApplyKost, apiReportKost, apiGetKostPublicStatus } from '../services/api';
 import KostRatingReviewSection from '../components/KostRatingReviewSection';
-import InAppChatModal from '../components/InAppChatModal';
 import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
-import FloorPlanModal from '../components/FloorPlanModal';
-import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
 import { getValidBuildingImages, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
 import { getGmapsDirectionsUrl, calculateDistanceKm, formatDistance, getCurrentPositionAsync } from '../utils/geoUtils';
 import Footer from '../components/Footer';
@@ -81,11 +79,18 @@ export default function KostDetail({ user }) {
   const [applying, setApplying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [copiedMeter, setCopiedMeter] = useState('');
-  const [showChatModal, setShowChatModal] = useState(false);
-  const [chatInitialText, setChatInitialText] = useState('');
   const [showElectricCalculator, setShowElectricCalculator] = useState(false);
-  const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [suspendedStatusInfo, setSuspendedStatusInfo] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    reason: 'photo_mismatch',
+    details: '',
+    reporterName: user?.name || '',
+    reporterPhone: user?.phone || ''
+  });
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportNotice, setReportNotice] = useState(null);
 
   useEffect(() => {
     getCurrentPositionAsync()
@@ -108,8 +113,9 @@ export default function KostDetail({ user }) {
 
   useEffect(() => {
     setLoading(true);
+    setSuspendedStatusInfo(null);
     apiGetPublicKosts()
-      .then(data => {
+      .then(async data => {
         const list = Array.isArray(data) ? data : (data?.kosts || []);
         let found = list.find(k => k.uid === id);
         if (!found) {
@@ -119,6 +125,25 @@ export default function KostDetail({ user }) {
               found = userAdded.find(k => k.uid === id);
             }
           } catch (_) {}
+        }
+        let publicStatus = null;
+        if (!found && id) {
+          try {
+            publicStatus = await apiGetKostPublicStatus(id);
+            if (publicStatus && publicStatus.status === 'suspended') {
+              setSuspendedStatusInfo(publicStatus);
+            }
+          } catch (_) {}
+          const isDemoSession = typeof window !== 'undefined' && (
+            localStorage.getItem('kostku_is_demo_mode') === 'true' ||
+            window.location.search.includes('demo=true')
+          );
+          if (isDemoSession && (!publicStatus || publicStatus.status !== 'suspended')) {
+            try {
+              const demoList = await apiGetPublicKosts({ includeDemo: true });
+              found = (Array.isArray(demoList) ? demoList : []).find(k => k.uid === id) || null;
+            } catch (_) {}
+          }
         }
         setKost(found || null);
         if (found && found.rooms && found.rooms.length > 0) {
@@ -143,6 +168,10 @@ export default function KostDetail({ user }) {
   }, [kost]);
 
   const handleApplyClick = () => {
+    if (kost?.status === 'suspended') {
+      alert('Properti kost ini sedang disuspend sementara karena laporan pengguna dan tidak dapat disewa saat ini.');
+      return;
+    }
     if (selectedRoomObj?.status === 'occupied') {
       alert(`Kamar ${selectedRoom} saat ini sedang terisi/dihuni. Silakan pilih nomor kamar lain yang masih Siap Huni.`);
       return;
@@ -215,6 +244,25 @@ export default function KostDetail({ user }) {
     );
   }
 
+  if (suspendedStatusInfo && !kost) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: isLight ? '#0f172a' : 'white', padding: '4rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card glass-panel" style={{ maxWidth: '520px', width: '100%', padding: '2rem', borderRadius: '20px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.4)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.14)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <AlertTriangle size={28} />
+          </div>
+          <h2 style={{ margin: '0 0 8px', fontSize: '1.35rem', fontWeight: 800 }}>Properti Kost Sedang Disuspend</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.55, margin: '0 0 1rem' }}>
+            <strong>{suspendedStatusInfo.kostName || id}</strong> sementara dinonaktifkan dari pencarian karena adanya laporan pengguna ({suspendedStatusInfo.suspendedReason || 'sedang dalam peninjauan tim KostKu'}).
+          </p>
+          <button onClick={() => navigate('/search')} className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
+            Cari Kost Terverifikasi Lainnya
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!kost) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: isLight ? '#0f172a' : 'white', padding: '3rem 1.5rem', textAlign: 'center' }}>
@@ -240,19 +288,7 @@ export default function KostDetail({ user }) {
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setChatInitialText(`Halo Pemilik ${kost.kostName}, saya ${tenantName || 'calon penyewa'} baru saja mengajukan sewa untuk Kamar ${selectedRoom} durasi ${rentalDuration} bulan via aplikasi KostKu. Mohon konfirmasinya ya!`);
-                setShowChatModal(true);
-              }}
-              className="btn btn-primary"
-              style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)', padding: '12px', justifyContent: 'center', gap: '8px' }}
-            >
-              <MessageCircle size={18} /> Chat Langsung Pemilik di Aplikasi (Aman & Bebas Spam)
-            </button>
-
-            <button onClick={() => navigate('/dashboard')} className="btn btn-secondary" style={{ padding: '12px' }}>
+            <button onClick={() => navigate('/dashboard')} className="btn btn-primary" style={{ padding: '12px' }}>
               Ke Dashboard Saya
             </button>
           </div>
@@ -293,7 +329,11 @@ export default function KostDetail({ user }) {
     discountAmount = cutPerMonth * discountedMonths;
   }
 
-  const depositAmount = Number(kost.depositAmount || kost.settings?.depositAmount) || 500000;
+  const rawDepositVal = Number(kost.depositAmount ?? kost.settings?.depositAmount ?? 0) || 0;
+  const isDepositEnabled = kost.depositEnabled !== undefined
+    ? Boolean(kost.depositEnabled) && rawDepositVal > 0
+    : rawDepositVal > 0;
+  const depositAmount = isDepositEnabled ? rawDepositVal : 0;
   const totalFirstPayment = (rawRent - discountAmount) + depositAmount;
 
   const layout = kost.layoutInfo || {};
@@ -408,19 +448,35 @@ export default function KostDetail({ user }) {
                   </span>
                 )}
 
-                <span style={{
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#4ade80',
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <ShieldCheck size={14} /> Terverifikasi
-                </span>
+                {kost.status === 'suspended' ? (
+                  <span style={{
+                    background: 'rgba(239, 68, 68, 0.16)',
+                    color: '#ef4444',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <AlertTriangle size={14} /> Disuspend
+                  </span>
+                ) : (
+                  <span style={{
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#4ade80',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <ShieldCheck size={14} /> Terverifikasi
+                  </span>
+                )}
 
                 <a
                   href="#reviews-section"
@@ -499,7 +555,7 @@ export default function KostDetail({ user }) {
               </div>
             </div>
 
-            {/* Gallery Media Header Switcher Tabs */}
+            {/* Gallery Media Header */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -510,76 +566,31 @@ export default function KostDetail({ user }) {
               flexWrap: 'wrap'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('photos')}
+                <span
                   style={{
                     padding: '8px 16px',
                     borderRadius: '12px',
-                    border: 'none',
                     fontWeight: 700,
                     fontSize: '0.86rem',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    cursor: 'pointer',
-                    background: activeTab === 'photos'
-                      ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
-                      : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)'),
-                    color: activeTab === 'photos' ? 'white' : 'var(--text-secondary)',
-                    transition: 'all 0.2s'
+                    background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                    color: 'white'
                   }}
                 >
                   <Camera size={16} />
                   <span>Foto Asli ({images.length})</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('layout')}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.86rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    cursor: 'pointer',
-                    background: activeTab === 'layout'
-                      ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
-                      : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)'),
-                    color: activeTab === 'layout' ? 'white' : 'var(--text-secondary)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Grid size={16} />
-                  <span>Denah 2D Unit Kamar</span>
-                </button>
+                </span>
               </div>
 
               <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>
-                ✓ 100% Foto & Denah Terverifikasi
+                ✓ 100% Foto Terverifikasi
               </span>
             </div>
 
-            {/* TAB CONTENT 2: DENAH 2D ARSITEKTUR DALAM GALLERY */}
-            {activeTab === 'layout' && (
-              <div style={{ marginBottom: '14px' }}>
-                <RoomFloorPlanViewer
-                  dimensions={normalizedDimensions}
-                  bedType={activeFloorPlan.bedType || 'super_single'}
-                  furnitures={computedFurnitures}
-                  roomNumber={selectedRoom || '101'}
-                  kostName={kost.kostName}
-                  initialView="2d"
-                />
-              </div>
-            )}
-
-            {/* TAB CONTENT 1: FOTO ASLI GALLERY */}
-            {activeTab === 'photos' && (
+            {/* FOTO ASLI GALLERY */}
+            {(
               <div>
                 <div style={{
                   position: 'relative',
@@ -666,7 +677,7 @@ export default function KostDetail({ user }) {
             )}
 
             {/* 3. INTERACTIVE ROOM SELECTOR GRID (PILIH KAMAR ANDA) */}
-            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+            <div className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -680,7 +691,7 @@ export default function KostDetail({ user }) {
 
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))',
                 gap: '12px'
               }}>
                 {roomsList.map((r, idx) => {
@@ -784,9 +795,9 @@ export default function KostDetail({ user }) {
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px 8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Sewa Bulanan:</span>
-                        <strong style={{ fontSize: '1.05rem', color: isLight ? '#1d4ed8' : '#60a5fa' }}>
+                        <strong style={{ fontSize: 'clamp(0.92rem, 3vw, 1.05rem)', color: isLight ? '#1d4ed8' : '#60a5fa' }}>
                           Rp {(Number(r.price) || baseMonthlyPrice).toLocaleString('id-ID')}
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}> /bln</span>
                         </strong>
@@ -986,7 +997,7 @@ export default function KostDetail({ user }) {
             </div>
 
             {/* 4. Deskripsi Kost */}
-            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+            <div className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
               <h3 style={{ margin: '0 0 10px 0', fontSize: '1.15rem', fontWeight: 700 }}>Deskripsi Kost</h3>
               <p style={{ color: '#cbd5e1', lineHeight: 1.7, fontSize: '0.92rem', margin: 0 }}>
                 {kost.description || "Kost terverifikasi dengan fasilitas lengkap dan lokasi strategis."}
@@ -994,7 +1005,7 @@ export default function KostDetail({ user }) {
             </div>
 
             {/* 5. Fasilitas Lengkap */}
-            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+            <div className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
               <h3 style={{ margin: '0 0 14px 0', fontSize: '1.15rem', fontWeight: 700 }}>Fasilitas yang Disediakan</h3>
               <div style={{
                 display: 'grid',
@@ -1033,7 +1044,7 @@ export default function KostDetail({ user }) {
 
             {/* 6. Peraturan Kost */}
             {kost.rules && kost.rules.length > 0 && (
-              <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+              <div className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
                 <h3 style={{ margin: '0 0 12px 0', fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Clock size={18} color="#f59e0b" />
                   <span>Peraturan & Kebijakan Kost</span>
@@ -1049,104 +1060,9 @@ export default function KostDetail({ user }) {
               </div>
             )}
 
-            {/* 7. DENAH 2D ARSITEKTURAL & TATA LETAK KAMAR */}
-            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                    <Grid size={20} color="#38bdf8" />
-                    <span>Denah 2D Arsitektural Unit (Skala 1:50)</span>
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                    Tata letak proporsional unit Kamar {selectedRoom || '101'} dengan kasur, meja belajar, lemari, & ventilasi.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowFloorPlanModal(true)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '10px',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.4)',
-                    background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.12)',
-                    color: isLight ? '#0284c7' : '#38bdf8',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <Maximize2 size={14} />
-                  <span>Denah Seluruh Gedung</span>
-                </button>
-              </div>
-
-              {/* Embedded Interactive Viewer */}
-              <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                <RoomFloorPlanViewer
-                  dimensions={normalizedDimensions}
-                  bedType={activeFloorPlan.bedType || 'super_single'}
-                  furnitures={computedFurnitures}
-                  roomNumber={selectedRoom || '101'}
-                  kostName={kost.kostName}
-                  initialView="2d"
-                />
-              </div>
-
-              {/* Floor Plan Specs Pills */}
-              <div style={{
-                marginTop: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-                fontSize: '0.78rem'
-              }}>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600
-                }}>
-                  Luas: {normalizedDimensions.width} x {normalizedDimensions.length} m ({normalizedDimensions.area})
-                </span>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600
-                }}>
-                  Kasur: {activeFloorPlan.bedType === 'queen' ? 'Queen Bed (160x200)' : 'Single/Super Single Bed'}
-                </span>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600
-                }}>
-                  {computedFurnitures.length} Furnitur Lengkap
-                </span>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  background: isLight ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.18)',
-                  color: isLight ? '#047857' : '#34d399',
-                  fontWeight: 700,
-                  marginLeft: 'auto'
-                }}>
-                  ✓ Terverifikasi Skala 1:50
-                </span>
-              </div>
-            </div>
-
+            {/* 7. DENAH 2D DI-HALT SEMENTARA UNTUK PERBAIKAN */}
             {/* 8. SIMULASI BIAYA LISTRIK & TOKEN PLN */}
-            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+            <div className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
                 <div>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
@@ -1294,7 +1210,7 @@ export default function KostDetail({ user }) {
             </div>
 
             {/* 9. LOKASI & PETUNJUK RUTE KE KOST */}
-            <div className="card glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
+            <div className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
                 <div>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
@@ -1427,7 +1343,7 @@ export default function KostDetail({ user }) {
               ══════════════════════════════════════ */}
           <div>
             <div className="card glass-panel" style={{
-              padding: '1.75rem',
+              padding: 'clamp(1rem, 3.2vw, 1.75rem)',
               borderRadius: '24px',
               position: 'sticky',
               top: '2rem',
@@ -1578,14 +1494,23 @@ export default function KostDetail({ user }) {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Deposit Jaminan (Refundable):</span>
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Rp {depositAmount.toLocaleString('id-ID')}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div>
+                      <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Deposit Jaminan (Refundable):</span>
+                      {depositAmount > 0 && (
+                        <span style={{ fontSize: '0.7rem', color: isLight ? '#047857' : '#34d399', fontWeight: 600 }}>
+                          Wajib dikembalikan saat check-out
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ color: depositAmount > 0 ? 'var(--text-primary)' : (isLight ? '#059669' : '#34d399'), fontWeight: 600 }}>
+                      {depositAmount > 0 ? `Rp ${depositAmount.toLocaleString('id-ID')}` : 'Rp 0 (Bebas Deposit)'}
+                    </span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#0284c7' : '#38bdf8' }}>
-                    <span>Biaya Layanan & Admin:</span>
-                    <span style={{ fontWeight: 700, fontSize: '0.78rem' }}>Rp 0 (Manual) / Rp 2.000 (QRIS/VA)</span>
+                    <span>Biaya Layanan QRIS TriPay:</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.78rem' }}>Rp 750 + 0,70%</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -1631,20 +1556,20 @@ export default function KostDetail({ user }) {
                 <button 
                   type="button"
                   onClick={handleApplyClick}
-                  disabled={selectedRoomObj?.status === 'occupied'}
+                  disabled={selectedRoomObj?.status === 'occupied' || kost?.status === 'suspended'}
                   style={{
                     width: '100%',
                     padding: '14px',
                     borderRadius: '14px',
                     border: 'none',
-                    background: selectedRoomObj?.status === 'occupied'
+                    background: (selectedRoomObj?.status === 'occupied' || kost?.status === 'suspended')
                       ? 'rgba(100, 116, 139, 0.25)'
                       : 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                    color: selectedRoomObj?.status === 'occupied' ? '#94a3b8' : 'white',
+                    color: (selectedRoomObj?.status === 'occupied' || kost?.status === 'suspended') ? '#94a3b8' : 'white',
                     fontWeight: 800,
                     fontSize: '1rem',
-                    cursor: selectedRoomObj?.status === 'occupied' ? 'not-allowed' : 'pointer',
-                    boxShadow: selectedRoomObj?.status === 'occupied' ? 'none' : '0 8px 20px rgba(37, 99, 235, 0.4)',
+                    cursor: (selectedRoomObj?.status === 'occupied' || kost?.status === 'suspended') ? 'not-allowed' : 'pointer',
+                    boxShadow: (selectedRoomObj?.status === 'occupied' || kost?.status === 'suspended') ? 'none' : '0 8px 20px rgba(37, 99, 235, 0.4)',
                     transition: 'all 0.2s',
                     display: 'flex',
                     alignItems: 'center',
@@ -1654,9 +1579,11 @@ export default function KostDetail({ user }) {
                 >
                   <CheckCircle2 size={18} />
                   <span>
-                    {selectedRoomObj?.status === 'occupied' 
-                      ? `Kamar ${selectedRoom} Sedang Terisi` 
-                      : `Sewa & Checkout Kamar ${selectedRoom}`}
+                    {kost?.status === 'suspended'
+                      ? 'Kost Disuspend Sementara'
+                      : selectedRoomObj?.status === 'occupied' 
+                        ? `Kamar ${selectedRoom} Sedang Terisi` 
+                        : `Sewa & Checkout Kamar ${selectedRoom}`}
                   </span>
                 </button>
 
@@ -1690,34 +1617,53 @@ export default function KostDetail({ user }) {
                   <span>Tanya Pemilik via WhatsApp</span>
                 </a>
 
-                {/* 2. Direct In-App Chat Consultation */}
+                {/* 2. Report Owner / Suspended Kost Action */}
                 <button
                   type="button"
+                  data-testid="kost-report-btn"
                   onClick={() => {
-                    setChatInitialText(`Halo Pemilik ${kost.kostName}, saya tertarik ingin menyewa Kamar ${selectedRoom} seharga Rp ${(selectedRoomObj ? Number(selectedRoomObj.price) : baseMonthlyPrice).toLocaleString('id-ID')}/bln. Apakah unit ini bisa dijadwalkan untuk survei lokasi?`);
-                    setShowChatModal(true);
+                    setReportNotice(null);
+                    setShowReportModal(true);
                   }}
                   style={{
                     width: '100%',
-                    padding: '11px',
+                    padding: '10px 12px',
                     borderRadius: '14px',
-                    border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)',
-                    background: isLight ? 'rgba(37, 99, 235, 0.06)' : 'rgba(59, 130, 246, 0.10)',
-                    color: isLight ? '#1d4ed8' : '#60a5fa',
+                    border: isLight ? '1px solid #fecaca' : '1px solid rgba(239, 68, 68, 0.32)',
+                    background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.10)',
+                    color: isLight ? '#b91c1c' : '#fca5a5',
                     fontWeight: 700,
-                    fontSize: '0.84rem',
+                    fontSize: '0.82rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
+                    gap: '7px',
                     boxSizing: 'border-box',
                     transition: 'all 0.2s'
                   }}
                 >
-                  <MessageCircle size={15} />
-                  <span>Atau Chat Langsung di Aplikasi</span>
+                  <Flag size={14} />
+                  <span>Laporkan Pemilik / Kost (Foto / WA Offline)</span>
                 </button>
+
+                {reportNotice && (
+                  <div
+                    role="status"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      background: reportNotice.suspended ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)') : (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)'),
+                      border: reportNotice.suspended ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(16, 185, 129, 0.4)',
+                      color: reportNotice.suspended ? (isLight ? '#991b1b' : '#fecaca') : (isLight ? '#065f46' : '#a7f3d0'),
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
+                      lineHeight: 1.45
+                    }}
+                  >
+                    {reportNotice.message}
+                  </div>
+                )}
               </div>
 
               <div style={{ textAlign: 'center', marginTop: '14px' }}>
@@ -1773,7 +1719,7 @@ export default function KostDetail({ user }) {
             Kamar {selectedRoom} ({rentalDuration} Bln)
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#1d4ed8' : '#60a5fa', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 'clamp(0.82rem, 3.5vw, 1.05rem)', fontWeight: 800, color: isLight ? '#1d4ed8' : '#60a5fa', whiteSpace: 'nowrap' }}>
               Rp {totalFirstPayment.toLocaleString('id-ID')}
             </span>
           </div>
@@ -2024,7 +1970,7 @@ export default function KostDetail({ user }) {
             <X size={24} />
           </button>
           <img 
-            src={activeTab === 'layout' && kost.layoutImage ? kost.layoutImage : activeImage} 
+            src={activeImage} 
             alt="Zoomed View" 
             style={{ maxWidth: '95%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px' }} 
           />
@@ -2032,30 +1978,236 @@ export default function KostDetail({ user }) {
         document.body
       )}
 
-      {/* IN-APP DIRECT CHAT MODAL (0% FAKE WA SPAM) */}
-      <InAppChatModal
-        isOpen={showChatModal}
-        onClose={() => setShowChatModal(false)}
-        kost={kost}
-        roomNumber={selectedRoom}
-        initialMessage={chatInitialText}
-        user={user}
-      />
+      {/* MODAL: LAPORKAN KOST / OWNER (AUTO-SUSPEND) */}
+      {showReportModal && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget && !reportSubmitting) setShowReportModal(false); }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: isLight ? 'rgba(2, 6, 23, 0.52)' : 'rgba(2, 6, 23, 0.80)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10060,
+            padding: '1rem'
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Laporkan Pemilik Kost"
+            style={{
+              width: '100%',
+              maxWidth: '490px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '1.5rem',
+              borderRadius: '20px',
+              background: isLight ? '#ffffff' : '#111a2e',
+              border: isLight ? '1px solid #fecaca' : '1px solid rgba(239, 68, 68, 0.38)',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
+              color: isLight ? '#0f172a' : '#f8fafc'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
+                  color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Flag size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
+                    Laporkan Kost / Pemilik
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: isLight ? '#64748b' : '#cbd5e1' }}>
+                    {kost.kostName} • Kamar {selectedRoom || '-'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReportModal(false)}
+                style={{
+                  background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.08)',
+                  border: 'none', borderRadius: '8px', padding: '6px',
+                  color: isLight ? '#475569' : '#cbd5e1', cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{
+              padding: '10px 12px',
+              borderRadius: '12px',
+              background: isLight ? '#fff7ed' : 'rgba(245, 158, 11, 0.14)',
+              border: isLight ? '1px solid #fed7aa' : '1px solid rgba(245, 158, 11, 0.35)',
+              color: isLight ? '#9a3412' : '#fde68a',
+              fontSize: '0.76rem',
+              lineHeight: 1.45,
+              marginBottom: '14px'
+            }}>
+              <strong>Proteksi Penyewa:</strong> Laporan <em>Kamar tidak sesuai foto</em>, <em>Nomor WA owner offline</em>, atau <em>Kost fiktif</em> akan otomatis men-<strong>suspend</strong> properti ini sementara dari pencarian publik.
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  setReportSubmitting(true);
+                  const res = await apiReportKost(kost.uid, {
+                    reason: reportForm.reason,
+                    details: reportForm.details,
+                    reporterName: reportForm.reporterName || user?.name || 'Pengguna KostKu',
+                    reporterPhone: reportForm.reporterPhone || user?.phone || '',
+                    reporterId: user?.id || null,
+                    roomNumber: selectedRoom
+                  });
+                  setReportNotice({
+                    suspended: Boolean(res?.suspended),
+                    message: res?.message || 'Laporan berhasil dikirim.'
+                  });
+                  if (res?.suspended) {
+                    setKost(prev => prev ? { ...prev, status: 'suspended', suspendedReason: res.suspendedReason } : prev);
+                  }
+                  setShowReportModal(false);
+                } catch (err) {
+                  alert(err.message || 'Gagal mengirim laporan.');
+                } finally {
+                  setReportSubmitting(false);
+                }
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+            >
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                  Pilih Jenis Kendala / Pelanggaran *
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                  {[
+                    { id: 'photo_mismatch', label: 'Kamar / Fasilitas Tidak Sesuai Foto', desc: 'Kondisi asli kamar berbeda jauh dari foto iklan' },
+                    { id: 'wa_offline', label: 'Nomor WA Pemilik Offline / Tidak Merespons', desc: 'WA pemilik mati, centang 1 terus, atau nomor tidak terdaftar' },
+                    { id: 'price_mismatch', label: 'Harga / Biaya Tambahan Tidak Sesuai', desc: 'Owner menagih harga berbeda dengan di halaman kost' },
+                    { id: 'fake_listing', label: 'Indikasi Kost Fiktif / Alamat Palsu', desc: 'Lokasi tidak sesuai atau kost tidak beroperasi' }
+                  ].map(opt => {
+                    const active = reportForm.reason === opt.id;
+                    return (
+                      <label
+                        key={opt.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '10px',
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          border: active ? '1.5px solid #ef4444' : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)'),
+                          background: active ? (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.14)') : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)')
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="report_reason"
+                          value={opt.id}
+                          checked={active}
+                          onChange={() => setReportForm(prev => ({ ...prev, reason: opt.id }))}
+                          style={{ marginTop: '3px', accentColor: '#ef4444' }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : '#f8fafc' }}>{opt.label}</div>
+                          <div style={{ fontSize: '0.73rem', color: isLight ? '#475569' : '#cbd5e1' }}>{opt.desc}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, marginBottom: '4px', color: isLight ? '#334155' : '#cbd5e1' }}>
+                    Nama Pelapor
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nama Anda"
+                    value={reportForm.reporterName}
+                    onChange={(e) => setReportForm(prev => ({ ...prev, reporterName: e.target.value }))}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, marginBottom: '4px', color: isLight ? '#334155' : '#cbd5e1' }}>
+                    No. WA Pelapor (Opsional)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="0812..."
+                    value={reportForm.reporterPhone}
+                    onChange={(e) => setReportForm(prev => ({ ...prev, reporterPhone: e.target.value }))}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, marginBottom: '4px', color: isLight ? '#334155' : '#cbd5e1' }}>
+                  Keterangan Tambahan
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Saat survei kamar tidak ada AC seperti di foto, atau nomor WA centang 1 sejak kemarin..."
+                  value={reportForm.details}
+                  onChange={(e) => setReportForm(prev => ({ ...prev, details: e.target.value }))}
+                  className="input-field"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowReportModal(false)}
+                  className="btn btn-secondary"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={reportSubmitting}
+                  data-testid="kost-report-submit"
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: reportSubmitting ? 'wait' : 'pointer'
+                  }}
+                >
+                  {reportSubmitting ? 'Mengirim & Suspend...' : 'Kirim Laporan & Suspend Kost'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* MODAL: SIMULASI BIAYA LISTRIK & TOKEN PLN */}
       <KwhUtilityCalculatorModal
         isOpen={showElectricCalculator}
         onClose={() => setShowElectricCalculator(false)}
+        selectedKost={kost}
         kost={kost}
         roomPrice={selectedRoomObj ? Number(selectedRoomObj.price) : baseMonthlyPrice}
-      />
-
-      {/* MODAL: DENAH 2D ARSITEKTUR SELURUH GEDUNG */}
-      <FloorPlanModal
-        isOpen={showFloorPlanModal}
-        onClose={() => setShowFloorPlanModal(false)}
-        kost={kost}
-        selectedRoomNumber={selectedRoom}
       />
 
       {/* Footer Legal & Compliance */}

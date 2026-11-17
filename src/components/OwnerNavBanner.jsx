@@ -75,7 +75,7 @@ export default function OwnerNavBanner({
       return;
     }
 
-    if (!targetKostUid) return;
+    if (!targetKostUid || String(targetKostUid).startsWith('MITRA-')) return;
 
     let isMounted = true;
     Promise.all([

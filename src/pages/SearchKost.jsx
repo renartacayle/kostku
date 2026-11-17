@@ -30,7 +30,8 @@ import {
   Plus,
   RefreshCw,
   Phone,
-  RotateCcw
+  RotateCcw,
+  Settings
 } from 'lucide-react';
 import { apiGetPublicKosts } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -511,7 +512,7 @@ export default function SearchKost({ user }) {
       <div style={{
         background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, var(--bg-main) 100%)',
         borderBottom: '1px solid var(--border-color)',
-        padding: '2rem 1.25rem 1.5rem',
+        padding: 'clamp(1rem, 3.5vw, 1.75rem) clamp(0.75rem, 3vw, 1.25rem) clamp(0.9rem, 3vw, 1.4rem)',
       }}>
         <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
           
@@ -555,28 +556,55 @@ export default function SearchKost({ user }) {
               </span>
             </div>
 
-            {/* Wishlist quick toggle */}
-            <button
-              onClick={() => setShowWishlistOnly(!showWishlistOnly)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                background: showWishlistOnly ? 'rgba(239, 68, 68, 0.15)' : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)'),
-                border: showWishlistOnly ? '1px solid #ef4444' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
-                color: showWishlistOnly ? '#dc2626' : (isLight ? '#334155' : '#cbd5e1'),
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Heart size={14} fill={showWishlistOnly ? '#ef4444' : 'none'} color={showWishlistOnly ? '#ef4444' : 'currentColor'} />
-              <span>Favorit Saya ({wishlist.length})</span>
-            </button>
+            {/* Wishlist & Setting User quick actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {user && (
+                <Link
+                  to="/pengaturan"
+                  className="desktop-only-flex"
+                  data-testid="search-user-settings-link"
+                  style={{
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Buka Setting User & Profil"
+                >
+                  <Settings size={14} color="#60a5fa" />
+                  <span>Setting User</span>
+                </Link>
+              )}
+
+              <button
+                onClick={() => setShowWishlistOnly(!showWishlistOnly)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  background: showWishlistOnly ? 'rgba(239, 68, 68, 0.15)' : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)'),
+                  border: showWishlistOnly ? '1px solid #ef4444' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
+                  color: showWishlistOnly ? '#dc2626' : (isLight ? '#334155' : '#cbd5e1'),
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Heart size={14} fill={showWishlistOnly ? '#ef4444' : 'none'} color={showWishlistOnly ? '#ef4444' : 'currentColor'} />
+                <span>Favorit Saya ({wishlist.length})</span>
+              </button>
+            </div>
           </div>
 
           <h1 style={{
@@ -606,15 +634,15 @@ export default function SearchKost({ user }) {
               display: 'flex',
               alignItems: 'center'
             }}>
-              <Search size={20} color="#60a5fa" style={{ position: 'absolute', left: '18px', pointerEvents: 'none' }} />
+              <Search size={18} color="#60a5fa" style={{ position: 'absolute', left: '14px', pointerEvents: 'none' }} />
               <input 
                 type="text"
-                placeholder="Cari nama kost, kota (Semarang, Jakarta, Bandung), kampus, atau alamat..."
+                placeholder="Cari kost, kota, kampus..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '15px 44px 15px 50px',
+                  padding: 'clamp(11px, 2.5vw, 15px) clamp(32px, 6vw, 44px) clamp(11px, 2.5vw, 15px) clamp(38px, 7vw, 48px)',
                   background: 'var(--bg-card)',
                   backdropFilter: 'blur(16px)',
                   border: '1px solid var(--border-color)',
@@ -1246,9 +1274,7 @@ export default function SearchKost({ user }) {
                       <div style={{
                         position: 'absolute',
                         inset: 0,
-                        background: 'rgba(15, 23, 42, 0.62)',
-                        backdropFilter: 'blur(3px)',
-                        WebkitBackdropFilter: 'blur(3px)',
+                        background: 'rgba(15, 23, 42, 0.78)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -1303,7 +1329,6 @@ export default function SearchKost({ user }) {
                             height: '28px',
                             borderRadius: '50%',
                             background: 'var(--bg-glass)',
-                            backdropFilter: 'blur(4px)',
                             border: '1px solid var(--border-color)',
                             color: 'var(--text-primary)',
                             display: 'flex',
@@ -1327,7 +1352,6 @@ export default function SearchKost({ user }) {
                             height: '28px',
                             borderRadius: '50%',
                             background: 'var(--bg-glass)',
-                            backdropFilter: 'blur(4px)',
                             border: '1px solid var(--border-color)',
                             color: 'var(--text-primary)',
                             display: 'flex',
@@ -1414,10 +1438,9 @@ export default function SearchKost({ user }) {
 
                       {/* Status Ketersediaan Kamar */}
                       <span style={{
-                        background: availableRoomsCount > 0 ? 'rgba(15, 23, 42, 0.85)' : 'rgba(239, 68, 68, 0.85)',
+                        background: availableRoomsCount > 0 ? 'rgba(15, 23, 42, 0.9)' : 'rgba(220, 38, 38, 0.92)',
                         color: availableRoomsCount > 0 ? '#4ade80' : '#fca5a5',
                         border: availableRoomsCount > 0 ? '1px solid rgba(74, 222, 128, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
-                        backdropFilter: 'blur(8px)',
                         padding: '4px 9px',
                         borderRadius: '100px',
                         fontSize: '0.7rem',
@@ -1440,7 +1463,6 @@ export default function SearchKost({ user }) {
                       {distanceKm != null && (
                         <span style={{
                           background: 'linear-gradient(135deg, #059669, #10b981)',
-                          backdropFilter: 'blur(8px)',
                           color: 'white',
                           padding: '3px 8px',
                           borderRadius: '12px',
@@ -1457,8 +1479,7 @@ export default function SearchKost({ user }) {
                       )}
 
                       <span style={{
-                        background: 'rgba(16, 185, 129, 0.9)',
-                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(16, 185, 129, 0.92)',
                         color: 'white',
                         padding: '3px 8px',
                         borderRadius: '12px',
@@ -1484,8 +1505,7 @@ export default function SearchKost({ user }) {
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        background: 'rgba(15, 23, 42, 0.8)',
-                        backdropFilter: 'blur(8px)',
+                        background: 'rgba(15, 23, 42, 0.88)',
                         border: '1px solid rgba(255, 255, 255, 0.2)',
                         color: isWishlisted ? '#ef4444' : '#ffffff',
                         display: 'flex',
@@ -1505,8 +1525,7 @@ export default function SearchKost({ user }) {
                       position: 'absolute',
                       bottom: '10px',
                       right: '10px',
-                      background: 'rgba(15, 23, 42, 0.85)',
-                      backdropFilter: 'blur(6px)',
+                      background: 'rgba(15, 23, 42, 0.88)',
                       color: '#cbd5e1',
                       padding: '3px 8px',
                       borderRadius: '8px',
@@ -1523,18 +1542,20 @@ export default function SearchKost({ user }) {
                   </div>
 
                   {/* Card Details Body */}
-                  <div style={{ padding: '1.15rem', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', gap: '12px' }}>
-                    <div>
+                  <div style={{ padding: 'clamp(0.6rem, 2vw, 1.15rem)', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', gap: '10px', minWidth: 0 }}>
+                    <div style={{ minWidth: 0 }}>
                       {/* Name & Rating */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px', marginBottom: '4px', minWidth: 0 }}>
                         <h3 
                           className="kost-card-title"
                           style={{ 
                             margin: 0, 
-                            fontSize: 'clamp(1rem, 2vw, 1.15rem)', 
+                            minWidth: 0,
+                            overflowWrap: 'anywhere',
+                            fontSize: 'clamp(0.84rem, 2.3vw, 1.15rem)', 
                             fontWeight: 800, 
                             color: isLight ? '#0f172a' : 'white', 
-                            lineHeight: 1.3 
+                            lineHeight: 1.25 
                           }}
                         >
                           {kost.kostName}
@@ -1609,12 +1630,12 @@ export default function SearchKost({ user }) {
                       flexDirection: 'column',
                       gap: '10px'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                        <div>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Mulai dari</span>
-                          <div style={{ fontSize: 'clamp(1.15rem, 2.5vw, 1.35rem)', fontWeight: 800, color: isLight ? '#0284c7' : '#60a5fa' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', minWidth: 0 }}>
+                        <div style={{ minWidth: 0, maxWidth: '100%' }}>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Mulai dari</span>
+                          <div style={{ fontSize: 'clamp(0.84rem, 2.5vw, 1.35rem)', fontWeight: 800, color: isLight ? '#0284c7' : '#60a5fa', overflowWrap: 'anywhere' }}>
                             {formatRupiah(minPrice)}
-                            <span style={{ fontSize: '0.72rem', fontWeight: 'normal', color: 'var(--text-muted)', marginLeft: '3px' }}>/bln</span>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 'normal', color: 'var(--text-muted)', marginLeft: '2px' }}>/bln</span>
                           </div>
                         </div>
                       </div>
@@ -1622,28 +1643,29 @@ export default function SearchKost({ user }) {
                       {/* Action buttons row */}
                       <div 
                         className="search-card-actions"
-                        style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}
+                        style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}
                       >
                         {/* Compare checkbox button */}
                         <button
                           type="button"
                           onClick={(e) => toggleCompare(kost, e)}
                           style={{
-                            padding: '9px 12px',
-                            borderRadius: '12px',
+                            padding: 'clamp(6px, 1.5vw, 9px) clamp(8px, 2vw, 12px)',
+                            borderRadius: '10px',
                             border: isCompared ? '1px solid #2563eb' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)'),
                             background: isCompared ? (isLight ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.2)') : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)'),
                             color: isCompared ? (isLight ? '#1d4ed8' : '#60a5fa') : (isLight ? '#475569' : '#94a3b8'),
-                            fontSize: '0.78rem',
+                            fontSize: 'clamp(0.7rem, 1.9vw, 0.78rem)',
                             fontWeight: 600,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '5px'
+                            gap: '4px',
+                            minWidth: 0
                           }}
                           title="Bandingkan spesifikasi kost ini"
                         >
-                          <Scale size={14} />
+                          <Scale size={13} />
                           <span>{isCompared ? 'Dipilih' : 'Bandingkan'}</span>
                         </button>
 
@@ -1654,12 +1676,12 @@ export default function SearchKost({ user }) {
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           style={{
-                            padding: '9px 12px',
-                            borderRadius: '12px',
+                            padding: 'clamp(6px, 1.5vw, 9px) clamp(8px, 2vw, 12px)',
+                            borderRadius: '10px',
                             border: isLight ? '1px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(59, 130, 246, 0.3)',
                             background: isLight ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.12)',
                             color: isLight ? '#1d4ed8' : '#93c5fd',
-                            fontSize: '0.78rem',
+                            fontSize: 'clamp(0.7rem, 1.9vw, 0.78rem)',
                             fontWeight: 700,
                             textDecoration: 'none',
                             display: 'flex',
@@ -1679,11 +1701,11 @@ export default function SearchKost({ user }) {
                             type="button" 
                             disabled
                             style={{
-                              flex: 1,
-                              minWidth: '130px',
+                              flex: '1 1 90px',
+                              minWidth: 0,
                               border: 'none',
-                              padding: '10px 14px',
-                              borderRadius: '12px',
+                              padding: 'clamp(7px, 1.8vw, 10px) clamp(10px, 2.2vw, 14px)',
+                              borderRadius: '10px',
                               background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)',
                               color: isLight ? '#94a3b8' : '#64748b',
                               fontWeight: 800,

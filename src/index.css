@@ -74,9 +74,9 @@
   --bg-main: #080d1a;
   --bg-primary: #0e1726;
   --bg-secondary: #131f37;
-  --bg-card: rgba(14, 23, 38, 0.85);
-  --bg-card-hover: rgba(19, 31, 55, 0.95);
-  --bg-glass: rgba(8, 13, 26, 0.90);
+  --bg-card: rgba(14, 23, 38, 0.96);
+  --bg-card-hover: rgba(19, 31, 55, 0.98);
+  --bg-glass: rgba(8, 13, 26, 0.95);
   --bg-hover: rgba(255, 255, 255, 0.05);
 
   --text-primary: #f8fafc;
@@ -126,7 +126,7 @@ html, body {
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 
@@ -134,7 +134,7 @@ html, body {
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 
@@ -157,17 +157,15 @@ html, body {
 /* Glassmorphism Classes */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
 }
 
 .glass-nav {
-  background: rgba(10, 14, 24, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(10, 14, 24, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -177,7 +175,7 @@ html, body {
   border-radius: var(--radius-md);
   padding: 1.25rem;
   box-shadow: var(--shadow-sm);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
@@ -294,7 +292,7 @@ html, body {
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+  transition: transform 0.14s cubic-bezier(0.2, 0, 0, 1), background-color 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
   border: 1px solid transparent;
   font-family: inherit;
   user-select: none;
@@ -457,6 +455,7 @@ html, body {
   min-width: 0;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 .pos-product-grid {
@@ -470,7 +469,8 @@ html, body {
 
 @media (min-width: 640px) {
   .pos-product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+    gap: 12px;
   }
 }
 
@@ -492,9 +492,12 @@ html, body {
 }
 
 @media (min-width: 901px) {
+  html {
+    scrollbar-gutter: stable;
+  }
   .pos-workspace-grid {
-    grid-template-columns: minmax(0, 68%) minmax(0, 30%);
-    gap: 2%;
+    grid-template-columns: minmax(0, 1fr) clamp(348px, 28%, 400px);
+    gap: 20px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -674,22 +677,19 @@ html, body {
     border-radius: 14px !important;
   }
 
-  /* Padding kartu lebih proporsional untuk 2 kolom HP */
-  .kost-card-container > div:last-child,
-  .card > div:last-child {
+  /* Padding kartu lebih proporsional khusus grid 2 kolom properti HP */
+  .kost-card-container > div:last-child {
     padding: 0.65rem 0.55rem !important;
   }
 
   /* Judul nama kost di kartu 2 kolom mobile */
-  .kost-card-container h3,
-  .card h3 {
+  .kost-card-container h3 {
     font-size: 0.88rem !important;
     line-height: 1.25 !important;
   }
 
   /* Baris lokasi dan spesifikasi */
-  .kost-card-container p,
-  .card p {
+  .kost-card-container p {
     font-size: 0.72rem !important;
     margin-bottom: 6px !important;
   }
@@ -1253,14 +1253,14 @@ html, body {
   -webkit-text-fill-color: transparent !important;
 }
 
-/* Universal 4-Role Bottom Navigation (Khusus Mobile Only) */
+/* Universal Role Bottom Navigation (Khusus Mobile Only) */
 .role-bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 800;
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+  padding-bottom: 0;
   pointer-events: none;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1278,9 +1278,8 @@ html, body {
 }
 
 /* Mobile & Desktop Bottom Navigation in Light Mode */
-[data-theme="light"] nav.mobile-only,
 [data-theme="light"] .role-bottom-nav .role-nav-bar {
-  background: rgba(255, 255, 255, 0.96) !important;
+  background: rgba(255, 255, 255, 0.99) !important;
   border-color: rgba(15, 23, 42, 0.12) !important;
   box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
 }
@@ -1712,23 +1711,202 @@ html, body {
   animation: cometBadgePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Home Quick Services Bar Responsiveness */
-.home-quick-services-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
+/* Home Quick Services Bar Responsiveness — 1 Horizontal Scrollable Row + Scroll Page Indicator */
+.home-quick-services-wrapper {
   width: 100%;
-  max-width: 900px;
-  margin: 0 auto 2.25rem;
-  padding: 0 4px;
+  max-width: 1120px;
+  min-width: 0;
+  margin: 0 auto 1.75rem;
   box-sizing: border-box;
 }
 
-@media (max-width: 768px) {
+.home-quick-services-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px 6px;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.home-quick-services-grid::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .home-quick-services-wrapper {
+    margin: 0 auto 1.25rem;
+  }
+
   .home-quick-services-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
     gap: 10px;
-    margin: 0 auto 1.75rem;
-    padding: 0 2px;
+    padding: 2px 2px 6px;
+  }
+
+  .home-quick-service-card {
+    flex: 0 0 calc((100% - 30px) / 4);
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-quick-services-wrapper {
+    margin: 0 auto 1.15rem;
+  }
+
+  .home-quick-services-grid {
+    gap: 8px;
+    padding: 2px 2px 4px;
+  }
+
+  .home-quick-service-card {
+    flex: 0 0 calc((100% - 16px) / 3);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIFIED MOBILE VIEWPORT PROPORTION & OVERFLOW GUARD (<= 640px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  main,
+  section,
+  .card,
+  .glass-panel {
+    min-width: 0;
+  }
+
+  .card {
+    padding: 0.9rem;
+  }
+
+  .btn {
+    padding: 0.55rem 0.95rem;
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+
+  .btn-sm {
+    padding: 0.42rem 0.72rem;
+    font-size: 0.74rem;
+  }
+
+  .hero-marketing-mobile-carousel {
+    max-width: 100%;
+    overflow: hidden !important;
+    contain: layout paint;
+  }
+
+  .hero-marketing-banner-card {
+    padding: 0.95rem 1rem !important;
+    border-radius: 14px !important;
+  }
+
+  .kostku-footer {
+    padding: 1.35rem 0.9rem calc(5.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .recharts-wrapper,
+  .recharts-responsive-container {
+    max-width: 100% !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ALL-DEVICE PERFORMANCE & ANTI-STUTTER OPTIMIZATIONS
+   Eliminates GPU backdrop-filter compositing bottlenecks, layout thrash &
+   tap latency across desktop, laptop, and mobile devices.
+   ══════════════════════════════════════════════════════════════════════════ */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+.home-quick-services-grid {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.role-bottom-nav {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Zero-re-render GPU progress bar animation for Home Kost Carousel */
+@keyframes homeAutoScrollFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.home-autoscroll-bar {
+  transform-origin: left center;
+  animation: homeAutoScrollFill 6s linear infinite;
+  will-change: transform;
+}
+.home-autoscroll-bar.paused {
+  animation-play-state: paused;
+}
+
+/* Pure GPU cometCartBounce without per-frame filter drop-shadow repaint */
+@keyframes cometCartBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.22) translateY(-3px); }
+  65% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Skip layout & paint for off-screen cards/sections on long feeds */
+.koleksi-grid-4x2 > div,
+.kost-responsive-grid > div,
+.spatial-bento-section-wrapper,
+.kostku-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
+}
+
+/* Eliminate expensive Gaussian blur on dense photo cards on all devices */
+.koleksi-grid-4x2 [style*="backdrop-filter"],
+.kost-responsive-grid [style*="backdrop-filter"],
+.kost-slider-container [style*="backdrop-filter"],
+.kost-card-image-wrapper [style*="backdrop-filter"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Neutralize stacked inline/CSS backdrop-filter blurs on mobile & touch GPUs */
+@media (max-width: 900px), (hover: none), (pointer: coarse) {
+  .glass-nav,
+  .hero-marketing-banner-card,
+  .mobile-bottom-booking-bar,
+  [style*="backdrop-filter"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .card:hover,
+  .btn-primary:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

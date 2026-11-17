@@ -63,19 +63,20 @@ export default function ReviewBars({ targetScore = 4.6, totalReviews = 128 }) {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '110px 1fr',
-      gap: '16px',
+      gridTemplateColumns: 'minmax(84px, 100px) 1fr',
+      gap: 'clamp(10px, 2.5vw, 16px)',
       alignItems: 'center',
       background: 'rgba(15, 23, 42, 0.6)',
       border: '1px solid rgba(255, 255, 255, 0.08)',
       borderRadius: '16px',
-      padding: '14px 18px',
-      position: 'relative'
+      padding: 'clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 18px)',
+      position: 'relative',
+      minWidth: 0
     }}>
       {/* Left: Score & Stars */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <div style={{
-          fontSize: '2.4rem',
+          fontSize: 'clamp(1.35rem, 5vw, 2.2rem)',
           fontWeight: 900,
           color: '#ffffff',
           lineHeight: 1,

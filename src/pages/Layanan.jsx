@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   Sparkles,
@@ -22,11 +21,9 @@ import {
   Info
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { apiGetMerchants, apiGetPartnerOrders, apiCreateMerchant, apiSuggestMerchant } from '../services/api';
+import { apiGetMerchants, apiGetPartnerOrders, apiClaimFriendReferral } from '../services/api';
 import MitraGridCard from '../components/MitraGridCard';
 import PartnerOrderModal from '../components/PartnerOrderModal';
-import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
-import { CometArcCartShowcase } from '../components/kitchen';
 
 export default function Layanan({ user }) {
   const { isLight } = useTheme();
@@ -49,19 +46,27 @@ export default function Layanan({ user }) {
       const stored = localStorage.getItem('kostUser');
       if (stored) return JSON.parse(stored);
     } catch (e) {}
-    return user || { id: 'usr-1', name: 'Penghuni Kost', kamar: '122', kostUid: 'KOST-OJN64X', loyalty_points: 250 };
+    return user || null;
   });
 
-  const kostName = localStorage.getItem('kostName') || 'KostKu Residence';
-  const targetKostUid = currentUser?.kostUid || user?.kostUid || 'KOST-OJN64X';
-  const activeUserId = currentUser?.id || user?.id || 'usr-1';
+  const kostName = localStorage.getItem('kostName') || '';
+  const targetKostUid = currentUser?.kostUid || user?.kostUid || '';
+  const activeUserId = currentUser?.id || user?.id || '';
 
   // Data States
   const [merchants, setMerchants] = useState([]);
   const [loadingMerchants, setLoadingMerchants] = useState(true);
 
   // Search, Categories & Sorting
-  const [partnerCategory, setPartnerCategory] = useState('all');
+  const [partnerCategory, setPartnerCategory] = useState(() => {
+    try {
+      const qCat = new URLSearchParams(window.location.search).get('category');
+      if (['all', 'beli_lagi', 'mandiri', 'makanan', 'galon', 'laundry', 'gas'].includes(qCat)) {
+        return qCat;
+      }
+    } catch (_) {}
+    return 'all';
+  });
   const [partnerBrand, setPartnerBrand] = useState('all');
   const [partnerSort, setPartnerSort] = useState('cheapest'); // 'cheapest', 'highest', 'distance'
   const [pinMainPartner, setPinMainPartner] = useState(true);
@@ -74,9 +79,6 @@ export default function Layanan({ user }) {
 
   // Modal States
   const [selectedService, setSelectedService] = useState(null);
-  const [showSmartLockModal, setShowSmartLockModal] = useState(false);
-  const [showSuggestMerchantModal, setShowSuggestMerchantModal] = useState(false);
-  const [showRegisterIndependentModal, setShowRegisterIndependentModal] = useState(false);
 
   // Repeat Orders ("Beli Lagi")
   const [orderedMerchantIds, setOrderedMerchantIds] = useState(() => {
@@ -100,22 +102,6 @@ export default function Layanan({ user }) {
     } catch (e) {}
     return [];
   });
-
-  // Suggest Merchant Form
-  const [suggestForm, setSuggestForm] = useState({ name: '', category: 'makanan', phone: '', note: '', referralCode: '' });
-  const [suggestNotice, setSuggestNotice] = useState(null);
-
-  // Independent Merchant Form
-  const [independentForm, setIndependentForm] = useState({
-    name: '',
-    category: 'makanan',
-    phone: '',
-    address: '',
-    referralCode: '',
-    firstProductName: '',
-    firstProductPrice: 15000
-  });
-  const [independentNotice, setIndependentNotice] = useState(null);
 
   // Fetch merchants & previous orders
   const fetchMerchantsData = async () => {
@@ -285,176 +271,37 @@ export default function Layanan({ user }) {
     }
   };
 
-  const handleClaimFriendCode = () => {
+  const handleClaimFriendCode = async () => {
     if (!friendReferralInput.trim()) return;
     const cleanInput = friendReferralInput.trim().toUpperCase();
     if (cleanInput === userRefCode.toUpperCase()) {
       setFriendReferralStatus({ type: 'error', message: 'Tidak bisa pakai kodemu sendiri!' });
       return;
     }
-    const newTotal = currentLoyaltyPoints + 100;
-    saveAccountPoints(newTotal);
-    setFriendReferralInput('');
-    setFriendReferralStatus({ type: 'success', message: '+100 Poin referral tersimpan otomatis!' });
-    setTimeout(() => setFriendReferralStatus(null), 3000);
-  };
-
-  // Open modals with prefilled referral code
-  const handleOpenRegisterIndependent = () => {
-    setIndependentNotice(null);
-    setIndependentForm(prev => ({
-      ...prev,
-      referralCode: prev.referralCode || userRefCode
-    }));
-    setShowRegisterIndependentModal(true);
-  };
-
-  const handleOpenSuggestMerchant = () => {
-    setSuggestNotice(null);
-    setSuggestForm(prev => ({
-      ...prev,
-      referralCode: prev.referralCode || userRefCode
-    }));
-    setShowSuggestMerchantModal(true);
-  };
-
-  // Submit Warung Suggestion
-  const handleSuggestMerchantSubmit = async (e) => {
-    e.preventDefault();
-    if (!suggestForm.name.trim()) return;
-
-    try {
-      const payload = {
-        name: suggestForm.name.trim(),
-        category: suggestForm.category,
-        phone: suggestForm.phone?.trim() || '',
-        note: suggestForm.note?.trim() || '',
-        referralCode: suggestForm.referralCode?.trim() || null,
-        userId: activeUserId,
-        kostUid: targetKostUid
-      };
-
-      const res = await apiSuggestMerchant(payload);
-
-      if (res?.bonusAwarded) {
-        saveAccountPoints(currentLoyaltyPoints + (res.bonusPoints || 500));
-        setSuggestNotice({
-          type: 'success',
-          message: res.message || `Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
-        });
-      } else if (res?.isAlreadyRegistered) {
-        setSuggestNotice({
-          type: 'info',
-          message: `Usulan warung "${suggestForm.name}" berhasil dikirim. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.`
-        });
-      } else {
-        setSuggestNotice({
-          type: 'info',
-          message: res?.message || `Usulan warung "${suggestForm.name}" berhasil dikirim. Gunakan kode referral untuk mengaktifkan bonus poin.`
-        });
-      }
-    } catch (err) {
-      console.warn('Gagal mengirim usulan warung:', err);
-      setSuggestNotice({
-        type: 'info',
-        message: `Usulan warung "${suggestForm.name}" berhasil dicatat!`
-      });
+    const uid = user?.id || user?.uid;
+    if (!uid) {
+      setFriendReferralStatus({ type: 'error', message: 'Login dulu untuk mengklaim kode referral teman.' });
+      return;
     }
-  };
-
-  // Register Independent Merchant
-  const handleRegisterIndependentSubmit = async (e) => {
-    e.preventDefault();
-    if (!independentForm.name.trim() || !independentForm.firstProductName.trim()) return;
-
-    const newMerchantId = `PTR-INDEP-${Date.now()}`;
-    const categoryLabel = independentForm.category === 'makanan' ? 'Warung & Kuliner'
-      : independentForm.category === 'laundry' ? 'Laundry Express'
-      : independentForm.category === 'galon' ? 'Air & Gas'
-      : 'Jasa & Servis';
-
-    const defaultIcon = independentForm.category === 'makanan' ? ''
-      : independentForm.category === 'laundry' ? ''
-      : independentForm.category === 'galon' ? ''
-      : '';
-
-    const defaultPhoto = independentForm.category === 'makanan'
-      ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80'
-      : null;
-
-    const newMerchantPayload = {
-      name: independentForm.name.trim(),
-      category: categoryLabel,
-      icon: defaultIcon,
-      phone: independentForm.phone.trim() || '',
-      address: independentForm.address.trim() || 'Sekitar Kost',
-      distanceKm: 0.3,
-      isIndependent: true,
-      referralCode: independentForm.referralCode?.trim() || null,
-      userId: activeUserId,
-      kostUid: targetKostUid,
-      products: [
-        {
-          id: `PROD-${Date.now()}-1`,
-          name: independentForm.firstProductName.trim(),
-          price: Number(independentForm.firstProductPrice) || 15000,
-          image: defaultPhoto,
-          isBestSeller: true,
-          totalSold: 1,
-          isCameraVerified: true
-        }
-      ]
-    };
-
     try {
-      const res = await apiCreateMerchant(newMerchantPayload);
-
-      const createdMerchant = res?.merchant || {
-        ...newMerchantPayload,
-        id: newMerchantId,
-        rating: 5.0,
-        soldCount: 0,
-        deliveryEstimate: '15-25 mnt',
-        deliveryFee: 2000,
-        distance: '300m',
-        partnershipType: 'independent',
-        isNewcomer: true,
-        isNew: true,
-        createdAt: new Date().toISOString()
-      };
-
-      setMerchants(prev => [createdMerchant, ...prev]);
-
-      try {
-        const stored = localStorage.getItem('kostku_independent_merchants');
-        const parsed = stored ? JSON.parse(stored) : [];
-        const updated = [createdMerchant, ...parsed];
-        localStorage.setItem('kostku_independent_merchants', JSON.stringify(updated));
-        setIndependentMerchants(updated);
-      } catch (_) {}
-
-      if (res?.bonusAwarded) {
-        saveAccountPoints(currentLoyaltyPoints + (res.bonusPoints || 500));
-        setIndependentNotice({
-          type: 'success',
-          message: `Selamat! Toko "${createdMerchant.name}" berhasil terpasang dan bonus referral +500 Poin berhasil diklaim!`
-        });
-      } else if (res?.isAlreadyRegistered) {
-        setIndependentNotice({
-          type: 'info',
-          message: `Toko "${createdMerchant.name}" berhasil terpasang. Namun toko/nomor ini sudah pernah didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim ulang.`
-        });
-      } else {
-        setIndependentNotice({
-          type: 'success',
-          message: `Selamat! Toko "${createdMerchant.name}" berhasil terpasang. Gunakan kode referral untuk mendapatkan bonus poin.`
-        });
-      }
+      const res = await apiClaimFriendReferral({
+        userId: uid,
+        referralCode: cleanInput,
+        phone: user?.phone || user?.whatsapp || '',
+        email: user?.email || ''
+      });
+      const updatedTotal = res?.totalPoints !== undefined ? Number(res.totalPoints) : currentLoyaltyPoints + (res?.bonusPoints || 100);
+      saveAccountPoints(updatedTotal);
+      setFriendReferralInput('');
+      setFriendReferralStatus({
+        type: 'success',
+        message: res?.message || `+${res?.bonusPoints || 100} Poin referral tersimpan otomatis!`
+      });
+      setTimeout(() => setFriendReferralStatus(null), 4000);
     } catch (err) {
-      console.warn('Gagal menyimpan toko mandiri:', err);
-      setIndependentNotice({
-        type: 'info',
-        message: `Toko "${independentForm.name}" berhasil dicatat!`
+      setFriendReferralStatus({
+        type: 'error',
+        message: err?.message || 'Kode referral tidak valid atau sudah pernah diklaim.'
       });
     }
   };
@@ -485,8 +332,8 @@ export default function Layanan({ user }) {
   };
 
   const realMerchants = (merchants || []).filter(m => !isDemoMerchant(m));
-  const baseMerged = realMerchants;
-  const rawList = [...baseMerged, ...independentMerchants.filter(im => !baseMerged.some(bm => bm.id === im.id) && !isDemoMerchant(im))];
+  const baseMerged = realMerchants.filter(Boolean);
+  const rawList = [...baseMerged, ...independentMerchants.filter(im => im && !baseMerged.some(bm => bm.id === im.id) && !isDemoMerchant(im))];
 
   // Filter list
   let list = rawList.filter(m => {
@@ -528,8 +375,12 @@ export default function Layanan({ user }) {
     });
   }
 
-  // Sorting
+  // Sorting: Kasir Online di Web tampil di atas, diikuti offline di bawah
   list.sort((a, b) => {
+    const onlineA = a.kasirOnline === true || a.isOnline === true ? 1 : 0;
+    const onlineB = b.kasirOnline === true || b.isOnline === true ? 1 : 0;
+    if (onlineB !== onlineA) return onlineB - onlineA;
+
     if (pinMainPartner) {
       const isMainA = Boolean(a.isMainPartner || a.partnershipType === 'main');
       const isMainB = Boolean(b.isMainPartner || b.partnershipType === 'main');
@@ -551,9 +402,9 @@ export default function Layanan({ user }) {
     return 0;
   });
 
-  // Guaranteed Exploration Slot
+  // Guaranteed Exploration Slot (hanya geser jika toko online agar offline tetap di bawah)
   if (partnerCategory !== 'beli_lagi' && list.length > 2) {
-    const newcomerIdx = list.findIndex(m => Boolean(m.isNewcomer || m.isNew));
+    const newcomerIdx = list.findIndex(m => Boolean(m.isNewcomer || m.isNew) && (m.kasirOnline === true || m.isOnline === true));
     if (newcomerIdx > 1) {
       const [newcomer] = list.splice(newcomerIdx, 1);
       list.splice(1, 0, newcomer);
@@ -739,7 +590,7 @@ export default function Layanan({ user }) {
           )}
         </div>
 
-        {/* SISI KANAN (Setara Poin di Kanan, di Bawah Search): Nambah Mitra */}
+        {/* SISI KANAN (Setara Poin di Kanan, di Bawah Search): Dialihkan ke Halaman Kasir */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -747,10 +598,10 @@ export default function Layanan({ user }) {
           flexWrap: 'wrap',
           alignSelf: isMobileScreen ? 'stretch' : 'center'
         }}>
-          <button
-            type="button"
-            onClick={handleOpenRegisterIndependent}
+          <Link
+            to="/kasir?tab=mitra"
             className="btn btn-primary"
+            data-testid="layanan-open-kasir-btn"
             style={{
               padding: '9px 16px',
               fontSize: '0.85rem',
@@ -762,35 +613,15 @@ export default function Layanan({ user }) {
               boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
               cursor: 'pointer',
               flex: isMobileScreen ? '1 1 auto' : 'initial',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              textDecoration: 'none'
             }}
           >
-            <Plus size={16} />
-            <span>+ Daftarkan Mitra Baru</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenSuggestMerchant}
-            className="btn btn-secondary"
-            style={{
-              padding: '9px 14px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              flex: isMobileScreen ? '1 1 auto' : 'initial',
-              justifyContent: 'center'
-            }}
-          >
-            <Store size={14} />
-            <span>Usulkan Warung</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSmartLockModal(true)}
+            <Store size={15} />
+            <span>Buka Kasir POS &amp; Gabung Mitra</span>
+          </Link>
+          <Link
+            to="/utilitas?tab=pln"
             style={{
               background: 'none',
               border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -803,11 +634,12 @@ export default function Layanan({ user }) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              textDecoration: 'none'
             }}
           >
             <Zap size={14} /> Token PLN
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -818,9 +650,6 @@ export default function Layanan({ user }) {
         flexDirection: 'column',
         gap: '12px'
       }}>
-
-        {/* Comet Arc Add To Cart Micro-Interaction Showcase (Inspired by UI Motion Prompts) */}
-        <CometArcCartShowcase />
 
         {/* Controls Bar: Category Tabs & Sort/Pin Controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
@@ -952,7 +781,7 @@ export default function Layanan({ user }) {
             </h3>
             <p style={{ margin: '0 auto 16px', fontSize: '0.86rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.6, maxWidth: '440px' }}>
               {rawList.length === 0
-                ? 'Mitra belum ada, tambahkan mitra untuk mendapat bonus poin! Masukkan kode referral saat mengusulkan atau mendaftarkan toko mitra untuk mengaktifkan extra bonus poin.'
+                ? 'Mitra belum ada. Ajak warung sekitar mendaftar memakai kode referral Anda — +500 Poin cair setelah warung resmi terdaftar.'
                 : partnerCategory === 'beli_lagi'
                 ? 'Belum ada toko yang pernah kamu beli. Pesan galon, laundry, atau makanan sekali untuk fitur re-order kilat!'
                 : 'Coba ubah kata kunci atau kategori filter untuk menemukan toko lainnya.'}
@@ -972,25 +801,24 @@ export default function Layanan({ user }) {
                   marginBottom: '18px'
                 }}>
                   <Sparkles size={14} color="#f59e0b" />
-                  <span>Extra Poin: Wajib pakai kode referral (1x klaim per mitra baru)</span>
+                  <span>Anti-Abuse Referral: 0 Poin instan, +500 Poin cair saat mitra baru resmi mendaftar</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={handleOpenRegisterIndependent}
+                  <Link
+                    to="/kasir?tab=mitra"
                     className="btn btn-primary"
-                    style={{ fontSize: '0.82rem', padding: '9px 18px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
+                    data-testid="layanan-empty-open-kasir-btn"
+                    style={{ fontSize: '0.82rem', padding: '9px 18px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px', textDecoration: 'none' }}
                   >
-                    <Plus size={16} /> Pasang Toko Mandiri (+ Bonus Poin)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenSuggestMerchant}
+                    <Plus size={16} /> Buka Kasir POS &amp; Gabung Mitra
+                  </Link>
+                  <Link
+                    to="/kasir?tab=mitra&section=suggest"
                     className="btn btn-secondary"
-                    style={{ fontSize: '0.82rem', padding: '9px 18px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
+                    style={{ fontSize: '0.82rem', padding: '9px 18px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '10px', textDecoration: 'none' }}
                   >
-                    <Store size={15} /> Usulkan Warung (+ Bonus Poin)
-                  </button>
+                    <Store size={15} /> Usulkan Warung via Referral
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -1027,460 +855,6 @@ export default function Layanan({ user }) {
         )}
       </div>
 
-      {/* MODAL USULKAN WARUNG SEKITAR */}
-      {showSuggestMerchantModal && createPortal(
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: isLight ? 'rgba(15, 23, 42, 0.5)' : 'rgba(5, 10, 20, 0.88)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 999999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: isLight ? '#ffffff' : '#0f172a',
-            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
-            borderRadius: '16px',
-            padding: '1.25rem',
-            maxWidth: '440px',
-            width: '100%',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: isLight ? '#0f172a' : '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Store size={17} color="#38bdf8" /> Usulkan Warung Langganan
-                </h3>
-                <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                  Dapatkan <strong style={{ color: '#f59e0b' }}>+500 Poin loyalty</strong> saat warung kamu daftarkan!
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setShowSuggestMerchantModal(false); setSuggestNotice(null); }}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {suggestNotice && (
-              <div style={{
-                padding: '8px 10px',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
-                marginBottom: '10px',
-                background: suggestNotice.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                color: suggestNotice.type === 'success' ? '#4ade80' : '#f87171',
-                border: `1px solid ${suggestNotice.type === 'success' ? '#22c55e' : '#ef4444'}`
-              }}>
-                {suggestNotice.message}
-              </div>
-            )}
-
-            <form onSubmit={handleSuggestMerchantSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                  Nama Warung / Usaha *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Warung Nasi Padang Sabana"
-                  value={suggestForm.name}
-                  onChange={e => setSuggestForm(prev => ({ ...prev, name: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#0f172a' : '#f8fafc',
-                    fontSize: '0.8rem'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                  Kategori Usaha
-                </label>
-                <select
-                  value={suggestForm.category}
-                  onChange={e => setSuggestForm(prev => ({ ...prev, category: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#0f172a' : '#f8fafc',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  <option value="makanan">Warung Makan & Jajanan</option>
-                  <option value="laundry">Laundry Kiloan</option>
-                  <option value="galon">Air Galon & Gas LPG</option>
-                  <option value="jasa">Jasa / Fotokopi / Servis</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                  Kontak / WhatsApp Warung (Jika ada)
-                </label>
-                <input
-                  type="tel"
-                  placeholder="Contoh: 081234567890"
-                  value={suggestForm.phone}
-                  onChange={e => setSuggestForm(prev => ({ ...prev, phone: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#0f172a' : '#f8fafc',
-                    fontSize: '0.8rem'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                  Menu Rekomendasi / Catatan
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Contoh: Ayam bakar bumbu rujaknya enak banget dan murah!"
-                  value={suggestForm.note}
-                  onChange={e => setSuggestForm(prev => ({ ...prev, note: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#0f172a' : '#f8fafc',
-                    fontSize: '0.8rem'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: isLight ? '#166534' : '#86efac', marginBottom: '3px', fontWeight: 700 }}>
-                  <Sparkles size={12} color="#22c55e" />
-                  Kode Referral (Klaim Extra Poin Bonus)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: KOST-122-OSCAR"
-                  value={suggestForm.referralCode || ''}
-                  onChange={e => setSuggestForm(prev => ({ ...prev, referralCode: e.target.value.toUpperCase() }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.08)',
-                    border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#14532d' : '#86efac',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase'
-                  }}
-                />
-                <span style={{ fontSize: '0.66rem', color: isLight ? '#15803d' : '#86efac', marginTop: '2px', display: 'block' }}>
-                  Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per warung baru).</em>
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => { setShowSuggestMerchantModal(false); setSuggestNotice(null); }}
-                  className="btn btn-secondary"
-                  style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                >
-                  Tutup
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ padding: '6px 16px', fontSize: '0.75rem', fontWeight: 700 }}
-                >
-                  Kirim Usulan (+500 Poin)
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* MODAL PASANG TOKO MANDIRI (UMKM INDEPENDENT) */}
-      {showRegisterIndependentModal && createPortal(
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: isLight ? 'rgba(15, 23, 42, 0.5)' : 'rgba(5, 10, 20, 0.88)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 999999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: isLight ? '#ffffff' : '#0f172a',
-            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
-            borderRadius: '16px',
-            padding: '1.25rem',
-            maxWidth: '480px',
-            width: '100%',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: isLight ? '#0f172a' : '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Store size={17} color="#38bdf8" /> Pasang Toko Mandiri (UMKM Sekitar Kost)
-                </h3>
-                <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                  Langsung tayang di aplikasi penghuni tanpa perlu kontrak khusus pemilik kost
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setShowRegisterIndependentModal(false); setIndependentNotice(null); }}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {independentNotice && (
-              <div style={{
-                padding: '8px 10px',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
-                marginBottom: '10px',
-                background: independentNotice.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                color: independentNotice.type === 'success' ? '#4ade80' : '#f87171',
-                border: `1px solid ${independentNotice.type === 'success' ? '#22c55e' : '#ef4444'}`
-              }}>
-                {independentNotice.message}
-              </div>
-            )}
-
-            <form onSubmit={handleRegisterIndependentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                  Nama Toko / Usaha *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Juice Bar & Snack Segar"
-                  value={independentForm.name}
-                  onChange={e => setIndependentForm(prev => ({ ...prev, name: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#0f172a' : '#f8fafc',
-                    fontSize: '0.8rem'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                    Kategori Usaha
-                  </label>
-                  <select
-                    value={independentForm.category}
-                    onChange={e => setIndependentForm(prev => ({ ...prev, category: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                      borderRadius: '8px',
-                      padding: '7px 10px',
-                      color: isLight ? '#0f172a' : '#f8fafc',
-                      fontSize: '0.8rem'
-                    }}
-                  >
-                    <option value="makanan">Warung & Kuliner</option>
-                    <option value="laundry">Laundry Kiloan</option>
-                    <option value="galon">Air & Gas Elpiji</option>
-                    <option value="jasa">Jasa & Servis</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                    WhatsApp Toko *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="Contoh: 081298765432"
-                    value={independentForm.phone}
-                    onChange={e => setIndependentForm(prev => ({ ...prev, phone: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                      borderRadius: '8px',
-                      padding: '7px 10px',
-                      color: isLight ? '#0f172a' : '#f8fafc',
-                      fontSize: '0.8rem'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '3px', fontWeight: 600 }}>
-                  Alamat / Patokan Toko
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Jl. Menoreh Tengah No. 12 (150m dari kost)"
-                  value={independentForm.address}
-                  onChange={e => setIndependentForm(prev => ({ ...prev, address: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
-                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#0f172a' : '#f8fafc',
-                    fontSize: '0.8rem'
-                  }}
-                />
-              </div>
-
-              <div style={{
-                background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
-                border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(255, 255, 255, 0.15)',
-                borderRadius: '10px',
-                padding: '10px 12px'
-              }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isLight ? '#0284c7' : '#38bdf8', display: 'block', marginBottom: '6px' }}>
-                  Produk / Menu Utama Pertama:
-                </span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '8px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '3px' }}>
-                      Nama Menu / Jasa *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Jus Alpukat Kocok"
-                      value={independentForm.firstProductName}
-                      onChange={e => setIndependentForm(prev => ({ ...prev, firstProductName: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
-                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        color: isLight ? '#0f172a' : '#f8fafc',
-                        fontSize: '0.76rem'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginBottom: '3px' }}>
-                      Harga (Rp) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1000"
-                      step="500"
-                      placeholder="15000"
-                      value={independentForm.firstProductPrice}
-                      onChange={e => setIndependentForm(prev => ({ ...prev, firstProductPrice: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)',
-                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        color: isLight ? '#0f172a' : '#f8fafc',
-                        fontSize: '0.76rem'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: isLight ? '#166534' : '#86efac', marginBottom: '3px', fontWeight: 700 }}>
-                  <Sparkles size={12} color="#22c55e" />
-                  Kode Referral (Klaim Extra Poin Bonus)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: KOST-122-OSCAR"
-                  value={independentForm.referralCode || ''}
-                  onChange={e => setIndependentForm(prev => ({ ...prev, referralCode: e.target.value.toUpperCase() }))}
-                  style={{
-                    width: '100%',
-                    background: isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.08)',
-                    border: isLight ? '1px solid #86efac' : '1px solid rgba(34, 197, 94, 0.3)',
-                    borderRadius: '8px',
-                    padding: '7px 10px',
-                    color: isLight ? '#14532d' : '#86efac',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase'
-                  }}
-                />
-                <span style={{ fontSize: '0.66rem', color: isLight ? '#15803d' : '#86efac', marginTop: '2px', display: 'block' }}>
-                  Masukkan kode referral untuk klaim bonus +500 Poin. <em>(Hanya berlaku 1x per toko baru).</em>
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => { setShowRegisterIndependentModal(false); setIndependentNotice(null); }}
-                  className="btn btn-secondary"
-                  style={{ padding: '7px 14px', fontSize: '0.75rem' }}
-                >
-                  Tutup
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '7px 18px',
-                    background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(14, 165, 233, 0.4)'
-                  }}
-                >
-                  Pasang Sekarang & Aktifkan Toko
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
       {/* Partner Concierge Order Modal */}
       <PartnerOrderModal
         isOpen={Boolean(selectedService)}
@@ -1488,14 +862,6 @@ export default function Layanan({ user }) {
         service={selectedService}
         user={currentUser}
         kost={{ kostName: kostName || 'KostKu Residence', kostUid: targetKostUid }}
-      />
-
-      {/* Smart Lock & Token Modal for PLN Token purchases */}
-      <SmartLockAndTokenModal
-        isOpen={showSmartLockModal}
-        onClose={() => setShowSmartLockModal(false)}
-        user={currentUser}
-        roomNumber={currentUser?.kamar || '122'}
       />
     </div>
   );

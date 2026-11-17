@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
@@ -38,21 +38,21 @@ import {
   Navigation,
   Sun,
   Moon,
-  Ban
+  Ban,
+  QrCode,
+  Settings
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import SpatialBentoShowcase from '../components/SpatialBentoShowcase';
-import VideoScroll from '../components/VideoScroll';
-import InstallModal from '../components/InstallModal';
-import InteractiveMarketplaceMap from '../components/InteractiveMarketplaceMap';
-import KostFilterModal from '../components/KostFilterModal';
-import TambahKostModal from '../components/TambahKostModal';
-import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
-import PdamPaymentModal from '../components/PdamPaymentModal';
+import { isOwnerRole, isMitraRole, isEmployeeRole, isMitraStaff, getStaffDefaultPath } from '../utils/staffRole';
 import Footer from '../components/Footer';
 import { TactileButton } from '../components/kitchen';
 import { apiGetPublicKosts } from '../services/api';
 import { FACILITY_OPTIONS, checkFacilityMatch } from './SearchKost';
+const SpatialBentoShowcase = lazy(() => import('../components/SpatialBentoShowcase'));
+const InstallModal = lazy(() => import('../components/InstallModal'));
+const InteractiveMarketplaceMap = lazy(() => import('../components/InteractiveMarketplaceMap'));
+const KostFilterModal = lazy(() => import('../components/KostFilterModal'));
+const TambahKostModal = lazy(() => import('../components/TambahKostModal'));
 import { 
   calculateDistanceKm, 
   formatDistance, 
@@ -227,6 +227,7 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
               src={src}
               alt={`${kostName} - foto ${i + 1}`}
               loading={i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80';
@@ -249,9 +250,7 @@ function KostCardImageSlider({ images, kostName, type, availableRoomsCount, dist
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(15, 23, 42, 0.62)',
-          backdropFilter: 'blur(3px)',
-          WebkitBackdropFilter: 'blur(3px)',
+          background: 'rgba(15, 23, 42, 0.78)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -472,8 +471,92 @@ export default function Home({ user }) {
   const [loadError, setLoadError] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showAddKostModal, setShowAddKostModal] = useState(false);
-  const [isPlnModalOpen, setIsPlnModalOpen] = useState(false);
-  const [isPdamModalOpen, setIsPdamModalOpen] = useState(false);
+
+  // Horizontal Quick Services Scroll & Pagination States (1 Baris Scrollable + Page Dots)
+  const quickServicesGridRef = useRef(null);
+  const serviceOffsetsRef = useRef([0]);
+  const serviceScrollRafRef = useRef(null);
+  const [servicePage, setServicePage] = useState(0);
+  const [servicePageCount, setServicePageCount] = useState(1);
+  const [servicePageOffsets, setServicePageOffsets] = useState([0]);
+
+  const updateClosestServicePage = useCallback(() => {
+    const el = quickServicesGridRef.current;
+    const offsets = serviceOffsetsRef.current;
+    if (!el || !offsets || offsets.length <= 1) return;
+    const currentLeft = el.scrollLeft;
+    let closestIdx = 0;
+    let closestDist = Infinity;
+    for (let i = 0; i < offsets.length; i += 1) {
+      const dist = Math.abs(currentLeft - offsets[i]);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIdx = i;
+      }
+    }
+    setServicePage((prev) => (prev === closestIdx ? prev : closestIdx));
+  }, []);
+
+  const handleServiceGridScroll = useCallback(() => {
+    if (serviceScrollRafRef.current) return;
+    serviceScrollRafRef.current = requestAnimationFrame(() => {
+      serviceScrollRafRef.current = null;
+      updateClosestServicePage();
+    });
+  }, [updateClosestServicePage]);
+
+  const syncServiceScrollMetrics = useCallback(() => {
+    const el = quickServicesGridRef.current;
+    if (!el) return;
+    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+    if (maxScroll <= 6) {
+      serviceOffsetsRef.current = [0];
+      setServicePageCount((prev) => (prev === 1 ? prev : 1));
+      setServicePage((prev) => (prev === 0 ? prev : 0));
+      setServicePageOffsets((prev) => (prev.length === 1 && prev[0] === 0 ? prev : [0]));
+      return;
+    }
+    const cards = Array.from(el.querySelectorAll('.home-quick-service-card'));
+    const firstCardWidth = cards[0]?.getBoundingClientRect().width || el.clientWidth / 3;
+    const perPage = Math.max(1, Math.min(cards.length || 8, Math.round(el.clientWidth / Math.max(1, firstCardWidth))));
+    const pages = Math.max(2, Math.ceil((cards.length || 8) / perPage));
+    const offsets = Array.from({ length: pages }, (_, idx) => {
+      if (idx === 0) return 0;
+      if (idx === pages - 1) return maxScroll;
+      const targetCard = cards[idx * perPage];
+      return targetCard ? Math.min(maxScroll, Math.max(0, targetCard.offsetLeft - 2)) : Math.round((idx / (pages - 1)) * maxScroll);
+    });
+    serviceOffsetsRef.current = offsets;
+    setServicePageCount((prev) => (prev === pages ? prev : pages));
+    setServicePageOffsets(offsets);
+    updateClosestServicePage();
+  }, [updateClosestServicePage]);
+
+  useEffect(() => {
+    syncServiceScrollMetrics();
+    const timer = setTimeout(syncServiceScrollMetrics, 120);
+    window.addEventListener('resize', syncServiceScrollMetrics, { passive: true });
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined' && quickServicesGridRef.current) {
+      ro = new ResizeObserver(syncServiceScrollMetrics);
+      ro.observe(quickServicesGridRef.current);
+    }
+    return () => {
+      clearTimeout(timer);
+      if (serviceScrollRafRef.current) cancelAnimationFrame(serviceScrollRafRef.current);
+      window.removeEventListener('resize', syncServiceScrollMetrics);
+      if (ro) ro.disconnect();
+    };
+  }, [syncServiceScrollMetrics]);
+
+  const scrollToServicePage = (idx) => {
+    const el = quickServicesGridRef.current;
+    if (!el || servicePageOffsets.length === 0) return;
+    const clampedIdx = Math.max(0, Math.min(servicePageOffsets.length - 1, idx));
+    const targetLeft = servicePageOffsets[clampedIdx] ?? 0;
+    setServicePage(clampedIdx);
+    el.scrollTo({ left: targetLeft, behavior: 'smooth' });
+  };
 
   // Authenticated user resolution
   const activeUser = user || (() => {
@@ -569,7 +652,6 @@ export default function Home({ user }) {
   const [activeGridPage, setActiveGridPage] = useState(0);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
   const [isGridHovered, setIsGridHovered] = useState(false);
-  const [autoScrollProgress, setAutoScrollProgress] = useState(0);
 
   const gridTouchStartX = useRef(0);
   const gridTouchStartY = useRef(0);
@@ -584,6 +666,7 @@ export default function Home({ user }) {
   useEffect(() => {
     if (isBannerPaused) return;
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setActiveBannerIndex((prev) => (prev + 1) % MARKETING_BANNERS.length);
     }, 3500);
     return () => clearInterval(timer);
@@ -767,36 +850,25 @@ export default function Home({ user }) {
   // Reset pagination saat filter pencarian berubah
   useEffect(() => {
     setActiveGridPage(0);
-    setAutoScrollProgress(0);
   }, [searchLocation, selectedCity, selectedType, selectedPriceRange, selectedFacilities, maxDistanceRadius, userLocation]);
 
   // Validasi indeks halaman aktif jika jumlah halaman berkurang
   useEffect(() => {
     if (activeGridPage >= gridPages.length) {
       setActiveGridPage(0);
-      setAutoScrollProgress(0);
     }
   }, [gridPages.length, activeGridPage]);
 
-  // Auto-Scroll Interval Ticker (6 detik per transisi slide 4x2)
+  // Auto-Scroll Interval Ticker (6 detik per transisi slide 4x2, animasi bar full via CSS GPU)
   useEffect(() => {
     if (!isAutoScrollEnabled || isGridHovered || gridPages.length <= 1) {
       return;
     }
 
-    const intervalTimeMs = 100;
-    const durationMs = 6000;
-    const step = (intervalTimeMs / durationMs) * 100;
-
     const timer = setInterval(() => {
-      setAutoScrollProgress(prev => {
-        if (prev >= 100) {
-          setActiveGridPage(curr => (curr + 1) % gridPages.length);
-          return 0;
-        }
-        return prev + step;
-      });
-    }, intervalTimeMs);
+      if (typeof document !== 'undefined' && document.hidden) return;
+      setActiveGridPage(curr => (curr + 1) % gridPages.length);
+    }, 6000);
 
     return () => clearInterval(timer);
   }, [isAutoScrollEnabled, isGridHovered, gridPages.length]);
@@ -804,13 +876,11 @@ export default function Home({ user }) {
   const handleNextGridPage = () => {
     if (gridPages.length <= 1) return;
     setActiveGridPage(prev => (prev + 1) % gridPages.length);
-    setAutoScrollProgress(0);
   };
 
   const handlePrevGridPage = () => {
     if (gridPages.length <= 1) return;
     setActiveGridPage(prev => (prev > 0 ? prev - 1 : gridPages.length - 1));
-    setAutoScrollProgress(0);
   };
 
   const handleGridTouchStart = (e) => {
@@ -890,8 +960,6 @@ export default function Home({ user }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         background: 'var(--bg-glass)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border-color)'
       }}>
         {/* Brand */}
@@ -961,11 +1029,27 @@ export default function Home({ user }) {
           </button>
 
           {user ? (
-            <Link to="/dashboard" className="btn btn-primary btn-sm" style={{ gap: '6px' }}>
-              <span>Dashboard</span>
-            </Link>
+            <>
+              <Link to={getStaffDefaultPath(activeUser || user)} className="btn btn-primary btn-sm" style={{ gap: '6px', textDecoration: 'none' }}>
+                <span>{(isMitraRole((activeUser || user)?.role) || isMitraStaff(activeUser || user)) ? 'Kasir POS' : 'Dashboard'}</span>
+              </Link>
+              <Link
+                to="/pengaturan"
+                title="Pengaturan Akun & Keluar"
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '6px 8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none'
+                }}
+              >
+                <Settings size={15} color="#94a3b8" />
+              </Link>
+            </>
           ) : (
-            <Link to="/login" className="btn btn-primary btn-sm" style={{ gap: '6px' }}>
+            <Link to="/login" className="btn btn-primary btn-sm" style={{ gap: '6px', textDecoration: 'none' }}>
               <LogIn size={14} />
               <span>Masuk</span>
             </Link>
@@ -979,7 +1063,7 @@ export default function Home({ user }) {
           ═══════════════════════════════════════════════════════════════════ */}
       <section style={{
         position: 'relative',
-        padding: 'clamp(2.5rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem) clamp(2rem, 4vw, 3rem)',
+        padding: 'clamp(1.25rem, 4vw, 3.25rem) clamp(0.75rem, 3vw, 2rem) clamp(1.25rem, 3.5vw, 2.5rem)',
         background: 'linear-gradient(180deg, var(--bg-main) 0%, var(--bg-primary) 100%)',
         borderBottom: '1px solid var(--border-color)',
         overflow: 'hidden'
@@ -1034,17 +1118,18 @@ export default function Home({ user }) {
                 margin: '0 0 0.65rem 0',
                 color: 'var(--text-primary)'
               }}>
-                {activeUser.role === 'owner' || activeUser.role === 'master' ? (
+                {isOwnerRole(activeUser.role) ? (
                   <>
                     Selamat Datang Kembali, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Juragan'}</span>
                   </>
-                ) : activeUser.role === 'mitra' ? (
+                ) : (isMitraRole(activeUser.role) || isMitraStaff(activeUser)) ? (
                   <>
-                    Selamat Datang, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Mitra Usaha'}</span>
+                    {isMitraStaff(activeUser) ? 'Siap Melayani Kasir, ' : 'Selamat Datang, '}
+                    <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Mitra Kasir'}</span>
                   </>
-                ) : activeUser.role === 'staff' ? (
+                ) : isEmployeeRole(activeUser.role) ? (
                   <>
-                    Semangat Bertugas, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Staf Operasional'}</span>
+                    Semangat Bertugas, <span style={{ color: 'var(--accent-primary)' }}>{activeUser.name || 'Pegawai Kost'}</span>
                   </>
                 ) : (
                   <>
@@ -1060,27 +1145,19 @@ export default function Home({ user }) {
                 margin: '0 auto 1.25rem',
                 lineHeight: 1.5
               }}>
-                {activeUser.role === 'owner' || activeUser.role === 'master'
+                {isOwnerRole(activeUser.role)
                   ? 'Kelola unit kamar, pantau arus kas sewa, data penghuni, atau ambil alih operasional meteran staf kost Anda.'
-                  : activeUser.role === 'mitra'
-                  ? 'Kelola transaksi kasir POS, pantau pesanan meja QR, dan atur katalog menu toko Anda.'
-                  : activeUser.role === 'staff'
-                  ? 'Catat meteran listrik & air kamar, kelola paket kurir di loker, dan cek tiket komplain lapangan.'
+                  : (isMitraRole(activeUser.role) || isMitraStaff(activeUser))
+                  ? 'Langsung kelola transaksi kasir POS, layar dapur KDS, keuangan toko, dan pesanan meja QR pelanggan.'
+                  : isEmployeeRole(activeUser.role)
+                  ? 'Catat meteran listrik & air kamar, inspeksi kondisi kamar, dan tangani komplain penghuni kost.'
                   : 'Cari kamar kosan impian baru atau akses tagihan dan layanan pesan antar makanan langsung ke kamarmu.'}
               </p>
 
               {/* Quick Navigation Action Pill for Logged-in Users */}
               <div style={{ display: 'inline-flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <Link
-                  to={
-                    activeUser.role === 'owner' || activeUser.role === 'master'
-                      ? '/dashboard'
-                      : activeUser.role === 'mitra'
-                      ? '/mitra'
-                      : activeUser.role === 'staff'
-                      ? '/dashboard'
-                      : '/dashboard'
-                  }
+                  to={getStaffDefaultPath(activeUser)}
                   style={{
                     padding: '8px 18px',
                     borderRadius: '12px',
@@ -1097,11 +1174,11 @@ export default function Home({ user }) {
                   }}
                 >
                   <span>
-                    {activeUser.role === 'owner' || activeUser.role === 'master'
+                    {isOwnerRole(activeUser.role)
                       ? 'Buka Dashboard Juragan'
-                      : activeUser.role === 'mitra'
-                      ? 'Buka Portal Toko & Kasir'
-                      : activeUser.role === 'staff'
+                      : (isMitraRole(activeUser.role) || isMitraStaff(activeUser))
+                      ? 'Buka Kasir POS'
+                      : isEmployeeRole(activeUser.role)
                       ? 'Buka Tugas & Meteran'
                       : 'Ke Kost Saya'}
                   </span>
@@ -1446,185 +1523,318 @@ export default function Home({ user }) {
           {/* ═══════════════════════════════════════════════════════════════════
               QUICK DIGITAL & MITRA SERVICES BAR (Pilihan Layanan Digital & Mitra Kosan)
               - Mitra UMKM: Warung, kantin & kuliner ruko sekitar kosan
+              - Kasir POS: Loket kasir kantin, QR meja, & layanan PPOB
               - Token PLN: Pembelian token listrik mandiri 24 jam dengan kalkulator kWh
               - Air PDAM: Cek & bayar tagihan air PDAM resmi (30+ kota)
               - Laundry Kost: Jasa cuci kiloan & satuan antar-jemput
               - Galon & Gas: Pesan air minum galon & LPG diantar ke kamar
               - Bayar Sewa: Bayar tagihan sewa bulanan QRIS / VA otomatis
               ═══════════════════════════════════════════════════════════════════ */}
-          <div className="home-quick-services-grid" aria-label="Pilihan Layanan Digital dan Mitra KostKu">
-            {[
-              {
-                id: 'mitra',
-                title: 'Mitra UMKM',
-                subtitle: 'Warung & Kuliner',
-                badge: 'Kantin',
-                icon: Store,
-                color: '#10b981',
-                bgGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.28) 100%)',
-                glowColor: 'rgba(16, 185, 129, 0.25)',
-                action: () => navigate('/layanan')
-              },
-              {
-                id: 'pln',
-                title: 'Token PLN',
-                subtitle: 'Listrik Prabayar 24 Jam',
-                badge: 'Instan',
-                icon: Zap,
-                color: '#f59e0b',
-                bgGradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%)',
-                glowColor: 'rgba(245, 158, 11, 0.25)',
-                action: () => setIsPlnModalOpen(true)
-              },
-              {
-                id: 'pdam',
-                title: 'Air PDAM',
-                subtitle: 'Cek & Bayar Tagihan',
-                badge: '30+ Kota',
-                icon: Droplets,
-                color: '#06b6d4',
-                bgGradient: 'linear-gradient(135deg, rgba(6, 182, 212, 0.16) 0%, rgba(8, 145, 178, 0.28) 100%)',
-                glowColor: 'rgba(6, 182, 212, 0.25)',
-                action: () => setIsPdamModalOpen(true)
-              },
-              {
-                id: 'laundry',
-                title: 'Laundry Kost',
-                subtitle: 'Antar Jemput Cepat',
-                badge: 'Kiloan',
-                icon: Shirt,
-                color: '#8b5cf6',
-                bgGradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.16) 0%, rgba(109, 40, 217, 0.28) 100%)',
-                glowColor: 'rgba(139, 92, 246, 0.25)',
-                action: () => navigate('/layanan?category=laundry')
-              },
-              {
-                id: 'galon',
-                title: 'Galon & Gas',
-                subtitle: 'Air Minum & LPG 3Kg',
-                badge: 'Diantar',
-                icon: Flame,
-                color: '#3b82f6',
-                bgGradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(29, 78, 216, 0.28) 100%)',
-                glowColor: 'rgba(59, 130, 246, 0.25)',
-                action: () => navigate('/layanan?category=galon')
-              },
-              {
-                id: 'sewa',
-                title: 'Bayar Sewa',
-                subtitle: 'QRIS / VA Otomatis',
-                badge: 'Resmi',
-                icon: CreditCard,
-                color: '#f43f5e',
-                bgGradient: 'linear-gradient(135deg, rgba(244, 63, 94, 0.16) 0%, rgba(225, 29, 72, 0.28) 100%)',
-                glowColor: 'rgba(244, 63, 94, 0.25)',
-                action: () => {
-                  if (activeUser) {
-                    navigate('/dashboard');
-                  } else {
-                    navigate('/login?redirect=/dashboard');
+          <div className="home-quick-services-wrapper">
+            <div
+              ref={quickServicesGridRef}
+              onScroll={handleServiceGridScroll}
+              className="home-quick-services-grid"
+              aria-label="Pilihan Layanan Digital dan Mitra KostKu"
+            >
+              {[
+                {
+                  id: 'mitra',
+                  title: 'Mitra UMKM',
+                  subtitle: 'Warung & Kuliner',
+                  badge: 'Kantin',
+                  icon: Store,
+                  color: '#10b981',
+                  bgGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.28) 100%)',
+                  glowColor: 'rgba(16, 185, 129, 0.25)',
+                  action: () => navigate('/layanan')
+                },
+                {
+                  id: 'claim-qr',
+                  title: 'Klaim QR',
+                  subtitle: 'Scan Poin & Meja',
+                  badge: 'QR',
+                  icon: QrCode,
+                  color: '#f59e0b',
+                  bgGradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%)',
+                  glowColor: 'rgba(245, 158, 11, 0.25)',
+                  action: () => navigate('/claim')
+                },
+                {
+                  id: 'kasir',
+                  title: 'Kasir POS',
+                  subtitle: 'Toko & Meja QR',
+                  badge: 'POS',
+                  icon: ShoppingBag,
+                  color: '#6366f1',
+                  bgGradient: 'linear-gradient(135deg, rgba(99, 102, 241, 0.16) 0%, rgba(79, 70, 229, 0.28) 100%)',
+                  glowColor: 'rgba(99, 102, 241, 0.25)',
+                  action: () => navigate('/kasir')
+                },
+                {
+                  id: 'pln',
+                  title: 'Token PLN',
+                  subtitle: 'Listrik Prabayar 24 Jam',
+                  badge: 'Instan',
+                  icon: Zap,
+                  color: '#f59e0b',
+                  bgGradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.28) 100%)',
+                  glowColor: 'rgba(245, 158, 11, 0.25)',
+                  action: () => navigate('/utilitas?tab=pln')
+                },
+                {
+                  id: 'pdam',
+                  title: 'Air PDAM',
+                  subtitle: 'Cek & Bayar Tagihan',
+                  badge: '30+ Kota',
+                  icon: Droplets,
+                  color: '#06b6d4',
+                  bgGradient: 'linear-gradient(135deg, rgba(6, 182, 212, 0.16) 0%, rgba(8, 145, 178, 0.28) 100%)',
+                  glowColor: 'rgba(6, 182, 212, 0.25)',
+                  action: () => navigate('/utilitas?tab=pdam')
+                },
+                {
+                  id: 'laundry',
+                  title: 'Laundry Kost',
+                  subtitle: 'Antar Jemput Cepat',
+                  badge: 'Kiloan',
+                  icon: Shirt,
+                  color: '#8b5cf6',
+                  bgGradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.16) 0%, rgba(109, 40, 217, 0.28) 100%)',
+                  glowColor: 'rgba(139, 92, 246, 0.25)',
+                  action: () => navigate('/layanan?category=laundry')
+                },
+                {
+                  id: 'galon',
+                  title: 'Galon & Gas',
+                  subtitle: 'Air Minum & LPG 3Kg',
+                  badge: 'Diantar',
+                  icon: Flame,
+                  color: '#3b82f6',
+                  bgGradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(29, 78, 216, 0.28) 100%)',
+                  glowColor: 'rgba(59, 130, 246, 0.25)',
+                  action: () => navigate('/layanan?category=galon')
+                },
+                {
+                  id: 'sewa',
+                  title: 'Bayar Sewa',
+                  subtitle: 'QRIS / VA Otomatis',
+                  badge: 'Resmi',
+                  icon: CreditCard,
+                  color: '#f43f5e',
+                  bgGradient: 'linear-gradient(135deg, rgba(244, 63, 94, 0.16) 0%, rgba(225, 29, 72, 0.28) 100%)',
+                  glowColor: 'rgba(244, 63, 94, 0.25)',
+                  action: () => {
+                    if (activeUser) {
+                      navigate('/dashboard');
+                    } else {
+                      navigate('/login?redirect=/dashboard');
+                    }
                   }
                 }
-              }
-            ].map((service) => {
-              const ServiceIcon = service.icon;
-              return (
-                <button
-                  key={service.id}
-                  type="button"
-                  onClick={service.action}
-                  style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    padding: '12px 6px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: 'var(--shadow-sm)',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    position: 'relative',
-                    outline: 'none',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                    e.currentTarget.style.borderColor = service.color;
-                    e.currentTarget.style.boxShadow = `0 8px 20px ${service.glowColor}`;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                  }}
-                  onMouseDown={e => {
-                    e.currentTarget.style.transform = 'scale(0.96)';
-                  }}
-                  onMouseUp={e => {
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                  }}
-                >
-                  <div style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '14px',
-                    background: service.bgGradient,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: service.color,
-                    position: 'relative',
-                    marginBottom: '8px'
-                  }}>
-                    <ServiceIcon size={22} strokeWidth={2.2} />
+              ].map((service) => {
+                const ServiceIcon = service.icon;
+                return (
+                  <button
+                    key={service.id}
+                    type="button"
+                    className="home-quick-service-card"
+                    data-testid={`landing-service-${service.id}`}
+                    onClick={service.action}
+                    style={{
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '16px',
+                      padding: '12px 6px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: 'var(--shadow-sm)',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      position: 'relative',
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.borderColor = service.color;
+                      e.currentTarget.style.boxShadow = `0 8px 20px ${service.glowColor}`;
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    }}
+                    onMouseDown={e => {
+                      e.currentTarget.style.transform = 'scale(0.96)';
+                    }}
+                    onMouseUp={e => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                    }}
+                  >
                     {service.badge && (
                       <span style={{
                         position: 'absolute',
-                        top: '-5px',
-                        right: '-6px',
+                        top: '6px',
+                        right: '6px',
                         fontSize: '0.58rem',
                         fontWeight: 800,
                         background: service.color,
                         color: '#ffffff',
                         padding: '1px 5px',
                         borderRadius: '6px',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
-                        lineHeight: 1.2,
-                        letterSpacing: '0.02em'
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                        lineHeight: 1.25,
+                        letterSpacing: '0.02em',
+                        whiteSpace: 'nowrap'
                       }}>
                         {service.badge}
                       </span>
                     )}
-                  </div>
-                  <span style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    color: 'var(--text-primary)',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2
-                  }}>
-                    {service.title}
-                  </span>
-                  <span style={{
-                    fontSize: '0.64rem',
-                    color: 'var(--text-muted)',
-                    marginTop: '2px',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    maxWidth: '100%',
-                    lineHeight: 1.2
-                  }}>
-                    {service.subtitle}
-                  </span>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '13px',
+                      background: service.bgGradient,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: service.color,
+                      position: 'relative',
+                      marginBottom: '6px',
+                      marginTop: '4px'
+                    }}>
+                      <ServiceIcon size={21} strokeWidth={2.2} />
+                    </div>
+                    <span style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      color: 'var(--text-primary)',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.2
+                    }}>
+                      {service.title}
+                    </span>
+                    <span style={{
+                      fontSize: '0.64rem',
+                      color: 'var(--text-muted)',
+                      marginTop: '2px',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '100%',
+                      lineHeight: 1.2
+                    }}>
+                      {service.subtitle}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {servicePageCount > 1 && (
+              <div
+                data-testid="home-services-scroll-pagination"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  marginTop: '8px'
+                }}
+              >
+                <button
+                  type="button"
+                  data-testid="home-services-page-prev"
+                  onClick={() => scrollToServicePage(servicePage - 1)}
+                  disabled={servicePage <= 0}
+                  aria-label="Halaman layanan sebelumnya"
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '999px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    color: servicePage <= 0 ? 'var(--text-muted)' : 'var(--text-primary)',
+                    opacity: servicePage <= 0 ? 0.45 : 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: servicePage <= 0 ? 'default' : 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <ChevronLeft size={14} />
                 </button>
-              );
-            })}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {Array.from({ length: servicePageCount }, (_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      data-testid={`home-services-page-dot-${idx}`}
+                      onClick={() => scrollToServicePage(idx)}
+                      aria-label={`Halaman layanan ${idx + 1} dari ${servicePageCount}`}
+                      style={{
+                        width: servicePage === idx ? '22px' : '7px',
+                        height: '7px',
+                        borderRadius: '100px',
+                        background: servicePage === idx ? '#10b981' : 'var(--border-color)',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        transition: 'all 0.25s cubic-bezier(0.25, 1, 0.5, 1)'
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <span
+                  data-testid="home-services-page-label"
+                  style={{
+                    fontSize: '0.67rem',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    padding: '2px 8px',
+                    borderRadius: '100px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {servicePage + 1}/{servicePageCount}
+                </span>
+
+                <button
+                  type="button"
+                  data-testid="home-services-page-next"
+                  onClick={() => scrollToServicePage(servicePage + 1)}
+                  disabled={servicePage >= servicePageCount - 1}
+                  aria-label="Halaman layanan berikutnya"
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '999px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    color: servicePage >= servicePageCount - 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                    opacity: servicePage >= servicePageCount - 1 ? 0.45 : 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: servicePage >= servicePageCount - 1 ? 'default' : 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ═══════════════════════════════════════════════════════════════════
@@ -1645,8 +1855,8 @@ export default function Home({ user }) {
                 <span style={{ fontSize: '0.72rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   {banner.badge}
                 </span>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: '1.25rem' }}>{banner.titleAccent}</span>
+                <div style={{ fontSize: 'clamp(1.2rem, 2vw, 1.65rem)', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: 'clamp(1rem, 1.6vw, 1.25rem)' }}>{banner.titleAccent}</span>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   {banner.desc}
@@ -1664,47 +1874,33 @@ export default function Home({ user }) {
             onMouseEnter={() => setIsBannerPaused(true)}
             onMouseLeave={() => setIsBannerPaused(false)}
           >
-            {/* Sliding Track: Exactly 1 card visible at a time (100% width per slide) */}
-            <div style={{
-              display: 'flex',
-              width: '100%',
-              transform: `translate3d(-${activeBannerIndex * 100}%, 0, 0)`,
-              transition: 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
-              willChange: 'transform'
-            }}>
-              {MARKETING_BANNERS.map((banner) => (
+            {/* Render Only Active Banner Card on Mobile (Prevents Off-Screen Overflow Geometry) */}
+            {(() => {
+              const banner = MARKETING_BANNERS[activeBannerIndex] || MARKETING_BANNERS[0];
+              return (
                 <div 
                   key={banner.id}
-                  style={{
-                    flex: '0 0 100%',
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '0 2px'
-                  }}
+                  className="hero-marketing-banner-card animate-fade-in"
+                  style={{ borderLeft: `4px solid ${banner.borderColor}`, width: '100%' }}
+                  data-track={banner.track}
                 >
-                  <div 
-                    className="hero-marketing-banner-card"
-                    style={{ borderLeft: `4px solid ${banner.borderColor}`, width: '100%' }}
-                    data-track={banner.track}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                        {banner.badge}
-                      </span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: '100px' }}>
-                        {activeBannerIndex + 1}/3
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                      {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: '1.15rem' }}>{banner.titleAccent}</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                      {banner.desc}
-                    </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      {banner.badge}
+                    </span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: '100px' }}>
+                      {activeBannerIndex + 1}/3
+                    </span>
                   </div>
+                  <div style={{ fontSize: 'clamp(1.1rem, 4.2vw, 1.5rem)', fontWeight: 800, color: 'var(--text-primary)', margin: '2px 0 4px', lineHeight: 1.25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: 'clamp(0.92rem, 3.4vw, 1.15rem)' }}>{banner.titleAccent}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.48 }}>
+                    {banner.desc}
+                  </p>
                 </div>
-              ))}
-            </div>
+              );
+            })()}
 
             {/* Mobile Carousel Indicators */}
             <div style={{
@@ -1992,11 +2188,13 @@ export default function Home({ user }) {
                 </button>
               </div>
             )}
-            <InteractiveMarketplaceMap 
-              kosts={filtered} 
-              selectedCity={searchLocation || (filtered[0]?.city || 'Semarang')} 
-              userLocation={userLocation}
-            />
+            <Suspense fallback={<div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Memuat peta interaktif...</div>}>
+              <InteractiveMarketplaceMap 
+                kosts={filtered} 
+                selectedCity={searchLocation || (filtered[0]?.city || 'Semarang')} 
+                userLocation={userLocation}
+              />
+            </Suspense>
           </div>
         ) : loading ? (
           <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 1.25rem' }}>
@@ -2005,9 +2203,9 @@ export default function Home({ user }) {
         ) : filtered.length === 0 ? (
           <div style={{
             textAlign: 'center',
-            padding: '4rem 2rem',
+            padding: 'clamp(1.75rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2rem)',
             background: 'var(--bg-card)',
-            borderRadius: '24px',
+            borderRadius: '20px',
             border: '1px solid var(--border-color)',
             color: 'var(--text-secondary)'
           }}>
@@ -2067,7 +2265,7 @@ export default function Home({ user }) {
             <div id="listing" style={{ position: 'relative', width: '100%' }}>
               {/* DESKTOP VIEW (>= 769px): 4x2 Auto-Scroll Carousel */}
               <div className="desktop-koleksi-carousel" style={{ position: 'relative', width: '100%' }}>
-                {/* Countdown Progress Bar (Stories Style) */}
+                {/* Countdown Progress Bar (Stories Style - pure GPU transform, zero React timer ticks) */}
                 {gridPages.length > 1 && isAutoScrollEnabled && (
                   <div style={{
                     position: 'relative',
@@ -2077,13 +2275,16 @@ export default function Home({ user }) {
                     overflow: 'hidden',
                     marginBottom: '1rem'
                   }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${autoScrollProgress}%`,
-                      background: isGridHovered ? '#F59E0B' : 'linear-gradient(90deg, #3B82F6, #10B981)',
-                      transition: isGridHovered ? 'none' : 'width 0.1s linear',
-                      borderRadius: '100px'
-                    }} />
+                    <div
+                      key={`${activeGridPage}-${gridPages.length}`}
+                      className={`home-autoscroll-bar${isGridHovered ? ' paused' : ''}`}
+                      style={{
+                        height: '100%',
+                        width: '100%',
+                        background: isGridHovered ? '#F59E0B' : 'linear-gradient(90deg, #3B82F6, #10B981)',
+                        borderRadius: '100px'
+                      }}
+                    />
                   </div>
                 )}
 
@@ -2168,7 +2369,6 @@ export default function Home({ user }) {
                         type="button"
                         onClick={() => {
                           setActiveGridPage(pIdx);
-                          setAutoScrollProgress(0);
                         }}
                         style={{
                           width: activeGridPage === pIdx ? '32px' : '8px',
@@ -2242,78 +2442,68 @@ export default function Home({ user }) {
             BENTO FEATURE SHOWCASE (3 TAB: PENCARI KOST, PEMILIK, MITRA UMKM)
             Selalu dirender di halaman utama sebagai etalase produk resmi
             ═══════════════════════════════════════════════════════════════════ */}
-        <div className="spatial-bento-section-wrapper" id="solusi-kostku" style={{ margin: 'clamp(2rem, 5vw, 4rem) 0' }}>
-          <SpatialBentoShowcase />
-        </div>
+        <Suspense fallback={null}>
+          <div className="spatial-bento-section-wrapper" id="solusi-kostku" style={{ margin: 'clamp(2rem, 5vw, 4rem) 0' }}>
+            <SpatialBentoShowcase />
+          </div>
+        </Suspense>
 
       </main>
       
       {/* Footer with static compliance pages for TriPay and legal verification */}
       <Footer />
 
-      {/* Floating Install PWA Modal */}
-      {showInstall && <InstallModal onClose={() => setShowInstall(false)} />}
+      <Suspense fallback={null}>
+        {/* Floating Install PWA Modal */}
+        {showInstall && <InstallModal onClose={() => setShowInstall(false)} />}
 
+        {/* Full Feature Filter Pop-up Modal / Bottom Sheet */}
+        {isFilterModalOpen && (
+          <KostFilterModal
+            isOpen={isFilterModalOpen}
+            onClose={() => setIsFilterModalOpen(false)}
+            selectedCity={selectedCity}
+            setSelectedCity={setSelectedCity}
+            cityBadges={CITY_BADGES}
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
+            types={KOST_TYPES}
+            selectedPriceRange={selectedPriceRange}
+            setSelectedPriceRange={setSelectedPriceRange}
+            selectedFacilities={selectedFacilities}
+            handleToggleFacility={handleToggleFacility}
+            handleClearFacilities={handleClearFacilities}
+            facilityOptions={FACILITY_OPTIONS}
+            userLocation={userLocation}
+            handleGetGpsLocation={handleGetGpsLocation}
+            handleSelectLandmark={handleSelectLandmark}
+            handleClearLocation={handleClearLocation}
+            isLocating={isLocating}
+            locatingError={locatingError}
+            setLocatingError={setLocatingError}
+            popularLandmarks={POPULAR_LANDMARKS}
+            maxDistanceRadius={maxDistanceRadius}
+            setMaxDistanceRadius={setMaxDistanceRadius}
+            totalResults={filtered.length}
+            onResetAll={resetAllFilters}
+            activeFilterCount={activeFilterCount}
+          />
+        )}
 
-
-      {/* Full Feature Filter Pop-up Modal / Bottom Sheet */}
-      <KostFilterModal
-        isOpen={isFilterModalOpen}
-        onClose={() => setIsFilterModalOpen(false)}
-        selectedCity={selectedCity}
-        setSelectedCity={setSelectedCity}
-        cityBadges={CITY_BADGES}
-        selectedType={selectedType}
-        setSelectedType={setSelectedType}
-        types={KOST_TYPES}
-        selectedPriceRange={selectedPriceRange}
-        setSelectedPriceRange={setSelectedPriceRange}
-        selectedFacilities={selectedFacilities}
-        handleToggleFacility={handleToggleFacility}
-        handleClearFacilities={handleClearFacilities}
-        facilityOptions={FACILITY_OPTIONS}
-        userLocation={userLocation}
-        handleGetGpsLocation={handleGetGpsLocation}
-        handleSelectLandmark={handleSelectLandmark}
-        handleClearLocation={handleClearLocation}
-        isLocating={isLocating}
-        locatingError={locatingError}
-        setLocatingError={setLocatingError}
-        popularLandmarks={POPULAR_LANDMARKS}
-        maxDistanceRadius={maxDistanceRadius}
-        setMaxDistanceRadius={setMaxDistanceRadius}
-        totalResults={filtered.length}
-        onResetAll={resetAllFilters}
-        activeFilterCount={activeFilterCount}
-      />
-
-      {/* Tambah / Daftarkan Kost Baru Modal */}
-      <TambahKostModal
-        isOpen={showAddKostModal}
-        onClose={() => setShowAddKostModal(false)}
-        initialCity={searchLocation || (selectedCity !== 'all' ? selectedCity : 'Semarang')}
-        user={user}
-        onKostAdded={(newKost) => {
-          setKosts(prev => [newKost, ...prev]);
-          setShowAddKostModal(false);
-        }}
-      />
-
-      {/* Quick Token PLN Modal */}
-      <SmartLockAndTokenModal
-        isOpen={isPlnModalOpen}
-        onClose={() => setIsPlnModalOpen(false)}
-        user={activeUser}
-        roomNumber="101"
-      />
-
-      {/* Quick PDAM Payment Modal */}
-      <PdamPaymentModal
-        isOpen={isPdamModalOpen}
-        onClose={() => setIsPdamModalOpen(false)}
-        user={activeUser}
-        roomNumber="101"
-      />
+        {/* Tambah / Daftarkan Kost Baru Modal */}
+        {showAddKostModal && (
+          <TambahKostModal
+            isOpen={showAddKostModal}
+            onClose={() => setShowAddKostModal(false)}
+            initialCity={searchLocation || (selectedCity !== 'all' ? selectedCity : 'Semarang')}
+            user={user}
+            onKostAdded={(newKost) => {
+              setKosts(prev => [newKost, ...prev]);
+              setShowAddKostModal(false);
+            }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
@@ -2325,7 +2515,7 @@ export default function Home({ user }) {
 // - Max 3 Essential Facilities Icons (AC, KM Dalam, WiFi)
 // - Bold Monospace Tabular Pricing
 // ═══════════════════════════════════════════════════════════════════
-function KostCard({ kost, userLocation }) {
+const KostCard = memo(function KostCard({ kost, userLocation }) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -2681,20 +2871,32 @@ function KostCard({ kost, userLocation }) {
 
               {/* Chat WhatsApp Direct Action (Desktop Only) */}
               <div className="desktop-only">
-                <a
-                  href={`https://wa.me/${(kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Halo, saya tertarik dengan kamar di ${kost.kostName}. Apakah masih ada kamar kosong?`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <span
+                  role="link"
+                  tabIndex={0}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+                    const phone = (kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '');
+                    const text = encodeURIComponent(`Halo, saya tertarik dengan kamar di ${kost.kostName}. Apakah masih ada kamar kosong?`);
+                    window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer');
                   }}
-                  style={{ textDecoration: 'none' }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const phone = (kost.ownerPhone || '6281234567890').replace(/[^0-9]/g, '');
+                      const text = encodeURIComponent(`Halo, saya tertarik dengan kamar di ${kost.kostName}. Apakah masih ada kamar kosong?`);
+                      window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  style={{ display: 'inline-block', cursor: 'pointer' }}
                   title="Tanya langsung ke pemilik via WhatsApp"
                 >
                   <TactileButton variant="whatsapp" size="sm" icon={<ArrowUpRight size={13} />}>
                     Tanya Pemilik
                   </TactileButton>
-                </a>
+                </span>
               </div>
             </div>
 
@@ -2705,4 +2907,4 @@ function KostCard({ kost, userLocation }) {
     </Link>
   </div>
   );
-}
+});

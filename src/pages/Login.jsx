@@ -36,6 +36,7 @@ import {
 import { DEFAULT_GOOGLE_CLIENT_ID } from '../config/version';
 import { useTheme } from '../context/ThemeContext';
 import AccountRecoveryModal from '../components/AccountRecoveryModal';
+import { getStaffDefaultPath } from '../utils/staffRole';
 
 export default function Login({ onLogin }) {
   const { theme } = useTheme();
@@ -47,8 +48,8 @@ export default function Login({ onLogin }) {
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
 
-  // Google Sign-In State: Default to 'user' (penghuni)
-  const [googleRole] = useState('user');
+  // Google Sign-In State: Default new account role to 'owner'
+  const [googleRole] = useState('owner');
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // Anti-Bot Honeypot Trap
@@ -178,12 +179,13 @@ export default function Login({ onLogin }) {
         // Render official Google button on main login page
         if (mainGoogleBtnContainerRef.current) {
           mainGoogleBtnContainerRef.current.innerHTML = '';
+          const containerW = mainGoogleBtnContainerRef.current.clientWidth || (typeof window !== 'undefined' ? window.innerWidth - 72 : 320);
           window.google.accounts.id.renderButton(mainGoogleBtnContainerRef.current, {
             theme: 'outline',
             size: 'large',
             text: 'continue_with',
             shape: 'pill',
-            width: 320,
+            width: Math.min(320, Math.max(220, Math.floor(containerW))),
             logo_alignment: 'left'
           });
         }
@@ -222,8 +224,15 @@ export default function Login({ onLogin }) {
     if (redirect === 'search') {
       return action ? `/search?action=${action}` : '/search';
     }
-    if (userData?.role === 'mitra') return '/mitra';
-    if (userData?.role === 'staff') return '/kasir';
+    if (redirect && redirect.startsWith('/')) {
+      return action ? `${redirect}${redirect.includes('?') ? '&' : '?'}action=${action}` : redirect;
+    }
+    if (userData?.role) {
+      const r = String(userData.role).toLowerCase();
+      if (['mitra', 'bisnis', 'merchant', 'staff', 'karyawan', 'pegawai'].includes(r)) {
+        return getStaffDefaultPath(userData);
+      }
+    }
     return '/dashboard';
   };
 
@@ -233,10 +242,9 @@ export default function Login({ onLogin }) {
       localStorage.setItem('kostName', data.kostName);
     }
 
-    // Default to 'user' (penghuni) only if role is missing
+    // Default to 'mitra' only if role is missing
     if (data.user && !data.user.role) {
-      data.user.role = 'user';
-      if (!data.user.kamar) data.user.kamar = '122';
+      data.user.role = 'mitra';
     }
 
     // Ensure kostUser is in localStorage synchronously BEFORE onLogin and navigate
@@ -282,10 +290,9 @@ export default function Login({ onLogin }) {
       if (data.kostName) {
         localStorage.setItem('kostName', data.kostName);
       }
-      // Default to 'user' (penghuni) only if role is missing
+      // Default to 'mitra' only if role is missing
       if (data.user && !data.user.role) {
-        data.user.role = 'user';
-        if (!data.user.kamar) data.user.kamar = '122';
+        data.user.role = 'mitra';
       }
       localStorage.setItem('kostUser', JSON.stringify(data.user));
       onLogin(data.user, data.kostName);
@@ -431,6 +438,27 @@ export default function Login({ onLogin }) {
                 <Sparkles size={18} style={{ flexShrink: 0 }} />
                 <span>
                   <strong>Akses Tambah Kost:</strong> Silakan masuk terlebih dahulu. Setelah berhasil masuk, Anda akan langsung diarahkan untuk mendaftarkan properti kost baru Anda!
+                </span>
+              </div>
+            )}
+
+            {new URLSearchParams(location.search).get('redirect') === '/kasir' && (
+              <div data-testid="login-kasir-required-banner" style={{
+                background: isLight ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.16)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                color: isLight ? '#047857' : '#6ee7b7',
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                marginBottom: '1.25rem',
+                fontSize: '0.84rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                lineHeight: 1.4
+              }}>
+                <ShieldCheck size={18} style={{ flexShrink: 0 }} />
+                <span>
+                  <strong>Login Diperlukan untuk Kasir POS:</strong> Masuk dengan akun Mitra / Pemilik (default) atau gunakan akun Karyawan/Admin Anda agar membuka toko yang tepat.
                 </span>
               </div>
             )}

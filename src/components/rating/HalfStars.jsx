@@ -43,7 +43,7 @@ export default function HalfStars({ value = 3.5, onChange }) {
 
   return (
     <div 
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', userSelect: 'none' }}
+      style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 'clamp(6px, 2vw, 14px)', userSelect: 'none', maxWidth: '100%' }}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
@@ -54,9 +54,9 @@ export default function HalfStars({ value = 3.5, onChange }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '4px',
           cursor: 'ew-resize',
-          padding: '6px 4px',
+          padding: '4px 2px',
           touchAction: 'none'
         }}
       >

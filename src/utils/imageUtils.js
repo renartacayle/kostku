@@ -85,6 +85,10 @@ export function getValidBuildingImages(images, fallback = DEFAULT_BUILDING_PHOTO
  */
 export function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
   return new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error('File gambar tidak ditemukan'));
+      return;
+    }
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (e) => {
@@ -116,4 +120,26 @@ export function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality =
     };
     reader.onerror = reject;
   });
+}
+
+export const compressImageFile = compressImage;
+
+export function getDefaultPhotoForCategory(cat = 'Makanan') {
+  const c = String(cat || '').toLowerCase();
+  if (c.includes('minum') || c.includes('kopi') || c.includes('teh') || c.includes('jus')) {
+    return 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80';
+  }
+  if (c.includes('laundry') || c.includes('cuci')) {
+    return 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=500&q=80';
+  }
+  if (c.includes('galon') || c.includes('air') || c.includes('gas')) {
+    return 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=500&q=80';
+  }
+  if (c.includes('snack') || c.includes('camilan') || c.includes('gorengan')) {
+    return 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&q=80';
+  }
+  if (c.includes('jasa') || c.includes('servis')) {
+    return 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=500&q=80';
+  }
+  return 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80';
 }

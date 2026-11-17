@@ -15,9 +15,15 @@ import {
   ClipboardCheck, 
   AlertCircle, 
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Settings,
+  LayoutDashboard,
+  Flame,
+  ShoppingBag,
+  Sliders
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { isOwnerRole, isMitraRole, isEmployeeRole, isMitraStaff } from '../utils/staffRole';
 
 /**
  * MobileBottomNav - Dedicated Navbars for Each User Category
@@ -78,42 +84,45 @@ export default function MobileBottomNav({ user }) {
     }
   };
 
-  // Dedicated Navbars for each Category (Exactly 4 items each for SVG Floating Notch physics)
+  // Dedicated Navbars for each Category (5 items including Setting User for mobile thumb access)
   const CATEGORY_NAV_ITEMS = {
     user: [
-      { id: 'user-home', label: 'Beranda', path: '/', icon: <Home size={20} strokeWidth={2.2} /> },
-      { id: 'user-search', label: 'Cari Kost', path: '/search', icon: <Search size={20} strokeWidth={2.2} /> },
-      { id: 'user-layanan', label: 'Layanan', path: '/layanan', icon: <Store size={20} strokeWidth={2.2} /> },
-      { id: 'user-kost', label: 'Kost Saya', path: '/dashboard', icon: <Building size={20} strokeWidth={2.2} /> }
+      { id: 'user-home', label: 'Beranda', path: '/', icon: <Home size={19} strokeWidth={2.2} /> },
+      { id: 'user-search', label: 'Cari Kost', path: '/search', icon: <Search size={19} strokeWidth={2.2} /> },
+      { id: 'user-layanan', label: 'Layanan', path: '/layanan', icon: <Store size={19} strokeWidth={2.2} /> },
+      { id: 'user-kost', label: 'Kost Saya', path: '/dashboard', icon: <Building size={19} strokeWidth={2.2} /> },
+      { id: 'user-setting', label: 'Setting', path: '/pengaturan', testId: 'mobile-nav-setting-btn', icon: <Settings size={19} strokeWidth={2.2} /> }
     ],
     owner: [
-      { id: 'owner-kamar', label: 'Kamar', path: '/dashboard', icon: <Building size={20} strokeWidth={2.2} /> },
-      { id: 'owner-penghuni', label: 'Penghuni', path: '/penghuni', icon: <Users size={20} strokeWidth={2.2} /> },
-      { id: 'owner-keuangan', label: 'Keuangan', path: '/keuangan', icon: <DollarSign size={20} strokeWidth={2.2} /> },
-      { id: 'owner-karyawan', label: 'Karyawan', path: '/karyawan', icon: <UserCheck size={20} strokeWidth={2.2} /> }
+      { id: 'owner-kamar', label: 'Kamar', path: '/dashboard', icon: <Building size={19} strokeWidth={2.2} /> },
+      { id: 'owner-penghuni', label: 'Penghuni', path: '/penghuni', icon: <Users size={19} strokeWidth={2.2} /> },
+      { id: 'owner-keuangan', label: 'Keuangan', path: '/keuangan', icon: <DollarSign size={19} strokeWidth={2.2} /> },
+      { id: 'owner-karyawan', label: 'Karyawan', path: '/karyawan', icon: <UserCheck size={19} strokeWidth={2.2} /> },
+      { id: 'owner-setting', label: 'Setting', path: '/pengaturan', testId: 'mobile-nav-setting-btn', icon: <Settings size={19} strokeWidth={2.2} /> }
     ],
     mitra: [
-      { id: 'mitra-katalog', label: 'Katalog', path: '/mitra', icon: <Store size={20} strokeWidth={2.2} /> },
-      { id: 'mitra-kasir', label: 'Kasir POS', path: '/kasir', icon: <Receipt size={20} strokeWidth={2.2} /> },
-      { id: 'mitra-meja', label: 'Meja QR', path: '/order', icon: <QrCode size={20} strokeWidth={2.2} /> },
-      { id: 'mitra-omset', label: 'Omset', path: '/keuangan', icon: <DollarSign size={20} strokeWidth={2.2} /> }
+      { id: 'mitra-dashboard', label: 'Dashboard', path: '/kasir?tab=dashboard', testId: 'mobile-nav-mitra-dashboard', icon: <LayoutDashboard size={19} strokeWidth={2.2} /> },
+      { id: 'mitra-dapur', label: 'Dapur', path: '/kasir?tab=kds', testId: 'mobile-nav-mitra-dapur', icon: <Flame size={19} strokeWidth={2.2} /> },
+      { id: 'mitra-kasir', label: 'Kasir', path: '/kasir?tab=pos', testId: 'mobile-nav-mitra-kasir', icon: <ShoppingBag size={19} strokeWidth={2.2} /> },
+      { id: 'mitra-keuangan', label: 'Keuangan', path: '/kasir?tab=settings', testId: 'mobile-nav-mitra-keuangan', icon: <DollarSign size={19} strokeWidth={2.2} /> },
+      { id: 'mitra-setting', label: 'Setting', path: '/pengaturan', testId: 'mobile-nav-setting-btn', icon: <Settings size={19} strokeWidth={2.2} /> }
     ],
     staff: [
-      { id: 'staff-tugas', label: 'Tugas', path: '/dashboard', icon: <Wrench size={20} strokeWidth={2.2} /> },
-      { id: 'staff-meteran', label: 'Meteran', path: '/dashboard', action: 'meteran', icon: <Zap size={20} strokeWidth={2.2} /> },
-      { id: 'staff-inspeksi', label: 'Inspeksi', path: '/dashboard', action: 'inspeksi', icon: <ClipboardCheck size={20} strokeWidth={2.2} /> },
-      { id: 'staff-komplain', label: 'Komplain', path: '/komplain', icon: <AlertCircle size={20} strokeWidth={2.2} /> }
+      { id: 'staff-tugas', label: 'Tugas', path: '/dashboard?tab=tasks', testId: 'mobile-nav-staff-tugas', icon: <Wrench size={19} strokeWidth={2.2} /> },
+      { id: 'staff-meteran', label: 'Meteran', path: '/dashboard?tab=meteran', action: 'meteran', testId: 'mobile-nav-staff-meteran', icon: <Zap size={19} strokeWidth={2.2} /> },
+      { id: 'staff-inspeksi', label: 'Inspeksi', path: '/dashboard?tab=inspeksi', action: 'inspeksi', testId: 'mobile-nav-staff-inspeksi', icon: <ClipboardCheck size={19} strokeWidth={2.2} /> },
+      { id: 'staff-komplain', label: 'Komplain', path: '/komplain', testId: 'mobile-nav-staff-komplain', icon: <AlertCircle size={19} strokeWidth={2.2} /> },
+      { id: 'staff-setting', label: 'Setting', path: '/pengaturan', testId: 'mobile-nav-setting-btn', icon: <Settings size={19} strokeWidth={2.2} /> }
     ]
   };
 
-  // Determine active category directly from authenticated user role (fetched from database)
+  // Separate Kost staff vs Mitra/POS staff directly from user scope
   const getActiveCategory = useCallback(() => {
-    const role = (user?.role || '').toLowerCase();
-    if (role === 'owner' || role === 'master') return 'owner';
-    if (role === 'mitra' || role === 'bisnis' || role === 'merchant') return 'mitra';
-    if (role === 'staff' || role === 'karyawan' || role === 'pegawai') return 'staff';
+    if (isOwnerRole(user?.role)) return 'owner';
+    if (isMitraRole(user?.role) || isMitraStaff(user)) return 'mitra';
+    if (isEmployeeRole(user?.role)) return 'staff';
     return 'user'; // default: Pencari Kost (Anak Kost / Calon Penghuni / Pengunjung)
-  }, [user?.role]);
+  }, [user]);
 
   const activeCategory = getActiveCategory();
   const currentNavItems = CATEGORY_NAV_ITEMS[activeCategory] || CATEGORY_NAV_ITEMS.user;
@@ -122,19 +131,33 @@ export default function MobileBottomNav({ user }) {
   // Compute active tab index within current category
   const getActiveItemIdx = useCallback(() => {
     const p = location.pathname;
+    const tabParam = new URLSearchParams(location.search || '').get('tab');
+    if (p === '/pengaturan' || p === '/setting') {
+      return Math.max(0, currentNavItems.length - 1);
+    }
     if (activeCategory === 'owner') {
       if (p === '/karyawan') return 3;
       if (p === '/keuangan' || p === '/laporan') return 2;
       if (p === '/penghuni') return 1;
-      if (p === '/dashboard' || p === '/pengaturan') return 0;
+      if (p === '/dashboard') return 0;
     } else if (activeCategory === 'mitra') {
       if (p === '/keuangan') return 3;
-      if (p.startsWith('/order') || p.startsWith('/meja')) return 2;
-      if (p.startsWith('/kasir') || p.startsWith('/pos')) return 1;
-      if (p === '/mitra') return 0;
+      if (p === '/mitra' || p.startsWith('/order') || p.startsWith('/meja')) return 4;
+      if (p.startsWith('/kasir') || p.startsWith('/pos')) {
+        if (tabParam === 'settings') return 3;
+        if (tabParam === 'kds') return 1;
+        if (tabParam === 'dashboard') return 0;
+        if (tabParam && tabParam !== 'pos') return 4;
+        return 2;
+      }
+      return 2;
     } else if (activeCategory === 'staff') {
       if (p === '/komplain') return 3;
-      if (p === '/dashboard') return 0;
+      if (p === '/dashboard') {
+        if (tabParam === 'inspeksi' || tabParam === 'rooms') return 2;
+        if (tabParam === 'meteran' || tabParam === 'inputs') return 1;
+        return 0;
+      }
     } else {
       // user (Pencari Kost)
       if (p === '/dashboard') return 3;
@@ -145,7 +168,7 @@ export default function MobileBottomNav({ user }) {
 
     const foundIdx = currentNavItems.findIndex(it => it.path === p);
     return foundIdx >= 0 ? foundIdx : 0;
-  }, [activeCategory, location.pathname, currentNavItems]);
+  }, [activeCategory, location.pathname, location.search, currentNavItems]);
 
   const activeIndex = getActiveItemIdx();
   const [currentIdx, setCurrentIdx] = useState(activeIndex);
@@ -179,22 +202,22 @@ export default function MobileBottomNav({ user }) {
       setIsHopping(false);
     }, 460);
 
-    // If already on path and action specified, scroll or trigger action
+    // Navigate with query tab and smoothly scroll target section into view
     if (item.action === 'meteran') {
-      navigate('/dashboard');
+      navigate('/dashboard?tab=meteran');
       setTimeout(() => {
         const el = document.getElementById('meteran-section') || document.querySelector('[data-section="meteran"]');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
       return;
     }
 
     if (item.action === 'inspeksi') {
-      navigate('/dashboard');
+      navigate('/dashboard?tab=inspeksi');
       setTimeout(() => {
-        const btn = document.querySelector('[data-action="open-inspection"]');
-        if (btn) btn.click();
-      }, 100);
+        const sectionEl = document.getElementById('inspeksi-section');
+        if (sectionEl) sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
       return;
     }
 
@@ -253,7 +276,7 @@ export default function MobileBottomNav({ user }) {
         left: 0,
         right: 0,
         zIndex: 800,
-        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
+        paddingBottom: 0,
         pointerEvents: 'none'
       }}
     >
@@ -264,94 +287,80 @@ export default function MobileBottomNav({ user }) {
           maxWidth: '520px',
           margin: '0 auto',
           pointerEvents: 'auto',
-          filter: 'drop-shadow(0 -8px 24px rgba(0, 0, 0, 0.35))'
+          transform: 'translateZ(0)'
         }}
       >
-        {/* DEDICATED CATEGORY TAB BAR (Exactly 4 items for SVG Floating Notch) */}
+        {/* DEDICATED CATEGORY TAB BAR (5 items including Setting with SVG Floating Notch) */}
         <div
           className="role-nav-bar"
           style={{
             position: 'relative',
-            background: 'var(--bg-glass, rgba(14, 23, 38, 0.95))',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(14, 23, 38, 0.98)',
             borderTop: '1px solid var(--border-color, rgba(255, 255, 255, 0.12))',
-            borderRadius: '24px 24px 0 0',
-            height: '62px',
+            borderRadius: '12px 12px 0 0',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
             overflow: 'visible'
           }}
         >
+          <div style={{ position: 'relative', height: '62px', overflow: 'visible' }}>
           {/* SLIDING NOTCH & FLOATING BALL UNIT */}
           <div
             style={{
               position: 'absolute',
-              top: '-18px',
+              top: '-20px',
               left: 0,
-              width: '25%',
-              height: '80px',
+              width: `${100 / Math.max(1, currentNavItems.length)}%`,
+              height: '82px',
               transform: `translateX(${currentIdx * 100}%)`,
               transition: 'transform 0.44s cubic-bezier(0.34, 1.56, 0.64, 1)',
               pointerEvents: 'none',
               zIndex: 10
             }}
           >
-            {/* Curved Notch Cutout Shape */}
+            {/* Curved Notch Cutout Shape: flush at bar borderTop */}
             <div
               style={{
                 position: 'absolute',
-                top: '17px',
+                top: '19px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: '74px',
-                height: '24px',
+                width: '58px',
+                height: '25px',
                 pointerEvents: 'none',
                 overflow: 'visible'
               }}
             >
               <svg
-                viewBox="0 0 74 24"
+                viewBox="0 0 74 26"
+                preserveAspectRatio="none"
                 style={{
                   width: '100%',
                   height: '100%',
                   display: 'block'
                 }}
               >
-                {/* Physical Notch Fill */}
+                {/* True Sunken U-Notch Crater Fill */}
                 <path
-                  d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0 L 74,24 L 0,24 Z"
-                  fill={isLight ? '#f1f5f9' : 'var(--bg-main, #080d1a)'}
+                  d="M 0,0 C 12,0 16,24 37,24 C 58,24 62,0 74,0 Z"
+                  fill={isLight ? '#f1f5f9' : '#080d1a'}
                 />
                 {/* Notch Rim Border */}
                 <path
-                  d="M 0,0 C 13,0 18,22 37,22 C 56,22 61,0 74,0"
+                  d="M 0,1 C 12,1 16,24 37,24 C 58,24 62,1 74,1"
                   fill="none"
-                  stroke={isLight ? 'rgba(15, 23, 42, 0.12)' : 'var(--border-color, rgba(255, 255, 255, 0.15))'}
+                  stroke={isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.16)'}
                   strokeWidth="1.5"
                 />
                 {/* Concentric Glow Contour (Dynamic Category Color) */}
                 <path
-                  d="M 14,2 C 22,2 27,18 37,18 C 47,18 52,2 60,2"
+                  d="M 14,2 C 21,2 25,20 37,20 C 49,20 53,2 60,2"
                   fill="none"
                   stroke={currentMeta.color}
-                  strokeWidth="2.5"
-                  opacity="0.9"
+                  strokeWidth="2.2"
+                  opacity="0.85"
                 />
               </svg>
 
-              {/* Glowing dot indicator inside notch */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '2px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '4px',
-                  height: '4px',
-                  borderRadius: '50%',
-                  backgroundColor: currentMeta.color,
-                  boxShadow: `0 0 8px ${currentMeta.color}`
-                }}
-              />
             </div>
 
             {/* THE FLOATING BALL (Hopper with Role Gradient) */}
@@ -361,8 +370,8 @@ export default function MobileBottomNav({ user }) {
                 top: '0px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: '48px',
-                height: '48px',
+                width: '40px',
+                height: '40px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -374,12 +383,12 @@ export default function MobileBottomNav({ user }) {
                 key={`ball-${activeCategory}-${currentIdx}`}
                 className={isHopping ? 'notch-ball-hopping' : 'notch-ball-idle'}
                 style={{
-                  width: '48px',
-                  height: '48px',
+                  width: '40px',
+                  height: '40px',
                   borderRadius: '50%',
                   background: currentMeta.activeBg,
                   border: '2.5px solid #ffffff',
-                  boxShadow: `0 8px 24px ${currentMeta.glowColor}, 0 0 16px ${currentMeta.glowColor}`,
+                  boxShadow: `0 6px 18px ${currentMeta.glowColor}, 0 0 12px ${currentMeta.glowColor}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -419,9 +428,11 @@ export default function MobileBottomNav({ user }) {
                 <button
                   type="button"
                   key={item.id}
+                  data-testid={item.testId || `mobile-nav-${item.id}`}
                   onClick={(e) => handleTabClick(e, item, idx)}
                   style={{
                     flex: 1,
+                    minWidth: 0,
                     height: '100%',
                     background: 'transparent',
                     border: 'none',
@@ -429,13 +440,14 @@ export default function MobileBottomNav({ user }) {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-end',
-                    paddingBottom: '8px',
+                    padding: '0 2px 8px',
                     cursor: 'pointer',
                     outline: 'none',
                     position: 'relative',
                     color: active ? currentMeta.color : 'var(--text-secondary, #94a3b8)',
                     transition: 'color 0.2s ease',
-                    WebkitTapHighlightColor: 'transparent'
+                    WebkitTapHighlightColor: 'transparent',
+                    whiteSpace: 'nowrap'
                   }}
                   title={`Menu ${currentMeta.label}: ${item.label}`}
                 >
@@ -471,6 +483,7 @@ export default function MobileBottomNav({ user }) {
                 </button>
               );
             })}
+          </div>
           </div>
         </div>
       </div>

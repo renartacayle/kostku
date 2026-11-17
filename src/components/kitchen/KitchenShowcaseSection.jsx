@@ -82,7 +82,7 @@ export default function KitchenShowcaseSection() {
   return (
     <section style={{
       margin: 'clamp(2.5rem, 5vw, 4.5rem) 0',
-      padding: 'clamp(2rem, 4vw, 3rem) clamp(1rem, 3vw, 2.5rem)',
+      padding: 'clamp(1rem, 3vw, 2.25rem) clamp(0.8rem, 2.5vw, 2rem)',
       background: 'var(--bg-card)',
       border: '1px solid var(--border-color)',
       borderRadius: '28px',
@@ -94,10 +94,10 @@ export default function KitchenShowcaseSection() {
       {/* Decorative ambient subtle glow */}
       <div style={{
         position: 'absolute',
-        top: '-10%',
-        right: '-5%',
-        width: '380px',
-        height: '380px',
+        top: 0,
+        right: 0,
+        width: 'min(360px, 85%)',
+        height: 'min(360px, 85%)',
         background: 'radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 70%)',
         pointerEvents: 'none'
       }} />
@@ -150,18 +150,19 @@ export default function KitchenShowcaseSection() {
       {/* SECTION 1: GRID OF FLOATING NOTCH & FAB FAN */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '2rem',
-        marginBottom: '2rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+        gap: '1.25rem',
+        marginBottom: '1.5rem'
       }}>
         {/* Card 1A: Interactive Floating Notch Tab Bar Simulator */}
         <div style={{
           background: 'var(--bg-primary)',
           border: '1px solid var(--border-color)',
-          borderRadius: '22px',
-          padding: '1.75rem 1.5rem',
+          borderRadius: '18px',
+          padding: 'clamp(1rem, 3vw, 1.5rem)',
           display: 'flex',
           flexDirection: 'column',
+          minWidth: 0,
           boxShadow: 'var(--shadow-sm)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -284,7 +285,7 @@ export default function KitchenShowcaseSection() {
           background: 'var(--bg-primary)',
           border: '1px solid var(--border-color)',
           borderRadius: '22px',
-          padding: '1.75rem 1.5rem',
+          padding: 'clamp(0.95rem, 3vw, 1.5rem)',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'var(--shadow-sm)'
@@ -393,7 +394,7 @@ export default function KitchenShowcaseSection() {
         background: 'var(--bg-primary)',
         border: '1px solid var(--border-color)',
         borderRadius: '22px',
-        padding: '1.75rem 1.5rem',
+        padding: 'clamp(0.95rem, 3vw, 1.5rem)',
         marginBottom: '2rem',
         boxShadow: 'var(--shadow-sm)'
       }}>
@@ -444,19 +445,20 @@ export default function KitchenShowcaseSection() {
       {/* SECTION 3: PHYSICAL RECEIPT PRINTER & TACTILE BUTTONS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '2rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+        gap: '1.25rem',
         alignItems: 'start'
       }}>
         {/* Left Column: Live Receipt Printer */}
         <div style={{
           background: 'var(--bg-primary)',
           border: '1px solid var(--border-color)',
-          borderRadius: '22px',
-          padding: '1.75rem 1.25rem',
+          borderRadius: '18px',
+          padding: 'clamp(1rem, 3vw, 1.5rem)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          minWidth: 0,
           boxShadow: 'var(--shadow-sm)'
         }}>
           <div style={{ width: '100%', marginBottom: '1.25rem', textAlign: 'center' }}>
@@ -478,14 +480,14 @@ export default function KitchenShowcaseSection() {
         </div>
 
         {/* Right Column: Tactile Buttons & Hold-to-Confirm Studies */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
           
           {/* Card: Hold to Confirm */}
           <div style={{
             background: 'var(--bg-primary)',
             border: '1px solid var(--border-color)',
-            borderRadius: '20px',
-            padding: '1.5rem',
+            borderRadius: '18px',
+            padding: 'clamp(1rem, 3vw, 1.4rem)',
             boxShadow: 'var(--shadow-sm)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -538,7 +540,7 @@ export default function KitchenShowcaseSection() {
             background: 'var(--bg-primary)',
             border: '1px solid var(--border-color)',
             borderRadius: '20px',
-            padding: '1.5rem',
+            padding: 'clamp(0.95rem, 3vw, 1.5rem)',
             boxShadow: 'var(--shadow-sm)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -571,7 +573,7 @@ export default function KitchenShowcaseSection() {
             background: 'var(--bg-primary)',
             border: '1px solid var(--border-color)',
             borderRadius: '20px',
-            padding: '1.5rem',
+            padding: 'clamp(0.95rem, 3vw, 1.5rem)',
             boxShadow: 'var(--shadow-sm)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>

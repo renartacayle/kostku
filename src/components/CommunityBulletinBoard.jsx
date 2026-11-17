@@ -258,8 +258,10 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))',
-          gap: '1rem'
+          gridTemplateColumns: isCompact ? 'minmax(0, 1fr)' : 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
+          gap: '0.85rem',
+          width: '100%',
+          minWidth: 0
         }}>
           {filteredPosts.map(post => {
             const catInfo = CATEGORY_MAP[post.category] || CATEGORY_MAP.umum;
@@ -276,11 +278,16 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
                     ? '1.5px solid rgba(56, 189, 248, 0.45)' 
                     : (post.isUrgent ? '1.5px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)'),
                   borderRadius: '16px',
-                  padding: '1.25rem',
+                  padding: 'clamp(0.85rem, 3vw, 1.25rem)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.75rem',
+                  gap: '0.65rem',
                   position: 'relative',
+                  minWidth: 0,
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
                   boxShadow: post.isPinned ? '0 10px 25px -5px rgba(56, 189, 248, 0.15)' : 'none',
                   transition: 'transform 0.2s, box-shadow 0.2s'
                 }}
@@ -360,17 +367,20 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
                 </div>
 
                 {/* Title */}
-                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'white', lineHeight: '1.35' }}>
+                <h4 style={{ margin: 0, fontSize: 'clamp(0.92rem, 3vw, 1.05rem)', fontWeight: 800, color: 'white', lineHeight: '1.35', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                   {post.title}
                 </h4>
 
                 {/* Content */}
                 <p style={{
                   margin: 0,
-                  fontSize: '0.84rem',
+                  fontSize: '0.82rem',
                   color: '#cbd5e1',
                   lineHeight: '1.55',
-                  whiteSpace: 'pre-line'
+                  whiteSpace: 'pre-line',
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  minWidth: 0
                 }}>
                   {post.content}
                 </p>
@@ -383,6 +393,8 @@ export default function CommunityBulletinBoard({ user, kostUid, isCompact = fals
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '6px',
                   fontSize: '0.72rem',
                   color: '#64748b'
                 }}>

@@ -2,10 +2,7 @@ import React from 'react';
 import { Check, X, Image as ImageIcon } from 'lucide-react';
 
 const Verifikasi = () => {
-  const verifikasiList = [
-    { id: 'TRX-001', kamar: '102', nama: 'Budi Santoso', tanggal: '25 Jul 2026', nominal: 'Rp 1.500.000', bank: 'BCA' },
-    { id: 'TRX-002', kamar: '205', nama: 'Siti Aminah', tanggal: '25 Jul 2026', nominal: 'Rp 1.500.000', bank: 'Mandiri' },
-  ];
+  const verifikasiList = [];
 
   return (
     <div className="animate-fade-in">
@@ -15,7 +12,12 @@ const Verifikasi = () => {
       </div>
 
       <div style={{ display: 'grid', gap: '1.5rem' }}>
-        {verifikasiList.map((trx, i) => (
+        {verifikasiList.length === 0 ? (
+          <div className="card glass-panel" style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <ImageIcon size={36} style={{ opacity: 0.4, marginBottom: '0.75rem' }} />
+            <p style={{ margin: 0, fontWeight: 600 }}>Belum ada bukti pembayaran menunggu verifikasi.</p>
+          </div>
+        ) : verifikasiList.map((trx, i) => (
           <div key={i} className="card glass-panel" style={{ display: 'flex', gap: '2rem' }}>
             {/* Bukti TF Mockup */}
             <div style={{ width: '180px', height: '240px', background: 'var(--bg-primary)', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border-color)' }}>

@@ -288,11 +288,12 @@ export default function SpatialBentoShowcase() {
       : MITRA_SLIDES;
   const currentItem = slides[currentSlide] || slides[0];
 
-  // Auto-scroll Timer: advances slide every 5 seconds unless paused
+  // Auto-scroll Timer: advances slide every 5 seconds unless paused or tab hidden
   useEffect(() => {
     if (isPaused) return;
 
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
 

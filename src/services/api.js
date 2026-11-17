@@ -100,7 +100,9 @@ async function request(endpoint, options = {}) {
   }
 
   // Check TTL cache for GET requests if caching enabled
-  const cacheTtlMs = options.cacheTtlMs || (endpoint.startsWith('/public/kosts') ? 15000 : 0);
+  const cacheTtlMs = options.cacheTtlMs !== undefined
+    ? options.cacheTtlMs
+    : (endpoint.startsWith('/public/kosts') ? 15000 : 0);
   if (isGet && cacheTtlMs > 0) {
     const cached = apiReadCache.get(url);
     if (cached && (Date.now() - cached.timestamp < cacheTtlMs)) {
@@ -200,24 +202,31 @@ export const apiLogin = async (loginId, password, extra = {}) => {
     if (err.message && (err.message.includes('405') || err.message.includes('404') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
       console.warn('[apiLogin] Fallback client-side auth triggered:', err.message);
       const cleanId = (loginId || '').trim();
-      const isExplicitOwner = cleanId.toLowerCase() === 'pemilik@kostku.id' || cleanId.toLowerCase().includes('pemilik');
-      const isMitra = cleanId.toLowerCase().includes('mitra');
-      const role = isExplicitOwner ? 'owner' : isMitra ? 'mitra' : 'user';
+      const lowerId = cleanId.toLowerCase();
+      const isDemoLogin = lowerId.endsWith('@kostku.id');
+      if (!isDemoLogin) {
+        throw err;
+      }
+      const isExplicitOwner = lowerId === 'pemilik@kostku.id' || lowerId === 'kostbaru@kostku.id' || lowerId.includes('pemilik');
+      const isMitra = lowerId.includes('mitra');
+      const isStaff = lowerId.includes('staff');
+      const role = isExplicitOwner ? 'owner' : isMitra ? 'mitra' : isStaff ? 'staff' : 'user';
       const user = {
-        id: cleanId.includes('oscar') ? 'usr-oscar' : 'usr-' + Date.now(),
-        name: cleanId.includes('@') ? cleanId.split('@')[0] : (cleanId || 'Oscar Herdian Wijaya'),
-        email: cleanId.includes('@') ? cleanId : `${cleanId || 'oscar'}@kostku.id`,
+        id: lowerId.includes('oscar') ? 'usr-oscar' : 'usr-' + Date.now(),
+        name: cleanId.includes('@') ? cleanId.split('@')[0] : cleanId,
+        email: cleanId,
         role: role,
-        kamar: '122',
-        kostUid: 'KOST-OJN64X',
+        isDemo: true,
+        kamar: lowerId === 'penghuni@kostku.id' ? '101' : '',
+        kostUid: lowerId === 'kostbaru@kostku.id' ? 'KOST-SMG-NEW' : 'KOST-BDG-02',
         loyalty_points: 250,
-        referralCode: 'KOSTKU-8821'
+        referralCode: 'KOSTKU-DEMO'
       };
       return {
         success: true,
         user,
-        kostName: 'KostKu Residence Udinus',
-        message: 'Login berhasil (Edge Fallback)'
+        kostName: lowerId === 'kostbaru@kostku.id' ? 'Kost Harmoni Asri Banyumanik' : 'Kost Putri Griya Asri Dago',
+        message: 'Login demo berhasil (Edge Fallback)'
       };
     }
     throw err;
@@ -254,31 +263,28 @@ export const apiGoogleAuth = async (emailOrPayload, name, role, extra = {}) => {
       }
 
       if (!email) {
-        email = 'oscarwijaya156@gmail.com';
-        userName = 'Oscar Herdian Wijaya';
+        throw err;
       }
 
-      const isOscar = email.toLowerCase().includes('oscar');
-      // Default role is always 'user' (penghuni) unless explicitly requested demo owner
       const finalRole = (payload.role && payload.role !== 'owner') ? payload.role : 'user';
       const user = {
-        id: isOscar ? 'usr-oscar' : 'usr-' + Date.now(),
-        name: userName || (isOscar ? 'Oscar Herdian Wijaya' : email.split('@')[0]),
+        id: 'usr-' + Date.now(),
+        name: userName || email.split('@')[0],
         email: email,
         picture: picture || null,
         role: finalRole,
-        kamar: '122',
-        kostUid: 'KOST-OJN64X',
-        loyalty_points: 250,
+        kamar: '',
+        kostUid: '',
+        loyalty_points: 0,
         authProvider: 'google',
-        referralCode: 'KOSTKU-8821'
+        referralCode: ''
       };
 
       return {
         success: true,
         user,
-        kostName: 'KostKu Residence Udinus',
-        message: 'Berhasil masuk dengan akun Google (Edge Fallback)'
+        kostName: '',
+        message: 'Berhasil masuk dengan akun Google'
       };
     }
     throw err;
@@ -338,9 +344,10 @@ export const apiUpdateProfile = (profileData) => {
 export const apiGetUserProfile = (userId) => request(`/users/${userId}`);
 
 // ── Public Marketplace Endpoints ────────────────────────────
-export const apiGetPublicKosts = async () => {
+export const apiGetPublicKosts = async (options = {}) => {
   try {
-    const data = await request('/public/kosts');
+    const qs = options?.includeDemo ? '?includeDemo=true' : '';
+    const data = await request(`/public/kosts${qs}`, options?.noCache ? { cacheTtlMs: 0 } : {});
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.kosts)) return data.kosts;
   } catch (err) {
@@ -354,6 +361,17 @@ export const apiApplyKost = (data) => {
     method: 'POST',
     body: JSON.stringify(data)
   });
+};
+
+export const apiReportKost = (kostUid, data) => {
+  return request(`/kosts/${encodeURIComponent(kostUid)}/report`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiGetKostPublicStatus = (kostUid) => {
+  return request(`/kosts/${encodeURIComponent(kostUid)}/status`);
 };
 
 // ── Application Approval Endpoints ──────────────────────────
@@ -548,6 +566,13 @@ export const apiUpdateStaff = (id, data) => {
   return request(`/owner/staff/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data)
+  });
+};
+
+export const apiUpdateStaffAccessRole = (id, role, actorId = null) => {
+  return request(`/owner/staff/${id}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role, ...(actorId ? { actorId } : {}) })
   });
 };
 
@@ -861,6 +886,25 @@ export const apiCreateInspection = (data) => {
   });
 };
 
+export const apiRequestTenantCheckout = (userId, data) => {
+  return request(`/tenants/${userId}/request-checkout`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiProcessTenantCheckout = (userId, data) => {
+  return request(`/tenants/${userId}/checkout`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const apiGetDepositRefunds = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return request(`/deposit-refunds${query ? `?${query}` : ''}`);
+};
+
 // ── Token Listrik PLN (TriPay PPOB & Payment Gateway) ──────────
 export const apiInquiryPln = (meterNumber) => {
   return request('/electricity/inquiry', {
@@ -1130,23 +1174,14 @@ export const apiCreateMerchant = async (data) => {
           bonusAwarded = false;
           responseMsg = 'Mitra ini sudah pernah didaftarkan sebelumnya. Data mitra disimpan, tetapi bonus extra poin referral tidak dapat diklaim ulang (hanya berlaku 1x per mitra baru).';
         } else {
-          bonusAwarded = true;
-          bonusPoints = 500;
-          responseMsg = `Selamat! Mitra baru berhasil didaftarkan dan bonus referral +${bonusPoints} Poin berhasil diklaim! (Kode: ${refCode})`;
+          bonusAwarded = false;
+          bonusPoints = 0;
+          responseMsg = `Mitra disimpan dalam mode offline (Kode referral ${refCode} hanya diverifikasi & dicairkan oleh server online agar bebas penyalahgunaan).`;
           history.push(normKey);
           localStorage.setItem('kostku_registered_partners', JSON.stringify(history));
-
-          try {
-            const userStr = localStorage.getItem('kostUser');
-            if (userStr) {
-              const u = JSON.parse(userStr);
-              u.loyalty_points = (u.loyalty_points || 0) + bonusPoints;
-              localStorage.setItem('kostUser', JSON.stringify(u));
-            }
-          } catch (_) {}
         }
       } else {
-        responseMsg = 'Mitra berhasil didaftarkan. Gunakan kode referral untuk mengaktifkan bonus poin.';
+        responseMsg = 'Mitra berhasil didaftarkan. Gunakan kode referral teman saat server terhubung untuk mengaktifkan bonus poin.';
       }
 
       const newMerchant = {
@@ -1187,6 +1222,10 @@ export const apiSuggestMerchant = async (data) => {
   const refCode = (data.referralCode || '').trim().toUpperCase();
   const normKey = `${name.toLowerCase()}_${phone}`;
 
+  if (!refCode) {
+    throw new Error('Kode Referral wajib diisi untuk mengusulkan warung sekitar (anti-abuse).');
+  }
+
   let history = [];
   try { history = JSON.parse(localStorage.getItem('kostku_registered_partners') || '[]'); } catch (_) {}
   const isAlreadyRegistered = history.includes(normKey);
@@ -1194,61 +1233,42 @@ export const apiSuggestMerchant = async (data) => {
   try {
     const res = await request('/merchants/suggest', {
       method: 'POST',
-      body: JSON.stringify({ ...data, isAlreadyRegisteredClient: isAlreadyRegistered })
+      body: JSON.stringify({ ...data, referralCode: refCode, isAlreadyRegisteredClient: isAlreadyRegistered })
     });
-
-    if (isAlreadyRegistered && res?.bonusAwarded) {
-      res.bonusAwarded = false;
-      res.bonusPoints = 0;
-      res.isAlreadyRegistered = true;
-      res.message = 'Usulan warung diterima. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.';
-    } else if (res?.bonusAwarded && !history.includes(normKey)) {
-      history.push(normKey);
-      try { localStorage.setItem('kostku_registered_partners', JSON.stringify(history)); } catch (_) {}
-    }
     return res;
   } catch (err) {
     if (err.message && (err.message.includes('405') || err.message.includes('404') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
       console.warn('[apiSuggestMerchant] Fallback client-side suggest triggered:', err.message);
 
-      let bonusAwarded = false;
-      let bonusPoints = 0;
-      let responseMsg = '';
-
-      if (refCode) {
-        if (isAlreadyRegistered) {
-          bonusAwarded = false;
-          responseMsg = 'Usulan warung diterima. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.';
-        } else {
-          bonusAwarded = true;
-          bonusPoints = 500;
-          responseMsg = `Usulan warung "${name}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
-          history.push(normKey);
-          localStorage.setItem('kostku_registered_partners', JSON.stringify(history));
-
-          try {
-            const userStr = localStorage.getItem('kostUser');
-            if (userStr) {
-              const u = JSON.parse(userStr);
-              u.loyalty_points = (u.loyalty_points || 0) + bonusPoints;
-              localStorage.setItem('kostUser', JSON.stringify(u));
-            }
-          } catch (_) {}
-        }
-      } else {
-        responseMsg = `Usulan warung "${name}" berhasil dikirim. Gunakan kode referral untuk mendapatkan bonus poin.`;
+      if (isAlreadyRegistered) {
+        return {
+          success: true,
+          status: 'already_registered',
+          bonusAwarded: false,
+          bonusPoints: 0,
+          isAlreadyRegistered: true,
+          message: 'Warung ini sudah pernah diusulkan/didaftarkan sebelumnya.'
+        };
       }
 
       return {
         success: true,
-        bonusAwarded,
-        bonusPoints,
-        isAlreadyRegistered,
-        message: responseMsg
+        status: 'pending_registration',
+        bonusAwarded: false,
+        bonusPoints: 0,
+        isAlreadyRegistered: false,
+        message: `Usulan warung "${name}" dicatat dengan kode ${refCode} (0 Poin instan). Bonus +500 Poin cair saat pemilik warung resmi mendaftar memakai kode tersebut.`
       };
     }
     throw err;
   }
+};
+
+export const apiClaimFriendReferral = (data) => {
+  return request('/referrals/claim-friend', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
 };
 
 export const apiUpdateMerchant = (id, data) => {

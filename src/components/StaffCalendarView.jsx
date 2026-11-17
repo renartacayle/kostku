@@ -670,20 +670,25 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
       {/* Calendar Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        gap: '6px',
-        position: 'relative'
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+        gap: 'clamp(3px, 1vw, 6px)',
+        position: 'relative',
+        width: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box'
       }}>
         {/* Day Name Headers */}
         {DAYS_HEADER.map((dayName, idx) => (
           <div key={idx} style={{
             textAlign: 'center',
-            fontSize: '0.78rem',
+            fontSize: 'clamp(0.62rem, 2vw, 0.78rem)',
             fontWeight: 700,
             color: idx >= 5 ? '#f87171' : '#94a3b8',
-            padding: '6px 0',
+            padding: '4px 0',
             textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            letterSpacing: '0.02em',
+            minWidth: 0,
+            overflow: 'hidden'
           }}>
             {dayName}
           </div>
@@ -741,16 +746,16 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
               }}
             >
               {/* Date Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2px' }}>
                 <span style={{
-                  fontSize: '0.82rem',
+                  fontSize: 'clamp(0.7rem, 2.2vw, 0.82rem)',
                   fontWeight: isToday ? 800 : 600,
                   color: isToday ? '#38bdf8' : cell.isCurrentMonth ? 'white' : 'var(--text-muted)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: isToday ? '22px' : 'auto',
-                  height: isToday ? '22px' : 'auto',
+                  width: isToday ? '20px' : 'auto',
+                  height: isToday ? '20px' : 'auto',
                   borderRadius: isToday ? '50%' : '0',
                   background: isToday ? 'rgba(56, 189, 248, 0.2)' : 'transparent'
                 }}>
@@ -758,7 +763,7 @@ export default function StaffCalendarView({ staff, user, onStaffUpdated }) {
                 </span>
 
                 {isToday && (
-                  <span style={{ fontSize: '0.62rem', color: '#38bdf8', fontWeight: 700 }}>HARI INI</span>
+                  <span style={{ fontSize: 'clamp(0.45rem, 1.35vw, 0.62rem)', color: '#38bdf8', fontWeight: 700, lineHeight: 1.05, maxWidth: '100%' }}>HARI INI</span>
                 )}
               </div>
 

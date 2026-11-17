@@ -63,7 +63,8 @@ export default function AutoUpdateModal() {
       const endpoint = base.endsWith('/api') ? `${base}/app-version` : `${base}/api/app-version`;
       
       const res = await fetch(`${endpoint}?t=${Date.now()}`, {
-        headers: { 'Accept': 'application/json' }
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }
       });
 
       if (!res.ok) {
@@ -75,7 +76,8 @@ export default function AutoUpdateModal() {
       const data = await res.json();
       
       // Strict semantic version comparison (never false-positive when remote <= local)
-      const hasUpdate = (data.buildNumber && data.buildNumber > APP_BUILD_NUMBER) || 
+      const remoteBuild = Number(data.buildNumber) || 0;
+      const hasUpdate = (remoteBuild > 0 && remoteBuild > APP_BUILD_NUMBER) || 
                         isNewerVersion(data.version, APP_VERSION);
 
       if (hasUpdate) {
@@ -83,6 +85,20 @@ export default function AutoUpdateModal() {
         if (!isManual && (window.location.pathname.startsWith('/kasir') || window.location.pathname.startsWith('/pos') || window.location.pathname.startsWith('/order'))) {
           window.dispatchEvent(new CustomEvent('kostku_checking_update_end'));
           return;
+        }
+
+        // Cooldown guard if the user just clicked "Perbarui Sekarang" for this same version
+        if (!isManual && data.version) {
+          try {
+            const ackRaw = localStorage.getItem('kostku_update_reload_ack');
+            if (ackRaw) {
+              const ack = JSON.parse(ackRaw);
+              if (ack && String(ack.version) === String(data.version) && Date.now() - Number(ack.ts || 0) < 5 * 60 * 1000) {
+                window.dispatchEvent(new CustomEvent('kostku_checking_update_end'));
+                return;
+              }
+            }
+          } catch {}
         }
 
         // Check 24-hour snooze persistence for non-manual checks
@@ -144,6 +160,14 @@ export default function AutoUpdateModal() {
   const handleWebReload = async () => {
     setUpdating(true);
     try {
+      if (updateInfo?.version) {
+        localStorage.setItem('kostku_update_reload_ack', JSON.stringify({
+          version: String(updateInfo.version),
+          ts: Date.now()
+        }));
+      }
+    } catch {}
+    try {
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const reg of registrations) {
@@ -158,8 +182,8 @@ export default function AutoUpdateModal() {
     } catch (err) {
       console.warn('Error clearing caches:', err);
     }
-    // Hard reload with cache-busting timestamp
-    window.location.href = window.location.origin + window.location.pathname + '?reload=' + Date.now();
+    // Hard reload cleanly without accumulating ?reload query params
+    window.location.replace(window.location.origin + window.location.pathname);
   };
 
   return (

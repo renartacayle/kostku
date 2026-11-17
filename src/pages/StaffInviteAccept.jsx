@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { apiGetPublicStaffInvite, apiAcceptStaffInvite } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { getStaffDefaultPath, isMitraStaff } from '../utils/staffRole';
 
 const formatCurrency = (amount) => {
   const val = Number(amount || 0);
@@ -68,9 +69,9 @@ export default function StaffInviteAccept({ activeUser, onLogin }) {
           setLoadError('Data undangan karyawan tidak ditemukan.');
         } else {
           setInvite(inv);
-          setName(inv.suggestedName || '');
-          setEmail(inv.email || '');
-          setPhone(inv.phone || '');
+          setName(inv.suggestedName || activeUser?.name || '');
+          setEmail(inv.email || activeUser?.email || '');
+          setPhone(inv.phone || activeUser?.phone || '');
         }
       } catch (err) {
         if (!active) return;
@@ -107,12 +108,17 @@ export default function StaffInviteAccept({ activeUser, onLogin }) {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
-        password: password.trim() || undefined
+        password: password.trim() || undefined,
+        existingUserId: activeUser?.id || undefined
       });
       setAcceptedResult(res);
-      // Automatically log in the employee when opened from a signed-out session
-      if (!activeUser && typeof onLogin === 'function' && res?.user) {
-        onLogin(res);
+      // Selalu perbarui sesi aktif menjadi Karyawan ('staff') saat menerima link kerja
+      if (typeof onLogin === 'function' && res?.user) {
+        try {
+          localStorage.setItem('kostUser', JSON.stringify(res.user));
+          if (res.kostName) localStorage.setItem('kostName', res.kostName);
+        } catch (_) {}
+        onLogin(res.user, res.kostName);
       }
     } catch (err) {
       setSubmitError(err?.message || 'Gagal menerima undangan karyawan.');
@@ -287,9 +293,9 @@ export default function StaffInviteAccept({ activeUser, onLogin }) {
                   type="button"
                   onClick={() => {
                     if (typeof onLogin === 'function' && acceptedResult.user) {
-                      onLogin(acceptedResult);
+                      onLogin(acceptedResult.user, acceptedResult.kostName);
                     }
-                    navigate('/dashboard');
+                    navigate(getStaffDefaultPath(acceptedResult.user));
                   }}
                   style={{
                     width: '100%',
@@ -307,10 +313,10 @@ export default function StaffInviteAccept({ activeUser, onLogin }) {
                     gap: '8px'
                   }}
                 >
-                  Masuk ke Portal Karyawan Sekarang <ArrowRight size={16} />
+                  {isMitraStaff(acceptedResult.user) ? 'Masuk ke Kasir POS Sekarang' : 'Masuk ke Portal Karyawan Sekarang'} <ArrowRight size={16} />
                 </button>
 
-                {activeUser && (activeUser.role === 'owner' || activeUser.role === 'master') && (
+                {activeUser && ['owner', 'mitra', 'master', 'admin'].includes(activeUser.role) && String(activeUser.id) === String(invite?.ownerId || '') && (
                   <button
                     type="button"
                     onClick={() => navigate('/karyawan')}

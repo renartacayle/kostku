@@ -28,6 +28,11 @@ const ROUTE_SEO = {
     description: 'Daftarkan bisnis warung makan, air minum galon, jasa laundry, atau servis di platform KostKu untuk menjangkau ribuan penghuni kos.',
     canonical: 'https://kostku.riuph.me/mitra'
   },
+  '/utilitas': {
+    title: 'Token Listrik PLN & Tagihan Air PDAM - KostKu',
+    description: 'Beli token listrik PLN prabayar 24 jam dan cek atau bayar tagihan air PDAM resmi 30+ kota secara instan via QRIS Realtime di KostKu.',
+    canonical: 'https://kostku.riuph.me/utilitas'
+  },
   '/login': {
     title: 'Masuk Akun Pengelola & Penghuni - KostKu',
     description: 'Login ke dashboard manajemen properti kos atau akun mitra UMKM KostKu.',

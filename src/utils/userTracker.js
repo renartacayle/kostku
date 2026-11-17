@@ -350,29 +350,33 @@ const handleMouseMoveThrottled = throttle((e) => {
  * Handle Scroll Depth Tracking
  */
 const handleScrollThrottled = throttle(() => {
-  const docH = document.documentElement.scrollHeight - window.innerHeight;
-  if (docH <= 0) return;
-  const currentScroll = window.scrollY || document.documentElement.scrollTop;
-  const pct = Math.min(100, Math.round((currentScroll / docH) * 100));
+  if (typeof window === 'undefined' || state._scrollRaf) return;
+  state._scrollRaf = requestAnimationFrame(() => {
+    state._scrollRaf = null;
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    if (docH <= 0) return;
+    const currentScroll = window.scrollY || document.documentElement.scrollTop;
+    const pct = Math.min(100, Math.round((currentScroll / docH) * 100));
 
-  if (pct > state.scrollDepthMax) {
-    state.scrollDepthMax = pct;
+    if (pct > state.scrollDepthMax) {
+      state.scrollDepthMax = pct;
 
-    // Google Analytics milestones
-    const milestones = [25, 50, 75, 90, 100];
-    for (const m of milestones) {
-      if (pct >= m && !state[`milestone_${m}`]) {
-        state[`milestone_${m}`] = true;
-        if (typeof window.gtag === 'function') {
-          window.gtag('event', 'scroll_depth', {
-            event_category: 'User Engagement',
-            depth_percent: m
-          });
+      // Google Analytics milestones
+      const milestones = [25, 50, 75, 90, 100];
+      for (const m of milestones) {
+        if (pct >= m && !state[`milestone_${m}`]) {
+          state[`milestone_${m}`] = true;
+          if (typeof window.gtag === 'function') {
+            window.gtag('event', 'scroll_depth', {
+              event_category: 'User Engagement',
+              depth_percent: m
+            });
+          }
         }
       }
     }
-  }
-}, 250);
+  });
+}, 350);
 
 /**
  * Explicit helper to register custom user action (e.g. from filter modals or search bars)
@@ -421,21 +425,16 @@ export function initUserTracker() {
   }
   window.__KOSTKU_TRACKER_INITIALIZED__ = true;
 
-  // Attach global DOM listeners
-  window.addEventListener('mousemove', handleMouseMoveThrottled, { passive: true });
-  window.addEventListener('click', handlePointerClick, { capture: true, passive: true });
-  window.addEventListener('mouseover', handlePointerOver, { passive: true });
-  window.addEventListener('mouseout', handlePointerOut, { passive: true });
-  window.addEventListener('scroll', handleScrollThrottled, { passive: true });
+  const isTouchOnly = Boolean(window.matchMedia && window.matchMedia('(hover: none)').matches);
 
-  // Touch fallback for mobile
-  window.addEventListener('touchstart', (e) => {
-    handlePointerClick(e);
-    handlePointerOver(e);
-  }, { passive: true });
-  window.addEventListener('touchend', (e) => {
-    handlePointerOut(e);
-  }, { passive: true });
+  // Attach global DOM listeners (skip pointer-hover & mousemove listeners on touch-only devices)
+  if (!isTouchOnly) {
+    window.addEventListener('mousemove', handleMouseMoveThrottled, { passive: true });
+    window.addEventListener('mouseover', handlePointerOver, { passive: true });
+    window.addEventListener('mouseout', handlePointerOut, { passive: true });
+  }
+  window.addEventListener('click', handlePointerClick, { capture: true, passive: true });
+  window.addEventListener('scroll', handleScrollThrottled, { passive: true });
 
   // Register Google Chrome DevTools Console Commands
   window.kostkuPreferences = function() {

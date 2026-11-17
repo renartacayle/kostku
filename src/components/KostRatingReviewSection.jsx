@@ -155,7 +155,7 @@ export default function KostRatingReviewSection({ kostUid, kostName, currentUser
       id="reviews-section" 
       className="card glass-panel" 
       style={{ 
-        padding: '1.75rem', 
+        padding: 'clamp(0.95rem, 3vw, 1.5rem)', 
         borderRadius: '20px',
         background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.4)',
         border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
@@ -217,17 +217,17 @@ export default function KostRatingReviewSection({ kostUid, kostName, currentUser
         border: isLight ? '1.5px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
         boxShadow: isLight ? '0 2px 12px rgba(15, 23, 42, 0.04)' : 'none',
         borderRadius: '18px',
-        padding: '1.5rem',
+        padding: 'clamp(0.95rem, 3vw, 1.5rem)',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: '24px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+        gap: 'clamp(14px, 3vw, 24px)',
         alignItems: 'center',
-        marginBottom: '1.75rem'
+        marginBottom: '1.5rem'
       }}>
         
         {/* Overall Score Box */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', borderRight: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '1rem' }}>
-          <div style={{ fontSize: '3.4rem', fontWeight: 900, color: isLight ? '#d97706' : '#facc15', lineHeight: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '0 0.5rem' }}>
+          <div style={{ fontSize: 'clamp(1.45rem, 5.5vw, 3rem)', fontWeight: 900, color: isLight ? '#d97706' : '#facc15', lineHeight: 1 }}>
             {reviewsData.averageRating > 0 ? reviewsData.averageRating.toFixed(1) : '5.0'}
           </div>
           <div style={{ display: 'flex', gap: '3px', margin: '8px 0 6px 0' }}>

@@ -304,22 +304,22 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
         flexWrap: 'wrap',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '1rem',
+        gap: '0.75rem',
         background: isLight ? 'var(--card-bg)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-        padding: '1.25rem 1.5rem',
+        padding: 'clamp(0.9rem, 3vw, 1.25rem) clamp(0.95rem, 3vw, 1.5rem)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-color)',
         boxShadow: isLight ? 'var(--shadow-sm)' : 'none'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0, fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: 800 }}>
               Pengaturan Akun
             </h1>
             <span style={{
               background: isLight ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.15)',
               color: isLight ? '#2563eb' : '#93c5fd',
-              fontSize: '0.75rem',
+              fontSize: '0.72rem',
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: '8px',
@@ -328,7 +328,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
               {user?.role === 'owner' ? 'Mode Pemilik Kost' : user?.role === 'mitra' ? 'Mode Mitra UMKM' : user?.role === 'staff' ? 'Mode Staf Kost' : 'Mode Anak Kost'}
             </span>
           </div>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
             Kelola profil akun, kontak, ubah kata sandi, dan keamanan sesi akun Anda
           </p>
         </div>
@@ -337,34 +337,38 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
       {/* Tabs Navigation */}
       <div style={{
         display: 'flex',
-        gap: '8px',
+        flexWrap: 'wrap',
+        gap: '6px',
         background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.6)',
-        padding: '6px',
-        borderRadius: '16px',
-        border: '1px solid var(--border-color)'
+        padding: '5px',
+        borderRadius: '14px',
+        border: '1px solid var(--border-color)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <button
           type="button"
           onClick={() => handleTabChange('profil')}
           style={{
-            flex: 1,
-            padding: '10px 16px',
-            borderRadius: '12px',
+            flex: '1 1 95px',
+            padding: '8px 10px',
+            borderRadius: '10px',
             background: activeTab === 'profil' ? 'var(--accent-gradient)' : 'transparent',
             color: activeTab === 'profil' ? 'white' : (isLight ? '#475569' : 'var(--text-secondary)'),
             fontWeight: 700,
-            fontSize: '0.9rem',
+            fontSize: 'clamp(0.74rem, 2.5vw, 0.88rem)',
             border: activeTab === 'profil' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
+            gap: '6px',
+            minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.2s',
             boxShadow: activeTab === 'profil' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none'
           }}
         >
-          <User size={16} />
+          <User size={15} style={{ flexShrink: 0 }} />
           <span>Profil Akun</span>
         </button>
 
@@ -373,49 +377,51 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
           data-testid="tab-tema"
           onClick={() => handleTabChange('tema')}
           style={{
-            flex: 1,
-            padding: '10px 16px',
-            borderRadius: '12px',
+            flex: '1 1 115px',
+            padding: '8px 10px',
+            borderRadius: '10px',
             background: activeTab === 'tema' ? 'var(--accent-gradient)' : 'transparent',
             color: activeTab === 'tema' ? 'white' : (isLight ? '#475569' : 'var(--text-secondary)'),
             fontWeight: 700,
-            fontSize: '0.9rem',
+            fontSize: 'clamp(0.74rem, 2.5vw, 0.88rem)',
             border: activeTab === 'tema' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
+            gap: '6px',
+            minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.2s',
             boxShadow: activeTab === 'tema' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none'
           }}
         >
-          {isLight ? <Sun size={16} /> : <Moon size={16} />}
-          <span>Tema & Tampilan</span>
+          {isLight ? <Sun size={15} style={{ flexShrink: 0 }} /> : <Moon size={15} style={{ flexShrink: 0 }} />}
+          <span>Tema &amp; Tampilan</span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange('keamanan')}
           style={{
-            flex: 1,
-            padding: '10px 16px',
-            borderRadius: '12px',
+            flex: '1 1 105px',
+            padding: '8px 10px',
+            borderRadius: '10px',
             background: activeTab === 'keamanan' ? 'var(--accent-gradient)' : 'transparent',
             color: activeTab === 'keamanan' ? 'white' : (isLight ? '#475569' : 'var(--text-secondary)'),
             fontWeight: 700,
-            fontSize: '0.9rem',
+            fontSize: 'clamp(0.74rem, 2.5vw, 0.88rem)',
             border: activeTab === 'keamanan' ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
+            gap: '6px',
+            minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.2s',
             boxShadow: activeTab === 'keamanan' ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none'
           }}
         >
-          <Shield size={16} />
+          <Shield size={15} style={{ flexShrink: 0 }} />
           <span>Keamanan Sesi</span>
         </button>
       </div>
@@ -1058,7 +1064,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
                 className="btn btn-primary"
                 style={{ 
                   gap: '8px', 
-                  padding: '11px 26px', 
+                  padding: '10px 18px', 
                   borderRadius: '10px',
                   background: saveSuccess 
                     ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' 
@@ -1177,7 +1183,7 @@ const Pengaturan = ({ user, onUpdateUser, onLogout }) => {
           </div>
 
           {/* Theme Option Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '12px' }}>
             {/* Dark Mode Card */}
             <div
               data-testid="choose-theme-dark"

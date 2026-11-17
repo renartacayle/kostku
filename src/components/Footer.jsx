@@ -22,7 +22,7 @@ export default function Footer() {
       style={{
         borderTop: `1px solid ${borderColor}`,
         background: isLight ? '#f8fafc' : 'rgba(8, 13, 26, 0.95)',
-        padding: '2rem 1.25rem calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+        padding: 'clamp(1.25rem, 3.5vw, 2rem) clamp(0.85rem, 3vw, 1.25rem) calc(5.25rem + env(safe-area-inset-bottom, 0px))',
         fontSize: '0.82rem',
         color: mutedColor,
         position: 'relative',

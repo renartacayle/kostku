@@ -36,7 +36,7 @@ import {
   apiSimulateQrisScan,
   apiMutateWallet
 } from '../services/api';
-import { generateQrisDataUrl, getGatewayConfig, saveGatewayConfig } from '../utils/qrisEngine';
+import { generateQrisDataUrl, getGatewayConfig, saveGatewayConfig, calculateQrisCustomerFee } from '../utils/qrisEngine';
 import { useTheme } from '../context/ThemeContext';
 import { triggerCometArc } from '../utils/cometArc';
 import { checkDeliveryHoursActive, calculateDeliveryFee } from '../utils/deliveryUtils';
@@ -234,13 +234,25 @@ const PartnerOrderModal = ({
     service?.deliveryEndTime || '21:00'
   );
 
-  // Biaya Layanan: Flat KostKu Rp 500 (Biaya extra owner kost ke mitra dihapus, diganti reward poin +100 Poin)
+  // Biaya Layanan: Flat KostKu Rp 500 + Biaya QRIS TriPay (Rp 750 + 0,70%) bila bayar via QRIS Platform
+  const isMerchantOffline = service?.kasirOnline === false || service?.isOnline === false;
+  const isServiceTier2 = Boolean(
+    service?.billingTier === 'TIER_2_LOYALTY' ||
+    service?.loyaltyPoolId ||
+    service?.loyalty_pool_id ||
+    service?.canRedeemPoints
+  );
   const platformFee = 500; // Flat Rp 500 KostKu
   const ownerMarkupFee = 0; // Biaya extra owner dihapus
   const ownerCommission = 0;
-  const totalAdminFee = platformFee; // Hanya flat Rp 500 KostKu
-  const pointsDiscount = usePointsDiscount ? Math.min(userLoyaltyPoints, 100) : 0;
-  const grandTotal = Math.max(0, effectiveSubtotal + totalAdminFee + deliveryFee - pointsDiscount);
+  const pointsDiscount = (isServiceTier2 && usePointsDiscount) ? Math.min(userLoyaltyPoints, 100) : 0;
+  const baseBeforeQrisFee = Math.max(0, effectiveSubtotal + platformFee + deliveryFee - pointsDiscount);
+  const qrisCustomerFeeCalc = paymentMethod === 'qris'
+    ? calculateQrisCustomerFee(baseBeforeQrisFee, 'customer')
+    : { fee: 0, totalWithFee: baseBeforeQrisFee };
+  const qrisFee = qrisCustomerFeeCalc.fee;
+  const totalAdminFee = platformFee + qrisFee;
+  const grandTotal = qrisCustomerFeeCalc.totalWithFee;
   const slaMinutes = slaInitialMinutes;
 
   const mutateUnifiedWallet = (method, subtotalAmt, markupAmt) => {
@@ -337,6 +349,7 @@ const PartnerOrderModal = ({
   }, [isOpen, showQrisScreen, qrisData?.orderId, isSuccess, submitting]);
 
   const executeFinalOrder = async (orderIdOverride = null, methodOverride = null) => {
+    if (isMerchantOffline) return;
     setSubmitting(true);
     const activeMethod = methodOverride || paymentMethod;
     try {
@@ -346,11 +359,11 @@ const PartnerOrderModal = ({
 
       const payload = {
         id: orderIdOverride || `TKT-ORD-${Date.now()}`,
-        kostUid: kost?.uid || user?.kostUid || 'KOST-OJN64X',
+        kostUid: kost?.uid || user?.kostUid || '',
         userId: user?.id || user?.uid || 'GUEST',
         userName: customerName.trim() || 'Penghuni Kost',
         userPhone: customerPhone.trim() || '-',
-        roomNumber: roomNumber.trim() || user?.kamar || '122',
+        roomNumber: roomNumber.trim() || user?.kamar || '-',
         merchantId: service?.id || null,
         merchantName: service?.name || service?.title || 'Mitra UMKM',
         serviceName: service?.title || service?.name || 'Pesanan Layanan',
@@ -531,6 +544,7 @@ const PartnerOrderModal = ({
   };
 
   const handleProceedOrder = async () => {
+    if (isMerchantOffline) return;
     if (paymentMethod === 'qris' && !showQrisScreen) {
       // Step to show dynamic QRIS Payment Screen
       setShowQrisScreen(true);
@@ -1178,6 +1192,32 @@ const PartnerOrderModal = ({
         ) : (
           /* SCREEN 3: PRODUCT CATALOGUE & NON-COD PAYMENT CHOOSER */
           <form onSubmit={e => { e.preventDefault(); handleProceedOrder(); }}>
+            {isMerchantOffline && (
+              <div
+                data-testid="partner-offline-view-only-banner"
+                style={{
+                  background: isLight ? '#f1f5f9' : 'rgba(148, 163, 184, 0.14)',
+                  border: `1.5px solid ${isLight ? '#cbd5e1' : 'rgba(148, 163, 184, 0.35)'}`,
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '9px'
+                }}
+              >
+                <AlertTriangle size={18} color={isLight ? '#475569' : '#cbd5e1'} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isLight ? '#334155' : '#e2e8f0' }}>
+                    Kasir Toko Sedang Offline — Hanya Lihat Menu
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', marginTop: '2px' }}>
+                    Anda bisa melihat daftar menu dan harga yang tersedia, namun pemesanan baru dapat dilakukan saat kasir toko online di web.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Promo Banner Toko Baru (Masa Inkubasi) */}
             {Boolean(service?.isNewcomer || service?.isNew) && (
               <div style={{
@@ -1670,7 +1710,7 @@ const PartnerOrderModal = ({
                         </span>
                       </div>
                       <span style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                        Scan via BCA, GoPay, OVO, ShopeePay, Dana. Tanpa uang kembalian.
+                        Scan via BCA, GoPay, OVO, ShopeePay, Dana • Biaya QRIS TriPay Rp 750 + 0,70% ditanggung customer.
                       </span>
                     </div>
                   </div>
@@ -2023,28 +2063,40 @@ const PartnerOrderModal = ({
                 {friendReferralCode ? `Kode referral "${friendReferralCode}" aktif: Kamu dapat +100 Poin, Pemilik Kode ("orangnya") dapat 1/2 dari pembeli = +50 Poin.` : 'Copas kode referral teman per transaksi jika ingin mengklaim bonus poin bersama.'}
               </div>
 
-              {/* Checkbox Tukar Poin Diskon */}
-              {userLoyaltyPoints >= 100 && (
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '0.7rem',
-                  color: isLight ? '#334155' : '#cbd5e1',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  marginTop: '3px'
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={usePointsDiscount}
-                    onChange={e => setUsePointsDiscount(e.target.checked)}
-                    style={{ accentColor: '#f59e0b', width: '13px', height: '13px' }}
-                  />
-                  <span>
-                    Gunakan <strong>100 Poin</strong> untuk potong harga <strong>-Rp 100</strong>
-                  </span>
-                </label>
+              {/* Checkbox Tukar Poin Diskon (Khusus Toko Tier 2 Loyalty Pool) */}
+              {isServiceTier2 ? (
+                userLoyaltyPoints >= 100 && (
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.7rem',
+                    color: isLight ? '#334155' : '#cbd5e1',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    marginTop: '3px'
+                  }}>
+                    <input
+                      data-testid="partner-use-points-checkbox"
+                      type="checkbox"
+                      checked={usePointsDiscount}
+                      onChange={e => setUsePointsDiscount(e.target.checked)}
+                      style={{ accentColor: '#f59e0b', width: '13px', height: '13px' }}
+                    />
+                    <span>
+                      Gunakan <strong>100 Poin</strong> untuk potong harga <strong>-Rp 100</strong>
+                    </span>
+                  </label>
+                )
+              ) : (
+                userLoyaltyPoints >= 100 && (
+                  <div
+                    data-testid="partner-points-tier1-disabled"
+                    style={{ fontSize: '0.66rem', color: isLight ? '#92400e' : '#fbbf24', marginTop: '3px' }}
+                  >
+                    Tukar poin tidak tersedia — toko belum tergabung di Loyalty Pool (Tier 2).
+                  </div>
+                )
               )}
 
               {/* Proteksi Mitra UMKM Notice */}
@@ -2086,13 +2138,22 @@ const PartnerOrderModal = ({
                   <span style={{ color: isLight ? '#b45309' : '#fbbf24', fontWeight: 600 }}>Ambil Sendiri di Ruko (Bebas Ongkir)</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: isLight ? '#64748b' : '#94a3b8' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: isLight ? '#64748b' : '#94a3b8' }}>
                 <div>
-                  <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>Biaya Layanan & Admin</span>
+                  <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>Biaya Layanan Platform KostKu</span>
                   <div style={{ fontSize: '0.67rem', color: isLight ? '#94a3b8' : '#64748b' }}>Flat KostKu Rp 500 (Bebas Biaya Extra Owner)</div>
                 </div>
-                <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Rp {totalAdminFee.toLocaleString('id-ID')}</span>
+                <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Rp {platformFee.toLocaleString('id-ID')}</span>
               </div>
+              {paymentMethod === 'qris' && qrisFee > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  <div>
+                    <span style={{ color: isLight ? '#0f172a' : '#f8fafc', fontWeight: 600 }}>Biaya QRIS TriPay</span>
+                    <div style={{ fontSize: '0.67rem', color: isLight ? '#94a3b8' : '#64748b' }}>Rp 750 + 0,70% (Dibebankan ke Customer)</div>
+                  </div>
+                  <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>Rp {qrisFee.toLocaleString('id-ID')}</span>
+                </div>
+              )}
               {pointsDiscount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 600 }}>
                   <span>Diskon Poin Referral</span>
@@ -2112,15 +2173,18 @@ const PartnerOrderModal = ({
                 <span style={{ color: isLight ? '#15803d' : '#4ade80' }}>Rp {grandTotal.toLocaleString('id-ID')}</span>
               </div>
               <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '6px', textAlign: 'center' }}>
-                Admin Fee Transparan: Flat KostKu Rp 500 & Admin Pengelola disatukan • Tanpa Biaya Tersembunyi
+                {paymentMethod === 'qris'
+                  ? 'Biaya Platform KostKu Rp 500 + Biaya QRIS TriPay Rp 750 + 0,70% ditanggung customer secara transparan'
+                  : 'Admin Fee Transparan: Flat KostKu Rp 500 & Admin Pengelola disatukan • Tanpa Biaya Tersembunyi'}
               </div>
             </div>
 
             {/* ACTION BUTTON */}
             <button
               data-cart-target="partner-checkout-btn"
+              data-testid="partner-checkout-submit"
               type="submit"
-              disabled={submitting}
+              disabled={isMerchantOffline || submitting}
               className="btn btn-primary"
               style={{
                 width: '100%',
@@ -2130,10 +2194,19 @@ const PartnerOrderModal = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                ...(isMerchantOffline ? {
+                  background: isLight ? '#cbd5e1' : '#334155',
+                  color: isLight ? '#475569' : '#94a3b8',
+                  borderColor: 'transparent',
+                  cursor: 'not-allowed',
+                  boxShadow: 'none'
+                } : {})
               }}
             >
-              {paymentMethod === 'qris' ? (
+              {isMerchantOffline ? (
+                <span>Kasir Sedang Offline (Cuma Lihat Menu)</span>
+              ) : paymentMethod === 'qris' ? (
                 <>
                   <QrCode size={18} />
                   <span>Lanjut Bayar via QRIS Platform (Rp {grandTotal.toLocaleString('id-ID')})</span>

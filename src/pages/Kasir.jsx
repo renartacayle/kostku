@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Utensils,
   ChefHat,
@@ -75,12 +75,15 @@ import {
   ChevronUp,
   Navigation,
   Eye,
-  Beaker
+  Beaker,
+  Phone
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import QRCode from 'qrcode';
 import { useTheme } from '../context/ThemeContext';
 import { triggerCometArc } from '../utils/cometArc';
+import { parseCustomerQrOrPhone, encodeCustomerPersonalQrPayload } from '../utils/customerQr';
+import { isMitraRole, isMitraStaff } from '../utils/staffRole';
 import {
   getSavedPrinterSettings,
   savePrinterSettings,
@@ -104,15 +107,28 @@ import {
   apiGetOwnerStaff,
   apiGetPosConsolidatedSummary,
   apiLookupPoolCustomer,
-  apiPreviewPoolCheckout
+  apiPreviewPoolCheckout,
+  apiCreateMerchant,
+  apiSuggestMerchant
 } from '../services/api';
 import KasirAnalyticsModal from '../components/kasir/KasirAnalyticsModal';
 import KasirInventoryModal from '../components/kasir/KasirInventoryModal';
 import ActionTutorialBadge from '../components/kasir/ActionTutorialBadge';
 import LoyaltyPoolsPanel from '../components/kasir/LoyaltyPoolsPanel';
 import DemandForecastPanel from '../components/kasir/DemandForecastPanel';
+import UmkmOnboardingGate from '../components/kasir/UmkmOnboardingGate';
+import { extractCoordsFromMapsUrl } from '../utils/geoUtils';
+import { compressImageFile, getDefaultPhotoForCategory } from '../utils/imageUtils';
+import { calculateQrisCustomerFee } from '../utils/qrisEngine';
 import StaffManagementCard from '../components/StaffManagementCard';
 import StaffCalendarView from '../components/StaffCalendarView';
+import {
+  StoreClosingSettingsCard,
+  ClosingShiftPhotoCaptureSection,
+  ShiftHistoryPhotoGalleryCard,
+  normalizeClosingShiftSettings,
+  validateClosingShiftPhotos
+} from '../components/kasir/ClosingShiftPhotoTools';
 
 // ── DEFAULT PRODUCTS & ASSET HELPERS (OFFLINE-FIRST RESILIENCE) ──
 const DEFAULT_FALLBACK_PRODUCTS = [
@@ -168,68 +184,25 @@ const DEFAULT_FALLBACK_PRODUCTS = [
   }
 ];
 
-const getDefaultPhotoForCategory = (cat = 'Makanan') => {
-  const c = String(cat || '').toLowerCase();
-  if (c.includes('minum') || c.includes('kopi') || c.includes('teh') || c.includes('jus')) {
-    return 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80';
-  }
-  if (c.includes('snack') || c.includes('camilan') || c.includes('gorengan')) {
-    return 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=500&q=80';
-  }
-  return 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80';
-};
-
-const compressImageFile = (file, maxWidth = 640, maxHeight = 640, quality = 0.72) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl);
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-};
-
 /** Resolve canonical merchant/account ID so owner and all their staff share isolated POS catalog & categories. */
 const resolveKasirAccountId = (userProp, storeObj) => {
   let currentUser = userProp;
   if (!currentUser) {
     try {
-      const stored = localStorage.getItem('user');
+      const stored = localStorage.getItem('kostUser') || localStorage.getItem('user');
       if (stored) currentUser = JSON.parse(stored);
     } catch (_) {}
   }
+  if (['staff', 'admin', 'karyawan'].includes(String(currentUser?.role || '').toLowerCase())) {
+    const staffOwner = currentUser.ownerId || currentUser.ownerUid || currentUser.employerId;
+    if (staffOwner) return String(staffOwner);
+  }
   const accId =
+    currentUser?.id ||
+    currentUser?.uid ||
     currentUser?.ownerId ||
     currentUser?.ownerUid ||
     currentUser?.employerId ||
-    currentUser?.id ||
-    currentUser?.uid ||
     storeObj?.merchantId ||
     'default_account';
   return String(accId);
@@ -256,23 +229,40 @@ const parseJsonIfOk = async (res) => {
 /** Format an integer/numeric value cleanly in Indonesian Rupiah. */
 const formatRupiah = (amount) => `Rp ${Number(amount || 0).toLocaleString('id-ID')}`;
 
-export default function Kasir({ user }) {
+export default function Kasir({ user, onLogout }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLight, toggleTheme } = useTheme();
+  const isDirectMitraNav = isMitraRole(user?.role) || isMitraStaff(user);
 
   // Dompet Terpadu (Unified Wallet Kasir POS & Mitra UMKM - 1 UID)
   const [walletData, setWalletData] = useState(null);
 
-  // Navigation tab: 'pos' (Kasir Meja - Default) | 'kds' (Dapur) | 'tables' (Meja & QR) | 'settings' (TriPay & Sistem)
+  // Navigation tab: 'pos' (Kasir Meja - Default) | 'closing' (Tutup Shift & Foto) | 'kds' (Dapur) | 'tables' (Meja & QR) | 'settings' (TriPay & Sistem)
   const [activeTab, setActiveTab] = useState(() => {
     try {
       const qTab = new URLSearchParams(window.location.search).get('tab');
+      if (qTab === 'pln' || qTab === 'pdam' || qTab === 'utilitas' || qTab === 'kelola') return 'pos';
       return qTab || 'pos';
     } catch (_) {
       return 'pos';
     }
   });
   const [isAlertDismissed, setIsAlertDismissed] = useState(false);
+
+  const isDefaultTenantUser = Boolean(
+    user &&
+    user.id &&
+    (!user.role || ['user', 'penghuni', 'tenant'].includes(String(user.role).toLowerCase()))
+  );
+
+  const isDemoKasir = Boolean(
+    user?.isDemo ||
+    (typeof window !== 'undefined' && (
+      localStorage.getItem('kostku_is_demo_mode') === 'true' ||
+      String(user?.email || '').toLowerCase().endsWith('@kostku.id')
+    ))
+  );
 
   // Data States
   const [orders, setOrders] = useState([]);
@@ -284,6 +274,7 @@ export default function Kasir({ user }) {
         const parsed = JSON.parse(scopedSaved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
+      if (isDefaultTenantUser) return [];
       const saved = localStorage.getItem('kostku_pos_products');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -292,7 +283,7 @@ export default function Kasir({ user }) {
         }
       }
     } catch (_) {}
-    return DEFAULT_FALLBACK_PRODUCTS;
+    return (!isDefaultTenantUser && isDemoKasir) ? DEFAULT_FALLBACK_PRODUCTS : [];
   });
   const [tables, setTables] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -307,7 +298,29 @@ export default function Kasir({ user }) {
   const [posSearchQuery, setPosSearchQuery] = useState('');
   const [showMobileCartDrawer, setShowMobileCartDrawer] = useState(false);
   const [showToolsDrawer, setShowToolsDrawer] = useState(false);
-  const [showMobileMenuHub, setShowMobileMenuHub] = useState(false); // Mobile 5-Slot Bottom Nav Menu Sheet
+  const [showMobileMenuHub, setShowMobileMenuHub] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('tab') === 'kelola';
+    } catch (_) {
+      return false;
+    }
+  }); // Mobile 5-Slot Bottom Nav Menu Sheet
+
+  useEffect(() => {
+    try {
+      const qTab = new URLSearchParams(location.search || '').get('tab');
+      if (!qTab) return;
+      if (qTab === 'kelola') {
+        setShowMobileMenuHub(true);
+      } else if (qTab === 'pln' || qTab === 'pdam' || qTab === 'utilitas') {
+        setShowMobileMenuHub(false);
+        setActiveTab('pos');
+      } else {
+        setShowMobileMenuHub(false);
+        setActiveTab(qTab);
+      }
+    } catch (_) {}
+  }, [location.search]);
   // POS Catalog View Mode: 'grid' (2 Kolom Kartu) vs 'list' (List Ramping Cepat)
   const [posViewMode, setPosViewMode] = useState('grid');
   // Multi-Payment & Cash Register State
@@ -333,25 +346,57 @@ export default function Kasir({ user }) {
   const [posCheckoutFeedback, setPosCheckoutFeedback] = useState(null);
   const [confirmClearCart, setConfirmClearCart] = useState(false);
   const [loyaltySubTab, setLoyaltySubTab] = useState('pools'); // 'pools' | 'stamps'
+  const [autoClaimPhoneOnPay, setAutoClaimPhoneOnPay] = useState(true);
+  const [receiptClaimPhone, setReceiptClaimPhone] = useState('');
+  const [receiptClaimLoading, setReceiptClaimLoading] = useState(false);
+  const [receiptClaimResult, setReceiptClaimResult] = useState(null);
+  const [showCashierClaimModal, setShowCashierClaimModal] = useState(false);
+  const [cashierClaimPhone, setCashierClaimPhone] = useState('');
+  const [cashierClaimToken, setCashierClaimToken] = useState('');
+  const [cashierClaimUnclaimed, setCashierClaimUnclaimed] = useState([]);
+  const [cashierClaimLoading, setCashierClaimLoading] = useState(false);
+  const [cashierClaimFeedback, setCashierClaimFeedback] = useState(null);
+  const [cashierModalMode, setCashierModalMode] = useState('claim'); // 'claim' | 'redeem'
+  const [cashierLookupData, setCashierLookupData] = useState(null);
+  const [cashierLookupLoading, setCashierLookupLoading] = useState(false);
+  const [cartCustomerProfile, setCartCustomerProfile] = useState(null);
+  const [showKasirQrScanModal, setShowKasirQrScanModal] = useState(false);
+  const [kasirQrScanTarget, setKasirQrScanTarget] = useState('cart'); // 'cart' | 'claimModal' | 'receiptModal'
+  const [kasirQrScanManual, setKasirQrScanManual] = useState('');
+  const [kasirQrScanError, setKasirQrScanError] = useState('');
+  const [kasirCameraStatus, setKasirCameraStatus] = useState('idle');
+  const kasirScanVideoRef = useRef(null);
+  const kasirScanStreamRef = useRef(null);
+  const kasirScanTimerRef = useRef(null);
 
   // Store Location & Validity State (Validasi Toko Resmi)
+  const [checkingStoreRegistration, setCheckingStoreRegistration] = useState(() =>
+    Boolean(user?.id && !isDemoKasir && !user?.merchantId && !user?.umkmRegistered)
+  );
+  const [needsUmkmRegistration, setNeedsUmkmRegistration] = useState(false);
+  const [kasirWebOnline, setKasirWebOnline] = useState(false);
   const [storeInfo, setStoreInfo] = useState({
     storeName: '',
     location: '',
     address: '',
     city: '',
     phone: '',
+    photo: '',
+    branchCount: 1,
     isValidated: false,
     merchantId: '',
     uid: '',
-    saldoNota: 5000,
-    kuotaNota: 200,
+    saldoNota: 0,
+    kuotaNota: 0,
     loyaltyPoolId: null,
     loyaltyPoolName: null,
     billingTier: 'TIER_1_FLAT',
     notaFeePerNotaIdr: 25,
+    notaFeeBearer: 'store',
     notaHistory: [],
-    allOwnerStores: []
+    allOwnerStores: [],
+    storeMode: 'mitra',
+    kasirOnly: false
   });
   const [showPosTopupModal, setShowPosTopupModal] = useState(false);
   const [posTopupAmount, setPosTopupAmount] = useState(10000);
@@ -371,6 +416,7 @@ export default function Kasir({ user }) {
   const [selectedTableReceiptKey, setSelectedTableReceiptKey] = useState(null);
   const [selectedTableOrderId, setSelectedTableOrderId] = useState(null);
   const [keuanganSubTab, setKeuanganSubTab] = useState('overview'); // 'overview' | 'analytics'
+  const [savingFeeBearer, setSavingFeeBearer] = useState(false);
   const [storeForm, setStoreForm] = useState({
     storeName: '',
     location: '',
@@ -379,11 +425,40 @@ export default function Kasir({ user }) {
     phone: '',
     mapsUrl: '',
     latitude: '',
-    longitude: ''
+    longitude: '',
+    storeMode: 'mitra'
   });
   const [savingStore, setSavingStore] = useState(false);
+  const [resolvingGmapsLink, setResolvingGmapsLink] = useState(false);
   const [storeSaveMsg, setStoreSaveMsg] = useState('');
   const [storeSwitchMsg, setStoreSwitchMsg] = useState('');
+  const [savingStoreMode, setSavingStoreMode] = useState(false);
+  const [mitraSectionFocus] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('section') || 'mode';
+    } catch (_) {
+      return 'mode';
+    }
+  });
+  const [mitraForm, setMitraForm] = useState({
+    name: '',
+    category: 'Warung Makan & Kuliner',
+    phone: '',
+    address: '',
+    referralCode: '',
+    storeMode: 'mitra'
+  });
+  const [mitraSubmitting, setMitraSubmitting] = useState(false);
+  const [mitraFeedback, setMitraFeedback] = useState(null);
+  const [suggestWarungForm, setSuggestWarungForm] = useState({
+    name: '',
+    category: 'makanan',
+    phone: '',
+    note: '',
+    referralCode: user?.referralCode || ''
+  });
+  const [suggestWarungSubmitting, setSuggestWarungSubmitting] = useState(false);
+  const [suggestWarungFeedback, setSuggestWarungFeedback] = useState(null);
   const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
   const [creatingStore, setCreatingStore] = useState(false);
   const [createStoreError, setCreateStoreError] = useState('');
@@ -396,9 +471,12 @@ export default function Kasir({ user }) {
     city: '',
     phone: '',
     mapsUrl: '',
+    storeMode: 'mitra',
     cloneMenu: true,
     sourceStoreId: ''
   });
+
+  const activeStoreMode = 'mitra';
 
   const isErrorFeedback = (msg) => {
     const txt = String(msg || '');
@@ -408,13 +486,23 @@ export default function Kasir({ user }) {
   const resolveGoogleMapsEmbedUrl = (src = {}) => {
     const lat = src.latitude !== undefined && src.latitude !== null && String(src.latitude).trim() !== '' ? Number(src.latitude) : null;
     const lng = src.longitude !== undefined && src.longitude !== null && String(src.longitude).trim() !== '' ? Number(src.longitude) : null;
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== null && lng !== null) {
       return `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
     }
-    const rawUrl = String(src.mapsUrl || '').trim();
-    const coordMatch = rawUrl.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) || rawUrl.match(/[?&](?:q|query)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
-    if (coordMatch) {
-      return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&z=16&output=embed`;
+    const parsedUrl = extractCoordsFromMapsUrl(src.mapsUrl);
+    if (Number.isFinite(parsedUrl.lat) && Number.isFinite(parsedUrl.lng) && parsedUrl.lat !== null && parsedUrl.lng !== null) {
+      return `https://maps.google.com/maps?q=${parsedUrl.lat},${parsedUrl.lng}&z=16&output=embed`;
+    }
+    if (parsedUrl.placeName) {
+      return `https://maps.google.com/maps?q=${encodeURIComponent(parsedUrl.placeName)}&z=16&output=embed`;
+    }
+    const rawMaps = String(src.mapsUrl || '').trim();
+    const qMatch = rawMaps.match(/[?&](?:q|query)=([^&]+)/i);
+    if (qMatch?.[1]) {
+      try {
+        const decodedQ = decodeURIComponent(qMatch[1].replace(/\+/g, ' ')).trim();
+        if (decodedQ) return `https://maps.google.com/maps?q=${encodeURIComponent(decodedQ)}&z=16&output=embed`;
+      } catch (_) {}
     }
     const queryStr = [src.storeName, src.address, src.city || 'Semarang'].filter(Boolean).join(', ');
     return `https://maps.google.com/maps?q=${encodeURIComponent(queryStr || 'Semarang, Indonesia')}&z=15&output=embed`;
@@ -616,24 +704,23 @@ export default function Kasir({ user }) {
   const [inventoryList, setInventoryList] = useState(() => {
     try {
       const saved = localStorage.getItem('kostku_pos_inventory');
-      return saved ? JSON.parse(saved) : DEFAULT_INITIAL_INVENTORY;
-    } catch {
-      return DEFAULT_INITIAL_INVENTORY;
-    }
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return isDemoKasir ? DEFAULT_INITIAL_INVENTORY : [];
   });
   const [inventoryAlerts, setInventoryAlerts] = useState(() => {
     try {
       const saved = localStorage.getItem('kostku_pos_inventory');
-      const list = saved ? JSON.parse(saved) : DEFAULT_INITIAL_INVENTORY;
+      const list = saved ? JSON.parse(saved) : (isDemoKasir ? DEFAULT_INITIAL_INVENTORY : []);
       return list.filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0));
     } catch {
-      return DEFAULT_INITIAL_INVENTORY.filter(i => i.currentStock <= i.minAlertStock);
+      return [];
     }
   });
   const [loadingInventory, setLoadingInventory] = useState(false);
-  const [recipesList, setRecipesList] = useState(DEFAULT_INITIAL_RECIPES);
+  const [recipesList, setRecipesList] = useState(() => (isDemoKasir ? DEFAULT_INITIAL_RECIPES : []));
   const [loadingRecipes, setLoadingRecipes] = useState(false);
-  const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(DEFAULT_INITIAL_RECIPES[0]);
+  const [selectedRecipeProduct, setSelectedRecipeProduct] = useState(() => (isDemoKasir ? DEFAULT_INITIAL_RECIPES[0] : null));
 
   // Restock Cepat State
   const [showRestockModal, setShowRestockModal] = useState(false);
@@ -674,8 +761,8 @@ export default function Kasir({ user }) {
     return {
       isOpen: true,
       openedAt: new Date().setHours(8, 0, 0, 0),
-      cashierName: user?.name || 'Kasir 1',
-      initialFloat: 200000,
+      cashierName: user?.name || 'Kasir',
+      initialFloat: 0,
       cashIns: [], // [{ id, time, amount, note }]
       cashOuts: [], // [{ id, time, amount, note }]
       closedAt: null,
@@ -690,7 +777,6 @@ export default function Kasir({ user }) {
   }, [cashierShift]);
 
   const [showShiftOpeningModal, setShowShiftOpeningModal] = useState(false);
-  const [showShiftClosingModal, setShowShiftClosingModal] = useState(false);
   const [showPettyCashModal, setShowPettyCashModal] = useState(false);
   const [pettyCashType, setPettyCashType] = useState('OUT'); // 'IN' | 'OUT'
   const [pettyCashAmount, setPettyCashAmount] = useState('');
@@ -700,6 +786,18 @@ export default function Kasir({ user }) {
   const [closingActualCash, setClosingActualCash] = useState('');
   const [closingNote, setClosingNote] = useState('');
   const [closingFeedback, setClosingFeedback] = useState('');
+  const [closingPhotoRecaps, setClosingPhotoRecaps] = useState([]);
+  const [closingModalError, setClosingModalError] = useState('');
+  const [closingSubmitting, setClosingSubmitting] = useState(false);
+
+  const openClosingShiftPage = () => {
+    setClosingActualCash('');
+    setClosingNote('');
+    setClosingPhotoRecaps([]);
+    setClosingModalError('');
+    setActiveTab('closing');
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [shiftHistory, setShiftHistory] = useState(() => {
     try {
       const saved = localStorage.getItem('kostku_shift_history');
@@ -708,6 +806,81 @@ export default function Kasir({ user }) {
       return [];
     }
   });
+
+  // Swipeable combined revenue KPI card state (0 = Pendapatan Harian, 1 = Pendapatan Bulanan, 2 = Pendapatan Tahunan)
+  const [revenueCardIndex, setRevenueCardIndex] = useState(0);
+  const [revenueSwipeDelta, setRevenueSwipeDelta] = useState(0);
+  const [isRevenueSwiping, setIsRevenueSwiping] = useState(false);
+  const revenueTouchStartX = useRef(0);
+  const revenueTouchStartY = useRef(0);
+  const revenueTouchActive = useRef(false);
+  const revenueAxisLock = useRef(null); // 'horizontal' | 'vertical' | null
+
+  const handleRevenueSwipeStart = (clientX, clientY) => {
+    revenueTouchStartX.current = clientX;
+    revenueTouchStartY.current = clientY;
+    revenueTouchActive.current = true;
+    revenueAxisLock.current = null;
+    setIsRevenueSwiping(false);
+    setRevenueSwipeDelta(0);
+  };
+
+  const handleRevenueSwipeMove = (clientX, clientY) => {
+    if (!revenueTouchActive.current) return;
+    const dx = clientX - revenueTouchStartX.current;
+    const dy = clientY - revenueTouchStartY.current;
+    if (!revenueAxisLock.current && (Math.abs(dx) > 7 || Math.abs(dy) > 7)) {
+      revenueAxisLock.current = Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
+      if (revenueAxisLock.current === 'horizontal') {
+        setIsRevenueSwiping(true);
+      }
+    }
+    if (revenueAxisLock.current === 'horizontal') {
+      const atLeftEdge = revenueCardIndex === 0 && dx > 0;
+      const atRightEdge = revenueCardIndex >= 2 && dx < 0;
+      const damped = (atLeftEdge || atRightEdge)
+        ? dx * 0.28
+        : Math.max(-140, Math.min(140, dx));
+      setRevenueSwipeDelta(damped);
+    }
+  };
+
+  const handleRevenueSwipeEnd = (clientX) => {
+    if (!revenueTouchActive.current) return;
+    const dx = clientX - revenueTouchStartX.current;
+    if (revenueAxisLock.current !== 'vertical') {
+      if (dx < -38 && revenueCardIndex < 2) {
+        setRevenueCardIndex(prev => Math.min(2, prev + 1));
+      } else if (dx > 38 && revenueCardIndex > 0) {
+        setRevenueCardIndex(prev => Math.max(0, prev - 1));
+      }
+    }
+    revenueTouchActive.current = false;
+    revenueAxisLock.current = null;
+    setIsRevenueSwiping(false);
+    setRevenueSwipeDelta(0);
+  };
+
+  // Play add-to-cart comet + cart boing animation at most ONCE per session
+  const hasPlayedPosAddAnimRef = useRef((() => {
+    try {
+      return sessionStorage.getItem('kostku_pos_add_arc_done') === '1';
+    } catch (_) {
+      return false;
+    }
+  })());
+
+  const playPosAddArcOnce = (startEl) => {
+    if (hasPlayedPosAddAnimRef.current) return false;
+    hasPlayedPosAddAnimRef.current = true;
+    try {
+      sessionStorage.setItem('kostku_pos_add_arc_done', '1');
+    } catch (_) {}
+    if (!startEl) return false;
+    const targetEl = document.querySelector('[data-cart-target="pos-cart-summary"]');
+    triggerCometArc({ startEl, targetEl, color: '#2563eb', duration: 420 });
+    return true;
+  };
 
   // Direct quantity selector per product before adding to posCart (auto reset to 1 after add)
   const [posCardQtys, setPosCardQtys] = useState({});
@@ -941,7 +1114,7 @@ export default function Kasir({ user }) {
       } catch (lsErr) {
         console.warn('LocalStorage save warning:', lsErr);
       }
-      setPosCategory(targetCategory);
+      setPosCategory(prev => (prev === 'Semua' || prev === targetCategory ? prev : 'Semua'));
       setActiveTab('pos');
       try { playChime(880, 0.1); } catch (_) {}
 
@@ -1032,6 +1205,7 @@ export default function Kasir({ user }) {
   // ── STORE LOCATION HANDLERS (VALIDASI TOKO WAJIB & MULTI-STORE) ──
   const handleSaveStore = async (e) => {
     if (e) e.preventDefault();
+    const currentMode = 'mitra';
     const payload = {
       merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
       ownerUserId: user?.id || user?.uid || effectiveAccountId,
@@ -1042,7 +1216,10 @@ export default function Kasir({ user }) {
       phone: (storeForm.phone ?? storeInfo.phone ?? '').trim(),
       mapsUrl: (storeForm.mapsUrl ?? storeInfo.mapsUrl ?? '').trim(),
       latitude: storeForm.latitude !== '' && storeForm.latitude !== null && storeForm.latitude !== undefined ? Number(storeForm.latitude) : null,
-      longitude: storeForm.longitude !== '' && storeForm.longitude !== null && storeForm.longitude !== undefined ? Number(storeForm.longitude) : null
+      longitude: storeForm.longitude !== '' && storeForm.longitude !== null && storeForm.longitude !== undefined ? Number(storeForm.longitude) : null,
+      storeMode: currentMode,
+      kasirOnly: false,
+      joinMitra: true
     };
 
     if (!payload.storeName) {
@@ -1066,7 +1243,7 @@ export default function Kasir({ user }) {
       if (!res.ok) throw new Error(data?.error || 'Gagal menyimpan lokasi toko');
 
       if (data?.store) {
-        setStoreInfo(prev => ({ ...prev, ...data.store }));
+        setStoreInfo(prev => ({ ...prev, ...data.store, storeMode: 'mitra', kasirOnly: false, isMitra: true }));
         setStoreForm({
           storeName: data.store.storeName || payload.storeName,
           location: data.store.location || payload.location,
@@ -1075,7 +1252,8 @@ export default function Kasir({ user }) {
           phone: data.store.phone || payload.phone,
           mapsUrl: data.store.mapsUrl || payload.mapsUrl || '',
           latitude: data.store.latitude ?? payload.latitude ?? '',
-          longitude: data.store.longitude ?? payload.longitude ?? ''
+          longitude: data.store.longitude ?? payload.longitude ?? '',
+          storeMode: 'mitra'
         });
       }
       setStoreSaveMsg('Lokasi, Google Maps, dan identitas toko kasir berhasil divalidasi resmi!');
@@ -1089,6 +1267,134 @@ export default function Kasir({ user }) {
     }
   };
 
+  /** Syncs storeForm coordinates immediately when user pastes or edits a Google Maps link. */
+  const handleMapsUrlInputChange = (rawUrl) => {
+    const nextUrl = String(rawUrl ?? '');
+    const parsed = extractCoordsFromMapsUrl(nextUrl);
+    const hasPlaceOrQuery = Boolean(parsed.placeName) || /[?&](?:q|query)=/i.test(nextUrl);
+
+    setStoreForm(prev => {
+      if (Number.isFinite(parsed.lat) && Number.isFinite(parsed.lng) && parsed.lat !== null && parsed.lng !== null) {
+        return {
+          ...prev,
+          mapsUrl: nextUrl,
+          latitude: String(parsed.lat),
+          longitude: String(parsed.lng)
+        };
+      }
+      if (hasPlaceOrQuery || parsed.isShortLink) {
+        return {
+          ...prev,
+          mapsUrl: nextUrl,
+          latitude: '',
+          longitude: ''
+        };
+      }
+      return {
+        ...prev,
+        mapsUrl: nextUrl
+      };
+    });
+  };
+
+  /** Applies (and optionally resolves short links) & saves the Google Maps link directly from Peta Lokasi Toko. */
+  const handleApplyGoogleMapsLink = async (overrideUrl) => {
+    const targetUrl = String(overrideUrl !== undefined ? overrideUrl : (storeForm.mapsUrl || '')).trim();
+    if (!targetUrl) {
+      setStoreSaveMsg('Gagal: Tempel link Google Maps terlebih dahulu.');
+      return;
+    }
+
+    try {
+      setResolvingGmapsLink(true);
+      setStoreSaveMsg('');
+
+      let parsed = extractCoordsFromMapsUrl(targetUrl);
+      let finalUrl = targetUrl;
+
+      if ((parsed.lat === null || parsed.lng === null) && (parsed.isShortLink || parsed.isGoogleMapsUrl || parsed.placeName)) {
+        const resResolve = await fetch('/api/pos/resolve-gmaps-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: targetUrl })
+        });
+        const resolvedData = await parseJsonIfOk(resResolve);
+        if (resResolve.ok && resolvedData) {
+          if (resolvedData.resolvedUrl) finalUrl = resolvedData.resolvedUrl;
+          if (Number.isFinite(resolvedData.lat) && resolvedData.lat !== null && Number.isFinite(resolvedData.lng) && resolvedData.lng !== null) {
+            parsed = {
+              ...parsed,
+              lat: Number(resolvedData.lat),
+              lng: Number(resolvedData.lng),
+              placeName: resolvedData.placeName || parsed.placeName
+            };
+          } else if (resolvedData.placeName) {
+            parsed = { ...parsed, placeName: resolvedData.placeName };
+          }
+        }
+      }
+
+      const nextLatStr = Number.isFinite(parsed.lat) && parsed.lat !== null ? String(parsed.lat) : '';
+      const nextLngStr = Number.isFinite(parsed.lng) && parsed.lng !== null ? String(parsed.lng) : '';
+
+      setStoreForm(prev => ({
+        ...prev,
+        mapsUrl: finalUrl,
+        latitude: nextLatStr,
+        longitude: nextLngStr
+      }));
+
+      const nextStoreName = (storeForm.storeName ?? storeInfo.storeName ?? '').trim();
+      const nextLocation = (storeForm.location ?? storeInfo.location ?? '').trim();
+
+      if (nextStoreName && nextLocation) {
+        const saveRes = await fetch('/api/pos/store', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
+            ownerUserId: user?.id || user?.uid || effectiveAccountId,
+            storeName: nextStoreName,
+            location: nextLocation,
+            address: (storeForm.address ?? storeInfo.address ?? '').trim(),
+            city: (storeForm.city ?? storeInfo.city ?? '').trim(),
+            phone: (storeForm.phone ?? storeInfo.phone ?? '').trim(),
+            mapsUrl: finalUrl,
+            latitude: nextLatStr !== '' ? Number(nextLatStr) : null,
+            longitude: nextLngStr !== '' ? Number(nextLngStr) : null,
+            storeMode: 'mitra',
+            kasirOnly: false,
+            joinMitra: true
+          })
+        });
+        const saveData = await parseJsonIfOk(saveRes);
+        if (!saveRes.ok) throw new Error(saveData?.error || 'Gagal memperbarui peta lokasi toko');
+        if (saveData?.store) {
+          setStoreInfo(prev => ({ ...prev, ...saveData.store }));
+          setStoreForm(prev => ({
+            ...prev,
+            mapsUrl: saveData.store.mapsUrl || finalUrl,
+            latitude: saveData.store.latitude ?? nextLatStr,
+            longitude: saveData.store.longitude ?? nextLngStr
+          }));
+        }
+        setStoreSaveMsg(
+          nextLatStr && nextLngStr
+            ? `Peta Lokasi Toko berhasil diperbarui ke koordinat (${nextLatStr}, ${nextLngStr}).`
+            : 'Peta Lokasi Toko berhasil diperbarui dari link Google Maps!'
+        );
+        setTimeout(() => setStoreSaveMsg(''), 4000);
+        try { playChime(880, 0.08); } catch (_) {}
+      } else {
+        setStoreSaveMsg('Link Google Maps diterapkan ke pratinjau peta. Lengkapi nama toko & posisi stand lalu klik Simpan.');
+      }
+    } catch (err) {
+      setStoreSaveMsg(`Gagal menerapkan link Google Maps: ${err.message}`);
+    } finally {
+      setResolvingGmapsLink(false);
+    }
+  };
+
   const handleOpenCreateStoreModal = () => {
     setCreateStoreError('');
     setCreateStoreForm({
@@ -1099,6 +1405,7 @@ export default function Kasir({ user }) {
       city: storeInfo.city || '',
       phone: storeInfo.phone || '',
       mapsUrl: '',
+      storeMode: 'mitra',
       cloneMenu: true,
       sourceStoreId: storeInfo.merchantId || storeInfo.allOwnerStores?.[0]?.id || ''
     });
@@ -1120,6 +1427,7 @@ export default function Kasir({ user }) {
     try {
       setCreatingStore(true);
       setCreateStoreError('');
+      const selectedMode = 'mitra';
       const res = await fetch('/api/pos/stores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1131,6 +1439,9 @@ export default function Kasir({ user }) {
           city: String(createStoreForm.city || '').trim(),
           phone: String(createStoreForm.phone || '').trim(),
           mapsUrl: String(createStoreForm.mapsUrl || '').trim(),
+          storeMode: selectedMode,
+          kasirOnly: false,
+          joinMitra: true,
           ownerUserId: user?.id || user?.uid || effectiveAccountId,
           kostUid: user?.kostUid || undefined,
           switchAfterCreate: true,
@@ -1145,7 +1456,7 @@ export default function Kasir({ user }) {
         throw new Error(data?.error || 'Gagal membuat toko baru');
       }
       if (data?.store) {
-        setStoreInfo(prev => ({ ...prev, ...data.store }));
+        setStoreInfo(prev => ({ ...prev, ...data.store, storeMode: 'mitra', kasirOnly: false, isMitra: true }));
         setStoreForm({
           storeName: data.store.storeName || cleanName,
           location: data.store.location || cleanLocation,
@@ -1154,7 +1465,8 @@ export default function Kasir({ user }) {
           phone: data.store.phone || '',
           mapsUrl: data.store.mapsUrl || '',
           latitude: data.store.latitude ?? '',
-          longitude: data.store.longitude ?? ''
+          longitude: data.store.longitude ?? '',
+          storeMode: 'mitra'
         });
       }
       const clonedCount = Number(data?.clonedProductsCount || 0);
@@ -1199,6 +1511,131 @@ export default function Kasir({ user }) {
     }
   };
 
+  const handleToggleStoreMode = async () => {
+    const targetMode = 'mitra';
+    if (savingStoreMode) return;
+    try {
+      setSavingStoreMode(true);
+      const res = await fetch('/api/pos/store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
+          ownerUserId: user?.id || user?.uid || effectiveAccountId,
+          storeName: storeForm.storeName || storeInfo.storeName || 'Toko Utama',
+          location: storeForm.location || storeInfo.location || 'Kantin KostKu',
+          address: storeForm.address ?? storeInfo.address ?? '',
+          city: storeForm.city ?? storeInfo.city ?? '',
+          phone: storeForm.phone ?? storeInfo.phone ?? '',
+          mapsUrl: storeForm.mapsUrl ?? storeInfo.mapsUrl ?? '',
+          latitude: storeForm.latitude !== '' && storeForm.latitude !== null ? Number(storeForm.latitude) : null,
+          longitude: storeForm.longitude !== '' && storeForm.longitude !== null ? Number(storeForm.longitude) : null,
+          storeMode: targetMode,
+          kasirOnly: false,
+          joinMitra: true
+        })
+      });
+      const data = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(data?.error || 'Gagal menyimpan mode mitra');
+      setStoreInfo(prev => ({
+        ...prev,
+        ...(data?.store || {}),
+        storeMode: 'mitra',
+        kasirOnly: false,
+        isMitra: true,
+        allOwnerStores: Array.isArray(data?.store?.allOwnerStores)
+          ? data.store.allOwnerStores
+          : (prev.allOwnerStores || []).map(st =>
+              String(st.id) === String(prev.merchantId)
+                ? { ...st, storeMode: 'mitra', kasirOnly: false, isMitra: true }
+                : st
+            )
+      }));
+      setStoreForm(prev => ({ ...prev, storeMode: 'mitra' }));
+      setStoreSwitchMsg('Mode Ikut Mitra KostKu aktif — toko tayang di katalog Mitra (/layanan).');
+      setTimeout(() => setStoreSwitchMsg(''), 4500);
+      try { playChime(880, 0.08); } catch (_) {}
+    } catch (err) {
+      setStoreSwitchMsg(`Gagal simpan mode: ${err.message}`);
+      setTimeout(() => setStoreSwitchMsg(''), 4500);
+    } finally {
+      setSavingStoreMode(false);
+    }
+  };
+
+  const handleCreateMitraFromKasir = async (e) => {
+    e.preventDefault();
+    const cleanName = String(mitraForm.name || '').trim();
+    if (!cleanName) {
+      setMitraFeedback({ ok: false, message: 'Nama toko / mitra baru wajib diisi.' });
+      return;
+    }
+    try {
+      setMitraSubmitting(true);
+      setMitraFeedback(null);
+      const res = await apiCreateMerchant({
+        name: cleanName,
+        category: mitraForm.category || 'Warung Makan & Kuliner',
+        phone: String(mitraForm.phone || '').trim(),
+        address: String(mitraForm.address || '').trim(),
+        location: String(mitraForm.address || '').trim() || 'Area Sekitar Kost',
+        storeMode: 'mitra',
+        kasirOnly: false,
+        joinMitra: true,
+        referralCode: mitraForm.referralCode ? String(mitraForm.referralCode).trim().toUpperCase() : '',
+        userId: user?.id || user?.uid || effectiveAccountId,
+        kostUid: user?.kostUid || '',
+        products: []
+      });
+      setMitraFeedback({
+        ok: true,
+        message: res?.message || `Mitra "${cleanName}" berhasil didaftarkan & tayang di Layanan Penghuni.`
+      });
+      setMitraForm(prev => ({ ...prev, name: '', phone: '', address: '' }));
+      await fetchData();
+    } catch (err) {
+      setMitraFeedback({ ok: false, message: err.message || 'Gagal mendaftarkan mitra baru.' });
+    } finally {
+      setMitraSubmitting(false);
+    }
+  };
+
+  const handleSuggestWarungFromKasir = async (e) => {
+    e.preventDefault();
+    const cleanName = String(suggestWarungForm.name || '').trim();
+    const cleanRef = String(suggestWarungForm.referralCode || '').trim().toUpperCase();
+    if (!cleanName) {
+      setSuggestWarungFeedback({ ok: false, message: 'Nama warung / jasa sekitar wajib diisi.' });
+      return;
+    }
+    if (!cleanRef) {
+      setSuggestWarungFeedback({ ok: false, message: 'Kode Referral wajib diisi untuk mengusulkan warung sekitar.' });
+      return;
+    }
+    try {
+      setSuggestWarungSubmitting(true);
+      setSuggestWarungFeedback(null);
+      const res = await apiSuggestMerchant({
+        name: cleanName,
+        category: suggestWarungForm.category || 'makanan',
+        phone: String(suggestWarungForm.phone || '').trim(),
+        note: String(suggestWarungForm.note || '').trim(),
+        referralCode: cleanRef,
+        userId: user?.id || user?.uid || effectiveAccountId,
+        kostUid: user?.kostUid || ''
+      });
+      setSuggestWarungFeedback({
+        ok: true,
+        message: res?.message || `Usulan warung "${cleanName}" tercatat via kode referral!`
+      });
+      setSuggestWarungForm(prev => ({ ...prev, name: '', phone: '', note: '' }));
+    } catch (err) {
+      setSuggestWarungFeedback({ ok: false, message: err.message || 'Gagal mengirim usulan warung.' });
+    } finally {
+      setSuggestWarungSubmitting(false);
+    }
+  };
+
   // ── HARDWARE THERMAL PRINTER HANDLERS (BLUETOOTH & USB) ──
   const handlePrintReceipt = async (order, modeOverride) => {
     try {
@@ -1210,7 +1647,7 @@ export default function Kasir({ user }) {
         paperWidth: printerSettings.paperWidth || '58mm',
         autoCut: printerSettings.autoCut !== false,
         openDrawer: printerSettings.openDrawer === true,
-        storeName: storeInfo.storeName || 'Kantin Berkah Kost',
+        storeName: storeInfo.storeName || 'Toko Kasir',
         storeLocation: storeInfo.location || '',
         storeAddress: storeInfo.address || '',
         storeCity: storeInfo.city || '',
@@ -1265,8 +1702,8 @@ export default function Kasir({ user }) {
       setIsPrinting(true);
       setPrinterFeedback('Mencetak struk tes hardware...');
       const testOrder = getSampleTestOrder(printerSettings.paperWidth || '58mm');
-      testOrder.storeName = storeInfo.storeName || 'Kantin Berkah Kost';
-      testOrder.storeLocation = storeInfo.location || 'Lantai 1 Dekat Gazebo';
+      testOrder.storeName = storeInfo.storeName || 'Toko Kasir';
+      testOrder.storeLocation = storeInfo.location || '';
       testOrder.storeAddress = storeInfo.address || '';
       testOrder.storeCity = storeInfo.city || '';
       testOrder.storePhone = storeInfo.phone || '';
@@ -1477,19 +1914,31 @@ export default function Kasir({ user }) {
 
   // 1. Fetch Orders, Products, Tables, TriPay Config & Store Validity
   const fetchData = async (overrideStoreId = null) => {
+    if (!user?.id) {
+      setLoadingOrders(false);
+      setLoadingConsolidated(false);
+      return;
+    }
     try {
       setLoadingOrders(true);
       setLoadingConsolidated(true);
       const accountQuery = `merchantId=${encodeURIComponent(effectiveAccountId)}`;
-      const ownerIdVal = user?.id || user?.uid || effectiveAccountId;
-      const ownerQuery = `ownerId=${encodeURIComponent(ownerIdVal)}`;
+      const ownerIdVal = user?.id || user?.uid || '';
+      const roleQuery = user?.role ? `&userRole=${encodeURIComponent(user.role)}` : '';
+      const ownerQuery = ownerIdVal ? `ownerId=${encodeURIComponent(ownerIdVal)}${roleQuery}` : '';
+      const storeEndpoint = ownerQuery ? `/api/pos/store?${ownerQuery}` : '/api/pos/store';
+      const posHeaders = {
+        ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+        ...(user?.role ? { 'x-user-role': String(user.role) } : {})
+      };
+      const scopedSuffix = ownerQuery ? `?${ownerQuery}` : '';
 
       const [resOrders, resTables, resConfig, resStore, consolidatedRes] = await Promise.all([
-        fetch('/api/pos/orders'),
-        fetch('/api/pos/tables'),
-        fetch('/api/pos/config/tripay'),
-        fetch(`/api/pos/store?${ownerQuery}`),
-        apiGetPosConsolidatedSummary(ownerIdVal).catch(() => null)
+        fetch(`/api/pos/orders${scopedSuffix}`, { headers: posHeaders }),
+        fetch(`/api/pos/tables${scopedSuffix}`, { headers: posHeaders }),
+        fetch('/api/pos/config/tripay', { headers: posHeaders }),
+        fetch(storeEndpoint, { headers: posHeaders }),
+        apiGetPosConsolidatedSummary(ownerIdVal || effectiveAccountId).catch(() => null)
       ]);
 
       const [remoteOrders, tbls, remoteConfig, st] = await Promise.all([
@@ -1499,6 +1948,20 @@ export default function Kasir({ user }) {
         parseJsonIfOk(resStore)
       ]);
 
+      if (st?.needsUmkmRegistration) {
+        setNeedsUmkmRegistration(true);
+        setCheckingStoreRegistration(false);
+        setProducts([]);
+        setLoadingOrders(false);
+        setLoadingConsolidated(false);
+        return;
+      }
+
+      if (st) {
+        setNeedsUmkmRegistration(false);
+        setCheckingStoreRegistration(false);
+      }
+
       if (consolidatedRes && consolidatedRes.success) {
         setConsolidatedSummary(consolidatedRes);
       }
@@ -1507,15 +1970,28 @@ export default function Kasir({ user }) {
       const safeOverrideStoreId = typeof overrideStoreId === 'string' && overrideStoreId.trim() ? overrideStoreId.trim() : null;
       const resolvedStoreId = safeOverrideStoreId || st?.merchantId || storeInfo?.merchantId || '';
       const prodQuery = resolvedStoreId
-        ? `${accountQuery}&${ownerQuery}&storeId=${encodeURIComponent(resolvedStoreId)}`
-        : `${accountQuery}&${ownerQuery}`;
-      const resProd = await fetch(`/api/pos/products?${prodQuery}`);
-      const remoteProds = await parseJsonIfOk(resProd);
+        ? `${accountQuery}&${ownerQuery || `ownerId=${encodeURIComponent(effectiveAccountId)}`}&storeId=${encodeURIComponent(resolvedStoreId)}`
+        : `${accountQuery}&${ownerQuery || `ownerId=${encodeURIComponent(effectiveAccountId)}`}`;
+      const shiftsQuery = resolvedStoreId ? `?storeId=${encodeURIComponent(resolvedStoreId)}` : '';
+      const [resProd, resShifts] = await Promise.all([
+        fetch(`/api/pos/products?${prodQuery}`),
+        fetch(`/api/pos/shifts${shiftsQuery}`)
+      ]);
+      const [remoteProds, remoteShiftsPayload] = await Promise.all([
+        parseJsonIfOk(resProd),
+        parseJsonIfOk(resShifts)
+      ]);
+      if (remoteShiftsPayload && Array.isArray(remoteShiftsPayload.shifts)) {
+        setShiftHistory(remoteShiftsPayload.shifts);
+        try {
+          localStorage.setItem('kostku_shift_history', JSON.stringify(remoteShiftsPayload.shifts.slice(0, 15)));
+        } catch (_) {}
+      }
 
       if (Array.isArray(remoteOrders)) setOrders(remoteOrders);
       if (Array.isArray(remoteProds)) {
         const filteredRemote = remoteProds.filter(
-          p => !p.merchantId || String(p.merchantId) === effectiveAccountId
+          p => !p.merchantId || String(p.merchantId) === effectiveAccountId || (ownerIdVal && String(p.merchantId) === String(ownerIdVal))
         );
         setProducts(prev => {
           // Pertahankan produk lokal milik cabang aktif yang baru ditambah saat offline
@@ -1556,7 +2032,7 @@ export default function Kasir({ user }) {
       }
       if (remoteConfig) setTripayConfig(remoteConfig);
       if (st) {
-        setStoreInfo(st);
+        setStoreInfo({ ...st, storeMode: 'mitra', kasirOnly: false, isMitra: true });
         setStoreForm({
           storeName: st.storeName || '',
           location: st.location || '',
@@ -1565,7 +2041,8 @@ export default function Kasir({ user }) {
           phone: st.phone || '',
           mapsUrl: st.mapsUrl || '',
           latitude: st.latitude ?? '',
-          longitude: st.longitude ?? ''
+          longitude: st.longitude ?? '',
+          storeMode: 'mitra'
         });
         const targetWalletUid = st.uid || 'pos';
         apiGetAccountWallet(targetWalletUid).then(wRes => {
@@ -1580,16 +2057,96 @@ export default function Kasir({ user }) {
     } catch (err) {
       console.warn('Gagal memuat data kasir:', err);
     } finally {
+      setCheckingStoreRegistration(false);
       setLoadingOrders(false);
       setLoadingConsolidated(false);
     }
   };
 
+  // ── KASIR WEB ONLINE PRESENCE HEARTBEAT (WAJIB ONLINE DI WEB AGAR TAMPIL ONLINE DI MITRA) ──
   useEffect(() => {
+    const activeMerchantId = storeInfo?.merchantId || storeInfo?.uid || '';
+    if (!user?.id || needsUmkmRegistration || !activeMerchantId || cashierShift.isOpen === false) {
+      setKasirWebOnline(false);
+      return;
+    }
+
+    let cancelled = false;
+    const heartbeatPayload = JSON.stringify({
+      merchantId: activeMerchantId,
+      storeId: activeMerchantId,
+      ownerUserId: user?.id || user?.uid || effectiveAccountId,
+      cashierId: user?.id || 'KSR-01',
+      cashierName: cashierShift?.cashierName || user?.name || 'Kasir Shift',
+      isShiftOpen: true
+    });
+
+    const sendHeartbeat = async () => {
+      try {
+        const res = await fetch('/api/pos/store/heartbeat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': String(user.id),
+            ...(user?.role ? { 'x-user-role': String(user.role) } : {})
+          },
+          body: heartbeatPayload
+        });
+        if (!cancelled && res.ok) {
+          const data = await res.json().catch(() => null);
+          setKasirWebOnline(Boolean(data?.kasirOnline ?? true));
+        }
+      } catch (_) {}
+    };
+
+    const sendOffline = () => {
+      try {
+        fetch('/api/pos/store/offline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            merchantId: activeMerchantId,
+            storeId: activeMerchantId,
+            ownerUserId: user?.id || user?.uid || effectiveAccountId
+          }),
+          keepalive: true
+        }).catch(() => {});
+      } catch (_) {}
+    };
+
+    sendHeartbeat();
+    const hbInterval = setInterval(sendHeartbeat, 15000);
+    window.addEventListener('pagehide', sendOffline);
+    window.addEventListener('beforeunload', sendOffline);
+
+    return () => {
+      cancelled = true;
+      clearInterval(hbInterval);
+      window.removeEventListener('pagehide', sendOffline);
+      window.removeEventListener('beforeunload', sendOffline);
+      sendOffline();
+      setKasirWebOnline(false);
+    };
+  }, [user?.id, user?.name, user?.role, needsUmkmRegistration, storeInfo?.merchantId, storeInfo?.uid, cashierShift.isOpen, cashierShift.cashierName, effectiveAccountId]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      navigate('/login?redirect=%2Fkasir', { replace: true });
+      return;
+    }
     fetchData();
+    const pollParams = new URLSearchParams();
+    if (user?.id) pollParams.set('ownerId', String(user.id));
+    if (storeInfo?.merchantId) pollParams.set('storeId', String(storeInfo.merchantId));
+    const pollQs = pollParams.toString();
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/pos/orders');
+        const res = await fetch(`/api/pos/orders${pollQs ? `?${pollQs}` : ''}`, {
+          headers: {
+            ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+            ...(user?.role ? { 'x-user-role': String(user.role) } : {})
+          }
+        });
         const fresh = await parseJsonIfOk(res);
         if (Array.isArray(fresh)) {
           if (audioAlert) {
@@ -1661,7 +2218,7 @@ export default function Kasir({ user }) {
           online.push({
             id: 'default-active-user',
             name: user?.name || cashierShift.cashierName || 'Kasir Bertugas',
-            role: user?.role === 'owner' ? 'Owner / Pengelola POS' : 'Staff Kasir & FnB',
+            role: ['owner', 'mitra', 'master', 'admin'].includes(String(user?.role || '').toLowerCase()) ? 'Owner / Admin POS' : 'Staff Kasir & FnB',
             since: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
             status: 'ONLINE',
             isCurrentCashier: true
@@ -1977,8 +2534,11 @@ export default function Kasir({ user }) {
   };
 
   const handleConfirmPaid = async (orderId) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    const pm = String(targetOrder?.paymentMethod || '').toUpperCase().trim();
+    const isGatewayQris = pm === 'TRIPAY' || pm === 'QRIS';
     const activeNotaFee = Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25));
-    if (Number(storeInfo.saldoNota ?? 5000) < activeNotaFee) {
+    if (!isGatewayQris && Number(storeInfo.saldoNota ?? 0) < activeNotaFee) {
       setShowPosTopupModal(true);
       setPosCheckoutFeedback({
         type: 'error',
@@ -1987,7 +2547,14 @@ export default function Kasir({ user }) {
       return;
     }
     try {
-      const res = await fetch(`/api/pos/orders/${orderId}/confirm-payment`, { method: 'POST' });
+      const res = await fetch(`/api/pos/orders/${orderId}/confirm-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cashierId: user?.id || 'KSR-01',
+          cashierName: cashierShift.cashierName || user?.name || 'Kasir Shift'
+        })
+      });
       const data = await res.json();
       if (!res.ok) {
         if (data.requiresTopupNota) {
@@ -1999,10 +2566,46 @@ export default function Kasir({ user }) {
       fetchData();
       setPosCheckoutFeedback({
         type: 'success',
-        text: `Pembayaran tunai berhasil dikonfirmasi (${storeInfo.loyaltyPoolId ? 'Tier 2 Rp 100/nota' : 'Tier 1 Rp 25/nota'}).`
+        text: isGatewayQris
+          ? 'Pembayaran QRIS KostKu berhasil dikonfirmasi & masuk ke Dompet Terpadu!'
+          : `Pembayaran tunai berhasil dikonfirmasi (${storeInfo.loyaltyPoolId ? 'Tier 2 Rp 100/nota' : 'Tier 1 Rp 25/nota'}).`
       });
     } catch (err) {
       setPosCheckoutFeedback({ type: 'error', text: 'Gagal konfirmasi pembayaran: ' + err.message });
+    }
+  };
+
+  const handleUpdateNotaFeeBearer = async (nextBearer) => {
+    const cleanBearer = nextBearer === 'customer' ? 'customer' : 'store';
+    if (savingFeeBearer) return;
+    setSavingFeeBearer(true);
+    try {
+      const res = await fetch('/api/pos/store/fee-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
+          ownerUserId: user?.id || user?.uid || effectiveAccountId,
+          notaFeeBearer: cleanBearer
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Gagal memperbarui pengaturan biaya nota');
+      setStoreInfo(prev => ({
+        ...prev,
+        ...(data?.store || {}),
+        notaFeeBearer: data?.notaFeeBearer || cleanBearer
+      }));
+      setPosCheckoutFeedback({
+        type: 'success',
+        text: data?.message || (cleanBearer === 'customer'
+          ? 'Biaya admin nota diatur ditanggung Customer.'
+          : 'Biaya nota dikembalikan ditanggung oleh Toko.')
+      });
+    } catch (err) {
+      setPosCheckoutFeedback({ type: 'error', text: err.message || 'Gagal memperbarui pengaturan biaya nota' });
+    } finally {
+      setSavingFeeBearer(false);
     }
   };
 
@@ -2446,13 +3049,21 @@ export default function Kasir({ user }) {
   const loadInventory = async () => {
     try {
       setLoadingInventory(true);
-      const res = await fetch('/api/pos/inventory');
+      const res = await fetch('/api/pos/inventory', {
+        headers: isDemoKasir ? { 'x-demo-mode': 'true' } : {}
+      });
       if (res.ok) {
         const data = await res.json();
-        if (data.inventory && data.inventory.length > 0) {
+        if (Array.isArray(data.inventory)) {
           setInventoryList(data.inventory);
           setInventoryAlerts(data.alerts || data.inventory.filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0)));
-          try { localStorage.setItem('kostku_pos_inventory', JSON.stringify(data.inventory)); } catch {}
+          try {
+            if (data.inventory.length > 0) {
+              localStorage.setItem('kostku_pos_inventory', JSON.stringify(data.inventory));
+            } else {
+              localStorage.removeItem('kostku_pos_inventory');
+            }
+          } catch {}
           return;
         }
       }
@@ -2466,10 +3077,12 @@ export default function Kasir({ user }) {
   const loadRecipes = async () => {
     try {
       setLoadingRecipes(true);
-      const res = await fetch('/api/pos/recipes');
+      const res = await fetch('/api/pos/recipes', {
+        headers: isDemoKasir ? { 'x-demo-mode': 'true' } : {}
+      });
       if (res.ok) {
         const data = await res.json();
-        if (data.recipes && data.recipes.length > 0) {
+        if (Array.isArray(data.recipes)) {
           setRecipesList(data.recipes);
           if (!selectedRecipeProduct && data.recipes.length > 0) {
             setSelectedRecipeProduct(data.recipes[0]);
@@ -2784,8 +3397,13 @@ export default function Kasir({ user }) {
   const totalPettyOut = (cashierShift.cashOuts || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
   const expectedDrawerCash = (Number(cashierShift.initialFloat) || 0) + cashRevenue + totalPettyIn - totalPettyOut;
   const nonCashRevenue = Math.max(0, totalRevenue - cashRevenue);
+  const storeNotaFeeIdr = Math.max(1, Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25)));
+  const storeSaldoNota = Math.max(0, Number(storeInfo.saldoNota ?? 0) || 0);
+  const storeKuotaNota = storeInfo.kuotaNota != null
+    ? Math.max(0, Number(storeInfo.kuotaNota) || 0)
+    : Math.max(0, Math.floor(storeSaldoNota / storeNotaFeeIdr));
 
-  // ── PENDAPATAN HARIAN & BULANAN METRICS ──
+  // ── PENDAPATAN HARIAN, BULANAN & TAHUNAN METRICS ──
   const revenueMetrics = React.useMemo(() => {
     const now = new Date();
     const todayYear = now.getFullYear();
@@ -2799,6 +3417,13 @@ export default function Kasir({ user }) {
 
     let monthlyTotal = 0;
     let monthlyOrders = 0;
+    let monthlyCash = 0;
+    let monthlyNonCash = 0;
+
+    let yearlyTotal = 0;
+    let yearlyOrders = 0;
+    let yearlyCash = 0;
+    let yearlyNonCash = 0;
 
     completedOrders.forEach(o => {
       const amount = Number(o.totalAmount) || 0;
@@ -2807,30 +3432,29 @@ export default function Kasir({ user }) {
 
       let isToday = false;
       let isThisMonth = false;
+      let isThisYear = false;
 
       if (o.createdAt) {
         const orderDate = new Date(o.createdAt);
         if (!isNaN(orderDate.getTime())) {
-          if (
-            orderDate.getFullYear() === todayYear &&
-            orderDate.getMonth() === todayMonth &&
-            orderDate.getDate() === todayDate
-          ) {
-            isToday = true;
-          }
-          if (
-            orderDate.getFullYear() === todayYear &&
-            orderDate.getMonth() === todayMonth
-          ) {
-            isThisMonth = true;
+          if (orderDate.getFullYear() === todayYear) {
+            isThisYear = true;
+            if (orderDate.getMonth() === todayMonth) {
+              isThisMonth = true;
+              if (orderDate.getDate() === todayDate) {
+                isToday = true;
+              }
+            }
           }
         } else {
           isToday = true;
           isThisMonth = true;
+          isThisYear = true;
         }
       } else {
         isToday = true;
         isThisMonth = true;
+        isThisYear = true;
       }
 
       if (isToday) {
@@ -2843,6 +3467,15 @@ export default function Kasir({ user }) {
       if (isThisMonth) {
         monthlyTotal += amount;
         monthlyOrders += 1;
+        if (isCash) monthlyCash += amount;
+        else monthlyNonCash += amount;
+      }
+
+      if (isThisYear) {
+        yearlyTotal += amount;
+        yearlyOrders += 1;
+        if (isCash) yearlyCash += amount;
+        else yearlyNonCash += amount;
       }
     });
 
@@ -2852,7 +3485,14 @@ export default function Kasir({ user }) {
       dailyCashRevenue: dailyCash,
       dailyNonCashRevenue: dailyNonCash,
       monthlyRevenue: monthlyTotal,
-      monthlyOrdersCount: monthlyOrders
+      monthlyOrdersCount: monthlyOrders,
+      monthlyCashRevenue: monthlyCash,
+      monthlyNonCashRevenue: monthlyNonCash,
+      yearlyRevenue: yearlyTotal,
+      yearlyOrdersCount: yearlyOrders,
+      yearlyCashRevenue: yearlyCash,
+      yearlyNonCashRevenue: yearlyNonCash,
+      currentYear: todayYear
     };
   }, [completedOrders]);
 
@@ -2980,14 +3620,25 @@ export default function Kasir({ user }) {
     }
   };
 
-  const handleConfirmClosingShift = () => {
+  const handleConfirmClosingShift = async () => {
+    const policy = normalizeClosingShiftSettings(storeInfo?.closingShiftSettings);
+    const photoCheck = validateClosingShiftPhotos(closingPhotoRecaps, policy);
+    if (!photoCheck.valid) {
+      setClosingModalError(photoCheck.error);
+      return;
+    }
+
     const actual = Number(closingActualCash) || 0;
     const diff = actual - expectedDrawerCash;
     const closingRecord = {
       id: `RECORD-${Date.now()}`,
+      storeId: storeInfo?.merchantId || storeInfo?.uid || 'MTR-KASIR-MASTER',
+      merchantId: storeInfo?.merchantId || storeInfo?.uid || 'MTR-KASIR-MASTER',
+      storeName: storeInfo?.storeName || 'Toko POS',
       shiftOpenedAt: cashierShift.openedAt,
       closedAt: Date.now(),
       cashierName: cashierShift.cashierName,
+      closedByUserId: user?.id || user?.uid || effectiveAccountId,
       initialFloat: cashierShift.initialFloat,
       cashRevenue,
       qrisRevenue,
@@ -2999,26 +3650,61 @@ export default function Kasir({ user }) {
       actualCash: actual,
       diff,
       note: closingNote,
-      completedOrdersCount: completedOrders.length
+      completedOrdersCount: completedOrders.length,
+      photoRecaps: closingPhotoRecaps
     };
 
-    const nextHistory = [closingRecord, ...shiftHistory].slice(0, 30);
-    setShiftHistory(nextHistory);
     try {
-      localStorage.setItem('kostku_shift_history', JSON.stringify(nextHistory));
-    } catch (_) {}
+      setClosingSubmitting(true);
+      setClosingModalError('');
+      const res = await fetch('/api/pos/shifts/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(closingRecord)
+      });
+      const data = await parseJsonIfOk(res);
+      if (!res.ok) {
+        setClosingModalError(data?.error || 'Gagal menyimpan closing shift & rekapan foto.');
+        return;
+      }
 
-    setCashierShift(prev => ({
-      ...prev,
-      isOpen: false,
-      closedAt: Date.now(),
-      closingData: closingRecord
-    }));
+      const savedShift = data?.shift || closingRecord;
+      const nextHistory = Array.isArray(data?.shifts)
+        ? data.shifts
+        : [savedShift, ...shiftHistory].slice(0, 30);
+      setShiftHistory(nextHistory);
+      try {
+        localStorage.setItem('kostku_shift_history', JSON.stringify(nextHistory.slice(0, 10)));
+      } catch (_) {}
 
-    setClosingFeedback('Closing shift kasir berhasil diselesaikan!');
-    setShowShiftClosingModal(false);
-    setClosingActualCash('');
-    setClosingNote('');
+      setCashierShift(prev => ({
+        ...prev,
+        isOpen: false,
+        closedAt: savedShift.closedAt || Date.now(),
+        closingData: savedShift
+      }));
+      if (storeInfo?.merchantId || storeInfo?.uid) {
+        fetch('/api/pos/store/offline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ merchantId: storeInfo.merchantId || storeInfo.uid }),
+          keepalive: true
+        }).catch(() => {});
+        setKasirWebOnline(false);
+      }
+
+      setClosingFeedback(data?.message || 'Closing shift kasir beserta rekapan foto berhasil diselesaikan!');
+      setActiveTab('dashboard');
+      setClosingActualCash('');
+      setClosingNote('');
+      setClosingPhotoRecaps([]);
+      setClosingModalError('');
+      try { playChime(880, 0.1); } catch (_) {}
+    } catch (err) {
+      setClosingModalError(`Kesalahan jaringan saat menyimpan closing shift: ${err.message}`);
+    } finally {
+      setClosingSubmitting(false);
+    }
   };
 
   // Palette definitions matching KostKu Theme
@@ -3091,18 +3777,240 @@ export default function Kasir({ user }) {
     } catch (_) {}
   };
 
+  const resolveStoreTier2Enabled = () =>
+    Boolean(storeInfo.loyaltyPoolId || storeInfo.billingTier === 'TIER_2_LOYALTY');
+
+  const stopKasirQrCamera = () => {
+    if (kasirScanTimerRef.current) {
+      clearInterval(kasirScanTimerRef.current);
+      kasirScanTimerRef.current = null;
+    }
+    if (kasirScanStreamRef.current) {
+      try {
+        kasirScanStreamRef.current.getTracks().forEach(t => t.stop());
+      } catch (_) {}
+      kasirScanStreamRef.current = null;
+    }
+    if (kasirScanVideoRef.current) {
+      kasirScanVideoRef.current.srcObject = null;
+    }
+  };
+
+  const loadKasirCustomerLookup = async (rawInput) => {
+    const parsed = parseCustomerQrOrPhone(rawInput);
+    const sid = storeInfo.merchantId || storeInfo.uid || 'MTR-KASIR-MASTER';
+    if (!parsed.phone || parsed.phone.length < 8) {
+      setKasierLookupErrorFallback('Masukkan/scan QR Pribadi (KOSTKU-MEMBER:...) atau No. HP pelanggan min. 8 digit.');
+      return null;
+    }
+    setCashierLookupLoading(true);
+    setCashierClaimFeedback(null);
+    try {
+      const res = await fetch(`/api/pos/loyalty/customer/${encodeURIComponent(parsed.phone)}?storeId=${encodeURIComponent(sid)}`);
+      const prof = await res.json();
+      if (!res.ok) {
+        setCashierClaimFeedback({ type: 'error', text: prof?.error || 'Data member QR Pribadi tidak ditemukan.' });
+        return null;
+      }
+      let poolData = null;
+      if (storeInfo.loyaltyPoolId) {
+        try {
+          poolData = await apiLookupPoolCustomer(sid, parsed.phone);
+        } catch (_) {}
+      }
+      const combined = {
+        ...prof,
+        canonicalPhone: parsed.phone,
+        qrPayload: prof.qrPayload || encodeCustomerPersonalQrPayload(parsed.phone),
+        poolLookup: poolData
+      };
+      setCashierLookupData(combined);
+      return combined;
+    } catch (_) {
+      setCashierClaimFeedback({ type: 'error', text: 'Gagal menghubungi server untuk cek QR Pribadi.' });
+      return null;
+    } finally {
+      setCashierLookupLoading(false);
+    }
+  };
+
+  const setKasierLookupErrorFallback = (msg) => {
+    setCashierClaimFeedback({ type: 'error', text: msg });
+  };
+
+  const handleApplyVoucherToCart = (voucher) => {
+    if (!resolveStoreTier2Enabled()) {
+      const errMsg = 'Pakai Hadiah (voucher/poin) hanya aktif di toko Tier 2 (Loyalty Pool). Toko ini masih Tier 1.';
+      setCashierClaimFeedback({ type: 'error', text: errMsg });
+      setPosCheckoutFeedback({ type: 'error', text: errMsg });
+      return false;
+    }
+    if (!voucher || !voucher.code) return false;
+    setActiveCartPromo({
+      ...voucher,
+      isAvailable: true,
+      discountType: voucher.discountType || 'FIXED',
+      discountValue: Number(voucher.discountValue || 0)
+    });
+    setPosCheckoutFeedback({
+      type: 'success',
+      text: `Hadiah Voucher ${voucher.code} (Diskon Rp ${Number(voucher.discountValue || 0).toLocaleString('id-ID')}) diterapkan ke keranjang.`
+    });
+    setShowCashierClaimModal(false);
+    return true;
+  };
+
+  const handleCashierConvertPoints = async (pointsToConvert) => {
+    if (!resolveStoreTier2Enabled()) {
+      setCashierClaimFeedback({
+        type: 'error',
+        text: 'Tukar poin menjadi voucher hadiah hanya tersedia untuk toko Tier 2 (Loyalty Pool).'
+      });
+      return;
+    }
+    const targetPhone = cashierLookupData?.canonicalPhone || parseCustomerQrOrPhone(cashierClaimPhone).phone;
+    if (!targetPhone) {
+      setCashierClaimFeedback({ type: 'error', text: 'Scan QR Pribadi atau masukkan No. HP pelanggan terlebih dahulu.' });
+      return;
+    }
+    setCashierLookupLoading(true);
+    setCashierClaimFeedback(null);
+    try {
+      const sid = storeInfo.merchantId || storeInfo.uid || 'MTR-KASIR-MASTER';
+      const res = await fetch('/api/pos/loyalty/convert-to-voucher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: targetPhone,
+          points: pointsToConvert,
+          merchantId: sid,
+          storeId: sid
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCashierClaimFeedback({ type: 'error', text: data?.error || 'Gagal menukar poin ke voucher hadiah.' });
+        return;
+      }
+      await loadKasirCustomerLookup(targetPhone);
+      setCashierClaimFeedback({
+        type: 'success',
+        text: data.message || `Berhasil! ${pointsToConvert} Poin ditukar menjadi Voucher ${data.voucher?.code || data.promo?.code}.`
+      });
+    } catch (_) {
+      setCashierClaimFeedback({ type: 'error', text: 'Gagal memproses penukaran poin.' });
+    } finally {
+      setCashierLookupLoading(false);
+    }
+  };
+
+  const handleKasirQrDecoded = async (rawValue) => {
+    const cleaned = String(rawValue || '').trim();
+    if (!cleaned) {
+      setKasirQrScanError('Kode QR kosong. Silakan scan ulang atau ketik KOSTKU-MEMBER:08... / No. HP.');
+      return;
+    }
+    const parsed = parseCustomerQrOrPhone(cleaned);
+    stopKasirQrCamera();
+    setShowKasirQrScanModal(false);
+    setKasirQrScanError('');
+    setKasirQrScanManual('');
+
+    const normalizedDisplay = parsed.isPersonalQr && parsed.memberCode
+      ? parsed.memberCode
+      : (parsed.phone || parsed.voucherCode || cleaned);
+
+    if (kasirQrScanTarget === 'claimModal') {
+      setCashierClaimPhone(normalizedDisplay);
+      if (cashierModalMode === 'redeem' && parsed.phone) {
+        await loadKasirCustomerLookup(normalizedDisplay);
+      }
+      return;
+    }
+
+    if (kasirQrScanTarget === 'receiptModal') {
+      setReceiptClaimPhone(normalizedDisplay);
+      return;
+    }
+
+    // Default target: 'cart'
+    setCartCustomerPhone(normalizedDisplay);
+    await handleLookupCartMember(normalizedDisplay);
+  };
+
+  const openKasirQrScanner = (target = 'cart') => {
+    setKasirQrScanTarget(target);
+    setKasirQrScanError('');
+    setKasirQrScanManual('');
+    setShowKasirQrScanModal(true);
+  };
+
+  useEffect(() => {
+    if (!showKasirQrScanModal) {
+      stopKasirQrCamera();
+      setKasirCameraStatus('idle');
+      return;
+    }
+    let cancelled = false;
+    const initCamera = async () => {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        setKasirCameraStatus('unsupported');
+        return;
+      }
+      setKasirCameraStatus('starting');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+        if (cancelled) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
+        kasirScanStreamRef.current = stream;
+        if (kasirScanVideoRef.current) {
+          kasirScanVideoRef.current.srcObject = stream;
+          await kasirScanVideoRef.current.play().catch(() => {});
+        }
+        if ('BarcodeDetector' in window) {
+          setKasirCameraStatus('active');
+          const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+          kasirScanTimerRef.current = setInterval(async () => {
+            if (!kasirScanVideoRef.current || kasirScanVideoRef.current.readyState < 2) return;
+            try {
+              const codes = await detector.detect(kasirScanVideoRef.current);
+              if (codes && codes.length > 0 && codes[0].rawValue) {
+                handleKasirQrDecoded(codes[0].rawValue);
+              }
+            } catch (_) {}
+          }, 420);
+        } else {
+          setKasirCameraStatus('unsupported');
+        }
+      } catch (_) {
+        if (!cancelled) setKasirCameraStatus('denied');
+      }
+    };
+    initCamera();
+    return () => {
+      cancelled = true;
+      stopKasirQrCamera();
+    };
+  }, [showKasirQrScanModal]);
+
   const refreshCartPoolPreview = async (phoneArg, nameArg, redeemArg, cartArg = posCart, promoArg = activeCartPromo) => {
     const sid = storeInfo.merchantId || storeInfo.uid || 'MTR-KASIR-MASTER';
     const itemsList = Object.values(cartArg || {});
     const sub = itemsList.reduce((s, it) => s + (it.product.price * it.qty), 0);
     const pDisc = promoArg ? calculatePromoDiscountForCart(promoArg, cartArg) : 0;
-    if (sub <= 0) {
+    const canonicalPhone = parseCustomerQrOrPhone(phoneArg).phone || String(phoneArg || '').trim();
+    if (sub <= 0 || !canonicalPhone) {
       setCartPoolPreview(null);
       return null;
     }
     try {
       const prev = await apiPreviewPoolCheckout(sid, {
-        customerPhone: phoneArg,
+        customerPhone: canonicalPhone,
         customerName: nameArg,
         redeemPoints: Number(redeemArg) || 0,
         grossSubtotalIdr: sub,
@@ -3117,29 +4025,68 @@ export default function Kasir({ user }) {
     }
   };
 
-  const handleLookupCartMember = async () => {
-    const cleanPhone = String(cartCustomerPhone || '').replace(/\D/g, '');
-    if (!cleanPhone) {
-      setPosCheckoutFeedback({ type: 'error', text: 'Masukkan nomor HP/WA pelanggan terlebih dahulu untuk cek saldo Loyalty Pool.' });
+  const handleLookupCartMember = async (overrideInput = null) => {
+    const rawVal = overrideInput !== null ? overrideInput : cartCustomerPhone;
+    const parsed = parseCustomerQrOrPhone(rawVal);
+    if (parsed.isVoucherQr && parsed.voucherCode) {
+      const foundPromo = promosList.find(p => String(p.code || '').toUpperCase() === parsed.voucherCode);
+      if (!foundPromo) {
+        setPosCheckoutFeedback({ type: 'error', text: `Voucher ${parsed.voucherCode} belum ditemukan atau belum dimuat. Scan QR Pribadi (KOSTKU-MEMBER:...) pelanggan.` });
+        return;
+      }
+      handleApplyVoucherToCart(foundPromo);
+      return;
+    }
+    const cleanPhone = parsed.phone;
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setPosCheckoutFeedback({ type: 'error', text: 'Scan QR Pribadi (KOSTKU-MEMBER:...) atau masukkan No. HP/WA pelanggan terlebih dahulu.' });
       return;
     }
     try {
       setCartLookupLoading(true);
       setPosCheckoutFeedback(null);
       const sid = storeInfo.merchantId || storeInfo.uid || 'MTR-KASIR-MASTER';
-      const data = await apiLookupPoolCustomer(sid, cleanPhone);
-      setCartMemberLookup(data);
-      if (data.customer?.name && !cartCustomerName.trim()) {
-        setCartCustomerName(data.customer.name);
+      const profileRes = await fetch(`/api/pos/loyalty/customer/${encodeURIComponent(cleanPhone)}?storeId=${encodeURIComponent(sid)}`);
+      if (profileRes.ok) {
+        const profData = await profileRes.json();
+        setCartCustomerProfile({
+          ...profData,
+          canonicalPhone: cleanPhone,
+          qrPayload: profData.qrPayload || encodeCustomerPersonalQrPayload(cleanPhone)
+        });
+        if (
+          profData.account?.name &&
+          profData.account.name !== 'Pelanggan Baru' &&
+          profData.account.name !== 'Pelanggan KostKu' &&
+          !cartCustomerName.trim()
+        ) {
+          setCartCustomerName(profData.account.name);
+        }
       }
-      setCartRedeemPoints(0);
-      await refreshCartPoolPreview(cleanPhone, data.customer?.name || cartCustomerName, 0);
+      if (storeInfo.loyaltyPoolId) {
+        const data = await apiLookupPoolCustomer(sid, cleanPhone);
+        setCartMemberLookup(data);
+        if (data.customer?.name && !cartCustomerName.trim()) {
+          setCartCustomerName(data.customer.name);
+        }
+        setCartRedeemPoints(0);
+        await refreshCartPoolPreview(cleanPhone, data.customer?.name || cartCustomerName, 0);
+      } else {
+        setCartMemberLookup(null);
+        setCartPoolPreview(null);
+      }
     } catch (err) {
-      setPosCheckoutFeedback({ type: 'error', text: err.message || 'Gagal mencari member Loyalty Pool.' });
+      setPosCheckoutFeedback({ type: 'error', text: err.message || 'Gagal memuat profil QR Pribadi pelanggan.' });
     } finally {
       setCartLookupLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!storeInfo.loyaltyPoolId && storeInfo.billingTier !== 'TIER_2_LOYALTY' && cartRedeemPoints > 0) {
+      setCartRedeemPoints(0);
+    }
+  }, [storeInfo.loyaltyPoolId, storeInfo.billingTier, cartRedeemPoints]);
 
   useEffect(() => {
     if (!storeInfo.loyaltyPoolId || !cartCustomerPhone.trim()) {
@@ -3154,14 +4101,79 @@ export default function Kasir({ user }) {
     refreshCartPoolPreview(cartCustomerPhone, cartCustomerName, cartRedeemPoints, posCart, activeCartPromo);
   }, [posCart, activeCartPromo, cartRedeemPoints, storeInfo.merchantId, storeInfo.loyaltyPoolId]);
 
+  useEffect(() => {
+    setReceiptClaimPhone(receiptOrder?.claimedByWhatsapp || receiptOrder?.customerPhone || '');
+    setReceiptClaimResult(null);
+  }, [receiptOrder?.id]);
+
+  const submitCashierPhoneClaim = async ({ token, orderId, invoice, phone, name }) => {
+    const parsed = parseCustomerQrOrPhone(phone);
+    const rawDigits = parsed.phone;
+    if (!rawDigits || rawDigits.length < 8) {
+      return { ok: false, error: 'Scan QR Pribadi (KOSTKU-MEMBER:...) atau masukkan No. HP/WA pelanggan minimal 8 digit.' };
+    }
+    try {
+      const res = await fetch('/api/pos/loyalty/cashier-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: token || undefined,
+          orderId: orderId || undefined,
+          invoice: invoice || undefined,
+          storeId: storeInfo.merchantId || storeInfo.uid || undefined,
+          phone: rawDigits,
+          customerQr: parsed.isPersonalQr ? parsed.memberCode : undefined,
+          name: name || undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        return { ok: false, error: data?.error || 'Gagal mengklaim poin ke QR/No. HP pelanggan.' };
+      }
+      return { ok: true, data };
+    } catch (_) {
+      return { ok: false, error: 'Koneksi ke server kasir terputus.' };
+    }
+  };
+
+  const openCashierClaimModal = async (preToken = '', prePhone = '', defaultMode = 'claim') => {
+    setCashierClaimFeedback(null);
+    setCashierModalMode(defaultMode);
+    setCashierLookupData(null);
+    setCashierClaimToken(preToken);
+    setCashierClaimPhone(prePhone);
+    setShowCashierClaimModal(true);
+    try {
+      const sid = storeInfo.merchantId || storeInfo.uid || '';
+      const res = await fetch(`/api/pos/loyalty/unclaimed-orders${sid ? `?storeId=${encodeURIComponent(sid)}` : ''}`);
+      if (res.ok) {
+        const d = await res.json();
+        const rows = Array.isArray(d?.orders) ? d.orders : [];
+        setCashierClaimUnclaimed(rows);
+        if (!preToken && rows[0]?.claimToken) {
+          setCashierClaimToken(rows[0].claimToken);
+        }
+      }
+    } catch (_) {}
+  };
+
   const renderCartSummaryContent = () => {
     const posCartItems = Object.values(posCart);
     const posCartSubtotal = posCartItems.reduce((s, it) => s + (it.product.price * it.qty), 0);
     const posPromoDiscount = activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0;
     const activeNotaFee = Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25));
     const activeBillingTier = storeInfo.billingTier || (storeInfo.loyaltyPoolId ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT');
+    const activeNotaFeeBearer = storeInfo.notaFeeBearer === 'customer' ? 'customer' : 'store';
+    const posAdminFee = activeNotaFeeBearer === 'customer' ? activeNotaFee : 0;
+    const skipNotaBlockerForQris = posPaymentMethod === 'QRIS' && activeNotaFeeBearer === 'customer';
+    const isNotaInsufficientForPos = !skipNotaBlockerForQris && storeSaldoNota < activeNotaFee;
     const posPointDiscount = Number(cartPoolPreview?.pointDiscountIdr || 0);
-    const posFinalTotal = Math.max(0, posCartSubtotal - posPromoDiscount - posPointDiscount);
+    const posBeforeQrisTotal = Math.max(0, posCartSubtotal - posPromoDiscount - posPointDiscount);
+    const posQrisCalc = posPaymentMethod === 'QRIS'
+      ? calculateQrisCustomerFee(posBeforeQrisTotal, 'customer')
+      : { fee: 0, totalWithFee: posBeforeQrisTotal, fixedFee: 0, percentFee: 0 };
+    const posQrisFee = posQrisCalc.fee;
+    const posFinalTotal = posQrisCalc.totalWithFee + posAdminFee;
     const numCashReceived = Number(posCashReceived.replace(/\D/g, '')) || 0;
     const cashChange = Math.max(0, numCashReceived - posFinalTotal);
 
@@ -3357,6 +4369,10 @@ export default function Kasir({ user }) {
                   defaultValue=""
                   style={{
                     width: '100%',
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    textOverflow: 'ellipsis',
                     marginTop: '5px',
                     padding: '4px 6px',
                     borderRadius: '6px',
@@ -3392,71 +4408,119 @@ export default function Kasir({ user }) {
               </div>
             )}
 
-            {/* Track A: Shared Loyalty Pool Member Lookup & Tukar Poin / Tier 1 Notice */}
-            {storeInfo.loyaltyPoolId ? (
-              <div style={{
-                background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.12)',
-                border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.35)',
-                borderRadius: '10px',
-                padding: '8px 9px',
+            {/* Track A: Shared Customer HP Point Input (All Stores) + Pool Lookup/Redeem (Tier 2) */}
+            <div style={{
+              background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.12)',
+              border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.35)',
+              borderRadius: '10px',
+              padding: '8px 9px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <QrCode size={13} color="#2563eb" />
+                  <span style={{ fontSize: '0.73rem', fontWeight: 800, color: textPrimary }}>
+                    {storeInfo.loyaltyPoolId
+                      ? `Pool: ${storeInfo.loyaltyPoolName || 'Loyalty Pool'}`
+                      : 'QR Pribadi / No. HP Pelanggan'}
+                  </span>
+                </div>
+                <ActionTutorialBadge
+                  title="Scan QR Pribadi Customer (Klaim & Pakai Hadiah)"
+                  description={storeInfo.loyaltyPoolId
+                    ? 'Scan QR Pribadi pelanggan (KOSTKU-MEMBER:...) atau ketik No. HP untuk Klaim Poin maupun Pakai Hadiah voucher & poin.'
+                    : 'Scan QR Pribadi pelanggan atau masukkan No. HP untuk Klaim Hadiah poin struk otomatis saat bayar.'}
+                  size="sm"
+                  isLight={isLight}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  data-testid="kasir-cart-phone-input"
+                  placeholder="Scan QR Pribadi / No. HP..."
+                  value={cartCustomerPhone}
+                  onChange={e => {
+                    setCartCustomerPhone(e.target.value);
+                    if (!e.target.value.trim()) setCartCustomerProfile(null);
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: '5px 7px',
+                    borderRadius: '7px',
+                    fontSize: '0.73rem',
+                    border: `1px solid ${borderColor}`,
+                    background: bgCard,
+                    color: textPrimary
+                  }}
+                />
+                <button
+                  type="button"
+                  data-testid="kasir-cart-scan-qr-btn"
+                  onClick={() => openKasirQrScanner('cart')}
+                  title="Scan QR Pribadi Customer via Kamera"
+                  style={{
+                    padding: '5px 7px',
+                    borderRadius: '7px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.7)',
+                    color: '#2563eb',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  <QrCode size={14} />
+                </button>
+                <button
+                  type="button"
+                  data-testid="kasir-cart-lookup-btn"
+                  onClick={() => handleLookupCartMember()}
+                  disabled={cartLookupLoading}
+                  style={{
+                    padding: '5px 9px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    cursor: cartLookupLoading ? 'wait' : 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {cartLookupLoading ? '...' : 'Cek QR'}
+                </button>
+              </div>
+
+              <label style={{
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '6px'
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.69rem',
+                color: textSecondary,
+                cursor: 'pointer',
+                fontWeight: 600
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Award size={13} color="#2563eb" />
-                    <span style={{ fontSize: '0.73rem', fontWeight: 800, color: textPrimary }}>
-                      Pool: {storeInfo.loyaltyPoolName || 'Loyalty Pool'}
-                    </span>
-                  </div>
-                  <ActionTutorialBadge
-                    title="Kumpul & Tukar Poin Pool"
-                    description="Masukkan nomor HP/WA pelanggan untuk mengumpulkan poin otomatis atau menukar saldo poin dari toko mana pun di pool ini."
-                    size="sm"
-                    isLight={isLight}
-                  />
-                </div>
+                <input
+                  type="checkbox"
+                  checked={autoClaimPhoneOnPay}
+                  onChange={e => setAutoClaimPhoneOnPay(e.target.checked)}
+                  style={{ width: '14px', height: '14px', accentColor: '#10b981' }}
+                />
+                <span>Langsung klaim poin struk ke QR Pribadi / HP saat lunas</span>
+              </label>
 
-                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  <input
-                    type="tel"
-                    placeholder="No. HP/WA Member (opsional)..."
-                    value={cartCustomerPhone}
-                    onChange={e => setCartCustomerPhone(e.target.value)}
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      padding: '5px 7px',
-                      borderRadius: '7px',
-                      fontSize: '0.73rem',
-                      border: `1px solid ${borderColor}`,
-                      background: bgCard,
-                      color: textPrimary
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleLookupCartMember}
-                    disabled={cartLookupLoading}
-                    style={{
-                      padding: '5px 9px',
-                      borderRadius: '7px',
-                      border: 'none',
-                      background: '#2563eb',
-                      color: '#ffffff',
-                      fontSize: '0.7rem',
-                      fontWeight: 800,
-                      cursor: cartLookupLoading ? 'wait' : 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {cartLookupLoading ? '...' : 'Cek Poin'}
-                  </button>
-                </div>
-
-                {cartPoolPreview?.canonicalPhone && (
-                  <div style={{
+              {cartCustomerProfile?.canonicalPhone && (
+                <div
+                  data-testid="kasir-cart-customer-profile"
+                  style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '5px',
@@ -3464,97 +4528,160 @@ export default function Kasir({ user }) {
                     borderRadius: '8px',
                     background: bgCard,
                     border: `1px solid ${borderColor}`,
-                    fontSize: '0.71rem'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, color: textPrimary }}>
-                        {cartPoolPreview.customerName || 'Member'} • Saldo: <strong style={{ color: '#16a34a' }}>{cartPoolPreview.currentPoolBalance} poin</strong>
-                      </span>
-                      <span style={{ color: '#0284c7', fontWeight: 700 }}>
-                        +{cartPoolPreview.pointsEarned} poin baru
-                      </span>
-                    </div>
-
-                    {cartPoolPreview.maxRedeemablePoints > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ color: textSecondary }}>Tukar poin:</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max={cartPoolPreview.maxRedeemablePoints}
-                          value={cartRedeemPoints}
-                          onChange={e => {
-                            const val = Math.max(0, Math.min(cartPoolPreview.maxRedeemablePoints, Math.floor(Number(e.target.value) || 0)));
-                            setCartRedeemPoints(val);
-                          }}
-                          style={{
-                            width: '68px',
-                            padding: '3px 6px',
-                            borderRadius: '6px',
-                            border: `1px solid ${borderColor}`,
-                            background: bgCard,
-                            color: textPrimary,
-                            fontSize: '0.72rem',
-                            fontWeight: 700
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCartRedeemPoints(cartPoolPreview.maxRedeemablePoints)}
-                          style={{
-                            padding: '3px 7px',
-                            borderRadius: '6px',
-                            border: 'none',
-                            background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
-                            color: '#16a34a',
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Maks ({cartPoolPreview.maxRedeemablePoints})
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 9px',
-                borderRadius: '9px',
-                background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${borderColor}`,
-                fontSize: '0.71rem'
-              }}>
-                <span style={{ color: textSecondary, fontWeight: 700 }}>
-                  Tier 1 Flat (Rp 25/nota • Fitur Poin Nonaktif)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoyaltySubTab('pools');
-                    setActiveTab('loyalty');
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#2563eb',
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    padding: 0
+                    fontSize: '0.7rem'
                   }}
                 >
-                  Atur Pool
-                </button>
-              </div>
-            )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontWeight: 800, color: textPrimary }}>
+                      QR {cartCustomerProfile.canonicalPhone}
+                    </span>
+                    <span style={{ color: '#059669', fontWeight: 800 }}>
+                      {Number(cartCustomerProfile.account?.total_points || 0).toLocaleString('id-ID')} Poin
+                    </span>
+                  </div>
+                  {Array.isArray(cartCustomerProfile.activeVouchers) && cartCustomerProfile.activeVouchers.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {cartCustomerProfile.activeVouchers.map(v => (
+                        <div
+                          key={v.id || v.code}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 6px',
+                            borderRadius: '6px',
+                            background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
+                            border: '1px dashed #10b981'
+                          }}
+                        >
+                          <span style={{ fontWeight: 700, color: isLight ? '#065f46' : '#6ee7b7' }}>
+                            {v.code} (-Rp {Number(v.discountValue || 0).toLocaleString('id-ID')})
+                          </span>
+                          <button
+                            type="button"
+                            data-testid={`kasir-cart-use-voucher-${v.code}`}
+                            onClick={() => handleApplyVoucherToCart(v)}
+                            style={{
+                              padding: '3px 7px',
+                              borderRadius: '5px',
+                              border: 'none',
+                              background: resolveStoreTier2Enabled() ? '#059669' : '#94a3b8',
+                              color: '#ffffff',
+                              fontSize: '0.66rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Pakai Hadiah
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {storeInfo.loyaltyPoolId && cartPoolPreview?.canonicalPhone && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '5px',
+                  padding: '6px 8px',
+                  borderRadius: '8px',
+                  background: bgCard,
+                  border: `1px solid ${borderColor}`,
+                  fontSize: '0.71rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, color: textPrimary }}>
+                      {cartPoolPreview.customerName || 'Member'} • Saldo: <strong style={{ color: '#16a34a' }}>{cartPoolPreview.currentPoolBalance} poin</strong>
+                    </span>
+                    <span style={{ color: '#0284c7', fontWeight: 700 }}>
+                      +{cartPoolPreview.pointsEarned} poin baru
+                    </span>
+                  </div>
+
+                  {cartPoolPreview.maxRedeemablePoints > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ color: textSecondary }}>Tukar poin:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={cartPoolPreview.maxRedeemablePoints}
+                        value={cartRedeemPoints}
+                        onChange={e => {
+                          const val = Math.max(0, Math.min(cartPoolPreview.maxRedeemablePoints, Math.floor(Number(e.target.value) || 0)));
+                          setCartRedeemPoints(val);
+                        }}
+                        style={{
+                          width: '68px',
+                          padding: '3px 6px',
+                          borderRadius: '6px',
+                          border: `1px solid ${borderColor}`,
+                          background: bgCard,
+                          color: textPrimary,
+                          fontSize: '0.72rem',
+                          fontWeight: 700
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCartRedeemPoints(cartPoolPreview.maxRedeemablePoints)}
+                        style={{
+                          padding: '3px 7px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                          color: '#16a34a',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Maks ({cartPoolPreview.maxRedeemablePoints})
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!storeInfo.loyaltyPoolId && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '6px',
+                  paddingTop: '4px',
+                  borderTop: `1px dashed ${borderColor}`,
+                  fontSize: '0.69rem'
+                }}>
+                  <span style={{ color: textSecondary, fontWeight: 700 }}>
+                    Tier 1 Flat (Rp 25/nota • Tukar Poin Nonaktif)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoyaltySubTab('pools');
+                      setActiveTab('loyalty');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      fontSize: '0.69rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: 0
+                    }}
+                  >
+                    Atur Pool
+                  </button>
+                </div>
+              )}
+            </div>
 
             {posPointDiscount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 700 }}>
@@ -3602,6 +4729,54 @@ export default function Kasir({ user }) {
               )}
             </div>
 
+            {posAdminFee > 0 && (
+              <div
+                data-testid="pos-admin-fee-row"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#d97706',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.14)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  borderRadius: '8px',
+                  padding: '5px 8px'
+                }}
+              >
+                <span>Biaya Admin Nota (Customer):</span>
+                <span style={{ fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  +Rp {posAdminFee.toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+
+            {posQrisFee > 0 && (
+              <div
+                data-testid="pos-qris-fee-row"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#2563eb',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.14)',
+                  border: '1px solid rgba(37, 99, 235, 0.25)',
+                  borderRadius: '8px',
+                  padding: '5px 8px'
+                }}
+              >
+                <span>Biaya QRIS (Rp 750 + 0,70%):</span>
+                <span style={{ fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  +Rp {posQrisFee.toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -3613,7 +4788,7 @@ export default function Kasir({ user }) {
               marginTop: '2px'
             }}>
               <span>Total Tagihan:</span>
-              <span style={{ color: '#16a34a', fontFamily: 'var(--font-mono)', fontSize: '1.15rem' }}>
+              <span data-testid="pos-final-total" style={{ color: '#16a34a', fontFamily: 'var(--font-mono)', fontSize: '1.15rem' }}>
                 Rp {posFinalTotal.toLocaleString('id-ID')}
               </span>
             </div>
@@ -3742,9 +4917,11 @@ export default function Kasir({ user }) {
               }}>
                 <CreditCard size={18} color="#2563eb" style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>QRIS Dinamis TriPay / Mitra</strong>
+                  <strong>QRIS Dinamis TriPay (Biaya Customer: Rp 750 + 0,70%)</strong>
                   <div style={{ fontSize: '0.68rem', color: textSecondary }}>
-                    Pelanggan scan QRIS senilai Rp {posFinalTotal.toLocaleString('id-ID')}. Struk terbit dengan tanda lunas QRIS.
+                    {posBeforeQrisTotal > 0
+                      ? `Subtotal Rp ${posBeforeQrisTotal.toLocaleString('id-ID')} + Biaya QRIS Rp ${posQrisFee.toLocaleString('id-ID')} = Rp ${posFinalTotal.toLocaleString('id-ID')}. Struk terbit dengan tanda lunas QRIS.`
+                      : 'Biaya QRIS Rp 750 + 0,70% otomatis dibebankan ke customer saat checkout.'}
                   </div>
                 </div>
               </div>
@@ -3780,21 +4957,23 @@ export default function Kasir({ user }) {
               alignItems: 'center',
               padding: '6px 8px',
               borderRadius: '8px',
-              background: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
+              background: isNotaInsufficientForPos
                 ? 'rgba(239, 68, 68, 0.12)' 
                 : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)'),
-              border: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
+              border: isNotaInsufficientForPos
                 ? '1px solid #ef4444' 
                 : '1px solid rgba(16, 185, 129, 0.25)',
               marginTop: '4px',
               fontSize: '0.72rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < activeNotaFee ? '#ef4444' : '#d97706'} />
-                <span style={{ fontWeight: 700, color: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee ? '#ef4444' : '#10b981' }}>
-                  {Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
-                    ? `Saldo Nota: Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')} (Habis!)`
-                    : `Sisa Nota: ${storeInfo.kuotaNota ?? Math.floor(Number(storeInfo.saldoNota ?? 5000) / activeNotaFee)} lbr (@ Rp ${activeNotaFee})`}
+                <Coins size={13} color={isNotaInsufficientForPos ? '#ef4444' : '#d97706'} />
+                <span style={{ fontWeight: 700, color: isNotaInsufficientForPos ? '#ef4444' : '#10b981' }}>
+                  {skipNotaBlockerForQris
+                    ? 'Nota QRIS Ditanggung Customer (Saldo Toko Rp 0)'
+                    : isNotaInsufficientForPos
+                      ? `Saldo Nota: Rp ${storeSaldoNota.toLocaleString('id-ID')} (Habis!)`
+                      : `Sisa Nota: ${storeKuotaNota} lbr (@ Rp ${activeNotaFee})`}
                 </span>
               </div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -3968,11 +5147,11 @@ export default function Kasir({ user }) {
                 type="button"
                 onClick={async () => {
                   setPosCheckoutFeedback(null);
-                  if (Number(storeInfo.saldoNota ?? 5000) < activeNotaFee) {
+                  if (isNotaInsufficientForPos) {
                     setShowPosTopupModal(true);
                     setPosCheckoutFeedback({
                       type: 'error',
-                      text: `Saldo nota toko tidak mencukupi (sisa Rp ${(storeInfo.saldoNota || 0).toLocaleString('id-ID')}, dibutuhkan Rp ${activeNotaFee.toLocaleString('id-ID')}). Silakan top up saldo nota.`
+                      text: `Saldo nota toko tidak mencukupi (sisa Rp ${storeSaldoNota.toLocaleString('id-ID')}, dibutuhkan Rp ${activeNotaFee.toLocaleString('id-ID')}). Silakan top up saldo nota.`
                     });
                     return;
                   }
@@ -4000,9 +5179,9 @@ export default function Kasir({ user }) {
                     body: JSON.stringify({
                       tableToken: null,
                       tableNumber: 'Menunggu Meja',
-                      customerName: cartCustomerName.trim() || (cartCustomerPhone.trim() ? `Member ${cartCustomerPhone.trim()}` : 'Kasir Walk-in'),
-                      customerPhone: cartCustomerPhone.trim() || undefined,
-                      redeemPoints: cartRedeemPoints > 0 ? cartRedeemPoints : 0,
+                      customerName: cartCustomerName.trim() || (parseCustomerQrOrPhone(cartCustomerPhone).phone ? `Member ${parseCustomerQrOrPhone(cartCustomerPhone).phone}` : 'Kasir Walk-in'),
+                      customerPhone: parseCustomerQrOrPhone(cartCustomerPhone).phone || undefined,
+                      redeemPoints: resolveStoreTier2Enabled() && cartRedeemPoints > 0 ? cartRedeemPoints : 0,
                       storeId: storeInfo.merchantId || storeInfo.uid || undefined,
                       storeName: storeInfo.storeName || undefined,
                       cashierId: user?.id || 'KSR-01',
@@ -4011,6 +5190,8 @@ export default function Kasir({ user }) {
                       promoId: activeCartPromo?.id,
                       promoCode: activeCartPromo?.code,
                       paymentMethod: posPaymentMethod,
+                      qrisFee: posQrisFee,
+                      baseAmountBeforePaymentFee: posBeforeQrisTotal,
                       cashReceived: effectiveCashReceived,
                       cashChange: effectiveChange
                     })
@@ -4035,18 +5216,32 @@ export default function Kasir({ user }) {
                       setPosCheckoutFeedback({ type: 'error', text: payData.error || 'Gagal memproses pembayaran.' });
                       return;
                     }
+                    const enteredPhoneForClaim = parseCustomerQrOrPhone(cartCustomerPhone).phone || cartCustomerPhone.trim();
+                    const enteredNameForClaim = cartCustomerName.trim();
                     setPosCart({});
                     setActiveCartPromo(null);
                     setPosCashReceived('');
                     setCartCustomerPhone('');
                     setCartCustomerName('');
                     setCartMemberLookup(null);
+                    setCartCustomerProfile(null);
                     setCartRedeemPoints(0);
                     setCartPoolPreview(null);
                     setConfirmClearCart(false);
                     if (showMobileCartDrawer) setShowMobileCartDrawer(false);
                     fetchData();
                     loadPromos();
+
+                    let autoClaimResult = null;
+                    if (autoClaimPhoneOnPay && parseCustomerQrOrPhone(enteredPhoneForClaim).phone.length >= 8) {
+                      const cRes = await submitCashierPhoneClaim({
+                        token: newO.claim_token || newO.claimToken,
+                        orderId: newO.id,
+                        phone: enteredPhoneForClaim,
+                        name: enteredNameForClaim
+                      });
+                      if (cRes.ok) autoClaimResult = cRes.data;
+                    }
 
                     // Automatic Cash Drawer Kick & Sound Effect (khusus Tunai)
                     if (posPaymentMethod === 'CASH' && printerSettings.openDrawer !== false) {
@@ -4059,12 +5254,19 @@ export default function Kasir({ user }) {
                       } catch (_) {}
                     }
 
+                    const resolvedQrisFee = Number(payData?.qrisFee ?? newO?.qrisFee ?? posQrisFee) || 0;
+                    const resolvedAdminFee = Number(payData?.customerAdminFee ?? newO?.customerAdminFee ?? posAdminFee) || 0;
+                    const resolvedFinalTotal = Number(payData?.total ?? payData?.order?.totalAmount ?? posFinalTotal) || posFinalTotal;
+
                     // Prepare receipt base data
                     const receiptData = {
                       id: newO.id,
                       invoice_number: newO.invoice || newO.invoice_number || newO.id,
-                      totalAmount: posFinalTotal,
+                      totalAmount: resolvedFinalTotal,
                       subtotal: posCartSubtotal,
+                      qrisFee: resolvedQrisFee,
+                      customerAdminFee: resolvedAdminFee,
+                      notaFeeBearer: payData?.notaFeeBearer || activeNotaFeeBearer,
                       pointDiscountIdr: posPointDiscount,
                       pointsRedeemed: newO.pointsRedeemed || 0,
                       pointsEarned: newO.pointsEarned || 0,
@@ -4077,6 +5279,10 @@ export default function Kasir({ user }) {
                       claimToken: newO.claim_token || newO.claimToken,
                       qrClaimUrl: newO.qr_claim_url || newO.qrClaimUrl,
                       claimDeadline: newO.claim_deadline || newO.claimDeadline,
+                      customerPhone: autoClaimResult?.phone || enteredPhoneForClaim || '',
+                      claimStatus: autoClaimResult ? 'CLAIMED' : 'PENDING',
+                      claimedByWhatsapp: autoClaimResult?.phone || null,
+                      claimPointsAwarded: autoClaimResult?.pointsAwarded || 0,
                       storeName: storeInfo.storeName || 'KostKu Cafe & Resto',
                       createdAt: new Date().toISOString(),
                       items: items.map(it => {
@@ -4109,17 +5315,17 @@ export default function Kasir({ user }) {
                   padding: '10px 14px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
+                  background: isNotaInsufficientForPos
                     ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
                     : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: '#ffffff',
                   fontWeight: 800,
                   fontSize: '0.82rem',
                   cursor: 'pointer',
-                  boxShadow: Number(storeInfo.saldoNota ?? 5000) < activeNotaFee ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  boxShadow: isNotaInsufficientForPos ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
                 }}
               >
-                {Number(storeInfo.saldoNota ?? 5000) < activeNotaFee
+                {isNotaInsufficientForPos
                   ? 'Top Up Nota' 
                   : posPaymentMethod === 'CASH'
                     ? `Bayar Tunai Rp ${posFinalTotal.toLocaleString('id-ID')}`
@@ -4166,7 +5372,7 @@ export default function Kasir({ user }) {
     boxSizing: 'border-box'
   });
 
-  const MANAJEMEN_TABS = ['forecast', 'promo', 'inventory', 'loyalty', 'karyawan', 'store'];
+  const MANAJEMEN_TABS = ['closing', 'forecast', 'promo', 'inventory', 'loyalty', 'karyawan', 'store', 'mitra'];
 
   /** Shared light-purple Beta pill badge used beside Forecast navigation labels. */
   const renderForecastBetaPill = (compact = true) => (
@@ -4225,6 +5431,82 @@ export default function Kasir({ user }) {
     </div>
   );
 
+  const handleUmkmRegistered = async (payload) => {
+    if (!payload) return;
+    const regStore = payload.store;
+    const regProducts = Array.isArray(payload.products) ? payload.products : [];
+    if (regStore) {
+      setStoreInfo(prev => ({ ...prev, ...regStore, storeMode: 'mitra', kasirOnly: false, isMitra: true }));
+      setStoreForm({
+        storeName: regStore.storeName || '',
+        location: regStore.location || '',
+        address: regStore.address || '',
+        city: regStore.city || '',
+        phone: regStore.phone || '',
+        mapsUrl: regStore.mapsUrl || '',
+        latitude: regStore.latitude ?? '',
+        longitude: regStore.longitude ?? '',
+        storeMode: 'mitra'
+      });
+    }
+    if (regProducts.length > 0) {
+      setProducts(regProducts);
+      try {
+        localStorage.setItem(`kostku_pos_products_${effectiveAccountId}`, JSON.stringify(regProducts));
+      } catch (_) {}
+    }
+    const updatedUserObj = payload.updatedUser || (user ? {
+      ...user,
+      merchantId: regStore?.merchantId,
+      storeName: regStore?.storeName,
+      branchCount: regStore?.branchCount || 1,
+      umkmRegistered: true
+    } : null);
+    if (updatedUserObj) {
+      try {
+        localStorage.setItem('kostUser', JSON.stringify(updatedUserObj));
+        window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: updatedUserObj }));
+      } catch (_) {}
+    }
+    setNeedsUmkmRegistration(false);
+    setCheckingStoreRegistration(false);
+    setActiveTab('pos');
+    await fetchData(regStore?.merchantId || null);
+  };
+
+  if (checkingStoreRegistration) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: bgPage,
+        color: textPrimary,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        fontFamily: 'var(--font-main, "Plus Jakarta Sans", sans-serif)'
+      }}>
+        <RefreshCw size={28} color="#10b981" />
+        <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>
+          Memeriksa Profil UMKM Kasir Anda...
+        </div>
+      </div>
+    );
+  }
+
+  if (needsUmkmRegistration) {
+    return (
+      <UmkmOnboardingGate
+        user={user}
+        isLight={isLight}
+        toggleTheme={toggleTheme}
+        onLogout={onLogout}
+        onRegistered={handleUmkmRegistered}
+      />
+    );
+  }
+
   return (
     <div className="pos-layout-wrapper" style={{
       minHeight: '100vh',
@@ -4255,9 +5537,9 @@ export default function Kasir({ user }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
               <img 
-                src="/logo.png" 
-                alt="Logo KostKu" 
-                style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'contain', flexShrink: 0 }} 
+                src={storeInfo.photo || '/logo.png'} 
+                alt={storeInfo.storeName || 'Logo KostKu'} 
+                style={{ width: '30px', height: '30px', borderRadius: '8px', objectFit: storeInfo.photo ? 'cover' : 'contain', flexShrink: 0 }} 
               />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{
@@ -4280,16 +5562,16 @@ export default function Kasir({ user }) {
                 <div style={{ fontSize: '0.66rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   <span>{storeInfo.location || 'Kantin'}</span>
                   <span> • </span>
-                  <span style={{ color: user?.role === 'mitra' ? '#ec4899' : '#10b981', fontWeight: 700 }}>
-                    {user ? user.name.split(' ')[0] : 'Kasir'}
+                  <span style={{ color: isDirectMitraNav ? '#ec4899' : '#10b981', fontWeight: 700 }}>
+                    {(user?.name || 'Kasir').split(' ')[0]}
                   </span>
                 </div>
               </div>
             </div>
 
             <Link 
-              to="/dashboard" 
-              title="Kembali ke Dashboard KostKu" 
+              to={isDirectMitraNav ? '/' : '/dashboard'}
+              title={isDirectMitraNav ? 'Kembali ke Beranda KostKu' : 'Kembali ke Dashboard KostKu'}
               style={{
                 textDecoration: 'none',
                 display: 'flex',
@@ -4423,6 +5705,32 @@ export default function Kasir({ user }) {
               )}
             </button>
 
+            {/* 2b. Halaman Khusus Tutup Shift & Rekapan Foto */}
+            <button
+              type="button"
+              data-testid="kasir-nav-closing"
+              onClick={openClosingShiftPage}
+              style={sidebarItemStyle(activeTab === 'closing')}
+            >
+              <Lock size={17} color={activeTab === 'closing' ? '#2563eb' : '#ef4444'} strokeWidth={activeTab === 'closing' ? 2.5 : 2} />
+              <span style={{ flex: 1 }}>Tutup Shift &amp; Foto</span>
+              <span style={{
+                fontSize: '0.58rem',
+                fontWeight: 800,
+                padding: '1px 6px',
+                borderRadius: '999px',
+                background: cashierShift.isOpen
+                  ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)')
+                  : (isLight ? '#f1f5f9' : 'rgba(148, 163, 184, 0.2)'),
+                color: cashierShift.isOpen
+                  ? (isLight ? '#b91c1c' : '#fca5a5')
+                  : textSecondary,
+                border: `1px solid ${cashierShift.isOpen ? (isLight ? '#fecaca' : 'rgba(239, 68, 68, 0.35)') : borderColor}`
+              }}>
+                {cashierShift.isOpen ? 'Aktif' : 'Riwayat'}
+              </span>
+            </button>
+
             {/* 3. Keuangan */}
             <button
               type="button"
@@ -4552,6 +5860,27 @@ export default function Kasir({ user }) {
               <MapPin size={17} color={activeTab === 'store' ? '#2563eb' : '#14b8a6'} />
               <span style={{ flex: 1 }}>Lokasi Toko</span>
             </button>
+
+            {/* 11. Mitra & Usul Warung */}
+            <button
+              type="button"
+              data-testid="kasir-nav-mitra"
+              onClick={() => setActiveTab('mitra')}
+              style={sidebarItemStyle(activeTab === 'mitra')}
+            >
+              <Sparkles size={17} color={activeTab === 'mitra' ? '#2563eb' : '#059669'} />
+              <span style={{ flex: 1 }}>Mitra &amp; Warung</span>
+              <span style={{
+                fontSize: '0.58rem',
+                fontWeight: 800,
+                padding: '1px 5px',
+                borderRadius: '999px',
+                background: isLight ? '#dbeafe' : 'rgba(37, 99, 235, 0.2)',
+                color: isLight ? '#1d4ed8' : '#93c5fd'
+              }}>
+                Mitra
+              </span>
+            </button>
           </div>
         </div>
 
@@ -4636,6 +5965,23 @@ export default function Kasir({ user }) {
                 isLight={isLight}
               />
             </div>
+
+            {/* Status Integrasi Wajib Mitra KostKu */}
+            <div
+              data-testid="sidebar-mode-mitra"
+              style={{
+                padding: '5px 8px',
+                borderRadius: '7px',
+                border: '1px solid rgba(37, 99, 235, 0.35)',
+                background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)',
+                color: isLight ? '#1d4ed8' : '#93c5fd',
+                fontSize: '0.64rem',
+                fontWeight: 800,
+                textAlign: 'center'
+              }}
+            >
+              Mitra Aktif • {kasirWebOnline ? 'Kasir Online' : 'Shift Tutup'}
+            </div>
             {storeSwitchMsg && (
               <div style={{
                 fontSize: '0.67rem',
@@ -4658,7 +6004,7 @@ export default function Kasir({ user }) {
             justifyContent: 'space-between',
             padding: '7px 10px',
             borderRadius: '10px',
-            background: Number(storeInfo.saldoNota ?? 5000) < 100
+            background: storeSaldoNota < storeNotaFeeIdr
               ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)')
               : (isLight ? '#f8fafc' : '#0f172a'),
             border: `1px solid ${borderColor}`
@@ -4667,7 +6013,7 @@ export default function Kasir({ user }) {
               <Coins size={16} color="#d97706" />
               <div>
                 <div style={{ fontSize: '0.62rem', color: textSecondary, fontWeight: 700, lineHeight: 1 }}>Kuota Nota</div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: textPrimary }}>{storeInfo.kuotaNota ?? 50} lembar</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: textPrimary }}>{storeKuotaNota} lembar</div>
               </div>
             </div>
             <button
@@ -4752,6 +6098,27 @@ export default function Kasir({ user }) {
             >
               <RefreshCw size={14} />
             </button>
+
+            <Link
+              to="/pengaturan"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                padding: '6px',
+                borderRadius: '8px',
+                background: isLight ? '#f1f5f9' : '#1e293b',
+                border: `1px solid ${borderColor}`,
+                color: textSecondary,
+                textDecoration: 'none',
+                fontSize: '0.7rem'
+              }}
+              title="Pengaturan Akun & Keluar"
+            >
+              <Settings size={14} />
+            </Link>
           </div>
         </div>
       </aside>
@@ -4766,7 +6133,7 @@ export default function Kasir({ user }) {
           background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
           backdropFilter: 'blur(12px)',
           borderBottom: `1px solid ${borderColor}`,
-          padding: '0.55rem 1rem',
+          padding: 'clamp(0.45rem, 2vw, 0.55rem) clamp(0.55rem, 2.5vw, 1rem)',
           boxShadow: isLight ? '0 1px 3px rgba(0,0,0,0.05)' : '0 4px 20px rgba(0,0,0,0.3)',
           width: '100%',
           boxSizing: 'border-box'
@@ -4775,20 +6142,20 @@ export default function Kasir({ user }) {
             width: '100%',
             maxWidth: '100%',
             margin: '0 auto',
-            padding: '0 1%',
+            padding: '0 2px',
             boxSizing: 'border-box',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '0.5rem'
+            gap: '0.45rem'
           }}>
             {/* Left: Mobile (Back Arrow + Logo + Store Name) vs Desktop (Active Module Title) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
               {/* Mobile View: Back Arrow + Logo + Store Name */}
-              <div className="mobile-only-flex" style={{ alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div className="mobile-only-flex" style={{ alignItems: 'center', gap: '6px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
                 <Link 
-                  to="/dashboard" 
-                  title="Kembali ke Dashboard KostKu" 
+                  to={isDirectMitraNav ? '/' : '/dashboard'}
+                  title={isDirectMitraNav ? 'Kembali ke Beranda KostKu' : 'Kembali ke Dashboard KostKu'}
                   style={{
                     textDecoration: 'none',
                     display: 'flex',
@@ -4867,37 +6234,37 @@ export default function Kasir({ user }) {
                   <p style={{ margin: 0, fontSize: '0.64rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <span>{storeInfo.location || 'Kantin'}</span>
                     <span> • </span>
-                    <span style={{ color: user?.role === 'mitra' ? '#ec4899' : '#10b981', fontWeight: 600 }}>
-                      {user ? (user.name.split(' ')[0]) : 'Kasir'}
+                    <span style={{ color: isDirectMitraNav ? '#ec4899' : '#10b981', fontWeight: 600 }}>
+                      {(user?.name || 'Kasir').split(' ')[0]}
                     </span>
                   </p>
                 </div>
               </div>
 
-              {/* Desktop View: Active Tab Title */}
+              {/* Desktop View: Avoid repeating Manajemen h2 headers from <main> */}
               <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '8px' }}>
                 <span style={{
-                  fontSize: '0.98rem',
-                  fontWeight: 900,
+                  fontSize: '0.92rem',
+                  fontWeight: 800,
                   color: textPrimary,
-                  letterSpacing: '-0.3px',
+                  letterSpacing: '-0.2px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '7px'
                 }}>
-                  {activeTab === 'dashboard' && <><LayoutDashboard size={17} color="#2563eb" /><span>Dashboard Kasir &amp; Shift Opening</span></>}
-                  {activeTab === 'pos' && <><ShoppingBag size={17} color="#2563eb" /><span>Kasir &amp; Katalog POS</span></>}
-                  {activeTab === 'kds' && <><ChefHat size={17} color="#f59e0b" /><span>Layar Antrean Dapur (KDS)</span></>}
-                  {activeTab === 'tables' && <><QrCode size={17} color="#2563eb" /><span>Manajemen Meja &amp; QR Barcode</span></>}
-                  {activeTab === 'settings' && <><DollarSign size={17} color="#10b981" /><span>Laporan Keuangan, Statistik &amp; Kasir</span></>}
-                  {activeTab === 'forecast' && <><Beaker size={17} color="#c084fc" /><span>Forecast Permintaan (ML)</span>{renderForecastBetaPill(false)}</>}
-                  {activeTab === 'promo' && <><Tag size={17} color="#f59e0b" /><span>Promo &amp; Diskon Makanan</span></>}
-                  {activeTab === 'inventory' && <><Package size={17} color="#ef4444" /><span>Gudang &amp; Stok Bahan</span></>}
-                  {activeTab === 'analytics' && <><BarChart3 size={17} color="#6366f1" /><span>Statistik &amp; Analitik Keuangan</span></>}
-                  {activeTab === 'loyalty' && <><Award size={17} color="#3b82f6" /><span>Program Stamp &amp; Poin Loyalti</span></>}
-                  {activeTab === 'karyawan' && <><Users size={17} color="#a855f7" /><span>Manajemen Karyawan &amp; Shift</span></>}
-                  {activeTab === 'store' && <><MapPin size={17} color="#14b8a6" /><span>Lokasi Kasir &amp; Validasi Toko</span></>}
-                  {activeTab === 'hardware' && <><Printer size={17} color="#059669" /><span>Laci Uang (RJ11) &amp; Printer Thermal</span></>}
+                  {activeTab === 'pos' ? (
+                    <><ShoppingBag size={17} color="#2563eb" /><span>Kasir &amp; Katalog POS</span></>
+                  ) : (
+                    <>
+                      <Store size={16} color="#2563eb" />
+                      <span>{storeInfo.storeName || 'KostKu POS'}</span>
+                      {storeInfo.location && (
+                        <span style={{ fontSize: '0.76rem', fontWeight: 600, color: textSecondary }}>
+                          • {storeInfo.location}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </span>
               </div>
             </div>
@@ -4936,47 +6303,98 @@ export default function Kasir({ user }) {
                 />
               </div>
 
-              {/* Saldo Kuota Nota Chip */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              {/* Status Online Kasir Web + Saldo Kuota Nota Chip */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <span
+                  data-testid="kasir-web-online-badge"
+                  title={kasirWebOnline ? 'Kasir Web Online — toko tampil sebagai Online di katalog Mitra (/layanan)' : 'Kasir Offline — buka shift di web agar toko tampil Online di katalog Mitra'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 7px',
+                    borderRadius: '999px',
+                    background: kasirWebOnline
+                      ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.2)')
+                      : (isLight ? '#f1f5f9' : 'rgba(148, 163, 184, 0.16)'),
+                    border: kasirWebOnline ? '1px solid #10b981' : `1px solid ${borderColor}`,
+                    color: kasirWebOnline ? (isLight ? '#047857' : '#6ee7b7') : textSecondary,
+                    fontSize: '0.64rem',
+                    fontWeight: 800,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: kasirWebOnline ? '#10b981' : '#94a3b8'
+                  }} />
+                  <span>{kasirWebOnline ? 'Online' : 'Offline'}</span>
+                </span>
                 <button
                   type="button"
                   onClick={() => setShowPosTopupModal(true)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 9px',
+                    gap: '3px',
+                    padding: '3px 7px',
                     borderRadius: '999px',
-                    background: Number(storeInfo.saldoNota ?? 5000) < 100 
+                    background: storeSaldoNota < storeNotaFeeIdr 
                       ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
                       : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
-                    border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
+                    border: storeSaldoNota < storeNotaFeeIdr ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
                     cursor: 'pointer',
-                    fontSize: '0.72rem',
+                    fontSize: '0.68rem',
                     fontWeight: 800,
-                    color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                    color: storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                    whiteSpace: 'nowrap'
                   }}
                   title="Klik untuk Top Up Saldo Kuota Nota Kasir"
                 >
-                  <Coins size={13} color={Number(storeInfo.saldoNota ?? 5000) < Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25)) ? '#ef4444' : '#d97706'} />
-                  <span>{storeInfo.kuotaNota ?? 200}</span>
+                  <Coins size={12} color={storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : '#d97706'} />
+                  <span>{storeKuotaNota}</span>
                   <span style={{
-                    fontSize: '0.62rem',
+                    fontSize: '0.58rem',
                     fontWeight: 900,
-                    background: Number(storeInfo.saldoNota ?? 5000) < Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25)) ? '#ef4444' : '#2563eb',
+                    background: storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : '#2563eb',
                     color: '#ffffff',
-                    padding: '1px 5px',
+                    padding: '1px 4px',
                     borderRadius: '999px',
                     marginLeft: '1px'
                   }}>+Top Up</span>
                 </button>
-                <ActionTutorialBadge
-                  title="Kuota & Top Up Saldo Nota"
-                  description={`Menampilkan sisa kuota nota toko aktif (${storeInfo.loyaltyPoolId ? `Tier 2 Pool: Rp 100/nota` : `Tier 1 Flat: Rp 25/nota`}). Klik chip ini untuk isi ulang saldo nota.`}
-                  size="sm"
-                  isLight={isLight}
-                />
+
+                {/* Quick Link to Settings & Logout for Mobile */}
+                <Link
+                  to="/pengaturan"
+                  title="Pengaturan Akun & Keluar"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: isLight ? '#f1f5f9' : '#1e293b',
+                    border: `1px solid ${borderColor}`,
+                    color: textSecondary,
+                    textDecoration: 'none',
+                    flexShrink: 0
+                  }}
+                >
+                  <Settings size={14} />
+                </Link>
+                <div className="desktop-only-flex" style={{ alignItems: 'center' }}>
+                  <ActionTutorialBadge
+                    title="Kuota & Top Up Saldo Nota"
+                    description={`Menampilkan sisa kuota nota toko aktif (${storeInfo.loyaltyPoolId ? `Tier 2 Pool: Rp 100/nota` : `Tier 1 Flat: Rp 25/nota`}). Klik chip ini untuk isi ulang saldo nota.`}
+                    size="sm"
+                    isLight={isLight}
+                  />
+                </div>
               </div>
 
               {/* Desktop-Only Secondary Controls: Theme, Sound, Refresh */}
@@ -5040,7 +6458,7 @@ export default function Kasir({ user }) {
         </header>
 
       {/* ── PERINGATAN KUOTA MENIPIS (THRESHOLD ALERT <= 15 NOTA) ── */}
-      {(storeInfo.kuotaNota ?? 50) <= 15 && (
+      {storeKuotaNota <= 15 && (
         <div style={{
           width: '100%',
           maxWidth: '100%',
@@ -5051,9 +6469,9 @@ export default function Kasir({ user }) {
           <div style={{
             padding: '10px 14px',
             borderRadius: '12px',
-            background: (storeInfo.kuotaNota ?? 50) <= 5 ? '#fef2f2' : '#fffbeb',
-            border: (storeInfo.kuotaNota ?? 50) <= 5 ? '1px solid #fecaca' : '1px solid #fde68a',
-            color: (storeInfo.kuotaNota ?? 50) <= 5 ? '#991b1b' : '#92400e',
+            background: storeKuotaNota <= 5 ? '#fef2f2' : '#fffbeb',
+            border: storeKuotaNota <= 5 ? '1px solid #fecaca' : '1px solid #fde68a',
+            color: storeKuotaNota <= 5 ? '#991b1b' : '#92400e',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -5063,7 +6481,7 @@ export default function Kasir({ user }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={18} color="#d97706" style={{ flexShrink: 0 }} />
               <div style={{ fontSize: '0.76rem', lineHeight: 1.35 }}>
-                <strong>Kuota nota gratis Anda tersisa {storeInfo.kuotaNota ?? 0} transaksi.</strong><br />
+                <strong>Kuota nota gratis Anda tersisa {storeKuotaNota} transaksi.</strong><br />
                 <span style={{ fontSize: '0.7rem', opacity: 0.9 }}>Lakukan top up agar operasional kasir tetap lancar.</span>
               </div>
             </div>
@@ -5074,7 +6492,7 @@ export default function Kasir({ user }) {
                 flexShrink: 0,
                 padding: '5px 12px',
                 borderRadius: '8px',
-                background: (storeInfo.kuotaNota ?? 50) <= 5 ? '#dc2626' : '#d97706',
+                background: storeKuotaNota <= 5 ? '#dc2626' : '#d97706',
                 color: '#ffffff',
                 border: 'none',
                 fontWeight: 800,
@@ -5174,6 +6592,22 @@ export default function Kasir({ user }) {
         >
           <Award size={12} color="#3b82f6" />
           <span>Stamp</span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="kasir-quick-claim-phone-btn"
+          onClick={() => openCashierClaimModal()}
+          style={{
+            ...quickPillStyle('#059669'),
+            background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.2)',
+            color: isLight ? '#047857' : '#34d399',
+            borderColor: 'rgba(16, 185, 129, 0.4)'
+          }}
+          title="Scan QR Pribadi Customer untuk Klaim Hadiah atau Pakai Hadiah"
+        >
+          <QrCode size={12} />
+          <span>QR Customer</span>
         </button>
 
         <button
@@ -5474,11 +6908,8 @@ export default function Kasir({ user }) {
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setClosingActualCash('');
-                        setClosingNote('');
-                        setShowShiftClosingModal(true);
-                      }}
+                      data-testid="open-tutup-shift-page-btn"
+                      onClick={openClosingShiftPage}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -5499,7 +6930,7 @@ export default function Kasir({ user }) {
                     </button>
                     <ActionTutorialBadge
                       title="Tutup Shift & Rekonsiliasi Kas"
-                      description="Menutup sesi kasir aktif, membandingkan uang tunai fisik di laci vs sistem, serta mencetak struk ringkasan tutup kasir."
+                      description="Membuka halaman penuh closing kasir, membandingkan uang tunai fisik di laci vs sistem, serta melampirkan foto barang basi/sisa/rusak."
                       size="sm"
                       isLight={isLight}
                     />
@@ -5596,131 +7027,377 @@ export default function Kasir({ user }) {
           )}
 
           {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* ── 4 KPI CARDS UTAMA: HARIAN, BULANAN, KARYAWAN ONLINE, NOTA ── */}
+          {/* ── 3 KPI CARDS UTAMA: PENDAPATAN (SWIPEABLE), KARYAWAN, NOTA ── */}
           {/* ═════════════════════════════════════════════════════════════════ */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
             gap: '12px',
             marginBottom: '1.25rem'
           }}>
-            {/* 1. PENDAPATAN HARIAN */}
-            <div style={{
-              background: bgCard,
-              border: isLight ? '1.5px solid #d1fae5' : '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '18px',
-              padding: '16px 18px',
-              boxShadow: isLight ? '0 4px 14px rgba(16, 185, 129, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Pendapatan Harian
-                </span>
-                <span style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Coins size={17} color="#10b981" />
-                </span>
-              </div>
-              <span style={{
-                fontSize: '1.6rem',
-                fontWeight: 900,
-                color: isLight ? '#065f46' : '#34d399',
-                display: 'block',
-                letterSpacing: '-0.5px',
-                lineHeight: 1.1
-              }}>
-                Rp {revenueMetrics.dailyRevenue.toLocaleString('id-ID')}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', color: textSecondary }}>
-                <span>{revenueMetrics.dailyOrdersCount} pesanan selesai hari ini</span>
-                <span style={{ fontWeight: 700, color: isLight ? '#047857' : '#10b981' }}>
-                  Tunai: Rp {revenueMetrics.dailyCashRevenue.toLocaleString('id-ID')}
-                </span>
-              </div>
-            </div>
+            {/* 1. PENDAPATAN HARIAN, BULANAN & TAHUNAN (1 BOX SWIPEABLE + BUBBLE INDICATORS) */}
+            {(() => {
+              const slideThemes = [
+                {
+                  accent: '#10b981',
+                  tintBorder: isLight ? '1.5px solid #d1fae5' : '1px solid rgba(16, 185, 129, 0.35)',
+                  tintShadow: isLight ? '0 4px 14px rgba(16, 185, 129, 0.09)' : '0 4px 14px rgba(0,0,0,0.22)',
+                  glow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+                  badgeBg: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
+                  badgeColor: isLight ? '#047857' : '#6ee7b7'
+                },
+                {
+                  accent: '#2563eb',
+                  tintBorder: isLight ? '1.5px solid #dbeafe' : '1px solid rgba(37, 99, 235, 0.38)',
+                  tintShadow: isLight ? '0 4px 14px rgba(37, 99, 235, 0.09)' : '0 4px 14px rgba(0,0,0,0.22)',
+                  glow: '0 2px 8px rgba(37, 99, 235, 0.35)',
+                  badgeBg: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.18)',
+                  badgeColor: isLight ? '#1d4ed8' : '#93c5fd'
+                },
+                {
+                  accent: '#8b5cf6',
+                  tintBorder: isLight ? '1.5px solid #ede9fe' : '1px solid rgba(139, 92, 246, 0.38)',
+                  tintShadow: isLight ? '0 4px 14px rgba(139, 92, 246, 0.1)' : '0 4px 14px rgba(0,0,0,0.22)',
+                  glow: '0 2px 8px rgba(139, 92, 246, 0.35)',
+                  badgeBg: isLight ? '#f5f3ff' : 'rgba(139, 92, 246, 0.18)',
+                  badgeColor: isLight ? '#6d28d9' : '#c4b5fd'
+                }
+              ];
+              const activeTheme = slideThemes[revenueCardIndex] || slideThemes[0];
+              const bubbleItems = [
+                { idx: 0, label: 'Harian', color: '#10b981' },
+                { idx: 1, label: 'Bulanan', color: '#2563eb' },
+                { idx: 2, label: 'Tahunan', color: '#8b5cf6' }
+              ];
+              const currentMonthShort = new Date().toLocaleDateString('id-ID', { month: 'short' });
 
-            {/* 2. PENDAPATAN BULANAN */}
-            <div style={{
-              background: bgCard,
-              border: isLight ? '1.5px solid #dbeafe' : '1px solid rgba(37, 99, 235, 0.3)',
-              borderRadius: '18px',
-              padding: '16px 18px',
-              boxShadow: isLight ? '0 4px 14px rgba(37, 99, 235, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Pendapatan Bulanan
-                </span>
-                <span style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <TrendingUp size={17} color="#2563eb" />
-                </span>
-              </div>
-              <span style={{
-                fontSize: '1.6rem',
-                fontWeight: 900,
-                color: isLight ? '#1e40af' : '#60a5fa',
-                display: 'block',
-                letterSpacing: '-0.5px',
-                lineHeight: 1.1
-              }}>
-                Rp {revenueMetrics.monthlyRevenue.toLocaleString('id-ID')}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', color: textSecondary }}>
-                <span>{revenueMetrics.monthlyOrdersCount} total transaksi bulan ini</span>
-                <span style={{ fontWeight: 700, color: '#2563eb' }}>
-                  Bulan {new Date().toLocaleDateString('id-ID', { month: 'short' })}
-                </span>
-              </div>
-            </div>
+              return (
+                <div
+                  data-testid="kasir-swipeable-revenue-card"
+                  onTouchStart={(e) => e.touches?.[0] && handleRevenueSwipeStart(e.touches[0].clientX, e.touches[0].clientY)}
+                  onTouchMove={(e) => e.touches?.[0] && handleRevenueSwipeMove(e.touches[0].clientX, e.touches[0].clientY)}
+                  onTouchEnd={(e) => e.changedTouches?.[0] && handleRevenueSwipeEnd(e.changedTouches[0].clientX)}
+                  onMouseDown={(e) => {
+                    if (e.target.closest('button')) return;
+                    handleRevenueSwipeStart(e.clientX, e.clientY);
+                  }}
+                  onMouseMove={(e) => handleRevenueSwipeMove(e.clientX, e.clientY)}
+                  onMouseUp={(e) => handleRevenueSwipeEnd(e.clientX)}
+                  onMouseLeave={(e) => {
+                    if (revenueTouchActive.current) handleRevenueSwipeEnd(e.clientX);
+                  }}
+                  style={{
+                    background: bgCard,
+                    border: activeTheme.tintBorder,
+                    borderRadius: '18px',
+                    padding: 'clamp(13px, 3vw, 18px)',
+                    boxShadow: activeTheme.tintShadow,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    touchAction: 'pan-y',
+                    userSelect: 'none',
+                    cursor: isRevenueSwiping ? 'grabbing' : 'grab',
+                    transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
+                    minWidth: 0
+                  }}
+                >
+                  {/* Horizontal Swipe Track (3 Slides inside 1 Box) */}
+                  <div style={{ overflow: 'hidden', width: '100%' }}>
+                    <div style={{
+                      display: 'flex',
+                      width: '300%',
+                      transform: `translate3d(calc(-${((revenueCardIndex * 100) / 3).toFixed(6)}% + ${revenueSwipeDelta}px), 0, 0)`,
+                      transition: isRevenueSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)'
+                    }}>
+                      {/* Slide 0: PENDAPATAN HARIAN */}
+                      <div style={{ width: 'calc(100% / 3)', flexShrink: 0, boxSizing: 'border-box', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Pendapatan Harian
+                            </span>
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '999px',
+                              background: slideThemes[0].badgeBg,
+                              color: slideThemes[0].badgeColor
+                            }}>
+                              Hari Ini
+                            </span>
+                          </div>
+                          <span style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '9px',
+                            background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <Coins size={16} color="#10b981" />
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
+                          fontWeight: 900,
+                          color: isLight ? '#065f46' : '#34d399',
+                          display: 'block',
+                          letterSpacing: '-0.5px',
+                          lineHeight: 1.1
+                        }}>
+                          Rp {revenueMetrics.dailyRevenue.toLocaleString('id-ID')}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '8px', fontSize: '0.71rem', color: textSecondary }}>
+                          <span>{revenueMetrics.dailyOrdersCount} pesanan selesai hari ini</span>
+                          <span style={{ fontWeight: 700, color: isLight ? '#047857' : '#10b981' }}>
+                            Tunai: Rp {revenueMetrics.dailyCashRevenue.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Slide 1: PENDAPATAN BULANAN */}
+                      <div style={{ width: 'calc(100% / 3)', flexShrink: 0, boxSizing: 'border-box', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Pendapatan Bulanan
+                            </span>
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '999px',
+                              background: slideThemes[1].badgeBg,
+                              color: slideThemes[1].badgeColor
+                            }}>
+                              {currentMonthShort} {revenueMetrics.currentYear}
+                            </span>
+                          </div>
+                          <span style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '9px',
+                            background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <TrendingUp size={16} color="#2563eb" />
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
+                          fontWeight: 900,
+                          color: isLight ? '#1e40af' : '#60a5fa',
+                          display: 'block',
+                          letterSpacing: '-0.5px',
+                          lineHeight: 1.1
+                        }}>
+                          Rp {revenueMetrics.monthlyRevenue.toLocaleString('id-ID')}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '8px', fontSize: '0.71rem', color: textSecondary }}>
+                          <span>{revenueMetrics.monthlyOrdersCount} transaksi bulan {currentMonthShort}</span>
+                          <span style={{ fontWeight: 700, color: isLight ? '#1d4ed8' : '#60a5fa' }}>
+                            Tunai: Rp {revenueMetrics.monthlyCashRevenue.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Slide 2: PENDAPATAN TAHUNAN */}
+                      <div style={{ width: 'calc(100% / 3)', flexShrink: 0, boxSizing: 'border-box', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Pendapatan Tahunan
+                            </span>
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '999px',
+                              background: slideThemes[2].badgeBg,
+                              color: slideThemes[2].badgeColor
+                            }}>
+                              Tahun {revenueMetrics.currentYear}
+                            </span>
+                          </div>
+                          <span style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '9px',
+                            background: isLight ? '#f5f3ff' : 'rgba(139, 92, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <BarChart3 size={16} color="#8b5cf6" />
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
+                          fontWeight: 900,
+                          color: isLight ? '#5b21b6' : '#c4b5fd',
+                          display: 'block',
+                          letterSpacing: '-0.5px',
+                          lineHeight: 1.1
+                        }}>
+                          Rp {revenueMetrics.yearlyRevenue.toLocaleString('id-ID')}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '8px', fontSize: '0.71rem', color: textSecondary }}>
+                          <span>{revenueMetrics.yearlyOrdersCount} transaksi tahun {revenueMetrics.currentYear}</span>
+                          <span style={{ fontWeight: 700, color: isLight ? '#6d28d9' : '#c4b5fd' }}>
+                            Tunai: Rp {revenueMetrics.yearlyCashRevenue.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interactive Bubble Indicators + Geser ↔ Cues */}
+                  <div
+                    data-testid="revenue-swipe-bubbles"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '5px',
+                      marginTop: '11px',
+                      paddingTop: '9px',
+                      borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(148, 163, 184, 0.22)'
+                    }}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                      {bubbleItems.map((b) => {
+                        const isActive = revenueCardIndex === b.idx;
+                        return (
+                          <button
+                            key={b.idx}
+                            type="button"
+                            data-testid={`revenue-bubble-${b.idx}`}
+                            aria-label={`Lihat Pendapatan ${b.label}`}
+                            aria-pressed={isActive}
+                            onClick={() => setRevenueCardIndex(b.idx)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 8px',
+                              borderRadius: '999px',
+                              border: isActive
+                                ? `1px solid ${b.color}`
+                                : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(148, 163, 184, 0.3)'),
+                              background: isActive
+                                ? b.color
+                                : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.55)'),
+                              color: isActive ? '#ffffff' : textSecondary,
+                              fontSize: '0.64rem',
+                              fontWeight: isActive ? 800 : 700,
+                              cursor: 'pointer',
+                              boxShadow: isActive ? slideThemes[b.idx].glow : 'none',
+                              transition: 'all 0.22s ease',
+                              lineHeight: 1.15
+                            }}
+                          >
+                            <span style={{
+                              width: isActive ? '6px' : '5px',
+                              height: isActive ? '6px' : '5px',
+                              borderRadius: '50%',
+                              background: isActive ? '#ffffff' : b.color,
+                              opacity: isActive ? 1 : 0.72,
+                              flexShrink: 0
+                            }} />
+                            <span>{b.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <button
+                        type="button"
+                        aria-label="Slide pendapatan sebelumnya"
+                        onClick={() => setRevenueCardIndex(prev => (prev > 0 ? prev - 1 : 2))}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '999px',
+                          border: `1px solid ${borderColor}`,
+                          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.55)',
+                          color: textSecondary,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        <ChevronRight size={11} style={{ transform: 'rotate(180deg)' }} />
+                      </button>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 700, color: textSecondary, minWidth: '20px', textAlign: 'center' }}>
+                        {revenueCardIndex + 1}/3
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Slide pendapatan berikutnya"
+                        onClick={() => setRevenueCardIndex(prev => (prev < 2 ? prev + 1 : 0))}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '999px',
+                          border: `1px solid ${borderColor}`,
+                          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.55)',
+                          color: textSecondary,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        <ChevronRight size={11} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* 3. KARYAWAN YG ONLINE */}
             <div style={{
               background: bgCard,
               border: isLight ? '1.5px solid #e0e7ff' : '1px solid rgba(99, 102, 241, 0.3)',
               borderRadius: '18px',
-              padding: '16px 18px',
+              padding: 'clamp(13px, 3vw, 18px)',
               boxShadow: isLight ? '0 4px 14px rgba(99, 102, 241, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              minWidth: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Karyawan yg Online
                 </span>
                 <span style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '9px',
                   background: isLight ? '#eef2ff' : 'rgba(99, 102, 241, 0.2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Users size={17} color="#6366f1" />
+                  <Users size={16} color="#6366f1" />
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                 <span style={{
-                  fontSize: '1.6rem',
+                  fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
                   fontWeight: 900,
                   color: isLight ? '#3730a3' : '#a5b4fc',
                   display: 'block',
@@ -5771,47 +7448,61 @@ export default function Kasir({ user }) {
             </div>
 
             {/* 4. SISA SALDO NOTA */}
-            <div style={{
-              background: bgCard,
-              border: Number(storeInfo.saldoNota ?? 5000) < 1000
-                ? (isLight ? '1.5px solid #fecaca' : '1px solid rgba(239, 68, 68, 0.4)')
-                : (isLight ? '1.5px solid #fef3c7' : '1px solid rgba(245, 158, 11, 0.3)'),
-              borderRadius: '18px',
-              padding: '16px 18px',
-              boxShadow: isLight ? '0 4px 14px rgba(245, 158, 11, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Sisa Saldo Nota
-                </span>
-                <span style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+            {(() => {
+              const isNotaLow = storeSaldoNota < storeNotaFeeIdr || storeKuotaNota <= 5;
+              return (
+                <div style={{
+                  background: bgCard,
+                  border: isNotaLow
+                    ? (isLight ? '1.5px solid #fecaca' : '1px solid rgba(239, 68, 68, 0.45)')
+                    : (isLight ? '1.5px solid #fef3c7' : '1px solid rgba(245, 158, 11, 0.3)'),
+                  borderRadius: '18px',
+                  padding: 'clamp(13px, 3vw, 18px)',
+                  boxShadow: isNotaLow
+                    ? (isLight ? '0 4px 14px rgba(239, 68, 68, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)')
+                    : (isLight ? '0 4px 14px rgba(245, 158, 11, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)'),
+                  position: 'relative',
+                  overflow: 'hidden',
+                  minWidth: 0
                 }}>
-                  <Receipt size={17} color="#f59e0b" />
-                </span>
-              </div>
-              <span style={{
-                fontSize: '1.6rem',
-                fontWeight: 900,
-                color: Number(storeInfo.saldoNota ?? 5000) < 1000 ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
-                display: 'block',
-                letterSpacing: '-0.5px',
-                lineHeight: 1.1
-              }}>
-                Rp {(Number(storeInfo.saldoNota) || 5000).toLocaleString('id-ID')}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem' }}>
-                <span style={{ color: textSecondary }}>
-                  ~{storeInfo.kuotaNota ?? Math.floor((Number(storeInfo.saldoNota) || 5000) / 100)} lembar nota
-                </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Sisa Saldo Nota
+                    </span>
+                    <span style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '9px',
+                      background: isNotaLow
+                        ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)')
+                        : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Receipt size={16} color={isNotaLow ? '#ef4444' : '#f59e0b'} />
+                    </span>
+                  </div>
+                  <span
+                    data-testid="dashboard-saldo-nota-value"
+                    style={{
+                      fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
+                      fontWeight: 900,
+                      color: isNotaLow ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
+                      display: 'block',
+                      letterSpacing: '-0.5px',
+                      lineHeight: 1.1
+                    }}
+                  >
+                    Rp {storeSaldoNota.toLocaleString('id-ID')}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', gap: '8px' }}>
+                    <span
+                      data-testid="dashboard-kuota-nota-value"
+                      style={{ color: isNotaLow ? '#ef4444' : textSecondary, fontWeight: isNotaLow ? 700 : 500 }}
+                    >
+                      ~{storeKuotaNota} lembar nota
+                    </span>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <button
                     type="button"
@@ -5839,6 +7530,8 @@ export default function Kasir({ user }) {
                 </div>
               </div>
             </div>
+              );
+            })()}
           </div>
 
           {/* ═════════════════════════════════════════════════════════════════ */}
@@ -6645,6 +8338,420 @@ export default function Kasir({ user }) {
               </div>
             )}
           </div>
+
+          <ShiftHistoryPhotoGalleryCard
+            shifts={shiftHistory}
+            isLight={isLight}
+            textPrimary={textPrimary}
+            textSecondary={textSecondary}
+            bgCard={bgCard}
+            borderColor={borderColor}
+          />
+        </main>
+      )}
+
+      {/* ── TAB KHUSUS: HALAMAN PENUH TUTUP SHIFT & REKAPAN FOTO (TANPA POPUP) ── */}
+      {activeTab === 'closing' && (
+        <main
+          data-testid="closing-shift-page"
+          style={{
+            width: '100%',
+            maxWidth: '100%',
+            margin: '1rem auto 0',
+            padding: '0 2% 2.5rem',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}
+        >
+          {renderManajemenHeader(
+            'Tutup Shift & Closing Kasir',
+            'Rekonsiliasi uang fisik di laci, verifikasi foto barang basi/sisa/gagal/error sesuai kebijakan toko, dan simpan berita acara shift.',
+            <Lock size={20} color="#ef4444" />,
+            <button
+              type="button"
+              onClick={() => setActiveTab('dashboard')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                borderRadius: '10px',
+                border: `1px solid ${borderColor}`,
+                background: isLight ? '#f8fafc' : '#1e293b',
+                color: textPrimary,
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <BarChart3 size={14} color="#2563eb" />
+              <span>Ke Dashboard Kasir</span>
+            </button>
+          )}
+
+          {closingFeedback && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.14)',
+              border: '1px solid #10b981',
+              color: isLight ? '#047857' : '#6ee7b7',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px'
+            }}>
+              <span>{closingFeedback}</span>
+              <button
+                type="button"
+                onClick={() => setClosingFeedback('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
+          {!cashierShift.isOpen ? (
+            <div style={{
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '16px',
+              padding: '22px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: textPrimary }}>
+                  Belum Ada Shift Kasir Aktif
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: textSecondary }}>
+                  Shift kasir saat ini berstatus tutup. Buka shift baru jika Anda akan memulai operasional kasir atau lihat riwayat foto closing di bawah.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShiftOpeningModal(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '9px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <Unlock size={15} />
+                <span>Buka Shift Baru</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
+              gap: '16px',
+              alignItems: 'start'
+            }}>
+              {/* Kolom Kiri: Rekonsiliasi Kas, Input Fisik & Tombol Eksekusi */}
+              <div style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '18px 20px',
+                boxShadow: 'var(--shadow-sm)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: textPrimary }}>
+                      Rekonsiliasi Laci Kas
+                    </h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: textSecondary }}>
+                      Kasir Aktif: <strong>{cashierShift.cashierName || user?.name || 'Kasir Shift'}</strong>
+                    </p>
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
+                    color: isLight ? '#b91c1c' : '#fca5a5'
+                  }}>
+                    Closing Shift
+                  </span>
+                </div>
+
+                {/* Ringkasan Perhitungan Sistem */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  border: `1px solid ${borderColor}`
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: textSecondary, marginBottom: '5px' }}>
+                    <span>Modal Kas Awal:</span>
+                    <strong style={{ color: textPrimary }}>Rp {(Number(cashierShift.initialFloat) || 0).toLocaleString('id-ID')}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#10b981', marginBottom: '5px' }}>
+                    <span>(+) Penjualan Tunai:</span>
+                    <strong>Rp {cashRevenue.toLocaleString('id-ID')}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#0284c7', marginBottom: '5px' }}>
+                    <span>(+) Kas Masuk Tambahan:</span>
+                    <strong>Rp {totalPettyIn.toLocaleString('id-ID')}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#ef4444', marginBottom: '8px' }}>
+                    <span>(-) Pengeluaran Kas Kecil:</span>
+                    <strong>Rp {totalPettyOut.toLocaleString('id-ID')}</strong>
+                  </div>
+                  <div style={{
+                    borderTop: `1px dashed ${borderColor}`,
+                    paddingTop: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.9rem',
+                    fontWeight: 900
+                  }}>
+                    <span style={{ color: textPrimary }}>Uang Seharusnya di Laci:</span>
+                    <span style={{ color: '#2563eb' }}>Rp {expectedDrawerCash.toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+
+                {/* Input Uang Fisik Aktual */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: textPrimary, marginBottom: '6px' }}>
+                    Hitung Fisik Uang di Laci (Kertas + Koin)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '11px', fontSize: '0.86rem', fontWeight: 700, color: textSecondary }}>
+                      Rp
+                    </span>
+                    <input
+                      data-testid="closing-actual-cash-input"
+                      type="number"
+                      min="0"
+                      value={closingActualCash}
+                      onChange={e => setClosingActualCash(e.target.value)}
+                      placeholder={String(expectedDrawerCash)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 38px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #2563eb',
+                        background: isLight ? '#ffffff' : '#0f172a',
+                        color: textPrimary,
+                        fontSize: '1rem',
+                        fontWeight: 900,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {closingActualCash !== '' && (() => {
+                    const actual = Number(closingActualCash) || 0;
+                    const diff = actual - expectedDrawerCash;
+                    const isMatch = diff === 0;
+                    const isSurplus = diff > 0;
+                    return (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        background: isMatch ? '#ecfdf5' : (isSurplus ? '#eff6ff' : '#fef2f2'),
+                        border: `1px solid ${isMatch ? '#10b981' : (isSurplus ? '#3b82f6' : '#ef4444')}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.78rem',
+                        fontWeight: 800
+                      }}>
+                        <span style={{ color: isMatch ? '#047857' : (isSurplus ? '#1d4ed8' : '#b91c1c') }}>
+                          {isMatch ? 'Uang Fisik Pas (Sesuai Sistem)' : (isSurplus ? `Surplus Lebih (+Rp ${diff.toLocaleString('id-ID')})` : `Selisih Kurang (-Rp ${Math.abs(diff).toLocaleString('id-ID')})`)}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: textSecondary }}>
+                          Fisik: Rp {actual.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Catatan Serah Terima */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textSecondary, marginBottom: '5px' }}>
+                    Catatan Serah Terima / Keterangan Shift
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={closingNote}
+                    onChange={e => setClosingNote(e.target.value)}
+                    placeholder="Catatan untuk kasir shift berikutnya atau pesan serah terima uang..."
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#0f172a',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                {closingModalError && (
+                  <div
+                    data-testid="closing-modal-error"
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.16)',
+                      border: '1px solid #ef4444',
+                      color: isLight ? '#b91c1c' : '#fca5a5',
+                      fontSize: '0.78rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    {closingModalError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handlePrintClosingReceipt(Number(closingActualCash) || expectedDrawerCash, (Number(closingActualCash) || expectedDrawerCash) - expectedDrawerCash)}
+                      style={{
+                        flex: 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: isLight ? '1px solid #059669' : '1px solid #10b981',
+                        background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
+                        color: isLight ? '#047857' : '#34d399',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Receipt size={16} />
+                      <span>Cetak Struk Rekap</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleKickDrawerManual}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f1f5f9' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Buka Laci Kasir"
+                    >
+                      <Unlock size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                      <span>Laci</span>
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('dashboard')}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: 'transparent',
+                        color: textSecondary,
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Kembali
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="confirm-closing-shift-btn"
+                      disabled={closingSubmitting}
+                      onClick={handleConfirmClosingShift}
+                      style={{
+                        flex: 2,
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: closingSubmitting ? '#94a3b8' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        color: '#ffffff',
+                        fontSize: '0.84rem',
+                        fontWeight: 800,
+                        cursor: closingSubmitting ? 'not-allowed' : 'pointer',
+                        boxShadow: closingSubmitting ? 'none' : '0 3px 10px rgba(239, 68, 68, 0.35)'
+                      }}
+                    >
+                      {closingSubmitting ? 'Menyimpan Closing & Foto...' : 'Selesaikan Closing Shift'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kolom Kanan: Rekapan Foto & Bukti Barang Tutup Shift (Mode Halaman Penuh) */}
+              <div style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '18px 20px',
+                boxShadow: 'var(--shadow-sm)'
+              }}>
+                <ClosingShiftPhotoCaptureSection
+                  settings={storeInfo?.closingShiftSettings}
+                  recaps={closingPhotoRecaps}
+                  onChange={(nextRecaps) => {
+                    setClosingPhotoRecaps(nextRecaps);
+                    if (closingModalError) setClosingModalError('');
+                  }}
+                  fullPage={true}
+                  isLight={isLight}
+                  textPrimary={textPrimary}
+                  textSecondary={textSecondary}
+                  borderColor={borderColor}
+                />
+              </div>
+            </div>
+          )}
+
+          <ShiftHistoryPhotoGalleryCard
+            shifts={shiftHistory}
+            isLight={isLight}
+            textPrimary={textPrimary}
+            textSecondary={textSecondary}
+            bgCard={bgCard}
+            borderColor={borderColor}
+          />
         </main>
       )}
 
@@ -6971,12 +9078,20 @@ export default function Kasir({ user }) {
                       <span style={{
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        background: isLight ? '#e0e7ff' : 'rgba(59, 130, 246, 0.15)',
-                        color: isLight ? '#3730a3' : '#93c5fd',
+                        background: order.customerSelectedPayment === 'CASH_COUNTER'
+                          ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)')
+                          : (isLight ? '#e0e7ff' : 'rgba(59, 130, 246, 0.15)'),
+                        color: order.customerSelectedPayment === 'CASH_COUNTER'
+                          ? (isLight ? '#b45309' : '#fcd34d')
+                          : (isLight ? '#3730a3' : '#93c5fd'),
                         fontWeight: 700,
                         fontSize: '0.72rem'
                       }}>
-                        Menunggu QRIS / Kamar
+                        {order.customerSelectedPayment === 'CASH_COUNTER'
+                          ? 'Customer Pilih Cash (Kasir)'
+                          : order.paymentMethod === 'TRIPAY'
+                            ? 'Menunggu QRIS KostKu'
+                            : 'Menunggu Pilihan Pembeli'}
                       </span>
                     </div>
 
@@ -6996,6 +9111,18 @@ export default function Kasir({ user }) {
                           <span style={{ fontFamily: 'var(--font-mono)' }}>Rp {it.subtotal?.toLocaleString('id-ID')}</span>
                         </div>
                       ))}
+                      {Number(order.qrisFee) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#2563eb', fontSize: '0.74rem' }}>
+                          <span>Biaya QRIS (Customer)</span>
+                          <span style={{ fontFamily: 'var(--font-mono)' }}>+Rp {Number(order.qrisFee).toLocaleString('id-ID')}</span>
+                        </div>
+                      )}
+                      {Number(order.customerAdminFee) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d97706', fontSize: '0.74rem' }}>
+                          <span>Biaya Admin Nota (Customer)</span>
+                          <span style={{ fontFamily: 'var(--font-mono)' }}>+Rp {Number(order.customerAdminFee).toLocaleString('id-ID')}</span>
+                        </div>
+                      )}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -7031,11 +9158,13 @@ export default function Kasir({ user }) {
                           gap: '6px'
                         }}
                       >
-                        <CheckCircle2 size={15} /> Konfirmasi Bayar Tunai (Kasir)
+                        <CheckCircle2 size={15} /> {order.paymentMethod === 'TRIPAY' ? 'Verifikasi QRIS Lunas Manual' : 'Konfirmasi Bayar Tunai (Kasir)'}
                       </button>
                       <ActionTutorialBadge
-                        title="Konfirmasi Pembayaran Tunai"
-                        description="Mengonfirmasi uang tunai telah diterima kasir, memotong saldo nota Rp 100, lalu mengirim pesanan ke layar dapur (Sedang Dimasak)."
+                        title={order.paymentMethod === 'TRIPAY' ? 'Konfirmasi Pembayaran QRIS' : 'Konfirmasi Pembayaran Tunai'}
+                        description={order.paymentMethod === 'TRIPAY'
+                          ? 'Memvalidasi transaksi QRIS KostKu secara manual & memasukkan omset bersih ke Dompet Terpadu.'
+                          : `Mengonfirmasi uang tunai telah diterima kasir, memotong saldo nota Rp ${storeNotaFeeIdr}, lalu mengirim pesanan ke dapur (Sedang Dimasak).`}
                         size="sm"
                         isLight={isLight}
                       />
@@ -7379,21 +9508,21 @@ export default function Kasir({ user }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', minWidth: 0 }}>
                 {/* Live Search Input Bar */}
                 <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: textSecondary }} />
+                  <Search size={14} style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', color: textSecondary }} />
                   <input
                     type="text"
-                    placeholder="Cari menu makanan, minuman..."
+                    placeholder="Cari menu..."
                     value={posSearchQuery}
                     onChange={e => setPosSearchQuery(e.target.value)}
                     style={{
                       width: '100%',
                       boxSizing: 'border-box',
-                      padding: '7px 28px 7px 30px',
+                      padding: '6px 26px 6px 28px',
                       borderRadius: '10px',
                       border: `1px solid ${borderColor}`,
                       background: isLight ? '#ffffff' : '#1e293b',
                       color: textPrimary,
-                      fontSize: '0.78rem',
+                      fontSize: '0.76rem',
                       outline: 'none',
                       boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
                     }}
@@ -7567,7 +9696,7 @@ export default function Kasir({ user }) {
                   return (
                     <div style={{
                       textAlign: 'center',
-                      padding: '3rem 1rem',
+                      padding: 'clamp(1.5rem, 4vw, 2.5rem) 1rem',
                       background: bgCard,
                       borderRadius: '16px',
                       border: `1px solid ${borderColor}`,
@@ -7603,79 +9732,96 @@ export default function Kasir({ user }) {
                 }
 
                 return posViewMode === 'grid' ? (
-                  <div className="pos-product-grid">
+                  <div className="pos-product-grid" data-testid="pos-product-grid">
                     {filteredPosProducts.map(p => {
                       const inCart = posCart[p.id]?.qty || 0;
+                      const isDisabled = p.isAvailable === false;
                       return (
                         <div
                           key={p.id}
+                          data-testid={`pos-card-${p.id}`}
                           style={{
                             background: bgCard,
-                            border: inCart > 0 ? '2px solid #2563eb' : `1px solid ${borderColor}`,
+                            border: `1px solid ${inCart > 0 ? '#2563eb' : borderColor}`,
                             borderRadius: '14px',
-                            padding: '8px',
-                            boxShadow: inCart > 0 ? '0 4px 14px rgba(37, 99, 235, 0.15)' : 'var(--shadow-sm)',
-                            transition: 'all 0.15s ease',
+                            padding: '10px',
+                            boxShadow: inCart > 0 ? '0 0 0 1px #2563eb, 0 4px 14px rgba(37, 99, 235, 0.14)' : 'var(--shadow-sm)',
+                            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
+                            gap: '8px',
                             position: 'relative',
                             minWidth: 0,
+                            overflow: 'hidden',
                             boxSizing: 'border-box'
                           }}
                         >
-                          {/* Image & In-Cart Badge */}
-                          <div 
+                          {/* Image & Top Overlays */}
+                          <div
                             onClick={() => {
+                              if (isDisabled) return;
                               setQuickQtyProduct(p);
-                              setQuickQtyValue(inCart > 0 ? inCart : (cardSelectedQty[p.id] || 1));
+                              setQuickQtyValue(inCart > 0 ? inCart : 1);
                             }}
-                            title="Klik untuk opsi berapa pcs"
-                            style={{ position: 'relative', width: '100%', marginBottom: '6px', cursor: 'pointer' }}
+                            title={isDisabled ? 'Menu sedang habis' : 'Klik untuk atur jumlah pcs'}
+                            style={{
+                              position: 'relative',
+                              width: '100%',
+                              height: '116px',
+                              cursor: isDisabled ? 'default' : 'pointer',
+                              borderRadius: '10px',
+                              overflow: 'hidden',
+                              background: isLight ? '#f1f5f9' : '#0f172a'
+                            }}
                           >
                             <img
                               src={p.image}
                               alt={p.name}
-                              style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '10px', display: 'block' }}
+                              style={{ width: '100%', height: '116px', objectFit: 'cover', display: 'block' }}
                               onError={(e) => {
                                 e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
                               }}
                             />
-                            {/* Action Buttons Overlay: Edit */}
-                            <div style={{ position: 'absolute', top: '5px', left: '5px', display: 'flex', gap: '3px' }}>
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); handleOpenEditMenu(p); }}
-                                title={`Edit ${p.name}`}
-                                style={{
-                                  width: '24px',
-                                  height: '24px',
-                                  borderRadius: '999px',
-                                  border: 'none',
-                                  background: 'rgba(0, 0, 0, 0.65)',
-                                  color: '#38bdf8',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  backdropFilter: 'blur(4px)'
-                                }}
-                              >
-                                <Edit3 size={12} />
-                              </button>
-                            </div>
 
-                            {p.isAvailable === false && (
+                            {/* Top-Left Edit Menu Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleOpenEditMenu(p); }}
+                              title={`Edit ${p.name}`}
+                              aria-label={`Edit ${p.name}`}
+                              style={{
+                                position: 'absolute',
+                                top: '6px',
+                                left: '6px',
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '999px',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                background: 'rgba(15, 23, 42, 0.68)',
+                                color: '#e2e8f0',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backdropFilter: 'blur(4px)'
+                              }}
+                            >
+                              <Edit3 size={12} />
+                            </button>
+
+                            {isDisabled && (
                               <span style={{
                                 position: 'absolute',
-                                bottom: '5px',
-                                left: '5px',
-                                padding: '1px 5px',
-                                borderRadius: '4px',
-                                background: '#ef4444',
+                                bottom: '6px',
+                                left: '6px',
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                background: '#dc2626',
                                 color: '#ffffff',
                                 fontWeight: 800,
-                                fontSize: '0.6rem'
+                                fontSize: '0.62rem',
+                                letterSpacing: '0.03em'
                               }}>
                                 HABIS
                               </span>
@@ -7684,40 +9830,47 @@ export default function Kasir({ user }) {
                             {inCart > 0 && (
                               <span style={{
                                 position: 'absolute',
-                                top: '5px',
-                                right: '5px',
-                                padding: '2px 6px',
+                                top: '6px',
+                                right: '6px',
+                                padding: '2px 8px',
                                 borderRadius: '999px',
                                 background: '#2563eb',
                                 color: '#ffffff',
                                 fontWeight: 800,
-                                fontSize: '0.65rem',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                                display: 'flex',
+                                fontSize: '0.68rem',
+                                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.35)',
+                                display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '2px'
+                                gap: '3px'
                               }}>
                                 <Check size={10} strokeWidth={3} /> {inCart} pcs
                               </span>
                             )}
                           </div>
 
-                          {/* Info */}
-                          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                            <div
-                              onClick={() => {
-                                setQuickQtyProduct(p);
-                                setQuickQtyValue(inCart > 0 ? inCart : (cardSelectedQty[p.id] || 1));
-                              }}
-                              style={{ cursor: 'pointer' }}
-                              title="Klik untuk opsi berapa pcs"
-                            >
+                          {/* Title & Price */}
+                          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', gap: '8px', minWidth: 0 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{
+                                fontSize: '0.64rem',
+                                fontWeight: 700,
+                                color: textSecondary,
+                                marginBottom: '2px',
+                                minHeight: '14px',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {p.category || 'Menu'}
+                              </div>
                               <h4 style={{
                                 margin: 0,
-                                fontSize: '0.82rem',
+                                fontSize: '0.86rem',
                                 fontWeight: 800,
                                 color: textPrimary,
-                                lineHeight: 1.25,
+                                lineHeight: 1.28,
+                                minHeight: '2.56em',
+                                height: '2.56em',
                                 display: '-webkit-box',
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: 'vertical',
@@ -7726,323 +9879,160 @@ export default function Kasir({ user }) {
                                 {p.name}
                               </h4>
                               <div style={{
-                                fontSize: '0.86rem',
-                                fontWeight: 800,
+                                fontSize: '0.92rem',
+                                fontWeight: 900,
                                 color: '#2563eb',
                                 fontFamily: 'var(--font-mono)',
-                                margin: '3px 0 6px'
+                                fontVariantNumeric: 'tabular-nums',
+                                marginTop: '4px'
                               }}>
                                 Rp {p.price?.toLocaleString('id-ID')}
                               </div>
                             </div>
 
-                            {/* Stepper / Add button */}
+                            {/* Clean Single-Row Card Action Footer */}
                             <div style={{ marginTop: 'auto' }}>
                               {inCart > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  {/* QTY DI ATAS TULISAN TAMBAH: Stepper Aktif di Keranjang dengan Opsi Berapa Pcs */}
-                                  <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
-                                    border: '1.5px solid #10b981',
-                                    borderRadius: '8px',
-                                    padding: '2px 5px',
-                                    marginBottom: '2px'
-                                  }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setQuickQtyProduct(p);
-                                        setQuickQtyValue(inCart);
-                                      }}
-                                      style={{
-                                        border: 'none',
-                                        background: 'transparent',
-                                        color: isLight ? '#15803d' : '#86efac',
-                                        fontWeight: 800,
-                                        fontSize: '0.68rem',
-                                        cursor: 'pointer',
-                                        padding: '1px 2px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '2px'
-                                      }}
-                                      title="Opsi Berapa Pcs (Buka Dial Presets)"
-                                    >
-                                      <span>Qty:</span>
-                                      <Sliders size={10} color={textSecondary} />
-                                    </button>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  height: '36px',
+                                  background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.14)',
+                                  border: '1.5px solid #10b981',
+                                  borderRadius: '10px',
+                                  padding: '2px',
+                                  boxSizing: 'border-box',
+                                  gap: '4px'
+                                }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCartItemQty(p.id, -1)}
+                                    style={{
+                                      width: '30px',
+                                      height: '30px',
+                                      borderRadius: '7px',
+                                      border: 'none',
+                                      background: '#ef4444',
+                                      color: '#ffffff',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                      padding: 0
+                                    }}
+                                    aria-label={`Kurangi ${p.name}`}
+                                  >
+                                    <Minus size={13} strokeWidth={3} />
+                                  </button>
 
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                      <button
-                                        type="button"
-                                        onClick={() => updateCartItemQty(p.id, -1)}
-                                        style={{
-                                          width: '22px',
-                                          height: '22px',
-                                          borderRadius: '6px',
-                                          border: 'none',
-                                          background: '#ef4444',
-                                          color: '#ffffff',
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                          padding: 0
-                                        }}
-                                        aria-label={`Kurangi ${p.name}`}
-                                      >
-                                        <Minus size={11} strokeWidth={3} />
-                                      </button>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="999"
+                                    value={inCart}
+                                    onChange={e => setCartItemExactQty(p.id, e.target.value)}
+                                    onClick={e => e.stopPropagation()}
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 0,
+                                      textAlign: 'center',
+                                      fontWeight: 900,
+                                      fontSize: '0.88rem',
+                                      color: isLight ? '#15803d' : '#86efac',
+                                      fontFamily: 'var(--font-mono)',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      outline: 'none',
+                                      padding: 0
+                                    }}
+                                    aria-label={`Jumlah pcs ${p.name}`}
+                                  />
 
-                                      <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '2px',
-                                        background: isLight ? '#ffffff' : '#1e293b',
-                                        border: '1px solid #10b981',
-                                        borderRadius: '6px',
-                                        padding: '1px 3px'
-                                      }}>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          max="999"
-                                          value={inCart}
-                                          onChange={e => setCartItemExactQty(p.id, e.target.value)}
-                                          onClick={e => e.stopPropagation()}
-                                          style={{
-                                            width: '26px',
-                                            textAlign: 'center',
-                                            fontWeight: 900,
-                                            fontSize: '0.8rem',
-                                            color: isLight ? '#15803d' : '#86efac',
-                                            fontFamily: 'var(--font-mono)',
-                                            border: 'none',
-                                            background: 'transparent',
-                                            outline: 'none',
-                                            padding: 0
-                                          }}
-                                          aria-label={`Jumlah pcs ${p.name}`}
-                                        />
-                                        <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isLight ? '#166534' : '#86efac' }}>pcs</span>
-                                      </div>
-
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          updateCartItemQty(p.id, 1);
-                                          try { playChime(880, 0.08); } catch (_) {}
-                                          triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
-                                        }}
-                                        style={{
-                                          width: '22px',
-                                          height: '22px',
-                                          borderRadius: '6px',
-                                          border: 'none',
-                                          background: '#10b981',
-                                          color: '#ffffff',
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                          padding: 0
-                                        }}
-                                        aria-label={`Tambah ${p.name}`}
-                                      >
-                                        <Plus size={11} strokeWidth={3} />
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* TULISAN TAMBAH: Tambah Lagi */}
                                   <button
                                     type="button"
                                     onClick={(e) => {
                                       updateCartItemQty(p.id, 1);
                                       try { playChime(880, 0.08); } catch (_) {}
-                                      triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                      playPosAddArcOnce(e.currentTarget);
                                     }}
                                     style={{
-                                      width: '100%',
-                                      padding: '6px 8px',
+                                      width: '30px',
+                                      height: '30px',
                                       borderRadius: '7px',
-                                      border: '1px solid #10b981',
-                                      background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)',
-                                      color: isLight ? '#15803d' : '#86efac',
-                                      fontWeight: 800,
-                                      fontSize: '0.76rem',
+                                      border: 'none',
+                                      background: '#10b981',
+                                      color: '#ffffff',
                                       cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      gap: '4px'
+                                      flexShrink: 0,
+                                      padding: 0
                                     }}
+                                    aria-label={`Tambah ${p.name}`}
                                   >
-                                    <Plus size={12} strokeWidth={2.5} />
-                                    <span>Tambah Lagi (+1 pcs)</span>
+                                    <Plus size={13} strokeWidth={3} />
                                   </button>
                                 </div>
                               ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-                                  {/* QTY DI ATAS TULISAN TAMBAH: Opsi Tambah Berapa Pcs */}
-                                  {(() => {
-                                    const itemQty = cardSelectedQty[p.id] || 1;
-                                    return (
-                                      <>
-                                        <div style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'space-between',
-                                          background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.05)',
-                                          border: `1px solid ${borderColor}`,
-                                          borderRadius: '8px',
-                                          padding: '2px 5px',
-                                          marginBottom: '2px'
-                                        }}>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setQuickQtyProduct(p);
-                                              setQuickQtyValue(itemQty);
-                                            }}
-                                            style={{
-                                              border: 'none',
-                                              background: 'transparent',
-                                              color: '#2563eb',
-                                              fontWeight: 800,
-                                              fontSize: '0.68rem',
-                                              cursor: 'pointer',
-                                              padding: '1px 2px',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '2px'
-                                            }}
-                                            title="Opsi Berapa Pcs (Buka Dial Presets)"
-                                          >
-                                            <span>Qty:</span>
-                                            <Sliders size={10} color={textSecondary} />
-                                          </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                                  <button
+                                    type="button"
+                                    disabled={isDisabled}
+                                    onClick={(e) => {
+                                      updateCartItemQty(p.id, 1);
+                                      try { playChime(880, 0.08); } catch (_) {}
+                                      playPosAddArcOnce(e.currentTarget);
+                                    }}
+                                    style={{
+                                      flex: 1,
+                                      height: '36px',
+                                      padding: '0 10px',
+                                      borderRadius: '10px',
+                                      border: 'none',
+                                      background: isDisabled ? (isLight ? '#e2e8f0' : '#334155') : '#2563eb',
+                                      color: isDisabled ? textSecondary : '#ffffff',
+                                      fontWeight: 800,
+                                      fontSize: '0.8rem',
+                                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '5px'
+                                    }}
+                                  >
+                                    <Plus size={14} strokeWidth={2.5} />
+                                    <span>Tambah</span>
+                                  </button>
 
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <button
-                                              type="button"
-                                              disabled={itemQty <= 1}
-                                              onClick={() => setCardSelectedQty(prev => ({ ...prev, [p.id]: Math.max(1, itemQty - 1) }))}
-                                              style={{
-                                                width: '22px',
-                                                height: '22px',
-                                                borderRadius: '6px',
-                                                border: 'none',
-                                                background: itemQty <= 1 ? (isLight ? '#e2e8f0' : '#334155') : '#ef4444',
-                                                color: itemQty <= 1 ? (isLight ? '#94a3b8' : '#64748b') : '#ffffff',
-                                                cursor: itemQty <= 1 ? 'not-allowed' : 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                padding: 0
-                                              }}
-                                              aria-label="Kurangi pcs"
-                                            >
-                                              <Minus size={11} strokeWidth={3} />
-                                            </button>
-
-                                            <div style={{
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '2px',
-                                              background: isLight ? '#ffffff' : '#1e293b',
-                                              border: `1px solid ${isLight ? '#cbd5e1' : '#475569'}`,
-                                              borderRadius: '6px',
-                                              padding: '1px 3px'
-                                            }}>
-                                              <input
-                                                type="number"
-                                                min="1"
-                                                max="999"
-                                                value={itemQty}
-                                                onChange={e => {
-                                                  const val = parseInt(e.target.value, 10);
-                                                  setCardSelectedQty(prev => ({ ...prev, [p.id]: isNaN(val) ? 1 : Math.max(1, Math.min(999, val)) }));
-                                                }}
-                                                onClick={e => e.stopPropagation()}
-                                                style={{
-                                                  width: '26px',
-                                                  textAlign: 'center',
-                                                  fontWeight: 900,
-                                                  fontSize: '0.8rem',
-                                                  color: textPrimary,
-                                                  fontFamily: 'var(--font-mono)',
-                                                  border: 'none',
-                                                  background: 'transparent',
-                                                  outline: 'none',
-                                                  padding: 0
-                                                }}
-                                                aria-label={`Jumlah pcs ${p.name}`}
-                                              />
-                                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: textSecondary }}>pcs</span>
-                                            </div>
-
-                                            <button
-                                              type="button"
-                                              onClick={() => setCardSelectedQty(prev => ({ ...prev, [p.id]: itemQty + 1 }))}
-                                              style={{
-                                                width: '22px',
-                                                height: '22px',
-                                                borderRadius: '6px',
-                                                border: 'none',
-                                                background: '#10b981',
-                                                color: '#ffffff',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                padding: 0
-                                              }}
-                                              aria-label="Tambah pcs"
-                                            >
-                                              <Plus size={11} strokeWidth={3} />
-                                            </button>
-                                          </div>
-                                        </div>
-
-                                        {/* TULISAN TAMBAH: Tombol Tambah Utama */}
-                                        <button
-                                          type="button"
-                                          disabled={p.isAvailable === false}
-                                          onClick={(e) => {
-                                            updateCartItemQty(p.id, itemQty);
-                                            setCardSelectedQty(prev => ({ ...prev, [p.id]: 1 }));
-                                            try { playChime(880, 0.08); } catch (_) {}
-                                            triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
-                                          }}
-                                          style={{
-                                            width: '100%',
-                                            padding: '7px 8px',
-                                            borderRadius: '8px',
-                                            border: 'none',
-                                            background: p.isAvailable === false ? (isLight ? '#cbd5e1' : '#334155') : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                                            color: '#ffffff',
-                                            fontWeight: 800,
-                                            fontSize: '0.78rem',
-                                            cursor: p.isAvailable === false ? 'not-allowed' : 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '4px',
-                                            boxShadow: p.isAvailable === false ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.25)'
-                                          }}
-                                        >
-                                          <Plus size={13} strokeWidth={2.5} />
-                                          <span>Tambah ({itemQty} pcs)</span>
-                                        </button>
-                                      </>
-                                    );
-                                  })()}
+                                  <button
+                                    type="button"
+                                    disabled={isDisabled}
+                                    onClick={() => {
+                                      setQuickQtyProduct(p);
+                                      setQuickQtyValue(1);
+                                    }}
+                                    title="Pilih jumlah pcs cepat"
+                                    aria-label={`Atur jumlah ${p.name}`}
+                                    style={{
+                                      width: '36px',
+                                      height: '36px',
+                                      borderRadius: '10px',
+                                      border: `1px solid ${borderColor}`,
+                                      background: isLight ? '#f8fafc' : '#1e293b',
+                                      color: textSecondary,
+                                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                      padding: 0
+                                    }}
+                                  >
+                                    <Sliders size={14} />
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -8172,7 +10162,7 @@ export default function Kasir({ user }) {
                                   onClick={(e) => {
                                     updateCartItemQty(p.id, 1);
                                     try { playChime(880, 0.08); } catch (_) {}
-                                    triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                    playPosAddArcOnce(e.currentTarget);
                                   }}
                                   style={{
                                     width: '26px',
@@ -8199,7 +10189,7 @@ export default function Kasir({ user }) {
                                 onClick={(e) => {
                                   updateCartItemQty(p.id, 1);
                                   try { playChime(880, 0.08); } catch (_) {}
-                                  triggerCometArc({ startEl: e.currentTarget, targetEl: document.querySelector('[data-cart-target="pos-cart-summary"]'), color: '#38bdf8', duration: 450 });
+                                  playPosAddArcOnce(e.currentTarget);
                                 }}
                                 style={{
                                   padding: '6px 12px',
@@ -8238,7 +10228,15 @@ export default function Kasir({ user }) {
                 borderRadius: '16px',
                 padding: '1.25rem',
                 boxShadow: 'var(--shadow-md)',
+                width: '100%',
+                minWidth: 0,
+                maxWidth: '100%',
+                boxSizing: 'border-box',
                 height: 'fit-content',
+                maxHeight: 'calc(100vh - 205px)',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                scrollbarWidth: 'thin',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
@@ -8329,7 +10327,18 @@ export default function Kasir({ user }) {
                 Order Kasir Walk-in
               </div>
               <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-                Rp {Math.max(0, Object.values(posCart).reduce((s, it) => s + (it.product.price * it.qty), 0) - (activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0) - Number(cartPoolPreview?.pointDiscountIdr || 0)).toLocaleString('id-ID')}
+                {(() => {
+                  const baseMobileTotal = Math.max(
+                    0,
+                    Object.values(posCart).reduce((s, it) => s + (it.product.price * it.qty), 0) -
+                    (activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0) -
+                    Number(cartPoolPreview?.pointDiscountIdr || 0)
+                  );
+                  const displayMobileTotal = posPaymentMethod === 'QRIS'
+                    ? calculateQrisCustomerFee(baseMobileTotal, 'customer').totalWithFee
+                    : baseMobileTotal;
+                  return `Rp ${displayMobileTotal.toLocaleString('id-ID')}`;
+                })()}
               </div>
             </div>
           </div>
@@ -8499,9 +10508,9 @@ export default function Kasir({ user }) {
               {[
                 {
                   title: 'Top Up Saldo Nota',
-                  desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar`,
+                  desc: `Sisa: ${storeInfo.kuotaNota ?? 0} lembar`,
                   icon: <Zap size={20} color="#eab308" />,
-                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'Habis' : 'Beli Nota',
+                  badge: Number(storeInfo.saldoNota ?? 0) < 100 ? 'Habis' : 'Beli Nota',
                   onClick: () => { setShowPosTopupModal(true); setShowToolsDrawer(false); }
                 },
                 {
@@ -9685,12 +11694,12 @@ export default function Kasir({ user }) {
               ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)' 
               : 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
             border: isLight ? '1.5px solid rgba(37, 99, 235, 0.25)' : '1.5px solid rgba(139, 92, 246, 0.35)',
-            borderRadius: '20px',
-            padding: '1.25rem 1.5rem',
+            borderRadius: '18px',
+            padding: 'clamp(0.95rem, 3vw, 1.4rem)',
             boxShadow: 'var(--shadow-md)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '10px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
               <div>
@@ -9719,7 +11728,7 @@ export default function Kasir({ user }) {
                   </span>
                 </div>
                 <div style={{
-                  fontSize: '1.85rem',
+                  fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)',
                   fontWeight: 900,
                   color: textPrimary,
                   marginTop: '6px',
@@ -9797,20 +11806,20 @@ export default function Kasir({ user }) {
             </div>
           </div>
 
-          {/* Card: Saldo & Kuota Nota Kasir (Rp 100 / Transaksi Tunai) */}
+          {/* Card: Saldo & Kuota Nota Kasir */}
           <div style={{
             background: isLight 
               ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.08) 100%)' 
               : 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
-            border: Number(storeInfo.saldoNota ?? 5000) < 100 
+            border: storeSaldoNota < storeNotaFeeIdr 
               ? '1.5px solid #ef4444' 
               : (isLight ? '1.5px solid rgba(245, 158, 11, 0.3)' : '1.5px solid rgba(245, 158, 11, 0.35)'),
-            borderRadius: '20px',
-            padding: '1.25rem 1.5rem',
+            borderRadius: '18px',
+            padding: 'clamp(0.95rem, 3vw, 1.4rem)',
             boxShadow: 'var(--shadow-md)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '10px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
               <div>
@@ -9832,25 +11841,112 @@ export default function Kasir({ user }) {
                     fontWeight: 700,
                     padding: '3px 10px',
                     borderRadius: '9999px',
-                    background: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                    color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981'
+                    background: storeSaldoNota < storeNotaFeeIdr ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                    color: storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : '#10b981'
                   }}>
-                    {Number(storeInfo.saldoNota ?? 5000) < 100 ? 'Kuota Habis (Top Up Diperlukan)' : `Sisa: ${storeInfo.kuotaNota ?? 50} Transaksi Tunai`}
+                    {storeSaldoNota < storeNotaFeeIdr ? 'Kuota Habis (Top Up Diperlukan)' : `Sisa: ${storeKuotaNota} Transaksi Tunai`}
                   </span>
                 </div>
                 <div style={{
-                  fontSize: '1.85rem',
+                  fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)',
                   fontWeight: 900,
-                  color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : (isLight ? '#b45309' : '#fbbf24'),
+                  color: storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : (isLight ? '#b45309' : '#fbbf24'),
                   marginTop: '6px',
                   fontFamily: 'var(--font-mono)',
                   letterSpacing: '-0.02em'
                 }}>
-                  Rp {Number(storeInfo.saldoNota ?? 5000).toLocaleString('id-ID')}
+                  Rp {storeSaldoNota.toLocaleString('id-ID')}
                 </div>
                 <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: textSecondary }}>
-                  Biaya platform transaksi tunai: <strong>Rp 100 / transaksi</strong>. Saldo nota dipotong otomatis saat kasir menerima pembayaran cash.
+                  Biaya platform transaksi nota: <strong>Rp {storeNotaFeeIdr.toLocaleString('id-ID')} / transaksi</strong> (QRIS Rp 750 + 0,70% selalu ditanggung Customer).
                 </p>
+
+                {/* Pengaturan Owner: Penanggung Biaya Admin Nota */}
+                <div
+                  data-testid="owner-nota-bearer-toggle"
+                  style={{
+                    marginTop: '10px',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    background: isLight ? 'rgba(255, 255, 255, 0.78)' : 'rgba(15, 23, 42, 0.55)',
+                    border: `1px solid ${borderColor}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '7px',
+                    maxWidth: '420px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textPrimary }}>
+                      Penanggung Biaya Nota (Rp {storeNotaFeeIdr.toLocaleString('id-ID')})
+                    </span>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                      background: storeInfo.notaFeeBearer === 'customer' ? 'rgba(16, 185, 129, 0.16)' : 'rgba(245, 158, 11, 0.16)',
+                      color: storeInfo.notaFeeBearer === 'customer' ? '#10b981' : '#d97706'
+                    }}>
+                      {storeInfo.notaFeeBearer === 'customer' ? 'Dibayar Customer' : 'Ditanggung Toko'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <button
+                      type="button"
+                      data-testid="nota-bearer-store-btn"
+                      disabled={savingFeeBearer}
+                      onClick={() => handleUpdateNotaFeeBearer('store')}
+                      style={{
+                        padding: '7px 8px',
+                        borderRadius: '8px',
+                        border: storeInfo.notaFeeBearer !== 'customer'
+                          ? '1.5px solid #d97706'
+                          : `1px solid ${borderColor}`,
+                        background: storeInfo.notaFeeBearer !== 'customer'
+                          ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)')
+                          : 'transparent',
+                        color: storeInfo.notaFeeBearer !== 'customer'
+                          ? (isLight ? '#b45309' : '#fcd34d')
+                          : textSecondary,
+                        fontWeight: 700,
+                        fontSize: '0.72rem',
+                        cursor: savingFeeBearer ? 'wait' : 'pointer'
+                      }}
+                    >
+                      Ditanggung Toko
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="nota-bearer-customer-btn"
+                      disabled={savingFeeBearer}
+                      onClick={() => handleUpdateNotaFeeBearer('customer')}
+                      style={{
+                        padding: '7px 8px',
+                        borderRadius: '8px',
+                        border: storeInfo.notaFeeBearer === 'customer'
+                          ? '1.5px solid #10b981'
+                          : `1px solid ${borderColor}`,
+                        background: storeInfo.notaFeeBearer === 'customer'
+                          ? (isLight ? '#d1fae5' : 'rgba(16, 185, 129, 0.22)')
+                          : 'transparent',
+                        color: storeInfo.notaFeeBearer === 'customer'
+                          ? (isLight ? '#047857' : '#34d399')
+                          : textSecondary,
+                        fontWeight: 700,
+                        fontSize: '0.72rem',
+                        cursor: savingFeeBearer ? 'wait' : 'pointer'
+                      }}
+                    >
+                      Ditanggung Customer
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.69rem', color: textSecondary, lineHeight: 1.35 }}>
+                    {storeInfo.notaFeeBearer === 'customer'
+                      ? 'Customer membayar biaya QRIS + admin nota. Saat customer bayar via KostKu (QRIS), saldo nota toko tidak dipotong.'
+                      : 'Default: biaya nota dipotong dari saldo toko (cash maupun QRIS), sedangkan biaya QRIS tetap ditanggung customer.'}
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -9877,7 +11973,7 @@ export default function Kasir({ user }) {
                 </button>
                 <ActionTutorialBadge
                   title="Top Up Saldo Kuota Nota"
-                  description="Menambah saldo prabayar nota kasir (Rp 100 per nota tunai) untuk cabang aktif agar tidak terblokir saat melayani cash."
+                  description={`Menambah saldo prabayar nota kasir (Rp ${storeNotaFeeIdr} per transaksi nota yang ditanggung toko).`}
                   size="sm"
                   isLight={isLight}
                 />
@@ -9960,7 +12056,7 @@ export default function Kasir({ user }) {
             {/* 4. Saldo & Kuota Nota Kasir */}
             <div style={{
               background: bgCard,
-              border: Number(storeInfo.saldoNota ?? 5000) < 100 ? '1px solid #ef4444' : `1px solid ${borderColor}`,
+              border: storeSaldoNota < storeNotaFeeIdr ? '1px solid #ef4444' : `1px solid ${borderColor}`,
               borderRadius: '16px',
               padding: '14px',
               boxShadow: 'var(--shadow-sm)'
@@ -9971,12 +12067,12 @@ export default function Kasir({ user }) {
                 </span>
                 <Receipt size={16} color="#10b981" />
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: Number(storeInfo.saldoNota ?? 5000) < 100 ? '#ef4444' : '#10b981', fontFamily: 'var(--font-mono)' }}>
-                {storeInfo.kuotaNota ?? 50} Nota
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : '#10b981', fontFamily: 'var(--font-mono)' }}>
+                {storeKuotaNota} Nota
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                 <span style={{ fontSize: '0.68rem', color: textSecondary }}>
-                  Rp {(storeInfo.saldoNota ?? 5000).toLocaleString('id-ID')}
+                  Rp {storeSaldoNota.toLocaleString('id-ID')}
                 </span>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
@@ -11191,7 +13287,7 @@ export default function Kasir({ user }) {
                   return (
                     <div style={{
                       textAlign: 'center',
-                      padding: '3rem 1rem',
+                      padding: 'clamp(1.5rem, 4vw, 2.5rem) 1rem',
                       background: bgCard,
                       borderRadius: '16px',
                       border: `1px solid ${borderColor}`,
@@ -12617,60 +14713,42 @@ export default function Kasir({ user }) {
         const openMapsHref = (storeForm.mapsUrl || storeInfo.mapsUrl || '').trim()
           || (hasCoords ? `https://maps.google.com/?q=${Number(storeForm.latitude)},${Number(storeForm.longitude)}` : `https://maps.google.com/?q=${encodeURIComponent([storeForm.storeName || storeInfo.storeName, storeForm.address || storeInfo.address, storeForm.city || storeInfo.city || 'Semarang'].filter(Boolean).join(', '))}`);
 
+        const ownerStores = (storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0)
+          ? storeInfo.allOwnerStores
+          : [{
+              id: storeInfo.merchantId || 'MTR-KASIR-MASTER',
+              name: storeInfo.storeName || 'Toko Utama',
+              location: storeInfo.location || 'Stand Utama',
+              kuotaNota: storeKuotaNota
+            }];
+        const activeOwnerStore = ownerStores.find(s => String(s.id) === String(storeInfo.merchantId)) || ownerStores[0];
+        const canDeleteActiveStore = ownerStores.length > 1;
+        const isDeletingActiveStore = deletingStoreId === activeOwnerStore?.id;
+
         return (
           <main style={{ width: '100%', maxWidth: '100%', margin: '1rem auto 0', padding: '0 2% 2rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {renderManajemenHeader(
               'Lokasi Kasir & Kelola Banyak Toko',
               'Owner dapat membuat dan mengelola banyak cabang toko dari satu akun, mengatur posisi stand, serta memvalidasi titik Google Maps.',
               <MapPin size={20} color="#14b8a6" />,
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <button
-                    type="button"
-                    onClick={handleOpenCreateStoreModal}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: '#2563eb',
-                      color: '#ffffff',
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                  >
-                    <Plus size={14} />
-                    <span>Buat Toko Baru</span>
-                  </button>
-                  <ActionTutorialBadge
-                    title="Buat Cabang Toko Baru"
-                    description="Menambahkan cabang POS baru pada akun owner ini. Anda bisa memilih menyalin katalog menu yang ada atau mulai dari nol."
-                    size="sm"
-                    isLight={isLight}
-                  />
-                </div>
-                <span style={{
-                  padding: '5px 11px',
-                  borderRadius: '999px',
-                  fontSize: '0.74rem',
-                  fontWeight: 800,
-                  background: storeInfo.isValidated ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.18)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.18)'),
-                  color: storeInfo.isValidated ? '#16a34a' : '#d97706',
-                  border: `1px solid ${storeInfo.isValidated ? '#86efac' : '#fcd34d'}`,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}>
-                  {storeInfo.isValidated ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
-                  <span>{storeInfo.isValidated ? 'Tervalidasi Resmi' : 'Belum Valid'}</span>
-                </span>
-              </div>
+              <span style={{
+                padding: '5px 11px',
+                borderRadius: '999px',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                background: storeInfo.isValidated ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.18)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.18)'),
+                color: storeInfo.isValidated ? '#16a34a' : '#d97706',
+                border: `1px solid ${storeInfo.isValidated ? '#86efac' : '#fcd34d'}`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                {storeInfo.isValidated ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                <span>{storeInfo.isValidated ? 'Tervalidasi Resmi' : 'Belum Valid'}</span>
+              </span>
             )}
 
-            {/* Daftar Multi-Toko Owner */}
+            {/* Dropdown Daftar Toko Milik Owner + Pilihan Tambah Toko */}
             <div style={{
               background: bgCard,
               border: `1px solid ${borderColor}`,
@@ -12684,10 +14762,10 @@ export default function Kasir({ user }) {
                 <div>
                   <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Store size={16} color="#2563eb" />
-                    <span>Daftar Toko Milik Anda ({(storeInfo.allOwnerStores || []).length || 1} Toko)</span>
+                    <span>Daftar Toko Milik Anda ({ownerStores.length} Toko)</span>
                   </h3>
                   <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
-                    Klik kartu toko untuk beralih kasir aktif atau mengedit lokasi cabang tersebut.
+                    Pilih cabang dari dropdown untuk mengelola lokasi &amp; peta, atau tambah toko baru.
                   </p>
                 </div>
                 {storeSwitchMsg && (
@@ -12706,140 +14784,141 @@ export default function Kasir({ user }) {
               </div>
 
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
-                gap: '10px'
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '8px'
               }}>
-                {(storeInfo.allOwnerStores && storeInfo.allOwnerStores.length > 0 ? storeInfo.allOwnerStores : [{
-                  id: storeInfo.merchantId || 'MTR-KASIR-MASTER',
-                  name: storeInfo.storeName || 'Toko Utama',
-                  location: storeInfo.location || 'Stand Utama',
-                  kuotaNota: storeInfo.kuotaNota ?? 50
-                }]).map((stItem) => {
-                  const isCurrent = String(stItem.id) === String(storeInfo.merchantId);
-                  const isDeleting = deletingStoreId === stItem.id;
-                  const canDelete = (storeInfo.allOwnerStores || []).length > 1;
-                  return (
-                    <div
-                      key={stItem.id}
+                <select
+                  data-testid="owner-stores-dropdown"
+                  aria-label="Daftar Toko Milik Anda"
+                  value={activeOwnerStore?.id || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__ADD_NEW_STORE__') {
+                      handleOpenCreateStoreModal();
+                      return;
+                    }
+                    if (val && String(val) !== String(storeInfo.merchantId)) {
+                      handleSwitchPosStore(val);
+                    }
+                  }}
+                  style={{
+                    flex: '1 1 260px',
+                    minWidth: 0,
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderLight}`,
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    color: textPrimary,
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {ownerStores.map((stItem) => {
+                    const isCurrent = String(stItem.id) === String(storeInfo.merchantId);
+                    const subLabel = stItem.location || stItem.address || 'Stand Utama';
+                    return (
+                      <option key={stItem.id} value={stItem.id}>
+                        {stItem.name} — {subLabel} ({stItem.kuotaNota ?? 0} nota){isCurrent ? ' • Aktif' : ''}
+                      </option>
+                    );
+                  })}
+                  <option value="__ADD_NEW_STORE__">+ Tambah Toko Baru...</option>
+                </select>
+
+                <button
+                  type="button"
+                  data-testid="add-store-dropdown-btn"
+                  onClick={handleOpenCreateStoreModal}
+                  style={{
+                    padding: '9px 13px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    flexShrink: 0
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>Tambah Toko</span>
+                </button>
+
+                <ActionTutorialBadge
+                  title="Kelola Cabang & Tambah Toko"
+                  description="Pilih cabang aktif dari dropdown untuk mengubah alamat & titik Google Maps-nya, atau klik Tambah Toko untuk membuka cabang baru."
+                  size="sm"
+                  isLight={isLight}
+                />
+
+                {canDeleteActiveStore && activeOwnerStore && (
+                  isDeletingActiveStore ? (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePosStore(activeOwnerStore.id, activeOwnerStore.name)}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: '#dc2626',
+                          color: '#ffffff',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Hapus Cabang
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingStoreId(null)}
+                        style={{
+                          padding: '7px 9px',
+                          borderRadius: '8px',
+                          border: `1px solid ${borderColor}`,
+                          background: 'transparent',
+                          color: textSecondary,
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDeletingStoreId(activeOwnerStore.id)}
+                      title={`Hapus toko ${activeOwnerStore.name}`}
                       style={{
-                        borderRadius: '12px',
-                        padding: '10px 12px',
-                        border: isCurrent ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
-                        background: isCurrent
-                          ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)')
-                          : (isLight ? '#f8fafc' : '#0f172a'),
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${isLight ? '#fecaca' : 'rgba(239, 68, 68, 0.35)'}`,
+                        background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.12)',
+                        color: '#ef4444',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: textPrimary }}>
-                            {stItem.name}
-                          </div>
-                          <div style={{ fontSize: '0.71rem', color: textSecondary }}>
-                            {stItem.location || stItem.address || 'Lokasi belum diisi'}
-                          </div>
-                        </div>
-                        <span style={{
-                          fontSize: '0.65rem',
-                          fontWeight: 800,
-                          padding: '2px 7px',
-                          borderRadius: '999px',
-                          background: isCurrent ? '#2563eb' : (isLight ? '#e2e8f0' : '#334155'),
-                          color: isCurrent ? '#ffffff' : textSecondary,
-                          flexShrink: 0
-                        }}>
-                          {isCurrent ? 'Aktif' : `${stItem.kuotaNota ?? 50} nota`}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginTop: '2px' }}>
-                        {!isCurrent ? (
-                          <button
-                            type="button"
-                            onClick={() => handleSwitchPosStore(stItem.id)}
-                            style={{
-                              padding: '4px 10px',
-                              borderRadius: '7px',
-                              border: '1px solid #2563eb',
-                              background: 'transparent',
-                              color: '#2563eb',
-                              fontSize: '0.7rem',
-                              fontWeight: 800,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Aktifkan Toko
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#2563eb' }}>
-                            Sedang Dikelola
-                          </span>
-                        )}
-
-                        {canDelete && (
-                          isDeleting ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePosStore(stItem.id, stItem.name)}
-                                style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
-                                  border: 'none',
-                                  background: '#dc2626',
-                                  color: '#ffffff',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Hapus
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeletingStoreId(null)}
-                                style={{
-                                  padding: '3px 7px',
-                                  borderRadius: '6px',
-                                  border: `1px solid ${borderColor}`,
-                                  background: 'transparent',
-                                  color: textSecondary,
-                                  fontSize: '0.68rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Batal
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setDeletingStoreId(stItem.id)}
-                              title={`Hapus toko ${stItem.name}`}
-                              style={{
-                                padding: '4px',
-                                borderRadius: '6px',
-                                border: 'none',
-                                background: 'transparent',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center'
-                              }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                      <Trash2 size={13} />
+                      <span>Hapus</span>
+                    </button>
+                  )
+                )}
               </div>
             </div>
 
@@ -13056,13 +15135,14 @@ export default function Kasir({ user }) {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: textSecondary, marginBottom: '4px' }}>
-                      Link Google Maps (Opsional / Otomatis dari GPS)
+                      Link Google Maps (Otomatis Update Peta &amp; Koordinat)
                     </label>
                     <input
                       type="url"
-                      placeholder="https://maps.google.com/?q=-6.9825,110.4091"
+                      data-testid="gmaps-form-link-input"
+                      placeholder="Tempel link https://maps.google.com/... atau https://maps.app.goo.gl/..."
                       value={storeForm.mapsUrl}
-                      onChange={e => setStoreForm(prev => ({ ...prev, mapsUrl: e.target.value }))}
+                      onChange={e => handleMapsUrlInputChange(e.target.value)}
                       style={{
                         width: '100%',
                         padding: '8px 10px',
@@ -13242,6 +15322,59 @@ export default function Kasir({ user }) {
                   </div>
 
                   <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    alignItems: 'center'
+                  }}>
+                    <input
+                      type="url"
+                      data-testid="gmaps-map-card-input"
+                      placeholder="Ganti lokasi peta lewat link Google Maps (maps.google.com / maps.app.goo.gl)..."
+                      value={storeForm.mapsUrl}
+                      onChange={(e) => handleMapsUrlInputChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleApplyGoogleMapsLink(e.currentTarget.value);
+                        }
+                      }}
+                      aria-label="Ganti Peta Lokasi Toko via Link Google Maps"
+                      style={{
+                        flex: '1 1 200px',
+                        minWidth: 0,
+                        padding: '7px 10px',
+                        borderRadius: '9px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.76rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      data-testid="gmaps-apply-link-btn"
+                      disabled={resolvingGmapsLink || savingStore}
+                      onClick={() => handleApplyGoogleMapsLink()}
+                      style={{
+                        padding: '7px 11px',
+                        borderRadius: '9px',
+                        border: 'none',
+                        background: resolvingGmapsLink ? '#94a3b8' : '#2563eb',
+                        color: '#ffffff',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: resolvingGmapsLink || savingStore ? 'wait' : 'pointer',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {resolvingGmapsLink ? 'Memproses...' : 'Terapkan Link'}
+                    </button>
+                  </div>
+
+                  <div style={{
                     width: '100%',
                     height: '220px',
                     borderRadius: '12px',
@@ -13250,6 +15383,7 @@ export default function Kasir({ user }) {
                     background: isLight ? '#f1f5f9' : '#0f172a'
                   }}>
                     <iframe
+                      key={embedMapsUrl}
                       title="Peta Lokasi Toko Google Maps"
                       src={embedMapsUrl}
                       width="100%"
@@ -13269,9 +15403,477 @@ export default function Kasir({ user }) {
                 </div>
               </div>
             </div>
+
+            <StoreClosingSettingsCard
+              storeId={activeOwnerStore?.id || storeInfo.merchantId || storeInfo.uid}
+              storeName={activeOwnerStore?.name || previewHdr.storeName}
+              ownerUserId={user?.id || user?.uid || effectiveAccountId}
+              value={storeInfo.closingShiftSettings}
+              onSaved={(saved) => {
+                if (saved?.store) {
+                  setStoreInfo(prev => ({ ...prev, ...saved.store }));
+                } else if (saved?.closingShiftSettings) {
+                  setStoreInfo(prev => ({ ...prev, closingShiftSettings: saved.closingShiftSettings }));
+                }
+              }}
+              isLight={isLight}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              bgCard={bgCard}
+              borderColor={borderColor}
+            />
           </main>
         );
       })()}
+
+      {/* ── TAB 10B: MITRA KOSTKU, MODE TOKO & USULAN WARUNG (FULL PAGE) ── */}
+      {activeTab === 'mitra' && (
+        <main
+          data-testid="kasir-mitra-page"
+          style={{
+            width: '100%',
+            maxWidth: '100%',
+            margin: '1rem auto 0',
+            padding: '0 2% 2.5rem',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}
+        >
+          {renderManajemenHeader(
+            'Mitra KostKu, Mode Toko & Usulan Warung',
+            'Atur apakah toko aktif ikut tampil di Layanan Penghuni (/layanan) atau khusus Kasir POS saja, daftarkan mitra baru, dan usulkan warung sekitar.',
+            <Sparkles size={20} color="#059669" />
+          )}
+
+          {/* CARD 1: MODE TOKO AKTIF */}
+          <section style={{
+            background: bgCard,
+            border: `1px solid ${borderColor}`,
+            borderRadius: '18px',
+            padding: '18px',
+            boxShadow: 'var(--shadow-sm)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: textPrimary }}>
+                  Integrasi Mitra &amp; Status Online Kasir: {storeInfo.storeName || 'Toko Utama'}
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: textSecondary }}>
+                  Semua toko Kasir POS otomatis bergabung sebagai Mitra KostKu (/layanan). Toko tampil <strong>Online</strong> selama web kasir dibuka, dan <strong>Offline (lihat menu saja)</strong> saat kasir ditutup.
+                </p>
+              </div>
+              <span
+                data-testid="mitra-page-mode-mitra"
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  background: isLight ? '#dbeafe' : 'rgba(37, 99, 235, 0.2)',
+                  color: isLight ? '#1d4ed8' : '#93c5fd',
+                  border: '1px solid #3b82f6'
+                }}
+              >
+                Mitra Wajib Aktif • {kasirWebOnline ? 'Kasir Web Online' : 'Offline'}
+              </span>
+            </div>
+
+            {storeSwitchMsg && (
+              <div style={{
+                padding: '9px 12px',
+                borderRadius: '10px',
+                background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
+                color: isLight ? '#047857' : '#6ee7b7',
+                border: '1px solid #10b981',
+                fontSize: '0.78rem',
+                fontWeight: 700
+              }}>
+                {storeSwitchMsg}
+              </div>
+            )}
+          </section>
+
+          {/* GRID 2 KOLOM: DAFTAR MITRA BARU & USULKAN WARUNG SEKITAR */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px', alignItems: 'start' }}>
+            {/* CARD 2: DAFTARKAN MITRA / TOKO BARU */}
+            <section
+              data-testid="kasir-register-mitra-card"
+              style={{
+                background: bgCard,
+                border: mitraSectionFocus !== 'suggest' ? '1.5px solid rgba(37, 99, 235, 0.35)' : `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '18px',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <Store size={18} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: textPrimary }}>
+                  Daftarkan Mitra / Toko Baru
+                </h3>
+              </div>
+              <p style={{ margin: '0 0 14px', fontSize: '0.76rem', color: textSecondary, lineHeight: 1.45 }}>
+                Tambahkan toko / mitra baru agar langsung masuk ekosistem KostKu (/layanan). Pendaftaran mitra baru dengan kode referral mendapat bonus <strong>+500 Poin</strong>.
+              </p>
+
+              <form onSubmit={handleCreateMitraFromKasir} style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Nama Toko / Mitra Baru *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    data-testid="mitra-form-name"
+                    value={mitraForm.name}
+                    onChange={(e) => setMitraForm(p => ({ ...p, name: e.target.value }))}
+                    placeholder="Contoh: Warung Ayam Bakar Mas Adit"
+                    style={{
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#162038',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      Kategori
+                    </label>
+                    <select
+                      data-testid="mitra-form-category"
+                      value={mitraForm.category}
+                      onChange={(e) => setMitraForm(p => ({ ...p, category: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '9px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#162038',
+                        color: textPrimary,
+                        fontSize: '0.8rem',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="Warung Makan & Kuliner">Warung Makan &amp; Kuliner</option>
+                      <option value="Minuman & Kopi">Minuman &amp; Kopi</option>
+                      <option value="Depot Galon & Gas">Depot Galon &amp; Gas</option>
+                      <option value="Laundry Kiloan">Laundry Kiloan</option>
+                      <option value="Toko Kelontong & Jasa">Toko Kelontong &amp; Jasa</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      No. WhatsApp
+                    </label>
+                    <input
+                      type="tel"
+                      data-testid="mitra-form-phone"
+                      value={mitraForm.phone}
+                      onChange={(e) => setMitraForm(p => ({ ...p, phone: e.target.value }))}
+                      placeholder="0812xxxxxxxx"
+                      style={{
+                        width: '100%',
+                        padding: '9px 11px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#162038',
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Alamat / Lokasi Singkat
+                  </label>
+                  <input
+                    type="text"
+                    data-testid="mitra-form-address"
+                    value={mitraForm.address}
+                    onChange={(e) => setMitraForm(p => ({ ...p, address: e.target.value }))}
+                    placeholder="Contoh: Depan Gerbang Kost Jl. Ngesrep Timur V"
+                    style={{
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#162038',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: isLight ? '#047857' : '#6ee7b7', marginBottom: '4px' }}>
+                    Kode Referral Bonus (+500 Poin)
+                  </label>
+                  <input
+                    type="text"
+                    data-testid="mitra-form-referral"
+                    value={mitraForm.referralCode}
+                    onChange={(e) => setMitraForm(p => ({ ...p, referralCode: e.target.value.toUpperCase() }))}
+                    placeholder="KOSTKU-XXXX"
+                    style={{
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#162038',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {mitraFeedback && (
+                  <div
+                    data-testid="mitra-form-feedback"
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      background: mitraFeedback.ok
+                        ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.18)')
+                        : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.18)'),
+                      color: mitraFeedback.ok
+                        ? (isLight ? '#047857' : '#6ee7b7')
+                        : (isLight ? '#b91c1c' : '#fca5a5'),
+                      border: `1px solid ${mitraFeedback.ok ? '#10b981' : '#f87171'}`
+                    }}
+                  >
+                    {mitraFeedback.message}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  data-testid="mitra-form-submit"
+                  disabled={mitraSubmitting}
+                  style={{
+                    padding: '11px 16px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: mitraSubmitting ? 'wait' : 'pointer'
+                  }}
+                >
+                  {mitraSubmitting ? 'Menyimpan...' : 'Daftarkan Sekarang'}
+                </button>
+              </form>
+            </section>
+
+            {/* CARD 3: USULKAN WARUNG SEKITAR */}
+            <section
+              data-testid="kasir-suggest-warung-card"
+              style={{
+                background: bgCard,
+                border: mitraSectionFocus === 'suggest' ? '2px solid #059669' : `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '18px',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <Gift size={18} color="#059669" />
+                <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: textPrimary }}>
+                  Usulkan Warung / Jasa Sekitar (Kode Referral)
+                </h3>
+              </div>
+              <p style={{ margin: '0 0 14px', fontSize: '0.76rem', color: textSecondary, lineHeight: 1.45 }}>
+                Catat usulan warung makan/laundry sekitar kost dengan kode referral (<strong>0 Poin instan / anti-abuse</strong>). Bonus <strong>+500 Poin</strong> otomatis cair setelah pemilik warung resmi mendaftar memakai kode referral tersebut.
+              </p>
+
+              <form onSubmit={handleSuggestWarungFromKasir} style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      Nama Warung / Usaha *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      data-testid="suggest-warung-name"
+                      value={suggestWarungForm.name}
+                      onChange={(e) => setSuggestWarungForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Contoh: Warteg Bahari Jaya"
+                      style={{
+                        width: '100%',
+                        padding: '9px 11px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#162038',
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      Kategori
+                    </label>
+                    <select
+                      data-testid="suggest-warung-category"
+                      value={suggestWarungForm.category}
+                      onChange={(e) => setSuggestWarungForm(p => ({ ...p, category: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '9px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#162038',
+                        color: textPrimary,
+                        fontSize: '0.8rem',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="makanan">Warung Makan &amp; Kuliner</option>
+                      <option value="minuman">Minuman &amp; Kopi</option>
+                      <option value="galon">Depot Galon &amp; Gas</option>
+                      <option value="laundry">Laundry Kiloan</option>
+                      <option value="jasa">Jasa &amp; Kelontong</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      No. WhatsApp Pemilik
+                    </label>
+                    <input
+                      type="tel"
+                      data-testid="suggest-warung-phone"
+                      value={suggestWarungForm.phone}
+                      onChange={(e) => setSuggestWarungForm(p => ({ ...p, phone: e.target.value }))}
+                      placeholder="0812xxxxxxxx"
+                      style={{
+                        width: '100%',
+                        padding: '9px 11px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#162038',
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                      Kode Referral *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      data-testid="suggest-warung-referral"
+                      value={suggestWarungForm.referralCode}
+                      onChange={(e) => setSuggestWarungForm(p => ({ ...p, referralCode: e.target.value.toUpperCase() }))}
+                      placeholder="KOSTKU-XXXX"
+                      style={{
+                        width: '100%',
+                        padding: '9px 11px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderColor}`,
+                        background: isLight ? '#f8fafc' : '#162038',
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>
+                    Lokasi / Catatan Menu Andalan
+                  </label>
+                  <textarea
+                    rows={2}
+                    data-testid="suggest-warung-note"
+                    value={suggestWarungForm.note}
+                    onChange={(e) => setSuggestWarungForm(p => ({ ...p, note: e.target.value }))}
+                    placeholder="Contoh: Sebelah indomaret gang kost, buka pagi-malam."
+                    style={{
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#162038',
+                      color: textPrimary,
+                      fontSize: '0.82rem',
+                      boxSizing: 'border-box',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                {suggestWarungFeedback && (
+                  <div
+                    data-testid="suggest-warung-feedback"
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      background: suggestWarungFeedback.ok
+                        ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.18)')
+                        : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.18)'),
+                      color: suggestWarungFeedback.ok
+                        ? (isLight ? '#047857' : '#6ee7b7')
+                        : (isLight ? '#b91c1c' : '#fca5a5'),
+                      border: `1px solid ${suggestWarungFeedback.ok ? '#10b981' : '#f87171'}`
+                    }}
+                  >
+                    {suggestWarungFeedback.message}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  data-testid="suggest-warung-submit"
+                  disabled={suggestWarungSubmitting}
+                  style={{
+                    padding: '11px 16px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    background: '#059669',
+                    color: '#ffffff',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: suggestWarungSubmitting ? 'wait' : 'pointer'
+                  }}
+                >
+                  {suggestWarungSubmitting ? 'Mengirim Usulan...' : 'Kirim Usulan Warung'}
+                </button>
+              </form>
+            </section>
+          </div>
+        </main>
+      )}
 
       {/* ── TAB 11: PERIFERAL HARDWARE LACI KASIR & PRINTER THERMAL (FULL PAGE) ── */}
       {activeTab === 'hardware' && (
@@ -13960,9 +16562,21 @@ export default function Kasir({ user }) {
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Biaya Layanan:</span>
-                  <span style={{ color: '#334155', fontWeight: 600 }}>Rp 0 (Ditanggung Penjual)</span>
+                  <span>{Number(receiptOrder.qrisFee) > 0 ? 'Biaya QRIS (Rp 750 + 0,70%):' : 'Biaya QRIS:'}</span>
+                  <span style={{ color: Number(receiptOrder.qrisFee) > 0 ? '#0f172a' : '#334155', fontWeight: 600 }}>
+                    {Number(receiptOrder.qrisFee) > 0
+                      ? `+Rp ${Number(receiptOrder.qrisFee).toLocaleString('id-ID')}`
+                      : 'Rp 0 (Non-QRIS)'}
+                  </span>
                 </div>
+                {Number(receiptOrder.customerAdminFee) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Biaya Admin Nota:</span>
+                    <span style={{ color: '#0f172a', fontWeight: 600 }}>
+                      +Rp {Number(receiptOrder.customerAdminFee).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '0.92rem', paddingTop: '5px', borderTop: '1px solid #0f172a' }}>
                   <span>TOTAL BAYAR:</span>
                   <span style={{ color: '#0f172a' }}>Rp {receiptOrder.totalAmount?.toLocaleString('id-ID')}</span>
@@ -14021,6 +16635,122 @@ export default function Kasir({ user }) {
                     >
                       {claimUrl}
                     </a>
+
+                    {/* Kasir Direct HP Claim Without QR Scan */}
+                    <div style={{
+                      width: '100%',
+                      marginTop: '6px',
+                      paddingTop: '8px',
+                      borderTop: '1px dashed #cbd5e1',
+                      textAlign: 'left'
+                    }}>
+                      {receiptOrder.claimStatus === 'CLAIMED' || receiptClaimResult?.ok ? (
+                        <div
+                          data-testid="receipt-claim-phone-success"
+                          style={{
+                            padding: '6px 8px',
+                            borderRadius: '7px',
+                            background: '#dcfce7',
+                            border: '1px solid #86efac',
+                            color: '#166534',
+                            fontSize: '0.69rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          ✓ Poin sudah diklaim (+{receiptClaimResult?.data?.pointsAwarded || receiptOrder.claimPointsAwarded || 0} Poin) ke No. HP{' '}
+                          {receiptClaimResult?.data?.phone || receiptOrder.claimedByWhatsapp || receiptOrder.customerPhone || '-'}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0f172a' }}>
+                            Klaim via QR Pribadi / No. HP:
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <input
+                              type="text"
+                              data-testid="receipt-claim-phone-input"
+                              placeholder="KOSTKU-MEMBER:... / No. HP"
+                              value={receiptClaimPhone}
+                              onChange={(e) => setReceiptClaimPhone(e.target.value)}
+                              style={{
+                                flex: 1,
+                                minWidth: 0,
+                                padding: '5px 7px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                background: '#ffffff',
+                                color: '#0f172a',
+                                fontSize: '0.72rem'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => openKasirQrScanner('receiptModal')}
+                              title="Scan QR Pribadi"
+                              style={{
+                                padding: '5px 7px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                background: '#f8fafc',
+                                color: '#2563eb',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <QrCode size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              data-testid="receipt-claim-phone-submit"
+                              disabled={receiptClaimLoading}
+                              onClick={async () => {
+                                setReceiptClaimLoading(true);
+                                const res = await submitCashierPhoneClaim({
+                                  token: claimToken,
+                                  orderId: receiptOrder.id,
+                                  invoice: receiptOrder.invoice_number,
+                                  phone: receiptClaimPhone,
+                                  name: receiptOrder.customerName
+                                });
+                                setReceiptClaimLoading(false);
+                                if (res.ok) {
+                                  setReceiptClaimResult(res);
+                                  setReceiptOrder(prev => prev ? {
+                                    ...prev,
+                                    claimStatus: 'CLAIMED',
+                                    claimedByWhatsapp: res.data.phone,
+                                    claimPointsAwarded: res.data.pointsAwarded,
+                                    customerPhone: res.data.phone
+                                  } : prev);
+                                  fetchData();
+                                } else {
+                                  setReceiptClaimResult(res);
+                                }
+                              }}
+                              style={{
+                                padding: '5px 9px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: '#059669',
+                                color: '#ffffff',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                cursor: receiptClaimLoading ? 'wait' : 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {receiptClaimLoading ? '...' : 'Klaim HP'}
+                            </button>
+                          </div>
+                          {receiptClaimResult && !receiptClaimResult.ok && (
+                            <div style={{ fontSize: '0.67rem', color: '#dc2626', fontWeight: 600 }}>
+                              {receiptClaimResult.error}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })()}
@@ -15154,22 +17884,22 @@ export default function Kasir({ user }) {
                     <span style={{
                       fontSize: '0.68rem',
                       fontWeight: 800,
-                      color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#16a34a',
-                      background: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#fee2e2' : '#dcfce7',
+                      color: storeKuotaNota <= 15 ? '#ef4444' : '#16a34a',
+                      background: storeKuotaNota <= 15 ? '#fee2e2' : '#dcfce7',
                       padding: '2px 8px',
                       borderRadius: '999px',
-                      border: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '1px solid #fca5a5' : '1px solid #86efac'
+                      border: storeKuotaNota <= 15 ? '1px solid #fca5a5' : '1px solid #86efac'
                     }}>
-                      {Number(storeInfo.kuotaNota ?? 50) <= 15 ? 'Kuota Menipis' : '500 Kuota Aktif'}
+                      {storeKuotaNota <= 0 ? 'Kuota Habis' : (storeKuotaNota <= 15 ? 'Kuota Menipis' : `${storeKuotaNota} Kuota Aktif`)}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                     <div style={{ fontSize: '1.2rem', fontWeight: 900, color: textPrimary }}>
-                      Sisa Kuota: <span style={{ color: Number(storeInfo.kuotaNota ?? 50) <= 15 ? '#ef4444' : '#10b981' }}>{storeInfo.kuotaNota ?? 50}</span> / 500 Nota
+                      Sisa Kuota: <span style={{ color: storeKuotaNota <= 15 ? '#ef4444' : '#10b981' }}>{storeKuotaNota}</span> / 500 Nota
                     </div>
                     <div style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary }}>
-                      {Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100))).toFixed(1)}% Tersedia
+                      {Math.min(100, Math.max(0, ((storeKuotaNota / 500) * 100))).toFixed(1)}% Tersedia
                     </div>
                   </div>
 
@@ -15183,9 +17913,9 @@ export default function Kasir({ user }) {
                     marginBottom: '8px'
                   }}>
                     <div style={{
-                      width: `${Math.min(100, Math.max(0, (((storeInfo.kuotaNota ?? 50) / 500) * 100)))}%`,
+                      width: `${Math.min(100, Math.max(0, ((storeKuotaNota / 500) * 100)))}%`,
                       height: '100%',
-                      background: Number(storeInfo.kuotaNota ?? 50) <= 15 
+                      background: storeKuotaNota <= 15 
                         ? '#ef4444' 
                         : 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)',
                       borderRadius: '999px',
@@ -15195,7 +17925,7 @@ export default function Kasir({ user }) {
 
                   <div style={{ fontSize: '0.72rem', color: textSecondary, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>Nilai Manfaat: <strong>Gratis Biaya Transaksi s/d Habis</strong></span>
-                    <span>Saldo: <strong>Rp {(storeInfo.saldoNota || 0).toLocaleString('id-ID')}</strong></span>
+                    <span>Saldo: <strong>Rp {storeSaldoNota.toLocaleString('id-ID')}</strong></span>
                   </div>
                 </div>
 
@@ -15729,261 +18459,6 @@ export default function Kasir({ user }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL CLOSING SHIFT & HITUNG SELISIH FISIK KASIR ── */}
-      {showShiftClosingModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 160,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: bgCard,
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '480px',
-            padding: '20px 22px',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
-            boxSizing: 'border-box',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ef444418', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Lock size={20} color="#ef4444" />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: textPrimary }}>
-                    Tutup Shift &amp; Closing Kasir
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '0.74rem', color: textSecondary }}>
-                    Hitung uang fisik di laci dan rekonsiliasi selisih sistem
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowShiftClosingModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: textSecondary }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Ringkasan Perhitungan Sistem */}
-            <div style={{
-              padding: '12px 14px',
-              borderRadius: '12px',
-              background: isLight ? '#f8fafc' : '#0f172a',
-              border: `1px solid ${borderColor}`,
-              marginBottom: '14px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: textSecondary, marginBottom: '4px' }}>
-                <span>Modal Kas Awal:</span>
-                <strong style={{ color: textPrimary }}>Rp {(Number(cashierShift.initialFloat) || 0).toLocaleString('id-ID')}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#10b981', marginBottom: '4px' }}>
-                <span>(+) Penjualan Tunai:</span>
-                <strong>Rp {cashRevenue.toLocaleString('id-ID')}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#0284c7', marginBottom: '4px' }}>
-                <span>(+) Kas Masuk Tambahan:</span>
-                <strong>Rp {totalPettyIn.toLocaleString('id-ID')}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#ef4444', marginBottom: '6px' }}>
-                <span>(-) Pengeluaran Kas Kecil:</span>
-                <strong>Rp {totalPettyOut.toLocaleString('id-ID')}</strong>
-              </div>
-              <div style={{
-                borderTop: `1px dashed ${borderColor}`,
-                paddingTop: '6px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '0.86rem',
-                fontWeight: 900
-              }}>
-                <span style={{ color: textPrimary }}>Uang Seharusnya di Laci:</span>
-                <span style={{ color: '#2563eb' }}>Rp {expectedDrawerCash.toLocaleString('id-ID')}</span>
-              </div>
-            </div>
-
-            {/* Input Uang Fisik Aktual */}
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: textPrimary, marginBottom: '6px' }}>
-                Hitung Fisik Uang di Laci (Kertas + Koin)
-              </label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '10px', fontSize: '0.85rem', fontWeight: 700, color: textSecondary }}>
-                  Rp
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  value={closingActualCash}
-                  onChange={e => setClosingActualCash(e.target.value)}
-                  placeholder={String(expectedDrawerCash)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px 10px 36px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #2563eb',
-                    background: isLight ? '#ffffff' : '#0f172a',
-                    color: textPrimary,
-                    fontSize: '1rem',
-                    fontWeight: 900,
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              {/* Status Selisih Kas (Real-time Feedback) */}
-              {closingActualCash !== '' && (() => {
-                const actual = Number(closingActualCash) || 0;
-                const diff = actual - expectedDrawerCash;
-                const isMatch = diff === 0;
-                const isSurplus = diff > 0;
-                return (
-                  <div style={{
-                    marginTop: '8px',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    background: isMatch ? '#ecfdf5' : (isSurplus ? '#eff6ff' : '#fef2f2'),
-                    border: `1px solid ${isMatch ? '#10b981' : (isSurplus ? '#3b82f6' : '#ef4444')}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: '0.78rem',
-                    fontWeight: 800
-                  }}>
-                    <span style={{ color: isMatch ? '#047857' : (isSurplus ? '#1d4ed8' : '#b91c1c') }}>
-                      {isMatch ? 'Uang Fisik Pas (Sesuai Sistem)' : (isSurplus ? `Surplus Lebih (+Rp ${diff.toLocaleString('id-ID')})` : `Selisih Kurang (-Rp ${Math.abs(diff).toLocaleString('id-ID')})`)}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: textSecondary }}>
-                      Fisik: Rp {actual.toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Catatan Closing */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: textSecondary, marginBottom: '5px' }}>
-                Catatan Serah Terima / Keterangan Shift
-              </label>
-              <textarea
-                rows={2}
-                value={closingNote}
-                onChange={e => setClosingNote(e.target.value)}
-                placeholder="Catatan untuk kasir shift berikutnya atau pesan serah terima uang..."
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  border: `1px solid ${borderColor}`,
-                  background: isLight ? '#f8fafc' : '#0f172a',
-                  color: textPrimary,
-                  fontSize: '0.82rem',
-                  boxSizing: 'border-box',
-                  resize: 'none'
-                }}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => handlePrintClosingReceipt(Number(closingActualCash) || expectedDrawerCash, (Number(closingActualCash) || expectedDrawerCash) - expectedDrawerCash)}
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: isLight ? '1px solid #059669' : '1px solid #10b981',
-                    background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
-                    color: isLight ? '#047857' : '#34d399',
-                    fontSize: '0.82rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Receipt size={16} />
-                  <span>Cetak Struk Rekap</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleKickDrawerManual}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#f1f5f9' : '#1e293b',
-                    color: textPrimary,
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                  title="Buka Laci Kasir"
-                >
-                  <Unlock size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                  <span>Laci</span>
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowShiftClosingModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: `1px solid ${borderColor}`,
-                    background: 'transparent',
-                    color: textSecondary,
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmClosingShift}
-                  style={{
-                    flex: 2,
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    color: '#ffffff',
-                    fontSize: '0.84rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(239, 68, 68, 0.35)'
-                  }}
-                >
-                  Selesaikan Closing Shift
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -16750,11 +19225,12 @@ export default function Kasir({ user }) {
             </span>
           </div>
 
-          {/* 4. MEJA QR */}
+          {/* 4. KEUANGAN */}
           <button
             type="button"
+            data-testid="mobile-nav-keuangan-btn"
             onClick={() => {
-              setActiveTab('tables');
+              setActiveTab('settings');
               setShowMobileMenuHub(false);
             }}
             style={{
@@ -16767,23 +19243,24 @@ export default function Kasir({ user }) {
               border: 'none',
               padding: '4px 0',
               cursor: 'pointer',
-              color: (activeTab === 'tables' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              color: (activeTab === 'settings' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
               transition: 'all 0.15s ease'
             }}
           >
-            <QrCode size={20} strokeWidth={(activeTab === 'tables' && !showMobileMenuHub) ? 2.5 : 2} />
+            <DollarSign size={20} strokeWidth={(activeTab === 'settings' && !showMobileMenuHub) ? 2.5 : 2} />
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: (activeTab === 'tables' && !showMobileMenuHub) ? 800 : 600,
+              fontWeight: (activeTab === 'settings' && !showMobileMenuHub) ? 800 : 600,
               letterSpacing: '-0.01em'
             }}>
-              Meja QR
+              Keuangan
             </span>
           </button>
 
-          {/* 5. KELOLA (KEUANGAN & FITUR TOKO) */}
+          {/* 5. KELOLA (FITUR TOKO) */}
           <button
             type="button"
+            data-testid="mobile-nav-kelola-btn"
             onClick={() => setShowMobileMenuHub(prev => !prev)}
             style={{
               display: 'flex',
@@ -16795,13 +19272,13 @@ export default function Kasir({ user }) {
               border: 'none',
               padding: '4px 0',
               cursor: 'pointer',
-              color: (activeTab === 'settings' || activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
+              color: (activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
               transition: 'all 0.15s ease',
               position: 'relative'
             }}
           >
             <div style={{ position: 'relative' }}>
-              <Sliders size={20} strokeWidth={(activeTab === 'settings' || activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 2.5 : 2} />
+              <Sliders size={20} strokeWidth={(activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 2.5 : 2} />
               {inventoryAlerts.length > 0 && (
                 <span style={{
                   position: 'absolute',
@@ -16816,7 +19293,7 @@ export default function Kasir({ user }) {
             </div>
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: (activeTab === 'settings' || activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 800 : 600,
+              fontWeight: (activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 800 : 600,
               letterSpacing: '-0.01em'
             }}>
               Kelola
@@ -17053,40 +19530,13 @@ export default function Kasir({ user }) {
 
               {[
                 {
-                  id: 'dashboard',
-                  title: 'Dashboard Kasir & Shift',
-                  desc: 'Opening, modal awal, closing & laci uang',
-                  icon: <LayoutDashboard size={20} color="#2563eb" />,
-                  badge: cashierShift.isOpen ? 'Shift Buka' : 'Tutup',
-                  badgeBg: cashierShift.isOpen ? '#10b981' : '#64748b',
-                  onClick: () => { setActiveTab('dashboard'); setShowMobileMenuHub(false); }
-                },
-                {
-                  id: 'kasir',
-                  title: 'Kasir Walk-in',
-                  desc: 'Pesan, diskon & bayar kasir',
-                  icon: <ShoppingBag size={20} color="#2563eb" />,
-                  badge: Object.values(posCart).length > 0 ? `${Object.values(posCart).reduce((s, it) => s + it.qty, 0)} item` : null,
-                  badgeBg: '#2563eb',
-                  onClick: () => { setActiveTab('pos'); setShowMobileMenuHub(false); }
-                },
-                {
-                  id: 'dapur',
-                  title: 'Dapur (KDS)',
-                  desc: 'Checklist antrean pesanan masak',
-                  icon: <Flame size={20} color="#f97316" />,
-                  badge: pendingOrders.length > 0 ? `${pendingOrders.length} antrean` : null,
-                  badgeBg: '#ef4444',
-                  onClick: () => { setActiveTab('kds'); setShowMobileMenuHub(false); }
-                },
-                {
-                  id: 'keuangan',
-                  title: 'Keuangan & Statistik',
-                  desc: 'Omset, mutasi, saldo & grafik analitik',
-                  icon: <DollarSign size={20} color="#10b981" />,
-                  badge: walletData?.available_balance ? `Rp ${(walletData.available_balance / 1000).toFixed(0)}k` : null,
-                  badgeBg: '#10b981',
-                  onClick: () => { setActiveTab('settings'); setShowMobileMenuHub(false); }
+                  id: 'closing',
+                  title: 'Tutup Shift & Foto',
+                  desc: 'Closing kasir, hitung laci fisik & foto barang basi/sisa/error',
+                  icon: <Lock size={20} color="#ef4444" />,
+                  badge: cashierShift.isOpen ? 'Aktif' : 'Riwayat',
+                  badgeBg: cashierShift.isOpen ? '#ef4444' : '#64748b',
+                  onClick: () => { setShowMobileMenuHub(false); openClosingShiftPage(); }
                 },
                 {
                   id: 'forecast',
@@ -17161,13 +19611,29 @@ export default function Kasir({ user }) {
                   onClick: () => { setActiveTab('store'); setShowMobileMenuHub(false); }
                 },
                 {
+                  id: 'mitra_warung',
+                  title: 'Mitra & Usul Warung',
+                  desc: `Wajib Mitra KostKu (${kasirWebOnline ? 'Kasir Web Online' : 'Offline — buka kasir agar Online'})`,
+                  icon: <Sparkles size={20} color="#059669" />,
+                  badge: kasirWebOnline ? 'Online' : 'Mitra',
+                  badgeBg: kasirWebOnline ? '#10b981' : '#2563eb',
+                  onClick: () => { setActiveTab('mitra'); setShowMobileMenuHub(false); }
+                },
+                {
                   id: 'topup_nota',
                   title: 'Top Up Kuota Nota',
-                  desc: `Sisa: ${storeInfo.kuotaNota ?? 50} lembar nota`,
+                  desc: `Sisa: ${storeInfo.kuotaNota ?? 0} lembar nota`,
                   icon: <Zap size={20} color="#eab308" />,
-                  badge: Number(storeInfo.saldoNota ?? 5000) < 100 ? 'Habis' : null,
+                  badge: Number(storeInfo.saldoNota ?? 0) < 100 ? 'Habis' : null,
                   badgeBg: '#ef4444',
                   onClick: () => { setShowPosTopupModal(true); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'pengaturan_akun',
+                  title: 'Pengaturan Akun & Keluar',
+                  desc: 'Profil, tema tampilan & keluar akun',
+                  icon: <Settings size={20} color="#64748b" />,
+                  onClick: () => { setShowMobileMenuHub(false); navigate('/pengaturan'); }
                 }
               ].map(item => (
                 <button
@@ -17504,6 +19970,21 @@ export default function Kasir({ user }) {
                 </div>
               </div>
 
+              <div
+                data-testid="create-store-mode-mitra"
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(37, 99, 235, 0.35)',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)',
+                  color: isLight ? '#1d4ed8' : '#93c5fd',
+                  fontSize: '0.74rem',
+                  fontWeight: 700
+                }}
+              >
+                Cabang baru otomatis bergabung ke Mitra KostKu (/layanan) dan tampil Online saat Kasir Web sedang dibuka.
+              </div>
+
               <div style={{
                 padding: '10px 12px',
                 borderRadius: '12px',
@@ -17629,6 +20110,643 @@ export default function Kasir({ user }) {
           </form>
         </div>
       )}
+      {/* Modal QR Pribadi Customer (Klaim Hadiah & Pakai Hadiah di Kasir) */}
+      {showCashierClaimModal && (
+        <div
+          data-testid="kasir-claim-phone-modal"
+          onClick={() => setShowCashierClaimModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1100,
+            background: 'rgba(15, 23, 42, 0.68)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '12px'
+          }}
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (cashierModalMode === 'redeem') {
+                await loadKasirCustomerLookup(cashierClaimPhone);
+                return;
+              }
+              setCashierClaimFeedback(null);
+              setCashierClaimLoading(true);
+              const res = await submitCashierPhoneClaim({
+                token: cashierClaimToken.trim(),
+                phone: cashierClaimPhone
+              });
+              setCashierClaimLoading(false);
+              if (res.ok) {
+                setCashierClaimFeedback({
+                  type: 'success',
+                  text: res.data?.message || `Berhasil! +${res.data?.pointsAwarded} Poin masuk ke QR ${res.data?.phone}.`,
+                  data: res.data
+                });
+                fetchData();
+                setCashierClaimUnclaimed(prev => prev.filter(x => x.claimToken !== res.data?.claimToken));
+              } else {
+                setCashierClaimFeedback({ type: 'error', text: res.error });
+              }
+            }}
+            style={{
+              width: 'min(94vw, 450px)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              color: textPrimary
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                  color: '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <QrCode size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800 }}>QR Pribadi Customer</div>
+                  <div style={{ fontSize: '0.72rem', color: textSecondary }}>
+                    Scan QR Member untuk Klaim Hadiah poin atau Pakai Hadiah
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCashierClaimModal(false)}
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '999px',
+                  border: `1px solid ${borderColor}`,
+                  background: 'transparent',
+                  color: textSecondary,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Mode Switcher: Klaim Hadiah vs Pakai Hadiah */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px',
+              padding: '4px',
+              borderRadius: '12px',
+              background: isLight ? '#f1f5f9' : '#0f172a',
+              border: `1px solid ${borderColor}`
+            }}>
+              <button
+                type="button"
+                data-testid="kasir-modal-mode-claim"
+                onClick={() => {
+                  setCashierModalMode('claim');
+                  setCashierClaimFeedback(null);
+                }}
+                style={{
+                  padding: '8px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  background: cashierModalMode === 'claim' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
+                  color: cashierModalMode === 'claim' ? '#ffffff' : textSecondary
+                }}
+              >
+                1. Klaim Hadiah
+              </button>
+              <button
+                type="button"
+                data-testid="kasir-modal-mode-redeem"
+                onClick={() => {
+                  setCashierModalMode('redeem');
+                  setCashierClaimFeedback(null);
+                  if (parseCustomerQrOrPhone(cashierClaimPhone).phone) {
+                    loadKasirCustomerLookup(cashierClaimPhone);
+                  }
+                }}
+                style={{
+                  padding: '8px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  background: cashierModalMode === 'redeem' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
+                  color: cashierModalMode === 'redeem' ? '#ffffff' : textSecondary
+                }}
+              >
+                2. Pakai Hadiah
+              </button>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>
+                Scan QR Pribadi / Nomor HP Customer
+              </label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  required
+                  data-testid="kasir-claim-modal-phone"
+                  placeholder="KOSTKU-MEMBER:08... atau No. HP"
+                  value={cashierClaimPhone}
+                  onChange={(e) => setCashierClaimPhone(e.target.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                    padding: '9px 11px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f8fafc' : '#0f172a',
+                    color: textPrimary,
+                    fontSize: '0.84rem'
+                  }}
+                />
+                <button
+                  type="button"
+                  data-testid="kasir-modal-scan-qr-btn"
+                  onClick={() => openKasirQrScanner('claimModal')}
+                  title="Buka Kamera Scan QR Customer"
+                  style={{
+                    padding: '9px 11px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                    color: '#2563eb',
+                    fontWeight: 800,
+                    fontSize: '0.76rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Camera size={14} />
+                  <span>Scan</span>
+                </button>
+              </div>
+            </div>
+
+            {cashierModalMode === 'claim' ? (
+              <>
+                {cashierClaimUnclaimed.length > 0 && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>
+                      Pilih Struk Transaksi Belum Diklaim ({cashierClaimUnclaimed.length})
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '140px', overflowY: 'auto' }}>
+                      {cashierClaimUnclaimed.map(ord => {
+                        const selected = cashierClaimToken === ord.claimToken;
+                        return (
+                          <button
+                            key={ord.claimToken}
+                            type="button"
+                            onClick={() => {
+                              setCashierClaimToken(ord.claimToken);
+                              if (!cashierClaimPhone && ord.customerPhone) {
+                                setCashierClaimPhone(ord.customerPhone);
+                              }
+                            }}
+                            style={{
+                              textAlign: 'left',
+                              padding: '7px 10px',
+                              borderRadius: '9px',
+                              border: selected ? '1.5px solid #10b981' : `1px solid ${borderColor}`,
+                              background: selected ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)') : 'transparent',
+                              color: textPrimary,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontSize: '0.74rem'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 800 }}>#{ord.invoice} • {ord.customerName}</div>
+                              <div style={{ fontSize: '0.68rem', color: textSecondary }}>
+                                {/^meja/i.test(String(ord.tableNumber || '')) ? ord.tableNumber : `Meja ${ord.tableNumber}`}
+                              </div>
+                            </div>
+                            <span style={{ fontWeight: 800, color: '#10b981', whiteSpace: 'nowrap' }}>
+                              Rp {Number(ord.totalAmount || 0).toLocaleString('id-ID')}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>
+                    Kode Struk / Faktur (INV-... atau clm_...)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    data-testid="kasir-claim-modal-token"
+                    placeholder="Pilih struk di atas atau ketik INV-... / clm_..."
+                    value={cashierClaimToken}
+                    onChange={(e) => setCashierClaimToken(e.target.value)}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderColor}`,
+                      background: isLight ? '#f8fafc' : '#0f172a',
+                      color: textPrimary,
+                      fontSize: '0.8rem',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {!resolveStoreTier2Enabled() && (
+                  <div
+                    data-testid="kasir-modal-tier1-redeem-blocked"
+                    style={{
+                      padding: '9px 11px',
+                      borderRadius: '10px',
+                      background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.16)',
+                      border: '1px solid #fbbf24',
+                      color: isLight ? '#92400e' : '#fcd34d',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      lineHeight: 1.4
+                    }}
+                  >
+                    Toko ini masih paket <strong>Tier 1</strong> (belum Loyalty Pool Tier 2), sehingga customer belum dapat menukar poin / memakai voucher hadiah di kasir toko ini.
+                  </div>
+                )}
+
+                {cashierLookupData && (
+                  <div
+                    data-testid="kasir-modal-lookup-result"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      background: isLight ? '#f8fafc' : '#0f172a',
+                      border: `1px solid ${borderColor}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800 }}>
+                          {cashierLookupData.account?.name || 'Member KostKu'} ({cashierLookupData.canonicalPhone})
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: textSecondary, fontFamily: 'monospace' }}>
+                          {cashierLookupData.qrPayload}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#10b981' }}>
+                          {Number(cashierLookupData.account?.total_points || 0).toLocaleString('id-ID')} Poin
+                        </div>
+                        {Number(cashierLookupData.poolLookup?.activePoolBalance || cashierLookupData.tier2PoolBalance || 0) > 0 && (
+                          <div style={{ fontSize: '0.68rem', color: '#2563eb', fontWeight: 700 }}>
+                            Pool Tier 2: {Number(cashierLookupData.poolLookup?.activePoolBalance || cashierLookupData.tier2PoolBalance || 0).toLocaleString('id-ID')} Poin
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Active vouchers ready to Pakai Hadiah */}
+                    {Array.isArray(cashierLookupData.activeVouchers) && cashierLookupData.activeVouchers.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: textSecondary }}>
+                          Voucher Hadiah Aktif ({cashierLookupData.activeVouchers.length}):
+                        </div>
+                        {cashierLookupData.activeVouchers.map(v => (
+                          <div
+                            key={v.id || v.code}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '7px 9px',
+                              borderRadius: '8px',
+                              background: bgCard,
+                              border: '1px dashed #10b981'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.76rem', fontWeight: 800, fontFamily: 'monospace' }}>{v.code}</div>
+                              <div style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700 }}>
+                                Diskon Rp {Number(v.discountValue || 0).toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              data-testid={`kasir-modal-apply-voucher-${v.code}`}
+                              disabled={!resolveStoreTier2Enabled()}
+                              onClick={() => handleApplyVoucherToCart(v)}
+                              style={{
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                background: resolveStoreTier2Enabled() ? '#059669' : '#94a3b8',
+                                color: '#ffffff',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                cursor: resolveStoreTier2Enabled() ? 'pointer' : 'not-allowed'
+                              }}
+                            >
+                              Pakai Hadiah
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.72rem', color: textSecondary }}>
+                        Belum ada voucher hadiah aktif milik member ini.
+                      </div>
+                    )}
+
+                    {/* Quick Convert / Pakai Poin on Tier 2 */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {[100, 500].map(pts => {
+                        const hasPts = Number(cashierLookupData.account?.total_points || 0) >= pts;
+                        const enabled = resolveStoreTier2Enabled() && hasPts && !cashierLookupLoading;
+                        return (
+                          <button
+                            key={pts}
+                            type="button"
+                            data-testid={`kasir-modal-convert-${pts}`}
+                            disabled={!enabled}
+                            onClick={() => handleCashierConvertPoints(pts)}
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              borderRadius: '8px',
+                              border: enabled ? '1px solid #2563eb' : `1px solid ${borderColor}`,
+                              background: enabled ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)') : 'transparent',
+                              color: enabled ? '#2563eb' : textSecondary,
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              cursor: enabled ? 'pointer' : 'not-allowed'
+                            }}
+                          >
+                            Tukar {pts} Poin (Rp {(pts * 10).toLocaleString('id-ID')})
+                          </button>
+                        );
+                      })}
+                      {storeInfo.loyaltyPoolId && Number(cashierLookupData.poolLookup?.activePoolBalance || 0) > 0 && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setCartCustomerPhone(cashierLookupData.canonicalPhone);
+                            await handleLookupCartMember(cashierLookupData.canonicalPhone);
+                            setShowCashierClaimModal(false);
+                          }}
+                          style={{
+                            flex: '1 1 100%',
+                            padding: '7px 10px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: '#059669',
+                            color: '#ffffff',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Pakai Poin Loyalty Pool di Keranjang
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {cashierClaimFeedback && (
+              <div
+                data-testid="kasir-claim-modal-feedback"
+                style={{
+                  padding: '9px 11px',
+                  borderRadius: '10px',
+                  background: cashierClaimFeedback.type === 'success'
+                    ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)')
+                    : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.2)'),
+                  border: `1px solid ${cashierClaimFeedback.type === 'success' ? '#86efac' : '#fca5a5'}`,
+                  color: cashierClaimFeedback.type === 'success' ? (isLight ? '#166534' : '#86efac') : (isLight ? '#991b1b' : '#fca5a5'),
+                  fontSize: '0.78rem',
+                  fontWeight: 700
+                }}
+              >
+                {cashierClaimFeedback.text}
+                {cashierClaimFeedback.data?.totalPoints !== undefined && (
+                  <div style={{ fontSize: '0.72rem', marginTop: '3px', opacity: 0.9 }}>
+                    Total Poin Pelanggan: {cashierClaimFeedback.data.totalPoints} Poin
+                    {cashierClaimFeedback.data.poolBalance !== null && cashierClaimFeedback.data.poolBalance !== undefined
+                      ? ` • Saldo Pool Tier 2: ${cashierClaimFeedback.data.poolBalance} Poin`
+                      : ''}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              data-testid="kasir-claim-modal-submit"
+              disabled={cashierClaimLoading || cashierLookupLoading}
+              style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: 'none',
+                background: cashierModalMode === 'redeem'
+                  ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.84rem',
+                cursor: (cashierClaimLoading || cashierLookupLoading) ? 'wait' : 'pointer'
+              }}
+            >
+              {cashierModalMode === 'redeem'
+                ? (cashierLookupLoading ? 'Memeriksa QR Member...' : 'Cek Poin & Voucher QR Customer')
+                : (cashierClaimLoading ? 'Memproses Klaim Hadiah...' : 'Proses Klaim Poin ke QR / No. HP')}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Kasir Camera / Paste Scanner Modal untuk QR Pribadi Customer */}
+      {showKasirQrScanModal && (
+        <div
+          data-testid="kasir-qr-scanner-modal"
+          onClick={() => setShowKasirQrScanModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            background: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '12px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(94vw, 400px)',
+              background: bgCard,
+              border: `1px solid ${borderColor}`,
+              borderRadius: '18px',
+              padding: '16px',
+              color: textPrimary,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <QrCode size={18} color="#2563eb" />
+                <span style={{ fontSize: '0.92rem', fontWeight: 800 }}>Scan QR Pribadi Customer</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowKasirQrScanModal(false)}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '999px',
+                  border: `1px solid ${borderColor}`,
+                  background: 'transparent',
+                  color: textSecondary,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div style={{
+              position: 'relative',
+              background: '#020617',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              aspectRatio: '16 / 10',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <video
+                ref={kasirScanVideoRef}
+                playsInline
+                muted
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: kasirCameraStatus === 'active' ? 'block' : 'none'
+                }}
+              />
+              {kasirCameraStatus !== 'active' && (
+                <div style={{ padding: '14px', textAlign: 'center', color: '#e2e8f0', fontSize: '0.76rem' }}>
+                  {kasirCameraStatus === 'starting'
+                    ? 'Membuka kamera kasir...'
+                    : 'Arahkan scanner barcode/QR ke QR Pribadi pelanggan atau tempel kode di bawah.'}
+                </div>
+              )}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleKasirQrDecoded(kasirQrScanManual);
+              }}
+              style={{ display: 'flex', gap: '6px' }}
+            >
+              <input
+                type="text"
+                autoFocus
+                data-testid="kasir-qr-scanner-manual-input"
+                placeholder="KOSTKU-MEMBER:081234567890"
+                value={kasirQrScanManual}
+                onChange={(e) => setKasirQrScanManual(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '8px 10px',
+                  borderRadius: '9px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  color: textPrimary,
+                  fontSize: '0.8rem',
+                  fontFamily: 'monospace'
+                }}
+              />
+              <button
+                type="submit"
+                data-testid="kasir-qr-scanner-submit-btn"
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Pakai QR
+              </button>
+            </form>
+
+            {kasirQrScanError && (
+              <div style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700 }}>
+                {kasirQrScanError}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Closing pos-main-wrapper */}
       </div>
     </div>

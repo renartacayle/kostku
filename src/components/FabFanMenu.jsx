@@ -109,7 +109,7 @@ export default function FabFanMenu() {
 
   // Determine current active role
   const role = (currentUser?.role || '').toLowerCase();
-  const targetKostUid = currentUser?.kostUid || localStorage.getItem('kostUid') || 'KOST-OJN64X';
+  const targetKostUid = currentUser?.kostUid || localStorage.getItem('kostUid') || '';
 
   // ── NOTIFICATION ENGINE ──────────────────────────────────────────────
   const [notifications, setNotifications] = useState([]);
@@ -418,7 +418,7 @@ export default function FabFanMenu() {
           icon: <Zap size={18} strokeWidth={2.2} />,
           onClick: () => {
             setIsOpen(false);
-            navigate('/dashboard');
+            navigate('/dashboard?tab=meteran');
             setTimeout(() => {
               const el = document.getElementById('meteran-section') || document.querySelector('[data-section="meteran"]');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -432,7 +432,7 @@ export default function FabFanMenu() {
           icon: <Package size={18} strokeWidth={2.2} />,
           onClick: () => {
             setIsOpen(false);
-            navigate('/dashboard');
+            navigate('/dashboard?tab=packages');
           }
         },
         {

@@ -67,7 +67,8 @@ const Komplain = ({ user }) => {
   };
 
   const fetchStaff = async () => {
-    if (user?.role === 'user') return;
+    const role = String(user?.role || '').toLowerCase();
+    if (!['owner', 'master', 'admin'].includes(role)) return;
     try {
       const s = await apiGetOwnerStaff(null, user?.id);
       setStaffList(Array.isArray(s) ? s : []);

@@ -263,12 +263,15 @@ export function buildEscPosBuffer(order, options = {}) {
 
   // 6. Summary Totals
   const subtotal = order.subtotal || order.totalAmount || 0;
+  const qrisFee = Number(order.qrisFee) || 0;
   const platformFee = typeof order.platformFee === 'number' ? order.platformFee : 0;
   const total = order.totalAmount || subtotal;
 
   bytes.push(...textToBytes(formatTwoColumns('Subtotal:', `Rp ${subtotal.toLocaleString('id-ID')}`, maxCols) + '\n'));
-  
-  if (platformFee === 0) {
+
+  if (qrisFee > 0) {
+    bytes.push(...textToBytes(formatTwoColumns('Biaya QRIS (750+0.7%):', `Rp ${qrisFee.toLocaleString('id-ID')}`, maxCols) + '\n'));
+  } else if (platformFee === 0) {
     bytes.push(...textToBytes(formatTwoColumns('Biaya Layanan:', 'Rp 0 (FREE)', maxCols) + '\n'));
   } else {
     bytes.push(...textToBytes(formatTwoColumns('Biaya Layanan:', `Rp ${platformFee.toLocaleString('id-ID')}`, maxCols) + '\n'));

@@ -33,6 +33,7 @@ import { apiRegister, apiSendOtp, apiVerifyOtp, apiGoogleAuth, apiCheckEmail } f
 import { useTheme } from '../context/ThemeContext';
 import { DEFAULT_GOOGLE_CLIENT_ID } from '../config/version';
 import CloudflareTurnstile from '../components/CloudflareTurnstile';
+import { getStaffDefaultPath } from '../utils/staffRole';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -40,9 +41,9 @@ const Register = () => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // Role Selection: 'owner' (Pemilik Kost) | 'mitra' (Pemilik Bisnis) | 'staff' (Karyawan) | 'user' (Penghuni)
+  // Role Selection: 'mitra' (Default) | 'owner' (Pemilik Kost) | 'staff' (Karyawan) | 'user' (Penghuni)
   const searchParams = new URLSearchParams(location.search);
-  const initialRole = searchParams.get('role') || 'owner';
+  const initialRole = searchParams.get('role') || 'mitra';
   const [selectedRole, setSelectedRole] = useState(initialRole);
   const [kostName, setKostName] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -317,7 +318,7 @@ const Register = () => {
         localStorage.setItem('kostUser', JSON.stringify(data.user));
         if (data.kostName) localStorage.setItem('kostName', data.kostName);
         setShowGoogleModal(false);
-        const targetPath = data.user.role === 'mitra' ? '/mitra' : data.user.role === 'staff' ? '/kasir' : '/dashboard';
+        const targetPath = getStaffDefaultPath(data.user);
         navigate(targetPath, { replace: true });
       }
     } catch (err) {
@@ -370,7 +371,7 @@ const Register = () => {
                 localStorage.setItem('kostUser', JSON.stringify(data.user));
                 if (data.kostName) localStorage.setItem('kostName', data.kostName);
                 setShowGoogleModal(false);
-                const targetPath = data.user.role === 'mitra' ? '/mitra' : data.user.role === 'staff' ? '/kasir' : '/dashboard';
+                const targetPath = getStaffDefaultPath(data.user);
                 navigate(targetPath, { replace: true });
               }
             } catch (err) {
@@ -410,12 +411,13 @@ const Register = () => {
 
         if (registerGoogleBtnRef.current) {
           registerGoogleBtnRef.current.innerHTML = '';
+          const containerW = registerGoogleBtnRef.current.clientWidth || (typeof window !== 'undefined' ? window.innerWidth - 72 : 320);
           window.google.accounts.id.renderButton(registerGoogleBtnRef.current, {
             theme: 'outline',
             size: 'large',
             text: 'signup_with',
             shape: 'pill',
-            width: 320,
+            width: Math.min(320, Math.max(220, Math.floor(containerW))),
             logo_alignment: 'left'
           });
         }
@@ -489,15 +491,17 @@ const Register = () => {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'radial-gradient(circle at 50% 10%, rgba(37, 99, 235, 0.15) 0%, var(--bg-main) 70%)',
-      padding: '2.5rem 1rem'
+      padding: 'clamp(1rem, 3.5vw, 2.25rem) clamp(0.65rem, 2.5vw, 1rem)'
     }}>
       <div className="card glass-panel animate-fade-in" style={{
         maxWidth: '560px',
         width: '100%',
-        padding: '2rem 2rem 2.5rem',
+        padding: 'clamp(1.1rem, 3.5vw, 2rem) clamp(0.95rem, 3.5vw, 1.85rem)',
         border: '1px solid var(--border-light)',
         boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
-        borderRadius: '24px'
+        borderRadius: '20px',
+        minWidth: 0,
+        boxSizing: 'border-box'
       }}>
         
         {/* Top Back & Cancel Bar */}
@@ -570,7 +574,7 @@ const Register = () => {
               boxShadow: 'var(--shadow-glow)'
             }} 
           />
-          <h1 style={{ margin: '0 0 6px 0', fontSize: '1.8rem', fontWeight: 800 }}>
+          <h1 style={{ margin: '0 0 6px 0', fontSize: 'clamp(1.35rem, 4.5vw, 1.75rem)', fontWeight: 800 }}>
             Daftar Akun KostKu
           </h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.88rem' }}>

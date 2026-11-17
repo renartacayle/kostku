@@ -18,6 +18,7 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
   const [ownerPhone, setOwnerPhone] = useState(user?.phone || '');
   const [selectedFacilities, setSelectedFacilities] = useState(['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Dapur Bersama']);
   const [photoFront, setPhotoFront] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successData, setSuccessData] = useState(null);
 
@@ -105,7 +106,7 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
         createdAt: new Date().toISOString()
       };
 
-      // Try sending to owner API endpoint if possible
+      // Try sending to owner API endpoint; surface backend validation errors (e.g. self-referral / invalid code)
       try {
         await apiCreateOwnerKost({
           ownerId: user?.id || 'usr-owner-new',
@@ -116,9 +117,19 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
           defaultPrice: numPrice,
           roomsCount: numRooms,
           imageFront: photoFront,
-          roomPhoto: photoFront
+          roomPhoto: photoFront,
+          referralCode: referralCode.trim() ? referralCode.trim().toUpperCase() : undefined
         });
       } catch (apiErr) {
+        const msg = String(apiErr?.message || '');
+        const isNetworkFallback =
+          msg.includes('Failed to fetch') ||
+          msg.includes('NetworkError') ||
+          msg.includes('404') ||
+          msg.includes('405');
+        if (!isNetworkFallback) {
+          throw apiErr;
+        }
         console.warn('Edge/API kost creation fallback to local persistence:', apiErr);
       }
 
@@ -565,6 +576,32 @@ export default function TambahKostModal({ isOpen, onClose, onKostAdded, initialC
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Kode Referral Penghuni / Pengajak */}
+            <div style={{
+              background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.08)',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: isLight ? '1px dashed #f59e0b' : '1px dashed rgba(245, 158, 11, 0.45)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#92400e' : '#fbbf24' }}>
+                Kode Referral Pengajak / Penghuni (Opsional — Anti-Abuse)
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: KOSTKU-1234 (bukan kode sendiri)"
+                value={referralCode}
+                onChange={e => setReferralCode(e.target.value.toUpperCase())}
+                className="input-field"
+                style={{ width: '100%', textTransform: 'uppercase', fontWeight: 700 }}
+              />
+              <span style={{ fontSize: '0.72rem', color: isLight ? '#78350f' : '#cbd5e1', lineHeight: 1.4 }}>
+                Pengajak mendapat +1.000 Poin &amp; Pemilik Kost mendapat +500 Poin setelah kost terdaftar resmi (1x per pemilik, dilarang kode sendiri).
+              </span>
             </div>
 
             {/* Action Buttons */}

@@ -291,13 +291,13 @@ export default function SmartLockAndApplianceCard({ user, kostUid, roomNumber })
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
                     <span style={{
-                      fontSize: '2.4rem',
+                      fontSize: 'clamp(1.45rem, 5.5vw, 2.3rem)',
                       fontWeight: 900,
                       color: 'white',
                       fontFamily: 'monospace',
-                      letterSpacing: '0.2em'
+                      letterSpacing: 'clamp(0.08em, 0.8vw, 0.2em)'
                     }}>
                       {lock.currentPasscode}
                     </span>

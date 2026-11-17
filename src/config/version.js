@@ -1,7 +1,8 @@
-// KostKu Version Configuration
-export const APP_VERSION = '1.5.2';
-export const APP_BUILD_DATE = '2026-11-12';
-export const APP_BUILD_NUMBER = 157;
+/* global __KOSTKU_APP_VERSION__, __KOSTKU_BUILD_DATE__, __KOSTKU_BUILD_NUMBER__ */
+// KostKu Version Configuration — Single Source of Truth from public/version.json (injected by vite.config.js)
+export const APP_VERSION = typeof __KOSTKU_APP_VERSION__ !== 'undefined' ? __KOSTKU_APP_VERSION__ : '1.6.3';
+export const APP_BUILD_DATE = typeof __KOSTKU_BUILD_DATE__ !== 'undefined' ? __KOSTKU_BUILD_DATE__ : '2026-11-15';
+export const APP_BUILD_NUMBER = typeof __KOSTKU_BUILD_NUMBER__ !== 'undefined' ? Number(__KOSTKU_BUILD_NUMBER__) : 168;
 
 // Official Google OAuth 2.0 & Google Identity Services Client ID
 export const DEFAULT_GOOGLE_CLIENT_ID = '416599367292-3h9001mfd1dk7shnqo3fgpjs47s7oofe.apps.googleusercontent.com';

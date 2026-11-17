@@ -16,17 +16,26 @@ import {
   Sun,
   Moon,
   Sparkles,
-  Wrench
+  Wrench,
+  Zap,
+  ClipboardCheck,
+  Flame,
+  ShoppingBag,
+  QrCode,
+  Package,
+  Lock
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { isOwnerRole, isMitraRole, isEmployeeRole, isMitraStaff } from '../utils/staffRole';
 
 export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync }) {
   const location = useLocation();
   const { theme, toggleTheme, isLight } = useTheme();
   const isDemoSession = Boolean(user?.isDemo || user?.email?.endsWith('@kostku.id'));
 
-  const getRoleSpecificMenus = (role) => {
-    if (role === 'owner' || role === 'master') {
+  const getRoleSpecificMenus = (currentUser) => {
+    const normalizedRole = String(currentUser?.role || '').toLowerCase();
+    if (isOwnerRole(normalizedRole)) {
       return [
         { path: '/dashboard', name: 'Kamar & Overview', icon: <LayoutDashboard size={20} /> },
         { path: '/dashboard?view=staff', name: 'Tugas & Meteran Staf', icon: <Wrench size={20} /> },
@@ -38,17 +47,22 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
         { path: '/komplain', name: 'Komplain Penghuni', icon: <AlertCircle size={20} /> }
       ];
     }
-    if (role === 'mitra') {
+    if (isMitraRole(normalizedRole) || isMitraStaff(currentUser)) {
       return [
-        { path: '/mitra', name: 'Katalog & Menu Toko', icon: <Store size={20} /> },
-        { path: '/kasir', name: 'Terminal Kasir POS', icon: <Store size={20} /> },
-        { path: '/order', name: 'Pesanan Meja QR', icon: <LayoutDashboard size={20} /> },
-        { path: '/keuangan', name: 'Omset & Settlement', icon: <DollarSign size={20} /> }
+        { path: '/kasir?tab=dashboard', name: 'Dashboard Kasir', icon: <LayoutDashboard size={20} /> },
+        { path: '/kasir?tab=pos', name: 'Kasir POS', icon: <ShoppingBag size={20} /> },
+        { path: '/kasir?tab=kds', name: 'Dapur (KDS)', icon: <Flame size={20} /> },
+        { path: '/kasir?tab=settings', name: 'Keuangan', icon: <DollarSign size={20} /> },
+        { path: '/kasir?tab=closing', name: 'Tutup Shift & Foto', icon: <Lock size={20} /> },
+        { path: '/kasir?tab=tables', name: 'Meja QR', icon: <QrCode size={20} /> },
+        { path: '/kasir?tab=inventory', name: 'Gudang & Stok', icon: <Package size={20} /> }
       ];
     }
-    if (role === 'staff') {
+    if (isEmployeeRole(normalizedRole)) {
       return [
-        { path: '/dashboard', name: 'Tugas & Meteran', icon: <LayoutDashboard size={20} /> },
+        { path: '/dashboard', name: 'Tugas & Perbaikan', icon: <LayoutDashboard size={20} /> },
+        { path: '/dashboard?tab=meteran', name: 'Input Meteran & Biaya', icon: <Zap size={20} /> },
+        { path: '/dashboard?tab=inspeksi', name: 'Kamar & Inspeksi', icon: <ClipboardCheck size={20} /> },
         { path: '/komplain', name: 'Komplain Lapangan', icon: <AlertCircle size={20} /> },
         { path: '/penghuni', name: 'Data Penghuni', icon: <Users size={20} /> }
       ];
@@ -63,7 +77,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
     ];
   };
 
-  const allowedMenus = getRoleSpecificMenus(user?.role);
+  const allowedMenus = getRoleSpecificMenus(user);
 
   return (
     <aside style={{
@@ -71,16 +85,18 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
       background: 'var(--bg-glass)',
       backdropFilter: 'blur(20px)',
       borderRight: '1px solid var(--border-color)',
-      padding: '1.75rem 1.25rem',
+      padding: '1.35rem 1.15rem',
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
       position: 'sticky',
       top: 0,
+      overflow: 'hidden',
+      boxSizing: 'border-box',
       flexShrink: 0
     }}>
       {/* Brand Header */}
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2.5rem', paddingLeft: '0.5rem', textDecoration: 'none' }}>
+      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', paddingLeft: '0.5rem', textDecoration: 'none', flexShrink: 0 }}>
         <img 
           src="/logo.png" 
           alt="Logo KostKu" 
@@ -112,13 +128,26 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
       </Link>
 
       {/* Navigation List */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '2px' }}>
         {allowedMenus.map((item) => {
+          const searchParams = new URLSearchParams(location.search || '');
+          const tabParam = searchParams.get('tab');
+          const [itemPathname, itemQuery] = String(item.path || '').split('?');
+          const itemParams = new URLSearchParams(itemQuery || '');
+          const itemTabParam = itemParams.get('tab');
           const isStaffView = item.path === '/dashboard?view=staff';
+          const isMeteranView = item.path === '/dashboard?tab=meteran';
+          const isInspeksiView = item.path === '/dashboard?tab=inspeksi';
           const isActive = isStaffView
-            ? location.pathname === '/dashboard' && location.search.includes('view=staff')
+            ? location.pathname === '/dashboard' && searchParams.get('view') === 'staff'
+            : isMeteranView
+            ? location.pathname === '/dashboard' && (tabParam === 'meteran' || tabParam === 'inputs')
+            : isInspeksiView
+            ? location.pathname === '/dashboard' && (tabParam === 'inspeksi' || tabParam === 'rooms')
+            : itemPathname === '/kasir' && itemTabParam
+            ? location.pathname === '/kasir' && (tabParam || 'pos') === itemTabParam
             : (item.path === '/dashboard'
-                ? location.pathname === '/dashboard' && !location.search.includes('view=staff')
+                ? location.pathname === '/dashboard' && searchParams.get('view') !== 'staff' && !['meteran', 'inputs', 'inspeksi', 'rooms'].includes(tabParam || '')
                 : (location.pathname === item.path || (item.path === '/karyawan' && (location.pathname === '/karyawan' || (location.pathname === '/pengaturan' && location.search.includes('tab=karyawan'))))));
           return (
             <Link
@@ -201,9 +230,10 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
         </div>
       )}
 
-      {/* User Card, Setting & Logout (Bawah Kiri) */}
+      {/* User Card, Setting & Logout (Bawah Kiri - selalu terlihat) */}
       <div style={{
-        marginTop: 'auto',
+        marginTop: '10px',
+        flexShrink: 0,
         background: 'rgba(255, 255, 255, 0.04)',
         padding: '0.85rem 1rem',
         borderRadius: '16px',
@@ -250,8 +280,8 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
             <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
               {user?.name || 'Pengguna'}
             </p>
-            <span style={{ fontSize: '0.72rem', color: user?.role === 'staff' ? '#34d399' : user?.role === 'mitra' ? '#f59e0b' : user?.role === 'user' ? '#60a5fa' : 'var(--text-secondary)', fontWeight: 600 }}>
-              {user?.role === 'staff' ? `Staf (${user?.jobTitle || 'Penjaga'})` : user?.role === 'mitra' ? 'Mitra UMKM Sekitar' : user?.role === 'user' ? `Penghuni (Kamar ${user?.kamar || '122'})` : user?.role === 'owner' ? 'Pemilik Kost' : 'Akun Pengguna'}
+            <span style={{ fontSize: '0.72rem', color: user?.role === 'admin' ? '#fbbf24' : isMitraStaff(user) ? '#f472b6' : isEmployeeRole(user?.role) ? '#34d399' : isMitraRole(user?.role) ? '#f59e0b' : user?.role === 'user' ? '#60a5fa' : 'var(--text-secondary)', fontWeight: 600 }}>
+              {user?.role === 'admin' ? `Admin (${user?.jobTitle || 'Pengelola'})` : isMitraStaff(user) ? `Pegawai Mitra (${user?.jobTitle || 'Kasir POS'})` : isEmployeeRole(user?.role) ? `Pegawai Kost (${user?.jobTitle || 'Penjaga Kost'})` : isMitraRole(user?.role) ? 'Mitra UMKM / Kasir POS' : user?.role === 'user' ? (user?.kamar ? `Penghuni (Kamar ${user.kamar})` : (user?.kostUid ? 'Penghuni Kost' : 'Pencari Kost')) : user?.role === 'owner' ? 'Pemilik Kost' : 'Akun Pengguna'}
             </span>
           </div>
         </div>
@@ -300,6 +330,7 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           <Link
             to="/pengaturan"
+            data-testid="sidebar-user-settings-link"
             className="btn btn-secondary btn-sm"
             title="Buka Pengaturan Akun & Profil"
             style={{
@@ -312,8 +343,8 @@ export default function Sidebar({ user, onLogout, onOpenInstall, onOpenCloudSync
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-color)',
+              background: location.pathname === '/pengaturan' ? 'rgba(37, 99, 235, 0.22)' : 'rgba(255, 255, 255, 0.05)',
+              border: location.pathname === '/pengaturan' ? '1px solid rgba(59, 130, 246, 0.55)' : '1px solid var(--border-color)',
               color: 'var(--text-primary)',
               transition: 'all 0.2s'
             }}

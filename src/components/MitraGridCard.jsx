@@ -103,6 +103,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
   useEffect(() => {
     if (cycleItems.length <= 1) return;
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setCycleIdx(prev => (prev + 1) % cycleItems.length);
     }, 3200 + (idx % 3) * 600);
     return () => clearInterval(interval);
@@ -127,20 +128,23 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
   const isShared = Boolean(item.isShared || item.partnershipType === 'shared');
   const isIndependent = Boolean(item.isIndependent || item.partnershipType === 'independent');
   const isNewcomer = Boolean(item.isNewcomer || item.isNew || (item.createdAt && (Date.now() - new Date(item.createdAt).getTime()) < 14 * 24 * 60 * 60 * 1000));
+  const isOnline = item.kasirOnline === true || item.isOnline === true;
 
   return (
     <div
       ref={cardRef}
       className="mitra-grid-card"
       data-testid="mitra-card"
+      data-merchant-id={item.id}
+      data-online={isOnline ? 'true' : 'false'}
       onClick={() => onSelect(item)}
       style={{
         background: isLight 
-          ? (isMain ? 'rgba(245, 158, 11, 0.08)' : '#ffffff') 
-          : (isMain ? 'rgba(245, 158, 11, 0.035)' : 'rgba(255, 255, 255, 0.025)'),
-        border: isMain 
+          ? (isOnline ? (isMain ? 'rgba(245, 158, 11, 0.08)' : '#ffffff') : '#f1f5f9') 
+          : (isOnline ? (isMain ? 'rgba(245, 158, 11, 0.035)' : 'rgba(255, 255, 255, 0.025)') : 'rgba(15, 23, 42, 0.55)'),
+        border: isMain && isOnline
           ? (isLight ? '1.5px solid #f59e0b' : '1.5px solid rgba(245, 158, 11, 0.4)') 
-          : (isLight ? '1px solid #e2e8f0' : '1px solid var(--border-color)'),
+          : (isLight ? '1px solid #cbd5e1' : '1px solid var(--border-color)'),
         borderRadius: '12px',
         overflow: 'hidden',
         display: 'flex',
@@ -148,9 +152,10 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
         justifyContent: 'space-between',
         cursor: 'pointer',
         position: 'relative',
-        opacity: isVisible ? 1 : 0,
+        filter: isOnline ? 'none' : 'grayscale(1)',
+        opacity: isVisible ? (isOnline ? 1 : 0.74) : 0,
         transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
-        transition: `opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1) ${delayMs}ms, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) ${delayMs}ms, border-color 0.2s ease, box-shadow 0.2s ease`,
+        transition: `opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1) ${delayMs}ms, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) ${delayMs}ms, border-color 0.2s ease, box-shadow 0.2s ease, filter 0.25s ease`,
         willChange: 'opacity, transform',
         boxShadow: isLight ? '0 2px 8px rgba(0, 0, 0, 0.04)' : 'none'
       }}
@@ -186,6 +191,8 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             key={activeItem.id || cycleIdx}
             src={activeItem.image}
             alt={activeItem.name}
+            loading="lazy"
+            decoding="async"
             style={{
               width: '100%',
               height: '100%',
@@ -193,7 +200,6 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
               transition: 'opacity 0.4s ease, transform 0.4s ease',
               display: 'block'
             }}
-            loading="lazy"
             onError={e => {
               e.currentTarget.onerror = null;
               e.currentTarget.src = isFnB
@@ -272,8 +278,40 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
           pointerEvents: 'none'
         }} />
 
+        {/* Top-Right: Kasir Web Online / Offline Status Badge */}
+        <span
+          data-testid={`mitra-status-badge-${item.id}`}
+          style={{
+            position: 'absolute',
+            top: '6px',
+            right: '6px',
+            zIndex: 3,
+            fontSize: isMobileScreen ? '0.52rem' : '0.60rem',
+            padding: '2px 7px',
+            borderRadius: '999px',
+            fontWeight: 800,
+            letterSpacing: '0.2px',
+            background: isOnline ? 'rgba(16, 185, 129, 0.92)' : 'rgba(15, 23, 42, 0.85)',
+            color: isOnline ? '#ffffff' : '#cbd5e1',
+            border: isOnline ? '1px solid rgba(110, 231, 183, 0.7)' : '1px solid rgba(148, 163, 184, 0.45)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            lineHeight: 1.2
+          }}
+        >
+          <span style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: isOnline ? '#ecfdf5' : '#94a3b8'
+          }} />
+          {isOnline ? 'Online' : 'Offline'}
+        </span>
+
         {/* Top-Left: Badges */}
-        <div style={{ position: 'absolute', top: '6px', left: '6px', zIndex: 2, display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'wrap', maxWidth: '80%' }}>
+        <div style={{ position: 'absolute', top: '6px', left: '6px', zIndex: 2, display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'wrap', maxWidth: '62%' }}>
           {hasOrderedBefore ? (
             <span style={{
               fontSize: isMobileScreen ? '0.50rem' : '0.58rem',
@@ -569,7 +607,15 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             </div>
           </div>
 
-          {!isMobileScreen && (
+          {isMobileScreen ? (
+            <span style={{
+              fontSize: '0.58rem',
+              fontWeight: 800,
+              color: isOnline ? (isLight ? '#2563eb' : '#60a5fa') : (isLight ? '#475569' : '#94a3b8')
+            }}>
+              {isOnline ? 'Pesan →' : 'Lihat Menu →'}
+            </span>
+          ) : (
             <button
               type="button"
               onClick={(e) => {
@@ -581,7 +627,9 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 padding: '4px 10px',
                 fontSize: '0.70rem',
                 fontWeight: 700,
-                background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                background: isOnline ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : (isLight ? '#e2e8f0' : '#334155'),
+                color: isOnline ? '#ffffff' : (isLight ? '#334155' : '#e2e8f0'),
+                border: 'none',
                 borderRadius: '6px',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -589,7 +637,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 cursor: 'pointer'
               }}
             >
-              Mulai Pilih →
+              {isOnline ? 'Mulai Pilih →' : 'Lihat Menu →'}
             </button>
           )}
         </div>

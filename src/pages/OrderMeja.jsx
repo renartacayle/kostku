@@ -17,6 +17,7 @@ import {
   Minus,
   X,
   CreditCard,
+  Banknote,
   Gift,
   HelpCircle,
   Award,
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { formatStoreHeaderLines } from '../utils/thermalPrinter';
+import { calculateQrisCustomerFee } from '../utils/qrisEngine';
 
 export default function OrderMeja() {
   const { tableToken } = useParams();
@@ -125,13 +127,53 @@ export default function OrderMeja() {
     async function loadData() {
       try {
         setLoading(true);
-        const resProd = await fetch('/api/pos/products');
-        if (resProd.ok) setProducts(await resProd.json());
+        let authUser = null;
+        let savedActiveStoreId = '';
+        try {
+          const raw = localStorage.getItem('kostUser');
+          if (raw) authUser = JSON.parse(raw);
+          savedActiveStoreId = localStorage.getItem('kostku_active_pos_store') || '';
+        } catch (_) {}
 
-        const resTables = await fetch('/api/pos/tables');
+        const ownerParam = authUser
+          ? (['staff', 'admin', 'karyawan'].includes(String(authUser.role || '').toLowerCase())
+              ? (authUser.ownerId || authUser.ownerUid || authUser.employerId || authUser.id)
+              : authUser.id)
+          : '';
+
+        const scopeParams = new URLSearchParams();
+        if (tableToken) {
+          scopeParams.set('tableToken', tableToken);
+        } else if (ownerParam) {
+          scopeParams.set('ownerId', String(ownerParam));
+          if (savedActiveStoreId) scopeParams.set('storeId', savedActiveStoreId);
+        }
+        const scopeQs = scopeParams.toString();
+
+        if (!scopeQs) {
+          setProducts([]);
+          setTableInfo({ number: 'Scan QR Meja', qrToken: '' });
+          setStoreInfo(prev => ({ ...prev, storeName: 'Scan QR Meja Toko', merchantId: null }));
+          setLoading(false);
+          return;
+        }
+
+        const reqHeaders = authUser?.id
+          ? { 'x-user-id': String(authUser.id), 'x-user-role': String(authUser.role || '') }
+          : undefined;
+
+        const [resTables, resStore, resProd, resPromos] = await Promise.all([
+          fetch(`/api/pos/tables?${scopeQs}`, { headers: reqHeaders }),
+          fetch(`/api/pos/store?${scopeQs}`, { headers: reqHeaders }),
+          fetch(`/api/pos/products?${scopeQs}`, { headers: reqHeaders }),
+          fetch(`/api/pos/promos?${scopeQs}`, { headers: reqHeaders })
+        ]);
+
         if (resTables.ok) {
-          const tables = await resTables.json();
-          const match = tables.find(t => t.qrToken === tableToken);
+          const tbls = await resTables.json();
+          const match = tableToken
+            ? tbls.find(t => t.qrToken === tableToken)
+            : tbls[0];
           if (match) {
             setTableInfo(match);
           } else {
@@ -139,12 +181,8 @@ export default function OrderMeja() {
           }
         }
 
-        // Fetch validated store info
-        const resStore = await fetch('/api/pos/store');
         if (resStore.ok) setStoreInfo(await resStore.json());
-
-        // Fetch active food promos
-        const resPromos = await fetch('/api/pos/promos');
+        if (resProd.ok) setProducts(await resProd.json());
         if (resPromos.ok) {
           const promoData = await resPromos.json();
           setPromosList(promoData.promos || []);
@@ -158,18 +196,35 @@ export default function OrderMeja() {
     loadData();
   }, [tableToken]);
 
+  const isStoreTier2 = Boolean(
+    storeInfo?.billingTier === 'TIER_2_LOYALTY' ||
+    storeInfo?.loyaltyPoolId ||
+    storeInfo?.loyalty_pool_id ||
+    storeInfo?.canRedeemPoints
+  );
+  const storePointValueIdr = Number(storeInfo?.pointValueIdr) || 10;
+
   // 2. Fetch User Points when Phone Number is entered
   useEffect(() => {
     const cleanPhone = customerPhone.replace(/\D/g, '');
     if (cleanPhone.length >= 10) {
-      fetch(`/api/pos/points/${cleanPhone}`)
+      const qs = new URLSearchParams();
+      if (storeInfo?.merchantId) qs.set('storeId', storeInfo.merchantId);
+      if (tableInfo?.qrToken || tableToken) qs.set('tableToken', tableInfo?.qrToken || tableToken);
+      fetch(`/api/pos/points/${cleanPhone}${qs.toString() ? `?${qs.toString()}` : ''}`)
         .then(r => r.json())
         .then(data => setUserPoints(data.points || 0))
         .catch(() => {});
     } else {
       setUserPoints(0);
     }
-  }, [customerPhone]);
+  }, [customerPhone, storeInfo?.merchantId, tableInfo?.qrToken, tableToken]);
+
+  useEffect(() => {
+    if (!isStoreTier2 && usePoints) {
+      setUsePoints(false);
+    }
+  }, [isStoreTier2, usePoints]);
 
   // 3. Realtime Order Status Polling when Order is active
   useEffect(() => {
@@ -299,7 +354,10 @@ export default function OrderMeja() {
   };
 
   const promoDiscount = selectedPromo ? calculatePromoDiscount(selectedPromo, cartItems) : 0;
-  const discountAmount = usePoints ? Math.min(Math.floor(userPoints / 100) * 1000, Math.max(0, cartSubtotal - promoDiscount)) : 0;
+  const maxRedeemablePoints = Math.min(userPoints, 500);
+  const discountAmount = (isStoreTier2 && usePoints && maxRedeemablePoints > 0)
+    ? Math.min(maxRedeemablePoints * storePointValueIdr, Math.max(0, cartSubtotal - promoDiscount))
+    : 0;
   // Kebijakan: Transaksi Mitra bebas biaya admin bagi pelanggan (beban ke owner/bisnis)
   const platformFee = 0; 
   const cartTotal = Math.max(0, cartSubtotal - promoDiscount - discountAmount);
@@ -307,12 +365,21 @@ export default function OrderMeja() {
   const handleApplyPromoCode = async () => {
     const code = promoCodeInput.trim().toUpperCase();
     if (!code) return;
+    if (!isStoreTier2 && code.startsWith('POIN-')) {
+      setPromoFeedback({
+        type: 'error',
+        text: 'Toko ini belum bergabung di Loyalty Pool (Tier 2). Voucher tukar poin hanya berlaku di toko Tier 2.'
+      });
+      return;
+    }
     try {
       const res = await fetch('/api/pos/promos/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           promoCode: code,
+          storeId: storeInfo?.merchantId || undefined,
+          tableToken: tableInfo?.qrToken || tableToken || undefined,
           items: cartItems.map(it => ({ productId: it.product.id, qty: it.qty })),
           subtotal: cartSubtotal
         })
@@ -331,7 +398,7 @@ export default function OrderMeja() {
         setSelectedPromo(matched);
         setPromoFeedback({ type: 'success', text: data.message });
       } else {
-        setPromoFeedback({ type: 'error', text: data.error || 'Kode promo tidak valid atau kadaluarsa' });
+        setPromoFeedback({ type: 'error', text: data.message || data.error || 'Kode promo tidak valid atau kadaluarsa' });
       }
     } catch (err) {
       setPromoFeedback({ type: 'error', text: 'Gagal memvalidasi promo: ' + err.message });
@@ -351,6 +418,7 @@ export default function OrderMeja() {
     try {
       setSubmittingOrder(true);
       const payload = {
+        storeId: storeInfo?.merchantId || undefined,
         tableToken: tableInfo.qrToken,
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
@@ -361,7 +429,7 @@ export default function OrderMeja() {
           notes: item.notes
         })),
         notes: orderNotes.trim(),
-        pointsToRedeem: (currentUser && usePoints) ? Math.floor(discountAmount / 10) : 0,
+        pointsToRedeem: (isStoreTier2 && currentUser && usePoints) ? Math.floor(discountAmount / Math.max(1, storePointValueIdr)) : 0,
         promoId: selectedPromo?.id || null,
         promoCode: selectedPromo?.code || null
       };
@@ -388,8 +456,8 @@ export default function OrderMeja() {
     }
   };
 
-  // 5. Handle Payment Selection (QRIS TriPay Otomatis)
-  const handleProcessPayment = async () => {
+  // 5. Handle Payment Selection (Bayar via KostKu QRIS TriPay atau Cash di Kasir)
+  const handleProcessPayment = async (selectedMethod = 'TRIPAY') => {
     if (!activeOrder?.id) return;
     try {
       setPayingLoading(true);
@@ -397,15 +465,42 @@ export default function OrderMeja() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          method: 'TRIPAY'
+          method: selectedMethod
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setPaymentData(data);
+        if (selectedMethod === 'CASH_COUNTER') {
+          setPaymentData(null);
+          if (data.order) {
+            setActiveOrder(data.order);
+          } else {
+            setActiveOrder(prev => prev ? ({
+              ...prev,
+              paymentMethod: 'CASH',
+              customerSelectedPayment: 'CASH_COUNTER',
+              paymentStatus: 'WAITING_CASHIER',
+              qrisFee: 0,
+              customerAdminFee: Number(data.customerAdminFee) || 0,
+              notaFeeBearer: data.notaFeeBearer || prev.notaFeeBearer,
+              totalAmount: data.total ?? prev.totalAmount
+            }) : prev);
+          }
+        } else {
+          setPaymentData(data);
+          setActiveOrder(prev => prev ? ({
+            ...prev,
+            customerSelectedPayment: 'TRIPAY',
+            paymentMethod: 'TRIPAY',
+            qrisFee: Number(data.qrisFee) || 0,
+            customerAdminFee: Number(data.customerAdminFee) || 0,
+            notaFeeBearer: data.notaFeeBearer || prev.notaFeeBearer,
+            totalAmount: data.total ?? prev.totalAmount
+          }) : prev);
+        }
       } else {
-        alert(data.error || 'Gagal memproses pembayaran QRIS');
+        alert(data.error || 'Gagal memproses pilihan pembayaran');
       }
     } catch (err) {
       alert('Kesalahan pembayaran: ' + err.message);
@@ -746,84 +841,275 @@ export default function OrderMeja() {
             )}
 
             {/* Ready to Pay Notice */}
-            {activeOrder.status === 'WAITING_PAYMENT' && (
-              <div style={{
-                background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.12)',
-                border: '1px solid #bfdbfe',
-                borderRadius: '12px',
-                padding: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <CheckCircle2 size={18} color="#2563eb" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong style={{ fontSize: '0.82rem', color: isLight ? '#1e40af' : '#93c5fd' }}>
-                      Semua menu tersedia! Silakan selesaikan pembayaran
-                    </strong>
-                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: textSecondary }}>
-                      Total Tagihan (termasuk biaya admin Rp 100): <strong style={{ color: textPrimary, fontFamily: 'var(--font-mono)' }}>Rp {activeOrder.totalAmount?.toLocaleString('id-ID')}</strong>
-                    </p>
-                  </div>
-                </div>
+            {activeOrder.status === 'WAITING_PAYMENT' && !paymentData && (() => {
+              const baseOrderAmount = Number(
+                activeOrder.baseAmountBeforePaymentFee ??
+                Math.max(
+                  0,
+                  Number(activeOrder.totalAmount || 0) -
+                    (Number(activeOrder.qrisFee) || 0) -
+                    (Number(activeOrder.customerAdminFee) || 0)
+                )
+              );
+              const notaFeeBearer = (storeInfo?.notaFeeBearer || activeOrder.notaFeeBorneBy || activeOrder.notaFeeBearer) === 'customer'
+                ? 'customer'
+                : 'store';
+              const activeNotaFee = Math.max(0, Number(activeOrder.adminFee || activeOrder.billing_fee_idr || storeInfo?.notaFeePerNotaIdr || 25));
+              const customerAdminFee = notaFeeBearer === 'customer' ? activeNotaFee : 0;
+              const qrisCalc = calculateQrisCustomerFee(baseOrderAmount, 'customer');
+              const totalQrisWithAllFees = baseOrderAmount + qrisCalc.fee + customerAdminFee;
+              const totalCashAtCounter = baseOrderAmount + customerAdminFee;
+              const isWaitingCashier = activeOrder.customerSelectedPayment === 'CASH_COUNTER';
 
-                {/* Pembayaran via QRIS TriPay Dinamis */}
+              if (isWaitingCashier) {
+                return (
+                  <div
+                    data-testid="waiting-cashier-banner"
+                    style={{
+                      background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.14)',
+                      border: '1px solid #fcd34d',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <Banknote size={20} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ fontSize: '0.84rem', color: isLight ? '#92400e' : '#fcd34d' }}>
+                          Menunggu Pembayaran Tunai di Kasir
+                        </strong>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.74rem', color: textSecondary }}>
+                          Silakan menuju meja kasir dan sebutkan atas nama <strong>{activeOrder.customerName}</strong> (Meja {activeOrder.tableNumber}).
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '8px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.6)', border: `1px solid ${borderColor}`, fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
+                        <span>Subtotal Pesanan</span>
+                        <strong style={{ color: textPrimary, fontFamily: 'var(--font-mono)' }}>Rp {baseOrderAmount.toLocaleString('id-ID')}</strong>
+                      </div>
+                      {customerAdminFee > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d97706' }}>
+                          <span>Biaya Admin Nota (Customer)</span>
+                          <strong style={{ fontFamily: 'var(--font-mono)' }}>+Rp {customerAdminFee.toLocaleString('id-ID')}</strong>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px', marginTop: '2px', borderTop: `1px dashed ${borderColor}`, fontWeight: 800, color: textPrimary }}>
+                        <span>Total Bayar Tunai di Kasir</span>
+                        <strong style={{ color: '#059669', fontFamily: 'var(--font-mono)' }}>Rp {totalCashAtCounter.toLocaleString('id-ID')}</strong>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={payingLoading}
+                      onClick={() => handleProcessPayment('TRIPAY')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: '1px solid #bfdbfe',
+                        background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                        color: isLight ? '#1d4ed8' : '#93c5fd',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <CreditCard size={15} />
+                      {payingLoading ? 'Memproses...' : 'Ubah / Bayar via KostKu (QRIS)'}
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
                 <div style={{
-                  padding: '12px',
-                  borderRadius: '12px',
+                  background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.12)',
                   border: '1px solid #bfdbfe',
-                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.15)',
+                  borderRadius: '12px',
+                  padding: '12px',
                   display: 'flex',
-                  alignItems: 'center',
+                  flexDirection: 'column',
                   gap: '10px'
                 }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <CreditCard size={20} />
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <CheckCircle2 size={18} color="#2563eb" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ flex: 1 }}>
+                      <strong style={{ fontSize: '0.84rem', color: isLight ? '#1e40af' : '#93c5fd' }}>
+                        Pesanan di-ACC! Pilih Metode Pembayaran di Meja
+                      </strong>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: textSecondary }}>
+                        Anda dapat langsung bayar online via KostKu (QRIS) atau bayar tunai langsung ke kasir.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <strong style={{ display: 'block', fontSize: '0.85rem', color: textPrimary }}>
-                      Pembayaran QRIS TriPay Real-Time
-                    </strong>
-                    <span style={{ fontSize: '0.72rem', color: textSecondary }}>
-                      Bisa discan via BCA Mobile, Mandiri, BRImo, GoPay, OVO, Dana, &amp; ShopeePay.
-                    </span>
+
+                  {/* Opsi 1: Bayar via KostKu (QRIS Dinamis) */}
+                  <div style={{
+                    padding: '11px',
+                    borderRadius: '12px',
+                    border: '1px solid #93c5fd',
+                    background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '9px',
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <CreditCard size={18} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ display: 'block', fontSize: '0.84rem', color: textPrimary }}>
+                          Bayar via KostKu (QRIS Dinamis)
+                        </strong>
+                        <span style={{ fontSize: '0.7rem', color: textSecondary }}>
+                          GoPay, OVO, Dana, ShopeePay, BCA, Mandiri &amp; BRImo — langsung masuk dapur!
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '7px 9px', borderRadius: '8px', background: isLight ? '#f8fafc' : 'rgba(30, 41, 59, 0.6)', border: `1px solid ${borderColor}`, fontSize: '0.73rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
+                        <span>Subtotal Pesanan</span>
+                        <strong style={{ color: textPrimary, fontFamily: 'var(--font-mono)' }}>Rp {baseOrderAmount.toLocaleString('id-ID')}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#2563eb' }}>
+                        <span>Biaya QRIS (Rp 750 + 0,70%)</span>
+                        <strong style={{ fontFamily: 'var(--font-mono)' }}>+Rp {qrisCalc.fee.toLocaleString('id-ID')}</strong>
+                      </div>
+                      {customerAdminFee > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d97706' }}>
+                          <span>Biaya Admin Nota (Customer)</span>
+                          <strong style={{ fontFamily: 'var(--font-mono)' }}>+Rp {customerAdminFee.toLocaleString('id-ID')}</strong>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px', marginTop: '2px', borderTop: `1px dashed ${borderColor}`, color: textPrimary, fontWeight: 800 }}>
+                        <span>Total Tagihan QRIS</span>
+                        <strong style={{ color: '#16a34a', fontFamily: 'var(--font-mono)' }}>Rp {totalQrisWithAllFees.toLocaleString('id-ID')}</strong>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      data-testid="pay-kostku-qris-btn"
+                      onClick={() => handleProcessPayment('TRIPAY')}
+                      disabled={payingLoading}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '7px'
+                      }}
+                    >
+                      <CreditCard size={16} />
+                      {payingLoading ? 'Memproses...' : `Bayar via KostKu (Rp ${totalQrisWithAllFees.toLocaleString('id-ID')})`}
+                    </button>
+                  </div>
+
+                  {/* Opsi 2: Bayar Cash di Kasir */}
+                  <div style={{
+                    padding: '11px',
+                    borderRadius: '12px',
+                    border: `1px solid ${isLight ? '#cbd5e1' : 'rgba(148, 163, 184, 0.35)'}`,
+                    background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.55)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '9px',
+                        background: '#059669',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <Banknote size={18} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ display: 'block', fontSize: '0.84rem', color: textPrimary }}>
+                          Bayar Cash di Kasir
+                        </strong>
+                        <span style={{ fontSize: '0.7rem', color: textSecondary }}>
+                          Tanpa biaya QRIS. Bayar uang tunai langsung ke kasir toko.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '7px 9px', borderRadius: '8px', background: isLight ? '#f8fafc' : 'rgba(30, 41, 59, 0.6)', border: `1px solid ${borderColor}`, fontSize: '0.73rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: textSecondary }}>
+                        <span>Subtotal Pesanan</span>
+                        <strong style={{ color: textPrimary, fontFamily: 'var(--font-mono)' }}>Rp {baseOrderAmount.toLocaleString('id-ID')}</strong>
+                      </div>
+                      {customerAdminFee > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#d97706' }}>
+                          <span>Biaya Admin Nota (Customer)</span>
+                          <strong style={{ fontFamily: 'var(--font-mono)' }}>+Rp {customerAdminFee.toLocaleString('id-ID')}</strong>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px', marginTop: '2px', borderTop: `1px dashed ${borderColor}`, color: textPrimary, fontWeight: 800 }}>
+                        <span>Total Bayar Cash</span>
+                        <strong style={{ color: '#059669', fontFamily: 'var(--font-mono)' }}>Rp {totalCashAtCounter.toLocaleString('id-ID')}</strong>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      data-testid="pay-cash-counter-btn"
+                      onClick={() => handleProcessPayment('CASH_COUNTER')}
+                      disabled={payingLoading}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: '1px solid #10b981',
+                        background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
+                        color: isLight ? '#047857' : '#6ee7b7',
+                        fontWeight: 800,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '7px'
+                      }}
+                    >
+                      <Banknote size={16} />
+                      {payingLoading ? 'Menyimpan...' : `Pilih Bayar Cash di Kasir (Rp ${totalCashAtCounter.toLocaleString('id-ID')})`}
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  onClick={handleProcessPayment}
-                  disabled={payingLoading}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <CreditCard size={18} />
-                  {payingLoading ? 'Memproses Barcode QRIS...' : 'Bayar via QRIS Dinamis Sekarang'}
-                </button>
-              </div>
-            )}
+              );
+            })()}
 
             {/* QRIS Display */}
             {paymentData && activeOrder.status === 'WAITING_PAYMENT' && (
@@ -838,35 +1124,73 @@ export default function OrderMeja() {
                 gap: '10px'
               }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>
-                  Pindai QRIS TriPay
+                  Pindai QRIS TriPay (KostKu)
                 </span>
-                {paymentData.qrDataUrl && (
+                {paymentData.qrDataUrl ? (
                   <img src={paymentData.qrDataUrl} alt="QRIS" style={{ width: '180px', height: '180px', margin: '0 auto', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '6px' }} />
+                ) : (
+                  <div style={{ width: '160px', height: '160px', margin: '0 auto', borderRadius: '12px', border: '1px dashed #93c5fd', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#2563eb', gap: '6px' }}>
+                    <QrCode size={72} />
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700 }}>{paymentData.reference || 'QRIS TriPay'}</span>
+                  </div>
                 )}
-                <div style={{ fontSize: '0.82rem', color: textSecondary }}>
+                <div style={{ fontSize: '0.8rem', color: textSecondary }}>
+                  {Number(paymentData.qrisFee) > 0 && (
+                    <div style={{ fontSize: '0.72rem', color: '#2563eb', marginBottom: '3px', fontWeight: 700 }}>
+                      Biaya Layanan QRIS (Rp 750 + 0,70%): +Rp {Number(paymentData.qrisFee).toLocaleString('id-ID')}
+                    </div>
+                  )}
+                  {Number(paymentData.customerAdminFee) > 0 && (
+                    <div style={{ fontSize: '0.72rem', color: '#d97706', marginBottom: '3px', fontWeight: 700 }}>
+                      Biaya Admin Nota: +Rp {Number(paymentData.customerAdminFee).toLocaleString('id-ID')}
+                    </div>
+                  )}
                   Total Bayar: <strong style={{ color: '#16a34a', fontSize: '1rem', fontFamily: 'var(--font-mono)' }}>Rp {paymentData.total?.toLocaleString('id-ID')}</strong>
                 </div>
-                <button
-                  onClick={() => {
-                    fetch(`/api/pos/orders/${activeOrder.id}/confirm-payment`, { method: 'POST' })
-                      .then(() => {
-                        setPaymentData(null);
-                        setShowSpinModal(true);
-                      });
-                  }}
-                  style={{
-                    padding: '9px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Simulasi: Saya Sudah Bayar
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button
+                    type="button"
+                    data-testid="confirm-qris-sim-btn"
+                    onClick={() => {
+                      fetch(`/api/pos/orders/${activeOrder.id}/confirm-payment`, { method: 'POST' })
+                        .then(r => r.json())
+                        .then((resData) => {
+                          setPaymentData(null);
+                          if (resData?.order) setActiveOrder(resData.order);
+                          setShowSpinModal(true);
+                        });
+                    }}
+                    style={{
+                      padding: '9px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Simulasi: Saya Sudah Bayar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={payingLoading}
+                    onClick={() => handleProcessPayment('CASH_COUNTER')}
+                    style={{
+                      padding: '7px',
+                      borderRadius: '9px',
+                      border: `1px solid ${borderColor}`,
+                      background: 'transparent',
+                      color: textSecondary,
+                      fontWeight: 700,
+                      fontSize: '0.74rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Ganti ke Bayar Cash di Kasir
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1159,18 +1483,37 @@ export default function OrderMeja() {
             </div>
           </div>
 
-          {userPoints > 0 && currentUser && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: `1px solid ${borderColor}` }}>
-              <span style={{ fontSize: '0.78rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Gift size={14} color="#f59e0b" />
-                Gunakan {Math.min(userPoints, 500)} Poin (Diskon Rp {(Math.floor(Math.min(userPoints, 500) / 100) * 1000).toLocaleString('id-ID')})
-              </span>
-              <input
-                type="checkbox"
-                checked={usePoints}
-                onChange={e => setUsePoints(e.target.checked)}
-                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-              />
+          {isStoreTier2 ? (
+            userPoints > 0 && currentUser && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: `1px solid ${borderColor}` }}>
+                <span style={{ fontSize: '0.78rem', color: textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Gift size={14} color="#f59e0b" />
+                  Gunakan {Math.min(userPoints, 500)} Poin (Diskon Rp {(Math.min(userPoints, 500) * storePointValueIdr).toLocaleString('id-ID')})
+                </span>
+                <input
+                  data-testid="meja-use-points-checkbox"
+                  type="checkbox"
+                  checked={usePoints}
+                  onChange={e => setUsePoints(e.target.checked)}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+              </div>
+            )
+          ) : (
+            <div
+              data-testid="meja-points-tier1-disabled"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                paddingTop: '6px',
+                borderTop: `1px solid ${borderColor}`,
+                fontSize: '0.72rem',
+                color: isLight ? '#92400e' : '#fbbf24'
+              }}
+            >
+              <Gift size={14} style={{ flexShrink: 0 }} />
+              <span>Penukaran poin tidak tersedia karena toko ini belum mengaktifkan Loyalty Pool (Tier 2).</span>
             </div>
           )}
         </div>
@@ -1271,13 +1614,13 @@ export default function OrderMeja() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* Promo Quick Badges / Selector */}
-              {promosList.filter(p => p.isAvailable).length > 0 && (
+              {promosList.filter(p => p.isAvailable && (isStoreTier2 || !(p.createdByRole === 'customer' || String(p.code || '').toUpperCase().startsWith('POIN-')))).length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '0.7rem', color: textSecondary }}>
                     Pilih promo yang tersedia untuk mejamu:
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {promosList.filter(p => p.isAvailable).map(promo => {
+                    {promosList.filter(p => p.isAvailable && (isStoreTier2 || !(p.createdByRole === 'customer' || String(p.code || '').toUpperCase().startsWith('POIN-')))).map(promo => {
                       const limitLabel = promo.limitType === 'QUOTA'
                         ? `Kuota: ${promo.remainingQuota ?? (promo.maxQuota - promo.usedCount)} tersisa`
                         : promo.limitType === 'DATE'

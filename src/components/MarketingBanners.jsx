@@ -48,10 +48,11 @@ export default function MarketingBanners({ style = {} }) {
   const bannerTouchStartX = useRef(0);
   const bannerTouchEndX = useRef(0);
 
-  // Auto-scroll mobile banners every 4 seconds unless hovered/swiped
+  // Auto-scroll mobile banners every 4 seconds unless hovered/swiped or tab hidden
   useEffect(() => {
     if (isBannerPaused) return;
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setActiveBannerIndex((prev) => (prev + 1) % MARKETING_BANNERS.length);
     }, 4000);
     return () => clearInterval(interval);
@@ -93,8 +94,8 @@ export default function MarketingBanners({ style = {} }) {
             <span style={{ fontSize: '0.72rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               {banner.badge}
             </span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: '1.25rem' }}>{banner.titleAccent}</span>
+            <div style={{ fontSize: 'clamp(1.2rem, 2vw, 1.65rem)', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: 'clamp(1rem, 1.6vw, 1.25rem)' }}>{banner.titleAccent}</span>
             </div>
             <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               {banner.desc}
@@ -112,47 +113,33 @@ export default function MarketingBanners({ style = {} }) {
         onMouseEnter={() => setIsBannerPaused(true)}
         onMouseLeave={() => setIsBannerPaused(false)}
       >
-        {/* Sliding Track: Exactly 1 card visible at a time (100% width per slide) */}
-        <div style={{
-          display: 'flex',
-          width: '100%',
-          transform: `translate3d(-${activeBannerIndex * 100}%, 0, 0)`,
-          transition: 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
-          willChange: 'transform'
-        }}>
-          {MARKETING_BANNERS.map((banner) => (
-            <div 
+        {/* Render Only Active Banner Card on Mobile (Prevents Off-Screen Overflow Geometry) */}
+        {(() => {
+          const banner = MARKETING_BANNERS[activeBannerIndex] || MARKETING_BANNERS[0];
+          return (
+            <div
               key={banner.id}
-              style={{
-                flex: '0 0 100%',
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '0 2px'
-              }}
+              className="hero-marketing-banner-card animate-fade-in"
+              style={{ borderLeft: `4px solid ${banner.borderColor}`, width: '100%' }}
+              data-track={banner.track}
             >
-              <div 
-                className="hero-marketing-banner-card"
-                style={{ borderLeft: `4px solid ${banner.borderColor}`, width: '100%' }}
-                data-track={banner.track}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    {banner.badge}
-                  </span>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: '100px' }}>
-                    {activeBannerIndex + 1}/3
-                  </span>
-                </div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 2px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: '1.15rem' }}>{banner.titleAccent}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  {banner.desc}
-                </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: banner.badgeColor, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  {banner.badge}
+                </span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-hover)', padding: '2px 7px', borderRadius: '100px' }}>
+                  {activeBannerIndex + 1}/3
+                </span>
               </div>
+              <div style={{ fontSize: 'clamp(1.1rem, 4.2vw, 1.5rem)', fontWeight: 800, color: 'var(--text-primary)', margin: '2px 0 4px', lineHeight: 1.25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                {banner.titleMain} <span style={{ color: banner.accentColor, fontSize: 'clamp(0.92rem, 3.4vw, 1.15rem)' }}>{banner.titleAccent}</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.48 }}>
+                {banner.desc}
+              </p>
             </div>
-          ))}
-        </div>
+          );
+        })()}
 
         {/* Mobile Carousel Indicators */}
         <div style={{

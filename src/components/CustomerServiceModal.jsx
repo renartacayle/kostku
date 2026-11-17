@@ -35,7 +35,7 @@ const FAQ_DATA = [
       },
       {
         q: 'Berapa biaya admin jika membayar via QRIS?',
-        a: 'Sesuai regulasi Bank Indonesia, tarif standar QRIS adalah 0,7%. Semua rincian biaya tertera transparan pada tagihan sebelum Anda melakukan scan pembayaran.'
+        a: 'Pembayaran melalui QRIS dikenakan biaya layanan payment gateway resmi dari TriPay (Rp 750 + 0,70%), sedangkan biaya admin dari pihak admin/platform KostKu adalah Rp 0 (Gratis). Seluruh rincian biaya tercantum transparan di tagihan serta Syarat & Ketentuan sebelum Anda memindai QRIS.'
       },
       {
         q: 'Apakah bisa booking kamar dengan uang muka (DP)?',

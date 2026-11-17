@@ -2,11 +2,7 @@ import React from 'react';
 import { Wallet, Plus, Scissors, Zap, Wrench } from 'lucide-react';
 
 const Pengeluaran = () => {
-  const pengeluaranList = [
-    { id: '1', kategori: 'Jasa', deskripsi: 'Gaji Cleaning Service (Juli)', nominal: 'Rp 1.500.000', tanggal: '01 Jul 2026', icon: <Scissors size={18}/>, warna: 'var(--accent-primary)' },
-    { id: '2', kategori: 'Utilitas', deskripsi: 'Iuran Gas Dapur Bersama (2 Tabung)', nominal: 'Rp 400.000', tanggal: '05 Jul 2026', icon: <Zap size={18}/>, warna: 'var(--accent-warning)' },
-    { id: '3', kategori: 'Perbaikan', deskripsi: 'Tukang Servis AC Kamar 105', nominal: 'Rp 250.000', tanggal: '10 Jul 2026', icon: <Wrench size={18}/>, warna: 'var(--accent-danger)' },
-  ];
+  const pengeluaranList = [];
 
   return (
     <div className="animate-fade-in">
@@ -20,12 +16,16 @@ const Pengeluaran = () => {
 
       <div className="card glass-panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-          <h3 style={{ margin: 0 }}>Bulan Juli 2026</h3>
-          <h2 style={{ margin: 0, color: 'var(--accent-danger)' }}>Total: Rp 2.150.000</h2>
+          <h3 style={{ margin: 0 }}>Ringkasan Bulan Ini</h3>
+          <h2 style={{ margin: 0, color: 'var(--accent-danger)' }}>Total: Rp 0</h2>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {pengeluaranList.map((item) => (
+          {pengeluaranList.length === 0 ? (
+            <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              Belum ada catatan pengeluaran operasional.
+            </div>
+          ) : pengeluaranList.map((item) => (
             <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.2rem', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: 48, height: 48, borderRadius: '12px', background: `rgba(255,255,255,0.05)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.warna, border: `1px solid ${item.warna}40` }}>

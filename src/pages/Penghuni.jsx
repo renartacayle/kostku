@@ -19,9 +19,13 @@ import {
   FileCheck,
   Zap,
   Download,
-  ShieldCheck
+  ShieldCheck,
+  LogOut,
+  RotateCcw,
+  DollarSign,
+  AlertTriangle
 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   apiGetUsers, 
   apiGetSettings, 
@@ -29,23 +33,31 @@ import {
   apiRegister, 
   apiDeleteUser, 
   apiUpdateBedsheets, 
-  apiProcessApplication 
+  apiProcessApplication,
+  apiProcessTenantCheckout,
+  apiGetDepositRefunds
 } from '../services/api';
 
 import RoomInspectionModal from '../components/RoomInspectionModal';
 import OwnerNavBanner from '../components/OwnerNavBanner';
-import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
 import SignaturePadModal from '../components/SignaturePadModal';
+import { useTheme } from '../context/ThemeContext';
 
 const Penghuni = ({ user }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isLight } = useTheme();
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('tab') === 'aplikasi' ? 'aplikasi' : 'penghuni';
+    if (params.get('tab') === 'aplikasi') return 'aplikasi';
+    if (params.get('tab') === 'checkout_history') return 'checkout_history';
+    return 'penghuni';
   });
   const [tenants, setTenants] = useState([]);
   const [applications, setApplications] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [kostDepositAmount, setKostDepositAmount] = useState(0);
+  const [depositRefunds, setDepositRefunds] = useState([]);
   const [search, setSearch] = useState('');
   
   const [showAddModal, setShowAddModal] = useState(false);
@@ -53,8 +65,16 @@ const Penghuni = ({ user }) => {
 
   // Upgrade Modals State
   const [inspectTenant, setInspectTenant] = useState(null);
-  const [smartLockTenant, setSmartLockTenant] = useState(null);
   const [contractTenant, setContractTenant] = useState(null);
+
+  // Check-Out & Mandatory Deposit Refund Modal State
+  const [checkoutTenant, setCheckoutTenant] = useState(null);
+  const [checkoutDamageCost, setCheckoutDamageCost] = useState(0);
+  const [checkoutRefundMethod, setCheckoutRefundMethod] = useState('transfer_bank');
+  const [checkoutRefundAccount, setCheckoutRefundAccount] = useState('');
+  const [checkoutNotes, setCheckoutNotes] = useState('');
+  const [checkoutConfirmed, setCheckoutConfirmed] = useState(false);
+  const [submittingCheckout, setSubmittingCheckout] = useState(false);
   
   // New Tenant Form
   const [name, setName] = useState('');
@@ -76,20 +96,25 @@ const Penghuni = ({ user }) => {
   useEffect(() => {
     if (user?.kostUid) {
       fetchData();
+    } else {
+      setLoading(false);
     }
   }, [user, activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [dataUsers, dataSettings, dataApps] = await Promise.all([
+      const [dataUsers, dataSettings, dataApps, dataRefunds] = await Promise.all([
         apiGetUsers(user.kostUid).catch(() => []),
         apiGetSettings(user.kostUid).catch(() => ({ rooms: [] })),
-        apiGetApplications(user.kostUid).catch(() => [])
+        apiGetApplications(user.kostUid).catch(() => []),
+        apiGetDepositRefunds({ kostUid: user.kostUid }).catch(() => [])
       ]);
       setTenants(Array.isArray(dataUsers) ? dataUsers : []);
       setRooms(dataSettings?.rooms || []);
+      setKostDepositAmount(Number(dataSettings?.depositEnabled === false ? 0 : (dataSettings?.depositAmount || 0)));
       setApplications(Array.isArray(dataApps) ? dataApps : []);
+      setDepositRefunds(Array.isArray(dataRefunds) ? dataRefunds : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -173,7 +198,71 @@ const Penghuni = ({ user }) => {
     }
   };
 
-  const handleDelete = async (id, tenantName) => {
+  const resolveTenantDeposit = (t) => {
+    if (!t) return 0;
+    if (t.heldDeposit !== undefined && t.heldDeposit !== null) return Math.max(0, Number(t.heldDeposit) || 0);
+    if (t.depositPaid !== undefined && t.depositPaid !== null) return Math.max(0, Number(t.depositPaid) || 0);
+    return Math.max(0, Number(kostDepositAmount) || 0);
+  };
+
+  const openCheckoutModal = (tenantObj) => {
+    const req = tenantObj?.checkoutRequest;
+    setCheckoutTenant(tenantObj);
+    setCheckoutDamageCost(0);
+    const rawMethod = String(req?.refundMethod || '').toLowerCase();
+    const normalizedMethod = rawMethod.includes('wallet')
+      ? 'e_wallet'
+      : rawMethod.includes('tunai')
+        ? 'tunai'
+        : 'transfer_bank';
+    setCheckoutRefundMethod(normalizedMethod);
+    setCheckoutRefundAccount(
+      [req?.refundBankOrWallet, req?.refundAccount].filter(Boolean).join(' • ') || tenantObj?.phone || ''
+    );
+    setCheckoutNotes(req?.reason ? `Check-out penghuni: ${req.reason}` : '');
+    setCheckoutConfirmed(false);
+  };
+
+  const handleProcessCheckout = async (e) => {
+    e.preventDefault();
+    if (!checkoutTenant) return;
+    const held = resolveTenantDeposit(checkoutTenant);
+    if (held > 0 && !checkoutConfirmed) {
+      alert('Deposit jaminan penghuni WAJIB dikembalikan saat check-out. Mohon centang konfirmasi pengembalian deposit terlebih dahulu.');
+      return;
+    }
+    setSubmittingCheckout(true);
+    try {
+      const res = await apiProcessTenantCheckout(checkoutTenant.id, {
+        depositAmount: held,
+        damageCost: Math.max(0, Math.min(held, Number(checkoutDamageCost) || 0)),
+        refundMethod: checkoutRefundMethod,
+        refundAccount: checkoutRefundAccount.trim(),
+        notes: checkoutNotes.trim(),
+        refundConfirmed: held === 0 ? true : checkoutConfirmed
+      });
+      setCheckoutTenant(null);
+      await fetchData();
+      setActiveTab('checkout_history');
+      alert(res?.message || 'Check-out & pengembalian deposit berhasil dicatat.');
+    } catch (err) {
+      alert(err.message || 'Gagal memproses check-out penghuni');
+    } finally {
+      setSubmittingCheckout(false);
+    }
+  };
+
+  const handleDelete = async (id, tenantName, tenantObj = null) => {
+    const held = resolveTenantDeposit(tenantObj);
+    if (held > 0) {
+      const ok = window.confirm(
+        `${tenantName} memiliki Deposit Jaminan sebesar Rp ${held.toLocaleString('id-ID')} yang WAJIB dikembalikan saat check-out.\n\nKlik OK untuk membuka form Check-Out & Pengembalian Deposit sekarang.`
+      );
+      if (ok && tenantObj) {
+        openCheckoutModal(tenantObj);
+      }
+      return;
+    }
     if (!window.confirm(`Yakin ingin menghapus data penghuni ${tenantName}?`)) return;
     try {
       await apiDeleteUser(id);
@@ -271,7 +360,7 @@ const Penghuni = ({ user }) => {
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '6rem' }}>
       
       {/* Persistent Shopee-style Owner Navigation Banner */}
-      {user?.role === 'owner' || user?.role === 'master' ? (
+      {['owner', 'master', 'admin'].includes(user?.role) ? (
         <>
           <OwnerNavBanner
             user={user}
@@ -397,6 +486,26 @@ const Penghuni = ({ user }) => {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('checkout_history')}
+            style={{
+              padding: '8px 16px',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              background: activeTab === 'checkout_history' ? 'var(--accent-primary)' : 'transparent',
+              color: activeTab === 'checkout_history' ? 'white' : 'var(--text-secondary)',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <RotateCcw size={14} />
+            <span>Check-Out &amp; Refund Deposit ({depositRefunds.length})</span>
+          </button>
         </div>
 
         {/* Search Input */}
@@ -504,6 +613,32 @@ const Penghuni = ({ user }) => {
                             }}>
                               ✓ Aktif
                             </span>
+                            {resolveTenantDeposit(t) > 0 && (
+                              <span style={{
+                                fontSize: '0.68rem',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                fontWeight: 700,
+                                background: 'rgba(16, 185, 129, 0.14)',
+                                color: '#34d399',
+                                border: '1px solid rgba(16, 185, 129, 0.3)'
+                              }}>
+                                Deposit Rp {resolveTenantDeposit(t).toLocaleString('id-ID')} (Wajib Kembali)
+                              </span>
+                            )}
+                            {t.checkoutRequest?.status === 'requested' && (
+                              <span style={{
+                                fontSize: '0.68rem',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                fontWeight: 700,
+                                background: 'rgba(245, 158, 11, 0.18)',
+                                color: '#fbbf24',
+                                border: '1px solid rgba(245, 158, 11, 0.4)'
+                              }}>
+                                Mengajukan Check-Out ({t.checkoutRequest.checkoutDate})
+                              </span>
+                            )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
                             {t.phone && <span>{t.phone}</span>}
@@ -581,7 +716,9 @@ const Penghuni = ({ user }) => {
                       </button>
 
                       <button
-                        onClick={() => setSmartLockTenant(t)}
+                        onClick={() => navigate(`/utilitas?tab=pln&room=${encodeURIComponent(t.kamar || '101')}`, {
+                          state: { targetUser: t, returnTo: '/penghuni' }
+                        })}
                         className="btn btn-secondary btn-sm"
                         title="Beli / Kirim Token Listrik PLN"
                         style={{ gap: '6px', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.3)' }}
@@ -604,9 +741,26 @@ const Penghuni = ({ user }) => {
                         <span>{t.contractSigned ? 'Kontrak Tervalidasi' : 'Ttd Kontrak'}</span>
                       </button>
 
+                      <button
+                        type="button"
+                        data-testid={`checkout-tenant-${t.id}`}
+                        onClick={() => openCheckoutModal(t)}
+                        className="btn btn-secondary btn-sm"
+                        title="Proses Check-Out & Pengembalian Deposit Jaminan (Wajib)"
+                        style={{
+                          gap: '6px',
+                          color: t.checkoutRequest?.status === 'requested' ? '#fbbf24' : '#34d399',
+                          borderColor: t.checkoutRequest?.status === 'requested' ? 'rgba(245, 158, 11, 0.45)' : 'rgba(16, 185, 129, 0.35)',
+                          background: t.checkoutRequest?.status === 'requested' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.08)'
+                        }}
+                      >
+                        <LogOut size={14} />
+                        <span>Check-Out &amp; Refund Deposit</span>
+                      </button>
+
                       <div style={{ marginLeft: 'auto' }}>
                         <button 
-                          onClick={() => handleDelete(t.id, t.name)}
+                          onClick={() => handleDelete(t.id, t.name, t)}
                           className="btn btn-danger btn-sm"
                           title="Hapus Penghuni"
                           style={{ gap: '6px' }}
@@ -623,7 +777,7 @@ const Penghuni = ({ user }) => {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'aplikasi' ? (
         /* Applications Tab */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {applications.length === 0 ? (
@@ -689,6 +843,67 @@ const Penghuni = ({ user }) => {
                       <CheckCircle size={15} /> Lihat di Penghuni Aktif →
                     </button>
                   ) : null}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        /* Check-Out & Mandatory Deposit Refund History Tab */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {depositRefunds.length === 0 ? (
+            <div className="card glass-panel" style={{ padding: '3rem 1.25rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <RotateCcw size={38} style={{ margin: '0 auto 10px', color: 'var(--text-muted)' }} />
+              <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Belum ada riwayat check-out penghuni.</p>
+              <p style={{ margin: '6px auto 0', maxWidth: '460px', fontSize: '0.84rem' }}>
+                Setiap proses check-out penghuni akan otomatis mencatat status wajib pengembalian deposit jaminan di sini.
+              </p>
+            </div>
+          ) : (
+            depositRefunds.map(rfd => (
+              <div
+                key={rfd.id}
+                className="card glass-panel"
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  padding: '1.25rem',
+                  borderLeft: '4px solid #10b981'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>{rfd.tenantName}</h3>
+                    <span className="badge badge-primary">Kamar {rfd.roomNumber}</span>
+                    <span className="badge badge-success">
+                      {rfd.heldDeposit > 0 ? '✓ Deposit Wajib Dikembalikan' : '✓ Check-Out Selesai'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    Check-out: {new Date(rfd.checkedOutAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {' • '}Deposit Ditahan: <strong>Rp {Number(rfd.heldDeposit || 0).toLocaleString('id-ID')}</strong>
+                    {Number(rfd.damageCost || 0) > 0 && (
+                      <> {' • '}Potongan Kerusakan: <strong style={{ color: '#f87171' }}>-Rp {Number(rfd.damageCost).toLocaleString('id-ID')}</strong></>
+                    )}
+                  </p>
+                  {rfd.notes && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Catatan: {rfd.notes}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block' }}>
+                    Dikembalikan via {rfd.refundMethod === 'transfer_bank' ? 'Transfer Bank' : rfd.refundMethod === 'e_wallet' ? 'E-Wallet / QRIS' : rfd.refundMethod === 'tunai' ? 'Tunai' : rfd.refundMethod === 'nihil' ? 'Nihil' : (rfd.refundMethod || 'Transfer Bank')}
+                    {rfd.refundAccount ? ` (${rfd.refundAccount})` : ''}
+                  </span>
+                  <strong style={{ fontSize: '1.2rem', color: '#10b981' }}>
+                    Rp {Number(rfd.refundAmount || 0).toLocaleString('id-ID')}
+                  </strong>
                 </div>
               </div>
             ))
@@ -866,17 +1081,215 @@ const Penghuni = ({ user }) => {
           onClose={() => setInspectTenant(null)}
           tenant={inspectTenant}
           kostUid={user?.kostUid}
+          initialDeposit={resolveTenantDeposit(inspectTenant)}
           onInspectionSaved={() => fetchData()}
         />
       )}
 
-      {smartLockTenant && (
-        <SmartLockAndTokenModal
-          isOpen={!!smartLockTenant}
-          onClose={() => setSmartLockTenant(null)}
-          user={smartLockTenant}
-          roomNumber={smartLockTenant.kamar || '101'}
-        />
+      {/* Check-Out & Mandatory Deposit Refund Modal */}
+      {checkoutTenant && createPortal(
+        (() => {
+          const held = resolveTenantDeposit(checkoutTenant);
+          const damage = Math.max(0, Math.min(held, Number(checkoutDamageCost) || 0));
+          const mandatoryRefund = Math.max(0, held - damage);
+          return (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: isLight ? 'rgba(15, 23, 42, 0.5)' : 'rgba(5, 10, 20, 0.85)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 999999,
+                padding: '1rem',
+                overflowY: 'auto'
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !submittingCheckout) setCheckoutTenant(null);
+              }}
+            >
+              <div
+                data-testid="checkout-refund-modal"
+                style={{
+                  background: isLight ? '#ffffff' : '#0f172a',
+                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(59, 130, 246, 0.35)',
+                  borderRadius: '20px',
+                  maxWidth: '520px',
+                  width: '100%',
+                  padding: '1.5rem',
+                  boxShadow: '0 25px 60px rgba(0, 0, 0, 0.45)',
+                  color: isLight ? '#0f172a' : '#f8fafc'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                      Check-Out &amp; Pengembalian Deposit
+                    </h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                      {checkoutTenant.name} • Kamar {checkoutTenant.kamar || '-'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutTenant(null)}
+                    disabled={submittingCheckout}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Mandatory Refund Summary Box */}
+                <div style={{
+                  background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.1)',
+                  border: isLight ? '1px solid #86efac' : '1px solid rgba(16, 185, 129, 0.35)',
+                  borderRadius: '14px',
+                  padding: '14px',
+                  marginBottom: '1rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', marginBottom: '6px' }}>
+                    <span>Deposit Jaminan Ditahan:</span>
+                    <strong>Rp {held.toLocaleString('id-ID')}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', marginBottom: '8px', color: isLight ? '#dc2626' : '#f87171' }}>
+                    <span>Potongan Kerusakan / Denda Kamar:</span>
+                    <strong>- Rp {damage.toLocaleString('id-ID')}</strong>
+                  </div>
+                  <div style={{
+                    borderTop: isLight ? '1px dashed #6ee7b7' : '1px dashed rgba(52, 211, 153, 0.35)',
+                    paddingTop: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isLight ? '#047857' : '#34d399' }}>
+                      Wajib Dikembalikan ke Penghuni:
+                    </span>
+                    <strong style={{ fontSize: '1.25rem', color: isLight ? '#047857' : '#34d399' }}>
+                      Rp {mandatoryRefund.toLocaleString('id-ID')}
+                    </strong>
+                  </div>
+                </div>
+
+                <form onSubmit={handleProcessCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {held > 0 && (
+                    <>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>
+                          Potongan Biaya Kerusakan (Rp) — Isi 0 jika kamar baik:
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={held}
+                          className="input-field"
+                          value={checkoutDamageCost}
+                          onChange={(e) => setCheckoutDamageCost(e.target.value)}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Metode Pengembalian Deposit:
+                          </label>
+                          <select
+                            className="input-field"
+                            value={checkoutRefundMethod}
+                            onChange={(e) => setCheckoutRefundMethod(e.target.value)}
+                          >
+                            <option value="transfer_bank">Transfer Bank</option>
+                            <option value="e_wallet">E-Wallet (GoPay/OVO/DANA)</option>
+                            <option value="tunai">Tunai Langsung</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>
+                            Rekening / No. Tujuan Refund:
+                          </label>
+                          <input
+                            type="text"
+                            className="input-field"
+                            placeholder="BCA 123456 / 0812..."
+                            value={checkoutRefundAccount}
+                            onChange={(e) => setCheckoutRefundAccount(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>
+                      Berita Acara / Catatan Check-Out:
+                    </label>
+                    <textarea
+                      className="input-field"
+                      style={{ minHeight: '64px' }}
+                      placeholder="Kunci kamar diterima kembali, kondisi kamar baik, deposit dikembalikan penuh."
+                      value={checkoutNotes}
+                      onChange={(e) => setCheckoutNotes(e.target.value)}
+                    />
+                  </div>
+
+                  {held > 0 && (
+                    <label
+                      data-testid="confirm-mandatory-refund-checkbox"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)',
+                        border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.3)',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        lineHeight: 1.45
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checkoutConfirmed}
+                        onChange={(e) => setCheckoutConfirmed(e.target.checked)}
+                        style={{ marginTop: '3px', width: '16px', height: '16px', accentColor: '#10b981' }}
+                      />
+                      <span>
+                        Saya menyatakan uang deposit jaminan sebesar <strong>Rp {mandatoryRefund.toLocaleString('id-ID')}</strong> <strong>wajib &amp; telah/siap dikembalikan</strong> kepada penghuni saat check-out ini.
+                      </span>
+                    </label>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setCheckoutTenant(null)}
+                      disabled={submittingCheckout}
+                      style={{ flex: 1 }}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      data-testid="submit-checkout-refund-btn"
+                      className="btn btn-primary"
+                      disabled={submittingCheckout || (held > 0 && !checkoutConfirmed)}
+                      style={{ flex: 2, justifyContent: 'center', gap: '8px' }}
+                    >
+                      <RotateCcw size={15} />
+                      <span>{submittingCheckout ? 'Memproses...' : 'Konfirmasi Check-Out & Refund Deposit'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          );
+        })(),
+        document.body
       )}
 
       {contractTenant && (

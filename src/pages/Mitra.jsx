@@ -86,7 +86,7 @@ export function checkDeliveryHoursActive(startTime = '07:30', endTime = '21:00')
 export default function Mitra({ user }) {
   const { isLight } = useTheme();
   const isMitraUser = user?.role === 'mitra';
-  const targetKostUid = user?.kostUid || 'KOST-OJN64X';
+  const targetKostUid = user?.kostUid || '';
 
   // ── CORE DATA STATES ──────────────────────────────────────────────
   const [merchants, setMerchants] = useState([]);
@@ -1224,29 +1224,29 @@ export default function Mitra({ user }) {
           <div style={{
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
             border: '1px solid var(--border-color)',
-            borderRadius: '20px',
-            padding: '1.75rem',
-            marginBottom: '1.5rem',
+            borderRadius: '18px',
+            padding: 'clamp(0.95rem, 3vw, 1.65rem)',
+            marginBottom: '1.25rem',
             boxShadow: '0 15px 35px -10px rgba(0, 0, 0, 0.4)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                 <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '16px',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '14px',
                   background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.75rem',
+                  flexShrink: 0,
                   boxShadow: '0 8px 20px rgba(245, 158, 11, 0.35)'
                 }}>
-                  <Store size={26} color="#ffffff" />
+                  <Store size={24} color="#ffffff" />
                 </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h1 style={{ margin: 0, fontSize: 'clamp(1.15rem, 3.8vw, 1.45rem)', fontWeight: 800, color: '#f8fafc' }}>
                       {currentMerchant?.name || user.storeName || 'Toko & Layanan Mitra'}
                     </h1>
                     <span style={{
@@ -3377,34 +3377,35 @@ export default function Mitra({ user }) {
               {filteredMerchants.length === 0 ? (
                 <div style={{
                   textAlign: 'center',
-                  padding: '3.5rem 1.5rem',
+                  padding: 'clamp(1.5rem, 4.5vw, 3rem) clamp(0.95rem, 3vw, 1.5rem)',
                   background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.4)',
-                  borderRadius: '20px',
+                  borderRadius: '18px',
                   border: isLight ? '2px dashed #cbd5e1' : '2px dashed rgba(255, 255, 255, 0.12)',
                   maxWidth: '560px',
-                  margin: '1.5rem auto'
+                  margin: '1rem auto'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: '#38bdf8' }}><Store size={42} /></div>
-                  <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: '#38bdf8' }}><Store size={36} /></div>
+                  <h3 style={{ margin: '0 0 8px', fontSize: 'clamp(1.05rem, 3.5vw, 1.25rem)', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
                     Mitra Belum Ada
                   </h3>
-                  <p style={{ margin: '0 auto 18px', fontSize: '0.92rem', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.6, maxWidth: '440px', fontWeight: 600 }}>
+                  <p style={{ margin: '0 auto 14px', fontSize: 'clamp(0.8rem, 2.6vw, 0.92rem)', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.55, maxWidth: '440px', fontWeight: 600 }}>
                     Mitra belum ada, tambahkan mitra untuk mendapat bonus poin! Masukkan kode referral saat mendaftarkan mitra baru untuk mengaktifkan extra bonus poin.
                   </p>
 
                   <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 16px',
-                    borderRadius: '999px',
+                    gap: '6px',
+                    padding: '7px 12px',
+                    borderRadius: '12px',
                     background: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.18)',
                     color: isLight ? '#b45309' : '#fbbf24',
-                    fontSize: '0.78rem',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
-                    marginBottom: '20px'
+                    marginBottom: '16px',
+                    maxWidth: '100%'
                   }}>
-                    <Sparkles size={15} color="#f59e0b" />
+                    <Sparkles size={14} color="#f59e0b" style={{ flexShrink: 0 }} />
                     <span>Extra Poin Referral: Wajib pakai kode referral (hanya berlaku 1x per mitra baru)</span>
                   </div>
 
@@ -3416,22 +3417,24 @@ export default function Mitra({ user }) {
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        padding: '11px 24px',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '10px 18px',
                         fontWeight: 800,
-                        fontSize: '0.9rem',
+                        fontSize: 'clamp(0.8rem, 2.6vw, 0.9rem)',
                         borderRadius: '12px',
                         boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        maxWidth: '100%'
                       }}
                     >
-                      <Plus size={18} />
+                      <Plus size={16} style={{ flexShrink: 0 }} />
                       Tambah Mitra Sekarang (+ Bonus Poin)
                     </button>
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: '1rem' }}>
                   {filteredMerchants.map(merchant => (
                     <div
                       key={merchant.id}
@@ -3465,10 +3468,14 @@ export default function Mitra({ user }) {
                             borderRadius: '999px',
                             fontSize: '0.68rem',
                             fontWeight: 700,
-                            background: isLight ? 'rgba(22, 163, 74, 0.12)' : 'rgba(34, 197, 94, 0.15)',
-                            color: isLight ? '#16a34a' : '#4ade80'
+                            background: (merchant.kasirOnline || merchant.isOnline)
+                              ? (isLight ? 'rgba(22, 163, 74, 0.12)' : 'rgba(34, 197, 94, 0.15)')
+                              : (isLight ? '#e2e8f0' : 'rgba(148, 163, 184, 0.15)'),
+                            color: (merchant.kasirOnline || merchant.isOnline)
+                              ? (isLight ? '#16a34a' : '#4ade80')
+                              : (isLight ? '#475569' : '#94a3b8')
                           }}>
-                            Aktif
+                            {(merchant.kasirOnline || merchant.isOnline) ? 'Online' : 'Offline'}
                           </span>
                         </div>
 
@@ -4890,7 +4897,7 @@ export default function Mitra({ user }) {
                   type="text"
                   value={newMerchant.referralCode || ''}
                   onChange={e => setNewMerchant({ ...newMerchant, referralCode: e.target.value.toUpperCase() })}
-                  placeholder="Contoh: KOST-RYAN7"
+                  placeholder="Contoh: KOSTKU-1234"
                   className="input-field"
                   style={{ textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}
                 />
@@ -4908,21 +4915,21 @@ export default function Mitra({ user }) {
                   marginTop: '6px',
                   lineHeight: 1.3
                 }}>
-                  Masukkan kode referral untuk mendapatkan <strong>500 Kuota Transaksi Kasir GRATIS</strong> (Hemat Rp 50.000)!
+                  Masukkan kode referral teman (bukan kode sendiri) untuk <strong>500 Kuota Nota GRATIS</strong> + pengajak dapat +500 Poin!
                 </div>
 
                 {newMerchant.referralCode && newMerchant.referralCode.trim().length >= 3 && (
                   <div style={{
                     fontSize: '0.74rem',
-                    color: '#16a34a',
-                    fontWeight: 800,
+                    color: isLight ? '#0369a1' : '#38bdf8',
+                    fontWeight: 700,
                     marginTop: '6px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    <CheckCircle size={14} color="#16a34a" />
-                    <span>[✓] Kode Referral Aktif! 500 Kuota Nota Siap Diklaim.</span>
+                    <CheckCircle size={14} color={isLight ? '#0369a1' : '#38bdf8'} />
+                    <span>Kode referral akan divalidasi server saat toko didaftarkan (anti self-referral).</span>
                   </div>
                 )}
               </div>

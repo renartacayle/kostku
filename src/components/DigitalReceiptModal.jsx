@@ -591,15 +591,15 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div>
                       <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>Nama Lengkap Penghuni:</span>
-                      <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>{receiptData?.tenantName || 'Annisa Rahmawati'}</strong>
+                      <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>{receiptData?.tenantName || 'Penghuni Kost'}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>Unit Sewa / Kamar:</span>
-                      <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>Kamar {receiptData?.roomNumber || inv.kamar || '101'}</strong>
+                      <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>Kamar {receiptData?.roomNumber || inv.kamar || '-'}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>Periode Pembayaran:</span>
-                      <span style={{ color: '#0f172a', fontWeight: 600 }}>{inv.bulan || 'Bulan Oktober 2026'}</span>
+                      <span style={{ color: '#0f172a', fontWeight: 600 }}>{inv.bulan || '-'}</span>
                     </div>
                   </div>
                 </div>

@@ -651,12 +651,12 @@ const Keuangan = ({ user }) => {
           alignItems: 'center',
           gap: '1rem',
           background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
-          padding: '1.25rem 1.5rem',
+          padding: 'clamp(0.85rem, 2.5vw, 1.25rem) clamp(0.9rem, 3vw, 1.5rem)',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-color)'
         }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>
+            <h1 style={{ margin: 0, fontSize: 'clamp(1.15rem, 3.8vw, 1.5rem)', fontWeight: 800 }}>
               Pengeluaran Lapangan
             </h1>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -826,11 +826,11 @@ const Keuangan = ({ user }) => {
         <div style={{
           background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%)',
           border: '1px solid rgba(56, 189, 248, 0.25)',
-          borderRadius: '20px',
-          padding: '1.5rem',
+          borderRadius: '18px',
+          padding: 'clamp(0.95rem, 3vw, 1.45rem)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.25rem',
+          gap: '1rem',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.4)'
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
@@ -1151,17 +1151,17 @@ const Keuangan = ({ user }) => {
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>6 Bulan Terakhir</span>
               </div>
               
-              <div style={{ flex: 1, minHeight: '270px' }}>
+              <div style={{ flex: 1, minHeight: '250px', minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyCashflow}>
+                  <BarChart data={monthlyCashflow} margin={{ top: 8, right: 8, left: -12, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                    <XAxis dataKey="name" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" tickFormatter={(val) => `Rp${(val/1000).toLocaleString('id-ID')}k`} />
+                    <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                    <YAxis width={52} stroke="#94a3b8" tick={{ fontSize: 10 }} tickFormatter={(val) => `Rp${(val/1000).toLocaleString('id-ID')}k`} />
                     <Tooltip 
                       formatter={(val) => formatRupiah(val)} 
                       contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px' }} 
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: '0.78rem' }} />
                     <Bar dataKey="Pemasukan" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="Pengeluaran" fill="#ef4444" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="LabaBersih" fill="#10b981" radius={[6, 6, 0, 0]} />
@@ -1171,16 +1171,16 @@ const Keuangan = ({ user }) => {
             </div>
 
             {/* Chart 2: Payment Status Pie Chart */}
-            <div className="card glass-panel" style={{ minHeight: '360px', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div className="card glass-panel" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <PieIcon size={18} color="var(--accent-success)" />
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Rasio Pembayaran Tagihan</h3>
+                  <h3 style={{ margin: 0, fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}>Rasio Pembayaran Tagihan</h3>
                 </div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status Tagihan Aktif</span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Status Tagihan Aktif</span>
               </div>
               
-              <div style={{ flex: 1, minHeight: '270px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ flex: 1, minHeight: '240px', minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {(allPaidCount === 0 && allUnpaidCount === 0) ? (
                   <div style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
                     Belum ada data tagihan terdaftar.
@@ -1191,12 +1191,13 @@ const Keuangan = ({ user }) => {
                       <Pie
                         data={paymentPieData}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={95}
-                        paddingAngle={5}
+                        cy="46%"
+                        innerRadius={46}
+                        outerRadius={72}
+                        paddingAngle={4}
                         dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                       >
                         {paymentPieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
@@ -1205,7 +1206,7 @@ const Keuangan = ({ user }) => {
                       <Tooltip 
                         contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px' }} 
                       />
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: '0.78rem' }} />
                     </RePieChart>
                   </ResponsiveContainer>
                 )}

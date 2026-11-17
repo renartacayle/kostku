@@ -2,12 +2,7 @@ import React from 'react';
 import { Bell, Calendar, Search } from 'lucide-react';
 
 const Tagihan = () => {
-  const penyewaList = [
-    { id: '101', nama: 'Andi Wijaya', jatuhTempo: '2026-07-28', status: 'Warning' },
-    { id: '102', nama: 'Budi Santoso', jatuhTempo: '2026-07-25', status: 'Terlambat' },
-    { id: '103', nama: 'Cynthia', jatuhTempo: '2026-08-05', status: 'Aman' },
-    { id: '104', nama: 'Diana', jatuhTempo: '2026-07-27', status: 'Warning' },
-  ];
+  const penyewaList = [];
 
   return (
     <div className="animate-fade-in">
@@ -37,7 +32,13 @@ const Tagihan = () => {
             </tr>
           </thead>
           <tbody>
-            {penyewaList.map((p, i) => (
+            {penyewaList.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Belum ada tagihan penghuni aktif.
+                </td>
+              </tr>
+            ) : penyewaList.map((p, i) => (
               <tr key={i} style={{ borderBottom: '1px solid var(--border-color)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>{p.id}</td>
                 <td style={{ padding: '1rem' }}>{p.nama}</td>

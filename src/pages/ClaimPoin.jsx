@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Gift,
   CheckCircle,
   AlertCircle,
   Clock,
+  ArrowLeft,
   ArrowRight,
   ShieldCheck,
   ShoppingBag,
@@ -18,8 +19,14 @@ import {
   ExternalLink,
   Copy,
   Zap,
-  Users
+  Users,
+  QrCode,
+  Ticket,
+  Download
 } from 'lucide-react';
+import QRCode from 'qrcode';
+import { QrScannerPanel } from '../components/QrClaimScannerModal';
+import { encodeCustomerPersonalQrPayload, normalizeCanonicalPhone, parseCustomerQrOrPhone } from '../utils/customerQr';
 
 // ── 8 EQUAL SLICES (45° EACH) ──
 // Layout strategis: Slice 0 (100 Poin Emas) bersebelahan langsung dengan Slice 1 (25 Poin) & Slice 7 (25 Poin)
@@ -35,8 +42,25 @@ const WHEEL_SLICES = [
 ];
 
 export default function ClaimPoin() {
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const tokenParam = searchParams.get('token') || '';
+  const tabParam = searchParams.get('tab') || '';
+  const phoneParam = searchParams.get('phone') || '';
+
+  const resolveSavedCustomerPhone = () => {
+    try {
+      const fromUrl = parseCustomerQrOrPhone(phoneParam).phone;
+      if (fromUrl) return fromUrl;
+      const savedQrPhone = localStorage.getItem('kostku_customer_qr_phone') || '';
+      const parsedSaved = normalizeCanonicalPhone(savedQrPhone);
+      if (parsedSaved.length >= 8) return parsedSaved;
+      const u = JSON.parse(localStorage.getItem('kostUser') || 'null');
+      const userPhone = normalizeCanonicalPhone(u?.phone || u?.whatsapp || u?.whatsapp_number || '');
+      if (userPhone.length >= 8) return userPhone;
+    } catch (_) {}
+    return '';
+  };
 
   const [tokenInput, setTokenInput] = useState(tokenParam);
   const [claimInfo, setClaimInfo] = useState(null);
@@ -59,12 +83,18 @@ export default function ClaimPoin() {
   const [claimError, setClaimError] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // Tab State: 'claim' | 'check'
-  const [activeTab, setActiveTab] = useState('claim');
-  const [checkPhone, setCheckPhone] = useState('');
+  // Tab State: 'claim' | 'check' (Tab 2 = QR Pribadi Saya)
+  const isPersonalQrTab = (t) => t === 'my-qr' || t === 'check' || t === 'qr';
+  const [activeTab, setActiveTab] = useState(() => (isPersonalQrTab(tabParam) ? 'check' : 'claim'));
+  const [checkPhone, setCheckPhone] = useState(() => resolveSavedCustomerPhone());
   const [checkingPoints, setCheckingPoints] = useState(false);
   const [customerAccount, setCustomerAccount] = useState(null);
   const [customerHistory, setCustomerHistory] = useState([]);
+  const [customerVouchers, setCustomerVouchers] = useState([]);
+  const [tier2PoolBalance, setTier2PoolBalance] = useState(0);
+  const [personalQrDataUrl, setPersonalQrDataUrl] = useState('');
+  const [personalQrPayload, setPersonalQrPayload] = useState('');
+  const [showQrSwitchForm, setShowQrSwitchForm] = useState(false);
   const [checkError, setCheckError] = useState('');
 
   // Solusi A: Self-Service Point to Voucher Converter
@@ -94,12 +124,116 @@ export default function ClaimPoin() {
     }
   };
 
+  const loadPersonalQrProfile = async (rawPhoneOrQr, options = {}) => {
+    const parsed = parseCustomerQrOrPhone(rawPhoneOrQr);
+    const cleanPhone = parsed.phone || normalizeCanonicalPhone(rawPhoneOrQr);
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setCheckError('Masukkan nomor HP / WhatsApp (min. 8 digit) atau kode QR Pribadi untuk membuat QR.');
+      return false;
+    }
+
+    setCheckingPoints(true);
+    setCheckError('');
+    try {
+      const storeQuery = claimInfo?.merchantId ? `?storeId=${encodeURIComponent(claimInfo.merchantId)}` : '';
+      const res = await fetch(`/api/pos/loyalty/customer/${encodeURIComponent(cleanPhone)}${storeQuery}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setCheckError(data.error || 'Gagal memuat profil QR Pribadi.');
+        return false;
+      }
+      const canonical = normalizeCanonicalPhone(data.account?.whatsapp_number || cleanPhone) || cleanPhone;
+      const qrCodeStr = data.qrPayload || encodeCustomerPersonalQrPayload(canonical);
+      setCustomerAccount(data.account || { whatsapp_number: canonical, name: 'Pelanggan KostKu', total_points: 0 });
+      setCustomerHistory(data.history || []);
+      setCustomerVouchers(Array.isArray(data.activeVouchers) ? data.activeVouchers : []);
+      setTier2PoolBalance(Number(data.tier2PoolBalance || 0));
+      setPersonalQrPayload(qrCodeStr);
+      setCheckPhone(canonical);
+      if (options.remember !== false) {
+        try {
+          localStorage.setItem('kostku_customer_qr_phone', canonical);
+        } catch (_) {}
+      }
+      if (qrCodeStr) {
+        const qrImg = await QRCode.toDataURL(qrCodeStr, {
+          width: 280,
+          margin: 2,
+          color: { dark: '#0f172a', light: '#ffffff' }
+        });
+        setPersonalQrDataUrl(qrImg);
+      }
+      setShowQrSwitchForm(false);
+      return true;
+    } catch (err) {
+      setCheckError('Gagal memuat QR Pribadi. Periksa koneksi internet Anda.');
+      return false;
+    } finally {
+      setCheckingPoints(false);
+    }
+  };
+
   useEffect(() => {
     if (tokenParam) {
       setTokenInput(tokenParam);
+      setActiveTab('claim');
       fetchClaimInfo(tokenParam);
+    } else if (isPersonalQrTab(tabParam)) {
+      setActiveTab('check');
     }
-  }, [tokenParam]);
+  }, [tokenParam, tabParam]);
+
+  useEffect(() => {
+    if (activeTab === 'check') {
+      const target = resolveSavedCustomerPhone() || checkPhone;
+      if (target && !personalQrPayload && !checkingPoints) {
+        loadPersonalQrProfile(target, { remember: false });
+      }
+    }
+  }, [activeTab, phoneParam]);
+
+  const handleResetToScanner = () => {
+    setClaimResult(null);
+    setClaimInfo(null);
+    setInfoError('');
+    setClaimError('');
+    setTokenInput('');
+    setReferralCode('');
+    if (tokenParam) {
+      setSearchParams({}, { replace: true });
+    }
+  };
+
+  const handleInlineQrResolved = (_rawValue, targetRoute) => {
+    if (targetRoute && targetRoute.startsWith('/claim')) {
+      try {
+        const parsed = new URL(targetRoute, window.location.origin);
+        const extractedToken = parsed.searchParams.get('token') || '';
+        const extractedTab = parsed.searchParams.get('tab') || '';
+        const extractedPhone = parsed.searchParams.get('phone') || '';
+        if (isPersonalQrTab(extractedTab)) {
+          setActiveTab('check');
+          const nextParams = { tab: 'my-qr' };
+          if (extractedPhone) nextParams.phone = extractedPhone;
+          setSearchParams(nextParams, { replace: true });
+          if (extractedPhone) loadPersonalQrProfile(extractedPhone);
+          return true;
+        }
+        if (extractedToken) {
+          setTokenInput(extractedToken);
+          setActiveTab('claim');
+          setSearchParams({ token: extractedToken }, { replace: true });
+          fetchClaimInfo(extractedToken);
+          return true;
+        }
+      } catch (_) {}
+    }
+    if (targetRoute && targetRoute !== '/claim') {
+      navigate(targetRoute);
+      return true;
+    }
+    return false;
+  };
 
   // Handle Lucky Spin Wheel Claim
   const handleSpinAndClaim = async (e) => {
@@ -173,6 +307,9 @@ export default function ClaimPoin() {
       }
 
       // Tunggu hingga animasi selesai (4.6 detik)
+      try {
+        localStorage.setItem('kostku_customer_qr_phone', normalizeCanonicalPhone(cleanPhone));
+      } catch (_) {}
       setTimeout(() => {
         setIsSpinning(false);
         setSpinPhase('stopped');
@@ -186,37 +323,21 @@ export default function ClaimPoin() {
     }
   };
 
-  // Check Points Handler
+  // Generate / Load Personal QR Handler
   const handleCheckPoints = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    const cleanPhone = checkPhone.replace(/\D/g, '');
-    if (!cleanPhone) {
-      setCheckError('Masukkan nomor WhatsApp untuk cek poin.');
-      return;
-    }
-
-    setCheckingPoints(true);
-    setCheckError('');
-    try {
-      const res = await fetch(`/api/loyalty/customer/${encodeURIComponent(cleanPhone)}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setCheckError(data.error || 'Data poin tidak ditemukan.');
-      } else {
-        setCustomerAccount(data.account || { whatsapp_number: cleanPhone, total_points: 0 });
-        setCustomerHistory(data.history || []);
-      }
-    } catch (err) {
-      setCheckError('Gagal memeriksa poin. Periksa koneksi internet Anda.');
-    } finally {
-      setCheckingPoints(false);
-    }
+    await loadPersonalQrProfile(checkPhone);
   };
 
   // Solusi A: Tukar Poin Jadi Voucher Diskon Belanja Mandiri
   const handleConvertToVoucher = async (pointsToConvert) => {
     const targetPhone = customerAccount?.whatsapp_number || checkPhone;
     if (!targetPhone) return;
+    const isClaimStoreTier1 = Boolean(claimInfo && claimInfo.canRedeemPoints === false);
+    if (isClaimStoreTier1) {
+      setConvertError('Toko ini belum bergabung di Loyalty Pool (Tier 2). Tukar poin menjadi voucher hanya tersedia di toko Tier 2.');
+      return;
+    }
     setConvertingVoucher(true);
     setConvertError('');
     try {
@@ -225,23 +346,16 @@ export default function ClaimPoin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: targetPhone,
-          points: pointsToConvert
+          points: pointsToConvert,
+          merchantId: claimInfo?.merchantId || undefined,
+          claimToken: claimInfo?.token || tokenParam || tokenInput || undefined
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menukar poin');
-      setConvertedVoucher(data.voucher);
-      setCustomerAccount(prev => ({
-        ...prev,
-        total_points: data.remainingPoints
-      }));
-      // Refresh ledger history
-      const cleanPhone = targetPhone.replace(/\D/g, '');
-      const refRes = await fetch(`/api/loyalty/customer/${encodeURIComponent(cleanPhone)}`);
-      if (refRes.ok) {
-        const refData = await refRes.json();
-        setCustomerHistory(refData.history || []);
-      }
+      const createdVoucher = data.voucher || data.promo;
+      setConvertedVoucher(createdVoucher);
+      await loadPersonalQrProfile(targetPhone, { remember: true });
     } catch (err) {
       setConvertError(err.message || 'Gagal memproses penukaran poin.');
     } finally {
@@ -397,6 +511,7 @@ export default function ClaimPoin() {
           justifyContent: 'space-between'
         }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+            <ArrowLeft size={17} color="#475569" style={{ flexShrink: 0 }} />
             <div style={{
               width: '32px',
               height: '32px',
@@ -414,10 +529,10 @@ export default function ClaimPoin() {
             </div>
             <div>
               <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
-                KostKu Lucky Spin
+                Klaim &amp; Scan QR
               </div>
               <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                Klaim Diskon &amp; Roda Hadiah
+                Scan Meja, Klaim Poin &amp; Roda Hadiah
               </div>
             </div>
           </Link>
@@ -458,6 +573,7 @@ export default function ClaimPoin() {
         }}>
           <button
             type="button"
+            data-testid="claim-tab-scan"
             onClick={() => setActiveTab('claim')}
             style={{
               flex: 1,
@@ -473,11 +589,20 @@ export default function ClaimPoin() {
               transition: 'all 0.15s ease'
             }}
           >
-            Putar Roda &amp; Klaim
+            Scan &amp; Klaim QR
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('check')}
+            data-testid="claim-tab-my-qr"
+            onClick={() => {
+              setActiveTab('check');
+              setSearchParams(
+                customerAccount?.whatsapp_number
+                  ? { tab: 'my-qr', phone: customerAccount.whatsapp_number }
+                  : { tab: 'my-qr' },
+                { replace: true }
+              );
+            }}
             style={{
               flex: 1,
               padding: '9px 12px',
@@ -489,10 +614,15 @@ export default function ClaimPoin() {
               background: activeTab === 'check' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
               color: activeTab === 'check' ? '#ffffff' : '#64748b',
               boxShadow: activeTab === 'check' ? '0 2px 8px rgba(37, 99, 235, 0.25)' : 'none',
-              transition: 'all 0.15s ease'
+              transition: 'all 0.15s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px'
             }}
           >
-            Cek Saldo Poin WA
+            <QrCode size={14} />
+            <span>QR Pribadi Saya</span>
           </button>
         </div>
 
@@ -664,12 +794,8 @@ export default function ClaimPoin() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setClaimResult(null);
-                      setTokenInput('');
-                      setClaimInfo(null);
-                      setReferralCode('');
-                    }}
+                    data-testid="claimpoin-rescan-btn"
+                    onClick={handleResetToScanner}
                     style={{
                       padding: '11px',
                       borderRadius: '10px',
@@ -681,81 +807,41 @@ export default function ClaimPoin() {
                       cursor: 'pointer'
                     }}
                   >
-                    Klaim Struk Belanja Lainnya
+                    Scan / Klaim Struk Belanja Lainnya
                   </button>
                 </div>
               </div>
             )}
 
-            {/* MANUAL TOKEN INPUT IF EMPTY */}
-            {!tokenParam && !claimInfo && !claimResult && (
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '14px',
-                border: '1px solid #e2e8f0',
-                padding: '16px',
-                marginBottom: '16px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-              }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                  Masukkan Kode Token Struk
-                </div>
-                <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.4 }}>
-                  Ketik atau tempelkan token yang tertera di bagian bawah struk fisik kasir Anda.
-                </p>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    placeholder="Contoh: clm_179447... atau demo-claim-today"
-                    style={{
-                      flex: 1,
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.82rem',
-                      fontFamily: 'monospace',
-                      outline: 'none'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={loadingInfo || !tokenInput.trim()}
-                    onClick={() => fetchClaimInfo(tokenInput.trim())}
-                    style={{
-                      padding: '9px 14px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: '#10b981',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.8rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {loadingInfo ? '...' : 'Cari'}
-                  </button>
-                </div>
-
-                {infoError && (
+            {/* INLINE FULL-PAGE QR SCANNER & TOKEN/TABLE RESOLVER (NO MODAL POPUP) */}
+            {!claimInfo && !claimResult && (
+              <div style={{ marginBottom: '16px' }}>
+                {loadingInfo && (
                   <div style={{
-                    marginTop: '10px',
-                    padding: '8px 10px',
-                    background: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '8px',
-                    fontSize: '0.74rem',
-                    color: '#991b1b',
+                    marginBottom: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    color: '#065f46',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '8px'
                   }}>
-                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                    <span>{infoError}</span>
+                    <RefreshCw size={15} />
+                    <span>Memuat data struk klaim poin...</span>
                   </div>
                 )}
+                <QrScannerPanel
+                  isActive={activeTab === 'claim' && !claimInfo && !claimResult}
+                  onTokenResolved={handleInlineQrResolved}
+                  showPageShortcuts={false}
+                  surfaceTone="light"
+                  containerTestId="claim-qr-page-scanner"
+                  initialError={infoError}
+                />
               </div>
             )}
 
@@ -1110,6 +1196,31 @@ export default function ClaimPoin() {
                     </form>
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  data-testid="claimpoin-rescan-btn"
+                  onClick={handleResetToScanner}
+                  style={{
+                    width: '100%',
+                    marginTop: '12px',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    color: '#334155',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <QrCode size={14} />
+                  <span>Scan QR Struk / Meja Lainnya</span>
+                </button>
               </div>
             )}
 
@@ -1215,138 +1326,307 @@ export default function ClaimPoin() {
           </div>
         )}
 
-        {/* TAB 2: CEK SALDO POIN WHATSAPP */}
+        {/* TAB 2: QR PRIBADI CUSTOMER (KLAIM HADIAH & PAKAI HADIAH DI KASIR) */}
         {activeTab === 'check' && (
           <div>
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              border: '1px solid #e2e8f0',
-              padding: '18px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                Periksa Saldo &amp; Riwayat Poin
-              </h3>
-              <p style={{ margin: '0 0 14px', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
-                Masukkan nomor WhatsApp yang pernah Anda gunakan saat klaim struk belanja.
-              </p>
-
-              <form onSubmit={handleCheckPoints} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    color: '#64748b',
-                    background: '#f1f5f9',
-                    padding: '3px 6px',
-                    borderRadius: '4px'
-                  }}>
-                    +62
-                  </div>
-                  <input
-                    type="tel"
-                    required
-                    value={checkPhone}
-                    onChange={(e) => setCheckPhone(e.target.value)}
-                    placeholder="0812-3456-7890"
-                    style={{
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      padding: '10px 12px 10px 72px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {checkError && (
-                  <div style={{
-                    padding: '8px 10px',
-                    background: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '8px',
-                    fontSize: '0.74rem',
-                    color: '#991b1b',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                    <span>{checkError}</span>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={checkingPoints}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.82rem',
-                    cursor: checkingPoints ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  {checkingPoints ? (
-                    <>
-                      <RefreshCw size={14} className="animate-spin" />
-                      <span>Memeriksa...</span>
-                    </>
-                  ) : (
-                    <span>Cari Saldo Poin</span>
-                  )}
-                </button>
-              </form>
-            </div>
-
-            {/* ACCOUNT SUMMARY CARD */}
-            {customerAccount && (
+            {(!customerAccount || !personalQrDataUrl || showQrSwitchForm) && (
               <div style={{
                 background: '#ffffff',
                 borderRadius: '16px',
                 border: '1px solid #e2e8f0',
                 padding: '18px',
-                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.06)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 marginBottom: '16px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                    Buat / Tampilkan QR Pribadi Saya
+                  </h3>
+                  {personalQrDataUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setShowQrSwitchForm(false)}
+                      style={{
+                        border: 'none',
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Batal
+                    </button>
+                  )}
+                </div>
+                <p style={{ margin: '0 0 14px', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45 }}>
+                  Tunjukkan <strong>QR Pribadi</strong> ini di Kasir POS untuk langsung <strong>Klaim Hadiah</strong> poin struk atau <strong>Pakai Hadiah</strong> diskon voucher &amp; poin.
+                </p>
+
+                <form onSubmit={handleCheckPoints} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      color: '#64748b',
+                      background: '#f1f5f9',
+                      padding: '3px 6px',
+                      borderRadius: '4px'
+                    }}>
+                      +62
+                    </div>
+                    <input
+                      type="tel"
+                      required
+                      data-testid="my-qr-phone-input"
+                      value={checkPhone}
+                      onChange={(e) => setCheckPhone(e.target.value)}
+                      placeholder="0812-3456-7890"
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '10px 12px 10px 72px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        background: '#ffffff',
+                        color: '#0f172a',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  {checkError && (
+                    <div style={{
+                      padding: '8px 10px',
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      color: '#991b1b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                      <span>{checkError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    data-testid="my-qr-generate-btn"
+                    disabled={checkingPoints}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: checkingPoints ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    {checkingPoints ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Menyiapkan QR Pribadi...</span>
+                      </>
+                    ) : (
+                      <>
+                        <QrCode size={15} />
+                        <span>Tampilkan QR Pribadi</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* PERSONAL QR MEMBER CARD + KLAIM / PAKAI HADIAH */}
+            {customerAccount && personalQrDataUrl && (
+              <div
+                data-testid="customer-personal-qr-card"
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  border: '1px solid #e2e8f0',
+                  padding: '18px',
+                  boxShadow: '0 4px 16px -2px rgba(0,0,0,0.06)',
+                  marginBottom: '16px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '8px' }}>
                   <div>
                     <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                       {customerAccount.name || 'Pelanggan KostKu'}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      WA: {customerAccount.whatsapp_number}
+                      ID Member: {customerAccount.whatsapp_number}
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    data-testid="my-qr-switch-account-btn"
+                    onClick={() => setShowQrSwitchForm(true)}
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#334155',
+                      border: '1px solid #cbd5e1',
+                      padding: '5px 10px',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Ganti Nomor
+                  </button>
+                </div>
+
+                {/* High-contrast Personal QR Code */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '16px',
+                  padding: '16px 14px',
+                  textAlign: 'center',
+                  marginBottom: '14px'
+                }}>
                   <div style={{
-                    background: '#ecfdf5',
-                    color: '#059669',
-                    border: '1px solid #a7f3d0',
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    fontSize: '0.72rem',
-                    fontWeight: 800
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 10px',
+                    borderRadius: '999px',
+                    background: '#dbeafe',
+                    color: '#1e40af',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    marginBottom: '10px'
                   }}>
-                    Member Aktif
+                    <QrCode size={12} />
+                    <span>KARTU QR PRIBADI KOSTKU</span>
+                  </div>
+
+                  <div style={{
+                    background: '#ffffff',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    display: 'inline-block',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
+                  }}>
+                    <img
+                      data-testid="customer-personal-qr-img"
+                      src={personalQrDataUrl}
+                      alt={`QR Pribadi ${personalQrPayload}`}
+                      style={{ width: '176px', height: '176px', display: 'block' }}
+                    />
+                  </div>
+
+                  <div
+                    data-testid="customer-personal-qr-code"
+                    style={{
+                      marginTop: '10px',
+                      fontFamily: 'monospace',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      color: '#0f172a',
+                      letterSpacing: '0.03em'
+                    }}
+                  >
+                    {personalQrPayload}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(personalQrPayload)}
+                      style={{
+                        padding: '6px 11px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: copiedCode ? '#16a34a' : '#2563eb',
+                        color: '#ffffff',
+                        fontSize: '0.73rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      <Copy size={13} />
+                      <span>{copiedCode ? 'Kode QR Tersalin' : 'Salin Kode QR'}</span>
+                    </button>
+                    <a
+                      href={personalQrDataUrl}
+                      download={`QR-Member-${customerAccount.whatsapp_number}.png`}
+                      style={{
+                        padding: '6px 11px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                        fontSize: '0.73rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      <Download size={13} />
+                      <span>Simpan QR</span>
+                    </a>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '6px',
+                    marginTop: '12px',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      borderRadius: '9px',
+                      padding: '7px 9px'
+                    }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#065f46' }}>1. Klaim Hadiah</div>
+                      <div style={{ fontSize: '0.64rem', color: '#047857', lineHeight: 1.35 }}>
+                        Scan di kasir untuk kumpul poin struk tanpa sebut nomor HP
+                      </div>
+                    </div>
+                    <div style={{
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '9px',
+                      padding: '7px 9px'
+                    }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#1e40af' }}>2. Pakai Hadiah</div>
+                      <div style={{ fontSize: '0.64rem', color: '#1d4ed8', lineHeight: 1.35 }}>
+                        Pakai poin &amp; voucher aktif langsung saat bayar (Toko Tier 2)
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                {/* Balance Strip */}
                 <div style={{
                   background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
                   borderRadius: '12px',
@@ -1355,24 +1635,94 @@ export default function ClaimPoin() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  gap: '10px',
                   marginBottom: '14px'
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.7rem', color: '#bfdbfe' }}>Saldo Poin Anda</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900 }}>
+                    <div style={{ fontSize: '0.7rem', color: '#bfdbfe' }}>Total Poin Anda</div>
+                    <div data-testid="customer-personal-qr-points" style={{ fontSize: '1.35rem', fontWeight: 900 }}>
                       {(customerAccount.total_points || 0).toLocaleString('id-ID')} Poin
                     </div>
+                    {tier2PoolBalance > 0 && (
+                      <div style={{ fontSize: '0.68rem', color: '#93c5fd', marginTop: '2px' }}>
+                        Saldo Loyalty Pool Tier 2: {tier2PoolBalance.toLocaleString('id-ID')} Poin
+                      </div>
+                    )}
                   </div>
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.15)',
                     padding: '6px 10px',
                     borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    fontWeight: 800
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    whiteSpace: 'nowrap'
                   }}>
-                    Diskon: Rp {(customerAccount.total_points || 0).toLocaleString('id-ID')}
+                    Nilai: Rp {(customerAccount.total_points || 0).toLocaleString('id-ID')}
                   </div>
                 </div>
+
+                {/* Active Vouchers List for Pakai Hadiah */}
+                {customerVouchers.length > 0 && (
+                  <div
+                    data-testid="customer-active-vouchers-box"
+                    style={{
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      marginBottom: '14px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <Ticket size={15} color="#059669" />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#065f46' }}>
+                        Voucher Hadiah Siap Pakai ({customerVouchers.length})
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {customerVouchers.map(v => (
+                        <div
+                          key={v.id || v.code}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px dashed #10b981',
+                            borderRadius: '8px',
+                            padding: '8px 10px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', fontFamily: 'monospace' }}>
+                              {v.code}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700 }}>
+                              {v.title} • Diskon Rp {Number(v.discountValue || 0).toLocaleString('id-ID')}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(v.code)}
+                            style={{
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: '#10b981',
+                              color: '#ffffff',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Salin
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Referral Code Share Box */}
                 {customerAccount.referral_code && (
@@ -1410,7 +1760,7 @@ export default function ClaimPoin() {
                   </div>
                 )}
 
-                {/* SOLUSI A: TUKAR POIN JADI VOUCHER BELANJA (SELF-SERVICE HP PELANGGAN) */}
+                {/* TUKAR POIN JADI HADIAH VOUCHER KASIR (TIER 2 ONLY) */}
                 <div style={{
                   background: '#fffbeb',
                   border: '1.5px solid #fde68a',
@@ -1421,11 +1771,11 @@ export default function ClaimPoin() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                     <Gift size={16} color="#d97706" />
                     <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#92400e' }}>
-                      Tukar Poin Jadi Voucher Kasir (Walk-in)
+                      Pakai Hadiah / Tukar Poin Jadi Voucher
                     </span>
                   </div>
                   <p style={{ margin: '0 0 10px', fontSize: '0.72rem', color: '#78350f', lineHeight: 1.35 }}>
-                    Tukar poin mandiri menjadi Voucher Diskon tanpa perlu sebut nomor HP di meja kasir. Cukup tunjukkan kode voucher saat bayar di kasir!
+                    Tukarkan poin menjadi Voucher Hadiah lalu scan QR Pribadi Anda di kasir toko Tier 2 untuk langsung memotong tagihan belanja.
                   </p>
 
                   {convertedVoucher && (
@@ -1465,6 +1815,24 @@ export default function ClaimPoin() {
                     </div>
                   )}
 
+                  {claimInfo && claimInfo.canRedeemPoints === false && (
+                    <div
+                      data-testid="claimpoin-tier1-disabled"
+                      style={{
+                        padding: '8px 10px',
+                        background: '#fffbeb',
+                        border: '1px solid #fcd34d',
+                        borderRadius: '8px',
+                        color: '#92400e',
+                        fontSize: '0.72rem',
+                        marginBottom: '8px',
+                        fontWeight: 600
+                      }}
+                    >
+                      Toko <strong>{claimInfo.merchantName || 'ini'}</strong> masih di paket Tier 1 (Rp 25/nota) dan belum aktif Loyalty Pool (Tier 2), sehingga tukar poin belum aktif di toko ini.
+                    </div>
+                  )}
+
                   {convertError && (
                     <div style={{ padding: '6px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b', fontSize: '0.72rem', marginBottom: '8px' }}>
                       {convertError}
@@ -1477,7 +1845,8 @@ export default function ClaimPoin() {
                       { pts: 500, disc: 'Rp 5.000' },
                       { pts: 1000, disc: 'Rp 10.000' }
                     ].map(tier => {
-                      const canAfford = (customerAccount.total_points || 0) >= tier.pts;
+                      const storeAllowsRedeem = !claimInfo || claimInfo.canRedeemPoints !== false;
+                      const canAfford = storeAllowsRedeem && (customerAccount.total_points || 0) >= tier.pts;
                       return (
                         <button
                           key={tier.pts}

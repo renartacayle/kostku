@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
@@ -19,11 +19,24 @@ const RoomInspectionModal = ({
   onClose, 
   tenant, 
   kostUid,
+  initialDeposit,
   onInspectionSaved 
 }) => {
   const { isLight } = useTheme();
   const [type, setType] = useState('check_out'); // 'check_in' | 'check_out'
-  const [depositAmount, setDepositAmount] = useState(500000);
+  const resolvedInitDeposit = initialDeposit !== undefined && initialDeposit !== null
+    ? Number(initialDeposit)
+    : Number(tenant?.heldDeposit ?? tenant?.depositPaid ?? 0);
+  const [depositAmount, setDepositAmount] = useState(resolvedInitDeposit);
+
+  useEffect(() => {
+    if (isOpen && tenant) {
+      const dep = initialDeposit !== undefined && initialDeposit !== null
+        ? Number(initialDeposit)
+        : Number(tenant?.heldDeposit ?? tenant?.depositPaid ?? 0);
+      setDepositAmount(Math.max(0, Number(dep) || 0));
+    }
+  }, [isOpen, tenant, initialDeposit]);
   
   // Checklist items: key => { label, status: 'good' | 'minor' | 'damaged', cost: number }
   const [items, setItems] = useState([
@@ -266,7 +279,7 @@ const RoomInspectionModal = ({
               <strong style={{ fontSize: '1.05rem', color: isLight ? '#dc2626' : '#f87171' }}>-{formatRupiah(totalDamageCost)}</strong>
             </div>
             <div>
-              <span style={{ fontSize: '0.72rem', color: isLight ? '#15803d' : '#4ade80', display: 'block', fontWeight: 600 }}>SISA REFUND DEPOSIT</span>
+              <span style={{ fontSize: '0.72rem', color: isLight ? '#15803d' : '#4ade80', display: 'block', fontWeight: 600 }}>WAJIB REFUND CHECK-OUT</span>
               <strong style={{ fontSize: '1.15rem', color: isLight ? '#15803d' : '#4ade80' }}>{formatRupiah(finalRefund)}</strong>
             </div>
           </div>

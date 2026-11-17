@@ -2,6 +2,7 @@ import React from 'react';
 import { BedDouble, Shield, RefreshCw } from 'lucide-react';
 
 const Inventaris = () => {
+  const inventarisList = [];
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: '2rem' }}>
@@ -16,7 +17,7 @@ const Inventaris = () => {
           </div>
           <div>
             <p style={{ margin: 0, fontSize: '0.9rem' }}>Stok Seprei Tersedia</p>
-            <h2 style={{ margin: 0, fontSize: '1.8rem' }}>12 Pcs</h2>
+            <h2 style={{ margin: 0, fontSize: '1.8rem' }}>0 Pcs</h2>
           </div>
         </div>
         
@@ -26,7 +27,7 @@ const Inventaris = () => {
           </div>
           <div>
             <p style={{ margin: 0, fontSize: '0.9rem' }}>Total Deposit Ditahan</p>
-            <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Rp 4.500.000</h2>
+            <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Rp 0</h2>
           </div>
         </div>
       </div>
@@ -43,10 +44,13 @@ const Inventaris = () => {
             </tr>
           </thead>
           <tbody>
-            {[
-              { kamar: '101', nama: 'Andi Wijaya', seprei: 'Dipinjam', deposit: 'Aman (Rp 300rb)' },
-              { kamar: '102', nama: 'Budi Santoso', seprei: 'Dikembalikan', deposit: 'Dikembalikan' },
-            ].map((p, i) => (
+            {inventarisList.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Belum ada data inventaris dan deposit penghuni.
+                </td>
+              </tr>
+            ) : inventarisList.map((p, i) => (
               <tr key={i} style={{ borderBottom: '1px solid var(--border-color)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>{p.kamar}</td>
                 <td style={{ padding: '1rem' }}>{p.nama}</td>

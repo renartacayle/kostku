@@ -42,7 +42,8 @@ import {
   ShoppingBag,
   Coins,
   Receipt,
-  Wallet
+  Wallet,
+  Shield
 } from 'lucide-react';
 import { Link, useSearchParams, Navigate } from 'react-router-dom';
 import { 
@@ -74,6 +75,7 @@ import GuestRegistrationModal from '../components/GuestRegistrationModal';
 import OwnerNavBanner from '../components/OwnerNavBanner';
 import AddPropertyModal from '../components/AddPropertyModal';
 import { useTheme } from '../context/ThemeContext';
+import { isMitraRole, isEmployeeRole, isMitraStaff } from '../utils/staffRole';
 
 const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
   const { isLight } = useTheme();
@@ -91,7 +93,9 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
     utilityScheme: 'all_kost',
     waterRate: 0,
     electricityRate: 0,
+    depositEnabled: false,
     depositAmount: 0,
+    depositPreferredAmount: 500000,
     discount: {
       enabled: false,
       type: 'percent',
@@ -345,7 +349,9 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
         utilityScheme: 'all_kost',
         waterRate: 0,
         electricityRate: 0,
+        depositEnabled: false,
         depositAmount: 0,
+        depositPreferredAmount: 500000,
         discount: { enabled: false, type: 'percent', value: 10, durationMonths: '1', validUntil: '', label: 'Promo Spesial' },
         promoted: { active: false, plan: '7d', badgeText: 'Rekomendasi Utama', expiresAt: '' },
         waBotQuota: 25,
@@ -376,6 +382,12 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
       if (Array.isArray(merchs)) setOwnerMerchants(merchs);
       if (merchSum) setMerchantSummary(merchSum);
       if (sets && !sets.error) {
+        const depEnabled = sets.depositEnabled !== undefined
+          ? Boolean(sets.depositEnabled) && Number(sets.depositAmount || 0) > 0
+          : Number(sets.depositAmount || 0) > 0;
+        const depPref = Number(sets.depositPreferredAmount) > 0
+          ? Number(sets.depositPreferredAmount)
+          : (Number(sets.depositAmount) > 0 ? Number(sets.depositAmount) : 500000);
         setSettings({
           rooms: sets.rooms || [],
           employees: sets.employees || [],
@@ -383,7 +395,9 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
           utilityScheme: sets.utilityScheme || 'all_kost',
           waterRate: sets.waterRate || 0,
           electricityRate: sets.electricityRate || 0,
-          depositAmount: sets.depositAmount || 0,
+          depositEnabled: depEnabled,
+          depositAmount: depEnabled ? Number(sets.depositAmount || 0) : 0,
+          depositPreferredAmount: depPref,
           discount: sets.discount || {
             enabled: false,
             type: 'percent',
@@ -2252,31 +2266,154 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
                   />
                 )}
               </div>
+            </div>
 
-              {/* Uang Deposit */}
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  <DollarSign size={14} color="#10b981" /> Uang Deposit Awal (Rp)
+            {/* Deposit Jaminan Kamar (Refundable) Toggle & Nominal */}
+            <div style={{
+              marginTop: '4px',
+              padding: '1rem 1.15rem',
+              borderRadius: '14px',
+              background: settings.depositEnabled
+                ? (isLight ? 'rgba(16, 185, 129, 0.06)' : 'rgba(16, 185, 129, 0.08)')
+                : (isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)'),
+              border: settings.depositEnabled
+                ? '1px solid rgba(16, 185, 129, 0.35)'
+                : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)'),
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <Shield size={16} color={settings.depositEnabled ? '#10b981' : '#64748b'} />
+                    <strong style={{ fontSize: '0.95rem', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                      Deposit Jaminan Kamar (Refundable)
+                    </strong>
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      background: settings.depositEnabled ? 'rgba(16, 185, 129, 0.18)' : 'rgba(148, 163, 184, 0.16)',
+                      color: settings.depositEnabled ? (isLight ? '#047857' : '#34d399') : (isLight ? '#475569' : '#94a3b8')
+                    }}>
+                      {settings.depositEnabled ? '● AKTIF (WAJIB DIKEMBALIKAN SAAT CHECKOUT)' : '○ NONAKTIF (BEBAS DEPOSIT)'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: isLight ? '#475569' : '#94a3b8', lineHeight: 1.45 }}>
+                    Tentukan apakah penyewa baru diwajibkan membayar deposit jaminan saat sewa pertama kali.
+                  </p>
+                </div>
+
+                <label
+                  data-testid="toggle-deposit-setting"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    background: settings.depositEnabled ? 'rgba(16, 185, 129, 0.14)' : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)'),
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    border: `1px solid ${settings.depositEnabled ? 'rgba(16, 185, 129, 0.45)' : (isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.12)')}`
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={Boolean(settings.depositEnabled)}
+                    onChange={(e) => {
+                      const nextEnabled = e.target.checked;
+                      setSettings(prev => {
+                        const prevPref = Number(prev.depositAmount) > 0
+                          ? Number(prev.depositAmount)
+                          : (Number(prev.depositPreferredAmount) > 0 ? Number(prev.depositPreferredAmount) : 500000);
+                        return {
+                          ...prev,
+                          depositEnabled: nextEnabled,
+                          depositPreferredAmount: prevPref,
+                          depositAmount: nextEnabled ? prevPref : 0
+                        };
+                      });
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981' }}
+                  />
+                  <span style={{ fontSize: '0.84rem', fontWeight: 700, color: settings.depositEnabled ? (isLight ? '#047857' : '#34d399') : (isLight ? '#475569' : '#cbd5e1') }}>
+                    {settings.depositEnabled ? 'Deposit Aktif' : 'Nyalakan Deposit'}
+                  </span>
                 </label>
-                <input 
-                  type="number" 
-                  className="input-field"
-                  placeholder="Contoh: 500000"
-                  value={settings.depositAmount || ''} 
-                  onChange={e => setSettings({...settings, depositAmount: e.target.value})} 
-                />
               </div>
+
+              {settings.depositEnabled ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ flex: '1 1 220px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: isLight ? '#334155' : 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
+                        <DollarSign size={14} color="#10b981" /> Nominal Deposit Jaminan (Rp)
+                      </label>
+                      <input
+                        type="number"
+                        data-testid="input-deposit-amount"
+                        min="0"
+                        className="input-field"
+                        placeholder="Contoh: 500000"
+                        value={settings.depositAmount || ''}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setSettings(prev => ({
+                            ...prev,
+                            depositAmount: e.target.value,
+                            depositPreferredAmount: val > 0 ? val : prev.depositPreferredAmount
+                          }));
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingTop: '20px' }}>
+                      {[300000, 500000, 1000000].map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setSettings(prev => ({
+                            ...prev,
+                            depositEnabled: true,
+                            depositAmount: preset,
+                            depositPreferredAmount: preset
+                          }))}
+                          className={`btn btn-sm ${Number(settings.depositAmount) === preset ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: '0.75rem', padding: '6px 10px' }}
+                        >
+                          Rp {(preset / 1000).toLocaleString('id-ID')}rb
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: isLight ? '#047857' : '#34d399', lineHeight: 1.45 }}>
+                    ✓ Deposit akan <strong>otomatis masuk tagihan QRIS</strong> saat calon penghuni checkout sewa pertama kali, dan <strong>wajib dikembalikan</strong> saat penghuni check-out (dikurangi kerusakan sah bila ada).
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: isLight ? '1px dashed #cbd5e1' : '1px dashed rgba(148, 163, 184, 0.3)',
+                  fontSize: '0.8rem',
+                  color: isLight ? '#475569' : '#94a3b8'
+                }}>
+                  <strong>Bebas Deposit (Rp 0):</strong> Calon penghuni tidak dikenakan uang deposit dan hanya membayar biaya sewa + biaya layanan QRIS TriPay saat checkout.
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
               <button 
                 type="button" 
+                data-testid="save-kost-settings-btn"
                 onClick={() => handleSaveKostSettings()} 
                 disabled={savingSettings}
                 className="btn btn-secondary btn-sm"
                 style={{ gap: '6px' }}
               >
-                <Save size={14} /> Simpan Skema & Tarif Utilitas
+                <Save size={14} /> Simpan Skema, Utilitas & Deposit
               </button>
             </div>
           </div>
@@ -4579,19 +4716,19 @@ const Dashboard = ({ user }) => {
     return <UserDashboard user={user} />;
   }
 
-  // If role is mitra, redirect to /mitra (Portal UMKM & Kasir POS)
-  if (user?.role === 'mitra' || user?.role === 'bisnis' || user?.role === 'merchant') {
-    return <Navigate to="/mitra" replace />;
+  // Mitra and Mitra employees go straight to Kasir POS
+  if (isMitraRole(user?.role) || isMitraStaff(user)) {
+    return <Navigate to="/kasir" replace />;
   }
 
-  // If role is staff / penjaga kost, show StaffDashboard directly
-  if (user?.role === 'staff' || user?.role === 'karyawan' || user?.role === 'pegawai') {
+  // Kost staff see Kost operational dashboard
+  if (isEmployeeRole(user?.role)) {
     return <StaffDashboard user={user} />;
   }
 
   // Owner / Master: Check if in Staff Operations Mode (Mode Ambil Alih Juragan)
   if (currentView === 'staff') {
-    const activeKostUid = user?.kostUid || localStorage.getItem('kostUid') || 'KOST-OJN64X';
+    const activeKostUid = user?.kostUid || localStorage.getItem('kostUid') || '';
     return (
       <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* Delegation Control Header Banner */}

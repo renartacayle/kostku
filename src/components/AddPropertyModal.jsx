@@ -711,11 +711,11 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
               </span>
             </div>
             <p style={{ margin: 0, fontSize: '0.76rem', color: isLight ? '#78350f' : '#cbd5e1', lineHeight: 1.45 }}>
-              Dapat rekomendasi platform KostKu dari anak kost Anda? Masukkan kode referral penghuni (contoh: <code>KOST-122-OSCAR</code>). Anak kost pereferensi akan menerima <strong>+1.000 Poin loyalty</strong> dan akun pemilik Anda mendapatkan <strong>+500 Poin bonus selamat datang</strong>!
+              Dapat rekomendasi KostKu dari penghuni atau teman? Masukkan kode referral terdaftar (contoh: <code>KOSTKU-1234</code>). Pengajak menerima <strong>+1.000 Poin loyalty</strong> &amp; Owner mendapat <strong>+500 Poin</strong>! <em>(Anti-abuse: 1x per pemilik &amp; dilarang memakai kode sendiri)</em>.
             </p>
             <input
               type="text"
-              placeholder="Contoh: KOST-122-OSCAR"
+              placeholder="Contoh: KOSTKU-1234"
               value={referralCode}
               onChange={e => setReferralCode(e.target.value.toUpperCase())}
               className="input-field"

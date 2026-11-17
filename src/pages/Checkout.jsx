@@ -30,7 +30,7 @@ import {
   apiGetPaymentStatus, 
   apiChargeQris 
 } from '../services/api';
-import { generateQrisDataUrl } from '../utils/qrisEngine';
+import { generateQrisDataUrl, calculateQrisCustomerFee } from '../utils/qrisEngine';
 import Footer from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
 import UnpaidNoticeModal from '../components/UnpaidNoticeModal';
@@ -39,17 +39,17 @@ import UnpaidNoticeModal from '../components/UnpaidNoticeModal';
 const PAYMENT_CATEGORIES = [
   {
     id: 'qris',
-    title: 'QRIS Dinamis (Khusus Pembayaran Instan)',
+    title: 'QRIS Dinamis TriPay (Khusus Pembayaran Instan)',
     subtitle: 'BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay & Seluruh m-Banking',
     icon: QrCode,
-    badge: 'Biaya Flat Rp 100',
+    badge: 'Biaya Rp 750 + 0,70%',
     badgeColor: '#0284c7',
     methods: [
       {
         id: 'QRIS',
-        name: 'QRIS Dinamis Nasional',
-        desc: 'Scan dari seluruh m-Banking & e-Wallet di Indonesia (Biaya layanan flat Rp 500)',
-        fee: 500,
+        name: 'QRIS Dinamis TriPay',
+        desc: 'Scan dari seluruh m-Banking & e-Wallet di Indonesia (Biaya layanan Rp 750 + 0,70% ditanggung customer)',
+        feeType: 'tripay_qris',
         logoText: 'QRIS'
       }
     ]
@@ -75,7 +75,6 @@ export default function Checkout({ user }) {
   }, [paramKostId, paramOrderId, paramTransactionId, navigate]);
 
   // Kost & Room selection state
-  const [allKosts, setAllKosts] = useState([]);
   const [selectedKost, setSelectedKost] = useState(null);
   const [selectedRoomNumber, setSelectedRoomNumber] = useState(paramRoom || '');
   const [duration, setDuration] = useState(paramDuration);
@@ -114,14 +113,28 @@ export default function Checkout({ user }) {
   // Load Kosts
   useEffect(() => {
     setLoadingKosts(true);
-    apiGetPublicKosts()
-      .then(data => {
-        const list = Array.isArray(data) ? data : (data?.kosts || []);
-        setAllKosts(list);
+    apiGetPublicKosts({ noCache: true })
+      .then(async data => {
+        let list = Array.isArray(data) ? data : (data?.kosts || []);
 
         let target = null;
         if (paramKostId) {
           target = list.find(k => k.uid === paramKostId);
+        }
+        const isDemoSession = typeof window !== 'undefined' && (
+          localStorage.getItem('kostku_is_demo_mode') === 'true' ||
+          window.location.search.includes('demo=true')
+        );
+        if (!target && paramKostId && isDemoSession) {
+          try {
+            const demoData = await apiGetPublicKosts({ includeDemo: true, noCache: true });
+            const demoList = Array.isArray(demoData) ? demoData : (demoData?.kosts || []);
+            const demoTarget = demoList.find(k => k.uid === paramKostId);
+            if (demoTarget) {
+              target = demoTarget;
+              list = [...list, demoTarget];
+            }
+          } catch (_) {}
         }
         if (!target) {
           try {
@@ -161,17 +174,48 @@ export default function Checkout({ user }) {
   const monthlyRent = selectedRoomObj ? Number(selectedRoomObj.price || selectedKost?.price || 1500000) : Number(selectedKost?.price || 1500000);
   const subtotalRent = monthlyRent * duration;
 
+  const ownerDiscount = selectedKost?.discount || selectedKost?.settings?.discount || null;
+  const isDiscountActive = Boolean(
+    ownerDiscount &&
+    ownerDiscount.enabled &&
+    Number(ownerDiscount.value) > 0 &&
+    (!ownerDiscount.validUntil || new Date(ownerDiscount.validUntil + 'T23:59:59') >= new Date())
+  );
+  let discountAmount = 0;
+  let discountedMonths = 0;
+  if (isDiscountActive) {
+    discountedMonths = ownerDiscount.durationMonths === 'all'
+      ? duration
+      : Math.min(duration, Number(ownerDiscount.durationMonths) || 1);
+    const cutPerMonth = ownerDiscount.type === 'percent'
+      ? Math.round(monthlyRent * (Number(ownerDiscount.value) / 100))
+      : Math.min(monthlyRent, Number(ownerDiscount.value) || 0);
+    discountAmount = cutPerMonth * discountedMonths;
+  }
+  const netRent = Math.max(0, subtotalRent - discountAmount);
+
+  // Deposit Jaminan (Refundable) mengikuti pengaturan kost owner & otomatis masuk QRIS bila aktif
+  const rawDepositVal = Number(selectedKost?.depositAmount ?? selectedKost?.settings?.depositAmount ?? 0) || 0;
+  const isDepositEnabled = selectedKost?.depositEnabled !== undefined
+    ? Boolean(selectedKost.depositEnabled) && rawDepositVal > 0
+    : rawDepositVal > 0;
+  const depositAmount = isDepositEnabled ? rawDepositVal : 0;
+
+  // Basis nominal pembayaran = Sewa Bersih + Deposit Jaminan Refundable
+  const taxableTotal = netRent + depositAmount;
+
   // Selected payment method object
   const currentMethod = useMemo(() => {
     for (const cat of PAYMENT_CATEGORIES) {
       const found = cat.methods.find(m => m.id === selectedMethodId);
       if (found) return { ...found, category: cat.id };
     }
-    return { id: 'QRIS', name: 'QRIS Dinamis', fee: 500, category: 'qris' };
+    return { id: 'QRIS', name: 'QRIS Dinamis TriPay', feeType: 'tripay_qris', category: 'qris' };
   }, [selectedMethodId]);
 
-  const gatewayFee = currentMethod?.fee !== undefined ? currentMethod.fee : 500;
-  const grandTotal = subtotalRent + gatewayFee;
+  const qrisFeeCalc = useMemo(() => calculateQrisCustomerFee(taxableTotal, 'customer'), [taxableTotal]);
+  const gatewayFee = currentMethod?.feeType === 'tripay_qris' ? qrisFeeCalc.fee : (currentMethod?.fee ?? 0);
+  const grandTotal = taxableTotal + gatewayFee;
 
   // 15-minute countdown during payment step
   useEffect(() => {
@@ -264,7 +308,14 @@ export default function Checkout({ user }) {
         checkInDate,
         job: customerJob,
         notes: customerNotes,
-        phone: customerPhone.trim()
+        phone: customerPhone.trim(),
+        monthlyRent,
+        subtotalRent,
+        discountAmount,
+        netRent,
+        depositAmount,
+        depositRefundable: depositAmount > 0,
+        gatewayFee
       };
 
       const trxRes = await apiCreatePaymentTransaction({
@@ -661,11 +712,11 @@ export default function Checkout({ user }) {
                 <div style={{
                   background: themeStyles.bgCard,
                   border: themeStyles.borderCard,
-                  borderRadius: '20px',
-                  padding: '1.5rem',
+                  borderRadius: '18px',
+                  padding: 'clamp(0.95rem, 3vw, 1.45rem)',
                   boxShadow: isLight ? '0 4px 16px rgba(15, 23, 42, 0.05)' : '0 10px 30px rgba(0,0,0,0.35)'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Building size={18} color="#2563eb" />
                       <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: themeStyles.textTitle }}>
@@ -717,43 +768,6 @@ export default function Checkout({ user }) {
                           </span>
                         </div>
                       </div>
-
-                      {/* Dropdown Ganti Kost jika ada opsi lain */}
-                      {allKosts.length > 1 && (
-                        <div style={{ marginBottom: '1rem' }}>
-                          <label htmlFor="checkout-kost-select" style={{ display: 'block', fontSize: '0.75rem', color: themeStyles.textMuted, marginBottom: '4px' }}>
-                            Pilih Properti Kost Lainnya:
-                          </label>
-                          <select
-                            id="checkout-kost-select"
-                            value={selectedKost.uid}
-                            onChange={(e) => {
-                              const k = allKosts.find(item => item.uid === e.target.value);
-                              if (k) {
-                                setSelectedKost(k);
-                                if (k.rooms && k.rooms.length > 0) {
-                                  setSelectedRoomNumber(k.rooms[0].number);
-                                }
-                              }
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px',
-                              borderRadius: '10px',
-                              background: themeStyles.bgInput,
-                              border: themeStyles.borderInput,
-                              color: themeStyles.textInput,
-                              fontSize: '0.85rem'
-                            }}
-                          >
-                            {allKosts.map(k => (
-                              <option key={k.uid} value={k.uid} style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>
-                                {k.kostName} ({k.address || 'Semarang'})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
 
                       {/* Grid Pilihan Kamar & Durasi */}
                       <div className="checkout-two-col-grid">
@@ -851,12 +865,12 @@ export default function Checkout({ user }) {
                   background: themeStyles.bgCard,
                   border: themeStyles.borderCard,
                   borderRadius: '20px',
-                  padding: '1.5rem',
+                  padding: 'clamp(0.95rem, 3vw, 1.5rem)',
                   boxShadow: isLight ? '0 4px 16px rgba(15, 23, 42, 0.05)' : '0 10px 30px rgba(0,0,0,0.35)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem' }}>
                     <User size={18} color="#2563eb" />
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: themeStyles.textTitle }}>
+                    <h2 style={{ fontSize: 'clamp(0.98rem, 3.2vw, 1.1rem)', fontWeight: 800, margin: 0, color: themeStyles.textTitle }}>
                       2. Identitas Penyewa (Wajib Terverifikasi)
                     </h2>
                   </div>
@@ -998,13 +1012,13 @@ export default function Checkout({ user }) {
                   background: themeStyles.bgCard,
                   border: themeStyles.borderCard,
                   borderRadius: '20px',
-                  padding: '1.5rem',
+                  padding: 'clamp(0.95rem, 3vw, 1.5rem)',
                   boxShadow: isLight ? '0 4px 16px rgba(15, 23, 42, 0.05)' : '0 10px 30px rgba(0,0,0,0.35)'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CreditCard size={18} color="#2563eb" />
-                      <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: themeStyles.textTitle }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <CreditCard size={18} color="#2563eb" style={{ flexShrink: 0 }} />
+                      <h2 style={{ fontSize: 'clamp(0.98rem, 3.2vw, 1.1rem)', fontWeight: 800, margin: 0, color: themeStyles.textTitle }}>
                         3. Pilih Metode Pembayaran Resmi
                       </h2>
                     </div>
@@ -1039,18 +1053,19 @@ export default function Checkout({ user }) {
                               }
                             }}
                             style={{
-                              padding: '14px 16px',
+                              padding: 'clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 16px)',
                               cursor: 'pointer',
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
+                              flexWrap: 'wrap',
                               gap: '8px'
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 180px' }}>
                               <div style={{
-                                width: '38px',
-                                height: '38px',
+                                width: '36px',
+                                height: '36px',
                                 borderRadius: '10px',
                                 background: isCatSelected ? (isLight ? 'rgba(37, 99, 235, 0.15)' : 'rgba(59, 130, 246, 0.25)') : (isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.06)'),
                                 color: isCatSelected ? '#2563eb' : themeStyles.textMuted,
@@ -1059,13 +1074,13 @@ export default function Checkout({ user }) {
                                 justifyContent: 'center',
                                 flexShrink: 0
                               }}>
-                                <Icon size={20} />
+                                <Icon size={18} />
                               </div>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: themeStyles.textTitle }}>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: themeStyles.textTitle }}>
                                   {category.title}
                                 </div>
-                                <div style={{ fontSize: '0.74rem', color: themeStyles.textMuted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontSize: '0.72rem', color: themeStyles.textMuted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {category.subtitle}
                                 </div>
                               </div>
@@ -1142,9 +1157,16 @@ export default function Checkout({ user }) {
                                     </div>
 
                                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                      <span style={{ fontSize: '0.72rem', color: method.fee === 0 ? '#10b981' : themeStyles.textMuted, fontWeight: 700 }}>
-                                        {method.fee === 0 ? 'Gratis' : `+Rp ${method.fee.toLocaleString('id-ID')}`}
-                                      </span>
+                                      {(() => {
+                                        const methodFee = method.feeType === 'tripay_qris'
+                                          ? qrisFeeCalc.fee
+                                          : Number(method.fee ?? 0);
+                                        return (
+                                          <span style={{ fontSize: '0.72rem', color: methodFee === 0 ? '#10b981' : '#0284c7', fontWeight: 700 }}>
+                                            {methodFee === 0 ? 'Gratis' : `+Rp ${methodFee.toLocaleString('id-ID')}`}
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
                                 );
@@ -1164,8 +1186,8 @@ export default function Checkout({ user }) {
                 <div style={{
                   background: themeStyles.bgCardRight,
                   border: themeStyles.borderCardRight,
-                  borderRadius: '24px',
-                  padding: '1.75rem',
+                  borderRadius: '20px',
+                  padding: 'clamp(1rem, 3vw, 1.5rem)',
                   boxShadow: themeStyles.shadowCard
                 }}>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 1.25rem 0', color: themeStyles.textTitle }}>
@@ -1189,16 +1211,46 @@ export default function Checkout({ user }) {
                       <strong style={{ color: themeStyles.textTitle }}>Rp {subtotalRent.toLocaleString('id-ID')}</strong>
                     </div>
 
+                    {discountAmount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
+                        <span>Potongan Promo ({ownerDiscount?.label || 'Diskon'} - {discountedMonths} Bln):</span>
+                        <strong>- Rp {discountAmount.toLocaleString('id-ID')}</strong>
+                      </div>
+                    )}
+
+                    <div
+                      data-testid="checkout-deposit-row"
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        color: themeStyles.textMuted
+                      }}
+                    >
+                      <div>
+                        <span>Deposit Jaminan (Refundable):</span>
+                        {depositAmount > 0 && (
+                          <span style={{ display: 'block', fontSize: '0.7rem', color: isLight ? '#047857' : '#34d399', fontWeight: 600 }}>
+                            Masuk QRIS &amp; wajib dikembalikan saat check-out
+                          </span>
+                        )}
+                      </div>
+                      <strong style={{ color: depositAmount > 0 ? themeStyles.textTitle : '#059669', flexShrink: 0 }}>
+                        {depositAmount > 0 ? `Rp ${depositAmount.toLocaleString('id-ID')}` : 'Rp 0 (Bebas Deposit)'}
+                      </strong>
+                    </div>
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: themeStyles.textMuted }}>
-                      <span>Biaya Layanan Gateway:</span>
+                      <span>Biaya Layanan QRIS TriPay (Rp 750 + 0,70%):</span>
                       <strong style={{ color: '#059669' }}>
                         {gatewayFee === 0 ? 'Rp 0 (Promo Gratis)' : `Rp ${gatewayFee.toLocaleString('id-ID')}`}
                       </strong>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: themeStyles.textMuted }}>
-                      <span>Deposit Jaminan:</span>
-                      <strong style={{ color: '#059669' }}>Rp 0 (Bebas Deposit)</strong>
+                      <span>Biaya Admin KostKu:</span>
+                      <strong style={{ color: '#059669' }}>Rp 0 (Gratis)</strong>
                     </div>
 
                     <div style={{
@@ -1269,10 +1321,10 @@ export default function Checkout({ user }) {
                     marginTop: '1.25rem',
                     padding: '12px',
                     borderRadius: '12px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
                     fontSize: '0.72rem',
-                    color: '#94a3b8',
+                    color: themeStyles.textMuted,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '6px'
@@ -1284,6 +1336,15 @@ export default function Checkout({ user }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <CheckCircle2 size={14} color="#60a5fa" />
                       <span>Didukung Payment Gateway resmi berizin Bank Indonesia</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: 1.45 }}>
+                      <FileText size={14} color="#2563eb" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <span>
+                        S&amp;K QRIS: Pembayaran via QRIS dikenakan biaya layanan resmi TriPay (Rp 750 + 0,70%), sedangkan biaya admin platform KostKu adalah <strong>Rp 0</strong>.{' '}
+                        <Link to="/syarat-ketentuan" style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'underline' }}>
+                          Lihat S&amp;K
+                        </Link>
+                      </span>
                     </div>
                   </div>
 
@@ -1353,20 +1414,37 @@ export default function Checkout({ user }) {
                 borderRadius: '16px',
                 padding: '14px 18px',
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                flexDirection: 'column',
+                gap: '8px',
                 marginBottom: '1.5rem'
               }}>
-                <div>
-                  <span style={{ fontSize: '0.74rem', color: isLight ? '#1e40af' : '#93c5fd', display: 'block', fontWeight: 600 }}>Total Tagihan:</span>
-                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: isLight ? '#1d4ed8' : '#ffffff' }}>
-                    Rp {grandTotal.toLocaleString('id-ID')}
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.74rem', color: isLight ? '#1e40af' : '#93c5fd', display: 'block', fontWeight: 600 }}>Total Tagihan QRIS:</span>
+                    <span style={{ fontSize: '1.45rem', fontWeight: 900, color: isLight ? '#1d4ed8' : '#ffffff' }}>
+                      Rp {grandTotal.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Kamar {selectedRoomNumber}</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#2563eb' : '#60a5fa' }}>{selectedKost?.kostName}</span>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8', display: 'block' }}>Kamar {selectedRoomNumber}</span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#2563eb' : '#60a5fa' }}>{selectedKost?.kostName}</span>
-                </div>
+                {depositAmount > 0 && (
+                  <div style={{
+                    borderTop: isLight ? '1px dashed #93c5fd' : '1px dashed rgba(96, 165, 250, 0.35)',
+                    paddingTop: '6px',
+                    fontSize: '0.74rem',
+                    color: isLight ? '#1e3a8a' : '#cbd5e1',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '6px'
+                  }}>
+                    <span>Termasuk Deposit Jaminan (Refundable): <strong>Rp {depositAmount.toLocaleString('id-ID')}</strong></span>
+                    <span style={{ color: isLight ? '#047857' : '#34d399', fontWeight: 700 }}>Wajib kembali saat check-out</span>
+                  </div>
+                )}
               </div>
 
               {/* ── Sub-view A: QRIS DINAMIS ──────────────────────────── */}
@@ -1560,6 +1638,12 @@ export default function Checkout({ user }) {
                     <span style={{ color: '#64748b' }}>Metode Bayar:</span>
                     <span style={{ color: '#0f172a', fontWeight: 600 }}>{settledReceipt.paymentMethod}</span>
                   </div>
+                  {depositAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Deposit Jaminan (Wajib Refund Saat Check-Out):</span>
+                      <strong style={{ color: '#047857' }}>Rp {depositAmount.toLocaleString('id-ID')}</strong>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>
                     <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>Total Dibayar:</strong>
                     <strong style={{ color: '#0284c7', fontSize: '1.1rem' }}>
@@ -1648,7 +1732,7 @@ export default function Checkout({ user }) {
         amount={grandTotal}
         orderId={transaction?.orderId || ''}
         paymentMethod={transaction?.paymentMethod || selectedMethodId || 'QRIS'}
-        serviceName={`Sewa Kost - ${selectedKost?.name || 'Kamar Kost'}`}
+        serviceName={`Sewa Kost - ${selectedKost?.kostName || selectedKost?.name || 'Kamar Kost'}`}
         message={unpaidErrorMsg || 'Sistem belum menerima konfirmasi pembayaran dari gateway. Jika Anda baru saja melakukan transfer atau scan di aplikasi perbankan/e-wallet, mohon tunggu 5–15 detik agar mutasi berhasil tercatat.'}
       />
 

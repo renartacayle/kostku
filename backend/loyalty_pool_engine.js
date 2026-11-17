@@ -570,11 +570,140 @@ function deductStoreNotaFeeOnce(db, merchant, order, { channel = 'POS Kasir', fo
   };
 }
 
+function computeDeterministicReferralCode(userId) {
+  const uid = String(userId || 'usr-1');
+  let hash = 0;
+  for (let i = 0; i < uid.length; i++) {
+    hash = ((hash << 5) - hash) + uid.charCodeAt(i);
+    hash |= 0;
+  }
+  const codeNum = Math.abs(hash % 9000) + 1000;
+  return `KOSTKU-${codeNum}`;
+}
+
+function getUserReferralCode(user) {
+  if (!user) return '';
+  const raw = String(user.referralCode || '').trim().toUpperCase();
+  const isBlockedLegacy = !raw || raw.includes('OSCAR') || raw.includes('122') || raw.includes('ANAKKOST') || raw === 'KOSTKU-DEMO' || raw === 'KOSTKU-XXXX';
+  if (!isBlockedLegacy) {
+    return raw;
+  }
+  return computeDeterministicReferralCode(user.id);
+}
+
+/**
+ * Validates that a referral code belongs to a real registered KostKu account
+ * and blocks self-referral across user ID, own referral code, phone, and email.
+ */
+function resolveStrictReferralCandidate(db, {
+  referralCode,
+  applicantUserId = null,
+  applicantUser = null,
+  extraPhone = '',
+  extraEmail = '',
+  allowSelf = false
+} = {}) {
+  const cleanCode = String(referralCode || '').trim().toUpperCase();
+  if (!cleanCode) {
+    return { ok: false, reason: 'EMPTY_CODE', message: 'Kode referral kosong.' };
+  }
+
+  const invalidSamples = new Set(['KOSTKU-DEMO', 'KOSTKU-XXXX', 'ANAKKOST123', 'PROMO', 'GRATIS']);
+  if (invalidSamples.has(cleanCode) || cleanCode.includes('OSCAR')) {
+    return {
+      ok: false,
+      reason: 'INVALID_CODE',
+      message: `Kode referral "${cleanCode}" tidak valid. Gunakan Kode Referral KostKu asli milik akun terdaftar.`
+    };
+  }
+
+  const users = Array.isArray(db?.users) ? db.users : [];
+  let referrerUser = users.find((u) => {
+    if (!u) return false;
+    const explicit = String(u.referralCode || '').trim().toUpperCase();
+    if (explicit && explicit === cleanCode) return true;
+    return cleanCode.startsWith('KOSTKU-') && computeDeterministicReferralCode(u.id) === cleanCode;
+  }) || null;
+
+  let referrerCustomer = null;
+  if (!referrerUser && db?.customers && typeof db.customers === 'object') {
+    referrerCustomer = Object.values(db.customers).find(
+      (c) => c && c.referral_code && String(c.referral_code).trim().toUpperCase() === cleanCode
+    ) || null;
+    if (referrerCustomer?.whatsapp_number) {
+      const custDigits = normalizePhoneDigits(referrerCustomer.whatsapp_number);
+      if (custDigits) {
+        referrerUser = users.find(
+          (u) => normalizePhoneDigits(u?.phone || u?.whatsapp || u?.whatsapp_number) === custDigits
+        ) || null;
+      }
+    }
+  }
+
+  if (!referrerUser && !referrerCustomer) {
+    return {
+      ok: false,
+      reason: 'INVALID_CODE',
+      message: `Kode referral "${cleanCode}" tidak ditemukan. Pastikan kode referral terdaftar pada akun KostKu aktif.`
+    };
+  }
+
+  const resolvedApplicant = applicantUser || (applicantUserId ? users.find((u) => String(u.id) === String(applicantUserId)) : null);
+  const referrerPhones = [
+    referrerUser?.phone,
+    referrerUser?.whatsapp,
+    referrerUser?.whatsapp_number,
+    referrerCustomer?.whatsapp_number
+  ].map(normalizePhoneDigits).filter((p) => p.length >= 8);
+
+  const applicantPhones = [
+    resolvedApplicant?.phone,
+    resolvedApplicant?.whatsapp,
+    resolvedApplicant?.whatsapp_number,
+    extraPhone
+  ].map(normalizePhoneDigits).filter((p) => p.length >= 8);
+
+  const referrerEmail = String(referrerUser?.email || '').trim().toLowerCase();
+  const applicantEmails = [
+    resolvedApplicant?.email,
+    extraEmail
+  ].map((e) => String(e || '').trim().toLowerCase()).filter(Boolean);
+
+  const sameId = Boolean(applicantUserId && referrerUser && String(referrerUser.id) === String(applicantUserId));
+  const sameOwnCode = Boolean(resolvedApplicant && getUserReferralCode(resolvedApplicant) === cleanCode);
+  const samePhone = referrerPhones.some((rp) => applicantPhones.includes(rp));
+  const sameEmail = Boolean(referrerEmail && applicantEmails.includes(referrerEmail));
+  const isSelfReferral = sameId || sameOwnCode || samePhone || sameEmail;
+
+  if (!allowSelf && isSelfReferral) {
+    return {
+      ok: false,
+      reason: 'SELF_REFERRAL_BLOCKED',
+      isSelfReferral: true,
+      referrerUser,
+      referrerCustomer,
+      code: cleanCode,
+      message: 'Kode referral akun sendiri / identitas yang sama tidak dapat diklaim (anti-abuse self-referral).'
+    };
+  }
+
+  return {
+    ok: true,
+    isSelfReferral,
+    code: cleanCode,
+    referrerUser,
+    referrerCustomer
+  };
+}
+
 module.exports = {
   TIER_1_FEE_IDR,
   TIER_2_FEE_IDR,
   normalizePhoneDigits,
   getDisplayPhone,
+  computeDeterministicReferralCode,
+  getUserReferralCode,
+  resolveStrictReferralCandidate,
   ensureLoyaltyCollections,
   buildAuthorizedOwnerAliasSet,
   doesOwnerOwnMerchant,

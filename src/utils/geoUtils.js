@@ -281,6 +281,43 @@ export function getGmapsPlaceUrl(lat, lng, name) {
 export const getUserCurrentLocation = getCurrentPositionAsync;
 
 /**
+ * Extracts latitude/longitude coordinates and optional place label from a Google Maps URL.
+ * Supports @lat,lng, ?q=lat,lng, !3dlat!4dlng, and short link detection.
+ * @param {string} rawUrl
+ * @returns {{ lat: number|null, lng: number|null, placeName: string, isGoogleMapsUrl: boolean, isShortLink: boolean }}
+ */
+export function extractCoordsFromMapsUrl(rawUrl) {
+  const url = String(rawUrl || '').trim();
+  const isGoogleMapsUrl = /https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)\b/i.test(url);
+  const isShortLink = /maps\.app\.goo\.gl|goo\.gl\/maps/i.test(url);
+
+  let placeName = '';
+  const placeMatch = url.match(/\/maps\/place\/([^/@?]+)/i);
+  if (placeMatch?.[1]) {
+    try {
+      placeName = decodeURIComponent(placeMatch[1].replace(/\+/g, ' ')).trim();
+    } catch (_) {
+      placeName = placeMatch[1].replace(/\+/g, ' ').trim();
+    }
+  }
+
+  const coordMatch =
+    url.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) ||
+    url.match(/[?&](?:q|query|ll|center)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) ||
+    url.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+
+  if (coordMatch) {
+    const lat = Number(coordMatch[1]);
+    const lng = Number(coordMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      return { lat, lng, placeName, isGoogleMapsUrl, isShortLink };
+    }
+  }
+
+  return { lat: null, lng: null, placeName, isGoogleMapsUrl, isShortLink };
+}
+
+/**
  * Validates that an owner's Google Maps link points to their registered Kost business place pin,
  * and strictly REJECTS generic street/road links or links with mismatching names.
  * @param {string} rawUrl 

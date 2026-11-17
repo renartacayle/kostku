@@ -19,7 +19,9 @@ const {
   reverseOrderPoolPoints,
   deductStoreNotaFeeOnce,
   findOrCreateLoyaltyCustomer,
-  normalizePhoneDigits
+  getCustomerPoolWallet,
+  normalizePhoneDigits,
+  resolveStrictReferralCandidate
 } = require('./loyalty_pool_engine');
 const {
   runAndCacheForecastBatch,
@@ -125,339 +127,19 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     db.customer_points = db.customer_points || {};
     db.customer_stamps = db.customer_stamps || {};
     db.pos_spin_logs = db.pos_spin_logs || [];
+    db.pos_user_active_store = db.pos_user_active_store || {};
+    db.pos_shifts = db.pos_shifts || [];
     ensureLoyaltyCollections(db);
-    db.pos_redeem_codes = db.pos_redeem_codes || [
-      {
-        id: 'REDEEM-KASIR-50',
-        code: 'KASIRBONUS50',
-        type: 'KUOTA_NOTA',
-        quotaNota: 50,
-        saldoBonus: 5000,
-        maxQuota: 20, // kuota klaim untuk 20 toko
-        usedCount: 0,
-        usedBy: [],
-        description: 'Bonus 50 Kuota Nota Kasir (Rp 5.000)',
-        isActive: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'REDEEM-KASIR-100',
-        code: 'KOSTKUMERDEKA',
-        type: 'KUOTA_NOTA',
-        quotaNota: 100,
-        saldoBonus: 10000,
-        maxQuota: 10, // kuota klaim untuk 10 toko
-        usedCount: 0,
-        usedBy: [],
-        description: 'Bonus Spesial 100 Kuota Nota Kasir (Rp 10.000)',
-        isActive: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'REDEEM-KASIR-VIP',
-        code: 'VIPKASIR250',
-        type: 'KUOTA_NOTA',
-        quotaNota: 250,
-        saldoBonus: 25000,
-        maxQuota: 5, // kuota klaim untuk 5 toko
-        usedCount: 0,
-        usedBy: [],
-        description: 'Bonus Kuota Mitra Prioritas 250 Nota (Rp 25.000)',
-        isActive: true,
-        createdAt: new Date().toISOString()
-      }
-    ];
+    db.pos_redeem_codes = db.pos_redeem_codes || [];
 
-    // Koleksi Promo Makanan (Bisa Kuota, Tanggal, atau Keduanya oleh Owner/Mitra/Kasir/Admin)
-    db.pos_food_promos = db.pos_food_promos || [
-      {
-        id: 'PROMO-FOOD-01',
-        title: 'Promo Mie Gacoan Hemat (Diskon Rp 3.000)',
-        code: 'GACOANHEMAT',
-        scope: 'SPECIFIC_ITEM',
-        targetProductId: 'prod-1',
-        targetProductName: 'Mie Gacoan Level 2',
-        discountType: 'FIXED',
-        discountValue: 3000,
-        minOrder: 0,
-        limitType: 'QUOTA', // Berdasarkan batas kuota pemakaian
-        maxQuota: 25,
-        usedCount: 4,
-        startDate: new Date().toISOString().slice(0, 10),
-        expiryDate: null,
-        isActive: true,
-        createdByRole: 'owner',
-        description: 'Diskon Rp 3.000 per porsi untuk 25 pemesan pertama',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'PROMO-FOOD-02',
-        title: 'Promo Diskon 15% Semua Menu',
-        code: 'WEEKENDSERU',
-        scope: 'ALL',
-        targetProductId: null,
-        targetProductName: null,
-        discountType: 'PERCENT',
-        discountValue: 15,
-        minOrder: 25000,
-        limitType: 'DATE', // Berdasarkan batas tanggal
-        maxQuota: null,
-        usedCount: 2,
-        startDate: new Date().toISOString().slice(0, 10),
-        expiryDate: '2026-11-30',
-        isActive: true,
-        createdByRole: 'mitra',
-        description: 'Diskon 15% semua menu min. belanja Rp 25.000 berlaku s/d 30 November 2026',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'PROMO-FOOD-03',
-        title: 'Super Kenyang Hemat Rp 5.000',
-        code: 'KENYANG5K',
-        scope: 'ALL',
-        targetProductId: null,
-        targetProductName: null,
-        discountType: 'FIXED',
-        discountValue: 5000,
-        minOrder: 20000,
-        limitType: 'BOTH', // Berdasarkan kuota DAN tanggal
-        maxQuota: 50,
-        usedCount: 8,
-        startDate: new Date().toISOString().slice(0, 10),
-        expiryDate: '2026-11-25',
-        isActive: true,
-        createdByRole: 'admin',
-        description: 'Potongan Rp 5.000 untuk 50 porsi atau s/d 25 November 2026',
-        createdAt: new Date().toISOString()
-      }
-    ];
+    // Koleksi Promo Makanan (Mulai kosong pada Mode Real — demo data ada di demo_db.json)
+    db.pos_food_promos = db.pos_food_promos || [];
 
-    // ── KOLEKSI GUDANG & BAHAN BAKU (INVENTORY & STOCK ENGINE) ──
-    db.pos_inventory = db.pos_inventory || [
-      {
-        id: 'INV-MIE',
-        name: 'Mie Basah Telur Segar',
-        category: 'Bahan Pokok',
-        unit: 'porsi',
-        currentStock: 25,
-        minAlertStock: 15,
-        costPerUnit: 2500,
-        supplier: 'CV Berkah Pangan Mandiri',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-AYAM',
-        name: 'Daging Ayam Cincang Marinasi',
-        category: 'Protein & Daging',
-        unit: 'gram',
-        currentStock: 450,
-        minAlertStock: 500, // MENIPIS
-        costPerUnit: 45,
-        supplier: 'Rumah Potong Unggas Sejahtera',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-PANGSIT',
-        name: 'Kulit & Pangsit Goreng Crispy',
-        category: 'Topping & Snack',
-        unit: 'pcs',
-        currentStock: 35,
-        minAlertStock: 20,
-        costPerUnit: 800,
-        supplier: 'UMKM Keripik Barokah',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-MINYAK-CABAI',
-        name: 'Minyak Cabai & Sambal Level',
-        category: 'Bumbu & Saus',
-        unit: 'ml',
-        currentStock: 180,
-        minAlertStock: 200, // MENIPIS
-        costPerUnit: 25,
-        supplier: 'Dapur Rempah KostKu',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-BERAS',
-        name: 'Beras Ramos Premium',
-        category: 'Bahan Pokok',
-        unit: 'gram',
-        currentStock: 5000,
-        minAlertStock: 2000,
-        costPerUnit: 14,
-        supplier: 'Gudang Beras Delanggu',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-TELUR',
-        name: 'Telur Ayam Negeri Segar',
-        category: 'Protein & Daging',
-        unit: 'butir',
-        currentStock: 18,
-        minAlertStock: 10,
-        costPerUnit: 2000,
-        supplier: 'Peternakan Ayam Makmur',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-SOSIS',
-        name: 'Sosis Sapi Panggang',
-        category: 'Protein & Daging',
-        unit: 'pcs',
-        currentStock: 24,
-        minAlertStock: 15,
-        costPerUnit: 1500,
-        supplier: 'Distributor Frozen Food',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-AYAM-POTONG',
-        name: 'Ayam Potong Marinasi Madu',
-        category: 'Protein & Daging',
-        unit: 'potong',
-        currentStock: 12,
-        minAlertStock: 15, // MENIPIS
-        costPerUnit: 8000,
-        supplier: 'Rumah Potong Unggas Sejahtera',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-MADU',
-        name: 'Madu Alami Murni',
-        category: 'Bumbu & Saus',
-        unit: 'ml',
-        currentStock: 350,
-        minAlertStock: 200,
-        costPerUnit: 50,
-        supplier: 'Peternak Lebah Nusantara',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-KOPI',
-        name: 'Biji Kopi Robusta Blend',
-        category: 'Kopi & Minuman',
-        unit: 'gram',
-        currentStock: 850,
-        minAlertStock: 300,
-        costPerUnit: 150,
-        supplier: 'Roastery Kopi Temanggung',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-SUSU',
-        name: 'Susu Segar Fresh Milk',
-        category: 'Kopi & Minuman',
-        unit: 'ml',
-        currentStock: 420,
-        minAlertStock: 500, // MENIPIS
-        costPerUnit: 20,
-        supplier: 'Koperasi Susu Boyolali',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-GULA-AREN',
-        name: 'Sirup Gula Aren Organik',
-        category: 'Kopi & Minuman',
-        unit: 'ml',
-        currentStock: 650,
-        minAlertStock: 250,
-        costPerUnit: 35,
-        supplier: 'Produsen Gula Semut Cilacap',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-TEH',
-        name: 'Daun Teh Melati Wangi',
-        category: 'Kopi & Minuman',
-        unit: 'gram',
-        currentStock: 600,
-        minAlertStock: 200,
-        costPerUnit: 40,
-        supplier: 'Perkebunan Teh Pagilaran',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-BOX-KERTAS',
-        name: 'Box Kraft Food Grade',
-        category: 'Kemasan & Packaging',
-        unit: 'pcs',
-        currentStock: 80,
-        minAlertStock: 30,
-        costPerUnit: 1200,
-        supplier: 'Pabrik Kemasan Paperindo',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-CUP-PLASTIK',
-        name: 'Cup Plastik 16oz + Tutup',
-        category: 'Kemasan & Packaging',
-        unit: 'pcs',
-        currentStock: 55,
-        minAlertStock: 25,
-        costPerUnit: 900,
-        supplier: 'Distributor Plastik Semarang',
-        lastRestocked: new Date().toISOString()
-      },
-      {
-        id: 'INV-SEDOTAN',
-        name: 'Sedotan Steril Higienis',
-        category: 'Kemasan & Packaging',
-        unit: 'pcs',
-        currentStock: 120,
-        minAlertStock: 50,
-        costPerUnit: 150,
-        supplier: 'Distributor Plastik Semarang',
-        lastRestocked: new Date().toISOString()
-      }
-    ];
+    // ── KOLEKSI GUDANG & BAHAN BAKU (Mulai kosong pada Mode Real) ──
+    db.pos_inventory = db.pos_inventory || [];
 
-    // ── RESEP BAHAN BAKU PER MENU (RESEP YANG DIKURANGI DARI GUDANG) ──
-    db.pos_recipes = db.pos_recipes || {
-      'prod-1': [ // Mie Gacoan Level 2
-        { inventoryId: 'INV-MIE', amount: 1, name: 'Mie Basah Telur Segar', unit: 'porsi' },
-        { inventoryId: 'INV-AYAM', amount: 40, name: 'Daging Ayam Cincang Marinasi', unit: 'gram' },
-        { inventoryId: 'INV-PANGSIT', amount: 2, name: 'Kulit & Pangsit Goreng Crispy', unit: 'pcs' },
-        { inventoryId: 'INV-MINYAK-CABAI', amount: 15, name: 'Minyak Cabai & Sambal Level', unit: 'ml' },
-        { inventoryId: 'INV-BOX-KERTAS', amount: 1, name: 'Box Kraft Food Grade', unit: 'pcs' }
-      ],
-      'prod-2': [ // Nasi Goreng Spesial Kost
-        { inventoryId: 'INV-BERAS', amount: 150, name: 'Beras Ramos Premium', unit: 'gram' },
-        { inventoryId: 'INV-TELUR', amount: 1, name: 'Telur Ayam Negeri Segar', unit: 'butir' },
-        { inventoryId: 'INV-SOSIS', amount: 1, name: 'Sosis Sapi Panggang', unit: 'pcs' },
-        { inventoryId: 'INV-AYAM', amount: 25, name: 'Daging Ayam Cincang Marinasi', unit: 'gram' },
-        { inventoryId: 'INV-BOX-KERTAS', amount: 1, name: 'Box Kraft Food Grade', unit: 'pcs' }
-      ],
-      'prod-1794122158680': [ // Ayam Bakar Madu Pedas
-        { inventoryId: 'INV-AYAM-POTONG', amount: 1, name: 'Ayam Potong Marinasi Madu', unit: 'potong' },
-        { inventoryId: 'INV-MADU', amount: 20, name: 'Madu Alami Murni', unit: 'ml' },
-        { inventoryId: 'INV-MINYAK-CABAI', amount: 10, name: 'Minyak Cabai & Sambal Level', unit: 'ml' },
-        { inventoryId: 'INV-BOX-KERTAS', amount: 1, name: 'Box Kraft Food Grade', unit: 'pcs' }
-      ],
-      'prod-3': [ // Pangsit Goreng Crispy (3 pcs)
-        { inventoryId: 'INV-PANGSIT', amount: 3, name: 'Kulit & Pangsit Goreng Crispy', unit: 'pcs' },
-        { inventoryId: 'INV-BOX-KERTAS', amount: 1, name: 'Box Kraft Food Grade', unit: 'pcs' }
-      ],
-      'prod-4': [ // Es Teh Manis Jumbo
-        { inventoryId: 'INV-TEH', amount: 10, name: 'Daun Teh Melati Wangi', unit: 'gram' },
-        { inventoryId: 'INV-CUP-PLASTIK', amount: 1, name: 'Cup Plastik 16oz + Tutup', unit: 'pcs' },
-        { inventoryId: 'INV-SEDOTAN', amount: 1, name: 'Sedotan Steril Higienis', unit: 'pcs' }
-      ],
-      'prod-5': [ // Es Kopi Susu Gula Aren
-        { inventoryId: 'INV-KOPI', amount: 18, name: 'Biji Kopi Robusta Blend', unit: 'gram' },
-        { inventoryId: 'INV-SUSU', amount: 150, name: 'Susu Segar Fresh Milk', unit: 'ml' },
-        { inventoryId: 'INV-GULA-AREN', amount: 25, name: 'Sirup Gula Aren Organik', unit: 'ml' },
-        { inventoryId: 'INV-CUP-PLASTIK', amount: 1, name: 'Cup Plastik 16oz + Tutup', unit: 'pcs' },
-        { inventoryId: 'INV-SEDOTAN', amount: 1, name: 'Sedotan Steril Higienis', unit: 'pcs' }
-      ],
-      'prod-1794122115732': [ // Kopi Susu Aren Spesial
-        { inventoryId: 'INV-KOPI', amount: 18, name: 'Biji Kopi Robusta Blend', unit: 'gram' },
-        { inventoryId: 'INV-SUSU', amount: 150, name: 'Susu Segar Fresh Milk', unit: 'ml' },
-        { inventoryId: 'INV-GULA-AREN', amount: 25, name: 'Sirup Gula Aren Organik', unit: 'ml' },
-        { inventoryId: 'INV-CUP-PLASTIK', amount: 1, name: 'Cup Plastik 16oz + Tutup', unit: 'pcs' },
-        { inventoryId: 'INV-SEDOTAN', amount: 1, name: 'Sedotan Steril Higienis', unit: 'pcs' }
-      ]
-    };
+    // ── RESEP BAHAN BAKU PER MENU (Mulai kosong pada Mode Real) ──
+    db.pos_recipes = db.pos_recipes || {};
 
     db.settings = db.settings || {};
     db.settings.posStore = db.settings.posStore || {
@@ -470,9 +152,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     };
     // Kebijakan Terpadu: Kasir POS dan Mitra UMKM menggunakan 1 UID yang sama
     const primaryMerchant = (db.merchants || [])[0];
-    const sharedUid = db.settings.posStore.merchantId || db.settings.posStore.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
-    db.settings.posStore.uid = sharedUid;
-    db.settings.posStore.merchantId = sharedUid;
+    const sharedUid = db.settings.posStore.merchantId || db.settings.posStore.uid || primaryMerchant?.id || '';
+    if (sharedUid) {
+      db.settings.posStore.uid = sharedUid;
+      db.settings.posStore.merchantId = sharedUid;
+    }
     db.settings.posTripay = db.settings.posTripay || {
       apiKey: '',
       privateKey: '',
@@ -491,73 +175,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       });
     }
 
-    // Auto-seed default products if totally empty
-    if (db.pos_products.length === 0) {
-      db.pos_products = [
-        {
-          id: 'prod-1',
-          name: 'Mie Gacoan Level 2',
-          category: 'Makanan',
-          price: 13000,
-          stock: 99,
-          isAvailable: true,
-          description: 'Mie pedas gurih manis dengan topping ayam cincang dan pangsit goreng renyah.',
-          image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80'
-        },
-        {
-          id: 'prod-2',
-          name: 'Nasi Goreng Spesial Kost',
-          category: 'Makanan',
-          price: 18000,
-          stock: 50,
-          isAvailable: true,
-          description: 'Nasi goreng dengan telur mata sapi, sosis, dan suwiran ayam.',
-          image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80'
-        },
-        {
-          id: 'prod-3',
-          name: 'Pangsit Goreng Crispy (3 pcs)',
-          category: 'Snack',
-          price: 10000,
-          stock: 60,
-          isAvailable: true,
-          description: 'Pangsit isi ayam udang digoreng renyah dengan saus asam manis.',
-          image: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=500&q=80'
-        },
-        {
-          id: 'prod-4',
-          name: 'Es Teh Manis Jumbo',
-          category: 'Minuman',
-          price: 4000,
-          stock: 200,
-          isAvailable: true,
-          description: 'Teh melati wangi dingin segar porsi besar.',
-          image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80'
-        },
-        {
-          id: 'prod-5',
-          name: 'Es Kopi Susu Gula Aren',
-          category: 'Minuman',
-          price: 12000,
-          stock: 80,
-          isAvailable: true,
-          description: 'Espresso robusta mantap dengan susu segar dan gula aren murni.',
-          image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&q=80'
-        }
-      ];
-    }
-
-    // Auto-seed default tables only once on fresh database initialization
+    // Jangan auto-seed produk atau meja dummy di Mode Real (demo_db.json sudah menyediakan data demo)
     if (!db._posTablesSeeded) {
-      if (db.pos_tables.length === 0) {
-        db.pos_tables = [
-          { id: 'tbl-1', number: 'Meja 01', qrToken: 'MEJA-01-TKN881' },
-          { id: 'tbl-2', number: 'Meja 02', qrToken: 'MEJA-02-TKN882' },
-          { id: 'tbl-3', number: 'Meja 03', qrToken: 'MEJA-03-TKN883' },
-          { id: 'tbl-4', number: 'Meja 04', qrToken: 'MEJA-04-TKN884' },
-          { id: 'tbl-5', number: 'Meja 05', qrToken: 'MEJA-05-TKN885' }
-        ];
-      }
       db._posTablesSeeded = true;
     }
 
@@ -663,15 +282,310 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   };
 
   // ── 0. STORE & CASHIER LOCATION (MULTI-STORE PER OWNER ENGINE) ─────────
+  const TRIPAY_QRIS_FIXED_FEE_IDR = 750;
+  const TRIPAY_QRIS_PERCENT_RATE = 0.007;
+  const calculateTripayQrisCustomerFee = (baseAmount = 0) => {
+    const cleanBase = Math.max(0, Math.round(Number(baseAmount) || 0));
+    if (cleanBase <= 0) {
+      return { baseAmount: 0, fixedFee: 0, percentFee: 0, fee: 0, totalWithFee: 0 };
+    }
+    const percentFee = Math.round(cleanBase * TRIPAY_QRIS_PERCENT_RATE);
+    const fee = TRIPAY_QRIS_FIXED_FEE_IDR + percentFee;
+    return {
+      baseAmount: cleanBase,
+      fixedFee: TRIPAY_QRIS_FIXED_FEE_IDR,
+      percentFee,
+      fee,
+      totalWithFee: cleanBase + fee
+    };
+  };
+
+  const normalizeNotaFeeBearer = (val) => (
+    String(val || '').toLowerCase().trim() === 'customer' ? 'customer' : 'store'
+  );
+
+  const resolveStoreNotaFeeBearer = (db, merchant = null) => (
+    normalizeNotaFeeBearer(merchant?.notaFeeBearer ?? db?.settings?.posStore?.notaFeeBearer ?? 'store')
+  );
+
+  const computePosOrderFeeSnapshot = ({ baseAmount = 0, notaFeeIdr = TIER_1_FEE_IDR, notaFeeBearer = 'store', paymentMethod = '' } = {}) => {
+    const cleanBase = Math.max(0, Math.round(Number(baseAmount) || 0));
+    const cleanNotaFee = Math.max(0, Math.round(Number(notaFeeIdr) || 0));
+    const bearer = normalizeNotaFeeBearer(notaFeeBearer);
+    const pm = String(paymentMethod || '').toUpperCase().trim();
+    const isGatewayQris = pm === 'TRIPAY' || pm === 'QRIS';
+    const customerAdminFee = bearer === 'customer' ? cleanNotaFee : 0;
+    const qrisCalc = isGatewayQris
+      ? calculateTripayQrisCustomerFee(cleanBase)
+      : { fixedFee: 0, percentFee: 0, fee: 0 };
+
+    return {
+      baseAmount: cleanBase,
+      notaFeeIdr: cleanNotaFee,
+      notaFeeBearer: bearer,
+      customerAdminFee,
+      qrisFee: qrisCalc.fee,
+      qrisFeeFixed: qrisCalc.fixedFee,
+      qrisFeePercent: qrisCalc.percentFee,
+      totalAmount: cleanBase + customerAdminFee + qrisCalc.fee
+    };
+  };
+
+  const resolveOrderBillingContext = (db, order) => {
+    const merchants = Array.isArray(db?.merchants) ? db.merchants : [];
+    const activeMerchants = merchants.filter(m => m && m.status !== 'deleted');
+    const merchant = (order?.storeId
+      ? activeMerchants.find(m => String(m.id) === String(order.storeId))
+      : null)
+      || (db?.settings?.posStore?.merchantId
+        ? activeMerchants.find(m => String(m.id) === String(db.settings.posStore.merchantId))
+        : null)
+      || activeMerchants[0]
+      || null;
+    const billingProfile = getStoreBillingProfile(db, merchant);
+    const billingFeeIdr = Number(order?.billing_fee_idr ?? billingProfile.notaFeeIdr ?? TIER_1_FEE_IDR);
+    const notaFeeBearer = resolveStoreNotaFeeBearer(db, merchant);
+    const baseAmt = Number(
+      order?.baseAmountBeforePaymentFee
+      ?? Math.max(0, Number(order?.totalAmount || 0) - (Number(order?.qrisFee) || 0) - (Number(order?.customerAdminFee) || 0))
+    );
+    const sharedUid = String(
+      merchant?.id
+      || (order?.storeId && order.storeId !== 'pos-store-default' ? order.storeId : '')
+      || db?.settings?.posStore?.merchantId
+      || db?.settings?.posStore?.uid
+      || 'MTR-KASIR-MASTER'
+    );
+    return {
+      merchant,
+      sharedUid,
+      baseAmt,
+      billingFeeIdr,
+      notaFeeBearer
+    };
+  };
+
+  const settlePosOrderIntoUnifiedWallet = (db, order, merchant, billingFeeIdr) => {
+    if (!db || !order || order.walletCredited) return null;
+    db.unified_wallets = db.unified_wallets || {};
+    const targetUid = String(
+      merchant?.id
+      || (order.storeId && order.storeId !== 'pos-store-default' ? order.storeId : '')
+      || db.settings?.posStore?.merchantId
+      || db.settings?.posStore?.uid
+      || 'MTR-KASIR-MASTER'
+    );
+    if (!db.unified_wallets[targetUid]) {
+      db.unified_wallets[targetUid] = {
+        uid: targetUid,
+        name: merchant?.name || db.settings?.posStore?.storeName || 'Kasir POS & Mitra Terpadu',
+        balance: 0,
+        totalEarned: 0,
+        totalSettled: 0,
+        gateway: 'TriPay Master KostKu (T53543)',
+        history: []
+      };
+    }
+    const w = db.unified_wallets[targetUid];
+    const baseAmt = Number(
+      order.baseAmountBeforePaymentFee
+      ?? Math.max(0, Number(order.totalAmount || 0) - (Number(order.qrisFee) || 0) - (Number(order.customerAdminFee) || 0))
+    );
+    const borneByCustomer = (order.notaFeeBorneBy || order.notaFeeBearer || 'store') === 'customer';
+    const feeIdr = Math.max(0, Math.round(Number(billingFeeIdr) || 0));
+    const alreadyDeductedNota = (Number(order.notaDeducted) || 0) > 0;
+    const netAmount = (borneByCustomer || alreadyDeductedNota)
+      ? baseAmt
+      : Math.max(0, baseAmt - feeIdr);
+
+    w.balance = (Number(w.balance) || 0) + netAmount;
+    w.totalEarned = (Number(w.totalEarned) || 0) + netAmount;
+    w.history = Array.isArray(w.history) ? w.history : [];
+    w.history.unshift({
+      id: 'WAL-POS-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+      type: 'deposit',
+      amount: netAmount,
+      balanceAfter: w.balance,
+      orderId: order.id,
+      source: 'pos_qris',
+      description: `Pembayaran KostKu QRIS POS #${order.invoice_number || order.id}${!borneByCustomer && !alreadyDeductedNota && feeIdr > 0 ? ` (Net setelah potongan nota Rp ${feeIdr})` : ''}`,
+      createdAt: new Date().toISOString()
+    });
+    if (w.history.length > 100) w.history = w.history.slice(0, 100);
+    order.walletCredited = true;
+    order.netWalletCredited = netAmount;
+    order.walletCreditedUid = targetUid;
+    return { targetUid, netAmount, balanceAfter: w.balance };
+  };
+
+  const finalizeTripayPosOrderPayment = (db, order, merchant, billingFeeIdr) => {
+    if (!order) return null;
+    const feeIdr = Math.max(0, Math.round(Number(billingFeeIdr ?? order.billing_fee_idr ?? TIER_1_FEE_IDR) || 0));
+    const bearer = normalizeNotaFeeBearer(
+      order.notaFeeBorneBy || order.notaFeeBearer || resolveStoreNotaFeeBearer(db, merchant)
+    );
+    const borneByCustomer = bearer === 'customer';
+
+    if (borneByCustomer) {
+      order.notaDeducted = 0;
+      order.notaBypassReason = 'CUSTOMER_PAID_VIA_KOSTKU_QRIS';
+    } else if (!order.notaDeducted && merchant && Number(merchant.saldoNota ?? 0) >= feeIdr) {
+      deductStoreNotaFeeOnce(db, merchant, order, {
+        channel: 'QRIS KostKu (Nota Toko)'
+      });
+    } else if (!borneByCustomer && !order.notaDeducted && feeIdr > 0) {
+      order.notaDeducted = 0;
+      order.notaSettledFromPayout = feeIdr;
+    }
+
+    order.notaFeeBearer = bearer;
+    order.notaFeeBorneBy = bearer;
+    order.feeBorneBy = bearer;
+    order.paymentMethod = order.paymentMethod || 'TRIPAY';
+    order.paymentStatus = 'PAID';
+    order.status = 'PREPARING';
+    order.paidAt = order.paidAt || new Date().toISOString();
+
+    return settlePosOrderIntoUnifiedWallet(db, order, merchant, feeIdr);
+  };
+
+  const SHIFT_PHOTO_CATEGORY_MAP = {
+    basi: { id: 'basi', label: 'Barang Basi / Kedaluwarsa' },
+    sisa: { id: 'sisa', label: 'Barang Sisa / Stok Akhir' },
+    gagal: { id: 'gagal', label: 'Barang Gagal / Rusak' },
+    error: { id: 'error', label: 'Kendala / Error / Retur' },
+    lainnya: { id: 'lainnya', label: 'Foto Laci & Kondisi Toko' }
+  };
+  const ALL_SHIFT_CATEGORY_IDS = Object.keys(SHIFT_PHOTO_CATEGORY_MAP);
+
+  const normalizeClosingShiftSettings = (raw = null) => {
+    const src = (raw && typeof raw === 'object') ? raw : {};
+    const hasCustomEnabled = Array.isArray(src.enabledCategories);
+    const enabledCategories = hasCustomEnabled
+      ? Array.from(new Set(src.enabledCategories.map(c => String(c || '').trim()).filter(c => SHIFT_PHOTO_CATEGORY_MAP[c])))
+      : [...ALL_SHIFT_CATEGORY_IDS];
+    const finalEnabled = enabledCategories.length > 0 ? enabledCategories : [...ALL_SHIFT_CATEGORY_IDS];
+
+    const requiredCategories = Array.isArray(src.requiredCategories)
+      ? Array.from(new Set(src.requiredCategories.map(c => String(c || '').trim()).filter(c => finalEnabled.includes(c))))
+      : [];
+
+    const customChecklist = Array.isArray(src.customChecklist)
+      ? src.customChecklist
+          .slice(0, 12)
+          .map((item, idx) => {
+            if (typeof item === 'string') {
+              const label = item.trim();
+              return label ? { id: `custom-${idx + 1}`, label, required: false } : null;
+            }
+            if (!item || typeof item !== 'object') return null;
+            const label = String(item.label || item.name || '').trim();
+            if (!label) return null;
+            return {
+              id: String(item.id || `custom-${idx + 1}`).trim(),
+              label,
+              required: Boolean(item.required)
+            };
+          })
+          .filter(Boolean)
+      : [];
+
+    return {
+      requireClosingPhoto: src.requireClosingPhoto !== undefined ? Boolean(src.requireClosingPhoto) : true,
+      requireItemNotes: src.requireItemNotes !== undefined ? Boolean(src.requireItemNotes) : true,
+      enabledCategories: finalEnabled,
+      requiredCategories,
+      customChecklist,
+      instructions: String(src.instructions || '').trim()
+    };
+  };
+
+  /**
+   * Enforce compulsory Mitra membership for all Kasir POS stores so every
+   * active store contributes to the Mitra marketplace catalog.
+   */
+  const normalizeStoreMode = () => 'mitra';
+
+  const KASIR_ONLINE_TTL_MS = 60 * 1000;
+
+  /** Determine if a store's Kasir web session has an active recent heartbeat. */
+  const isMerchantKasirOnline = (m, nowMs = Date.now()) => {
+    if (!m || m.status === 'deleted') return false;
+    if (m.kasirWebOnline !== true) return false;
+    if (m.isShiftOpen === false) return false;
+    const hbMs = m.lastKasirHeartbeatAt ? Date.parse(m.lastKasirHeartbeatAt) : NaN;
+    return Number.isFinite(hbMs) && (nowMs - hbMs) <= KASIR_ONLINE_TTL_MS;
+  };
+
+  /** Identify customer-converted point discount vouchers (`POIN-*` or `createdByRole === 'customer'`). */
+  const isPointConversionVoucher = (promo, codeStr = '') => {
+    const code = String(promo?.code || codeStr || '').trim().toUpperCase();
+    const role = String(promo?.createdByRole || '').trim().toLowerCase();
+    return role === 'customer' || code.startsWith('POIN-');
+  };
+
+  /**
+   * Resolve the target merchant + billing profile from explicit IDs, table QR token,
+   * claim token, order ID, or fall back to the active workspace POS store.
+   */
+  const resolveStoreContextForRequest = (db, { storeId = null, merchantId = null, tableToken = null, claimToken = null, orderId = null } = {}) => {
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+    const table = tableToken
+      ? (db.pos_tables || []).find(t => String(t.qrToken || '') === String(tableToken).trim())
+      : null;
+    const claim = claimToken
+      ? (db.receipt_claims || []).find(c => String(c.claim_token || '') === String(claimToken).trim() || String(c.id || '') === String(claimToken).trim())
+      : null;
+    const ord = orderId
+      ? (db.pos_orders || []).find(o => String(o.id || '') === String(orderId).trim())
+      : null;
+
+    const candidateId = storeId
+      || merchantId
+      || table?.storeId
+      || table?.merchantId
+      || claim?.merchant_id
+      || ord?.storeId
+      || db.settings?.posStore?.merchantId
+      || db.settings?.posStore?.uid
+      || null;
+
+    let merchant = candidateId
+      ? db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(candidateId))
+      : null;
+    if (!merchant && !storeId && !merchantId && !table?.storeId && !claim?.merchant_id && !ord?.storeId) {
+      merchant = db.merchants.find(m => m && m.status !== 'deleted') || null;
+    }
+    const billingProfile = getStoreBillingProfile(db, merchant || { id: candidateId || 'STORE-DEFAULT', loyalty_pool_id: null });
+    return {
+      merchant,
+      table,
+      billingProfile,
+      isTier2: Boolean(billingProfile.activePool),
+      explicitStoreRequested: Boolean(storeId || merchantId || table?.storeId || table?.merchantId || claim?.merchant_id || ord?.storeId)
+    };
+  };
+
   const serializeOwnerStore = (m, db = null) => {
     if (!m) return null;
     const profile = getStoreBillingProfile(db || { loyalty_pools: [] }, m);
     const saldo = Number(m.saldoNota ?? 5000);
     const kuota = Math.max(0, Math.floor(saldo / profile.notaFeeIdr));
+    const resolvedStoreMode = normalizeStoreMode(m.storeMode, m.kasirOnly, m.isMitra, 'mitra');
+    const resolvedKasirOnly = false;
+    const kasirOnline = isMerchantKasirOnline(m);
     return {
       id: m.id,
       name: m.name || 'Toko Mitra',
       category: m.category || 'Makanan & Minuman',
+      storeMode: resolvedStoreMode,
+      kasirOnly: resolvedKasirOnly,
+      isMitra: true,
+      kasirOnline,
+      isOnline: kasirOnline,
+      onlineStatus: kasirOnline ? 'online' : 'offline',
+      lastKasirHeartbeatAt: m.lastKasirHeartbeatAt || null,
       location: m.storeLocation || (m.location && typeof m.location === 'string' ? m.location : '') || m.address || 'Stand Utama',
       address: m.address || '',
       city: m.city || '',
@@ -679,6 +593,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       mapsUrl: m.mapsUrl || '',
       latitude: m.latitude ?? m.location?.lat ?? null,
       longitude: m.longitude ?? m.location?.lng ?? null,
+      photo: m.photo || m.image || m.coverImage || '',
+      closingShiftSettings: normalizeClosingShiftSettings(m.closingShiftSettings),
+      branchCount: Number(m.branchCount || 1),
+      branchIndex: Number(m.branchIndex || 1),
+      parentStoreId: m.parentStoreId || null,
       icon: '',
       saldoNota: saldo,
       kuotaNota: kuota,
@@ -689,10 +608,149 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       notaFeePerNotaIdr: profile.notaFeeIdr,
       isValidated: Boolean((m.name || m.storeName) && (typeof m.location === 'string' ? m.location : m.address || m.storeLocation)),
       isPosStore: Boolean(m.isPosStore),
+      isUserUmkmStore: Boolean(m.isUserUmkmStore),
       ownerUserId: m.ownerUserId || null,
       posOwnerId: m.posOwnerId || m.ownerUserId || null,
       kostUid: m.kostUid || null,
       createdAt: m.createdAt || null
+    };
+  };
+
+  /** Resolve active merchants explicitly owned by a specific user/staff account (strictly isolated for tenants). */
+  const getDirectOwnerStores = (db, requestedOwnerId) => {
+    if (!requestedOwnerId) return { ownerUser: null, stores: [] };
+    const cleanReq = String(requestedOwnerId).trim();
+    const ownerUser = (db.users || []).find(u => u && String(u.id) === cleanReq) || null;
+    const aliasSet = new Set([cleanReq]);
+    if (ownerUser) {
+      if (ownerUser.merchantId) aliasSet.add(String(ownerUser.merchantId));
+      if (ownerUser.role === 'staff' || ownerUser.role === 'admin' || ownerUser.role === 'karyawan') {
+        if (ownerUser.ownerId) aliasSet.add(String(ownerUser.ownerId));
+        if (ownerUser.ownerUid) aliasSet.add(String(ownerUser.ownerUid));
+        if (ownerUser.employerId) aliasSet.add(String(ownerUser.employerId));
+      }
+    }
+    const activeMerchants = (db.merchants || []).filter(m => m && m.status !== 'deleted');
+    const stores = activeMerchants.filter(m => {
+      const mId = String(m.id || '');
+      const mOwner = m.ownerUserId ? String(m.ownerUserId) : '';
+      const mPosOwner = m.posOwnerId ? String(m.posOwnerId) : '';
+      return (
+        (mOwner && aliasSet.has(mOwner)) ||
+        (mPosOwner && aliasSet.has(mPosOwner)) ||
+        (ownerUser?.merchantId && mId === String(ownerUser.merchantId))
+      );
+    });
+    return { ownerUser, stores };
+  };
+
+  const ALLOWED_GMAPS_HOST_RE = /^(?:maps\.app\.goo\.gl|goo\.gl|(?:www\.)?maps\.google\.[a-z.]+|(?:www\.)?google\.[a-z.]+)$/i;
+
+  const extractCoordsFromMapsUrl = (rawUrl) => {
+    const urlStr = String(rawUrl || '').trim();
+    if (!urlStr) return { lat: null, lng: null, placeName: '', isGoogleMapsUrl: false, isShortLink: false };
+    const isGoogleMapsUrl = /https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)\b/i.test(urlStr);
+    const isShortLink = /maps\.app\.goo\.gl|goo\.gl\/maps/i.test(urlStr);
+
+    let placeName = '';
+    const placeMatch = urlStr.match(/\/maps\/place\/([^/@?]+)/i);
+    if (placeMatch?.[1]) {
+      try {
+        placeName = decodeURIComponent(placeMatch[1].replace(/\+/g, ' ')).trim();
+      } catch (_) {
+        placeName = placeMatch[1].replace(/\+/g, ' ').trim();
+      }
+    }
+
+    const m =
+      urlStr.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) ||
+      urlStr.match(/[?&](?:q|query|ll|center)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) ||
+      urlStr.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+    if (m) {
+      const lat = Number(m[1]);
+      const lng = Number(m[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return { lat, lng, placeName, isGoogleMapsUrl, isShortLink };
+      }
+    }
+    return { lat: null, lng: null, placeName, isGoogleMapsUrl, isShortLink };
+  };
+
+  /**
+   * Resolves Google Maps URLs (including allowlisted short links like maps.app.goo.gl)
+   * into coordinates { lat, lng } and normalized destination URL.
+   */
+  const resolveGoogleMapsLink = async (rawUrl) => {
+    const cleanUrl = String(rawUrl || '').trim();
+    const initial = extractCoordsFromMapsUrl(cleanUrl);
+    if (Number.isFinite(initial.lat) && Number.isFinite(initial.lng) && initial.lat !== null && initial.lng !== null) {
+      return { ...initial, resolvedUrl: cleanUrl };
+    }
+
+    let resolvedUrl = cleanUrl;
+    let parsed = initial;
+
+    try {
+      const u = new URL(cleanUrl);
+      const isHttp = u.protocol === 'https:' || u.protocol === 'http:';
+      if (isHttp && ALLOWED_GMAPS_HOST_RE.test(u.hostname)) {
+        const resp = await fetch(cleanUrl, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: AbortSignal.timeout(5000),
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KostKuPOS/1.0)' }
+        });
+        if (resp?.url) {
+          resolvedUrl = resp.url;
+          parsed = extractCoordsFromMapsUrl(resolvedUrl);
+        }
+        if (parsed.lat === null && resp?.ok) {
+          const ct = String(resp.headers?.get?.('content-type') || '');
+          if (ct.includes('text/html')) {
+            const html = (await resp.text()).slice(0, 120000);
+            const htmlMatch =
+              html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) ||
+              html.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+              html.match(/[?&](?:ll|center|q)=(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i);
+            if (htmlMatch) {
+              const hLat = Number(htmlMatch[1]);
+              const hLng = Number(htmlMatch[2]);
+              if (Number.isFinite(hLat) && Number.isFinite(hLng) && hLat >= -90 && hLat <= 90 && hLng >= -180 && hLng <= 180) {
+                parsed = { ...parsed, lat: hLat, lng: hLng };
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // Fallback safely when offline or remote link refuses connection
+    }
+
+    if (parsed.lat === null && parsed.placeName) {
+      try {
+        const nomRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=id&q=${encodeURIComponent(parsed.placeName)}`,
+          {
+            signal: AbortSignal.timeout(4000),
+            headers: { 'User-Agent': 'KostKuPOS/1.0' }
+          }
+        );
+        if (nomRes.ok) {
+          const rows = await nomRes.json();
+          if (Array.isArray(rows) && rows[0]) {
+            const nLat = Number(rows[0].lat);
+            const nLng = Number(rows[0].lon);
+            if (Number.isFinite(nLat) && Number.isFinite(nLng)) {
+              parsed = { ...parsed, lat: Number(nLat.toFixed(6)), lng: Number(nLng.toFixed(6)) };
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return {
+      ...parsed,
+      resolvedUrl
     };
   };
 
@@ -761,12 +819,33 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     const allOwnerStores = getOwnerStoresList(db, target, requestedOwnerId);
     const isValid = Boolean(resolvedName && (resolvedLocation || resolvedAddress));
+    const resolvedPhoto = (target && (target.photo || target.image || target.coverImage)) || store.photo || '';
+    const resolvedBranchCount = Math.max(Number(target?.branchCount || 0), allOwnerStores.length || 1);
+    const resolvedClosingSettings = normalizeClosingShiftSettings(
+      target?.closingShiftSettings || store.closingShiftSettings || null
+    );
+
+    const resolvedStoreMode = normalizeStoreMode(
+      target?.storeMode ?? store.storeMode,
+      target?.kasirOnly ?? store.kasirOnly,
+      target?.isMitra ?? store.isMitra,
+      'mitra'
+    );
+    const resolvedKasirOnly = false;
+    const activeOnline = isMerchantKasirOnline(target || store);
 
     return {
       uid: activeUid,
       merchantId: activeUid,
       storeName: resolvedName,
       category: target?.category || store.category || 'Makanan & Minuman',
+      storeMode: 'mitra',
+      kasirOnly: resolvedKasirOnly,
+      isMitra: true,
+      kasirOnline: activeOnline,
+      isOnline: activeOnline,
+      onlineStatus: activeOnline ? 'online' : 'offline',
+      lastKasirHeartbeatAt: target?.lastKasirHeartbeatAt || null,
       location: resolvedLocation,
       address: resolvedAddress,
       city: resolvedCity,
@@ -774,7 +853,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       mapsUrl: resolvedMapsUrl,
       latitude: resolvedLat,
       longitude: resolvedLng,
+      photo: resolvedPhoto,
+      closingShiftSettings: resolvedClosingSettings,
+      branchCount: resolvedBranchCount,
+      branchIndex: Number(target?.branchIndex || 1),
+      isUserUmkmStore: Boolean(target?.isUserUmkmStore),
       isValidated: isValid,
+      hasRegisteredStore: true,
+      needsUmkmRegistration: false,
       saldoNota: currentSaldoNota,
       kuotaNota: currentKuotaNota,
       loyalty_pool_id: billingProfile.loyaltyPoolId,
@@ -783,6 +869,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       loyaltyPool: billingProfile.activePool,
       billingTier: billingProfile.billingTier,
       notaFeePerNotaIdr: billingProfile.notaFeeIdr,
+      notaFeeBearer: resolveStoreNotaFeeBearer(db, target),
       notaHistory: target?.notaHistory || [],
       allOwnerStores,
       updatedAt: target?.updatedAt || store.updatedAt || null
@@ -794,8 +881,95 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     ensurePosCollections(db);
     db.merchants = db.merchants || [];
     const requestedStoreId = req.query.merchantId || req.query.storeId;
-    const requestedOwnerId = req.query.ownerId || req.user?.id || null;
+    const requestedTableToken = String(req.query.tableToken || '').trim();
+    const requestedOwnerId = req.query.ownerId || req.user?.id || req.headers['x-user-id'] || null;
+    const requestedRole = String(req.query.userRole || req.headers['x-user-role'] || '').trim().toLowerCase();
     const store = db.settings.posStore || {};
+
+    // Public customer table QR access: only resolves the store owning this exact tableToken
+    if (requestedTableToken) {
+      const matchedTable = (db.pos_tables || []).find(t => String(t.qrToken || '') === requestedTableToken);
+      const targetStoreId = matchedTable?.storeId || matchedTable?.merchantId || requestedStoreId || null;
+      const targetMerchant =
+        (targetStoreId && db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(targetStoreId))) ||
+        null;
+      if (!targetMerchant) {
+        return res.status(404).json({
+          error: 'Meja QR tidak ditemukan atau toko belum terdaftar.',
+          hasRegisteredStore: false,
+          storeName: '',
+          merchantId: null,
+          uid: null
+        });
+      }
+      return res.json(buildActiveStorePayload(db, targetMerchant, targetMerchant.ownerUserId || null));
+    }
+
+    if (requestedOwnerId) {
+      const { ownerUser, stores: directOwned } = getDirectOwnerStores(db, requestedOwnerId);
+
+      if (directOwned.length > 0) {
+        const preferredStoreId =
+          requestedStoreId ||
+          db.pos_user_active_store?.[String(requestedOwnerId)] ||
+          ownerUser?.activePosStoreId ||
+          store.merchantId ||
+          store.uid;
+        const matchedDirect =
+          directOwned.find(m => String(m.id) === String(preferredStoreId)) || directOwned[0];
+        return res.json(buildActiveStorePayload(db, matchedDirect, requestedOwnerId));
+      }
+
+      // Signed-in user (owner/mitra/user/staff) without a registered POS store yet sees their own onboarding gate (NEVER another merchant!)
+      if (!req.isDemo) {
+        return res.json({
+          uid: null,
+          merchantId: null,
+          storeName: '',
+          category: '',
+          location: '',
+          address: '',
+          city: '',
+          phone: ownerUser?.phone || '',
+          mapsUrl: '',
+          latitude: null,
+          longitude: null,
+          photo: '',
+          branchCount: 0,
+          isValidated: false,
+          hasRegisteredStore: false,
+          needsUmkmRegistration: true,
+          saldoNota: 0,
+          kuotaNota: 0,
+          allOwnerStores: []
+        });
+      }
+    }
+
+    // Unauthenticated direct access in real mode: NEVER return another owner's store!
+    if (!req.isDemo && !requestedStoreId) {
+      return res.status(401).json({
+        error: 'Silakan login terlebih dahulu untuk mengakses Kasir POS.',
+        needsLogin: true,
+        hasRegisteredStore: false,
+        needsUmkmRegistration: true,
+        uid: null,
+        merchantId: null,
+        storeName: '',
+        saldoNota: 0,
+        kuotaNota: 0,
+        allOwnerStores: []
+      });
+    }
+
+    if (!req.isDemo && requestedStoreId) {
+      const explicitMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(requestedStoreId));
+      if (!explicitMerchant) {
+        return res.status(404).json({ error: 'Toko POS tidak ditemukan', hasRegisteredStore: false, merchantId: null, uid: null });
+      }
+      return res.json(buildActiveStorePayload(db, explicitMerchant, explicitMerchant.ownerUserId || null));
+    }
+
     const primaryMerchant = db.merchants.find(m => m && m.status !== 'deleted') || db.merchants[0];
     const sharedUid = requestedStoreId || store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
 
@@ -817,8 +991,29 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const db = getDB(req);
     ensurePosCollections(db);
     db.merchants = db.merchants || [];
-    const requestedOwnerId = req.query.ownerId || req.user?.id || null;
+    const requestedOwnerId = req.query.ownerId || req.user?.id || req.headers['x-user-id'] || null;
     const store = db.settings.posStore || {};
+
+    if (requestedOwnerId) {
+      const { ownerUser, stores: directOwned } = getDirectOwnerStores(db, requestedOwnerId);
+      if (directOwned.length > 0) {
+        const preferredId = db.pos_user_active_store?.[String(requestedOwnerId)] || ownerUser?.activePosStoreId || directOwned[0].id;
+        const activeM = directOwned.find(m => String(m.id) === String(preferredId)) || directOwned[0];
+        return res.json({
+          success: true,
+          stores: directOwned.map(m => serializeOwnerStore(m, db)),
+          activeStoreId: activeM?.id || null
+        });
+      }
+      if (!req.isDemo) {
+        return res.json({ success: true, stores: [], activeStoreId: null });
+      }
+    }
+
+    if (!req.isDemo) {
+      return res.status(401).json({ success: false, needsLogin: true, stores: [], activeStoreId: null });
+    }
+
     const currentMerchant =
       db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(store.merchantId || store.uid)) ||
       db.merchants.find(m => m && m.status !== 'deleted') ||
@@ -850,8 +1045,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       kostUid,
       switchAfterCreate = true,
       cloneMenu = false,
-      sourceStoreId = null
+      sourceStoreId = null,
+      storeMode,
+      kasirOnly,
+      joinMitra
     } = req.body || {};
+
+    const resolvedStoreMode = normalizeStoreMode(storeMode, kasirOnly, joinMitra, 'mitra');
+    const isKasirOnly = resolvedStoreMode === 'kasir_only';
 
     const cleanName = String(storeName || name || '').trim();
     const cleanLocation = String(location || '').trim();
@@ -860,8 +1061,13 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const cleanPhone = String(phone || '').trim();
     const cleanCategory = String(category || 'Makanan & Minuman').trim();
     const cleanMapsUrl = String(mapsUrl || '').trim();
-    const parsedLat = latitude !== undefined && latitude !== null && String(latitude).trim() !== '' ? Number(latitude) : null;
-    const parsedLng = longitude !== undefined && longitude !== null && String(longitude).trim() !== '' ? Number(longitude) : null;
+    const parsedFromUrl = extractCoordsFromMapsUrl(cleanMapsUrl);
+    const parsedLat = latitude !== undefined && latitude !== null && String(latitude).trim() !== ''
+      ? Number(latitude)
+      : parsedFromUrl.lat;
+    const parsedLng = longitude !== undefined && longitude !== null && String(longitude).trim() !== ''
+      ? Number(longitude)
+      : parsedFromUrl.lng;
 
     if (!cleanName) {
       return res.status(400).json({ error: 'Nama toko / cabang baru wajib diisi!' });
@@ -920,6 +1126,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       ],
       isPosStore: true,
       isValidated: true,
+      storeMode: resolvedStoreMode,
+      kasirOnly: isKasirOnly,
+      isMitra: !isKasirOnly,
       status: 'active',
       createdAt: nowIso,
       updatedAt: nowIso
@@ -1062,8 +1271,26 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     });
   });
 
-  router.post('/store', (req, res) => {
-    const { storeName, location, address, city, phone, merchantId, category, mapsUrl, latitude, longitude, ownerUserId, ownerId } = req.body;
+  router.post('/resolve-gmaps-link', async (req, res) => {
+    const rawUrl = String(req.body?.url || req.body?.mapsUrl || '').trim();
+    if (!rawUrl) {
+      return res.status(400).json({ error: 'Link Google Maps wajib diisi.' });
+    }
+    const resolved = await resolveGoogleMapsLink(rawUrl);
+    res.json({
+      success: true,
+      originalUrl: rawUrl,
+      resolvedUrl: resolved.resolvedUrl || rawUrl,
+      lat: resolved.lat,
+      lng: resolved.lng,
+      placeName: resolved.placeName || '',
+      isGoogleMapsUrl: Boolean(resolved.isGoogleMapsUrl),
+      isShortLink: Boolean(resolved.isShortLink)
+    });
+  });
+
+  router.post('/store', async (req, res) => {
+    const { storeName, location, address, city, phone, merchantId, category, mapsUrl, latitude, longitude, photo, closingShiftSettings, notaFeeBearer, ownerUserId, ownerId, storeMode, kasirOnly, joinMitra } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
     db.merchants = db.merchants || [];
@@ -1074,8 +1301,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const cleanCity = String(city || '').trim();
     const cleanPhone = String(phone || '').trim();
     const cleanMapsUrl = String(mapsUrl || '').trim();
-    const parsedLat = latitude !== undefined && latitude !== null && String(latitude).trim() !== '' ? Number(latitude) : null;
-    const parsedLng = longitude !== undefined && longitude !== null && String(longitude).trim() !== '' ? Number(longitude) : null;
+    const cleanPhoto = String(photo || '').trim();
+    const hasLatField = latitude !== undefined;
+    const hasLngField = longitude !== undefined;
+    const explicitLat = latitude !== undefined && latitude !== null && String(latitude).trim() !== '' ? Number(latitude) : null;
+    const explicitLng = longitude !== undefined && longitude !== null && String(longitude).trim() !== '' ? Number(longitude) : null;
 
     if (!cleanName) {
       return res.status(400).json({ error: 'Nama toko/kantin kasir wajib diisi!' });
@@ -1086,9 +1316,27 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     const primaryMerchant = db.merchants.find(m => m && m.status !== 'deleted') || db.merchants[0];
     const sharedUid = merchantId || req.body.uid || db.settings.posStore?.merchantId || db.settings.posStore?.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
-    const resolvedMapsUrl = cleanMapsUrl || (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) ? `https://maps.google.com/?q=${parsedLat},${parsedLng}` : '');
-
     let targetMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(sharedUid));
+
+    let urlCoords = extractCoordsFromMapsUrl(cleanMapsUrl);
+    if (cleanMapsUrl && urlCoords.lat === null && urlCoords.isShortLink) {
+      urlCoords = await resolveGoogleMapsLink(cleanMapsUrl);
+    }
+
+    const prevMapsUrl = String(targetMerchant?.mapsUrl || db.settings.posStore?.mapsUrl || '').trim();
+    const mapsUrlChanged = Boolean(cleanMapsUrl && cleanMapsUrl !== prevMapsUrl);
+    const parsedLat = Number.isFinite(explicitLat) && explicitLat !== null
+      ? (mapsUrlChanged && Number.isFinite(urlCoords.lat) && urlCoords.lat !== null && explicitLat === Number(targetMerchant?.latitude ?? NaN) ? urlCoords.lat : explicitLat)
+      : (Number.isFinite(urlCoords.lat) && urlCoords.lat !== null ? urlCoords.lat : null);
+    const parsedLng = Number.isFinite(explicitLng) && explicitLng !== null
+      ? (mapsUrlChanged && Number.isFinite(urlCoords.lng) && urlCoords.lng !== null && explicitLng === Number(targetMerchant?.longitude ?? NaN) ? urlCoords.lng : explicitLng)
+      : (Number.isFinite(urlCoords.lng) && urlCoords.lng !== null ? urlCoords.lng : null);
+
+    const finalMapsUrl = (urlCoords.isShortLink && urlCoords.resolvedUrl && urlCoords.lat !== null)
+      ? urlCoords.resolvedUrl
+      : cleanMapsUrl;
+    const resolvedMapsUrl = finalMapsUrl || (Number.isFinite(parsedLat) && parsedLat !== null && Number.isFinite(parsedLng) && parsedLng !== null ? `https://maps.google.com/?q=${parsedLat},${parsedLng}` : '');
+
     if (targetMerchant) {
       targetMerchant.name = cleanName;
       targetMerchant.storeLocation = cleanLocation;
@@ -1099,29 +1347,78 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       if (cleanAddress) targetMerchant.address = cleanAddress;
       if (cleanCity) targetMerchant.city = cleanCity;
       if (cleanPhone) targetMerchant.phone = cleanPhone;
-      if (resolvedMapsUrl) targetMerchant.mapsUrl = resolvedMapsUrl;
-      if (Number.isFinite(parsedLat)) targetMerchant.latitude = parsedLat;
-      if (Number.isFinite(parsedLng)) targetMerchant.longitude = parsedLng;
+      if (mapsUrl !== undefined) {
+        targetMerchant.mapsUrl = resolvedMapsUrl;
+      } else if (resolvedMapsUrl) {
+        targetMerchant.mapsUrl = resolvedMapsUrl;
+      }
+      if (Number.isFinite(parsedLat) && parsedLat !== null) {
+        targetMerchant.latitude = parsedLat;
+      } else if (hasLatField && (latitude === null || String(latitude).trim() === '')) {
+        targetMerchant.latitude = null;
+      }
+      if (Number.isFinite(parsedLng) && parsedLng !== null) {
+        targetMerchant.longitude = parsedLng;
+      } else if (hasLngField && (longitude === null || String(longitude).trim() === '')) {
+        targetMerchant.longitude = null;
+      }
+      if (cleanPhoto) {
+        targetMerchant.photo = cleanPhoto;
+        targetMerchant.image = cleanPhoto;
+      }
+      if (closingShiftSettings && typeof closingShiftSettings === 'object') {
+        targetMerchant.closingShiftSettings = normalizeClosingShiftSettings(closingShiftSettings);
+      }
+      if (notaFeeBearer !== undefined) {
+        targetMerchant.notaFeeBearer = normalizeNotaFeeBearer(notaFeeBearer);
+      }
+      const hasExplicitMode = storeMode !== undefined || kasirOnly !== undefined || joinMitra !== undefined;
+      const nextStoreMode = hasExplicitMode
+        ? normalizeStoreMode(storeMode, kasirOnly, joinMitra, targetMerchant.storeMode || 'mitra')
+        : normalizeStoreMode(targetMerchant.storeMode, targetMerchant.kasirOnly, targetMerchant.isMitra, 'mitra');
+      targetMerchant.storeMode = nextStoreMode;
+      targetMerchant.kasirOnly = nextStoreMode === 'kasir_only';
+      targetMerchant.isMitra = nextStoreMode !== 'kasir_only';
       targetMerchant.updatedAt = new Date().toISOString();
     }
 
-    db.settings.posStore = {
-      uid: sharedUid,
-      merchantId: sharedUid,
-      storeName: cleanName,
-      category: category || targetMerchant?.category || db.settings.posStore?.category || 'Makanan & Minuman',
-      location: cleanLocation,
-      address: cleanAddress || targetMerchant?.address || db.settings.posStore?.address || '',
-      city: cleanCity,
-      phone: cleanPhone,
-      mapsUrl: resolvedMapsUrl,
-      latitude: Number.isFinite(parsedLat) ? parsedLat : null,
-      longitude: Number.isFinite(parsedLng) ? parsedLng : null,
-      saldoNota: targetMerchant ? Number(targetMerchant.saldoNota ?? 5000) : Number(db.settings.posStore?.saldoNota ?? 5000),
-      kuotaNota: targetMerchant ? Number(targetMerchant.kuotaNota ?? 50) : Number(db.settings.posStore?.kuotaNota ?? 50),
-      isValidated: true,
-      updatedAt: new Date().toISOString()
-    };
+    if (!targetMerchant?.isUserUmkmStore) {
+      const nextClosingSettings = closingShiftSettings && typeof closingShiftSettings === 'object'
+        ? normalizeClosingShiftSettings(closingShiftSettings)
+        : normalizeClosingShiftSettings(targetMerchant?.closingShiftSettings || db.settings.posStore?.closingShiftSettings);
+      const nextNotaFeeBearer = notaFeeBearer !== undefined
+        ? normalizeNotaFeeBearer(notaFeeBearer)
+        : resolveStoreNotaFeeBearer(db, targetMerchant);
+      const settingsMode = normalizeStoreMode(
+        storeMode,
+        kasirOnly,
+        joinMitra,
+        targetMerchant?.storeMode || db.settings.posStore?.storeMode || 'mitra'
+      );
+      db.settings.posStore = {
+        uid: sharedUid,
+        merchantId: sharedUid,
+        storeName: cleanName,
+        category: category || targetMerchant?.category || db.settings.posStore?.category || 'Makanan & Minuman',
+        storeMode: settingsMode,
+        kasirOnly: settingsMode === 'kasir_only',
+        isMitra: settingsMode !== 'kasir_only',
+        location: cleanLocation,
+        address: cleanAddress || targetMerchant?.address || db.settings.posStore?.address || '',
+        city: cleanCity,
+        phone: cleanPhone,
+        mapsUrl: resolvedMapsUrl,
+        latitude: Number.isFinite(parsedLat) && parsedLat !== null ? parsedLat : null,
+        longitude: Number.isFinite(parsedLng) && parsedLng !== null ? parsedLng : null,
+        photo: cleanPhoto || targetMerchant?.photo || db.settings.posStore?.photo || '',
+        closingShiftSettings: nextClosingSettings,
+        notaFeeBearer: nextNotaFeeBearer,
+        saldoNota: targetMerchant ? Number(targetMerchant.saldoNota ?? 5000) : Number(db.settings.posStore?.saldoNota ?? 5000),
+        kuotaNota: targetMerchant ? Number(targetMerchant.kuotaNota ?? 50) : Number(db.settings.posStore?.kuotaNota ?? 50),
+        isValidated: true,
+        updatedAt: new Date().toISOString()
+      };
+    }
 
     writeDB(db, req);
     const activePayload = buildActiveStorePayload(db, targetMerchant, ownerUserId || ownerId || req.user?.id || null);
@@ -1129,6 +1426,292 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       success: true,
       message: 'Lokasi dan profil toko kasir berhasil divalidasi!',
       store: activePayload
+    });
+  });
+
+  // ── 0A-0. STORE NOTA FEE BEARER POLICY SETTINGS (TOKO VS CUSTOMER) ────
+  router.post('/store/fee-settings', (req, res) => {
+    const { merchantId, storeId, ownerUserId, ownerId, notaFeeBearer } = req.body || {};
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+
+    const resolvedStoreId = merchantId || storeId || db.settings.posStore?.merchantId || db.settings.posStore?.uid;
+    const targetMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(resolvedStoreId))
+      || db.merchants.find(m => m && m.status !== 'deleted');
+    const normalizedBearer = normalizeNotaFeeBearer(notaFeeBearer);
+
+    if (targetMerchant) {
+      targetMerchant.notaFeeBearer = normalizedBearer;
+      targetMerchant.updatedAt = new Date().toISOString();
+    }
+    if (!targetMerchant?.isUserUmkmStore || !targetMerchant) {
+      db.settings.posStore = {
+        ...(db.settings.posStore || {}),
+        notaFeeBearer: normalizedBearer,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, targetMerchant, ownerUserId || ownerId || req.user?.id || null);
+    res.json({
+      success: true,
+      notaFeeBearer: normalizedBearer,
+      message: normalizedBearer === 'customer'
+        ? 'Pengaturan disimpan: Biaya admin nota ditanggung Customer (via KostKu QRIS = saldo nota toko Rp 0 terpotong).'
+        : 'Pengaturan disimpan: Biaya admin nota ditanggung Toko (default).',
+      store: activePayload
+    });
+  });
+
+  // ── 0A. STORE CLOSING SHIFT PHOTO POLICY SETTINGS ────────────────────────
+  router.post('/store/closing-settings', (req, res) => {
+    const { merchantId, storeId, ownerUserId, ownerId, closingShiftSettings } = req.body || {};
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+
+    const resolvedStoreId = merchantId || storeId || db.settings.posStore?.merchantId || db.settings.posStore?.uid;
+    const targetMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(resolvedStoreId))
+      || db.merchants.find(m => m && m.status !== 'deleted');
+    const normalized = normalizeClosingShiftSettings(closingShiftSettings || req.body);
+
+    if (targetMerchant) {
+      targetMerchant.closingShiftSettings = normalized;
+      targetMerchant.updatedAt = new Date().toISOString();
+    }
+    if (!targetMerchant?.isUserUmkmStore) {
+      db.settings.posStore = {
+        ...(db.settings.posStore || {}),
+        closingShiftSettings: normalized,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, targetMerchant, ownerUserId || ownerId || req.user?.id || null);
+    res.json({
+      success: true,
+      message: 'Pengaturan foto rekap tutup shift toko berhasil disimpan!',
+      closingShiftSettings: normalized,
+      store: activePayload
+    });
+  });
+
+  // ── 0C. SHIFT CLOSING HISTORY & PHOTO RECAPS ─────────────────────────────
+  router.get('/shifts', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const storeId = String(req.query.storeId || req.query.merchantId || '').trim();
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 30));
+
+    let list = Array.isArray(db.pos_shifts) ? [...db.pos_shifts] : [];
+    if (storeId && storeId !== 'ALL') {
+      list = list.filter(s => String(s.storeId || s.merchantId || '') === storeId);
+    }
+    list.sort((a, b) => Number(b.closedAt || 0) - Number(a.closedAt || 0));
+    res.json({
+      success: true,
+      shifts: list.slice(0, limit)
+    });
+  });
+
+  router.post('/shifts/close', (req, res) => {
+    const body = req.body || {};
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+
+    const reqStoreId = body.storeId || body.merchantId || db.settings.posStore?.merchantId || db.settings.posStore?.uid;
+    const targetMerchant = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(reqStoreId))
+      || db.merchants.find(m => m && m.status !== 'deleted')
+      || null;
+    const policy = normalizeClosingShiftSettings(
+      targetMerchant?.closingShiftSettings || db.settings.posStore?.closingShiftSettings || {}
+    );
+
+    const rawPhotos = Array.isArray(body.photoRecaps) ? body.photoRecaps : [];
+    const sanitizedPhotos = rawPhotos
+      .slice(0, 24)
+      .map((p, idx) => {
+        if (!p || typeof p !== 'object') return null;
+        const imageData = String(p.imageData || p.photoUrl || p.url || '').trim();
+        if (!imageData || (!imageData.startsWith('data:image/') && !imageData.startsWith('https://') && !imageData.startsWith('http://'))) {
+          return null;
+        }
+        const cat = SHIFT_PHOTO_CATEGORY_MAP[String(p.category || '').trim()] ? String(p.category).trim() : 'lainnya';
+        return {
+          id: String(p.id || `SHF-IMG-${Date.now()}-${idx + 1}`),
+          category: cat,
+          categoryLabel: SHIFT_PHOTO_CATEGORY_MAP[cat]?.label || 'Rekap Foto',
+          customId: p.customId ? String(p.customId).trim() : null,
+          customLabel: p.customLabel ? String(p.customLabel).trim() : '',
+          itemName: String(p.itemName || '').trim(),
+          qtyText: String(p.qtyText || '').trim(),
+          note: String(p.note || '').trim(),
+          imageData,
+          takenAt: p.takenAt || new Date().toISOString()
+        };
+      })
+      .filter(Boolean);
+
+    if (policy.requireClosingPhoto && sanitizedPhotos.length === 0) {
+      return res.status(400).json({
+        error: 'Tutup shift wajib menyertakan minimal 1 foto rekap kondisi toko/barang.'
+      });
+    }
+
+    const uploadedCats = new Set(sanitizedPhotos.map(p => p.category));
+    const missingRequiredCats = (policy.requiredCategories || []).filter(cat => !uploadedCats.has(cat));
+    if (missingRequiredCats.length > 0) {
+      const missingLabels = missingRequiredCats.map(c => SHIFT_PHOTO_CATEGORY_MAP[c]?.label || c);
+      return res.status(400).json({
+        error: `Foto wajib sesuai settingan toko belum diunggah: ${missingLabels.join(', ')}.`
+      });
+    }
+
+    const uploadedCustomIds = new Set(sanitizedPhotos.map(p => p.customId).filter(Boolean));
+    const missingCustom = (policy.customChecklist || []).filter(c => c.required && !uploadedCustomIds.has(c.id));
+    if (missingCustom.length > 0) {
+      return res.status(400).json({
+        error: `Checklist foto wajib dari owner belum diunggah: ${missingCustom.map(c => c.label).join(', ')}.`
+      });
+    }
+
+    if (policy.requireItemNotes) {
+      const missingItemDetails = sanitizedPhotos.some(
+        p => ['basi', 'sisa', 'gagal', 'error'].includes(p.category) && !p.itemName && !p.note
+      );
+      if (missingItemDetails) {
+        return res.status(400).json({
+          error: 'Isi nama barang atau keterangan singkat pada setiap foto Barang Basi / Sisa / Gagal / Error.'
+        });
+      }
+    }
+
+    const closedTs = Number(body.closedAt) || Date.now();
+    const shiftRecord = {
+      id: String(body.id || `RECORD-${closedTs}`),
+      storeId: String(targetMerchant?.id || reqStoreId || 'MTR-KASIR-MASTER'),
+      merchantId: String(targetMerchant?.id || reqStoreId || 'MTR-KASIR-MASTER'),
+      storeName: String(body.storeName || targetMerchant?.name || db.settings.posStore?.storeName || 'Toko POS'),
+      shiftOpenedAt: Number(body.shiftOpenedAt) || closedTs,
+      closedAt: closedTs,
+      closedAtIso: new Date(closedTs).toISOString(),
+      cashierName: String(body.cashierName || req.user?.name || 'Kasir Shift').trim(),
+      closedByUserId: body.closedByUserId || req.user?.id || null,
+      initialFloat: Number(body.initialFloat) || 0,
+      cashRevenue: Number(body.cashRevenue) || 0,
+      qrisRevenue: Number(body.qrisRevenue) || 0,
+      nonCashRevenue: Number(body.nonCashRevenue) || 0,
+      totalRevenue: Number(body.totalRevenue) || 0,
+      totalPettyIn: Number(body.totalPettyIn) || 0,
+      totalPettyOut: Number(body.totalPettyOut) || 0,
+      expectedDrawerCash: Number(body.expectedDrawerCash) || 0,
+      actualCash: Number(body.actualCash) || 0,
+      diff: Number(body.diff) || 0,
+      note: String(body.note || '').trim(),
+      completedOrdersCount: Number(body.completedOrdersCount) || 0,
+      photoRecaps: sanitizedPhotos,
+      appliedSettings: policy
+    };
+
+    db.pos_shifts.unshift(shiftRecord);
+    if (db.pos_shifts.length > 100) {
+      db.pos_shifts = db.pos_shifts.slice(0, 100);
+    }
+
+    writeDB(db, req);
+
+    const storeShifts = db.pos_shifts
+      .filter(s => String(s.storeId || '') === shiftRecord.storeId)
+      .slice(0, 30);
+
+    res.json({
+      success: true,
+      message: 'Closing shift dan rekapan foto berhasil disimpan!',
+      shift: shiftRecord,
+      shifts: storeShifts
+    });
+  });
+
+  // ── 0A-3. KASIR WEB PRESENCE HEARTBEAT / OFFLINE SIGNAL FOR MITRA CATALOG ──
+  router.post('/store/heartbeat', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const targetId = body.merchantId || body.storeId || db.settings?.posStore?.merchantId || db.settings?.posStore?.uid;
+    const target = targetId
+      ? db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(targetId))
+      : null;
+
+    if (!target) {
+      return res.status(404).json({ error: 'Toko POS tidak ditemukan untuk pembaruan status online.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const isShiftOpen = body.isShiftOpen !== false;
+    target.kasirWebOnline = isShiftOpen;
+    target.isShiftOpen = isShiftOpen;
+    target.storeMode = 'mitra';
+    target.kasirOnly = false;
+    target.isMitra = true;
+    if (isShiftOpen) {
+      target.lastKasirHeartbeatAt = nowIso;
+    }
+    if (body.cashierName) target.lastOnlineCashierName = String(body.cashierName).trim();
+    if (body.cashierId) target.lastOnlineCashierId = String(body.cashierId).trim();
+    if (db.settings?.posStore && String(db.settings.posStore.merchantId) === String(target.id)) {
+      db.settings.posStore.kasirWebOnline = isShiftOpen;
+      db.settings.posStore.lastKasirHeartbeatAt = target.lastKasirHeartbeatAt || nowIso;
+    }
+
+    writeDB(db);
+    syncDeltaToFirebase(`merchants/${target.id}`, target, 'PATCH');
+
+    const online = isMerchantKasirOnline(target);
+    return res.json({
+      success: true,
+      merchantId: target.id,
+      kasirOnline: online,
+      isOnline: online,
+      onlineStatus: online ? 'online' : 'offline',
+      lastKasirHeartbeatAt: target.lastKasirHeartbeatAt || null
+    });
+  });
+
+  router.post('/store/offline', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (_) { body = {}; }
+    }
+    body = body && typeof body === 'object' ? body : {};
+    const targetId = body.merchantId || body.storeId || db.settings?.posStore?.merchantId || db.settings?.posStore?.uid;
+    const target = targetId
+      ? db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(targetId))
+      : null;
+
+    if (target) {
+      target.kasirWebOnline = false;
+      if (body.isShiftOpen === false) target.isShiftOpen = false;
+      if (db.settings?.posStore && String(db.settings.posStore.merchantId) === String(target.id)) {
+        db.settings.posStore.kasirWebOnline = false;
+      }
+      writeDB(db);
+      syncDeltaToFirebase(`merchants/${target.id}`, target, 'PATCH');
+    }
+
+    return res.json({
+      success: true,
+      merchantId: target?.id || targetId || null,
+      kasirOnline: false,
+      isOnline: false,
+      onlineStatus: 'offline'
     });
   });
 
@@ -1142,19 +1725,28 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const target = db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(merchantId));
     if (!target) return res.status(404).json({ error: 'Toko mitra tidak ditemukan' });
 
-    // Preserve any edited metadata on outgoing active store before switching
-    const prevStore = db.settings.posStore;
-    if (prevStore && prevStore.merchantId && String(prevStore.merchantId) !== String(target.id)) {
-      const prevMerchant = db.merchants.find(m => m && String(m.id) === String(prevStore.merchantId));
-      if (prevMerchant) {
-        if (prevStore.storeName) prevMerchant.name = prevStore.storeName;
-        if (prevStore.location) prevMerchant.storeLocation = prevStore.location;
-        if (prevStore.address) prevMerchant.address = prevStore.address;
-        if (prevStore.city) prevMerchant.city = prevStore.city;
-        if (prevStore.phone) prevMerchant.phone = prevStore.phone;
-        if (prevStore.mapsUrl) prevMerchant.mapsUrl = prevStore.mapsUrl;
-        if (prevStore.latitude !== null && prevStore.latitude !== undefined) prevMerchant.latitude = prevStore.latitude;
-        if (prevStore.longitude !== null && prevStore.longitude !== undefined) prevMerchant.longitude = prevStore.longitude;
+    const resolvedReqOwnerId = ownerUserId || ownerId || req.user?.id || null;
+    if (resolvedReqOwnerId) {
+      db.pos_user_active_store[String(resolvedReqOwnerId)] = target.id;
+      const reqUser = (db.users || []).find(u => u && String(u.id) === String(resolvedReqOwnerId));
+      if (reqUser) reqUser.activePosStoreId = target.id;
+    }
+
+    if (!target.isUserUmkmStore) {
+      // Preserve any edited metadata on outgoing active store before switching
+      const prevStore = db.settings.posStore;
+      if (prevStore && prevStore.merchantId && String(prevStore.merchantId) !== String(target.id)) {
+        const prevMerchant = db.merchants.find(m => m && String(m.id) === String(prevStore.merchantId));
+        if (prevMerchant) {
+          if (prevStore.storeName) prevMerchant.name = prevStore.storeName;
+          if (prevStore.location) prevMerchant.storeLocation = prevStore.location;
+          if (prevStore.address) prevMerchant.address = prevStore.address;
+          if (prevStore.city) prevMerchant.city = prevStore.city;
+          if (prevStore.phone) prevMerchant.phone = prevStore.phone;
+          if (prevStore.mapsUrl) prevMerchant.mapsUrl = prevStore.mapsUrl;
+          if (prevStore.latitude !== null && prevStore.latitude !== undefined) prevMerchant.latitude = prevStore.latitude;
+          if (prevStore.longitude !== null && prevStore.longitude !== undefined) prevMerchant.longitude = prevStore.longitude;
+        }
       }
     }
 
@@ -1163,30 +1755,33 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     target.kuotaNota = Math.max(0, Math.floor(Number(target.saldoNota) / billingProfileSwitch.notaFeeIdr));
 
     const ser = serializeOwnerStore(target, db);
-    db.settings.posStore = {
-      uid: ser.id,
-      merchantId: ser.id,
-      storeName: ser.name,
-      category: ser.category,
-      location: ser.location,
-      address: ser.address,
-      city: ser.city,
-      phone: ser.phone,
-      mapsUrl: ser.mapsUrl,
-      latitude: ser.latitude,
-      longitude: ser.longitude,
-      saldoNota: ser.saldoNota,
-      kuotaNota: ser.kuotaNota,
-      loyaltyPoolId: ser.loyaltyPoolId,
-      loyaltyPoolName: ser.loyaltyPoolName,
-      billingTier: ser.billingTier,
-      notaFeePerNotaIdr: ser.notaFeePerNotaIdr,
-      isValidated: true,
-      updatedAt: new Date().toISOString()
-    };
+    if (!target.isUserUmkmStore) {
+      db.settings.posStore = {
+        uid: ser.id,
+        merchantId: ser.id,
+        storeName: ser.name,
+        category: ser.category,
+        location: ser.location,
+        address: ser.address,
+        city: ser.city,
+        phone: ser.phone,
+        mapsUrl: ser.mapsUrl,
+        latitude: ser.latitude,
+        longitude: ser.longitude,
+        photo: ser.photo || '',
+        saldoNota: ser.saldoNota,
+        kuotaNota: ser.kuotaNota,
+        loyaltyPoolId: ser.loyaltyPoolId,
+        loyaltyPoolName: ser.loyaltyPoolName,
+        billingTier: ser.billingTier,
+        notaFeePerNotaIdr: ser.notaFeePerNotaIdr,
+        isValidated: true,
+        updatedAt: new Date().toISOString()
+      };
+    }
 
     writeDB(db, req);
-    const activePayload = buildActiveStorePayload(db, target, ownerUserId || ownerId || req.user?.id || null);
+    const activePayload = buildActiveStorePayload(db, target, resolvedReqOwnerId);
     res.json({
       success: true,
       message: `Kasir POS berhasil beralih ke toko: ${target.name}`,
@@ -1194,6 +1789,373 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       allOwnerStores: activePayload.allOwnerStores,
       saldoNota: target.saldoNota,
       kuotaNota: target.kuotaNota
+    });
+  });
+
+  // ── 0B-2. PENDAFTARAN UMKM ONBOARDING PENYEWA KOST SEBELUM BUKA KASIR ────
+  router.post('/register-umkm', (req, res) => {
+    const {
+      ownerUserId,
+      userId,
+      category,
+      storeName,
+      phone,
+      branchCount,
+      branches,
+      location,
+      address,
+      city,
+      mapsUrl,
+      latitude,
+      longitude,
+      photo,
+      menus,
+      storeMode,
+      kasirOnly,
+      joinMitra,
+      referralCode
+    } = req.body || {};
+
+    const resolvedStoreMode = normalizeStoreMode(storeMode, kasirOnly, joinMitra, 'mitra');
+    const isKasirOnly = resolvedStoreMode === 'kasir_only';
+    const cleanReferral = !isKasirOnly && referralCode ? String(referralCode).trim().toUpperCase() : '';
+
+    const cleanCategory = String(category || '').trim();
+    const cleanName = String(storeName || '').trim();
+    const cleanPhone = String(phone || '').trim();
+    const cleanAddress = String(address || '').trim();
+    const cleanCity = String(city || 'Semarang').trim() || 'Semarang';
+    const cleanLocation = String(location || cleanAddress || 'Stand / Lokasi Utama').trim();
+    const cleanMapsUrl = String(mapsUrl || '').trim();
+    const cleanPhoto = String(photo || '').trim();
+    const resolvedBranchCount = Math.min(20, Math.max(1, parseInt(branchCount, 10) || 1));
+
+    let parsedLat = latitude !== undefined && latitude !== null && String(latitude).trim() !== '' ? Number(latitude) : null;
+    let parsedLng = longitude !== undefined && longitude !== null && String(longitude).trim() !== '' ? Number(longitude) : null;
+    if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) {
+      const extracted = extractCoordsFromMapsUrl(cleanMapsUrl);
+      if (Number.isFinite(extracted.lat) && Number.isFinite(extracted.lng)) {
+        parsedLat = extracted.lat;
+        parsedLng = extracted.lng;
+      } else {
+        parsedLat = null;
+        parsedLng = null;
+      }
+    }
+
+    if (!cleanCategory) {
+      return res.status(400).json({ error: 'Jenis / kategori UMKM wajib dipilih!' });
+    }
+    if (!cleanName) {
+      return res.status(400).json({ error: 'Nama toko / UMKM wajib diisi!' });
+    }
+    if (!isKasirOnly && !cleanMapsUrl && (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng))) {
+      return res.status(400).json({ error: 'Lokasi Google Maps wajib diisi (tempel link Google Maps atau pilih pin di peta)!' });
+    }
+    if (!isKasirOnly && !cleanPhoto) {
+      return res.status(400).json({ error: 'Foto toko / UMKM wajib diunggah!' });
+    }
+
+    const effectivePhoto = cleanPhoto || '';
+    const resolvedMapsUrl = cleanMapsUrl || (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) ? `https://maps.google.com/?q=${parsedLat},${parsedLng}` : '');
+
+    const rawMenus = Array.isArray(menus) ? menus : [];
+    const validMenus = rawMenus
+      .filter(m => m && String(m.name || '').trim() && Number(m.price) > 0)
+      .map((m, idx) => ({
+        name: String(m.name).trim(),
+        category: String(m.category || (cleanCategory.toLowerCase().includes('jasa') || cleanCategory.toLowerCase().includes('laundry') ? 'Jasa' : 'Makanan')).trim(),
+        price: Number(m.price),
+        description: String(m.description || `${String(m.name).trim()} - layanan resmi dari ${cleanName}`).trim(),
+        image: String(m.image || '').trim() || cleanPhoto,
+        stock: Number(m.stock !== undefined && m.stock !== '' ? m.stock : 99),
+        sortIdx: idx
+      }));
+
+    if (validMenus.length === 0) {
+      return res.status(400).json({ error: 'Tambahkan minimal 1 menu atau jasa yang ditawarkan dengan harga > Rp 0!' });
+    }
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+    db.merchants = db.merchants || [];
+    db.merchant_wallets = db.merchant_wallets || {};
+    db.pos_categories = db.pos_categories || [];
+
+    const resolvedOwnerId = String(ownerUserId || userId || req.user?.id || `USR-UMKM-${Date.now()}`).trim();
+    const existingUser = (db.users || []).find(u => u && String(u.id) === resolvedOwnerId) || null;
+    const nowIso = new Date().toISOString();
+    const kostUid = existingUser?.kostUid || 'KOST-JAKSEL-01';
+
+    db.registeredPartnerHistory = db.registeredPartnerHistory || [];
+    const normNameLower = cleanName.toLowerCase();
+    const normPhoneClean = cleanPhone ? String(cleanPhone).replace(/\D/g, '') : '';
+
+    let umkmRefCheck = null;
+    let alreadyRegisteredPartner = false;
+    if (!isKasirOnly && cleanReferral) {
+      umkmRefCheck = resolveStrictReferralCandidate(db, {
+        referralCode: cleanReferral,
+        applicantUserId: resolvedOwnerId,
+        applicantUser: existingUser,
+        extraPhone: cleanPhone || existingUser?.phone || '',
+        extraEmail: existingUser?.email || req.body.email || '',
+        allowSelf: false
+      });
+
+      if (!umkmRefCheck.ok) {
+        return res.status(400).json({ error: umkmRefCheck.message, code: umkmRefCheck.reason });
+      }
+
+      alreadyRegisteredPartner =
+        db.registeredPartnerHistory.some((h) => {
+          const matchName = h?.name && String(h.name).toLowerCase() === normNameLower;
+          const matchPhone = normPhoneClean && h?.phone && String(h.phone).replace(/\D/g, '') === normPhoneClean;
+          const matchOwner = h?.claimedBy && String(h.claimedBy) === resolvedOwnerId;
+          return matchName || matchPhone || matchOwner;
+        }) ||
+        db.merchants.some((m) => {
+          const matchName = m?.name && String(m.name).trim().toLowerCase() === normNameLower;
+          const matchPhone = normPhoneClean && m?.phone && String(m.phone).replace(/\D/g, '') === normPhoneClean;
+          const matchOwner = m?.ownerUserId && String(m.ownerUserId) === resolvedOwnerId;
+          return matchName || matchPhone || matchOwner;
+        });
+    }
+
+    const referralBonusEligible = Boolean(!isKasirOnly && cleanReferral && umkmRefCheck?.ok && !alreadyRegisteredPartner);
+
+    const makeBranchRecord = (branchIdx, branchMeta = {}, parentId = null) => {
+      const isPrimary = branchIdx === 1;
+      const bId = `MTR-UMKM-${Date.now()}-${branchIdx}-${Math.floor(10 + Math.random() * 89)}`;
+      const bName = isPrimary
+        ? cleanName
+        : String(branchMeta?.name || `${cleanName} - Cabang ${branchIdx}`).trim();
+      const bLocation = isPrimary
+        ? cleanLocation
+        : String(branchMeta?.location || branchMeta?.address || `Cabang ${branchIdx} - ${cleanCity}`).trim();
+      const bAddress = isPrimary ? cleanAddress : String(branchMeta?.address || cleanAddress).trim();
+      const bCity = isPrimary ? cleanCity : String(branchMeta?.city || cleanCity).trim();
+      const bLat = branchMeta?.latitude !== undefined && branchMeta?.latitude !== '' && Number.isFinite(Number(branchMeta.latitude))
+        ? Number(branchMeta.latitude)
+        : parsedLat;
+      const bLng = branchMeta?.longitude !== undefined && branchMeta?.longitude !== '' && Number.isFinite(Number(branchMeta.longitude))
+        ? Number(branchMeta.longitude)
+        : parsedLng;
+      const bMapsUrl = String(branchMeta?.mapsUrl || '').trim() ||
+        (Number.isFinite(bLat) && Number.isFinite(bLng) ? `https://maps.google.com/?q=${bLat},${bLng}` : resolvedMapsUrl);
+
+      return {
+        id: bId,
+        ownerUserId: resolvedOwnerId,
+        posOwnerId: resolvedOwnerId,
+        kostUid,
+        name: bName,
+        category: cleanCategory,
+        storeLocation: bLocation,
+        location: bLocation,
+        address: bAddress || bLocation,
+        city: bCity,
+        phone: cleanPhone || existingUser?.phone || '',
+        mapsUrl: bMapsUrl,
+        latitude: Number.isFinite(bLat) ? bLat : null,
+        longitude: Number.isFinite(bLng) ? bLng : null,
+        photo: effectivePhoto,
+        image: effectivePhoto,
+        branchCount: resolvedBranchCount,
+        branchIndex: branchIdx,
+        isPrimaryBranch: isPrimary,
+        parentStoreId: parentId,
+        storeMode: resolvedStoreMode,
+        kasirOnly: isKasirOnly,
+        isMitra: !isKasirOnly,
+        referralCode: cleanReferral || null,
+        rating: 5.0,
+        deliveryEstimate: '10-25 mnt',
+        deliveryFee: 0,
+        commissionOwner: 500,
+        platformFee: 200,
+        paymentMethods: ['cash', 'qris'],
+        saldoNota: isPrimary && referralBonusEligible ? 50000 : 5000,
+        kuotaNota: isPrimary && referralBonusEligible ? 500 : 200,
+        notaHistory: [
+          {
+            id: `NOTA-WELCOME-${bId}`,
+            type: isPrimary && referralBonusEligible ? 'referral_welcome_500' : 'welcome_quota',
+            amount: isPrimary && referralBonusEligible ? 50000 : 5000,
+            addedNota: isPrimary && referralBonusEligible ? 500 : 200,
+            balanceAfter: isPrimary && referralBonusEligible ? 50000 : 5000,
+            description: isPrimary && referralBonusEligible
+              ? `Bonus Referral UMKM ${bName}: 500 Kuota Nota Kasir Gratis (Kode: ${cleanReferral})`
+              : `Bonus saldo nota pembukaan UMKM ${bName} (Cabang ${branchIdx}/${resolvedBranchCount})`,
+            createdAt: nowIso
+          }
+        ],
+        products: validMenus.map((m, idx) => ({
+          id: `prod-umkm-${Date.now()}-${branchIdx}-${idx}`,
+          name: m.name,
+          category: m.category,
+          price: m.price,
+          description: m.description,
+          image: m.image,
+          isAvailable: true
+        })),
+        isPosStore: true,
+        isUserUmkmStore: true,
+        hideSeedProducts: true,
+        isValidated: true,
+        isVerified: true,
+        status: 'active',
+        createdAt: nowIso,
+        updatedAt: nowIso
+      };
+    };
+
+    const extraBranchesInput = Array.isArray(branches) ? branches : [];
+    const primaryStore = makeBranchRecord(1, {}, null);
+    const createdStores = [primaryStore];
+    for (let idx = 2; idx <= resolvedBranchCount; idx += 1) {
+      const branchMeta = extraBranchesInput[idx - 2] || {};
+      createdStores.push(makeBranchRecord(idx, branchMeta, primaryStore.id));
+    }
+
+    const createdPrimaryProducts = [];
+    const customCategorySet = new Set();
+
+    createdStores.forEach((stRecord, sIdx) => {
+      db.merchants.push(stRecord);
+      db.merchant_wallets[stRecord.id] = {
+        merchant_id: stRecord.id,
+        name: stRecord.name,
+        whatsapp_number: stRecord.phone || '',
+        available_balance: stRecord.saldoNota,
+        held_promo_balance: 0,
+        updated_at: nowIso
+      };
+
+      validMenus.forEach((m, mIdx) => {
+        const prodRecord = {
+          id: `prod-${Date.now()}-${sIdx + 1}-${mIdx}-${Math.random().toString(36).slice(2, 6)}`,
+          name: m.name,
+          category: m.category,
+          price: m.price,
+          stock: m.stock,
+          isAvailable: true,
+          description: m.description,
+          image: m.image,
+          merchantId: resolvedOwnerId,
+          storeId: stRecord.id,
+          createdAt: nowIso
+        };
+        db.pos_products.unshift(prodRecord);
+        customCategorySet.add(m.category);
+        if (sIdx === 0) createdPrimaryProducts.push(prodRecord);
+      });
+    });
+
+    customCategorySet.forEach(catName => {
+      const existsCat = db.pos_categories.some(
+        c => c && String(c.merchantId || '') === resolvedOwnerId && String(c.name || '').toLowerCase() === catName.toLowerCase()
+      );
+      if (!existsCat) {
+        db.pos_categories.push({
+          id: `cat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: catName,
+          merchantId: resolvedOwnerId,
+          createdAt: nowIso
+        });
+      }
+    });
+
+    db.pos_user_active_store[resolvedOwnerId] = primaryStore.id;
+
+    let referralBonusAwarded = false;
+    let referralMessage = '';
+    if (!isKasirOnly && cleanReferral) {
+      if (referralBonusEligible && umkmRefCheck?.ok) {
+        const referrerUser = umkmRefCheck.referrerUser;
+        const referrerCustomer = umkmRefCheck.referrerCustomer;
+        const bonusPoints = 500;
+        referralBonusAwarded = true;
+
+        db.registeredPartnerHistory.push({
+          id: `REF-UMKM-${Date.now()}`,
+          name: cleanName,
+          phone: cleanPhone || '',
+          referralCode: cleanReferral,
+          claimedBy: resolvedOwnerId,
+          referrerUserId: referrerUser?.id || null,
+          bonusAwarded: true,
+          bonusPoints,
+          createdAt: nowIso
+        });
+
+        let refPhone = '';
+        if (referrerUser) {
+          if (!referrerUser.referralCode) referrerUser.referralCode = umkmRefCheck.code;
+          referrerUser.loyalty_points = (Number(referrerUser.loyalty_points) || 0) + bonusPoints;
+          if (referrerUser.total_points !== undefined) {
+            referrerUser.total_points = (Number(referrerUser.total_points) || 0) + bonusPoints;
+          }
+          refPhone = normalizePhoneDigits(referrerUser.phone || referrerUser.whatsapp || referrerUser.whatsapp_number);
+        }
+        if (referrerCustomer) {
+          referrerCustomer.points = (Number(referrerCustomer.points) || 0) + bonusPoints;
+          refPhone = refPhone || normalizePhoneDigits(referrerCustomer.whatsapp_number);
+        }
+        if (refPhone) {
+          db.customer_points = db.customer_points || {};
+          db.customer_points[refPhone] = (Number(db.customer_points[refPhone]) || 0) + bonusPoints;
+        }
+        db.points_ledger = db.points_ledger || [];
+        db.points_ledger.push({
+          id: `PTS-UMKM-${Date.now()}`,
+          whatsapp_number: refPhone || 'REFERRER',
+          change_type: 'EARN_REFERRAL_MERCHANT',
+          points: bonusPoints,
+          notes: `Bonus pendaftaran UMKM mitra baru: ${cleanName} (Kode: ${cleanReferral})`,
+          createdAt: nowIso
+        });
+
+        // Mark any pending suggestedWarung entry as registered
+        (db.merchantSuggestions || []).forEach((s) => {
+          if (!s) return;
+          const sName = String(s.name || '').trim().toLowerCase();
+          const sPhone = String(s.phone || '').replace(/\D/g, '');
+          if (sName === normNameLower || (normPhoneClean && sPhone === normPhoneClean)) {
+            s.status = 'registered';
+            s.registeredMerchantName = cleanName;
+            s.convertedAt = nowIso;
+          }
+        });
+
+        referralMessage = ` Bonus referral +${bonusPoints} Poin dikreditkan ke pengundang & 500 kuota nota aktif untuk toko (${cleanReferral}).`;
+      } else {
+        referralMessage = ' Toko atau akun pemilik ini sudah tercatat sebelumnya sehingga bonus referral 1x tidak diklaim ulang.';
+      }
+    }
+
+    let safeUpdatedUser = null;
+    if (existingUser) {
+      existingUser.merchantId = primaryStore.id;
+      existingUser.storeName = primaryStore.name;
+      existingUser.branchCount = resolvedBranchCount;
+      existingUser.activePosStoreId = primaryStore.id;
+      existingUser.umkmRegistered = true;
+      existingUser.umkmCategory = cleanCategory;
+      safeUpdatedUser = { ...existingUser };
+      delete safeUpdatedUser.password;
+    }
+
+    writeDB(db, req);
+    const activePayload = buildActiveStorePayload(db, primaryStore, resolvedOwnerId);
+    res.status(201).json({
+      success: true,
+      referralBonusAwarded,
+      message: `UMKM "${primaryStore.name}" (${resolvedBranchCount} cabang, ${validMenus.length} menu/jasa) berhasil didaftarkan! Kasir POS siap digunakan.${referralMessage}`,
+      store: activePayload,
+      allOwnerStores: activePayload.allOwnerStores,
+      products: createdPrimaryProducts,
+      updatedUser: safeUpdatedUser
     });
   });
 
@@ -1707,8 +2669,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const db = getDB(req);
     ensurePosCollections(db);
 
+    const { storeId, merchantId, tableToken, customerView } = req.query;
+    const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken });
     const now = new Date();
-    const promos = (db.pos_food_promos || []).map(p => {
+    const rawPromos = (db.pos_food_promos || []).map(p => {
       let isQuotaEmpty = false;
       let remainingQuota = null;
 
@@ -1727,18 +2691,25 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         }
       }
 
+      const isPointVoucher = isPointConversionVoucher(p);
       const isAvailable = Boolean(p.isActive && !isQuotaEmpty && !isDateExpired);
+      const eligibleOnStore = !isPointVoucher || storeCtx.isTier2;
 
       return {
         ...p,
         remainingQuota,
         isQuotaEmpty,
         isDateExpired,
-        isAvailable
+        isAvailable,
+        requiresTier2Loyalty: isPointVoucher,
+        eligibleOnStore
       };
     });
 
-    res.json({ success: true, promos });
+    const filterCustomerTier1 = (Boolean(tableToken) || String(customerView) === 'true' || Boolean(storeId || merchantId)) && !storeCtx.isTier2;
+    const promos = filterCustomerTier1 ? rawPromos.filter(p => !p.requiresTier2Loyalty) : rawPromos;
+
+    res.json({ success: true, promos, billingTier: storeCtx.billingProfile.billingTier, isTier2: storeCtx.isTier2 });
   });
 
   router.post('/promos', (req, res) => {
@@ -1873,16 +2844,28 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   });
 
   router.post('/promos/validate', (req, res) => {
-    const { promoId, promoCode, items = [], subtotal = 0 } = req.body;
+    const { promoId, promoCode, code, items = [], subtotal = 0, orderTotal = 0, storeId = null, merchantId = null, tableToken = null } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
+    const effectiveCode = promoCode || code || null;
+    const effectiveSubtotal = Number(subtotal || orderTotal || 0);
+    const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken });
 
     const promo = (db.pos_food_promos || []).find(p =>
       p.isActive && (
         (promoId && p.id === promoId) ||
-        (promoCode && String(p.code).toUpperCase() === String(promoCode).toUpperCase().trim())
+        (effectiveCode && String(p.code).toUpperCase() === String(effectiveCode).toUpperCase().trim())
       )
     );
+
+    if (isPointConversionVoucher(promo, effectiveCode) && !storeCtx.isTier2) {
+      return res.status(422).json({
+        valid: false,
+        code: 'POIN_NOT_ACTIVE_ON_STORE',
+        billingTier: storeCtx.billingProfile.billingTier,
+        error: 'Penukaran poin (termasuk voucher poin) tidak aktif di toko Tier 1 ini. Hanya toko yang tergabung di Loyalty Pool (Tier 2) yang mendukung tukar poin.'
+      });
+    }
 
     if (!promo) {
       return res.status(404).json({ valid: false, error: 'Kode promo tidak ditemukan atau non-aktif' });
@@ -1908,10 +2891,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     // Check minimum order
     const min = Number(promo.minOrder) || 0;
-    if (subtotal < min) {
+    if (effectiveSubtotal < min) {
       return res.status(400).json({
         valid: false,
-        error: `Minimal belanja untuk promo ini adalah Rp ${min.toLocaleString('id-ID')} (Subtotal saat ini: Rp ${subtotal.toLocaleString('id-ID')})`
+        error: `Minimal belanja untuk promo ini adalah Rp ${min.toLocaleString('id-ID')} (Subtotal saat ini: Rp ${effectiveSubtotal.toLocaleString('id-ID')})`
       });
     }
 
@@ -1934,9 +2917,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     } else {
       if (promo.discountType === 'PERCENT') {
-        calculatedDiscount = Math.round(subtotal * (Math.min(100, promo.discountValue) / 100));
+        calculatedDiscount = Math.round(effectiveSubtotal * (Math.min(100, promo.discountValue) / 100));
       } else {
-        calculatedDiscount = Math.min(subtotal, promo.discountValue);
+        calculatedDiscount = Math.min(effectiveSubtotal, promo.discountValue);
       }
     }
 
@@ -1989,15 +2972,28 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   router.get('/products', (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
-    const { merchantId, storeId, ownerId } = req.query;
+    const { merchantId, storeId, ownerId, tableToken } = req.query;
+    const headerOwnerId = ownerId || req.user?.id || req.headers['x-user-id'] || null;
+
+    let effectiveStoreId = storeId ? String(storeId) : '';
+    if (!effectiveStoreId && tableToken) {
+      const matchedTbl = (db.pos_tables || []).find(t => String(t.qrToken || '') === String(tableToken).trim());
+      if (!matchedTbl) return res.json([]);
+      effectiveStoreId = String(matchedTbl.storeId || matchedTbl.merchantId || '');
+    }
+
+    if (!req.isDemo && !effectiveStoreId && !merchantId && !headerOwnerId) {
+      return res.json([]);
+    }
 
     let list = db.pos_products || [];
-    if (storeId) {
-      const targetSid = String(storeId);
+    if (effectiveStoreId) {
+      const targetSid = effectiveStoreId;
       const activeMerchants = (db.merchants || []).filter(m => m && m.status !== 'deleted');
       const targetStore = activeMerchants.find(m => String(m.id) === targetSid);
+      if (!targetStore && !req.isDemo) return res.json([]);
       const ownerSet = new Set(
-        [ownerId, merchantId, targetStore?.ownerUserId, targetStore?.posOwnerId]
+        [headerOwnerId, merchantId, targetStore?.ownerUserId, targetStore?.posOwnerId]
           .filter(Boolean)
           .map(v => String(v))
       );
@@ -2009,6 +3005,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       const isPrimaryTarget = !primaryStoreId || targetSid === String(primaryStoreId);
       list = list.filter(p => {
         if (p.storeId) return String(p.storeId) === targetSid;
+        if (targetStore?.hideSeedProducts || targetStore?.isUserUmkmStore) {
+          return Boolean(p.merchantId) && String(p.merchantId) === String(merchantId || headerOwnerId || targetStore?.ownerUserId || '');
+        }
         return isPrimaryTarget && (!merchantId || !p.merchantId || String(p.merchantId) === String(merchantId));
       });
       return res.json(list);
@@ -2016,6 +3015,12 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     if (merchantId) {
       const filtered = list.filter(p => !p.clonedFromProductId && (!p.merchantId || String(p.merchantId) === String(merchantId)));
       return res.json(filtered);
+    }
+    if (headerOwnerId && !req.isDemo) {
+      const { stores: ownedStores } = getDirectOwnerStores(db, headerOwnerId);
+      if (ownedStores.length === 0) return res.json([]);
+      const ownedIds = new Set(ownedStores.map(s => String(s.id)));
+      return res.json(list.filter(p => (p.storeId && ownedIds.has(String(p.storeId))) || String(p.merchantId || '') === String(headerOwnerId)));
     }
     res.json(list);
   });
@@ -2139,9 +3144,20 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   router.get('/tables', async (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
-    const { storeId, merchantId } = req.query;
+    const { storeId, merchantId, tableToken, ownerId } = req.query;
+    const requestedOwnerId = ownerId || req.user?.id || req.headers['x-user-id'] || null;
     const filterStoreId = storeId || merchantId;
     let tablesList = db.pos_tables || [];
+
+    if (tableToken) {
+      const matched = tablesList.filter(t => String(t.qrToken || '') === String(tableToken).trim());
+      const enrichedToken = await Promise.all(matched.map((t) => buildEnrichedTable(t, req)));
+      return res.json(enrichedToken);
+    }
+
+    if (!req.isDemo && !filterStoreId && !requestedOwnerId) {
+      return res.json([]);
+    }
 
     if (filterStoreId && filterStoreId !== 'all') {
       const targetMeta = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(filterStoreId));
@@ -2153,6 +3169,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         (t.storeId && String(t.storeId) === String(filterStoreId)) ||
         (!t.storeId && isPrimary)
       );
+    } else if (requestedOwnerId && !req.isDemo) {
+      const { stores: ownedStores } = getDirectOwnerStores(db, requestedOwnerId);
+      if (ownedStores.length === 0) return res.json([]);
+      const ownedIds = new Set(ownedStores.map(s => String(s.id)));
+      tablesList = tablesList.filter(t => t.storeId && ownedIds.has(String(t.storeId)));
     }
 
     const enriched = await Promise.all(
@@ -2309,7 +3330,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     // ── IDENTIFIKASI TOKO & BILLING PROFILE (TIER 1 Rp 25 vs TIER 2 Rp 100) ──
     const currentActiveStore = db.settings.posStore || {};
-    const storeId = req.body.storeId || currentActiveStore.merchantId || currentActiveStore.uid || 'MTR-KASIR-MASTER';
+    const storeId = req.body.storeId || table?.storeId || table?.merchantId || currentActiveStore.merchantId || currentActiveStore.uid || 'MTR-KASIR-MASTER';
     let resolvedMerchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(storeId))
       || (db.merchants || []).find(m => m && m.status !== 'deleted');
     if (!resolvedMerchant) {
@@ -2323,6 +3344,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     } else if (resolvedMerchant.saldoNota === undefined) {
       resolvedMerchant.saldoNota = 5000;
     }
+    const storeBillingProfile = getStoreBillingProfile(db, resolvedMerchant);
     const storeName = req.body.storeName || resolvedMerchant.name || currentActiveStore.storeName || 'Kantin Berkah Kost';
     const cashierId = req.body.cashierId || (req.body.user && req.body.user.id) || 'KSR-01';
     const cashierName = req.body.cashierName || (req.body.user && req.body.user.name) || 'Siti Rahmawati (Kasir Shift Pagi)';
@@ -2345,6 +3367,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           (pCode && String(p.code).toUpperCase() === pCode)
         )
       );
+
+      if (isPointConversionVoucher(promo, pCode) && !storeBillingProfile.activePool) {
+        return res.status(422).json({
+          error: 'Voucher penukaran poin tidak dapat digunakan di toko Tier 1 ini. Hanya toko yang tergabung ke Loyalty Pool (Tier 2) yang mendukung penukaran poin.',
+          code: 'POIN_NOT_ACTIVE_ON_STORE',
+          billingTier: storeBillingProfile.billingTier
+        });
+      }
 
       if (!promo) {
         return res.status(404).json({ error: 'Kode promo tidak ditemukan atau non-aktif' });
@@ -2427,9 +3457,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     const billingTier = poolPreview.billingTier;
     const billingFeeIdr = poolPreview.billingFeeIdr;
+    const requestedPaymentMethod = String(req.body.paymentMethod || '').toUpperCase().trim();
+    const notaFeeBearer = resolveStoreNotaFeeBearer(db, resolvedMerchant);
+    const isDeferredSelfOrder = !requestedPaymentMethod || requestedPaymentMethod === 'CASH_COUNTER';
+    const isImmediateCustomerViaQris = requestedPaymentMethod === 'QRIS' && notaFeeBearer === 'customer';
+    const shouldDeductAtCreate = !isDeferredSelfOrder && !isImmediateCustomerViaQris;
     const currentSaldoBefore = Number(resolvedMerchant.saldoNota ?? 5000);
 
-    if (currentSaldoBefore < billingFeeIdr) {
+    if (shouldDeductAtCreate && currentSaldoBefore < billingFeeIdr) {
       return res.status(402).json({
         error: `Saldo nota kasir tidak mencukupi (${billingTier === 'TIER_2_LOYALTY' ? 'Tier 2 Poin Rp 100/nota' : 'Tier 1 Flat Rp 25/nota'}). Silakan lakukan Top Up Saldo Nota terlebih dahulu.`,
         requiresTopupNota: true,
@@ -2445,8 +3480,16 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const finalTotalDiscount = pointsDiscount + promoDiscount;
     const adminFee = billingFeeIdr;
     const platformFee = 0;
-    const ownerDeduction = billingFeeIdr;
-    const totalAmount = Math.max(0, subtotal - finalTotalDiscount);
+    const baseAmountBeforePaymentFee = Math.max(0, subtotal - finalTotalDiscount);
+    const feeSnap = computePosOrderFeeSnapshot({
+      baseAmount: baseAmountBeforePaymentFee,
+      notaFeeIdr: billingFeeIdr,
+      notaFeeBearer,
+      paymentMethod: requestedPaymentMethod
+    });
+    const qrisFee = feeSnap.qrisFee;
+    const totalAmount = feeSnap.totalAmount;
+    const ownerDeduction = feeSnap.notaFeeBearer === 'customer' ? 0 : billingFeeIdr;
 
     if (appliedPromoObj) {
       appliedPromoObj.usedCount = (appliedPromoObj.usedCount || 0) + 1;
@@ -2544,9 +3587,17 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       qrClaimUrl: qrClaimUrl,
       claim_deadline: claimDeadline.toISOString(),
       claimDeadline: claimDeadline.toISOString(),
-      feeBorneBy: 'owner',
+      feeBorneBy: feeSnap.notaFeeBearer,
+      notaFeeBearer: feeSnap.notaFeeBearer,
+      notaFeeBorneBy: feeSnap.notaFeeBearer,
+      customerAdminFee: feeSnap.customerAdminFee,
+      paymentFeeBorneBy: qrisFee > 0 ? 'customer' : null,
+      baseAmountBeforePaymentFee,
+      qrisFee,
+      qrisFeeFixed: feeSnap.qrisFeeFixed,
+      qrisFeePercent: feeSnap.qrisFeePercent,
       ownerDeduction,
-      netRevenue: Math.max(0, totalAmount - ownerDeduction),
+      netRevenue: Math.max(0, baseAmountBeforePaymentFee - ownerDeduction),
       totalAmount,
       notes: notes || '',
       status: 'PENDING_CONFIRMATION', // Step 1: Wait for Kitchen ACC
@@ -2557,11 +3608,20 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       createdAt: new Date().toISOString()
     };
 
-    const deductRes = deductStoreNotaFeeOnce(db, resolvedMerchant, newOrder, {
-      channel: 'POS Order Checkout'
-    });
-    if (!deductRes.ok) {
-      return res.status(deductRes.status || 402).json(deductRes);
+    let deductRes = {
+      ok: true,
+      kuotaAfter: Math.max(0, Math.floor((Number(resolvedMerchant.saldoNota ?? 0) || 0) / Math.max(1, billingFeeIdr)))
+    };
+    if (shouldDeductAtCreate) {
+      deductRes = deductStoreNotaFeeOnce(db, resolvedMerchant, newOrder, {
+        channel: 'POS Order Checkout'
+      });
+      if (!deductRes.ok) {
+        return res.status(deductRes.status || 402).json(deductRes);
+      }
+    } else if (isImmediateCustomerViaQris) {
+      newOrder.notaDeducted = 0;
+      newOrder.notaBypassReason = 'CUSTOMER_PAID_VIA_KOSTKU_QRIS';
     }
 
     const mWallet = db.merchant_wallets?.[resolvedMerchant.id] || {
@@ -2683,12 +3743,17 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
   // ── 5. GET ORDERS & SINGLE ORDER DETAILS ──────────────────────────────
   router.get('/orders', (req, res) => {
-    const { status, limit, storeId, merchantId } = req.query;
+    const { status, limit, storeId, merchantId, ownerId } = req.query;
+    const requestedOwnerId = ownerId || req.user?.id || req.headers['x-user-id'] || null;
     const db = getDB(req);
     ensurePosCollections(db);
 
-    let list = db.pos_orders;
     const filterStore = storeId || merchantId;
+    if (!req.isDemo && !filterStore && !requestedOwnerId) {
+      return res.status(401).json({ error: 'Login diperlukan untuk melihat pesanan Kasir POS.' });
+    }
+
+    let list = db.pos_orders;
     if (filterStore && filterStore !== 'all') {
       const targetMeta = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(filterStore));
       const ownerFirstMerchant = (db.merchants || []).find(m =>
@@ -2699,6 +3764,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         (o.storeId && String(o.storeId) === String(filterStore)) ||
         (!o.storeId && isPrimary)
       );
+    } else if (requestedOwnerId && !req.isDemo) {
+      const { stores: ownedStores } = getDirectOwnerStores(db, requestedOwnerId);
+      if (ownedStores.length === 0) return res.json([]);
+      const ownedIds = new Set(ownedStores.map(s => String(s.id)));
+      list = list.filter(o => o.storeId && ownedIds.has(String(o.storeId)));
     }
 
     if (status) {
@@ -2829,10 +3899,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     res.json({ success: true, message: 'Pesanan dibatalkan.', order });
   });
 
-  // ── 7. EXECUTE PAYMENT (OPSI A: TRIPAY, OPSI B: TAGIH KE KAMAR) ────────
+  // ── 7. EXECUTE PAYMENT (OPSI A: CASH DI KASIR, OPSI B: TRIPAY KOSTKU, DIRECT POS) ──
   router.post('/orders/:id/pay', async (req, res) => {
     const { id } = req.params;
-    const { method, roomNumber, phoneLast4, cashierName, cashierId } = req.body;
+    const { method, cashierName, cashierId } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
 
@@ -2853,20 +3923,89 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       });
     }
 
-    // ── OPSI A: TRIPAY PAYMENT GATEWAY (QRIS / E-WALLET) ──
-    if (method === 'TRIPAY') {
+    const normalizedMethod = String(method || '').toUpperCase().trim();
+    const { merchant, baseAmt, billingFeeIdr, notaFeeBearer } = resolveOrderBillingContext(db, order);
+
+    // ── OPSI A0: CUSTOMER MEJA QR MEMILIH BAYAR CASH DI KASIR (MENUNGGU KONFIRMASI KASIR) ──
+    if (normalizedMethod === 'CASH_COUNTER') {
+      const feeSnap = computePosOrderFeeSnapshot({
+        baseAmount: baseAmt,
+        notaFeeIdr: billingFeeIdr,
+        notaFeeBearer,
+        paymentMethod: 'CASH'
+      });
+      order.baseAmountBeforePaymentFee = feeSnap.baseAmount;
+      order.qrisFee = 0;
+      order.qrisFeeFixed = 0;
+      order.qrisFeePercent = 0;
+      order.customerAdminFee = feeSnap.customerAdminFee;
+      order.notaFeeBearer = feeSnap.notaFeeBearer;
+      order.notaFeeBorneBy = feeSnap.notaFeeBearer;
+      order.feeBorneBy = feeSnap.notaFeeBearer;
+      order.paymentFeeBorneBy = null;
+      order.totalAmount = feeSnap.totalAmount;
+      order.paymentMethod = 'CASH';
+      order.customerSelectedPayment = 'CASH_COUNTER';
+      order.paymentStatus = 'WAITING_CASHIER';
+      order.tripayReference = null;
+      order.tripayQrString = null;
+      order.tripayQrUrl = null;
+
+      writeDB(db, req);
+      return res.json({
+        success: true,
+        method: 'CASH_COUNTER',
+        status: 'WAITING_PAYMENT',
+        baseAmount: feeSnap.baseAmount,
+        qrisFee: 0,
+        customerAdminFee: feeSnap.customerAdminFee,
+        notaFeeBearer: feeSnap.notaFeeBearer,
+        total: feeSnap.totalAmount,
+        message: `Silakan bayar tunai Rp ${feeSnap.totalAmount.toLocaleString('id-ID')} di meja kasir. Pesanan akan langsung dimasak setelah kasir konfirmasi lunas.`,
+        order
+      });
+    }
+
+    // ── OPSI A: TRIPAY PAYMENT GATEWAY (BAYAR VIA KOSTKU QRIS) ──
+    if (normalizedMethod === 'TRIPAY') {
+      const feeSnap = computePosOrderFeeSnapshot({
+        baseAmount: baseAmt,
+        notaFeeIdr: billingFeeIdr,
+        notaFeeBearer,
+        paymentMethod: 'TRIPAY'
+      });
+      order.baseAmountBeforePaymentFee = feeSnap.baseAmount;
+      order.qrisFee = feeSnap.qrisFee;
+      order.qrisFeeFixed = feeSnap.qrisFeeFixed;
+      order.qrisFeePercent = feeSnap.qrisFeePercent;
+      order.customerAdminFee = feeSnap.customerAdminFee;
+      order.notaFeeBearer = feeSnap.notaFeeBearer;
+      order.notaFeeBorneBy = feeSnap.notaFeeBearer;
+      order.feeBorneBy = feeSnap.notaFeeBearer;
+      order.paymentFeeBorneBy = 'customer';
+      order.customerSelectedPayment = 'TRIPAY';
+      order.paymentStatus = 'PENDING';
+      order.totalAmount = feeSnap.totalAmount;
+
       const posTripay = db.settings.posTripay || {};
       const hasTripayCredentials = Boolean(posTripay.apiKey && posTripay.privateKey && posTripay.merchantCode);
 
       if (hasTripayCredentials && typeof createTripayClosedTransaction === 'function') {
         try {
+          const orderItems = order.items.map(it => ({ name: it.name, price: it.price, quantity: it.qty }));
+          if (feeSnap.qrisFee > 0) {
+            orderItems.push({ name: 'Biaya Layanan QRIS TriPay (Rp 750 + 0,70%)', price: feeSnap.qrisFee, quantity: 1 });
+          }
+          if (feeSnap.customerAdminFee > 0) {
+            orderItems.push({ name: 'Biaya Admin Nota Platform', price: feeSnap.customerAdminFee, quantity: 1 });
+          }
           const tripayRes = await createTripayClosedTransaction({
             orderId: order.id,
             amount: order.totalAmount,
             customerName: order.customerName,
             customerEmail: 'customer@riuph.me',
             customerPhone: order.customerPhone || '08123456789',
-            orderItems: order.items.map(it => ({ name: it.name, price: it.price, quantity: it.qty }))
+            orderItems
           });
 
           if (tripayRes && tripayRes.success) {
@@ -2884,6 +4023,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
               qrString: tripayRes.qrString,
               qrUrl: tripayRes.qrUrl,
               checkoutUrl: tripayRes.checkoutUrl,
+              baseAmount: order.baseAmountBeforePaymentFee,
+              qrisFee: feeSnap.qrisFee,
+              customerAdminFee: feeSnap.customerAdminFee,
+              notaFeeBearer: feeSnap.notaFeeBearer,
               total: order.totalAmount,
               instructions: tripayRes.instructions
             });
@@ -2894,7 +4037,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
 
       // Graceful Sandbox / Simulator Response (Sebelum User Input API Key TriPay)
-      const mockQrString = `00020101021226670016ID.CO.TRIPAY.WWW01189360099900000000000215${order.id}520458125303360540${order.totalAmount}5802ID5914RIUPH KASIR POS6007JAKARTA62070703A016304E8A2`;
+      const amtStr = String(Math.round(Number(order.totalAmount) || 0));
+      const mockQrString = `00020101021226670016ID.CO.TRIPAY.WWW01189360099900000000000215${order.id}52045812530336054${String(amtStr.length).padStart(2, '0')}${amtStr}5802ID5914RIUPH KASIR POS6007JAKARTA62070703A016304E8A2`;
       let qrDataUrl = '';
       try {
         qrDataUrl = await QRCode.toDataURL(mockQrString, { width: 320 });
@@ -2916,44 +4060,83 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         qrString: mockQrString,
         qrDataUrl,
         checkoutUrl: order.tripayCheckoutUrl,
+        baseAmount: order.baseAmountBeforePaymentFee,
+        qrisFee: feeSnap.qrisFee,
+        customerAdminFee: feeSnap.customerAdminFee,
+        notaFeeBearer: feeSnap.notaFeeBearer,
         total: order.totalAmount,
         instructions: [
           'Buka aplikasi e-wallet (GoPay, ShopeePay, OVO, Dana) atau Mobile Banking',
           'Pindai kode QRIS di layar',
-          'Periksa nominal pembayaran sudah termasuk biaya admin Rp 100',
+          `Periksa nominal pembayaran Rp ${order.totalAmount.toLocaleString('id-ID')} (termasuk biaya QRIS Rp ${feeSnap.qrisFee.toLocaleString('id-ID')}${feeSnap.customerAdminFee > 0 ? ` + Admin Nota Rp ${feeSnap.customerAdminFee.toLocaleString('id-ID')}` : ''})`,
           'Selesaikan pembayaran dan pesanan langsung dimasak'
         ]
       });
     }
 
-    // Cash Payment from Cashier Register (Tier 1 Rp 25 vs Tier 2 Rp 100, single atomic deduction)
-    if (method === 'CASH') {
-      const store = db.settings.posStore || {};
-      const primaryMerchant = (db.merchants || [])[0];
-      const sharedUid = order.storeId || store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
-      let merchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(sharedUid)) || primaryMerchant;
-
-      const deductRes = deductStoreNotaFeeOnce(db, merchant, order, {
-        channel: 'POS Kasir (Tunai)'
+    // Direct Counter Payment from Cashier Register (CASH | QRIS | TRANSFER)
+    if (normalizedMethod === 'CASH' || normalizedMethod === 'QRIS' || normalizedMethod === 'TRANSFER') {
+      const feeSnap = computePosOrderFeeSnapshot({
+        baseAmount: baseAmt,
+        notaFeeIdr: billingFeeIdr,
+        notaFeeBearer,
+        paymentMethod: normalizedMethod
       });
-      if (!deductRes.ok) {
-        return res.status(deductRes.status === 402 ? 400 : (deductRes.status || 400)).json(deductRes);
+      order.baseAmountBeforePaymentFee = feeSnap.baseAmount;
+      order.qrisFee = feeSnap.qrisFee;
+      order.qrisFeeFixed = feeSnap.qrisFeeFixed;
+      order.qrisFeePercent = feeSnap.qrisFeePercent;
+      order.customerAdminFee = feeSnap.customerAdminFee;
+      order.notaFeeBearer = feeSnap.notaFeeBearer;
+      order.notaFeeBorneBy = feeSnap.notaFeeBearer;
+      order.feeBorneBy = feeSnap.notaFeeBearer;
+      order.paymentFeeBorneBy = feeSnap.qrisFee > 0 ? 'customer' : null;
+      order.totalAmount = feeSnap.totalAmount;
+
+      const skipNotaForCustomerQris = normalizedMethod === 'QRIS' && feeSnap.notaFeeBearer === 'customer';
+      let deductRes = {
+        ok: true,
+        feeDeducted: 0,
+        billingTier: order.billing_tier || 'TIER_1_FLAT',
+        saldoAfter: Number(merchant?.saldoNota ?? 0),
+        kuotaAfter: Number(merchant?.kuotaNota ?? 0)
+      };
+
+      if (skipNotaForCustomerQris) {
+        order.notaDeducted = 0;
+        order.notaBypassReason = 'CUSTOMER_PAID_VIA_KOSTKU_QRIS';
+      } else {
+        deductRes = deductStoreNotaFeeOnce(db, merchant, order, {
+          channel: normalizedMethod === 'QRIS' ? 'POS Kasir (QRIS TriPay)' : normalizedMethod === 'TRANSFER' ? 'POS Kasir (Transfer)' : 'POS Kasir (Tunai)'
+        });
+        if (!deductRes.ok) {
+          return res.status(deductRes.status === 402 ? 400 : (deductRes.status || 400)).json(deductRes);
+        }
       }
 
-      order.paymentMethod = 'CASH';
+      order.paymentMethod = normalizedMethod;
       order.paymentStatus = 'PAID';
       order.status = 'PREPARING';
       order.paidAt = new Date().toISOString();
+      if (normalizedMethod === 'QRIS') {
+        settlePosOrderIntoUnifiedWallet(db, order, merchant, billingFeeIdr);
+      }
       writeDB(db, req);
       return res.json({
         success: true,
-        method: 'CASH',
+        method: normalizedMethod,
         status: 'PREPARING',
+        qrisFee: Number(order.qrisFee) || 0,
+        customerAdminFee: feeSnap.customerAdminFee,
+        notaFeeBearer: feeSnap.notaFeeBearer,
+        total: order.totalAmount,
         notaDeducted: deductRes.feeDeducted,
         billingTier: deductRes.billingTier,
         sisaSaldoNota: deductRes.saldoAfter,
         sisaKuotaNota: deductRes.kuotaAfter,
-        message: `Pembayaran tunai kasir berhasil dicatat (${deductRes.billingTier === 'TIER_2_LOYALTY' ? 'Tier 2 Rp 100/nota' : 'Tier 1 Rp 25/nota'}).`,
+        message: normalizedMethod === 'QRIS'
+          ? `Pembayaran QRIS TriPay berhasil divalidasi (Biaya QRIS Rp ${(Number(order.qrisFee) || 0).toLocaleString('id-ID')}${feeSnap.notaFeeBearer === 'customer' ? ', saldo nota toko Rp 0 terpotong' : ''}).`
+          : `Pembayaran ${normalizedMethod === 'TRANSFER' ? 'transfer bank' : 'tunai'} kasir berhasil dicatat (${deductRes.billingTier === 'TIER_2_LOYALTY' ? 'Tier 2 Rp 100/nota' : 'Tier 1 Rp 25/nota'}).`,
         order
       });
     }
@@ -2969,9 +4152,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     const order = db.pos_orders.find(o => o.id === merchant_ref || o.tripayReference === reference);
     if (order && status === 'PAID') {
-      order.paymentStatus = 'PAID';
-      order.status = 'PREPARING'; // Pembayaran berhasil -> langsung masuk antrean masak
-      order.paidAt = new Date().toISOString();
+      const { merchant, billingFeeIdr } = resolveOrderBillingContext(db, order);
+      finalizeTripayPosOrderPayment(db, order, merchant, billingFeeIdr);
       writeDB(db, req);
       console.log(`[POS TriPay Webhook] Order ${order.id} verified PAID!`);
     }
@@ -2990,66 +4172,38 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     if (req.body?.cashierName) order.cashierName = req.body.cashierName;
     if (req.body?.cashierId) order.cashierId = req.body.cashierId;
 
-    const store = db.settings.posStore || {};
-    const primaryMerchant = (db.merchants || [])[0];
-    const sharedUid = order.storeId || store.merchantId || store.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
-    let merchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(sharedUid)) || primaryMerchant;
+    const { merchant, baseAmt, billingFeeIdr, notaFeeBearer } = resolveOrderBillingContext(db, order);
+    const pm = String(order.paymentMethod || '').toUpperCase().trim();
+    const isGatewayQris = pm === 'TRIPAY' || pm === 'QRIS';
 
-    const isCashOrCounter = order.paymentMethod === 'CASH' || !order.paymentMethod || order.paymentMethod === 'TUNAI';
-
-    // Konfirmasi kasir untuk transaksi cash: wajib potong sesuai Tier (Rp 25 vs Rp 100) sekali saja
-    if (isCashOrCounter && merchant) {
-      const deductRes = deductStoreNotaFeeOnce(db, merchant, order, {
-        channel: 'POS Kasir (Konfirmasi Tunai)'
+    if (isGatewayQris) {
+      finalizeTripayPosOrderPayment(db, order, merchant, billingFeeIdr);
+    } else {
+      const feeSnap = computePosOrderFeeSnapshot({
+        baseAmount: baseAmt,
+        notaFeeIdr: billingFeeIdr,
+        notaFeeBearer: order.notaFeeBorneBy || order.notaFeeBearer || notaFeeBearer,
+        paymentMethod: 'CASH'
       });
-      if (!deductRes.ok) {
-        return res.status(deductRes.status === 402 ? 400 : (deductRes.status || 400)).json(deductRes);
+      order.baseAmountBeforePaymentFee = feeSnap.baseAmount;
+      order.customerAdminFee = feeSnap.customerAdminFee;
+      order.notaFeeBearer = feeSnap.notaFeeBearer;
+      order.notaFeeBorneBy = feeSnap.notaFeeBearer;
+      order.feeBorneBy = feeSnap.notaFeeBearer;
+      order.totalAmount = feeSnap.totalAmount;
+
+      if (merchant) {
+        const deductRes = deductStoreNotaFeeOnce(db, merchant, order, {
+          channel: 'POS Kasir (Konfirmasi Tunai)'
+        });
+        if (!deductRes.ok) {
+          return res.status(deductRes.status === 402 ? 400 : (deductRes.status || 400)).json(deductRes);
+        }
       }
       order.paymentMethod = 'CASH';
-    }
-
-    order.paymentStatus = 'PAID';
-    order.status = 'PREPARING';
-    order.paidAt = new Date().toISOString();
-
-    // Auto-deposit net omset to Unified Wallet if paid via TriPay (QRIS/E-Wallet)
-    // Kebijakan: Kasir POS dan Mitra UMKM menjadi 1 UID terpadu (1 Wallet bersama)
-    if (order.paymentMethod === 'TRIPAY') {
-      db.unified_wallets = db.unified_wallets || {};
-      const primaryMerchant = (db.merchants || [])[0];
-      const sharedUid = db.settings?.posStore?.merchantId || db.settings?.posStore?.uid || primaryMerchant?.id || 'MTR-KASIR-MASTER';
-
-      if (db.settings?.posStore) {
-        db.settings.posStore.uid = sharedUid;
-        db.settings.posStore.merchantId = sharedUid;
-      }
-
-      if (!db.unified_wallets[sharedUid]) {
-        db.unified_wallets[sharedUid] = {
-          uid: sharedUid,
-          name: db.settings?.posStore?.storeName || primaryMerchant?.name || 'Kasir POS & Mitra Terpadu',
-          balance: 0,
-          totalEarned: 0,
-          totalSettled: 0,
-          gateway: 'TriPay Master KostKu (T53543)',
-          history: []
-        };
-      }
-      const netAmount = Math.max(0, (Number(order.totalAmount) || 0) - Number(order.billing_fee_idr || 100));
-      db.unified_wallets[sharedUid].balance = (Number(db.unified_wallets[sharedUid].balance) || 0) + netAmount;
-      db.unified_wallets[sharedUid].totalEarned = (Number(db.unified_wallets[sharedUid].totalEarned) || 0) + netAmount;
-      db.unified_wallets[sharedUid].history = db.unified_wallets[sharedUid].history || [];
-      db.unified_wallets[sharedUid].history.unshift({
-        id: 'WAL-POS-' + Date.now(),
-        type: 'deposit',
-        source: 'pos_cashier',
-        channel: 'POS Kasir',
-        amount: netAmount,
-        balanceAfter: db.unified_wallets[sharedUid].balance,
-        orderId: order.id,
-        description: `Hasil penjualan TriPay Kasir POS #${order.id} (Meja ${order.tableNumber})`,
-        createdAt: new Date().toISOString()
-      });
+      order.paymentStatus = 'PAID';
+      order.status = 'PREPARING';
+      order.paidAt = order.paidAt || new Date().toISOString();
     }
 
     writeDB(db, req);
@@ -3204,8 +4358,30 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const db = getDB(req);
     ensurePosCollections(db);
 
-    const balance = db.customer_points[cleanPhone] || 0;
-    res.json({ phone: cleanPhone, points: balance, rupiahEquivalent: Math.floor(balance / 100) * 1000 });
+    const { storeId = null, merchantId = null, tableToken = null } = req.query;
+    const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken });
+    const legacyBalance = db.customer_points[cleanPhone] || (db.customers && db.customers[cleanPhone]?.total_points) || 0;
+    let effectiveBalance = legacyBalance;
+    if (storeCtx.isTier2 && storeCtx.merchant && cleanPhone) {
+      const poolPreview = previewPoolCheckout(db, {
+        merchant: storeCtx.merchant,
+        customerPhone: cleanPhone,
+        redeemPoints: 0,
+        grossSubtotalIdr: 0
+      });
+      if (poolPreview?.availablePoints !== undefined) {
+        effectiveBalance = Number(poolPreview.availablePoints || 0);
+      }
+    }
+    const pointValueIdr = Number(storeCtx.billingProfile.activePool?.point_value_idr || 100);
+    res.json({
+      phone: cleanPhone,
+      points: effectiveBalance,
+      rupiahEquivalent: storeCtx.isTier2 ? (effectiveBalance * pointValueIdr) : 0,
+      billingTier: storeCtx.billingProfile.billingTier,
+      loyaltyPoolId: storeCtx.billingProfile.loyaltyPoolId,
+      canRedeemPoints: storeCtx.isTier2
+    });
   });
 
   // ── 13. OWNER / ADMIN CUSTOM DISCOUNT ON ORDER ────────────────────────
@@ -3255,8 +4431,12 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   });
 
   // ── 14. MEMBER STAMP & CUSTOM POINTS ENGINE (BY OWNER / ADMIN) ─────────
-  router.get('/loyalty/:phone', (req, res) => {
-    const cleanPhone = String(req.params.phone || '').replace(/\D/g, '');
+  router.get('/loyalty/:phone', (req, res, next) => {
+    const rawParam = String(req.params.phone || '').trim();
+    if (/[a-zA-Z]/.test(rawParam) || !/\d/.test(rawParam)) {
+      return next();
+    }
+    const cleanPhone = rawParam.replace(/\D/g, '');
     const db = getDB(req);
     ensurePosCollections(db);
 
@@ -3383,7 +4563,18 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
   // ── 9A-2. CONVERT POINTS TO FOOD VOUCHER (SOLUSI A: SELF-SERVICE REDEMPTION DI HP PELANGGAN) ──
   router.post('/loyalty/convert-to-voucher', (req, res) => {
-    const { phone, points } = req.body;
+    const { phone, points, storeId = null, merchantId = null, tableToken = null, claimToken = null, orderId = null } = req.body;
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken, claimToken, orderId });
+    if (storeCtx.explicitStoreRequested && !storeCtx.isTier2) {
+      return res.status(422).json({
+        error: 'Penukaran poin tidak aktif di toko Tier 1 ini. Hanya toko yang terhubung ke Loyalty Pool (Tier 2) yang mendukung penukaran poin.',
+        code: 'POIN_NOT_ACTIVE_ON_STORE',
+        billingTier: storeCtx.billingProfile.billingTier
+      });
+    }
+
     const cleanPhone = String(phone || '').replace(/\D/g, '');
     if (!cleanPhone) {
       return res.status(400).json({ error: 'Nomor WhatsApp pelanggan wajib diisi!' });
@@ -3393,9 +4584,6 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     if (!pts || isNaN(pts) || pts < 100) {
       return res.status(400).json({ error: 'Penukaran poin minimal 100 Poin!' });
     }
-
-    const db = getDB(req);
-    ensurePosCollections(db);
 
     const currentPoints = db.customer_points[cleanPhone] || (db.customers && db.customers[cleanPhone]?.total_points) || 0;
     if (currentPoints < pts) {
@@ -3494,6 +4682,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     if (claim.status === 'PENDING' && isDeadlinePassed) {
       resolvedStatus = 'EXPIRED';
     }
+    const storeCtx = resolveStoreContextForRequest(db, { merchantId: claim.merchant_id });
     res.json({
       id: claim.id,
       token: claim.claim_token,
@@ -3502,9 +4691,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       merchantName: claim.merchant_name || 'KostKu Cafe & Resto',
       totalAmount: claim.total_amount,
       potentialPoints: Math.max(1, Math.floor(claim.total_amount / 1000)),
+      billingTier: storeCtx.billingProfile.billingTier,
+      loyaltyPoolId: storeCtx.billingProfile.loyaltyPoolId,
+      loyaltyPoolName: storeCtx.billingProfile.loyaltyPoolName,
+      canRedeemPoints: storeCtx.isTier2,
       status: resolvedStatus,
       claimDeadline: claim.claim_deadline,
       claimedBy: claim.claimed_by_whatsapp ? claim.claimed_by_whatsapp.replace(/(\d{4})\d+(\d{3})/, '$1****$2') : null,
+      claimedVia: claim.claimed_via || (claim.status === 'CLAIMED' ? 'qr' : null),
       claimedAt: claim.claimed_at,
       refundedAt: claim.refunded_at,
       createdAt: claim.createdAt,
@@ -3513,49 +4707,54 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     });
   });
 
-  // 2. Customer claims points with Lucky Spin Wheel (/api/pos/loyalty/claim & /api/pos/loyalty/spin)
-  const handleLoyaltySpinClaim = (req, res) => {
-    const { token, whatsapp, phone, name } = req.body;
-    if (!token) {
-      return res.status(400).json({ error: 'Token struk tidak boleh kosong' });
-    }
-
-    let cleanPhone = String(whatsapp || phone || '').replace(/\D/g, '');
+  // Shared helper for claiming a receipt's loyalty points via QR Lucky Spin or Cashier HP input
+  const executeReceiptLoyaltyClaim = (db, { claim, phone, name = '', referralCode = '', source = 'qr' }) => {
+    let cleanPhone = String(phone || '').replace(/\D/g, '');
     if (cleanPhone.startsWith('62')) {
       cleanPhone = '0' + cleanPhone.slice(2);
     }
     if (!cleanPhone.startsWith('08') || cleanPhone.length < 10 || cleanPhone.length > 15) {
-      return res.status(400).json({ error: 'Nomor WhatsApp tidak valid. Masukkan nomor WhatsApp aktif (contoh: 081234567890).' });
+      return {
+        ok: false,
+        status: 400,
+        body: { error: 'Nomor WhatsApp tidak valid. Masukkan nomor WhatsApp aktif (contoh: 081234567890).' }
+      };
     }
 
-    const db = getDB(req);
-    ensurePosCollections(db);
-
-    const claim = (db.receipt_claims || []).find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
     if (!claim) {
-      return res.status(404).json({ error: 'Struk belanja tidak ditemukan atau token QR tidak valid.' });
+      return {
+        ok: false,
+        status: 404,
+        body: { error: 'Struk belanja tidak ditemukan atau token QR tidak valid.' }
+      };
     }
 
-    // Anti Double-Claim Check
     if (claim.status === 'CLAIMED') {
       const redacted = claim.claimed_by_whatsapp ? claim.claimed_by_whatsapp.replace(/(\d{4})\d+(\d{3})/, '$1****$2') : 'nomor lain';
-      return res.status(400).json({
-        error: `Struk ini sudah pernah diklaim sebelumnya oleh ${redacted} pada ${new Date(claim.claimed_at || Date.now()).toLocaleString('id-ID')}.`,
-        alreadyClaimed: true,
-        claimedAt: claim.claimed_at
-      });
+      return {
+        ok: false,
+        status: 400,
+        body: {
+          error: `Struk ini sudah pernah diklaim sebelumnya oleh ${redacted} pada ${new Date(claim.claimed_at || Date.now()).toLocaleString('id-ID')}.`,
+          alreadyClaimed: true,
+          claimedAt: claim.claimed_at
+        }
+      };
     }
 
-    // Expiry check
     const now = new Date();
     if (claim.status === 'EXPIRED' || now > new Date(claim.claim_deadline)) {
       claim.status = 'EXPIRED';
-      writeDB(db, req);
-      return res.status(400).json({
-        error: `Masa klaim struk ini telah berakhir pada ${new Date(claim.claim_deadline).toLocaleString('id-ID')} WIB.`,
-        isExpired: true,
-        claimDeadline: claim.claim_deadline
-      });
+      return {
+        ok: false,
+        status: 400,
+        shouldWriteOnError: true,
+        body: {
+          error: `Masa klaim struk ini telah berakhir pada ${new Date(claim.claim_deadline).toLocaleString('id-ID')} WIB.`,
+          isExpired: true,
+          claimDeadline: claim.claim_deadline
+        }
+      };
     }
 
     // ── SILENT REGISTRATION FOR CUSTOMER & PITY TRACKER ──
@@ -3582,20 +4781,18 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       customer.spins_without_jackpot = 0;
     }
 
-    // ── SERVER-SIDE RNG LUCKY SPIN WHEEL (DECOUPLED PROBABILITY) ──
     const spinOutcome = rollLuckySpin(customer);
     const pointsAwarded = spinOutcome.pointsWon;
 
-    // ATOMIC MUTATION (Idempotent 1-time claim)
     claim.status = 'CLAIMED';
     claim.claimed_by_whatsapp = cleanPhone;
+    claim.claimed_via = source || 'qr';
     claim.points_awarded = pointsAwarded;
     claim.claimed_at = now.toISOString();
 
     customer.total_points = (customer.total_points || 0) + pointsAwarded;
     db.customer_points[cleanPhone] = customer.total_points;
 
-    // Audit Ledger Entry for Spinner
     db.points_ledger = db.points_ledger || [];
     db.points_ledger.unshift({
       id: 'LEDGER-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
@@ -3604,16 +4801,83 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       invoice_number: claim.invoice_number,
       change_type: 'EARN',
       points: pointsAwarded,
-      notes: `Putar Lucky Spin Struk #${claim.invoice_number} (Dapat ${pointsAwarded} Poin)${spinOutcome.isPity ? ' [Pity Guarantee]' : ''}`,
+      notes: source === 'cashier_phone'
+        ? `Klaim Poin via No. HP di Kasir Struk #${claim.invoice_number} (+${pointsAwarded} Poin)`
+        : `Putar Lucky Spin Struk #${claim.invoice_number} (Dapat ${pointsAwarded} Poin)${spinOutcome.isPity ? ' [Pity Guarantee]' : ''}`,
       createdAt: now.toISOString()
     });
 
-    // ── ATURAN REFERRAL DINAMIS & 3 REM PENGAMAN ──
-    let referralResult = { success: false, status: 'NO_CODE', bonusAwarded: 0 };
-    const rawRefCode = (req.body.referral_code || req.body.referralCode || '').trim().toUpperCase();
+    // Also sync awarded points into Tier 2 Loyalty Pool wallet if the store joined a pool
+    let poolBalance = null;
+    const claimMerchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(claim.merchant_id));
+    if (claimMerchant) {
+      const storeProfile = getStoreBillingProfile(db, claimMerchant);
+      if (storeProfile.loyaltyPoolId) {
+        const ownerId = claimMerchant.ownerUserId || claimMerchant.posOwnerId || 'OWNER-DEFAULT';
+        const poolCustomer = findOrCreateLoyaltyCustomer(db, ownerId, cleanPhone, customer.name, true);
+        if (poolCustomer) {
+          let wallet = getCustomerPoolWallet(db, poolCustomer.id, storeProfile.loyaltyPoolId);
+          const nowIso = now.toISOString();
+          if (!wallet) {
+            wallet = {
+              id: `WAL-${Date.now()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
+              owner_id: String(ownerId),
+              customer_id: poolCustomer.id,
+              loyalty_pool_id: storeProfile.loyaltyPoolId,
+              customer_phone: poolCustomer.phone_e164,
+              customer_phone_display: poolCustomer.phone_display,
+              customer_name: poolCustomer.name,
+              balance_points: 0,
+              lifetime_earned: 0,
+              lifetime_redeemed: 0,
+              updated_at: nowIso
+            };
+            db.loyalty_pool_balances.push(wallet);
+          }
+          wallet.balance_points = Number(wallet.balance_points || 0) + pointsAwarded;
+          wallet.lifetime_earned = Number(wallet.lifetime_earned || 0) + pointsAwarded;
+          wallet.updated_at = nowIso;
+          poolBalance = wallet.balance_points;
+          db.point_transactions.unshift({
+            id: `PTX-CLM-${Date.now()}-${crypto.randomUUID().slice(0, 5).toUpperCase()}`,
+            owner_id: String(ownerId),
+            loyalty_pool_id: storeProfile.loyaltyPoolId,
+            loyalty_pool_name: storeProfile.loyaltyPoolName || '',
+            store_id: String(claimMerchant.id),
+            store_name: claimMerchant.name || claim.merchant_name || 'Toko POS',
+            customer_id: poolCustomer.id,
+            customer_phone: poolCustomer.phone_display,
+            customer_name: poolCustomer.name,
+            order_id: claim.order_id,
+            invoice_number: claim.invoice_number,
+            tx_type: 'EARN',
+            points_delta: pointsAwarded,
+            balance_after: wallet.balance_points,
+            idr_amount: Number(claim.total_amount || 0),
+            rule_snapshot: null,
+            created_at: nowIso
+          });
+        }
+      }
+    }
 
+    // Update linked POS order metadata so Kasir UI reflects claim status immediately
+    const linkedOrder = (db.pos_orders || []).find(o => String(o.id) === String(claim.order_id) || String(o.claim_token) === String(claim.claim_token));
+    if (linkedOrder) {
+      linkedOrder.claimStatus = 'CLAIMED';
+      linkedOrder.claimedByWhatsapp = cleanPhone;
+      linkedOrder.claimedVia = source || 'qr';
+      linkedOrder.claimPointsAwarded = pointsAwarded;
+      linkedOrder.hasSpun = true;
+      if (!linkedOrder.customerPhone) linkedOrder.customerPhone = cleanPhone;
+      if (name && (!linkedOrder.customerName || linkedOrder.customerName === 'Kasir Walk-in')) {
+        linkedOrder.customerName = name;
+      }
+    }
+
+    let referralResult = { success: false, status: 'NO_CODE', bonusAwarded: 0 };
+    const rawRefCode = String(referralCode || '').trim().toUpperCase();
     if (rawRefCode) {
-      // Rem Pengaman 2: Anti Self-Referral
       if (customer.referral_code && customer.referral_code.toUpperCase() === rawRefCode) {
         referralResult = { success: false, status: 'SELF_REFERRAL_BLOCKED', message: 'Dilarang menggunakan kode referral milik sendiri!' };
       } else {
@@ -3623,13 +4887,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         } else if (referrer.whatsapp_number === cleanPhone) {
           referralResult = { success: false, status: 'SELF_REFERRAL_BLOCKED', message: 'Dilarang menggunakan kode referral milik sendiri!' };
         } else {
-          // Rem Pengaman 3: Daily Cap (Maksimal 3 komisi per hari kalender WIB)
           const todayWib = getWibDateString(now);
           if (referrer.last_referral_date !== todayWib) {
             referrer.daily_referral_count = 0;
             referrer.last_referral_date = todayWib;
           }
-
           if ((referrer.daily_referral_count || 0) >= 3) {
             referralResult = {
               success: false,
@@ -3639,8 +4901,6 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
               referrerWhatsapp: referrer.whatsapp_number
             };
           } else {
-            // Pembagian Dinamis 50% dari hasil angka roda pemutar:
-            // 100 -> +50, 50 -> +25, 25 -> +12, 10 -> +5
             const referrerBonus = Math.floor(pointsAwarded * 0.5);
             referrer.total_points = (referrer.total_points || 0) + referrerBonus;
             db.customer_points[referrer.whatsapp_number] = referrer.total_points;
@@ -3673,16 +4933,51 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     }
 
-    // Deduct held promo balance from merchant escrow (official platform/promo fee: Rp 60.00)
     const mId = claim.merchant_id || 'MTR-KASIR-MASTER';
     if (db.merchant_wallets && db.merchant_wallets[mId]) {
       db.merchant_wallets[mId].held_promo_balance = Math.max(0, (db.merchant_wallets[mId].held_promo_balance || 0) - 60.00);
       db.merchant_wallets[mId].updated_at = now.toISOString();
     }
 
-    writeDB(db, req);
+    return {
+      ok: true,
+      cleanPhone,
+      customer,
+      claim,
+      pointsAwarded,
+      poolBalance,
+      spinOutcome,
+      referralResult,
+      mId
+    };
+  };
 
-    // Non-blocking Granular Delta Sync ke Firebase RTDB (< 5 KB payload)
+  // 2. Customer claims points with Lucky Spin Wheel (/api/pos/loyalty/claim & /api/pos/loyalty/spin)
+  const handleLoyaltySpinClaim = (req, res) => {
+    const { token, whatsapp, phone, name } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Token struk tidak boleh kosong' });
+    }
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const claim = (db.receipt_claims || []).find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    const result = executeReceiptLoyaltyClaim(db, {
+      claim,
+      phone: whatsapp || phone,
+      name,
+      referralCode: req.body.referral_code || req.body.referralCode || '',
+      source: 'qr'
+    });
+
+    if (!result.ok) {
+      if (result.shouldWriteOnError) writeDB(db, req);
+      return res.status(result.status || 400).json(result.body);
+    }
+
+    writeDB(db, req);
+    const { cleanPhone, customer, pointsAwarded, poolBalance, spinOutcome, referralResult, mId } = result;
+
     setImmediate(() => {
       try {
         syncDelta(`customer_points/${cleanPhone}`, customer.total_points, 'PUT');
@@ -3690,6 +4985,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         syncDelta(`receipt_claims/${claim.id}`, {
           status: 'CLAIMED',
           claimed_by_whatsapp: cleanPhone,
+          claimed_via: claim.claimed_via || 'qr',
           claimed_at: claim.claimed_at,
           points_awarded: claim.points_awarded,
           referral_code_used: claim.referral_code_used || null,
@@ -3720,6 +5016,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       isPity: spinOutcome.isPity,
       spinsWithoutJackpot: customer.spins_without_jackpot,
       totalPoints: customer.total_points,
+      poolBalance,
       customer: {
         whatsapp_number: cleanPhone,
         name: customer.name,
@@ -3737,20 +5034,243 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   router.post('/loyalty/claim', handleLoyaltySpinClaim);
   router.post('/loyalty/spin', handleLoyaltySpinClaim);
 
-  // 3. Customer Points Lookup (/api/pos/loyalty/customer/:phone)
+  // 2B. Kasir direct phone-number claim (without scanning QR)
+  router.get('/loyalty/unclaimed-orders', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const filterStoreId = req.query.storeId || req.query.merchantId || null;
+    const now = new Date();
+    const list = (db.receipt_claims || [])
+      .filter(c => {
+        if (!c || c.status !== 'PENDING') return false;
+        if (c.claim_deadline && now > new Date(c.claim_deadline)) return false;
+        if (filterStoreId && String(c.merchant_id || '') !== String(filterStoreId)) return false;
+        return true;
+      })
+      .slice(0, 20)
+      .map(c => {
+        const linkedOrder = (db.pos_orders || []).find(o => String(o.id) === String(c.order_id));
+        return {
+          claimId: c.id,
+          claimToken: c.claim_token,
+          orderId: c.order_id,
+          invoice: c.invoice_number,
+          merchantId: c.merchant_id,
+          merchantName: c.merchant_name || 'Toko POS',
+          totalAmount: Number(c.total_amount || linkedOrder?.totalAmount || 0),
+          customerName: linkedOrder?.customerName || 'Pelanggan',
+          customerPhone: linkedOrder?.customerPhone || '',
+          tableNumber: linkedOrder?.tableNumber || '-',
+          claimDeadline: c.claim_deadline,
+          createdAt: c.createdAt || linkedOrder?.createdAt
+        };
+      });
+    res.json({ success: true, orders: list });
+  });
+
+  function extractCustomerPhoneInput(rawInput) {
+    const raw = String(rawInput || '').trim();
+    if (!raw) return '';
+    const memberMatch = raw.match(/^(?:KOSTKU[-_]?MEMBER|MEMBER|POIN)\s*[:=]\s*([+\d\s\-().]+)/i);
+    let target = memberMatch ? memberMatch[1] : raw;
+    if (/^https?:\/\//i.test(raw) || raw.startsWith('/')) {
+      try {
+        const parsed = new URL(raw, 'https://kostku.riuph.me');
+        target = parsed.searchParams.get('member') || parsed.searchParams.get('phone') || parsed.searchParams.get('wa') || target;
+      } catch (_) {}
+    }
+    let digits = String(target).replace(/\D/g, '');
+    if (digits.startsWith('62')) digits = '0' + digits.slice(2);
+    else if (digits.startsWith('8') && digits.length >= 8 && digits.length <= 13) digits = '0' + digits;
+    return digits;
+  }
+
+  router.post('/loyalty/cashier-claim', (req, res) => {
+    const {
+      token,
+      claimToken,
+      orderId,
+      invoice,
+      storeId = null,
+      merchantId = null,
+      phone,
+      whatsapp,
+      customerQr = '',
+      qrPayload = '',
+      name = ''
+    } = req.body || {};
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const effectiveStoreId = storeId || merchantId || null;
+    const lookupKey = String(token || claimToken || orderId || invoice || '').trim();
+    if (!lookupKey) {
+      return res.status(400).json({ error: 'Pilih transaksi / masukkan kode faktur atau token struk terlebih dahulu.' });
+    }
+
+    let claim = (db.receipt_claims || []).find(c =>
+      String(c.claim_token || '') === lookupKey ||
+      String(c.id || '') === lookupKey ||
+      String(c.order_id || '') === lookupKey ||
+      String(c.invoice_number || '') === lookupKey
+    );
+
+    if (!claim) {
+      const ord = (db.pos_orders || []).find(o =>
+        String(o.id || '') === lookupKey ||
+        String(o.invoice_number || o.invoice || '') === lookupKey ||
+        String(o.claim_token || o.claimToken || '') === lookupKey
+      );
+      if (ord) {
+        if (effectiveStoreId && ord.storeId && String(ord.storeId) !== String(effectiveStoreId)) {
+          return res.status(403).json({ error: 'Transaksi bukan milik toko kasir ini.' });
+        }
+        const synthToken = ord.claim_token || ord.claimToken || ('clm_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16));
+        claim = {
+          id: 'CLM-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+          order_id: ord.id,
+          merchant_id: ord.storeId || effectiveStoreId || 'MTR-KASIR-MASTER',
+          merchant_name: ord.storeName || 'Toko POS',
+          invoice_number: ord.invoice_number || ord.invoice || ord.id,
+          total_amount: Number(ord.totalAmount || ord.subtotal || 0),
+          billing_tier: ord.billing_tier || 'TIER_1_FLAT',
+          loyalty_pool_id: ord.loyalty_pool_id || null,
+          claim_token: synthToken,
+          qr_claim_url: ord.qr_claim_url || `https://kostku.riuph.me/claim?token=${synthToken}`,
+          status: ord.claimStatus === 'CLAIMED' ? 'CLAIMED' : 'PENDING',
+          claimed_by_whatsapp: ord.claimedByWhatsapp || null,
+          points_awarded: ord.claimPointsAwarded || 0,
+          claim_deadline: ord.claim_deadline || ord.claimDeadline || calculateWibClaimDeadline(new Date(ord.createdAt || Date.now())).toISOString(),
+          claimed_at: null,
+          createdAt: ord.createdAt || new Date().toISOString()
+        };
+        db.receipt_claims.unshift(claim);
+      }
+    } else if (effectiveStoreId && claim.merchant_id && String(claim.merchant_id) !== String(effectiveStoreId)) {
+      return res.status(403).json({ error: 'Struk ini berasal dari toko lain.' });
+    }
+
+    const normalizedPhone = extractCustomerPhoneInput(customerQr || qrPayload || whatsapp || phone);
+    const claimViaSource = (customerQr || qrPayload) ? 'cashier_qr' : 'cashier_phone';
+
+    const result = executeReceiptLoyaltyClaim(db, {
+      claim,
+      phone: normalizedPhone,
+      name,
+      source: claimViaSource
+    });
+
+    if (!result.ok) {
+      if (result.shouldWriteOnError) writeDB(db, req);
+      return res.status(result.status || 400).json(result.body);
+    }
+
+    writeDB(db, req);
+    const { cleanPhone, customer, pointsAwarded, poolBalance, mId } = result;
+
+    setImmediate(() => {
+      try {
+        syncDelta(`customer_points/${cleanPhone}`, customer.total_points, 'PUT');
+        syncDelta(`customers/${cleanPhone}`, customer, 'PUT');
+        syncDelta(`receipt_claims/${claim.id}`, {
+          status: 'CLAIMED',
+          claimed_by_whatsapp: cleanPhone,
+          claimed_via: claimViaSource,
+          claimed_at: claim.claimed_at,
+          points_awarded: claim.points_awarded
+        }, 'PATCH');
+        if (db.merchant_wallets && db.merchant_wallets[mId]) {
+          syncDelta(`merchant_wallets/${mId}`, db.merchant_wallets[mId], 'PATCH');
+        }
+      } catch (err) {
+        console.warn('[Firebase RTDB Delta Sync Error]:', err.message);
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Berhasil! +${pointsAwarded} Poin diklaim via ${(customerQr || qrPayload) ? 'QR Pribadi' : 'No. HP'} ${cleanPhone} di Kasir.`,
+      pointsAwarded,
+      totalPoints: customer.total_points,
+      poolBalance,
+      phone: cleanPhone,
+      qrPayload: cleanPhone ? `KOSTKU-MEMBER:${cleanPhone}` : '',
+      claimToken: claim.claim_token,
+      invoice: claim.invoice_number,
+      claimedVia: claimViaSource,
+      claimedAt: claim.claimed_at,
+      customer: {
+        whatsapp_number: cleanPhone,
+        name: customer.name,
+        total_points: customer.total_points,
+        referral_code: customer.referral_code
+      }
+    });
+  });
+
+  // 3. Customer Points & Personal QR Lookup (/api/pos/loyalty/customer/:phone)
   router.get('/loyalty/customer/:phone', (req, res) => {
-    let phone = String(req.params.phone || '').replace(/\D/g, '');
-    if (phone.startsWith('62')) phone = '0' + phone.slice(2);
+    const phone = extractCustomerPhoneInput(decodeURIComponent(req.params.phone || ''));
     const db = getDB(req);
     ensurePosCollections(db);
 
-    const account = (db.customers && db.customers[phone]) || {
+    const baseAccount = (db.customers && db.customers[phone]) || {
       whatsapp_number: phone,
-      name: 'Pelanggan Baru',
+      name: 'Pelanggan KostKu',
       total_points: db.customer_points[phone] || 0
     };
+    const account = {
+      ...baseAccount,
+      whatsapp_number: phone,
+      total_points: Number(baseAccount.total_points ?? db.customer_points[phone] ?? 0)
+    };
     const history = (db.points_ledger || []).filter(l => l.whatsapp_number === phone);
-    res.json({ account, history });
+
+    const loyaltyCustomer = (db.loyalty_customers || []).find(c =>
+      c && (c.phone_canonical === phone || extractCustomerPhoneInput(c.phone_display) === phone)
+    ) || null;
+    const poolWallets = loyaltyCustomer
+      ? (db.loyalty_pool_balances || []).filter(w => String(w.customer_id) === String(loyaltyCustomer.id))
+      : [];
+    const storeId = req.query.storeId || req.query.merchantId || '';
+    const storeCtx = storeId ? resolveStoreContextForRequest(db, { storeId }) : null;
+    const activePoolId = storeCtx?.loyaltyPoolId || null;
+    const tier2PoolBalance = activePoolId
+      ? Number((poolWallets.find(w => String(w.loyalty_pool_id) === String(activePoolId)) || {}).balance_points || 0)
+      : poolWallets.reduce((sum, w) => sum + Number(w.balance_points || 0), 0);
+
+    const activeVouchers = (db.pos_food_promos || [])
+      .filter(p =>
+        p &&
+        p.isActive !== false &&
+        Number(p.usedCount || 0) < Number(p.maxQuota ?? 1) &&
+        p.customerPhone &&
+        extractCustomerPhoneInput(p.customerPhone) === phone
+      )
+      .map(p => ({
+        id: p.id,
+        code: p.code,
+        title: p.title,
+        scope: p.scope || 'ALL',
+        discountType: p.discountType || 'FIXED',
+        discountValue: Number(p.discountValue || 0),
+        minOrder: Number(p.minOrder || 0),
+        limitType: p.limitType || 'QUOTA',
+        maxQuota: Number(p.maxQuota ?? 1),
+        usedCount: Number(p.usedCount || 0),
+        startDate: p.startDate,
+        expiryDate: p.expiryDate || null,
+        description: p.description || ''
+      }));
+
+    res.json({
+      account,
+      history,
+      qrPayload: phone ? `KOSTKU-MEMBER:${phone}` : '',
+      tier2PoolBalance,
+      poolWallets,
+      activeVouchers
+    });
   });
 
   // 4. Merchant Wallet & Escrow Ledger (/api/pos/merchant/wallet)
@@ -5113,7 +6633,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       return res.status(400).json({ error: 'Nama Loyalty Pool wajib diisi.' });
     }
 
-    const attachStoreIds = Array.isArray(body.storeIds) ? body.storeIds.map(String) : [];
+    const attachStoreIds = Array.isArray(body.storeIds)
+      ? body.storeIds.map(String)
+      : (body.storeId ? [String(body.storeId)] : []);
     for (const sid of attachStoreIds) {
       const m = (db.merchants || []).find(x => x && x.status !== 'deleted' && String(x.id) === sid);
       if (!m) {

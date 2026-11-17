@@ -1,5 +1,37 @@
 import QRCode from 'qrcode';
 
+export const TRIPAY_QRIS_FIXED_FEE_IDR = 750;
+export const TRIPAY_QRIS_PERCENT_RATE = 0.007;
+
+/**
+ * Menghitung biaya layanan QRIS TriPay (Rp 750 + 0,70%) yang dibebankan ke Customer.
+ */
+export function calculateQrisCustomerFee(baseAmount = 0, borneBy = 'customer') {
+  const cleanBase = Math.max(0, Math.round(Number(baseAmount) || 0));
+  if (cleanBase <= 0 || String(borneBy || 'customer').toLowerCase() !== 'customer') {
+    return {
+      baseAmount: cleanBase,
+      fixedFee: 0,
+      percentFee: 0,
+      percentRate: 0.7,
+      fee: 0,
+      totalWithFee: cleanBase,
+      label: 'Rp 0'
+    };
+  }
+  const percentFee = Math.round(cleanBase * TRIPAY_QRIS_PERCENT_RATE);
+  const fee = TRIPAY_QRIS_FIXED_FEE_IDR + percentFee;
+  return {
+    baseAmount: cleanBase,
+    fixedFee: TRIPAY_QRIS_FIXED_FEE_IDR,
+    percentFee,
+    percentRate: 0.7,
+    fee,
+    totalWithFee: cleanBase + fee,
+    label: 'Rp 750 + 0,70%'
+  };
+}
+
 /**
  * Standard CRC-16 CCITT (0xFFFF initial, 0x1021 polynomial)
  * Required by Bank Indonesia (ASPI) & EMVCo QR Code Specification

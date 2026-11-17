@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Droplets, TrendingUp, TrendingDown, Plus, CreditCard } from 'lucide-react';
-import PdamPaymentModal from '../components/PdamPaymentModal';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Droplets, TrendingUp, Plus } from 'lucide-react';
 
 const Air = () => {
-  const [showPdamModal, setShowPdamModal] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="animate-fade-in">
@@ -15,7 +15,9 @@ const Air = () => {
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button 
             className="btn"
-            onClick={() => setShowPdamModal(true)}
+            onClick={() => navigate('/utilitas?tab=pdam&room=METER-UTAMA', {
+              state: { targetUser: { name: 'Pengelola Kost', role: 'owner' } }
+            })}
             style={{
               background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(6, 182, 212, 0.15))',
               color: '#38bdf8',
@@ -83,13 +85,6 @@ const Air = () => {
           </tbody>
         </table>
       </div>
-
-      <PdamPaymentModal
-        isOpen={showPdamModal}
-        onClose={() => setShowPdamModal(false)}
-        user={{ name: 'Pengelola Kost', role: 'owner' }}
-        roomNumber="METER-UTAMA"
-      />
     </div>
   );
 };

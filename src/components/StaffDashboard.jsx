@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, 
   AlertTriangle, 
@@ -31,10 +32,11 @@ import {
 
 import PackageLockerCard from './PackageLockerCard';
 import RoomInspectionModal from './RoomInspectionModal';
-import SmartLockAndTokenModal from './SmartLockAndTokenModal';
 
 export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner }) {
-  const isOwner = user?.role === 'owner' || user?.role === 'master' || isOwnerDelegate;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isOwner = user?.role === 'owner' || user?.role === 'master' || user?.role === 'admin' || isOwnerDelegate;
   const [rooms, setRooms] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [complaints, setComplaints] = useState([]);
@@ -52,12 +54,36 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
   const [expLoading, setExpLoading] = useState(false);
   const [expMsg, setExpMsg] = useState('');
 
-  const [activeTab, setActiveTab] = useState('tasks'); // 'tasks' | 'rooms' | 'inputs' | 'packages'
+  const resolveTabFromSearch = (searchStr) => {
+    const param = new URLSearchParams(searchStr || '').get('tab');
+    if (param === 'meteran' || param === 'inputs') return 'inputs';
+    if (param === 'inspeksi' || param === 'rooms') return 'rooms';
+    if (param === 'packages' || param === 'paket') return 'packages';
+    return 'tasks';
+  };
+
+  const [activeTab, setActiveTab] = useState(() => resolveTabFromSearch(location.search)); // 'tasks' | 'rooms' | 'inputs' | 'packages'
   const [inspectTenant, setInspectTenant] = useState(null);
-  const [smartLockTenant, setSmartLockTenant] = useState(null);
+
+  useEffect(() => {
+    const nextTab = resolveTabFromSearch(location.search);
+    setActiveTab(prev => (prev !== nextTab ? nextTab : prev));
+  }, [location.search]);
+
+  const handleSelectTab = (nextTab) => {
+    setActiveTab(nextTab);
+    const tabParamMap = { tasks: 'tasks', rooms: 'inspeksi', inputs: 'meteran', packages: 'packages' };
+    const mapped = tabParamMap[nextTab] || 'tasks';
+    if (!isOwnerDelegate && location.pathname === '/dashboard') {
+      navigate(mapped === 'tasks' ? '/dashboard' : `/dashboard?tab=${mapped}`, { replace: true });
+    }
+  };
 
   const loadData = async () => {
-    if (!user?.kostUid) return;
+    if (!user?.kostUid) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [sets, usrs, comps] = await Promise.all([
@@ -139,13 +165,13 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
       <div style={{
         background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
         border: '1px solid rgba(16, 185, 129, 0.3)',
-        borderRadius: '20px',
-        padding: '1.5rem',
+        borderRadius: '18px',
+        padding: 'clamp(0.9rem, 3vw, 1.5rem)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '1rem',
+        gap: '0.85rem',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -169,25 +195,25 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
-                Halo, {user?.name || (isOwner ? 'Juragan' : 'Staf Operasional')}!
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Halo, {user?.name || (isOwner ? 'Juragan' : 'Karyawan Operasional')}!
               </h2>
               <span style={{
                 background: isOwner ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.2)',
                 border: isOwner ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(16, 185, 129, 0.4)',
-                color: isOwner ? '#fbbf24' : '#6ee7b7',
+                color: isOwner ? '#fbbf24' : '#10b981',
                 padding: '3px 10px',
                 borderRadius: '999px',
                 fontSize: '0.75rem',
                 fontWeight: 700
               }}>
-                {isOwner ? 'Mode Ambil Alih Juragan' : (user?.jobTitle || 'Penjaga Kost')}
+                {isOwner ? 'Mode Ambil Alih Juragan' : (user?.jobTitle || 'Karyawan Kost')}
               </span>
             </div>
-            <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.88rem' }}>
+            <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
               {isOwner 
                 ? `Mengambil alih tugas staf • Properti: ${user?.kostName || user?.kostUid || 'Kost Utama'} • Hak akses catat meteran, paket, & inspeksi`
-                : `Bertugas di: ${user?.kostName || 'Cabang Kost'} • ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+                : `Bertugas di: ${user?.kostName || 'Toko / Cabang Kost'} • ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
             </p>
           </div>
         </div>
@@ -226,14 +252,14 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
       }}>
         {/* Card: Pending Complaints */}
         <div className="card glass-panel" style={{
-          padding: '1.25rem',
+          padding: 'clamp(0.85rem, 3vw, 1.25rem)',
           borderLeft: pendingComplaints.length > 0 ? '4px solid #ef4444' : '4px solid #10b981'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Tugas / Komplain Masuk</span>
             <AlertTriangle size={20} color={pendingComplaints.length > 0 ? '#ef4444' : '#10b981'} />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: pendingComplaints.length > 0 ? '#f87171' : '#4ade80' }}>
+          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.7rem)', fontWeight: 800, color: pendingComplaints.length > 0 ? '#f87171' : '#4ade80' }}>
             {pendingComplaints.length}
           </div>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
@@ -242,29 +268,29 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
         </div>
 
         {/* Card: Occupancy */}
-        <div className="card glass-panel" style={{ padding: '1.25rem', borderLeft: '4px solid #3b82f6' }}>
+        <div className="card glass-panel" style={{ padding: 'clamp(0.85rem, 3vw, 1.25rem)', borderLeft: '4px solid #3b82f6' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Status Kamar</span>
             <Home size={20} color="#60a5fa" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white' }}>
+          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.7rem)', fontWeight: 800, color: 'var(--text-primary)' }}>
             {occupiedCount} / {totalRooms}
           </div>
-          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             {availableCount} Kamar Kosong Siap Huni
           </span>
         </div>
 
         {/* Card: Active Tenants */}
-        <div className="card glass-panel" style={{ padding: '1.25rem', borderLeft: '4px solid #2563eb' }}>
+        <div className="card glass-panel" style={{ padding: 'clamp(0.85rem, 3vw, 1.25rem)', borderLeft: '4px solid #2563eb' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Anak Kost Aktif</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Anak Kost Aktif</span>
             <Users size={20} color="#60a5fa" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.7rem)', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
             {tenants.length} Orang
           </div>
-          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             Terdaftar di cabang ini
           </span>
         </div>
@@ -273,87 +299,105 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
       {/* Tabs Navigation */}
       <div style={{
         display: 'flex',
-        gap: '8px',
+        flexWrap: 'wrap',
+        gap: '6px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        paddingBottom: '8px'
+        paddingBottom: '8px',
+        width: '100%'
       }}>
         <button
-          onClick={() => setActiveTab('tasks')}
+          onClick={() => handleSelectTab('tasks')}
+          data-testid="staff-tab-tasks"
           style={{
-            padding: '8px 16px',
+            flex: '1 1 140px',
+            padding: '8px 10px',
             borderRadius: '10px',
             background: activeTab === 'tasks' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-            border: activeTab === 'tasks' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+            border: activeTab === 'tasks' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
             color: activeTab === 'tasks' ? '#6ee7b7' : '#94a3b8',
             cursor: 'pointer',
             fontWeight: 600,
-            fontSize: '0.88rem',
+            fontSize: 'clamp(0.76rem, 2.5vw, 0.86rem)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'center',
+            gap: '6px',
+            minWidth: 0
           }}
         >
-          <Wrench size={16} />
-          <span>Tugas & Komplain ({pendingComplaints.length})</span>
+          <Wrench size={15} style={{ flexShrink: 0 }} />
+          <span>Tugas &amp; Komplain ({pendingComplaints.length})</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('rooms')}
+          onClick={() => handleSelectTab('rooms')}
+          data-testid="staff-tab-inspeksi"
           style={{
-            padding: '8px 16px',
+            flex: '1 1 140px',
+            padding: '8px 10px',
             borderRadius: '10px',
             background: activeTab === 'rooms' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-            border: activeTab === 'rooms' ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid transparent',
+            border: activeTab === 'rooms' ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
             color: activeTab === 'rooms' ? '#93c5fd' : '#94a3b8',
             cursor: 'pointer',
             fontWeight: 600,
-            fontSize: '0.88rem',
+            fontSize: 'clamp(0.76rem, 2.5vw, 0.86rem)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'center',
+            gap: '6px',
+            minWidth: 0
           }}
         >
-          <Bed size={16} />
-          <span>Daftar Kamar & Kontak ({rooms.length})</span>
+          <Bed size={15} style={{ flexShrink: 0 }} />
+          <span>Daftar Kamar &amp; Kontak ({rooms.length})</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('inputs')}
+          onClick={() => handleSelectTab('inputs')}
+          data-testid="staff-tab-meteran"
           style={{
-            padding: '8px 16px',
+            flex: '1 1 140px',
+            padding: '8px 10px',
             borderRadius: '10px',
             background: activeTab === 'inputs' ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
-            border: activeTab === 'inputs' ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid transparent',
+            border: activeTab === 'inputs' ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
             color: activeTab === 'inputs' ? '#c4b5fd' : '#94a3b8',
             cursor: 'pointer',
             fontWeight: 600,
-            fontSize: '0.88rem',
+            fontSize: 'clamp(0.76rem, 2.5vw, 0.86rem)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'center',
+            gap: '6px',
+            minWidth: 0
           }}
         >
-          <Zap size={16} />
-          <span>Input Meteran & Pengeluaran</span>
+          <Zap size={15} style={{ flexShrink: 0 }} />
+          <span>Input Meteran &amp; Pengeluaran</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('packages')}
+          onClick={() => handleSelectTab('packages')}
+          data-testid="staff-tab-packages"
           style={{
-            padding: '8px 16px',
+            flex: '1 1 140px',
+            padding: '8px 10px',
             borderRadius: '10px',
             background: activeTab === 'packages' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
-            border: activeTab === 'packages' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid transparent',
+            border: activeTab === 'packages' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
             color: activeTab === 'packages' ? '#fbbf24' : '#94a3b8',
             cursor: 'pointer',
             fontWeight: 600,
-            fontSize: '0.88rem',
+            fontSize: 'clamp(0.76rem, 2.5vw, 0.86rem)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'center',
+            gap: '6px',
+            minWidth: 0
           }}
         >
-          <Package size={16} />
+          <Package size={15} style={{ flexShrink: 0 }} />
           <span>Titipan Paket</span>
         </button>
       </div>
@@ -361,24 +405,34 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
       {/* TAB CONTENT 1: TASKS & COMPLAINTS */}
       {activeTab === 'tasks' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'white' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
               Daftar Keluhan & Perbaikan Lapangan
             </h3>
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               Update status langsung agar anak kost terinfo
             </span>
           </div>
 
           {complaints.length === 0 ? (
-            <div className="card glass-panel" style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>
+            <div className="card glass-panel" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
               <CheckCircle2 size={36} color="#10b981" style={{ margin: '0 auto 12px' }} />
-              <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>
-                Kondisi Kost Prima! Tidak ada komplain dari penghuni.
+              <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {user?.kostUid ? 'Kondisi Kost Prima! Tidak ada komplain dari penghuni.' : 'Selamat Bertugas! Gunakan menu Kasir POS untuk melayani transaksi toko.'}
               </p>
+              {!user?.kostUid && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/kasir')}
+                  className="btn btn-primary btn-sm"
+                  style={{ marginTop: '12px', gap: '6px' }}
+                >
+                  Buka Terminal Kasir POS
+                </button>
+              )}
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1rem' }}>
               {complaints.map(c => {
                 const isFinished = c.status === 'selesai';
                 const isOngoing = c.status === 'proses';
@@ -473,10 +527,29 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
 
       {/* TAB CONTENT 2: ROOMS & TENANTS */}
       {activeTab === 'rooms' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'white' }}>
-            Daftar Kamar & Penghuni ({rooms.length} Kamar)
+        <div id="inspeksi-section" data-section="inspeksi" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+            Daftar Kamar &amp; Inspeksi ({rooms.length} Kamar)
           </h3>
+
+          {rooms.length === 0 && (
+            <div className="card glass-panel" style={{ padding: '1.75rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <ClipboardCheck size={32} color="#3b82f6" style={{ margin: '0 auto 10px' }} />
+              <p style={{ margin: '0 0 8px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {user?.kostUid ? 'Belum ada data kamar untuk diinspeksi.' : 'Akun karyawan Anda terdaftar untuk shift Toko / Kasir POS.'}
+              </p>
+              {!user?.kostUid && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/kasir')}
+                  className="btn btn-primary btn-sm"
+                  style={{ marginTop: '6px', gap: '6px' }}
+                >
+                  Buka Terminal Kasir POS
+                </button>
+              )}
+            </div>
+          )}
 
           <div style={{
             display: 'grid',
@@ -530,6 +603,7 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
                       <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                         <button
                           type="button"
+                          data-action="open-inspection"
                           onClick={() => setInspectTenant(tenant)}
                           className="btn btn-secondary btn-sm"
                           style={{ flex: 1, padding: '4px 6px', fontSize: '0.72rem', gap: '4px', justifyContent: 'center' }}
@@ -539,7 +613,9 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSmartLockTenant(tenant)}
+                          onClick={() => navigate(`/utilitas?tab=pln&room=${encodeURIComponent(tenant.kamar || '101')}`, {
+                            state: { targetUser: tenant, returnTo: '/dashboard' }
+                          })}
                           className="btn btn-secondary btn-sm"
                           style={{ flex: 1, padding: '4px 6px', fontSize: '0.72rem', gap: '4px', justifyContent: 'center' }}
                           title="Token Listrik PLN"
@@ -562,13 +638,13 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
 
       {/* TAB CONTENT 3: FIELD INPUTS (METERAN & EXPENSES) */}
       {activeTab === 'inputs' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <div id="meteran-section" data-section="meteran" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem' }}>
           
           {/* Card A: Catat Meteran IoT / Manual */}
           <div className="card glass-panel" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <Zap size={20} color="#fbbf24" />
-              <h4 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>Catat Meteran Listrik / Air</h4>
+              <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>Catat Meteran Listrik / Air</h4>
             </div>
 
             {meterMsg && (
@@ -764,15 +840,6 @@ export default function StaffDashboard({ user, isOwnerDelegate, onBackToOwner })
           tenant={inspectTenant}
           kostUid={user?.kostUid}
           onInspectionSaved={() => loadData()}
-        />
-      )}
-
-      {smartLockTenant && (
-        <SmartLockAndTokenModal
-          isOpen={!!smartLockTenant}
-          onClose={() => setSmartLockTenant(null)}
-          user={smartLockTenant}
-          roomNumber={smartLockTenant.kamar || '101'}
         />
       )}
 

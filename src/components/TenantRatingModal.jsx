@@ -29,8 +29,8 @@ export default function TenantRatingModal({
   const [facility, setFacility] = useState(5);
   const [security, setSecurity] = useState(5);
   const [locationScore, setLocationScore] = useState(5);
-  const [userName, setUserName] = useState(currentUser?.name || 'Oscar Herdian W.');
-  const [roomNumber, setRoomNumber] = useState(currentUser?.kamar || '122');
+  const [userName, setUserName] = useState(currentUser?.name || '');
+  const [roomNumber, setRoomNumber] = useState(currentUser?.kamar || '');
   const [stayDuration, setStayDuration] = useState('3-6 Bulan');
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -47,15 +47,15 @@ export default function TenantRatingModal({
 
     try {
       setSubmitting(true);
-      const res = await apiSubmitKostReview(kostUid || 'KOST-OJN64X', {
+      const res = await apiSubmitKostReview(kostUid || '', {
         rating: formRating,
         cleanlinessRating: cleanliness,
         facilityRating: facility,
         securityRating: security,
         locationRating: locationScore,
         userName: userName.trim() || currentUser?.name || 'Penghuni Kost',
-        userId: currentUser?.id || 'usr-oscar',
-        roomNumber: roomNumber.trim() || currentUser?.kamar || '122',
+        userId: currentUser?.id || '',
+        roomNumber: roomNumber.trim() || currentUser?.kamar || '-',
         stayDuration,
         comment: comment.trim()
       });

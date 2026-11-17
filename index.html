@@ -150,7 +150,7 @@
     <script type="module" src="/src/main.jsx"></script>
     <script>
       // Clear outdated caches immediately on page load
-      const CURRENT_SW_CACHE = 'kostku-cache-v142';
+      const CURRENT_SW_CACHE = 'kostku-cache-v168';
       if ('caches' in window) {
         caches.keys().then((keys) => {
           keys.forEach((key) => {
@@ -193,12 +193,17 @@
 
         // Auto reload when controller changes
         let refreshing = false;
+        const hadController = Boolean(navigator.serviceWorker.controller);
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!refreshing) {
-            refreshing = true;
-            console.log('[KostKu] Controller changed, auto reloading page...');
-            window.location.reload();
-          }
+          if (!hadController || refreshing) return;
+          try {
+            const lastReload = Number(sessionStorage.getItem('kostku_sw_reload_ts') || '0');
+            if (Date.now() - lastReload < 15000) return;
+            sessionStorage.setItem('kostku_sw_reload_ts', String(Date.now()));
+          } catch {}
+          refreshing = true;
+          console.log('[KostKu] Controller changed, auto reloading page...');
+          window.location.reload();
         });
       }
     </script>

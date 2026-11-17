@@ -26,7 +26,8 @@ import {
   Send,
   X,
   CheckCircle2,
-  Store
+  Store,
+  Crown
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import ActionTutorialBadge from './kasir/ActionTutorialBadge';
@@ -34,6 +35,7 @@ import {
   apiGetOwnerStaff,
   apiCreateStaff,
   apiUpdateStaff,
+  apiUpdateStaffAccessRole,
   apiDeleteStaff,
   apiGetOwnerKosts,
   apiGetPosStores,
@@ -49,7 +51,9 @@ const AVAILABLE_ROLES = [
   { id: 'Teknisi Listrik & Air', label: 'Teknisi Listrik, Pompa & Pipa Air', color: '#f59e0b' },
   { id: 'Satpam / Keamanan', label: 'Satpam / Keamanan & Ronda Malam', color: '#ec4899' },
   { id: 'Admin Pembukuan', label: 'Admin Pembukuan & Kas Kecil', color: '#8b5cf6' },
-  { id: 'Resepsionis / Tour Kamar', label: 'Resepsionis / Tour Calon Penghuni', color: '#3b82f6' }
+  { id: 'Resepsionis / Tour Kamar', label: 'Resepsionis / Tour Calon Penghuni', color: '#3b82f6' },
+  { id: 'Kasir Toko (Mitra POS)', label: 'Kasir Toko / Mitra POS', color: '#2563eb' },
+  { id: 'Staf Dapur & Pesanan', label: 'Staf Dapur & Pesanan (KDS)', color: '#db2777' }
 ];
 
 export default function StaffManagementCard({ user, selectedStaffId, onSelectStaff }) {
@@ -110,16 +114,22 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
   // Inline Confirm Delete Staff State (Zero window.confirm)
   const [deleteConfirmStaff, setDeleteConfirmStaff] = useState(null);
   const [deletingStaff, setDeletingStaff] = useState(false);
+  const [promotingStaffId, setPromotingStaffId] = useState(null);
+
+  const canManageAdminRoles = ['owner', 'mitra', 'master', 'admin'].includes(String(user?.role || '').toLowerCase());
+  const effectiveOwnerId = (String(user?.role || '').toLowerCase() === 'admin' && user?.ownerId)
+    ? user.ownerId
+    : user?.id;
 
   const loadStaffAndKosts = async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
       const [staffData, kostsData, invitesData, storesData] = await Promise.all([
-        apiGetOwnerStaff(null, user.id).catch(() => []),
-        apiGetOwnerKosts(user.id).catch(() => []),
-        apiGetStaffInvites(null, user.id, 'pending').catch(() => []),
-        apiGetPosStores(user.id).catch(() => [])
+        apiGetOwnerStaff(null, effectiveOwnerId || user.id).catch(() => []),
+        apiGetOwnerKosts(effectiveOwnerId || user.id).catch(() => []),
+        apiGetStaffInvites(null, effectiveOwnerId || user.id, 'pending').catch(() => []),
+        apiGetPosStores(effectiveOwnerId || user.id).catch(() => [])
       ]);
       const sList = Array.isArray(staffData) ? staffData : [];
       setStaffList(sList);
@@ -149,6 +159,10 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     loadStaffAndKosts();
   }, [user?.id, user?.kostUid]);
 
+  const defaultStaffRoles = (user?.role === 'mitra' || (ownedKosts.length === 0 && posStores.length > 0))
+    ? ['Kasir Toko (Mitra POS)']
+    : ['Penjaga Kost'];
+
   const resetFormFields = () => {
     setFormData({
       name: '',
@@ -158,7 +172,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       salary: '',
       kostUid: ownedKosts[0]?.uid || user?.kostUid || ''
     });
-    setFormSelectedRoles(['Penjaga Kost']);
+    setFormSelectedRoles(defaultStaffRoles);
     setFormAssignedStoreIds(['all']);
     setFormRoleMode('single');
     setErrorMsg('');
@@ -200,7 +214,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       setSubmitting(true);
       try {
         const res = await apiCreateStaffInvite({
-          ownerId: user.id,
+          ownerId: effectiveOwnerId || user.id,
           kostUid: effectiveKostUid,
           channel: inviteChannel,
           target: inviteChannel === 'whatsapp' ? formData.phone.trim() : formData.email.trim(),
@@ -250,7 +264,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
         roles: formSelectedRoles,
         jobTitle: formSelectedRoles.join(', '),
         assignedStoreIds: formAssignedStoreIds,
-        ownerId: user.id
+        ownerId: effectiveOwnerId || user.id
       });
       if (res.error) {
         setErrorMsg(res.error);
@@ -361,6 +375,29 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       setEditRoleError('Gagal memperbarui role: ' + (err.message || 'Terjadi kesalahan'));
     } finally {
       setSavingRoles(false);
+    }
+  };
+
+  const handleToggleAdminRole = async (staff) => {
+    if (!canManageAdminRoles || !staff?.id || promotingStaffId) return;
+    const isCurrentlyAdmin = String(staff.role || '').toLowerCase() === 'admin';
+    const nextRole = isCurrentlyAdmin ? 'staff' : 'admin';
+    setPromotingStaffId(staff.id);
+    setActionError(null);
+    setActionMsg(null);
+    try {
+      const res = await apiUpdateStaffAccessRole(staff.id, nextRole, user?.id);
+      setStaffList(prev => prev.map(s => (String(s.id) === String(staff.id) ? { ...s, role: nextRole } : s)));
+      setActionMsg(
+        res?.message || (nextRole === 'admin'
+          ? `${staff.name} berhasil dinaikkan menjadi Admin!`
+          : `${staff.name} diturunkan kembali menjadi Karyawan.`)
+      );
+      setTimeout(() => setActionMsg(null), 4500);
+    } catch (err) {
+      setActionError(err?.message || 'Gagal mengubah level Admin/Karyawan.');
+    } finally {
+      setPromotingStaffId(null);
     }
   };
 
@@ -834,9 +871,32 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                     </div>
                   )}
 
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>{staff.name}</strong>
+                      <span
+                        data-testid={`staff-level-badge-${staff.id}`}
+                        style={{
+                          fontSize: '0.68rem',
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: staff.role === 'admin'
+                            ? 'rgba(245, 158, 11, 0.2)'
+                            : 'rgba(16, 185, 129, 0.16)',
+                          color: staff.role === 'admin'
+                            ? (isLight ? '#b45309' : '#fbbf24')
+                            : (isLight ? '#047857' : '#6ee7b7'),
+                          border: staff.role === 'admin'
+                            ? '1px solid rgba(245, 158, 11, 0.45)'
+                            : '1px solid rgba(16, 185, 129, 0.35)',
+                          fontWeight: 800
+                        }}
+                      >
+                        {staff.role === 'admin' ? <><Crown size={11} /> Admin</> : 'Karyawan'}
+                      </span>
                       <span style={{
                         fontSize: '0.68rem',
                         padding: '2px 7px',
@@ -1019,6 +1079,41 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                         size="sm"
                         title="Kalender Tugas Karyawan"
                         description="Menampilkan jadwal absensi dan laporan foto kerja harian milik karyawan ini."
+                      />
+                    </div>
+                  )}
+
+                  {canManageAdminRoles && String(staff.id) !== String(user?.id) && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        type="button"
+                        data-testid={`toggle-admin-btn-${staff.id}`}
+                        disabled={promotingStaffId === staff.id}
+                        onClick={() => handleToggleAdminRole(staff)}
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          gap: '5px',
+                          fontSize: '0.78rem',
+                          padding: '6px 10px',
+                          background: staff.role === 'admin' ? 'rgba(245, 158, 11, 0.16)' : 'rgba(139, 92, 246, 0.15)',
+                          color: staff.role === 'admin' ? (isLight ? '#b45309' : '#fbbf24') : (isLight ? '#6d28d9' : '#c4b5fd'),
+                          borderColor: staff.role === 'admin' ? 'rgba(245, 158, 11, 0.4)' : 'rgba(139, 92, 246, 0.38)',
+                          fontWeight: 700
+                        }}
+                        title={staff.role === 'admin' ? 'Turunkan kembali dari Admin ke Karyawan biasa' : 'Naikkan level akses karyawan menjadi Admin'}
+                      >
+                        <Crown size={13} />
+                        <span>
+                          {promotingStaffId === staff.id
+                            ? 'Memproses...'
+                            : (staff.role === 'admin' ? 'Turunkan ke Karyawan' : 'Naikkan Jadi Admin')}
+                        </span>
+                      </button>
+                      <ActionTutorialBadge
+                        isLight={isLight}
+                        size="sm"
+                        title="Akses Admin Karyawan"
+                        description="Hanya Pemilik (Owner) atau Admin yang bisa menaikkan/menurunkan karyawan menjadi Admin agar bisa ikut mengelola kost, keuangan, & karyawan."
                       />
                     </div>
                   )}

@@ -24618,6 +24618,12 @@
       "mapsUrl": "https://maps.google.com/?q=-6.9825,110.4091",
       "latitude": -6.9825,
       "longitude": 110.4091
+    },
+    "posTripay": {
+      "apiKey": "",
+      "privateKey": "",
+      "merchantCode": "",
+      "isProduction": false
     }
   },
   "google_config": {},
@@ -27895,6 +27901,593 @@
       "totalSettled": 0,
       "gateway": "TriPay Master KostKu (T53543)",
       "history": []
+    },
+    "MTR-KASIR-MASTER": {
+      "uid": "MTR-KASIR-MASTER",
+      "name": "Kasir POS & Mitra Terpadu",
+      "balance": 0,
+      "totalEarned": 0,
+      "totalSettled": 0,
+      "gateway": "TriPay Master KostKu (T53543)",
+      "history": []
+    },
+    "PTR-1794447017729": {
+      "uid": "PTR-1794447017729",
+      "name": "Kasir POS & Mitra Terpadu",
+      "balance": 0,
+      "totalEarned": 0,
+      "totalSettled": 0,
+      "gateway": "TriPay Master KostKu (T53543)",
+      "history": []
     }
-  }
+  },
+  "staffInvites": [],
+  "pos_products": [
+    {
+      "id": "prod-1",
+      "name": "Mie Gacoan Level 2",
+      "category": "Makanan",
+      "price": 13000,
+      "stock": 99,
+      "isAvailable": true,
+      "description": "Mie pedas gurih manis dengan topping ayam cincang dan pangsit goreng renyah.",
+      "image": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80"
+    },
+    {
+      "id": "prod-2",
+      "name": "Nasi Goreng Spesial Kost",
+      "category": "Makanan",
+      "price": 18000,
+      "stock": 50,
+      "isAvailable": true,
+      "description": "Nasi goreng dengan telur mata sapi, sosis, dan suwiran ayam.",
+      "image": "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80"
+    },
+    {
+      "id": "prod-3",
+      "name": "Pangsit Goreng Crispy (3 pcs)",
+      "category": "Snack",
+      "price": 10000,
+      "stock": 60,
+      "isAvailable": true,
+      "description": "Pangsit isi ayam udang digoreng renyah dengan saus asam manis.",
+      "image": "https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=500&q=80"
+    },
+    {
+      "id": "prod-4",
+      "name": "Es Teh Manis Jumbo",
+      "category": "Minuman",
+      "price": 4000,
+      "stock": 200,
+      "isAvailable": true,
+      "description": "Teh melati wangi dingin segar porsi besar.",
+      "image": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80"
+    },
+    {
+      "id": "prod-5",
+      "name": "Es Kopi Susu Gula Aren",
+      "category": "Minuman",
+      "price": 12000,
+      "stock": 80,
+      "isAvailable": true,
+      "description": "Espresso robusta mantap dengan susu segar dan gula aren murni.",
+      "image": "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&q=80"
+    }
+  ],
+  "pos_tables": [
+    {
+      "id": "tbl-1",
+      "number": "Meja 01",
+      "qrToken": "MEJA-01-TKN881"
+    },
+    {
+      "id": "tbl-2",
+      "number": "Meja 02",
+      "qrToken": "MEJA-02-TKN882"
+    },
+    {
+      "id": "tbl-3",
+      "number": "Meja 03",
+      "qrToken": "MEJA-03-TKN883"
+    },
+    {
+      "id": "tbl-4",
+      "number": "Meja 04",
+      "qrToken": "MEJA-04-TKN884"
+    },
+    {
+      "id": "tbl-5",
+      "number": "Meja 05",
+      "qrToken": "MEJA-05-TKN885"
+    }
+  ],
+  "pos_orders": [],
+  "customer_points": {},
+  "customer_stamps": {},
+  "pos_spin_logs": [],
+  "pos_user_active_store": {},
+  "loyalty_pools": [],
+  "loyalty_customers": [],
+  "loyalty_pool_balances": [],
+  "point_transactions": [],
+  "nota_billing_ledger": [],
+  "store_pool_history": [],
+  "pos_redeem_codes": [
+    {
+      "id": "REDEEM-KASIR-50",
+      "code": "KASIRBONUS50",
+      "type": "KUOTA_NOTA",
+      "quotaNota": 50,
+      "saldoBonus": 5000,
+      "maxQuota": 20,
+      "usedCount": 0,
+      "usedBy": [],
+      "description": "Bonus 50 Kuota Nota Kasir (Rp 5.000)",
+      "isActive": true,
+      "createdAt": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "REDEEM-KASIR-100",
+      "code": "KOSTKUMERDEKA",
+      "type": "KUOTA_NOTA",
+      "quotaNota": 100,
+      "saldoBonus": 10000,
+      "maxQuota": 10,
+      "usedCount": 0,
+      "usedBy": [],
+      "description": "Bonus Spesial 100 Kuota Nota Kasir (Rp 10.000)",
+      "isActive": true,
+      "createdAt": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "REDEEM-KASIR-VIP",
+      "code": "VIPKASIR250",
+      "type": "KUOTA_NOTA",
+      "quotaNota": 250,
+      "saldoBonus": 25000,
+      "maxQuota": 5,
+      "usedCount": 0,
+      "usedBy": [],
+      "description": "Bonus Kuota Mitra Prioritas 250 Nota (Rp 25.000)",
+      "isActive": true,
+      "createdAt": "2026-11-14T11:50:25.244Z"
+    }
+  ],
+  "pos_food_promos": [
+    {
+      "id": "PROMO-FOOD-01",
+      "title": "Promo Mie Gacoan Hemat (Diskon Rp 3.000)",
+      "code": "GACOANHEMAT",
+      "scope": "SPECIFIC_ITEM",
+      "targetProductId": "prod-1",
+      "targetProductName": "Mie Gacoan Level 2",
+      "discountType": "FIXED",
+      "discountValue": 3000,
+      "minOrder": 0,
+      "limitType": "QUOTA",
+      "maxQuota": 25,
+      "usedCount": 4,
+      "startDate": "2026-11-14",
+      "expiryDate": null,
+      "isActive": true,
+      "createdByRole": "owner",
+      "description": "Diskon Rp 3.000 per porsi untuk 25 pemesan pertama",
+      "createdAt": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "PROMO-FOOD-02",
+      "title": "Promo Diskon 15% Semua Menu",
+      "code": "WEEKENDSERU",
+      "scope": "ALL",
+      "targetProductId": null,
+      "targetProductName": null,
+      "discountType": "PERCENT",
+      "discountValue": 15,
+      "minOrder": 25000,
+      "limitType": "DATE",
+      "maxQuota": null,
+      "usedCount": 2,
+      "startDate": "2026-11-14",
+      "expiryDate": "2026-11-30",
+      "isActive": true,
+      "createdByRole": "mitra",
+      "description": "Diskon 15% semua menu min. belanja Rp 25.000 berlaku s/d 30 November 2026",
+      "createdAt": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "PROMO-FOOD-03",
+      "title": "Super Kenyang Hemat Rp 5.000",
+      "code": "KENYANG5K",
+      "scope": "ALL",
+      "targetProductId": null,
+      "targetProductName": null,
+      "discountType": "FIXED",
+      "discountValue": 5000,
+      "minOrder": 20000,
+      "limitType": "BOTH",
+      "maxQuota": 50,
+      "usedCount": 8,
+      "startDate": "2026-11-14",
+      "expiryDate": "2026-11-25",
+      "isActive": true,
+      "createdByRole": "admin",
+      "description": "Potongan Rp 5.000 untuk 50 porsi atau s/d 25 November 2026",
+      "createdAt": "2026-11-14T11:50:25.244Z"
+    }
+  ],
+  "pos_inventory": [
+    {
+      "id": "INV-MIE",
+      "name": "Mie Basah Telur Segar",
+      "category": "Bahan Pokok",
+      "unit": "porsi",
+      "currentStock": 25,
+      "minAlertStock": 15,
+      "costPerUnit": 2500,
+      "supplier": "CV Berkah Pangan Mandiri",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-AYAM",
+      "name": "Daging Ayam Cincang Marinasi",
+      "category": "Protein & Daging",
+      "unit": "gram",
+      "currentStock": 450,
+      "minAlertStock": 500,
+      "costPerUnit": 45,
+      "supplier": "Rumah Potong Unggas Sejahtera",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-PANGSIT",
+      "name": "Kulit & Pangsit Goreng Crispy",
+      "category": "Topping & Snack",
+      "unit": "pcs",
+      "currentStock": 35,
+      "minAlertStock": 20,
+      "costPerUnit": 800,
+      "supplier": "UMKM Keripik Barokah",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-MINYAK-CABAI",
+      "name": "Minyak Cabai & Sambal Level",
+      "category": "Bumbu & Saus",
+      "unit": "ml",
+      "currentStock": 180,
+      "minAlertStock": 200,
+      "costPerUnit": 25,
+      "supplier": "Dapur Rempah KostKu",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-BERAS",
+      "name": "Beras Ramos Premium",
+      "category": "Bahan Pokok",
+      "unit": "gram",
+      "currentStock": 5000,
+      "minAlertStock": 2000,
+      "costPerUnit": 14,
+      "supplier": "Gudang Beras Delanggu",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-TELUR",
+      "name": "Telur Ayam Negeri Segar",
+      "category": "Protein & Daging",
+      "unit": "butir",
+      "currentStock": 18,
+      "minAlertStock": 10,
+      "costPerUnit": 2000,
+      "supplier": "Peternakan Ayam Makmur",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-SOSIS",
+      "name": "Sosis Sapi Panggang",
+      "category": "Protein & Daging",
+      "unit": "pcs",
+      "currentStock": 24,
+      "minAlertStock": 15,
+      "costPerUnit": 1500,
+      "supplier": "Distributor Frozen Food",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-AYAM-POTONG",
+      "name": "Ayam Potong Marinasi Madu",
+      "category": "Protein & Daging",
+      "unit": "potong",
+      "currentStock": 12,
+      "minAlertStock": 15,
+      "costPerUnit": 8000,
+      "supplier": "Rumah Potong Unggas Sejahtera",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-MADU",
+      "name": "Madu Alami Murni",
+      "category": "Bumbu & Saus",
+      "unit": "ml",
+      "currentStock": 350,
+      "minAlertStock": 200,
+      "costPerUnit": 50,
+      "supplier": "Peternak Lebah Nusantara",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-KOPI",
+      "name": "Biji Kopi Robusta Blend",
+      "category": "Kopi & Minuman",
+      "unit": "gram",
+      "currentStock": 850,
+      "minAlertStock": 300,
+      "costPerUnit": 150,
+      "supplier": "Roastery Kopi Temanggung",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-SUSU",
+      "name": "Susu Segar Fresh Milk",
+      "category": "Kopi & Minuman",
+      "unit": "ml",
+      "currentStock": 420,
+      "minAlertStock": 500,
+      "costPerUnit": 20,
+      "supplier": "Koperasi Susu Boyolali",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-GULA-AREN",
+      "name": "Sirup Gula Aren Organik",
+      "category": "Kopi & Minuman",
+      "unit": "ml",
+      "currentStock": 650,
+      "minAlertStock": 250,
+      "costPerUnit": 35,
+      "supplier": "Produsen Gula Semut Cilacap",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-TEH",
+      "name": "Daun Teh Melati Wangi",
+      "category": "Kopi & Minuman",
+      "unit": "gram",
+      "currentStock": 600,
+      "minAlertStock": 200,
+      "costPerUnit": 40,
+      "supplier": "Perkebunan Teh Pagilaran",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-BOX-KERTAS",
+      "name": "Box Kraft Food Grade",
+      "category": "Kemasan & Packaging",
+      "unit": "pcs",
+      "currentStock": 80,
+      "minAlertStock": 30,
+      "costPerUnit": 1200,
+      "supplier": "Pabrik Kemasan Paperindo",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-CUP-PLASTIK",
+      "name": "Cup Plastik 16oz + Tutup",
+      "category": "Kemasan & Packaging",
+      "unit": "pcs",
+      "currentStock": 55,
+      "minAlertStock": 25,
+      "costPerUnit": 900,
+      "supplier": "Distributor Plastik Semarang",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    },
+    {
+      "id": "INV-SEDOTAN",
+      "name": "Sedotan Steril Higienis",
+      "category": "Kemasan & Packaging",
+      "unit": "pcs",
+      "currentStock": 120,
+      "minAlertStock": 50,
+      "costPerUnit": 150,
+      "supplier": "Distributor Plastik Semarang",
+      "lastRestocked": "2026-11-14T11:50:25.244Z"
+    }
+  ],
+  "pos_recipes": {
+    "prod-1": [
+      {
+        "inventoryId": "INV-MIE",
+        "amount": 1,
+        "name": "Mie Basah Telur Segar",
+        "unit": "porsi"
+      },
+      {
+        "inventoryId": "INV-AYAM",
+        "amount": 40,
+        "name": "Daging Ayam Cincang Marinasi",
+        "unit": "gram"
+      },
+      {
+        "inventoryId": "INV-PANGSIT",
+        "amount": 2,
+        "name": "Kulit & Pangsit Goreng Crispy",
+        "unit": "pcs"
+      },
+      {
+        "inventoryId": "INV-MINYAK-CABAI",
+        "amount": 15,
+        "name": "Minyak Cabai & Sambal Level",
+        "unit": "ml"
+      },
+      {
+        "inventoryId": "INV-BOX-KERTAS",
+        "amount": 1,
+        "name": "Box Kraft Food Grade",
+        "unit": "pcs"
+      }
+    ],
+    "prod-2": [
+      {
+        "inventoryId": "INV-BERAS",
+        "amount": 150,
+        "name": "Beras Ramos Premium",
+        "unit": "gram"
+      },
+      {
+        "inventoryId": "INV-TELUR",
+        "amount": 1,
+        "name": "Telur Ayam Negeri Segar",
+        "unit": "butir"
+      },
+      {
+        "inventoryId": "INV-SOSIS",
+        "amount": 1,
+        "name": "Sosis Sapi Panggang",
+        "unit": "pcs"
+      },
+      {
+        "inventoryId": "INV-AYAM",
+        "amount": 25,
+        "name": "Daging Ayam Cincang Marinasi",
+        "unit": "gram"
+      },
+      {
+        "inventoryId": "INV-BOX-KERTAS",
+        "amount": 1,
+        "name": "Box Kraft Food Grade",
+        "unit": "pcs"
+      }
+    ],
+    "prod-1794122158680": [
+      {
+        "inventoryId": "INV-AYAM-POTONG",
+        "amount": 1,
+        "name": "Ayam Potong Marinasi Madu",
+        "unit": "potong"
+      },
+      {
+        "inventoryId": "INV-MADU",
+        "amount": 20,
+        "name": "Madu Alami Murni",
+        "unit": "ml"
+      },
+      {
+        "inventoryId": "INV-MINYAK-CABAI",
+        "amount": 10,
+        "name": "Minyak Cabai & Sambal Level",
+        "unit": "ml"
+      },
+      {
+        "inventoryId": "INV-BOX-KERTAS",
+        "amount": 1,
+        "name": "Box Kraft Food Grade",
+        "unit": "pcs"
+      }
+    ],
+    "prod-3": [
+      {
+        "inventoryId": "INV-PANGSIT",
+        "amount": 3,
+        "name": "Kulit & Pangsit Goreng Crispy",
+        "unit": "pcs"
+      },
+      {
+        "inventoryId": "INV-BOX-KERTAS",
+        "amount": 1,
+        "name": "Box Kraft Food Grade",
+        "unit": "pcs"
+      }
+    ],
+    "prod-4": [
+      {
+        "inventoryId": "INV-TEH",
+        "amount": 10,
+        "name": "Daun Teh Melati Wangi",
+        "unit": "gram"
+      },
+      {
+        "inventoryId": "INV-CUP-PLASTIK",
+        "amount": 1,
+        "name": "Cup Plastik 16oz + Tutup",
+        "unit": "pcs"
+      },
+      {
+        "inventoryId": "INV-SEDOTAN",
+        "amount": 1,
+        "name": "Sedotan Steril Higienis",
+        "unit": "pcs"
+      }
+    ],
+    "prod-5": [
+      {
+        "inventoryId": "INV-KOPI",
+        "amount": 18,
+        "name": "Biji Kopi Robusta Blend",
+        "unit": "gram"
+      },
+      {
+        "inventoryId": "INV-SUSU",
+        "amount": 150,
+        "name": "Susu Segar Fresh Milk",
+        "unit": "ml"
+      },
+      {
+        "inventoryId": "INV-GULA-AREN",
+        "amount": 25,
+        "name": "Sirup Gula Aren Organik",
+        "unit": "ml"
+      },
+      {
+        "inventoryId": "INV-CUP-PLASTIK",
+        "amount": 1,
+        "name": "Cup Plastik 16oz + Tutup",
+        "unit": "pcs"
+      },
+      {
+        "inventoryId": "INV-SEDOTAN",
+        "amount": 1,
+        "name": "Sedotan Steril Higienis",
+        "unit": "pcs"
+      }
+    ],
+    "prod-1794122115732": [
+      {
+        "inventoryId": "INV-KOPI",
+        "amount": 18,
+        "name": "Biji Kopi Robusta Blend",
+        "unit": "gram"
+      },
+      {
+        "inventoryId": "INV-SUSU",
+        "amount": 150,
+        "name": "Susu Segar Fresh Milk",
+        "unit": "ml"
+      },
+      {
+        "inventoryId": "INV-GULA-AREN",
+        "amount": 25,
+        "name": "Sirup Gula Aren Organik",
+        "unit": "ml"
+      },
+      {
+        "inventoryId": "INV-CUP-PLASTIK",
+        "amount": 1,
+        "name": "Cup Plastik 16oz + Tutup",
+        "unit": "pcs"
+      },
+      {
+        "inventoryId": "INV-SEDOTAN",
+        "amount": 1,
+        "name": "Sedotan Steril Higienis",
+        "unit": "pcs"
+      }
+    ]
+  },
+  "_posTablesSeeded": true,
+  "merchant_wallets": {},
+  "receipt_claims": [],
+  "customers": {},
+  "points_ledger": [],
+  "wallet_mutations": [],
+  "pos_shifts": []
 }

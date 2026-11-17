@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Home, Download, User as UserIcon, Sun, Moon, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Home, Download, User as UserIcon, Sun, Moon, HelpCircle, Settings } from 'lucide-react';
 import PropertySwitcher from './PropertySwitcher';
 import { useTheme } from '../context/ThemeContext';
+import { isOwnerRole, isMitraRole, isEmployeeRole, isMitraStaff } from '../utils/staffRole';
 
 export default function Navbar({ 
   user, 
@@ -34,7 +35,7 @@ export default function Navbar({
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', minWidth: 0, flexShrink: 1 }}>
         {location.pathname.startsWith('/layanan') ? (
           <Link 
-            to="/dashboard" 
+            to={(isMitraRole(user?.role) || isMitraStaff(user)) ? '/kasir' : '/dashboard'}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -54,7 +55,7 @@ export default function Navbar({
             <ArrowLeft size={16} /> Kembali ke Kost Saya
           </Link>
         ) : (
-          (user?.role === 'owner' || user?.role === 'master') ? (
+          (isOwnerRole(user?.role)) ? (
             <PropertySwitcher
               user={user}
               activeKostUid={user?.kostUid}
@@ -62,8 +63,8 @@ export default function Navbar({
               onSwitchKost={onSwitchKost}
               onOpenAddModal={onOpenAddKost}
             />
-          ) : user?.role === 'mitra' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          ) : (isMitraRole(user?.role) || isMitraStaff(user)) ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, maxWidth: '100%' }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -74,10 +75,14 @@ export default function Navbar({
                 padding: '4px 10px',
                 color: isLight ? '#be185d' : '#f472b6',
                 fontWeight: 700,
-                fontSize: '0.82rem'
+                fontSize: '0.82rem',
+                minWidth: 0,
+                overflow: 'hidden'
               }}>
-                <span>{user?.storeName || 'Kantin Barokah UMKM'}</span>
-                <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800 }}>Buka</span>
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {isMitraStaff(user) ? `Kasir Mitra: ${user?.name || 'Staf POS'}` : (user?.storeName || 'Mitra UMKM')}
+                </span>
+                <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800, flexShrink: 0 }}>Kasir POS</span>
               </div>
               <Link
                 to="/kasir"
@@ -93,27 +98,36 @@ export default function Navbar({
                   borderRadius: '8px',
                   fontSize: '0.78rem',
                   fontWeight: 700,
-                  textDecoration: 'none'
+                  textDecoration: 'none',
+                  flexShrink: 0
                 }}
               >
                 Kasir POS ↗
               </Link>
             </div>
-          ) : user?.role === 'staff' ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.16)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              borderRadius: '8px',
-              padding: '4px 10px',
-              color: isLight ? '#065f46' : '#34d399',
-              fontWeight: 700,
-              fontSize: '0.82rem'
-            }}>
-              <span>Staf: {user?.name || 'Pak Joko'}</span>
-              <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800 }}>Shift Aktif</span>
+          ) : isEmployeeRole(user?.role) ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, maxWidth: '100%' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.16)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                color: isLight ? '#065f46' : '#34d399',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                minWidth: 0,
+                overflow: 'hidden'
+              }}>
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Staf Kost: {user?.name || 'Karyawan'}
+                </span>
+                <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontWeight: 800, flexShrink: 0 }}>
+                  Shift Aktif
+                </span>
+              </div>
             </div>
           ) : (
             <div style={{
@@ -225,6 +239,32 @@ export default function Navbar({
             <Sun size={16} color="#f59e0b" strokeWidth={1.8} />
           )}
         </button>
+
+        {/* User Setting Quick Link (Mobile & Desktop) */}
+        {user && (
+          <Link
+            to="/pengaturan"
+            data-testid="navbar-settings-link"
+            title="Pengaturan Akun & Keluar"
+            style={{
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.07)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+              color: 'var(--text-primary)',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              flexShrink: 0
+            }}
+          >
+            <Settings size={16} strokeWidth={1.8} />
+          </Link>
+        )}
       </div>
     </header>
   );

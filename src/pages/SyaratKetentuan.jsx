@@ -98,7 +98,7 @@ export default function SyaratKetentuan() {
             fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
             fontWeight: 900,
             margin: '0 0 10px',
-            color: '#ffffff',
+            color: 'var(--text-primary)',
             letterSpacing: '-0.02em',
             fontFamily: 'var(--font-display)'
           }}>
@@ -160,7 +160,7 @@ export default function SyaratKetentuan() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
             <ShieldAlert size={20} color="#38bdf8" />
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
               Pasal 2: Pelepasan Tanggung Jawab Mutlak (Disclaimer of Liability & Hold Harmless)
             </h2>
           </div>
@@ -182,7 +182,7 @@ export default function SyaratKetentuan() {
               <strong>d. Ketidaksesuaian Fasilitas & Informasi Listing ("AS IS"):</strong> Informasi fasilitas dan foto diunggah oleh pemilik properti. Meskipun KostKu melakukan kurasi dan verifikasi bertahap, listing disediakan atas dasar <em>"AS IS"</em> (sebagaimana adanya). Calon penghuni wajib melakukan survei fisik langsung sebelum menyetujui kontrak sewa. Masalah air PDAM mati, AC rusak, atau ketidaknyamanan kamar diselesaikan langsung dengan pemilik properti.
             </div>
             <div style={{ padding: '8px 12px', background: 'rgba(0, 0, 0, 0.3)', borderRadius: '10px' }}>
-              <strong>e. Sengketa Uang Muka (DP), Deposit, & Pengembalian Sewa:</strong> Perselisihan penahanan uang deposit jaminan atau penolakan pengembalian sewa oleh Pemilik Kost merupakan sengketa privat antara kedua belah pihak di luar tanggung jawab KostKu.
+              <strong>e. Kewajiban Pengembalian Deposit Jaminan &amp; Sengketa Sewa:</strong> Apabila Pemilik Kost mengaktifkan Deposit Jaminan (Refundable), dana deposit wajib dikembalikan kepada penyewa saat proses Check-Out (maksimal dipotong secara transparan bila ada kerusakan fisik kamar yang terbukti pada inspeksi/BAST). Pembuktian pelanggaran akan diteruskan ke mediasi internal KostKu; sengketa perdata di luar pencatatan sistem diselesaikan langsung oleh kedua belah pihak.
             </div>
           </div>
         </section>
@@ -263,13 +263,16 @@ export default function SyaratKetentuan() {
               borderRadius: '12px'
             }}>
               <strong style={{ color: '#93c5fd', display: 'block', marginBottom: '6px' }}>
-                5.5. Kebijakan Biaya Administrasi Layanan Platform &amp; Gateway (Di Bawah 1K: Mitra Rp 100 &amp; Sewa Kost Rp 500):
+                5.5. Kebijakan Biaya Pembayaran QRIS (Biaya Layanan TriPay vs Biaya Admin Rp 0) &amp; Biaya Layanan:
               </strong>
               <p style={{ margin: '0 0 6px 0', fontSize: '0.88rem', lineHeight: 1.6 }}>
-                (a) <strong>Transaksi Bisnis / Mitra UMKM (Kantin POS, Cafe, Laundry, Toko &amp; Meja QR):</strong> Biaya administrasi sistem ditetapkan <strong>flat sebesar Rp 100,- per transaksi dan dibebankan sepenuhnya kepada Pemilik Bisnis (Owner/Mitra)</strong>. Konsumen, pelanggan, atau tamu meja membayar harga bersih pas sesuai daftar menu tanpa pungutan biaya admin tambahan (Rp 0). Biaya Rp 100,- ini dipotong secara otomatis dari omset pencairan (settlement) saldo mitra atau pemotongan Saldo Kuota Nota saat transaksi mandiri.
+                (a) <strong>Biaya Layanan Pembayaran QRIS Dinamis (TriPay) &amp; Biaya Admin Platform (Rp 0):</strong> Untuk setiap transaksi yang dibayar menggunakan <strong>QRIS Dinamis</strong>, terdapat <strong>biaya layanan payment gateway dari TriPay</strong> sebesar <strong>Rp 750 + 0,70%</strong> dari nominal transaksi (dibebankan transparan pada rincian pembayaran). Sementara itu, <strong>biaya admin dari pihak admin / platform KostKu untuk pembayaran QRIS adalah Rp 0 (Gratis)</strong>.
+              </p>
+              <p style={{ margin: '0 0 6px 0', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                (b) <strong>Transaksi Bisnis / Mitra UMKM (Kantin POS, Cafe, Laundry, Toko &amp; Meja QR):</strong> Pelanggan membayar sesuai harga transaksi (ditambah biaya layanan gateway QRIS TriPay Rp 750 + 0,70% jika memilih QRIS), tanpa pungutan biaya admin tambahan dari admin KostKu (<strong>Rp 0</strong>). Pemilik usaha (Mitra) dikenakan tarif nota operasional sesuai paket toko aktif.
               </p>
               <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.6 }}>
-                (b) <strong>Transaksi Properti Kost (Pembayaran Sewa Kamar &amp; Booking Properti):</strong> Biaya administrasi sistem ditetapkan <strong>flat sebesar Rp 500,- per transaksi dan dibebankan kepada Pelanggan/Penyewa/Penghuni</strong>. Pemilik Kost berhak menerima pelunasan sewa kamar secara penuh dan utuh 100% tanpa potongan biaya administrasi gateway. Biaya Rp 500,- ini tercantum transparan pada rincian tagihan digital penghuni.
+                (c) <strong>Transaksi Properti Kost (Pembayaran Sewa Kamar, Deposit Jaminan Refundable, &amp; Booking Properti):</strong> Pembayaran melalui QRIS (termasuk Deposit Jaminan apabila diaktifkan oleh Pemilik Kost pada Setting Kost) hanya dikenakan biaya layanan gateway TriPay (<strong>Rp 750 + 0,70%</strong>) dengan <strong>Rp 0 biaya admin platform</strong>. Seluruh komponen sewa, deposit jaminan, dan biaya tercantum transparan sebelum penyewa memindai QRIS atau menyelesaikan checkout.
               </p>
             </div>
           </div>
@@ -285,7 +288,7 @@ export default function SyaratKetentuan() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
             <Building2 size={22} color="#60a5fa" />
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
               Pasal 6: Ketentuan Khusus Mitra Pemilik Properti (Owner / Juragan Kost)
             </h2>
           </div>
@@ -326,9 +329,9 @@ export default function SyaratKetentuan() {
             </div>
 
             <div style={{ padding: '10px 14px', background: 'rgba(0, 0, 0, 0.25)', borderRadius: '12px', borderLeft: '3px solid #f472b6' }}>
-              <strong style={{ color: '#fbcfe8' }}>6.5. Pengelolaan Uang Jaminan / Deposit Kerusakan (Security Deposit):</strong>
+              <strong style={{ color: '#fbcfe8' }}>6.5. Pengelolaan &amp; Kewajiban Pengembalian Deposit Jaminan (Refundable Security Deposit):</strong>
               <p style={{ margin: '4px 0 0', lineHeight: 1.6 }}>
-                Penerapan uang deposit jaminan merupakan kesepakatan perdata langsung antara Pemilik Kost dan Penyewa. KostKu tidak memegang fisik uang jaminan tersebut dan tidak bertanggung jawab atas sengketa pemotongan atau penolakan pengembalian deposit oleh Mitra Pemilik Properti. Mitra wajib mengembalikan sisa deposit secara jujur dan transparan kepada penyewa pada hari masa sewa berakhir jika tidak terdapat bukti kerusakan kamar fisik yang disebabkan oleh penyewa.
+                Pemilik Kost berhak menyalakan atau mematikan fitur Deposit Jaminan (Refundable) serta menetapkan nominalnya melalui menu <strong>Setting Kost</strong>. Apabila diaktifkan, nominal deposit otomatis masuk ke tagihan awal &amp; pembayaran QRIS checkout penyewa (dikenakan biaya gateway TriPay <strong>Rp 750 + 0,70%</strong> dengan <strong>Rp 0 biaya admin KostKu</strong>). Ketika penghuni melakukan <strong>Check-Out</strong>, Pemilik Kost <strong>wajib mengembalikan</strong> Deposit Jaminan tersebut kepada penghuni melalui pencatatan menu <em>Check-Out &amp; Refund Deposit</em> (hanya dapat dikurangi secara transparan jika terdapat kerusakan fisik terverifikasi saat inspeksi BAST kamar).
               </p>
             </div>
 

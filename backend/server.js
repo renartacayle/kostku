@@ -8,6 +8,21 @@ const QRCode = require('qrcode');
 const nodemailer = require('nodemailer');
 const { AsyncLocalStorage } = require('async_hooks');
 const requestContext = new AsyncLocalStorage();
+const {
+  getStoreBillingProfile,
+  computeDeterministicReferralCode,
+  resolveStrictReferralCandidate,
+  normalizePhoneDigits
+} = require('./loyalty_pool_engine');
+
+const KASIR_ONLINE_TTL_MS = 60 * 1000;
+const isMerchantKasirOnline = (m, nowMs = Date.now()) => {
+  if (!m || m.status === 'deleted') return false;
+  if (m.kasirWebOnline !== true) return false;
+  if (m.isShiftOpen === false) return false;
+  const hbMs = m.lastKasirHeartbeatAt ? Date.parse(m.lastKasirHeartbeatAt) : NaN;
+  return Number.isFinite(hbMs) && (nowMs - hbMs) <= KASIR_ONLINE_TTL_MS;
+};
 
 // ── AUTOMATIC PRODUCTION ENV LOADER (.env / .env.production) ──
 const envCandidates = [
@@ -640,16 +655,38 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
   const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
   const baseUrl = `${protocol}://${host}`;
 
+  let versionMeta = {
+    version: '1.6.3',
+    buildNumber: 168,
+    buildDate: '2026-11-15',
+    title: 'Pembaruan KostKu v1.6.3 - Customer Personal QR & Auto-Sync'
+  };
+  try {
+    const versionFile = path.join(__dirname, '..', 'public', 'version.json');
+    if (fs.existsSync(versionFile)) {
+      const parsed = JSON.parse(fs.readFileSync(versionFile, 'utf8'));
+      if (parsed && parsed.version) {
+        versionMeta = {
+          version: String(parsed.version),
+          buildNumber: Number(parsed.buildNumber) || 168,
+          buildDate: String(parsed.buildDate || '2026-11-15'),
+          title: `Pembaruan KostKu v${parsed.version}`
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[AppVersion] Failed to read public/version.json:', err.message);
+  }
+
   res.json({
-    version: '1.3.6',
-    buildNumber: 136,
-    releaseDate: '2026-10-24',
-    title: 'Pembaruan KostKu v1.3.6 - Clean Desktop Dashboard & PFP Setting',
+    version: versionMeta.version,
+    buildNumber: versionMeta.buildNumber,
+    releaseDate: versionMeta.buildDate,
+    title: versionMeta.title,
     changelog: [
-      'Menghapus icon & badge database di Navbar dan Sidebar',
-      'Pembersihan total icon kanan atas pada tampilan desktop',
-      'Integrasi Profile Picture (PFP) dan tombol Setting Pengaturan di sidebar bawah kiri',
-      'Penyatuan nama kost menjadi dropdown switcher interaktif (menghapus duplikasi judul statis)'
+      'QR Pribadi Customer (KOSTKU-MEMBER) untuk Klaim & Pakai Hadiah di Kasir POS',
+      'Sinkronisasi versi Single Source of Truth (mencegah pop-up perbarui berulang)',
+      'Halaman terpadu Scan & Klaim QR dengan Lucky Spin & Tukar Hadiah'
     ],
     downloadUrls: {
       windows: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download',
@@ -659,7 +696,7 @@ app.get(['/api/app-version', '/app-version'], (req, res) => {
       androidAbsolute: `${baseUrl}/downloads/KostKu-Android.apk`,
       windowsAbsolute: 'https://drive.google.com/uc?id=1stAngBLzZ0CmGUZNPc1t66mBk5_R8O2K&export=download'
     },
-    isCritical: true
+    isCritical: false
   });
 });
 
@@ -692,7 +729,7 @@ const ensureDbCollections = (db) => {
   const collections = [
     'users', 'kosts', 'complaints', 'activities', 'invoices', 'expenses',
     'iot_meters', 'applications', 'transactions', 'contracts', 'packages',
-    'inspections', 'staff', 'staffInvites', 'reviews', 'messages', 'partner_orders',
+    'inspections', 'depositRefunds', 'staff', 'staffInvites', 'reviews', 'messages', 'partner_orders',
     'merchants', 'staffAttendance', 'staffLeaves', 'staffWorkLogs',
     'staffMutations', 'staffKasbon', 'staffPayrolls', 'staffRatings',
     'dunningLogs', 'bankMutations', 'bulletinPosts', 'guestLogs',
@@ -1567,8 +1604,9 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ error: 'Nama lengkap wajib diisi' });
   }
 
-  const isOwner = (role === 'owner');
-  const isOwnerManualAdd = (role === 'user' && Boolean(kostUid));
+  const effectiveRole = (role && String(role).trim()) ? String(role).trim() : 'mitra';
+  const isOwner = (effectiveRole === 'owner');
+  const isOwnerManualAdd = (effectiveRole === 'user' && Boolean(kostUid));
 
   if (!password || password.length < 6) {
     return res.status(400).json({ error: 'Password minimal 6 karakter' });
@@ -1595,13 +1633,15 @@ app.post('/api/register', async (req, res) => {
     (storedOtp && (storedOtp.verified || storedOtp.code === String(otpCode).trim()))
   );
 
+  const newUserId = Date.now().toString();
   const newUser = {
-    id: Date.now().toString(),
+    id: newUserId,
     name: name.trim(),
     email: email ? email.trim().toLowerCase() : '',
     phone: phone ? phone.trim() : '',
     password,
-    role: role || 'user',
+    role: effectiveRole,
+    referralCode: computeDeterministicReferralCode(newUserId),
     kostUid: kostUid || undefined,
     kamar: kamar || undefined,
     bedsheets: 0,
@@ -1613,7 +1653,7 @@ app.post('/api/register', async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  if (role === 'owner') {
+  if (effectiveRole === 'owner') {
     if (!email) return res.status(400).json({ error: 'Email harus diisi untuk pemilik kost' });
 
     // Validate GPS and Image for owner (dengan default koordinat aman sesuai kota)
@@ -1676,7 +1716,9 @@ app.post('/api/register', async (req, res) => {
         utilityScheme: utilityScheme || 'all_kost',
         waterRate: (utilityScheme === 'water_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 5000,
         electricityRate: (utilityScheme === 'electric_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 2000,
-        depositAmount: 500000
+        depositEnabled: true,
+        depositAmount: 500000,
+        depositPreferredAmount: 500000
       }
     });
 
@@ -1755,87 +1797,104 @@ app.post('/api/register', async (req, res) => {
       user: safeUser
     });
 
-  } else if (role === 'mitra' || role === 'bisnis') {
+  } else if (effectiveRole === 'mitra' || effectiveRole === 'bisnis') {
     const { 
       storeName, category, deliveryType, deliveryFee, 
       phone, address, openingHours
     } = req.body;
-    
-    if (!storeName || !storeName.trim()) {
-      return res.status(400).json({ error: 'Nama usaha / bisnis / toko wajib diisi' });
-    }
-
-    const merchantId = 'MTR-' + Date.now().toString(36).toUpperCase();
-    const effectiveDeliveryType = deliveryType || 'both'; // 'delivery' | 'pickup' | 'both'
-    const effectiveDeliveryFee = Number(deliveryFee) || 0;
-    
-    // Default starter menu items based on category
-    let defaultProducts = [];
-    const catLower = (category || '').toLowerCase();
-    if (catLower.includes('makan') || catLower.includes('warung') || catLower.includes('kuliner') || catLower.includes('minum')) {
-      defaultProducts = [
-        { id: 'p1', name: 'Nasi Goreng Spesial', price: 15000, desc: 'Porsi kenyang + telur dadar/ceplok', isAvailable: true },
-        { id: 'p2', name: 'Es Teh Manis Jumbo', price: 5000, desc: 'Segar dan manis pas', isAvailable: true }
-      ];
-    } else if (catLower.includes('laundry') || catLower.includes('cuci')) {
-      defaultProducts = [
-        { id: 'p1', name: 'Cuci Komplit Reguler (2 Hari)', price: 7000, desc: 'Harga per kg, wangi tahan lama', isAvailable: true },
-        { id: 'p2', name: 'Cuci Kilat Express (6 Jam)', price: 12000, desc: 'Harga per kg, siap pakai', isAvailable: true }
-      ];
-    } else if (catLower.includes('galon') || catLower.includes('gas')) {
-      defaultProducts = [
-        { id: 'p1', name: 'Refill Galon Aqua Asli', price: 20000, desc: 'Segel resmi diantar sampai depan kamar', isAvailable: true },
-        { id: 'p2', name: 'Tabung Gas LPG 3 Kg', price: 22000, desc: 'Refill gas melon', isAvailable: true }
-      ];
-    } else {
-      defaultProducts = [
-        { id: 'p1', name: 'Produk / Layanan Utama', price: 15000, desc: 'Kualitas terbaik untuk anak kost', isAvailable: true }
-      ];
-    }
-
-    const newMerchant = {
-      id: merchantId,
-      ownerUserId: newUser.id,
-      name: storeName.trim(),
-      category: category || 'Warung & Kuliner Sekitar',
-      icon: catLower.includes('laundry') ? '' : catLower.includes('galon') ? '' : catLower.includes('makan') ? '' : '',
-      phone: phone ? phone.trim() : (newUser.phone || ''),
-      address: address ? address.trim() : 'Dekat Gerbang Kost',
-      distanceKm: 0.1,
-      rating: 5.0,
-      openingHours: openingHours || '08:00 - 22:00 WIB',
-      isOpen: true,
-      deliveryType: effectiveDeliveryType, // 'delivery' (bisa diantar ke kamar), 'pickup' (harus ambil di ruko), 'both'
-      deliveryFee: effectiveDeliveryFee,
-      isVerified: true,
-      commissionOwner: 500,
-      platformFee: 200,
-      kostUid: kostUid || 'KOST-JAKSEL-01',
-      products: defaultProducts,
-      status: 'active',
-      createdAt: new Date().toISOString()
-    };
 
     if (!Array.isArray(db.merchants)) {
       db.merchants = [];
     }
-    db.merchants.push(newMerchant);
+
+    if (storeName && storeName.trim()) {
+      const merchantId = 'MTR-' + Date.now().toString(36).toUpperCase();
+      const effectiveDeliveryType = deliveryType || 'both'; // 'delivery' | 'pickup' | 'both'
+      const effectiveDeliveryFee = Number(deliveryFee) || 0;
+      
+      // Starter menu items hanya untuk Mode Demo; Mode Real mulai kosong dari nol
+      let defaultProducts = [];
+      if (req.isDemo) {
+        const catLower = (category || '').toLowerCase();
+        if (catLower.includes('makan') || catLower.includes('warung') || catLower.includes('kuliner') || catLower.includes('minum')) {
+          defaultProducts = [
+            { id: 'p1', name: 'Nasi Goreng Spesial', price: 15000, desc: 'Porsi kenyang + telur dadar/ceplok', isAvailable: true },
+            { id: 'p2', name: 'Es Teh Manis Jumbo', price: 5000, desc: 'Segar dan manis pas', isAvailable: true }
+          ];
+        } else if (catLower.includes('laundry') || catLower.includes('cuci')) {
+          defaultProducts = [
+            { id: 'p1', name: 'Cuci Komplit Reguler (2 Hari)', price: 7000, desc: 'Harga per kg, wangi tahan lama', isAvailable: true },
+            { id: 'p2', name: 'Cuci Kilat Express (6 Jam)', price: 12000, desc: 'Harga per kg, siap pakai', isAvailable: true }
+          ];
+        } else if (catLower.includes('galon') || catLower.includes('gas')) {
+          defaultProducts = [
+            { id: 'p1', name: 'Refill Galon Aqua Asli', price: 20000, desc: 'Segel resmi diantar sampai depan kamar', isAvailable: true },
+            { id: 'p2', name: 'Tabung Gas LPG 3 Kg', price: 22000, desc: 'Refill gas melon', isAvailable: true }
+          ];
+        } else {
+          defaultProducts = [
+            { id: 'p1', name: 'Produk / Layanan Utama', price: 15000, desc: 'Kualitas terbaik untuk anak kost', isAvailable: true }
+          ];
+        }
+      }
+
+      const newMerchant = {
+        id: merchantId,
+        ownerUserId: newUser.id,
+        name: storeName.trim(),
+        category: category || 'Warung & Kuliner Sekitar',
+        icon: '',
+        phone: phone ? phone.trim() : (newUser.phone || ''),
+        address: address ? address.trim() : 'Dekat Gerbang Kost',
+        distanceKm: 0.1,
+        rating: 5.0,
+        openingHours: openingHours || '08:00 - 22:00 WIB',
+        isOpen: true,
+        deliveryType: effectiveDeliveryType, // 'delivery' (bisa diantar ke kamar), 'pickup' (harus ambil di ruko), 'both'
+        deliveryFee: effectiveDeliveryFee,
+        isVerified: true,
+        storeMode: 'mitra',
+        kasirOnly: false,
+        isMitra: true,
+        commissionOwner: 500,
+        platformFee: 200,
+        kostUid: kostUid || (req.isDemo ? 'KOST-JAKSEL-01' : ''),
+        products: defaultProducts,
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+
+      db.merchants.push(newMerchant);
+
+      newUser.role = 'mitra';
+      newUser.merchantId = merchantId;
+      newUser.storeName = storeName.trim();
+      newUser.kostUid = kostUid || (req.isDemo ? 'KOST-JAKSEL-01' : '');
+
+      db.users.push(newUser);
+      addActivity(db, newUser.kostUid, 'mitra', `Mitra UMKM baru "${newMerchant.name}" mendaftar akun di KostKu`);
+      writeDB(db);
+
+      const safeUser = { ...newUser };
+      delete safeUser.password;
+      return res.json({
+        message: 'Registrasi Mitra Berhasil! Anda sekarang dapat mengatur menu, harga produk, opsi antar/ambil, dan pesanan masuk.',
+        user: safeUser,
+        merchant: newMerchant
+      });
+    }
 
     newUser.role = 'mitra';
-    newUser.merchantId = merchantId;
-    newUser.storeName = storeName.trim();
-    newUser.kostUid = kostUid || 'KOST-JAKSEL-01';
-
+    newUser.kostUid = kostUid || (req.isDemo ? 'KOST-JAKSEL-01' : '');
     db.users.push(newUser);
-    addActivity(db, newUser.kostUid, 'mitra', `Mitra UMKM baru "${newMerchant.name}" mendaftar akun di KostKu`);
+    addActivity(db, newUser.kostUid || 'GLOBAL', 'mitra', `Akun Mitra baru "${newUser.name}" terdaftar di KostKu`);
     writeDB(db);
 
     const safeUser = { ...newUser };
     delete safeUser.password;
     return res.json({
-      message: 'Registrasi Mitra Berhasil! Anda sekarang dapat mengatur menu, harga produk, opsi antar/ambil, dan pesanan masuk.',
-      user: safeUser,
-      merchant: newMerchant
+      message: 'Registrasi Mitra Berhasil! Silakan buka Kasir POS untuk mendaftarkan toko Anda ke jaringan Mitra.',
+      user: safeUser
     });
 
   } else {
@@ -1902,12 +1961,22 @@ app.post('/api/login', authRateLimiter, (req, res) => {
         images: k.images || []
       }))
     });
-  } else if (user.role === 'staff') {
-    const kost = db.kosts.find(k => k.uid === user.kostUid);
+  } else if (user.role === 'staff' || user.role === 'admin') {
+    const ownerKosts = user.ownerId
+      ? db.kosts.filter(k => String(k.ownerId) === String(user.ownerId) || k.uid === user.kostUid)
+      : [];
+    const kost = db.kosts.find(k => k.uid === user.kostUid) || ownerKosts[0];
     return res.json({ 
       user: safeUser, 
       kostName: kost ? kost.kostName : 'KostKu',
-      staffRole: user.jobTitle || 'Penjaga Kost'
+      staffRole: user.jobTitle || (user.role === 'admin' ? 'Admin Pengelola' : 'Penjaga Kost'),
+      ownedKosts: user.role === 'admin' ? ownerKosts.map(k => ({
+        uid: k.uid,
+        kostName: k.kostName,
+        address: k.address || '',
+        roomCount: k.settings?.rooms?.length || 0,
+        images: k.images || []
+      })) : undefined
     });
   } else if (user.role === 'user') {
     const kost = db.kosts.find(k => k.uid === user.kostUid);
@@ -1924,14 +1993,64 @@ app.post('/api/login', authRateLimiter, (req, res) => {
   }
 });
 
+// Helper: Resolve Kost Deposit Jaminan configuration consistently
+function resolveKostDepositConfig(kost) {
+  const sets = kost?.settings || {};
+  const rawAmt = sets.depositAmount !== undefined
+    ? Number(sets.depositAmount)
+    : (kost?.depositAmount !== undefined ? Number(kost.depositAmount) : undefined);
+
+  if (sets.depositEnabled !== undefined) {
+    const enabled = Boolean(sets.depositEnabled);
+    const preferred = Math.max(0, Number(sets.depositPreferredAmount ?? (rawAmt > 0 ? rawAmt : 500000)) || 500000);
+    const amount = enabled ? Math.max(0, Number(rawAmt > 0 ? rawAmt : preferred) || 0) : 0;
+    return {
+      depositEnabled: enabled && amount > 0,
+      depositAmount: enabled ? amount : 0,
+      depositPreferredAmount: preferred > 0 ? preferred : 500000
+    };
+  }
+
+  const amt = (rawAmt !== undefined && !Number.isNaN(rawAmt)) ? Math.max(0, rawAmt) : 0;
+  return {
+    depositEnabled: amt > 0,
+    depositAmount: amt,
+    depositPreferredAmount: amt > 0 ? amt : 500000
+  };
+}
+
+// Helper: Resolve held refundable deposit for a tenant
+function resolveTenantHeldDeposit(db, tenant, kost) {
+  if (!tenant) return 0;
+  if (tenant.depositStatus === 'refunded') return 0;
+  if (tenant.depositPaid !== undefined && tenant.depositPaid !== null && Number(tenant.depositPaid) > 0) {
+    return Number(tenant.depositPaid);
+  }
+  const latestInv = (db.invoices || [])
+    .filter(i => (String(i.userId) === String(tenant.id) || (tenant.kamar && String(i.kamar) === String(tenant.kamar))) && i.kostUid === tenant.kostUid && Number(i.deposit) > 0)
+    .sort((a, b) => new Date(b.paidAt || b.date || b.createdAt || 0) - new Date(a.paidAt || a.date || a.createdAt || 0))[0];
+  if (latestInv && Number(latestInv.deposit) > 0) {
+    return Number(latestInv.deposit);
+  }
+  const roomObj = (kost?.settings?.rooms || kost?.rooms || []).find(r => String(r.number) === String(tenant.kamar));
+  if (roomObj && Number(roomObj.depositHeld) > 0) {
+    return Number(roomObj.depositHeld);
+  }
+  return resolveKostDepositConfig(kost).depositAmount;
+}
+
 // Endpoint: Get Users
 app.get('/api/users', (req, res) => {
-  const { kostUid } = req.query;
+  const { kostUid, includeCheckedOut } = req.query;
   const db = getDB();
 
-  let filtered = db.users.filter(u => u.kostUid === kostUid && u.role === 'user');
-  
-  const authHeader = req.headers.authorization || req.headers['x-admin-key'];
+  let filtered = db.users.filter(u =>
+    u.kostUid === kostUid &&
+    u.role === 'user' &&
+    (includeCheckedOut === 'true' ? true : u.status !== 'checked_out')
+  );
+
+  const kost = (db.kosts || []).find(k => k.uid === kostUid);
 
   filtered = filtered.map(u => {
     const safe = { ...u };
@@ -1940,6 +2059,7 @@ app.get('/api/users', (req, res) => {
     delete safe.ktpImage;
     delete safe.verifiedKtp;
     delete safe.kyc_data;
+    safe.heldDeposit = resolveTenantHeldDeposit(db, u, kost);
     return safe;
   });
 
@@ -1947,7 +2067,7 @@ app.get('/api/users', (req, res) => {
 });
 
 // Endpoint: Get Single User Profile & Status (Auto-sync for tenant & owner)
-app.get('/api/users/:id', (req, res) => {
+app.get(['/api/users/:id', '/api/user/:id'], (req, res) => {
   const { id } = req.params;
   const db = getDB();
   let user = db.users.find(u => String(u.id) === String(id));
@@ -1982,10 +2102,12 @@ app.get('/api/users/:id', (req, res) => {
   delete safeUser.password;
   let kostName = user.kostName || 'KostKu';
 
-  // Auto-sync user kamar & kostUid from approved application if empty
-  const approvedApp = (db.applications || [])
-    .filter(a => (String(a.userId) === String(user.id) || (user.email && a.userEmail === user.email)) && a.status === 'approved')
-    .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+  // Auto-sync user kamar & kostUid from approved application if empty and not checked out
+  const approvedApp = user.status === 'checked_out'
+    ? null
+    : (db.applications || [])
+      .filter(a => (String(a.userId) === String(user.id) || (user.email && a.userEmail === user.email)) && a.status === 'approved')
+      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
   if (approvedApp) {
     if (!user.kostUid || !user.kamar) {
@@ -1996,26 +2118,237 @@ app.get('/api/users/:id', (req, res) => {
     }
   }
 
-  if (user.kostUid) {
-    const kost = db.kosts.find(k => k.uid === user.kostUid);
-    if (kost) kostName = kost.kostName;
-  }
+  const targetKost = user.kostUid ? db.kosts.find(k => k.uid === user.kostUid) : null;
+  if (targetKost) kostName = targetKost.kostName;
 
   // Find latest application if tenant
   const latestApp = (db.applications || [])
     .filter(a => String(a.userId) === String(user.id) || (user.email && a.userEmail === user.email) || (user.phone && a.phone === user.phone))
-    .sort((a,b) => new Date(b.date) - new Date(a.date))[0] || null;
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
 
   if (latestApp && (!kostName || kostName === 'KostKu') && latestApp.kostUid) {
     const k = db.kosts.find(k => k.uid === latestApp.kostUid);
     if (k) kostName = k.kostName;
   }
 
+  const depCfg = targetKost ? resolveKostDepositConfig(targetKost) : { depositEnabled: false, depositAmount: 0 };
+  const heldDeposit = user.status === 'checked_out' ? 0 : resolveTenantHeldDeposit(db, user, targetKost);
+  const latestRefund = (db.depositRefunds || [])
+    .filter(r => String(r.userId) === String(user.id))
+    .sort((a, b) => new Date(b.checkedOutAt || 0) - new Date(a.checkedOutAt || 0))[0] || null;
+
   res.json({
     user: safeUser,
+    ...safeUser,
     kostName,
-    activeApplication: latestApp
+    activeApplication: latestApp,
+    depositSummary: {
+      kostDepositEnabled: depCfg.depositEnabled,
+      kostDepositAmount: depCfg.depositAmount,
+      heldDeposit,
+      depositStatus: user.depositStatus || (heldDeposit > 0 ? 'held' : (latestRefund ? 'refunded' : 'none')),
+      refundedAmount: latestRefund ? latestRefund.refundAmount : (Number(user.depositRefundedAmount) || 0),
+      latestRefund,
+      checkoutRequest: user.checkoutRequest || null
+    }
   });
+});
+
+// Endpoint: Tenant Requests Check-Out & Provides Refund Account (Mandatory Deposit Return)
+app.post('/api/tenants/:id/request-checkout', (req, res) => {
+  const { id } = req.params;
+  const { checkoutDate, refundMethod, refundBankOrWallet, refundAccount, reason } = req.body;
+  const db = getDB();
+
+  const tenant = db.users.find(u => String(u.id) === String(id) && u.role === 'user');
+  if (!tenant) return res.status(404).json({ error: 'Data penghuni tidak ditemukan' });
+
+  const kost = (db.kosts || []).find(k => k.uid === tenant.kostUid);
+  const expectedDeposit = resolveTenantHeldDeposit(db, tenant, kost);
+
+  tenant.checkoutRequest = {
+    status: 'requested',
+    requestedAt: new Date().toISOString(),
+    checkoutDate: checkoutDate || new Date().toISOString().split('T')[0],
+    refundMethod: refundMethod || 'transfer_bank',
+    refundBankOrWallet: (refundBankOrWallet || '').trim(),
+    refundAccount: (refundAccount || '').trim(),
+    reason: (reason || '').trim(),
+    expectedDeposit
+  };
+
+  addActivity(db, tenant.kostUid, 'pengguna', `${tenant.name} (Kamar ${tenant.kamar || '-'}) mengajukan Check-Out. Wajib pengembalian deposit jaminan: Rp ${expectedDeposit.toLocaleString('id-ID')}`);
+  writeDB(db);
+  res.json({ success: true, message: 'Pengajuan check-out terkirim ke pemilik kost. Deposit jaminan Anda wajib dikembalikan saat proses check-out.', checkoutRequest: tenant.checkoutRequest });
+});
+
+// Endpoint: Process Tenant Check-Out with Mandatory Refundable Deposit Return
+app.post('/api/tenants/:id/checkout', (req, res) => {
+  const { id } = req.params;
+  const {
+    damageCost = 0,
+    depositAmount,
+    refundMethod = 'transfer_bank',
+    refundAccount = '',
+    notes = '',
+    refundConfirmed,
+    checklist = null
+  } = req.body;
+
+  const db = getDB();
+  db.depositRefunds = db.depositRefunds || [];
+  db.inspections = db.inspections || [];
+
+  const callerRole = req.headers['x-user-role'];
+  const callerId = req.headers['x-user-id'];
+  const isDemo = req.headers['x-demo-mode'] === 'true';
+  const adminKey = req.headers['x-admin-key'] || (req.headers.authorization && req.headers.authorization.replace(/^Bearer\s+/i, ''));
+  const isSuperAdmin = adminKey === (process.env.ADMIN_SECRET_KEY || 'KOSTKU_SUPER_ADMIN_SECURE_KEY');
+
+  const tenant = db.users.find(u => String(u.id) === String(id) && u.role === 'user');
+  if (!tenant) return res.status(404).json({ error: 'Penghuni tidak ditemukan' });
+
+  if (!isSuperAdmin && !isDemo && callerRole !== 'owner' && callerRole !== 'staff') {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya pemilik kost atau staf pengelola yang berwenang memproses check-out.' });
+  }
+
+  const kost = (db.kosts || []).find(k => k.uid === tenant.kostUid);
+  if (!isSuperAdmin && !isDemo && callerRole === 'owner' && kost && kost.ownerId && String(kost.ownerId) !== String(callerId)) {
+    return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang atas properti kost penghuni ini.' });
+  }
+
+  const resolvedDeposit = depositAmount !== undefined && depositAmount !== null
+    ? Math.max(0, Number(depositAmount) || 0)
+    : resolveTenantHeldDeposit(db, tenant, kost);
+
+  const cleanDamage = Math.min(resolvedDeposit, Math.max(0, Number(damageCost) || 0));
+  const finalRefund = Math.max(0, resolvedDeposit - cleanDamage);
+
+  if (resolvedDeposit > 0 && !refundConfirmed) {
+    return res.status(400).json({
+      error: 'Pengembalian deposit jaminan bersifat WAJIB saat penghuni check-out. Centang konfirmasi pengembalian deposit terlebih dahulu.'
+    });
+  }
+
+  const roomNo = tenant.kamar || '-';
+  const kostUid = tenant.kostUid;
+  const nowIso = new Date().toISOString();
+
+  const refundRecord = {
+    id: 'RFD-' + Date.now(),
+    kostUid,
+    userId: tenant.id,
+    tenantName: tenant.name,
+    roomNumber: roomNo,
+    heldDeposit: resolvedDeposit,
+    damageCost: cleanDamage,
+    refundAmount: finalRefund,
+    refundMethod: finalRefund > 0 ? refundMethod : 'nihil',
+    refundAccount: (refundAccount || tenant.checkoutRequest?.refundAccount || '').trim(),
+    notes: notes.trim(),
+    refundConfirmed: Boolean(refundConfirmed || resolvedDeposit === 0),
+    status: resolvedDeposit > 0 ? 'refunded' : 'completed_no_deposit',
+    checkedOutAt: nowIso
+  };
+  db.depositRefunds.unshift(refundRecord);
+
+  if (Array.isArray(checklist)) {
+    db.inspections.push({
+      id: Date.now(),
+      kostUid,
+      userId: tenant.id,
+      tenantName: tenant.name,
+      roomNumber: roomNo,
+      type: 'check_out',
+      checklist,
+      damageCost: cleanDamage,
+      depositAmount: resolvedDeposit,
+      finalRefund,
+      notes: notes.trim(),
+      inspectedAt: nowIso
+    });
+  }
+
+  // Free up room in both kost.settings.rooms and kost.rooms
+  if (kost && roomNo !== '-') {
+    const clearRoom = (r) => {
+      if (String(r.number) === String(roomNo)) {
+        r.status = 'available';
+        delete r.tenantId;
+        delete r.tenantName;
+        delete r.depositHeld;
+        delete r.depositStatus;
+      }
+    };
+    if (Array.isArray(kost.settings?.rooms)) kost.settings.rooms.forEach(clearRoom);
+    if (Array.isArray(kost.rooms)) kost.rooms.forEach(clearRoom);
+  }
+
+  // Update tenant record cleanly
+  tenant.previousKamar = roomNo;
+  tenant.kamar = null;
+  tenant.status = 'checked_out';
+  tenant.depositStatus = resolvedDeposit > 0 ? 'refunded' : 'none';
+  tenant.depositRefundedAmount = finalRefund;
+  tenant.checkedOutAt = nowIso;
+  if (tenant.checkoutRequest) {
+    tenant.checkoutRequest.status = 'completed';
+    tenant.checkoutRequest.completedAt = nowIso;
+  }
+
+  // Mark active approved applications as checked_out so GET /api/users/:id won't re-assign
+  (db.applications || []).forEach(a => {
+    if (
+      a.kostUid === kostUid &&
+      String(a.kamar) === String(roomNo) &&
+      (String(a.userId) === String(tenant.id) || (tenant.email && a.userEmail === tenant.email)) &&
+      a.status === 'approved'
+    ) {
+      a.status = 'checked_out';
+      a.checkedOutAt = nowIso;
+    }
+  });
+
+  // Update invoices with deposit return marker
+  (db.invoices || []).forEach(inv => {
+    if (inv.kostUid === kostUid && (String(inv.userId) === String(tenant.id) || String(inv.kamar) === String(roomNo)) && Number(inv.deposit) > 0) {
+      inv.depositStatus = 'refunded';
+      inv.depositRefundedAt = nowIso;
+      inv.depositRefundAmount = finalRefund;
+    }
+  });
+
+  addActivity(
+    db,
+    kostUid,
+    'kamar',
+    resolvedDeposit > 0
+      ? `Check-Out Kamar ${roomNo} (${tenant.name}) selesai. Wajib Refund Deposit: Rp ${finalRefund.toLocaleString('id-ID')} dikembalikan (${refundRecord.refundMethod})`
+      : `Check-Out Kamar ${roomNo} (${tenant.name}) selesai (Tanpa Deposit). Kamar kini tersedia kembali.`
+  );
+
+  writeDB(db);
+  const safeTenant = { ...tenant };
+  delete safeTenant.password;
+  res.json({
+    success: true,
+    message: resolvedDeposit > 0
+      ? `Check-out berhasil & pengembalian deposit sebesar Rp ${finalRefund.toLocaleString('id-ID')} telah dicatat.`
+      : 'Check-out penghuni selesai dan kamar tersedia kembali.',
+    refundRecord,
+    tenant: safeTenant
+  });
+});
+
+// Endpoint: List Mandatory Check-Out Deposit Refunds
+app.get('/api/deposit-refunds', (req, res) => {
+  const { kostUid, userId } = req.query;
+  const db = getDB();
+  let list = Array.isArray(db.depositRefunds) ? [...db.depositRefunds] : [];
+  if (kostUid) list = list.filter(r => r.kostUid === kostUid);
+  if (userId) list = list.filter(r => String(r.userId) === String(userId));
+  list.sort((a, b) => new Date(b.checkedOutAt || 0) - new Date(a.checkedOutAt || 0));
+  res.json(list);
 });
 
 // Endpoint: Delete User (Protected against Unauthorized IDOR)
@@ -2099,7 +2432,7 @@ app.get('/api/owner/kosts', (req, res) => {
   const enrichedKosts = kosts.map(k => {
     const rooms = k.settings?.rooms || [];
     const totalRooms = rooms.length;
-    const occupiedUsers = db.users.filter(u => u.kostUid === k.uid && u.role === 'user');
+    const occupiedUsers = db.users.filter(u => u.kostUid === k.uid && u.role === 'user' && u.status !== 'checked_out');
     const occupiedCount = occupiedUsers.length;
     const complaintsCount = (db.complaints || []).filter(c => c.kostUid === k.uid && c.status !== 'selesai').length;
     
@@ -2149,51 +2482,84 @@ app.post('/api/owner/kosts', (req, res) => {
   // Generate unique UID
   const generatedUid = 'KOST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
 
-  // Handle Tenant Referral Code for New Kost
+  // Handle Strict Tenant Referral Code for New Kost (anti-abuse: valid account required, no self-referral, 1x per owner/kost)
   const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
   let referralBonusAwarded = false;
   let referrerUser = null;
   let referralMessage = '';
 
   if (cleanReferral) {
+    const refCheck = resolveStrictReferralCandidate(db, {
+      referralCode: cleanReferral,
+      applicantUserId: owner.id,
+      applicantUser: owner,
+      extraPhone: owner.phone,
+      extraEmail: owner.email,
+      allowSelf: false
+    });
+
+    if (!refCheck.ok) {
+      return res.status(400).json({ error: refCheck.message, code: refCheck.reason });
+    }
+
     db.registeredKostReferrals = db.registeredKostReferrals || [];
-    const referralKey = `${owner.id}_${cleanReferral}`;
-    const alreadyUsed = db.registeredKostReferrals.includes(referralKey);
+    const ownerUsedBefore = db.registeredKostReferrals.some(
+      (k) => String(k) === String(owner.id) || String(k).startsWith(`${owner.id}_`)
+    );
+    const normKostName = kostName.trim().toLowerCase();
+    const normGmapsUrl = gmapsUrl ? String(gmapsUrl).trim().toLowerCase() : '';
+    const isDuplicateKost = (db.kosts || []).some(
+      (k) =>
+        (k.kostName && k.kostName.trim().toLowerCase() === normKostName) ||
+        (normGmapsUrl && k.gmapsUrl && String(k.gmapsUrl).trim().toLowerCase() === normGmapsUrl)
+    );
 
-    if (alreadyUsed) {
+    if (ownerUsedBefore || isDuplicateKost) {
       referralBonusAwarded = false;
-      referralMessage = 'Kode referral ini sudah pernah diklaim sebelumnya untuk properti Anda (hanya berlaku 1x per pemilik).';
+      referralMessage = isDuplicateKost
+        ? 'Nama atau tautan Google Maps kost ini sudah tercatat sebelumnya sehingga bonus referral 1x tidak dapat diklaim ulang.'
+        : 'Kode referral pemilik kost baru hanya berlaku 1x per akun pemilik.';
     } else {
-      referrerUser = db.users.find(u => {
-        if (u.referralCode && u.referralCode.toUpperCase() === cleanReferral) return true;
-        const kamarMatch = u.kamar && cleanReferral.includes(String(u.kamar).toUpperCase());
-        const namePart = (u.name || '').split(' ')[0].toUpperCase();
-        if (kamarMatch && namePart && cleanReferral.includes(namePart)) return true;
-        if (cleanReferral.includes('OSCAR') && (u.email?.includes('oscar') || u.name?.toLowerCase().includes('oscar'))) return true;
-        return false;
-      });
-
-      if (!referrerUser && cleanReferral.includes('OSCAR')) {
-        referrerUser = db.users.find(u => u.email === 'oscarwijaya156@gmail.com');
-      }
+      referrerUser = refCheck.referrerUser;
+      const referrerCustomer = refCheck.referrerCustomer;
+      const tenantBonus = 1000;
+      const ownerBonus = 500;
+      referralBonusAwarded = true;
 
       if (referrerUser) {
-        referralBonusAwarded = true;
-        const tenantBonus = 1000;
-        const ownerBonus = 500;
-
+        if (!referrerUser.referralCode) referrerUser.referralCode = refCheck.code;
         referrerUser.loyalty_points = (Number(referrerUser.loyalty_points) || 0) + tenantBonus;
-        owner.loyalty_points = (Number(owner.loyalty_points) || 0) + ownerBonus;
-
-        db.registeredKostReferrals.push(referralKey);
-
-        addActivity(db, generatedUid, 'pengguna', `Pemilik mendaftarkan kost "${kostName}" menggunakan referral penghuni ${referrerUser.name} (${cleanReferral}). Penghuni +${tenantBonus} Poin, Pemilik +${ownerBonus} Poin.`);
-
-        referralMessage = `Kode referral ${cleanReferral} aktif! Penghuni ${referrerUser.name} menerima +${tenantBonus} Poin loyalty, dan akun Pemilik Anda mendapat bonus +${ownerBonus} Poin!`;
-      } else {
-        referralBonusAwarded = false;
-        referralMessage = `Kode referral ${cleanReferral} tidak ditemukan, namun properti kost Anda tetap berhasil didaftarkan.`;
       }
+      if (referrerCustomer) {
+        referrerCustomer.points = (Number(referrerCustomer.points) || 0) + tenantBonus;
+        const cPhone = referrerCustomer.whatsapp_number;
+        if (cPhone) {
+          db.customer_points = db.customer_points || {};
+          db.customer_points[cPhone] = (Number(db.customer_points[cPhone]) || 0) + tenantBonus;
+        }
+      }
+      owner.loyalty_points = (Number(owner.loyalty_points) || 0) + ownerBonus;
+
+      db.registeredKostReferrals.push(String(owner.id), `${owner.id}_${cleanReferral}`);
+      db.points_ledger = db.points_ledger || [];
+      db.points_ledger.unshift({
+        id: 'REF-KOST-' + Date.now(),
+        whatsapp_number: referrerUser?.phone || referrerCustomer?.whatsapp_number || 'REFERRER',
+        change_type: 'EARN_REFERRAL_KOST',
+        points: tenantBonus,
+        notes: `Bonus usulan/pendaftaran kost baru "${kostName.trim()}" (${generatedUid}) kode ${cleanReferral}`,
+        createdAt: new Date().toISOString()
+      });
+
+      const referrerLabel = referrerUser?.name || referrerCustomer?.name || 'Teman KostKu';
+      addActivity(
+        db,
+        generatedUid,
+        'pengguna',
+        `Pemilik mendaftarkan kost "${kostName}" menggunakan referral ${referrerLabel} (${cleanReferral}). Pengusul +${tenantBonus} Poin, Pemilik +${ownerBonus} Poin.`
+      );
+
+      referralMessage = `Kode referral ${cleanReferral} aktif! ${referrerLabel} menerima +${tenantBonus} Poin loyalty, dan akun Pemilik Anda mendapat bonus +${ownerBonus} Poin!`;
     }
   }
 
@@ -2259,7 +2625,9 @@ app.post('/api/owner/kosts', (req, res) => {
       utilityScheme: utilityScheme || 'all_kost',
       waterRate: (utilityScheme === 'water_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 5000,
       electricityRate: (utilityScheme === 'electric_mandiri' || utilityScheme === 'all_mandiri') ? 0 : 2000,
-      depositAmount: 500000
+      depositEnabled: true,
+      depositAmount: 500000,
+      depositPreferredAmount: 500000
     }
   };
 
@@ -2329,7 +2697,7 @@ app.get('/api/owner/portfolio', (req, res) => {
   const propertySummaries = kosts.map(k => {
     const rooms = k.settings?.rooms || [];
     const roomsLen = rooms.length;
-    const occupied = db.users.filter(u => u.kostUid === k.uid && u.role === 'user').length;
+    const occupied = db.users.filter(u => u.kostUid === k.uid && u.role === 'user' && u.status !== 'checked_out').length;
     const complaints = (db.complaints || []).filter(c => c.kostUid === k.uid && c.status !== 'selesai').length;
     const paid = (db.invoices || []).filter(i => i.kostUid === k.uid && i.status === 'paid').reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
     const potential = rooms.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
@@ -2419,9 +2787,22 @@ app.get('/api/settings', (req, res) => {
   const db = getDB();
   
   const kost = db.kosts.find(k => k.uid === kostUid);
-  if (!kost) return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  if (!kost) {
+    if (String(kostUid || '').startsWith('MITRA-')) {
+      return res.json({
+        rooms: [],
+        employees: [],
+        depositEnabled: false,
+        depositAmount: 0,
+        depositPreferredAmount: 0,
+        promoted: { active: false },
+        isMitraAccount: true
+      });
+    }
+    return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  }
   
-  const s = kost.settings || {};
+  const s = { ...(kost.settings || {}) };
   if (!s.rooms || s.rooms.length === 0) {
     s.rooms = (kost.rooms || []).map(r => ({
       ...r,
@@ -2429,6 +2810,11 @@ app.get('/api/settings', (req, res) => {
     }));
   }
   if (!s.employees) s.employees = [];
+
+  const depCfg = resolveKostDepositConfig(kost);
+  s.depositEnabled = depCfg.depositEnabled;
+  s.depositAmount = depCfg.depositAmount;
+  s.depositPreferredAmount = depCfg.depositPreferredAmount;
   
   // Ensure promoted status is synced and checked for expiration
   const p = s.promoted || kost.promoted || { active: false };
@@ -2444,17 +2830,45 @@ app.get('/api/settings', (req, res) => {
 // Endpoint: Update Settings
 app.put('/api/settings', (req, res) => {
   const { kostUid } = req.query;
-  const { rooms, employees, bedsheetCount, waterRate, electricityRate, depositAmount, discount, utilityScheme, promoted, waBotQuota, isPro } = req.body;
+  const {
+    rooms,
+    employees,
+    bedsheetCount,
+    waterRate,
+    electricityRate,
+    depositEnabled,
+    depositAmount,
+    depositPreferredAmount,
+    discount,
+    utilityScheme,
+    promoted,
+    waBotQuota,
+    isPro
+  } = req.body;
   const db = getDB();
   
   const index = db.kosts.findIndex(k => k.uid === kostUid);
   if (index === -1) return res.status(404).json({ error: 'Kost tidak ditemukan' });
   
+  const existingSets = db.kosts[index].settings || {};
   const roomList = Array.isArray(rooms) ? rooms : [];
-  const effectiveUtilityScheme = utilityScheme || db.kosts[index].settings?.utilityScheme || db.kosts[index].utilityScheme || 'all_kost';
-  const effectivePromoted = promoted !== undefined ? promoted : (db.kosts[index].settings?.promoted || db.kosts[index].promoted || { active: false, plan: '7d', badgeText: 'Rekomendasi Utama', expiresAt: '' });
-  const effectiveWaQuota = waBotQuota !== undefined ? Number(waBotQuota) : (db.kosts[index].settings?.waBotQuota ?? 25);
-  const effectiveIsPro = isPro !== undefined ? Boolean(isPro) : Boolean(db.kosts[index].settings?.isPro);
+  const effectiveUtilityScheme = utilityScheme || existingSets.utilityScheme || db.kosts[index].utilityScheme || 'all_kost';
+  const effectivePromoted = promoted !== undefined ? promoted : (existingSets.promoted || db.kosts[index].promoted || { active: false, plan: '7d', badgeText: 'Rekomendasi Utama', expiresAt: '' });
+  const effectiveWaQuota = waBotQuota !== undefined ? Number(waBotQuota) : (existingSets.waBotQuota ?? 25);
+  const effectiveIsPro = isPro !== undefined ? Boolean(isPro) : Boolean(existingSets.isPro);
+
+  const numericDepositInput = Math.max(0, Number(depositAmount) || 0);
+  const numericPreferredInput = Math.max(
+    0,
+    Number(depositPreferredAmount) || (numericDepositInput > 0 ? numericDepositInput : (existingSets.depositPreferredAmount || 500000))
+  );
+  const requestedEnabled = depositEnabled !== undefined
+    ? Boolean(depositEnabled)
+    : (depositAmount !== undefined ? numericDepositInput > 0 : resolveKostDepositConfig(db.kosts[index]).depositEnabled);
+  const finalDepositAmount = requestedEnabled
+    ? (numericDepositInput > 0 ? numericDepositInput : numericPreferredInput)
+    : 0;
+  const finalDepositEnabled = requestedEnabled && finalDepositAmount > 0;
 
   db.kosts[index].settings = {
     rooms: roomList,
@@ -2463,8 +2877,10 @@ app.put('/api/settings', (req, res) => {
     utilityScheme: effectiveUtilityScheme,
     waterRate: Number(waterRate) || 0,
     electricityRate: Number(electricityRate) || 0,
-    depositAmount: Number(depositAmount) || 0,
-    discount: discount !== undefined ? discount : (db.kosts[index].settings?.discount || null),
+    depositEnabled: finalDepositEnabled,
+    depositAmount: finalDepositAmount,
+    depositPreferredAmount: numericPreferredInput > 0 ? numericPreferredInput : 500000,
+    discount: discount !== undefined ? discount : (existingSets.discount || null),
     promoted: effectivePromoted,
     waBotQuota: effectiveWaQuota,
     isPro: effectiveIsPro
@@ -2472,13 +2888,15 @@ app.put('/api/settings', (req, res) => {
   
   // Also sync directly to kost object for public marketplace availability
   db.kosts[index].rooms = roomList;
+  db.kosts[index].depositEnabled = finalDepositEnabled;
+  db.kosts[index].depositAmount = finalDepositAmount;
   db.kosts[index].discount = db.kosts[index].settings.discount;
   db.kosts[index].promoted = effectivePromoted;
   db.kosts[index].utilityScheme = effectiveUtilityScheme;
   db.kosts[index].waterRate = Number(waterRate) || 0;
   db.kosts[index].electricityRate = Number(electricityRate) || 0;
   
-  addActivity(db, kostUid, 'pengaturan', 'Pengaturan kamar, skema utilitas, & promosi kost telah diperbarui');
+  addActivity(db, kostUid, 'pengaturan', `Pengaturan kamar, utilitas, deposit (${finalDepositEnabled ? `Aktif Rp ${finalDepositAmount.toLocaleString('id-ID')}` : 'Nonaktif / Rp 0'}), & promosi kost diperbarui`);
   writeDB(db);
   
   res.json(db.kosts[index].settings);
@@ -2486,17 +2904,31 @@ app.put('/api/settings', (req, res) => {
 
 // ── OWNER STAFF MANAGEMENT ENDPOINTS ───────────────────────
 
-// Endpoint: Get list of staff for a kost or owner
+// Helper: Privilege check for Owner / Mitra / Master / Promoted Admin
+const isPrivilegedManagerRole = (role) => ['owner', 'mitra', 'master', 'admin'].includes(String(role || '').toLowerCase());
+
+// Helper: Resolve caller actor for staff/admin authorization
+const resolveStaffMutationActor = (req, db) => {
+  const actorId = req.headers['x-user-id'] || req.body?.actorId || req.body?.ownerId || req.query?.actorId || req.query?.ownerId || null;
+  if (!actorId) return { actor: null, role: String(req.headers['x-user-role'] || '').toLowerCase() };
+  const actor = (db.users || []).find(u => String(u.id) === String(actorId)) || null;
+  const role = actor ? String(actor.role || '').toLowerCase() : String(req.headers['x-user-role'] || '').toLowerCase();
+  return { actor, role };
+};
+
+// Endpoint: Get list of staff (including promoted admins) for a kost or owner
 app.get('/api/owner/staff', (req, res) => {
   const { kostUid, ownerId } = req.query;
   const db = getDB();
 
-  let staffList = db.users.filter(u => u.role === 'staff');
+  let staffList = db.users.filter(u => u.role === 'staff' || u.role === 'admin' || u.role === 'karyawan');
   if (kostUid) {
     staffList = staffList.filter(u => u.kostUid === kostUid);
   } else if (ownerId) {
-    const ownedKostUids = db.kosts.filter(k => String(k.ownerId) === String(ownerId)).map(k => k.uid);
-    staffList = staffList.filter(u => ownedKostUids.includes(u.kostUid) || String(u.ownerId) === String(ownerId));
+    const caller = db.users.find(u => String(u.id) === String(ownerId));
+    const resolvedOwnerId = (caller && caller.ownerId) ? caller.ownerId : ownerId;
+    const ownedKostUids = db.kosts.filter(k => String(k.ownerId) === String(resolvedOwnerId)).map(k => k.uid);
+    staffList = staffList.filter(u => ownedKostUids.includes(u.kostUid) || String(u.ownerId) === String(resolvedOwnerId));
   }
 
   const enrichedStaff = staffList.map(u => {
@@ -2528,12 +2960,31 @@ const normalizeAssignedStoreIds = (input) => {
   return cleaned;
 };
 
-// Helper: Resolve assigned kost branch by UID or ownerId
+// Helper: Resolve assigned kost branch by UID or ownerId (also isolates pure Mitra workspaces)
 const resolveAssignedKost = (db, kostUid, ownerId) => {
-  return (kostUid ? db.kosts.find(k => k.uid === kostUid) : null)
-    || (ownerId ? db.kosts.find(k => String(k.ownerId) === String(ownerId)) : null)
-    || db.kosts[0]
-    || null;
+  const directKost = (kostUid ? db.kosts.find(k => k.uid === kostUid) : null)
+    || (ownerId ? db.kosts.find(k => String(k.ownerId) === String(ownerId)) : null);
+  if (directKost) return directKost;
+
+  if (ownerId) {
+    const ownerUser = (db.users || []).find(u => String(u.id) === String(ownerId));
+    const ownerStore = (db.merchants || []).find(m =>
+      m && m.status !== 'deleted' && (String(m.ownerUserId) === String(ownerId) || String(m.posOwnerId) === String(ownerId))
+    );
+    if (ownerStore || (ownerUser && ['mitra', 'owner', 'master', 'admin'].includes(String(ownerUser.role || '').toLowerCase()))) {
+      const resolvedBossId = ownerUser?.role === 'admin' && ownerUser?.ownerId ? ownerUser.ownerId : String(ownerId);
+      return {
+        uid: kostUid || ownerStore?.kostUid || ownerUser?.kostUid || `MITRA-${resolvedBossId}`,
+        ownerId: resolvedBossId,
+        kostName: ownerStore?.name || ownerStore?.storeName || ownerUser?.storeName || ownerUser?.name || 'Toko Mitra KostKu',
+        address: ownerStore?.address || '',
+        settings: null,
+        isVirtualMitraWorkspace: true
+      };
+    }
+  }
+
+  return db.kosts[0] || null;
 };
 
 // Helper: Normalize role array and display title
@@ -2574,6 +3025,7 @@ const syncEmployeeToKostSettings = (assignedKost, staffUser) => {
     id: String(staffUser.id),
     name: staffUser.name,
     role: staffUser.jobTitle,
+    accountRole: staffUser.role === 'admin' ? 'admin' : 'staff',
     salary: staffUser.salary,
     phone: staffUser.phone,
     email: staffUser.email,
@@ -2600,19 +3052,26 @@ const upsertStaffAccount = (db, assignedKost, opts) => {
   const resolvedStoreIds = hasExplicitStores ? normalizeAssignedStoreIds(opts.assignedStoreIds) : null;
 
   let staffUser = findUserByEmailOrPhone(db, cleanEmail, cleanPhone);
+  if (!staffUser && opts.existingUserId && String(opts.existingUserId) !== String(effectiveOwnerId)) {
+    staffUser = (db.users || []).find(u => String(u.id) === String(opts.existingUserId)) || null;
+  }
   if (staffUser) {
-    if (staffUser.role === 'owner' && String(staffUser.id) !== String(effectiveOwnerId)) {
-      return { error: 'Kontak ini sudah terdaftar sebagai akun Pemilik Kost (Owner) lain.', status: 400 };
+    if (String(staffUser.id) === String(effectiveOwnerId) && opts.convertOwnerOnInvite) {
+      return { error: 'Akun Pemilik/Mitra utama tidak dapat diturunkan menjadi karyawan lewat link undangannya sendiri. Gunakan akun lain untuk bergabung sebagai karyawan.', status: 400 };
+    }
+    if (!opts.convertOwnerOnInvite && (staffUser.role === 'owner' || staffUser.role === 'mitra') && String(staffUser.id) !== String(effectiveOwnerId)) {
+      return { error: 'Kontak ini sudah terdaftar sebagai akun Pemilik/Mitra lain.', status: 400 };
     }
     staffUser.name = (opts.name || '').trim() || staffUser.name;
-    staffUser.role = 'staff';
+    // Invites always join as regular Karyawan ('staff'); only Owner or Admin can promote to 'admin'
+    staffUser.role = opts.convertOwnerOnInvite ? 'staff' : (staffUser.role === 'admin' ? 'admin' : 'staff');
     staffUser.roles = assignedRoles;
     staffUser.jobTitle = titleDisplay;
     staffUser.salary = Number(opts.salary) || staffUser.salary || 0;
     staffUser.kostUid = assignedKost.uid;
     staffUser.ownerId = effectiveOwnerId;
     staffUser.assignedStoreIds = resolvedStoreIds || (Array.isArray(staffUser.assignedStoreIds) && staffUser.assignedStoreIds.length > 0 ? staffUser.assignedStoreIds : ['all']);
-    if (cleanEmail && !staffUser.email) staffUser.email = cleanEmail;
+    if (cleanEmail && (!staffUser.email || opts.convertOwnerOnInvite)) staffUser.email = cleanEmail;
     if (cleanPhone) staffUser.phone = cleanPhone;
     if (opts.password && String(opts.password).trim()) staffUser.password = String(opts.password).trim();
     if (opts.picture && !staffUser.picture) staffUser.picture = opts.picture;
@@ -2695,14 +3154,24 @@ app.post('/api/owner/staff', (req, res) => {
   });
 });
 
-// Endpoint: Update staff details or reset password
+// Endpoint: Update staff details, roles/branches, or promote/demote access role (staff <-> admin)
 app.put('/api/owner/staff/:id', (req, res) => {
   const { id } = req.params;
-  const { name, phone, jobTitle, salary, kostUid, newPassword, roles, assignedStoreIds } = req.body;
+  const { name, phone, jobTitle, salary, kostUid, newPassword, roles, assignedStoreIds, accountRole, role: requestedAccountRole } = req.body;
   const db = getDB();
 
-  const staff = db.users.find(u => String(u.id) === String(id) && u.role === 'staff');
+  const staff = db.users.find(u => String(u.id) === String(id) && (u.role === 'staff' || u.role === 'admin' || u.role === 'karyawan'));
   if (!staff) return res.status(404).json({ error: 'Akun staf tidak ditemukan' });
+
+  const requestedSysRole = accountRole || requestedAccountRole;
+  if (requestedSysRole !== undefined) {
+    const { role: actorRole } = resolveStaffMutationActor(req, db);
+    if (!isPrivilegedManagerRole(actorRole)) {
+      return res.status(403).json({ error: 'Hanya Pemilik (Owner) atau Admin yang dapat menaikkan/mengubah level akses karyawan menjadi Admin.' });
+    }
+    const cleanSysRole = String(requestedSysRole).trim().toLowerCase() === 'admin' ? 'admin' : 'staff';
+    staff.role = cleanSysRole;
+  }
 
   if (name) staff.name = name.trim();
   if (phone !== undefined) staff.phone = phone;
@@ -2727,6 +3196,7 @@ app.put('/api/owner/staff/:id', (req, res) => {
     if (emp) {
       emp.name = staff.name;
       emp.role = staff.jobTitle;
+      emp.accountRole = staff.role === 'admin' ? 'admin' : 'staff';
       emp.salary = staff.salary;
       emp.phone = staff.phone;
       if (assignedStoreIds !== undefined) {
@@ -2744,12 +3214,73 @@ app.put('/api/owner/staff/:id', (req, res) => {
   res.json({ message: 'Data staf berhasil diperbarui', staff: safe });
 });
 
+// Endpoint: Promote or demote employee account role ('staff' <-> 'admin') — ONLY Owner or Admin
+const handleUpdateStaffAccessRole = (req, res) => {
+  const { id } = req.params;
+  const rawNextRole = String(req.body?.role || req.body?.accountRole || '').trim().toLowerCase();
+  const nextRole = rawNextRole === 'admin' ? 'admin' : (rawNextRole === 'staff' || rawNextRole === 'karyawan' ? 'staff' : '');
+  if (!nextRole) {
+    return res.status(400).json({ error: 'Role tujuan harus bernilai "admin" atau "staff" (karyawan).' });
+  }
+
+  const db = getDB();
+  const { actor, role: actorRole } = resolveStaffMutationActor(req, db);
+  if (!actor || !isPrivilegedManagerRole(actorRole)) {
+    return res.status(403).json({
+      error: 'Akses ditolak: Hanya Pemilik/Mitra atau Admin yang dapat mengatur kenaikan role karyawan menjadi Admin.'
+    });
+  }
+
+  const target = db.users.find(u => String(u.id) === String(id));
+  if (!target) {
+    return res.status(404).json({ error: 'Akun karyawan tidak ditemukan.' });
+  }
+  if (target.role === 'owner' || target.role === 'master' || target.role === 'mitra') {
+    return res.status(403).json({ error: 'Akun Pemilik/Mitra utama tidak dapat diubah lewat pengaturan karyawan.' });
+  }
+  if (!['staff', 'admin', 'karyawan'].includes(String(target.role || '').toLowerCase())) {
+    return res.status(400).json({ error: 'Hanya akun karyawan/admin yang dapat diatur level aksesnya di sini.' });
+  }
+
+  // Ensure caller belongs to the same organization/kost
+  const actorOwnerId = actor.role === 'admin' ? (actor.ownerId || actor.id) : actor.id;
+  const targetKost = db.kosts.find(k => k.uid === target.kostUid);
+  const targetOwnerId = target.ownerId || targetKost?.ownerId;
+  if (targetOwnerId && String(targetOwnerId) !== String(actorOwnerId)) {
+    return res.status(403).json({ error: 'Anda tidak memiliki wewenang untuk mengatur karyawan dari properti lain.' });
+  }
+
+  target.role = nextRole;
+  syncEmployeeToKostSettings(targetKost, target);
+  addActivity(
+    db,
+    target.kostUid || 'GLOBAL',
+    'pengaturan',
+    `Level akses "${target.name}" diubah menjadi ${nextRole === 'admin' ? 'Admin Pengelola' : 'Karyawan'} oleh ${actor.name}`
+  );
+  writeDB(db);
+
+  const safe = { ...target };
+  delete safe.password;
+  safe.kostName = targetKost ? targetKost.kostName : 'KostKu';
+
+  res.json({
+    success: true,
+    message: nextRole === 'admin'
+      ? `${target.name} berhasil dinaikkan menjadi Admin!`
+      : `${target.name} diturunkan kembali menjadi Karyawan biasa.`,
+    staff: safe
+  });
+};
+app.patch('/api/owner/staff/:id/role', handleUpdateStaffAccessRole);
+app.put('/api/owner/staff/:id/role', handleUpdateStaffAccessRole);
+
 // Endpoint: Delete staff account
 app.delete('/api/owner/staff/:id', (req, res) => {
   const { id } = req.params;
   const db = getDB();
 
-  const index = db.users.findIndex(u => String(u.id) === String(id) && (u.role === 'staff' || u.role === 'karyawan'));
+  const index = db.users.findIndex(u => String(u.id) === String(id) && (u.role === 'staff' || u.role === 'admin' || u.role === 'karyawan'));
   let deletedName = 'Karyawan';
   let staffEmail = '';
 
@@ -2894,8 +3425,8 @@ app.post('/api/owner/staff-invites', async (req, res) => {
 
   const cleanTarget = selectedChannel === 'email' ? cleanEmail : cleanPhone;
   const conflictOwner = findUserByEmailOrPhone(db, cleanEmail, cleanPhone);
-  if (conflictOwner && conflictOwner.role === 'owner' && String(conflictOwner.id) !== String(ownerId || assignedKost.ownerId)) {
-    return res.status(400).json({ error: 'Kontak ini sudah terdaftar sebagai akun Pemilik Kost lain.' });
+  if (conflictOwner && (conflictOwner.role === 'owner' || conflictOwner.role === 'mitra') && String(conflictOwner.id) === String(ownerId || assignedKost.ownerId)) {
+    return res.status(400).json({ error: 'Tidak dapat mengirim undangan karyawan ke akun Pemilik/Mitra utama sendiri.' });
   }
 
   const { roles: assignedRoles, titleDisplay } = normalizeAssignedRoles(roles, jobTitle);
@@ -3036,7 +3567,7 @@ app.get('/api/staff-invites/:token', (req, res) => {
 // Public: Accept invitation via link -> officially add employee to db.users & kost settings!
 app.post('/api/staff-invites/:token/accept', (req, res) => {
   const { token } = req.params;
-  const { name, email, phone, password, picture, googleId, authProvider } = req.body || {};
+  const { name, email, phone, password, picture, googleId, authProvider, existingUserId } = req.body || {};
 
   const db = getDB();
   const inv = (db.staffInvites || []).find(i => i.token === token);
@@ -3080,6 +3611,8 @@ app.post('/api/staff-invites/:token/accept', (req, res) => {
 
   const result = upsertStaffAccount(db, assignedKost, {
     ownerId: inv.ownerId,
+    existingUserId: existingUserId || req.headers['x-user-id'] || undefined,
+    convertOwnerOnInvite: true,
     name: finalName,
     email: finalEmail,
     phone: finalPhone,
@@ -3169,7 +3702,7 @@ app.post('/api/staff/attendance/check-in', (req, res) => {
   const db = getDB();
   if (!db.staffAttendance) db.staffAttendance = [];
 
-  const staff = db.users.find(u => String(u.id) === String(staffId) && u.role === 'staff');
+  const staff = db.users.find(u => String(u.id) === String(staffId) && (u.role === 'staff' || u.role === 'admin'));
   if (!staff) return res.status(404).json({ error: 'Karyawan tidak ditemukan' });
 
   const assignedKost = db.kosts.find(k => k.uid === (kostUid || staff.kostUid));
@@ -3373,7 +3906,7 @@ app.post('/api/staff/leaves', (req, res) => {
   const db = getDB();
   if (!db.staffLeaves) db.staffLeaves = [];
 
-  const staff = db.users.find(u => String(u.id) === String(staffId) && u.role === 'staff');
+  const staff = db.users.find(u => String(u.id) === String(staffId) && (u.role === 'staff' || u.role === 'admin'));
   if (!staff) return res.status(404).json({ error: 'Karyawan tidak ditemukan' });
 
   const assignedKost = db.kosts.find(k => k.uid === (kostUid || staff.kostUid));
@@ -4439,7 +4972,7 @@ app.post('/api/iot/appliances/declare-room', (req, res) => {
   const existingIdx = db.roomAppliances.findIndex(r => (!kostUid || r.kostUid === kostUid) && String(r.kamar) === String(roomNumber));
 
   const declarationEntry = {
-    kostUid: kostUid || 'KOST-BDG-02',
+    kostUid: kostUid || '',
     kamar: String(roomNumber),
     tenantName: tenantName || `Penghuni Kamar ${roomNumber}`,
     items,
@@ -4707,6 +5240,7 @@ app.post('/api/auth/google', (req, res) => {
     // Existing user: Update Google metadata if provided
     if (effectivePicture && !user.picture) user.picture = effectivePicture;
     if (effectiveGoogleId && !user.googleId) user.googleId = effectiveGoogleId;
+    if (!user.referralCode) user.referralCode = computeDeterministicReferralCode(user.id);
     user.authProvider = 'google';
 
     // Default Oscar to 'user' (penghuni) per user requirement
@@ -4716,8 +5250,12 @@ app.post('/api/auth/google', (req, res) => {
     }
 
     // Locate Kost
-    if (user.role === 'owner') {
-      const kost = db.kosts.find(k => String(k.ownerId) === String(user.id) || (user.kostUid && k.uid === user.kostUid));
+    if (user.role === 'owner' || user.role === 'admin') {
+      const kost = db.kosts.find(k =>
+        String(k.ownerId) === String(user.id) ||
+        (user.ownerId && String(k.ownerId) === String(user.ownerId)) ||
+        (user.kostUid && k.uid === user.kostUid)
+      );
       if (kost) {
         resolvedKostName = kost.kostName;
         user.kostUid = kost.uid;
@@ -4730,8 +5268,13 @@ app.post('/api/auth/google', (req, res) => {
     // Routine login success (not logged to operational feed to keep it clean)
     writeDB(db);
   } else {
-    // New user registration via Google
-    const targetRole = role === 'owner' ? 'owner' : ((role === 'mitra' || role === 'bisnis') ? 'mitra' : (role === 'staff' ? 'staff' : 'user'));
+    // New user registration via Google: default role is 'mitra' unless explicitly requested otherwise
+    const reqRole = String(role || '').trim().toLowerCase();
+    const targetRole = reqRole === 'user'
+      ? 'user'
+      : (reqRole === 'owner'
+        ? 'owner'
+        : (reqRole === 'staff' ? 'staff' : (reqRole === 'admin' ? 'admin' : 'mitra')));
     const newUserId = Date.now();
     const finalName = effectiveName || effectiveEmail.split('@')[0];
 
@@ -4757,7 +5300,9 @@ app.post('/api/auth/google', (req, res) => {
           bedsheetCount: 20,
           waterRate: 0,
           electricityRate: 0,
-          depositAmount: 0
+          depositEnabled: false,
+          depositAmount: 0,
+          depositPreferredAmount: 500000
         }
       };
 
@@ -4769,6 +5314,7 @@ app.post('/api/auth/google', (req, res) => {
         email: effectiveEmail,
         role: 'owner',
         kostUid: generatedUid,
+        referralCode: computeDeterministicReferralCode(newUserId),
         picture: effectivePicture || '',
         authProvider: 'google',
         googleId: effectiveGoogleId || '',
@@ -4779,47 +5325,56 @@ app.post('/api/auth/google', (req, res) => {
       resolvedKostName = finalKostName;
       addActivity(db, generatedUid, 'pengguna', `Pemilik baru ${finalName} terdaftar via Akun Google (${effectiveEmail}) dan Kost otomatis dibuat`);
     } else if (targetRole === 'mitra') {
-      const merchantId = 'MTR-' + Date.now().toString(36).toUpperCase();
-      const finalStoreName = req.body.storeName || `Kantin & Bisnis ${finalName}`;
-      const effectiveCategory = req.body.category || 'Kantin & Kuliner';
-      const defaultProducts = [
-        { id: 'p1', name: 'Nasi Goreng Spesial', price: 15000, desc: 'Porsi kenyang + telur dadar/ceplok', isAvailable: true },
-        { id: 'p2', name: 'Es Teh Manis Jumbo', price: 5000, desc: 'Segar dan manis pas', isAvailable: true }
-      ];
+      const requestedStoreName = req.body.storeName ? String(req.body.storeName).trim() : '';
+      let merchantId = null;
 
-      const newMerchant = {
-        id: merchantId,
-        ownerUserId: newUserId,
-        name: finalStoreName,
-        category: effectiveCategory,
-        icon: '',
-        phone: '',
-        address: 'Area Kantin Kost',
-        distanceKm: 0.1,
-        rating: 5.0,
-        openingHours: '08:00 - 22:00 WIB',
-        isOpen: true,
-        deliveryType: 'both',
-        deliveryFee: 0,
-        isVerified: true,
-        commissionOwner: 500,
-        platformFee: 200,
-        kostUid: 'KOST-OJN64X',
-        products: defaultProducts,
-        status: 'active',
-        createdAt: new Date().toISOString()
-      };
+      if (requestedStoreName) {
+        merchantId = 'MTR-' + Date.now().toString(36).toUpperCase();
+        const effectiveCategory = req.body.category || 'Kantin & Kuliner';
+        const defaultProducts = req.isDemo
+          ? [
+              { id: 'p1', name: 'Nasi Goreng Spesial', price: 15000, desc: 'Porsi kenyang + telur dadar/ceplok', isAvailable: true },
+              { id: 'p2', name: 'Es Teh Manis Jumbo', price: 5000, desc: 'Segar dan manis pas', isAvailable: true }
+            ]
+          : [];
 
-      if (!Array.isArray(db.merchants)) db.merchants = [];
-      db.merchants.push(newMerchant);
+        const newMerchant = {
+          id: merchantId,
+          ownerUserId: newUserId,
+          name: requestedStoreName,
+          category: effectiveCategory,
+          icon: '',
+          phone: '',
+          address: req.body.address || 'Area Kantin Kost',
+          distanceKm: 0.1,
+          rating: 5.0,
+          openingHours: '08:00 - 22:00 WIB',
+          isOpen: true,
+          deliveryType: 'both',
+          deliveryFee: 0,
+          isVerified: true,
+          storeMode: 'mitra',
+          kasirOnly: false,
+          isMitra: true,
+          commissionOwner: 500,
+          platformFee: 200,
+          kostUid: req.body.kostUid || (req.isDemo ? 'KOST-OJN64X' : ''),
+          products: defaultProducts,
+          status: 'active',
+          createdAt: new Date().toISOString()
+        };
+
+        if (!Array.isArray(db.merchants)) db.merchants = [];
+        db.merchants.push(newMerchant);
+      }
 
       user = {
         id: newUserId,
         name: finalName,
         email: effectiveEmail,
         role: 'mitra',
-        merchantId,
-        storeName: finalStoreName,
+        referralCode: computeDeterministicReferralCode(newUserId),
+        ...(merchantId ? { merchantId, storeName: requestedStoreName } : {}),
         picture: effectivePicture || '',
         authProvider: 'google',
         googleId: effectiveGoogleId || '',
@@ -4827,8 +5382,11 @@ app.post('/api/auth/google', (req, res) => {
       };
 
       db.users.push(user);
-      resolvedKostName = finalStoreName;
-      addActivity(db, 'GLOBAL', 'mitra', `Pemilik bisnis baru ${finalName} (${finalStoreName}) terdaftar via Akun Google (${effectiveEmail})`);
+      resolvedKostName = requestedStoreName || 'KostKu Mitra';
+      addActivity(db, 'GLOBAL', 'mitra', requestedStoreName
+        ? `Pemilik bisnis baru ${finalName} (${requestedStoreName}) terdaftar via Akun Google (${effectiveEmail})`
+        : `Akun Mitra baru ${finalName} terdaftar via Akun Google (${effectiveEmail})`
+      );
     } else if (targetRole === 'staff') {
       const cleanEmail = effectiveEmail.toLowerCase();
       const assignedKost = db.kosts.find(k => k.settings?.employees?.some(e => e.email && e.email.toLowerCase() === cleanEmail));
@@ -4837,6 +5395,7 @@ app.post('/api/auth/google', (req, res) => {
         name: finalName,
         email: effectiveEmail,
         role: 'staff',
+        referralCode: computeDeterministicReferralCode(newUserId),
         jobTitle: 'Karyawan / Staf Kost',
         roles: ['Karyawan / Staf Kost'],
         picture: effectivePicture || '',
@@ -4862,6 +5421,7 @@ app.post('/api/auth/google', (req, res) => {
         name: finalName,
         email: effectiveEmail,
         role: 'user',
+        referralCode: computeDeterministicReferralCode(newUserId),
         picture: effectivePicture || '',
         authProvider: 'google',
         googleId: effectiveGoogleId || '',
@@ -4960,6 +5520,7 @@ app.get('/api/public/kosts', (req, res) => {
     const city = resolveKostCity(k);
     const location = resolveKostLocation(k, city);
     const gmapsUrl = k.gmapsUrl || (location?.lat ? `https://maps.google.com/?q=${location.lat},${location.lng}` : '');
+    const depCfg = resolveKostDepositConfig(k);
 
     // Only send public safe data
     return {
@@ -5005,7 +5566,8 @@ app.get('/api/public/kosts', (req, res) => {
       waterRate: Number(k.settings?.waterRate != null ? k.settings.waterRate : k.waterRate) || 0,
       electricityRate: Number(k.settings?.electricityRate != null ? k.settings.electricityRate : k.electricityRate) || 0,
       discount: k.settings?.discount || k.discount || null,
-      depositAmount: k.settings?.depositAmount || 500000,
+      depositEnabled: depCfg.depositEnabled,
+      depositAmount: depCfg.depositAmount,
       promoted: (() => {
         const p = k.settings?.promoted || k.promoted;
         if (!p || !p.active) return { active: false };
@@ -5227,7 +5789,7 @@ app.put('/api/applications/:id', (req, res) => {
     }
 
     // Generate Invoice if not already created
-    const deposit = kost?.settings?.depositAmount || 0;
+    const deposit = resolveKostDepositConfig(kost).depositAmount;
     const basePrice = roomSettings?.price || 1650000;
     const existingInv = (db.invoices || []).find(i => 
       String(i.userId) === String(user.id) && 
@@ -5343,47 +5905,79 @@ app.get('/api/merchants', (req, res) => {
 
   // Jika dipanggil oleh Owner untuk manajemen toko miliknya (1 owner bisa punya banyak toko)
   if (targetOwnerId) {
-    const ownerStores = db.merchants.filter(m => 
-      String(m.ownerUserId) === String(targetOwnerId) ||
-      String(m.userId) === String(targetOwnerId) ||
-      (m.kostUid === uid && (!m.ownerUserId || String(m.ownerUserId) === String(targetOwnerId)))
+    const ownerStores = db.merchants.filter(m =>
+      m && m.status !== 'deleted' && (
+        String(m.ownerUserId) === String(targetOwnerId) ||
+        String(m.userId) === String(targetOwnerId) ||
+        (m.kostUid === uid && (!m.ownerUserId || String(m.ownerUserId) === String(targetOwnerId)))
+      )
     );
     if (scope === 'owner' || scope === 'mine' || ownerUserId) {
-      return res.json(ownerStores.map(m => ({
-        ...m,
-        isMainPartner: true,
-        partnershipType: 'main',
-        originKostUid: m.kostUid || uid,
-        originKostName: targetKost?.name || 'Kost Anda',
-        saldoNota: Number(m.saldoNota ?? 5000),
-        kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / 100)),
-        ownerUserId: m.ownerUserId || targetOwnerId
-      })));
+      return res.json(ownerStores.map(m => {
+        const profile = getStoreBillingProfile(db, m);
+        const kasirOnline = isMerchantKasirOnline(m);
+        return {
+          ...m,
+          storeMode: 'mitra',
+          kasirOnly: false,
+          isMitra: true,
+          kasirOnline,
+          isOnline: kasirOnline,
+          onlineStatus: kasirOnline ? 'online' : 'offline',
+          lastKasirHeartbeatAt: m.lastKasirHeartbeatAt || null,
+          loyaltyPoolId: profile.loyaltyPoolId,
+          loyalty_pool_id: profile.loyaltyPoolId,
+          billingTier: profile.billingTier,
+          isMainPartner: true,
+          partnershipType: 'main',
+          originKostUid: m.kostUid || uid,
+          originKostName: targetKost?.name || 'Kost Anda',
+          saldoNota: Number(m.saldoNota ?? 5000),
+          kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / profile.notaFeeIdr)),
+          ownerUserId: m.ownerUserId || targetOwnerId
+        };
+      }));
     }
   }
 
   // Jika dipanggil oleh Owner untuk manajemen toko milik sendiri berbasis kostUid
   if (scope === 'owner' || scope === 'mine') {
-    const mine = db.merchants.filter(m => m.kostUid === uid || (targetOwnerId && String(m.ownerUserId) === String(targetOwnerId)));
-    return res.json(mine.map(m => ({
-      ...m,
-      isMainPartner: true,
-      partnershipType: 'main',
-      originKostUid: uid,
-      originKostName: targetKost?.name || 'Kost Anda',
-      saldoNota: Number(m.saldoNota ?? 5000),
-      kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / 100)),
-      ownerUserId: m.ownerUserId || 'USR-OWNER-01'
-    })));
+    const mine = db.merchants.filter(m => m && m.status !== 'deleted' && (m.kostUid === uid || (targetOwnerId && String(m.ownerUserId) === String(targetOwnerId))));
+    return res.json(mine.map(m => {
+      const profile = getStoreBillingProfile(db, m);
+      const kasirOnline = isMerchantKasirOnline(m);
+      return {
+        ...m,
+        storeMode: 'mitra',
+        kasirOnly: false,
+        isMitra: true,
+        kasirOnline,
+        isOnline: kasirOnline,
+        onlineStatus: kasirOnline ? 'online' : 'offline',
+        lastKasirHeartbeatAt: m.lastKasirHeartbeatAt || null,
+        loyaltyPoolId: profile.loyaltyPoolId,
+        loyalty_pool_id: profile.loyaltyPoolId,
+        billingTier: profile.billingTier,
+        isMainPartner: true,
+        partnershipType: 'main',
+        originKostUid: uid,
+        originKostName: targetKost?.name || 'Kost Anda',
+        saldoNota: Number(m.saldoNota ?? 5000),
+        kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / profile.notaFeeIdr)),
+        ownerUserId: m.ownerUserId || 'USR-OWNER-01'
+      };
+    }));
   }
 
-  // Untuk Penyewa / Marketplace Anak Kost: Tampilkan Mitra Utama + Mitra Jaringan Kost Sekitar + Shared Merchants
-  const allList = db.merchants || [];
+  // Semua toko Kasir POS wajib ikut Mitra (tampil di marketplace); tampilkan Online di atas dan Offline grayed out (lihat menu)
+  const allList = (db.merchants || []).filter(m => m && m.status !== 'deleted');
   const enriched = allList.map(m => {
-    const isDirectMain = m.kostUid === uid;
+    const isDirectMain = Boolean(uid && m.kostUid === uid);
     const isShared = Boolean(m.isShared || (Array.isArray(m.partnerKosts) && m.partnerKosts.length > 1));
     const originKost = (db.kosts || []).find(k => k.uid === m.kostUid);
     const originKostName = originKost?.name || (isDirectMain ? 'Kost Anda' : 'Kost Rekanan Sekitar');
+    const profile = getStoreBillingProfile(db, m);
+    const kasirOnline = isMerchantKasirOnline(m);
 
     let partnershipType = 'network';
     if (isDirectMain) {
@@ -5394,6 +5988,16 @@ app.get('/api/merchants', (req, res) => {
 
     return {
       ...m,
+      storeMode: 'mitra',
+      kasirOnly: false,
+      isMitra: true,
+      kasirOnline,
+      isOnline: kasirOnline,
+      onlineStatus: kasirOnline ? 'online' : 'offline',
+      lastKasirHeartbeatAt: m.lastKasirHeartbeatAt || null,
+      loyaltyPoolId: profile.loyaltyPoolId,
+      loyalty_pool_id: profile.loyaltyPoolId,
+      billingTier: profile.billingTier,
       isMainPartner: isDirectMain,
       isShared,
       partnershipType, // 'main' | 'shared' | 'network'
@@ -5402,11 +6006,12 @@ app.get('/api/merchants', (req, res) => {
       deliveryType: m.deliveryType || 'both',
       deliveryFee: m.deliveryFee !== undefined ? Number(m.deliveryFee) : 2000,
       saldoNota: Number(m.saldoNota ?? 5000),
-      kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / 100)),
+      kuotaNota: Number(m.kuotaNota ?? Math.floor((m.saldoNota ?? 5000) / profile.notaFeeIdr)),
       ownerUserId: m.ownerUserId || 'USR-OWNER-01'
     };
   });
 
+  enriched.sort((a, b) => (b.kasirOnline ? 1 : 0) - (a.kasirOnline ? 1 : 0));
   res.json(enriched);
 });
 
@@ -5431,7 +6036,10 @@ app.post('/api/merchants', (req, res) => {
     isIndependent,
     deliveryType,
     deliveryFee,
-    customPayment
+    customPayment,
+    storeMode,
+    kasirOnly,
+    joinMitra
   } = req.body;
 
   if (!name || !name.trim()) {
@@ -5446,12 +6054,27 @@ app.post('/api/merchants', (req, res) => {
   const normName = name.trim().toLowerCase();
   const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
 
-  // Cek apakah nomor/nama persis ini sudah pernah klaim referral sebelumnya (1x klaim referral)
-  const isAlreadyRegistered = db.registeredPartnerHistory.some(h => {
-    const matchName = h.name && h.name.toLowerCase() === normName;
-    const matchPhone = cleanPhone && h.phone && h.phone.replace(/\D/g, '') === cleanPhone;
-    return matchName || matchPhone;
-  });
+  // Cek apakah toko/nomor/owner ini sudah pernah mengklaim referral sebelumnya (1x klaim referral)
+  const isAlreadyRegistered =
+    db.registeredPartnerHistory.some((h) => {
+      const matchName = h.name && h.name.toLowerCase() === normName;
+      const matchPhone = cleanPhone && h.phone && h.phone.replace(/\D/g, '') === cleanPhone;
+      const matchOwner =
+        resolvedOwnerUserId &&
+        resolvedOwnerUserId !== 'USR-OWNER-01' &&
+        h.userId &&
+        String(h.userId) === String(resolvedOwnerUserId);
+      return matchName || matchPhone || matchOwner;
+    }) ||
+    db.merchants.some((m) => {
+      const matchName = m.name && m.name.trim().toLowerCase() === normName;
+      const matchPhone = cleanPhone && m.phone && String(m.phone).replace(/\D/g, '') === cleanPhone;
+      return matchName || matchPhone;
+    });
+
+  // Semua toko kasir wajib ikut Mitra agar katalog layanan ramai
+  const isKasirOnly = false;
+  const normalizedStoreMode = 'mitra';
 
   const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
   let bonusAwarded = false;
@@ -5459,58 +6082,79 @@ app.post('/api/merchants', (req, res) => {
   let responseMsg = '';
 
   if (cleanReferral) {
+    const refCheck = resolveStrictReferralCandidate(db, {
+      referralCode: cleanReferral,
+      applicantUserId: resolvedOwnerUserId,
+      extraPhone: cleanPhone,
+      extraEmail: req.body.email,
+      allowSelf: false
+    });
+
+    if (!refCheck.ok) {
+      return res.status(400).json({ error: refCheck.message, code: refCheck.reason });
+    }
+
     if (isAlreadyRegistered) {
-      // Mitra sudah pernah ada/terdaftar sebelumnya -> extra point & 500 kuota TIDAK ter-trigger lagi!
       bonusAwarded = false;
-      responseMsg = 'Nama/nomor mitra ini sudah pernah didaftarkan sebelumnya. Toko baru disimpan dengan kuota reguler 50 nota.';
+      responseMsg = 'Nama, nomor, atau pemilik toko ini sudah pernah menerima kuota/bonus referral sebelumnya. Toko baru disimpan dengan kuota reguler 50 nota.';
     } else {
-      // Mitra baru & ada kode referral -> TWO-SIDED INCENTIVE!
+      const referrerUser = refCheck.referrerUser;
+      const referrerCustomer = refCheck.referrerCustomer;
       bonusAwarded = true;
       bonusPoints = 500;
       responseMsg = `Selamat! Toko mitra baru berhasil didaftarkan via referral. Anda mendapatkan BONUS 500 Transaksi Kasir GRATIS (Hemat Rp 50.000)! (Kode: ${cleanReferral})`;
 
-      // 2. Cari Akun Referrer & Berikan +500 Poin Loyalitas
-      const referrerUser = (db.users || []).find(u => 
-        (u.referralCode && u.referralCode.toUpperCase() === cleanReferral) ||
-        (u.whatsapp && u.whatsapp.replace(/\D/g, '') === cleanReferral.replace(/\D/g, '')) ||
-        (u.phone && u.phone.replace(/\D/g, '') === cleanReferral.replace(/\D/g, ''))
-      ) || (db.customers && Object.values(db.customers).find(c => 
-        c && c.referral_code && c.referral_code.toUpperCase() === cleanReferral
-      ));
-
+      let refPhone = null;
       if (referrerUser) {
-        const refPhone = referrerUser.whatsapp || referrerUser.phone || referrerUser.whatsapp_number;
-        if (referrerUser.loyalty_points !== undefined) {
-          referrerUser.loyalty_points = (Number(referrerUser.loyalty_points) || 0) + bonusPoints;
-        }
+        if (!referrerUser.referralCode) referrerUser.referralCode = refCheck.code;
+        referrerUser.loyalty_points = (Number(referrerUser.loyalty_points) || 0) + bonusPoints;
         if (referrerUser.total_points !== undefined) {
           referrerUser.total_points = (Number(referrerUser.total_points) || 0) + bonusPoints;
         }
-        if (refPhone) {
-          db.customer_points = db.customer_points || {};
-          db.customer_points[refPhone] = (db.customer_points[refPhone] || 0) + bonusPoints;
+        refPhone = normalizePhoneDigits(referrerUser.whatsapp || referrerUser.phone || referrerUser.whatsapp_number);
+      }
+      if (referrerCustomer) {
+        referrerCustomer.points = (Number(referrerCustomer.points) || 0) + bonusPoints;
+        refPhone = refPhone || normalizePhoneDigits(referrerCustomer.whatsapp_number);
+      }
+      if (refPhone) {
+        db.customer_points = db.customer_points || {};
+        db.customer_points[refPhone] = (db.customer_points[refPhone] || 0) + bonusPoints;
+      }
+
+      db.points_ledger = db.points_ledger || [];
+      db.points_ledger.unshift({
+        id: 'REF-MITRA-' + Date.now(),
+        whatsapp_number: refPhone || 'REFERRER',
+        change_type: 'EARN_REFERRAL_MERCHANT',
+        points: bonusPoints,
+        notes: `Bonus pendaftaran mitra baru: ${name.trim()} (Kode: ${cleanReferral})`,
+        createdAt: new Date().toISOString()
+      });
+
+      addActivity(
+        db,
+        referrerUser?.kostUid || 'GLOBAL',
+        'mitra',
+        `Bonus Referral Mitra: ${referrerUser?.name || referrerCustomer?.name || 'Teman KostKu'} mendapatkan +500 Poin atas pendaftaran toko "${name.trim()}"!`
+      );
+
+      // Mark matching pending warung suggestion as converted
+      (db.merchantSuggestions || []).forEach((s) => {
+        if (!s) return;
+        const sName = String(s.name || '').trim().toLowerCase();
+        const sPhone = String(s.phone || '').replace(/\D/g, '');
+        if (sName === normName || (cleanPhone && sPhone === cleanPhone)) {
+          s.status = 'registered';
+          s.registeredMerchantName = name.trim();
+          s.convertedAt = new Date().toISOString();
         }
+      });
 
-        // Catat ke ledger poin
-        db.points_ledger = db.points_ledger || [];
-        db.points_ledger.unshift({
-          id: 'REF-MITRA-' + Date.now(),
-          whatsapp_number: refPhone || 'REFERRER',
-          change_type: 'EARN_REFERRAL_MERCHANT',
-          points: bonusPoints,
-          notes: `Bonus pendaftaran mitra baru: ${name.trim()} (Kode: ${cleanReferral})`,
-          createdAt: new Date().toISOString()
-        });
-
-        addActivity(db, referrerUser.kostUid || 'GLOBAL', 'mitra', 
-          `Bonus Referral Mitra: ${referrerUser.name || 'Teman KostKu'} mendapatkan +500 Poin atas pendaftaran toko "${name.trim()}"!`
-        );
-
-        if (refPhone) {
-          syncDeltaToFirebase(`customer_points/${refPhone}`, db.customer_points[refPhone], 'PUT');
-          if (db.customers && db.customers[refPhone]) {
-            syncDeltaToFirebase(`customers/${refPhone}`, db.customers[refPhone], 'PATCH');
-          }
+      if (refPhone) {
+        syncDeltaToFirebase(`customer_points/${refPhone}`, db.customer_points[refPhone], 'PUT');
+        if (db.customers && db.customers[refPhone]) {
+          syncDeltaToFirebase(`customers/${refPhone}`, db.customers[refPhone], 'PATCH');
         }
       }
     }
@@ -5573,6 +6217,9 @@ app.post('/api/merchants', (req, res) => {
     },
     isAffiliate: Boolean(isAffiliate),
     isIndependent: Boolean(isIndependent),
+    storeMode: normalizedStoreMode,
+    kasirOnly: isKasirOnly,
+    isMitra: !isKasirOnly,
     referralCode: cleanReferral || null,
     bonusAwarded,
     status: 'active',
@@ -5628,11 +6275,19 @@ app.post('/api/merchants/create', (req, res, next) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-// Endpoint: Usulkan Warung / Mitra Sekitar (Crowdsourcing Anak Kost)
+// Endpoint: Usulkan Warung / Mitra Sekitar (Anti-Abuse: Wajib Kode Referral Terdaftar, 0 Poin Instan, Cair Saat Warung Daftar)
 app.post('/api/merchants/suggest', (req, res) => {
   const { name, category, phone, note, referralCode, userId, kostUid } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Nama warung/mitra wajib diisi' });
+  }
+
+  const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
+  if (!cleanReferral) {
+    return res.status(400).json({
+      error: 'Kode Referral wajib diisi untuk mengusulkan warung sekitar agar tidak disalahgunakan.',
+      code: 'REFERRAL_REQUIRED'
+    });
   }
 
   const db = getDB();
@@ -5642,44 +6297,80 @@ app.post('/api/merchants/suggest', (req, res) => {
   const normName = name.trim().toLowerCase();
   const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
 
-  // Cek apakah sudah pernah diusulkan / didaftarkan sebelumnya
-  const isAlreadyRegistered = db.registeredPartnerHistory.some(h => {
-    const matchName = h.name && h.name.toLowerCase() === normName;
-    const matchPhone = cleanPhone && h.phone && h.phone.replace(/\D/g, '') === cleanPhone;
-    return matchName || matchPhone;
-  }) || (db.merchants || []).some(m => {
-    const matchName = m.name && m.name.toLowerCase() === normName;
+  const refCheck = resolveStrictReferralCandidate(db, {
+    referralCode: cleanReferral,
+    applicantUserId: userId,
+    extraPhone: cleanPhone,
+    allowSelf: true
+  });
+
+  if (!refCheck.ok) {
+    return res.status(400).json({ error: refCheck.message, code: refCheck.reason });
+  }
+
+  const suggesterUser = userId && Array.isArray(db.users)
+    ? db.users.find((usr) => String(usr.id) === String(userId))
+    : null;
+  const ownPhones = [
+    suggesterUser?.phone,
+    suggesterUser?.whatsapp,
+    refCheck.referrerUser?.phone,
+    refCheck.referrerUser?.whatsapp,
+    refCheck.referrerCustomer?.whatsapp_number
+  ]
+    .map(normalizePhoneDigits)
+    .filter((p) => p.length >= 8);
+  const warungPhoneNorm = normalizePhoneDigits(cleanPhone);
+  if (warungPhoneNorm.length >= 8 && ownPhones.includes(warungPhoneNorm)) {
+    return res.status(400).json({
+      error: 'Nomor WhatsApp warung tidak boleh sama dengan nomor akun pribadi pengusul/pemilik kode referral.',
+      code: 'SELF_PHONE_BLOCKED'
+    });
+  }
+
+  // Batasi spam usulan per user/kode (maks 5 usulan pending)
+  const pendingCount = db.merchantSuggestions.filter((s) => {
+    if (!s || s.status === 'registered') return false;
+    if (userId && s.userId && String(s.userId) === String(userId)) return true;
+    return s.referralCode && String(s.referralCode).toUpperCase() === cleanReferral;
+  }).length;
+  if (pendingCount >= 5) {
+    return res.status(429).json({
+      error: 'Batas maksimal 5 usulan warung aktif yang menunggu pendaftaran. Bagikan kode referralmu agar warung sebelumnya mendaftar dulu.',
+      code: 'SUGGESTION_LIMIT_REACHED'
+    });
+  }
+
+  // Cek apakah sudah terdaftar sebagai Mitra resmi atau sudah pernah diusulkan sebelumnya
+  const alreadyMerchant = (db.merchants || []).some((m) => {
+    const matchName = m.name && m.name.trim().toLowerCase() === normName;
     const matchPhone = cleanPhone && m.phone && String(m.phone).replace(/\D/g, '') === cleanPhone;
     return matchName || matchPhone;
   });
+  const alreadySuggested = db.merchantSuggestions.some((s) => {
+    const matchName = s.name && s.name.trim().toLowerCase() === normName;
+    const matchPhone = cleanPhone && s.phone && String(s.phone).replace(/\D/g, '') === cleanPhone;
+    return matchName || matchPhone;
+  });
+  const isAlreadyRegistered = alreadyMerchant || alreadySuggested;
 
-  const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
-  let bonusAwarded = false;
-  let bonusPoints = 0;
-  let responseMsg = '';
-
-  if (cleanReferral) {
-    if (isAlreadyRegistered) {
-      bonusAwarded = false;
-      responseMsg = 'Usulan warung diterima. Namun warung ini sudah pernah diusulkan/didaftarkan sebelumnya, sehingga bonus poin referral tidak dapat diklaim lagi.';
-    } else {
-      bonusAwarded = true;
-      bonusPoints = 500;
-      responseMsg = `Usulan warung "${name.trim()}" berhasil dikirim! Bonus referral +${bonusPoints} Poin loyalty telah ditambahkan ke akun Anda.`;
-
-      if (userId && Array.isArray(db.users)) {
-        const u = db.users.find(usr => String(usr.id) === String(userId));
-        if (u) {
-          u.loyalty_points = (Number(u.loyalty_points) || 0) + bonusPoints;
-        }
-      }
-
-      addActivity(db, kostUid || 'KOST-JAKSEL-01', 'mitra', `Bonus usulan warung +${bonusPoints} Poin diberikan ke user untuk warung: ${name.trim()} (Kode: ${cleanReferral})`);
-    }
-  } else {
-    bonusAwarded = false;
-    responseMsg = `Usulan warung "${name.trim()}" berhasil dikirim. Gunakan kode referral untuk mendapatkan bonus poin.`;
+  if (alreadyMerchant) {
+    return res.status(409).json({
+      error: `Warung "${name.trim()}" sudah terdaftar sebagai Mitra resmi di KostKu.`,
+      isAlreadyRegistered: true
+    });
   }
+  if (alreadySuggested) {
+    return res.status(409).json({
+      error: `Warung "${name.trim()}" sudah pernah diusulkan sebelumnya dan sedang menunggu pendaftaran pemilik warung.`,
+      isAlreadyRegistered: true
+    });
+  }
+
+  // ANTI-ABUSE RULE: 0 poin instan saat mengirim usulan; poin +500 hanya cair ketika warung benar-benar mendaftar memakai kode referral!
+  const bonusAwarded = false;
+  const bonusPoints = 0;
+  const responseMsg = `Usulan warung "${name.trim()}" tercatat dengan kode referral ${cleanReferral} (0 Poin instan). Bonus +500 Poin otomatis cair saat pemilik warung resmi mendaftar di KostKu memakai kode ${cleanReferral}!`;
 
   const suggestion = {
     id: 'SUGG-' + Date.now(),
@@ -5687,7 +6378,9 @@ app.post('/api/merchants/suggest', (req, res) => {
     category: category || 'makanan',
     phone: phone ? phone.trim() : '',
     note: note ? note.trim() : '',
-    referralCode: cleanReferral || null,
+    referralCode: cleanReferral,
+    referrerUserId: refCheck.referrerUser?.id || null,
+    status: 'pending_registration',
     bonusAwarded,
     bonusPoints,
     userId: userId || null,
@@ -5696,25 +6389,113 @@ app.post('/api/merchants/suggest', (req, res) => {
   };
 
   db.merchantSuggestions.push(suggestion);
-  db.registeredPartnerHistory.push({
-    id: suggestion.id,
-    name: normName,
-    phone: cleanPhone,
-    referralCode: cleanReferral || null,
-    bonusPoints: bonusAwarded ? bonusPoints : 0,
-    userId: userId || null,
-    claimedAt: new Date().toISOString()
-  });
-
+  addActivity(
+    db,
+    kostUid || 'KOST-JAKSEL-01',
+    'mitra',
+    `Usulan warung "${name.trim()}" tercatat via kode referral ${cleanReferral} (menunggu pemilik warung mendaftar resmi)`
+  );
   writeDB(db);
 
   res.status(201).json({
     success: true,
     suggestion,
+    status: 'pending_registration',
     bonusAwarded,
     bonusPoints,
     isAlreadyRegistered,
     message: responseMsg
+  });
+});
+
+// Endpoint: Klaim Kode Referral Teman 1x per Akun (Anti-Abuse)
+app.post('/api/referrals/claim-friend', (req, res) => {
+  const { userId, referralCode, phone, email } = req.body;
+  const cleanReferral = referralCode ? String(referralCode).trim().toUpperCase() : '';
+  if (!cleanReferral) {
+    return res.status(400).json({ error: 'Kode referral teman wajib diisi.' });
+  }
+
+  const db = getDB();
+  db.users = db.users || [];
+  const caller =
+    (userId && db.users.find((u) => String(u.id) === String(userId))) ||
+    (phone && db.users.find((u) => normalizePhoneDigits(u.phone || u.whatsapp) === normalizePhoneDigits(phone))) ||
+    null;
+
+  if (!caller) {
+    return res.status(401).json({ error: 'Silakan login dengan akun terdaftar untuk mengklaim kode referral teman.' });
+  }
+
+  if (caller.claimedFriendReferralCode) {
+    return res.status(400).json({
+      error: `Akun Anda sudah pernah mengklaim kode referral teman (${caller.claimedFriendReferralCode}). Maksimal 1x klaim per akun.`,
+      code: 'ALREADY_CLAIMED'
+    });
+  }
+
+  const refCheck = resolveStrictReferralCandidate(db, {
+    referralCode: cleanReferral,
+    applicantUserId: caller.id,
+    applicantUser: caller,
+    extraPhone: phone,
+    extraEmail: email,
+    allowSelf: false
+  });
+
+  if (!refCheck.ok) {
+    return res.status(400).json({ error: refCheck.message, code: refCheck.reason });
+  }
+
+  const callerBonus = 100;
+  const referrerBonus = 50;
+
+  caller.loyalty_points = (Number(caller.loyalty_points) || 0) + callerBonus;
+  caller.claimedFriendReferralCode = refCheck.code;
+  caller.claimedFriendReferralAt = new Date().toISOString();
+
+  const referrerUser = refCheck.referrerUser;
+  const referrerCustomer = refCheck.referrerCustomer;
+  if (referrerUser) {
+    if (!referrerUser.referralCode) referrerUser.referralCode = refCheck.code;
+    referrerUser.loyalty_points = (Number(referrerUser.loyalty_points) || 0) + referrerBonus;
+  }
+  if (referrerCustomer) {
+    referrerCustomer.points = (Number(referrerCustomer.points) || 0) + referrerBonus;
+    const cp = normalizePhoneDigits(referrerCustomer.whatsapp_number);
+    if (cp) {
+      db.customer_points = db.customer_points || {};
+      db.customer_points[cp] = (Number(db.customer_points[cp]) || 0) + referrerBonus;
+    }
+  }
+
+  db.points_ledger = db.points_ledger || [];
+  db.points_ledger.unshift({
+    id: 'REF-FRIEND-' + Date.now(),
+    whatsapp_number: caller.phone || caller.email || String(caller.id),
+    change_type: 'EARN_REFERRAL_FRIEND',
+    points: callerBonus,
+    notes: `Klaim kode referral teman ${refCheck.code} (+${callerBonus} klaimer, +${referrerBonus} referrer)`,
+    createdAt: new Date().toISOString()
+  });
+
+  const referrerName = referrerUser?.name || referrerCustomer?.name || 'Teman KostKu';
+  addActivity(
+    db,
+    caller.kostUid || 'GLOBAL',
+    'komunitas',
+    `${caller.name} mengklaim kode referral ${referrerName} (${refCheck.code}): +${callerBonus} Poin & +${referrerBonus} Poin.`
+  );
+  writeDB(db);
+
+  return res.json({
+    success: true,
+    bonusPoints: callerBonus,
+    referrerPoints: referrerBonus,
+    totalPoints: caller.loyalty_points,
+    claimedCode: refCheck.code,
+    referrerName,
+    message: `+${callerBonus} Poin referral berhasil diklaim dari kode ${referrerName}! (${referrerName} juga mendapat +${referrerBonus} Poin)`
   });
 });
 
@@ -5761,6 +6542,9 @@ app.put('/api/merchants/:id', (req, res) => {
     ...db.merchants[idx],
     ...req.body,
     id: db.merchants[idx].id,
+    storeMode: 'mitra',
+    kasirOnly: false,
+    isMitra: true,
     platformFee: 100, // Always flat Rp 100 KostKu fee
     updatedAt: new Date().toISOString()
   };
@@ -5967,7 +6751,23 @@ app.post('/api/partner-orders', (req, res) => {
   const calcTotal = rawTotal > 0 ? rawTotal : (calcSubtotal + calcCommission + calcPlatformFee + calcDeliveryFee);
 
   const orderKostUid = kostUid || 'KOST-JAKSEL-01';
-  const merchantObj = (db.merchants || []).find(m => String(m.id) === String(merchantId)) || {};
+  const matchedMerchant = merchantId
+    ? ((db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(merchantId)) || null)
+    : null;
+  if (matchedMerchant && !isMerchantKasirOnline(matchedMerchant)) {
+    return res.status(422).json({
+      error: `Kasir "${matchedMerchant.name || 'toko'}" sedang offline di web, sehingga sementara hanya dapat melihat menu.`,
+      code: 'STORE_OFFLINE_VIEW_ONLY'
+    });
+  }
+  const requestedPointsRedeem = Number(req.body.pointsToRedeem || 0) > 0 || Boolean(req.body.usePointsDiscount);
+  if (requestedPointsRedeem && matchedMerchant && !getStoreBillingProfile(db, matchedMerchant).activePool) {
+    return res.status(422).json({
+      error: 'Penukaran poin tidak aktif di toko Tier 1 ini. Hanya toko yang bergabung di Loyalty Pool (Tier 2) yang mendukung tukar poin.',
+      code: 'POIN_NOT_ACTIVE_ON_STORE'
+    });
+  }
+  const merchantObj = matchedMerchant || {};
 
   // ATURAN PEMBAYARAN MANDIRI MITRA (QRIS Mandiri & TF Bank Pribadi) + SALDO NOTA:
   // Mitra boleh pakai QRIS/TF pribadi, tapi harus punya Saldo Nota aktif (biaya sama kayak admin: Rp 100/nota)
@@ -6019,42 +6819,57 @@ app.post('/api/partner-orders', (req, res) => {
     paymentMeta.paidAt = new Date().toISOString();
   }
 
-  // ATURAN REFERRAL: Orang pemilik kode referral yang diinput pembeli dapat 1/2 dari reward pembeli!
+  // ATURAN REFERRAL: Orang pemilik kode referral yang diinput pembeli dapat 1/2 dari reward pembeli (anti-self-referral & wajib kode terdaftar)!
   const cleanReferral = sanitizeStr(req.body.friendReferralCode || req.body.referralCode);
   let referralReward = null;
   if (cleanReferral) {
     db.users = db.users || [];
-    const referrer = db.users.find(u => 
-      (u.referralCode && u.referralCode.toUpperCase() === cleanReferral.toUpperCase()) ||
-      (u.kostUid && u.kostUid.toUpperCase() === cleanReferral.toUpperCase()) ||
-      (u.roomNumber && String(u.roomNumber) === cleanReferral)
-    );
+    const refCheck = resolveStrictReferralCandidate(db, {
+      referralCode: cleanReferral,
+      applicantUserId: userId && userId !== 'GUEST' ? userId : null,
+      extraPhone: sanitizeStr(req.body.userPhone || req.body.customerPhone || ''),
+      allowSelf: false
+    });
 
-    const BUYER_POINTS = 100;
-    const REFERRER_POINTS = Math.floor(BUYER_POINTS / 2); // Aturan: Orangnya dapat 1/2 dari pembeli = 50 Poin!
+    if (refCheck.ok && (refCheck.referrerUser || refCheck.referrerCustomer)) {
+      const BUYER_POINTS = 100;
+      const REFERRER_POINTS = Math.floor(BUYER_POINTS / 2); // Aturan: Orangnya dapat 1/2 dari pembeli = 50 Poin!
 
-    if (userId && userId !== 'GUEST') {
-      const buyer = db.users.find(u => String(u.id) === String(userId));
-      if (buyer) {
-        buyer.loyalty_points = (Number(buyer.loyalty_points) || 0) + BUYER_POINTS;
+      if (userId && userId !== 'GUEST') {
+        const buyer = db.users.find(u => String(u.id) === String(userId));
+        if (buyer) {
+          buyer.loyalty_points = (Number(buyer.loyalty_points) || 0) + BUYER_POINTS;
+        }
       }
-    }
 
-    if (referrer) {
-      referrer.loyalty_points = (Number(referrer.loyalty_points) || 0) + REFERRER_POINTS;
+      if (refCheck.referrerUser) {
+        if (!refCheck.referrerUser.referralCode) refCheck.referrerUser.referralCode = refCheck.code;
+        refCheck.referrerUser.loyalty_points = (Number(refCheck.referrerUser.loyalty_points) || 0) + REFERRER_POINTS;
+      }
+      if (refCheck.referrerCustomer) {
+        refCheck.referrerCustomer.points = (Number(refCheck.referrerCustomer.points) || 0) + REFERRER_POINTS;
+      }
+
+      const referrerLabel = refCheck.referrerUser?.name || refCheck.referrerCustomer?.name || 'Teman Referrer';
       referralReward = {
-        referrerName: referrer.name || 'Teman Referrer',
+        referrerName: referrerLabel,
         buyerPoints: BUYER_POINTS,
         referrerPoints: REFERRER_POINTS,
         applied: true
       };
-      addActivity(db, referrer.kostUid || orderKostUid, 'komunitas', `Bonus Referral: ${referrer.name} mendapatkan +${REFERRER_POINTS} Poin (1/2 reward pembeli) atas transaksi teman (${cleanUserName}) dengan kode referral!`);
+      addActivity(
+        db,
+        refCheck.referrerUser?.kostUid || orderKostUid,
+        'komunitas',
+        `Bonus Referral: ${referrerLabel} mendapatkan +${REFERRER_POINTS} Poin (1/2 reward pembeli) atas transaksi teman (${cleanUserName}) dengan kode referral!`
+      );
     } else {
       referralReward = {
-        buyerPoints: BUYER_POINTS,
-        referrerPoints: REFERRER_POINTS,
-        applied: true,
-        note: `Kode ${cleanReferral} diaplikasikan (+${BUYER_POINTS} poin pembeli, +${REFERRER_POINTS} poin pemilik kode)`
+        buyerPoints: 0,
+        referrerPoints: 0,
+        applied: false,
+        reason: refCheck.reason,
+        note: refCheck.message
       };
     }
   }
@@ -7540,6 +8355,113 @@ app.post('/api/payments/create-transaction', async (req, res) => {
   res.json(transaction);
 });
 
+// Shared helper: settle booking data (deposit held, room occupancy, invoice) across webhook & verify paths
+function applySettledBookingTransaction(db, trx, receiptNumber, settledTime, existingInvoice = null) {
+  if (!trx || !trx.bookingData) return existingInvoice;
+  const bData = trx.bookingData;
+  const targetKost = (db.kosts || []).find(k => k.uid === bData.kostUid);
+  const depCfg = targetKost ? resolveKostDepositConfig(targetKost) : { depositAmount: 0 };
+  const heldDeposit = bData.depositAmount !== undefined
+    ? Math.max(0, Number(bData.depositAmount) || 0)
+    : depCfg.depositAmount;
+  const baseRentAmt = Math.max(0, Number(bData.netRent ?? bData.subtotalRent ?? trx.amount) || 0);
+  const gwFeeAmt = Math.max(0, Number(bData.gatewayFee) || 0);
+
+  db.applications = db.applications || [];
+  let app = db.applications.find(a =>
+    (a.kostUid === bData.kostUid && String(a.kamar) === String(bData.room) && (a.phone === bData.phone || a.userId === trx.userId))
+  );
+  if (!app) {
+    app = {
+      id: 'APP-' + Date.now(),
+      kostUid: bData.kostUid,
+      userId: trx.userId || ('USER-' + Date.now()),
+      userName: trx.customerName,
+      userEmail: trx.customerEmail,
+      kamar: bData.room,
+      phone: trx.customerPhone,
+      duration: bData.duration || 1,
+      checkInDate: bData.checkInDate || new Date().toISOString(),
+      job: bData.job || 'Mahasiswa',
+      notes: bData.notes || '',
+      depositAmount: heldDeposit,
+      depositStatus: heldDeposit > 0 ? 'held' : 'none',
+      status: 'approved',
+      paymentStatus: 'paid',
+      date: new Date().toISOString()
+    };
+    db.applications.push(app);
+  } else {
+    app.status = 'approved';
+    app.paymentStatus = 'paid';
+    app.depositAmount = heldDeposit;
+    app.depositStatus = heldDeposit > 0 ? 'held' : 'none';
+  }
+
+  if (targetKost) {
+    const occupyRoom = (r) => {
+      if (String(r.number) === String(bData.room)) {
+        r.status = 'occupied';
+        r.depositHeld = heldDeposit;
+        r.depositStatus = heldDeposit > 0 ? 'held' : 'none';
+      }
+    };
+    if (Array.isArray(targetKost.rooms)) targetKost.rooms.forEach(occupyRoom);
+    if (Array.isArray(targetKost.settings?.rooms)) targetKost.settings.rooms.forEach(occupyRoom);
+  }
+
+  const tenantUser = (db.users || []).find(u => String(u.id) === String(trx.userId));
+  if (tenantUser) {
+    tenantUser.kostUid = bData.kostUid;
+    tenantUser.kamar = bData.room;
+    tenantUser.status = 'active';
+    tenantUser.depositPaid = heldDeposit;
+    tenantUser.depositStatus = heldDeposit > 0 ? 'held' : 'none';
+  }
+
+  db.invoices = db.invoices || [];
+  let invoice = existingInvoice;
+  if (!invoice && trx.invoiceId) {
+    invoice = db.invoices.find(i => String(i.id) === String(trx.invoiceId)) || null;
+  }
+  if (!invoice) {
+    invoice = {
+      id: 'INV-' + Date.now(),
+      kostUid: bData.kostUid,
+      userId: trx.userId || app.userId,
+      userName: trx.customerName,
+      kamar: bData.room,
+      basePrice: baseRentAmt,
+      deposit: heldDeposit,
+      depositStatus: heldDeposit > 0 ? 'held' : 'none',
+      gatewayFee: gwFeeAmt,
+      amount: trx.amount,
+      total: trx.amount,
+      status: 'lunas',
+      paidAt: settledTime,
+      paymentMethod: trx.paymentMethod,
+      receiptNumber,
+      month: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+      createdAt: new Date().toISOString()
+    };
+    db.invoices.push(invoice);
+  } else {
+    invoice.deposit = heldDeposit;
+    invoice.depositStatus = heldDeposit > 0 ? 'held' : 'none';
+    invoice.status = 'lunas';
+    invoice.paidAt = settledTime;
+    invoice.receiptNumber = receiptNumber;
+  }
+  trx.invoiceId = invoice.id;
+  addActivity(
+    db,
+    bData.kostUid,
+    'transaksi',
+    `Pemesanan & Sewa Kamar ${bData.room} oleh ${trx.customerName} LUNAS via ${trx.paymentMethod} (${receiptNumber})${heldDeposit > 0 ? ` — Termasuk Deposit Refundable Rp ${heldDeposit.toLocaleString('id-ID')}` : ''}`
+  );
+  return invoice;
+}
+
 // ── OFFICIAL TRIPAY WEBHOOK CALLBACK ─────────
 app.post('/api/payments/tripay-callback', async (req, res) => {
   const db = getDB();
@@ -7580,18 +8502,7 @@ app.post('/api/payments/tripay-callback', async (req, res) => {
       }
 
       if (trx.bookingData) {
-        const bData = trx.bookingData;
-        db.applications = db.applications || [];
-        let app = db.applications.find(a => (a.kostUid === bData.kostUid && String(a.kamar) === String(bData.room)));
-        if (app) {
-          app.status = 'approved';
-          app.paymentStatus = 'paid';
-        }
-        const targetKost = (db.kosts || []).find(k => k.uid === bData.kostUid);
-        if (targetKost && Array.isArray(targetKost.rooms)) {
-          const rObj = targetKost.rooms.find(r => String(r.number) === String(bData.room));
-          if (rObj) rObj.status = 'occupied';
-        }
+        applySettledBookingTransaction(db, trx, trx.receiptNumber, trx.settledAt, null);
       }
 
       if (trx.invoiceId) {
@@ -7705,62 +8616,7 @@ app.post('/api/payments/verify', async (req, res) => {
   }
 
   if (trx && trx.bookingData) {
-    const bData = trx.bookingData;
-    db.applications = db.applications || [];
-    let app = db.applications.find(a => 
-      (a.kostUid === bData.kostUid && String(a.kamar) === String(bData.room) && (a.phone === bData.phone || a.userId === trx.userId))
-    );
-    if (!app) {
-      app = {
-        id: 'APP-' + Date.now(),
-        kostUid: bData.kostUid,
-        userId: trx.userId || ('USER-' + Date.now()),
-        userName: trx.customerName,
-        userEmail: trx.customerEmail,
-        kamar: bData.room,
-        phone: trx.customerPhone,
-        duration: bData.duration || 1,
-        checkInDate: bData.checkInDate || new Date().toISOString(),
-        job: bData.job || 'Mahasiswa',
-        notes: bData.notes || '',
-        status: 'approved',
-        paymentStatus: 'paid',
-        date: new Date().toISOString()
-      };
-      db.applications.push(app);
-    } else {
-      app.status = 'approved';
-      app.paymentStatus = 'paid';
-    }
-
-    const targetKost = (db.kosts || []).find(k => k.uid === bData.kostUid);
-    if (targetKost && Array.isArray(targetKost.rooms)) {
-      const rObj = targetKost.rooms.find(r => String(r.number) === String(bData.room));
-      if (rObj) {
-        rObj.status = 'occupied';
-      }
-    }
-
-    if (!invoice) {
-      invoice = {
-        id: 'INV-' + Date.now(),
-        kostUid: bData.kostUid,
-        userId: trx.userId || app.userId,
-        userName: trx.customerName,
-        kamar: bData.room,
-        amount: trx.amount,
-        total: trx.amount,
-        status: 'lunas',
-        paidAt: settledTime,
-        paymentMethod: trx.paymentMethod,
-        receiptNumber: receiptNumber,
-        month: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
-        createdAt: new Date().toISOString()
-      };
-      db.invoices.push(invoice);
-    }
-    trx.invoiceId = invoice.id;
-    addActivity(db, bData.kostUid, 'transaksi', `Pemesanan & Sewa Kamar ${bData.room} oleh ${trx.customerName} LUNAS via ${trx.paymentMethod} (${receiptNumber})`);
+    invoice = applySettledBookingTransaction(db, trx, receiptNumber, settledTime, invoice);
   }
 
   if (invoice) {
@@ -8916,6 +9772,145 @@ app.post('/api/reviews/:id/like', (req, res) => {
   review.likes = (review.likes || 0) + 1;
   writeDB(db);
   res.json({ ok: true, likes: review.likes });
+});
+
+// ── LAPORAN / REPORT KOST & OWNER (AUTO-SUSPEND) ─────────────────────────────
+const findKostForModeration = (kostUid, req) => {
+  const preferDemo = Boolean(req?.isDemo);
+  let targetDb = getDB(preferDemo);
+  let usedDemo = preferDemo;
+  let kost = (targetDb.kosts || []).find(k => k.uid === kostUid);
+  if (!kost) {
+    const altDb = getDB(!preferDemo);
+    const altKost = (altDb.kosts || []).find(k => k.uid === kostUid);
+    if (altKost) {
+      targetDb = altDb;
+      usedDemo = !preferDemo;
+      kost = altKost;
+    }
+  }
+  return { db: targetDb, kost, usedDemo };
+};
+
+app.get('/api/kosts/:kostUid/status', (req, res) => {
+  const { kostUid } = req.params;
+  const { db, kost } = findKostForModeration(kostUid, req);
+  if (!kost) {
+    return res.status(404).json({ error: 'Kost tidak ditemukan', status: 'not_found' });
+  }
+  const reports = (db.kost_reports || []).filter(r => r.kostUid === kostUid);
+  res.json({
+    uid: kost.uid,
+    kostName: kost.kostName,
+    status: kost.status || 'verified',
+    suspendedReason: kost.suspendedReason || null,
+    suspendedAt: kost.suspendedAt || null,
+    reportCount: Number(kost.reportCount || reports.length || 0),
+    reports: reports.slice(0, 10)
+  });
+});
+
+app.post('/api/kosts/:kostUid/report', (req, res) => {
+  const { kostUid } = req.params;
+  const {
+    reason,
+    reasonLabel,
+    details,
+    reporterName,
+    reporterPhone,
+    reporterId,
+    roomNumber
+  } = req.body || {};
+
+  const REASON_LABELS = {
+    photo_mismatch: 'Kamar / fasilitas tidak sesuai foto',
+    wa_offline: 'Nomor WA pemilik offline / tidak dapat dihubungi',
+    price_mismatch: 'Harga atau biaya tidak sesuai listing',
+    fake_listing: 'Indikasi kost fiktif / alamat palsu',
+    other: 'Pelanggaran lainnya'
+  };
+
+  const cleanReason = String(reason || '').trim();
+  if (!cleanReason) {
+    return res.status(400).json({ error: 'Pilih alasan pelaporan terlebih dahulu' });
+  }
+
+  const { db, kost, usedDemo } = findKostForModeration(kostUid, req);
+  if (!kost) {
+    return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  }
+
+  db.kost_reports = db.kost_reports || [];
+  const resolvedLabel = String(reasonLabel || REASON_LABELS[cleanReason] || cleanReason).trim();
+  const nowIso = new Date().toISOString();
+
+  const reportRecord = {
+    id: 'RPT-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+    kostUid,
+    kostName: kost.kostName,
+    reason: cleanReason,
+    reasonLabel: resolvedLabel,
+    details: String(details || '').trim(),
+    roomNumber: roomNumber ? String(roomNumber) : null,
+    reporterName: String(reporterName || 'Pengguna KostKu').trim(),
+    reporterPhone: String(reporterPhone || '').trim(),
+    reporterId: reporterId || req.user?.id || null,
+    status: 'verified_auto_suspend',
+    createdAt: nowIso
+  };
+
+  db.kost_reports.unshift(reportRecord);
+  kost.reportCount = Number(kost.reportCount || 0) + 1;
+  kost.lastReportedAt = nowIso;
+
+  // Auto-suspend kost ketika laporan kritis masuk (foto tidak sesuai / WA offline / fiktif) atau >= 2 laporan
+  const shouldAutoSuspend = ['photo_mismatch', 'wa_offline', 'fake_listing'].includes(cleanReason) || kost.reportCount >= 2;
+  if (shouldAutoSuspend) {
+    if (!kost.previousStatus && kost.status !== 'suspended') {
+      kost.previousStatus = kost.status || 'verified';
+    }
+    kost.status = 'suspended';
+    kost.suspendedReason = resolvedLabel + (reportRecord.details ? `: ${reportRecord.details}` : '');
+    kost.suspendedAt = nowIso;
+    kost.suspendedBy = 'system_auto_moderation';
+  }
+
+  addActivity(
+    db,
+    kostUid,
+    'keamanan',
+    shouldAutoSuspend
+      ? `Kost "${kost.kostName}" otomatis disuspend akibat laporan: ${resolvedLabel}.`
+      : `Laporan baru untuk "${kost.kostName}": ${resolvedLabel}.`
+  );
+  writeDB(db, usedDemo);
+
+  res.status(201).json({
+    ok: true,
+    success: true,
+    suspended: kost.status === 'suspended',
+    status: kost.status,
+    suspendedReason: kost.suspendedReason || null,
+    reportCount: kost.reportCount,
+    report: reportRecord,
+    message: kost.status === 'suspended'
+      ? `Laporan diterima (${resolvedLabel}). Demi melindungi calon penghuni, properti "${kost.kostName}" otomatis disuspend sementara dari daftar pencarian.`
+      : `Laporan berhasil dikirim (${resolvedLabel}). Tim moderasi akan meninjau properti ini.`
+  });
+});
+
+app.post('/api/admin/kosts/:kostUid/unsuspend', (req, res) => {
+  const { kostUid } = req.params;
+  const { db, kost, usedDemo } = findKostForModeration(kostUid, req);
+  if (!kost) {
+    return res.status(404).json({ error: 'Kost tidak ditemukan' });
+  }
+  kost.status = kost.previousStatus || 'verified';
+  delete kost.suspendedReason;
+  delete kost.suspendedAt;
+  delete kost.suspendedBy;
+  writeDB(db, usedDemo);
+  res.json({ ok: true, status: kost.status, message: `Kost "${kost.kostName}" diaktifkan kembali.` });
 });
 
 // --- MULTI-DEVICE CLOUD & SYNC ENDPOINTS ---

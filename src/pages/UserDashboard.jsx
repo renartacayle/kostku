@@ -32,7 +32,11 @@ import {
   Megaphone,
   ShoppingBag,
   Users,
-  Store
+  Store,
+  LogOut,
+  RotateCcw,
+  Shield,
+  Settings
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -43,8 +47,10 @@ import {
   apiGetContract,
   apiGetUserProfile,
   apiGetMerchants,
+  apiSuggestMerchant,
   apiGetPartnerOrders,
-  apiSubmitComplaintRating
+  apiSubmitComplaintRating,
+  apiRequestTenantCheckout
 } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { compressImage } from '../utils/imageUtils';
@@ -52,8 +58,6 @@ import { compressImage } from '../utils/imageUtils';
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
 import DigitalReceiptModal from '../components/DigitalReceiptModal';
 import SignaturePadModal from '../components/SignaturePadModal';
-import SmartLockAndTokenModal from '../components/SmartLockAndTokenModal';
-import PdamPaymentModal from '../components/PdamPaymentModal';
 import PackageLockerCard from '../components/PackageLockerCard';
 import InAppChatModal from '../components/InAppChatModal';
 import PartnerOrderModal from '../components/PartnerOrderModal';
@@ -101,8 +105,6 @@ const UserDashboard = ({ user }) => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceiptId, setSelectedReceiptId] = useState(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
-  const [showSmartLockModal, setShowSmartLockModal] = useState(false);
-  const [showPdamModal, setShowPdamModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [showOwnerChat, setShowOwnerChat] = useState(false);
@@ -116,6 +118,17 @@ const UserDashboard = ({ user }) => {
   const [referralCopied, setReferralCopied] = useState(false);
   const [friendReferralInput, setFriendReferralInput] = useState('');
   const [friendReferralStatus, setFriendReferralStatus] = useState(null);
+  const [depositSummary, setDepositSummary] = useState(null);
+  const [showCheckoutRequestModal, setShowCheckoutRequestModal] = useState(false);
+  const [checkoutReqForm, setCheckoutReqForm] = useState({
+    checkoutDate: new Date().toISOString().split('T')[0],
+    refundMethod: 'Transfer Bank',
+    refundBankOrWallet: 'BCA',
+    refundAccount: '',
+    reason: ''
+  });
+  const [checkoutReqSubmitting, setCheckoutReqSubmitting] = useState(false);
+  const [checkoutReqNotice, setCheckoutReqNotice] = useState(null);
 
   // Clean neutral referral code generator that NEVER uses user name or room number
   const getCleanRefCode = (u) => {
@@ -164,7 +177,8 @@ const UserDashboard = ({ user }) => {
   // Crowdsourcing ("Usulkan Warung Langganan") & Open Independent Merchant Registration
   const [showSuggestMerchantModal, setShowSuggestMerchantModal] = useState(false);
   const [showRegisterIndependentModal, setShowRegisterIndependentModal] = useState(false);
-  const [suggestForm, setSuggestForm] = useState({ name: '', phone: '', address: '' });
+  const [suggestForm, setSuggestForm] = useState({ name: '', phone: '', address: '', referralCode: getCleanRefCode(user) });
+  const [suggestSubmitting, setSuggestSubmitting] = useState(false);
   const [suggestNotice, setSuggestNotice] = useState(null);
   const [independentForm, setIndependentForm] = useState({
     name: '',
@@ -195,30 +209,45 @@ const UserDashboard = ({ user }) => {
     return [];
   });
 
-  const handleSuggestSubmit = (e) => {
+  const handleSuggestSubmit = async (e) => {
     e.preventDefault();
-    if (!suggestForm.name.trim() || !suggestForm.phone.trim()) return;
-
-    // Tambah 500 Poin Loyalty Reward ke akun penghuni
-    try {
-      const stored = localStorage.getItem('kostUser');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const currentPts = Number(parsed.loyalty_points ?? 250);
-        parsed.loyalty_points = currentPts + 500;
-        localStorage.setItem('kostUser', JSON.stringify(parsed));
-        setCurrentUser(parsed);
-        window.dispatchEvent(new CustomEvent('kostku_user_updated', { detail: parsed }));
-        window.dispatchEvent(new Event('kostUser_updated'));
-      }
-    } catch (err) {
-      console.warn('Gagal menambah poin usulan warung:', err);
+    const cleanName = suggestForm.name.trim();
+    const cleanPhone = suggestForm.phone.trim();
+    const cleanRef = (suggestForm.referralCode || userRefCode || '').trim().toUpperCase();
+    if (!cleanName || !cleanPhone) {
+      setSuggestNotice({ type: 'error', message: 'Nama warung dan nomor WhatsApp pemilik wajib diisi.' });
+      return;
+    }
+    if (!cleanRef) {
+      setSuggestNotice({ type: 'error', message: 'Kode referral wajib diisi untuk mengusulkan warung sekitar.' });
+      return;
     }
 
-    setSuggestNotice({
-      type: 'success',
-      message: `Usulan warung "${suggestForm.name}" berhasil dikirim! +500 Poin loyalty telah ditambahkan ke akun Anda.`
-    });
+    setSuggestSubmitting(true);
+    setSuggestNotice(null);
+    try {
+      const res = await apiSuggestMerchant({
+        name: cleanName,
+        category: 'makanan',
+        phone: cleanPhone,
+        note: suggestForm.address.trim(),
+        referralCode: cleanRef,
+        userId: currentUser?.id || user?.id,
+        kostUid: currentUser?.kostUid || user?.kostUid || ''
+      });
+      setSuggestNotice({
+        type: 'success',
+        message: res?.message || `Usulan warung "${cleanName}" tercatat dengan kode referral ${cleanRef} (0 Poin instan). Bonus +500 Poin otomatis cair saat warung mendaftar resmi.`
+      });
+      setSuggestForm((prev) => ({ ...prev, name: '', phone: '', address: '' }));
+    } catch (err) {
+      setSuggestNotice({
+        type: 'error',
+        message: err?.message || 'Gagal mengirim usulan warung. Pastikan kode referral valid & bukan duplikat.'
+      });
+    } finally {
+      setSuggestSubmitting(false);
+    }
   };
 
   const handleRegisterIndependentSubmit = (e) => {
@@ -405,6 +434,9 @@ const UserDashboard = ({ user }) => {
         if (profileRes?.kostName) {
           setKostName(profileRes.kostName);
         }
+        if (profileRes?.depositSummary) {
+          setDepositSummary(profileRes.depositSummary);
+        }
       } catch (err) {
         console.warn('apiGetUserProfile sync failed:', err);
       }
@@ -422,7 +454,7 @@ const UserDashboard = ({ user }) => {
         setContract(ctc?.contract || null);
         setMerchants(Array.isArray(merchList) ? merchList : []);
       } else {
-        const merchList = await apiGetMerchants(currentUser?.kostUid || 'KOST-OJN64X').catch(() => []);
+        const merchList = await apiGetMerchants(currentUser?.kostUid || '').catch(() => []);
         setMerchants(Array.isArray(merchList) ? merchList : []);
       }
 
@@ -506,6 +538,33 @@ const UserDashboard = ({ user }) => {
   const latestInvoice = invoices.length > 0 ? invoices[0] : null;
   const isInvoicePaid = latestInvoice?.status === 'lunas';
 
+  const handleSubmitCheckoutRequest = async (e) => {
+    e.preventDefault();
+    setCheckoutReqSubmitting(true);
+    setCheckoutReqNotice(null);
+    try {
+      const uid = currentUser?.id || currentUser?._id;
+      const res = await apiRequestTenantCheckout(uid, checkoutReqForm);
+      if (res?.success) {
+        setCheckoutReqNotice({
+          type: 'success',
+          text: res.message || 'Pengajuan check-out berhasil dikirim. Pemilik kost wajib mengembalikan deposit jaminan Anda.'
+        });
+        await fetchData();
+        setTimeout(() => {
+          setShowCheckoutRequestModal(false);
+          setCheckoutReqNotice(null);
+        }, 1200);
+      } else {
+        setCheckoutReqNotice({ type: 'error', text: res?.error || 'Gagal mengajukan check-out.' });
+      }
+    } catch (err) {
+      setCheckoutReqNotice({ type: 'error', text: err?.message || 'Terjadi kesalahan saat mengirim pengajuan check-out.' });
+    } finally {
+      setCheckoutReqSubmitting(false);
+    }
+  };
+
   const isAssigned = Boolean(currentUser?.kostUid && currentUser?.kamar);
 
   return (
@@ -514,7 +573,7 @@ const UserDashboard = ({ user }) => {
       {/* State A: Belum Punya Kamar & Ada Pengajuan Menunggu Persetujuan */}
       {!isAssigned && activeApplication && activeApplication.status === 'pending' && (
         <div className="card glass-panel" style={{
-          padding: '1.75rem',
+          padding: 'clamp(0.95rem, 3vw, 1.5rem)',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid rgba(234, 179, 8, 0.4)',
           background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%)',
@@ -546,13 +605,22 @@ const UserDashboard = ({ user }) => {
               </div>
             </div>
 
-            <button 
-              onClick={fetchData} 
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <RefreshCw size={14} className={syncingProfile ? 'animate-spin' : ''} /> Cek Status Terbaru
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Link
+                to="/pengaturan"
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+              >
+                <Settings size={14} /> Setting User
+              </Link>
+              <button 
+                onClick={fetchData} 
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <RefreshCw size={14} className={syncingProfile ? 'animate-spin' : ''} /> Cek Status Terbaru
+              </button>
+            </div>
           </div>
 
           <div style={{
@@ -609,8 +677,56 @@ const UserDashboard = ({ user }) => {
         </div>
       )}
 
-      {/* State B: Belum Punya Kamar & Belum Mengajukan (Atau Ditolak) */}
-      {!isAssigned && (!activeApplication || activeApplication.status === 'rejected') && (
+      {/* Banner Konfirmasi Check-Out & Pengembalian Deposit */}
+      {!isAssigned && depositSummary?.latestRefund && (
+        <div
+          data-testid="tenant-refund-completed-banner"
+          className="card glass-panel"
+          style={{
+            padding: 'clamp(0.9rem, 2.8vw, 1.25rem) clamp(0.95rem, 3vw, 1.5rem)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid rgba(16, 185, 129, 0.45)',
+            background: isLight
+              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(236, 253, 245, 0.95) 100%)'
+              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(15, 23, 42, 0.85) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.2)',
+              color: isLight ? '#047857' : '#34d399',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <RotateCcw size={22} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1rem', color: isLight ? '#065f46' : '#6ee7b7' }}>
+                ✓ Check-Out Selesai — Deposit Jaminan Rp {Number(depositSummary.latestRefund.refundAmount ?? depositSummary.refundedAmount ?? 0).toLocaleString('id-ID')} Telah Dikembalikan
+              </div>
+              <div style={{ fontSize: '0.82rem', color: isLight ? '#047857' : '#a7f3d0', marginTop: '3px' }}>
+                Metode: {depositSummary.latestRefund.refundMethod || 'Transfer Bank'}
+                {depositSummary.latestRefund.refundAccount ? ` (${depositSummary.latestRefund.refundAccount})` : ''}
+                {depositSummary.latestRefund.checkedOutAt ? ` • Tanggal Check-Out: ${new Date(depositSummary.latestRefund.checkedOutAt).toLocaleDateString('id-ID')}` : ''}
+              </div>
+            </div>
+          </div>
+          <span className="badge badge-success">Refund Wajib Selesai</span>
+        </div>
+      )}
+
+      {/* State B: Belum Punya Kamar & Belum Mengajukan (Atau Ditolak / Sudah Check-Out) */}
+      {!isAssigned && (!activeApplication || activeApplication.status === 'rejected' || activeApplication.status === 'checked_out') && (
         <div className="card glass-panel" style={{
           padding: '3rem 2rem',
           borderRadius: 'var(--radius-lg)',
@@ -680,6 +796,14 @@ const UserDashboard = ({ user }) => {
             >
               <RefreshCw size={16} className={syncingProfile ? 'animate-spin' : ''} /> Refresh Status
             </button>
+            <Link
+              to="/pengaturan"
+              data-testid="user-dashboard-settings-link"
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+            >
+              <Settings size={16} /> Pengaturan Akun
+            </Link>
           </div>
         </div>
       )}
@@ -692,7 +816,7 @@ const UserDashboard = ({ user }) => {
             background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(99, 102, 241, 0.15) 100%)',
             border: '1px solid rgba(59, 130, 246, 0.3)',
             borderRadius: 'var(--radius-lg)',
-            padding: '1.5rem',
+            padding: 'clamp(0.95rem, 3vw, 1.5rem)',
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: 'space-between',
@@ -790,21 +914,21 @@ const UserDashboard = ({ user }) => {
 
             {/* Quick Service Action Buttons */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setShowSmartLockModal(true)}
+              <Link
+                to="/utilitas?tab=pln"
                 className="btn btn-secondary"
-                style={{ fontSize: '0.8rem', padding: '8px 12px', gap: '6px' }}
+                style={{ fontSize: '0.8rem', padding: '8px 12px', gap: '6px', textDecoration: 'none' }}
               >
                 <Zap size={14} color="#fbbf24" /> Token Listrik PLN
-              </button>
+              </Link>
 
-              <button
-                onClick={() => setShowPdamModal(true)}
+              <Link
+                to="/utilitas?tab=pdam"
                 className="btn btn-secondary"
-                style={{ fontSize: '0.8rem', padding: '8px 12px', gap: '6px' }}
+                style={{ fontSize: '0.8rem', padding: '8px 12px', gap: '6px', textDecoration: 'none' }}
               >
                 <Droplets size={14} color="#38bdf8" /> Tagihan Air PDAM
-              </button>
+              </Link>
 
               <Link
                 to="/layanan"
@@ -892,7 +1016,95 @@ const UserDashboard = ({ user }) => {
                 <MessageCircle size={14} />
                 <span>Chat Pemilik</span>
               </button>
+
+              <button
+                type="button"
+                data-testid="tenant-request-checkout-btn"
+                onClick={() => {
+                  setCheckoutReqNotice(null);
+                  setShowCheckoutRequestModal(true);
+                }}
+                className="btn btn-secondary"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '8px 12px',
+                  gap: '6px',
+                  borderColor: 'rgba(16, 185, 129, 0.45)',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  color: isLight ? '#047857' : '#34d399',
+                  fontWeight: 700
+                }}
+                title="Ajukan check-out & pengembalian deposit jaminan"
+              >
+                <LogOut size={14} />
+                <span>Ajukan Check-Out</span>
+              </button>
             </div>
+          </div>
+
+          {/* Deposit Jaminan & Status Pengembalian Check-Out Banner */}
+          <div
+            data-testid="tenant-deposit-banner"
+            style={{
+              background: Number(depositSummary?.heldDeposit ?? depositSummary?.kostDepositAmount ?? 0) > 0
+                ? (isLight ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.1)')
+                : (isLight ? 'rgba(100, 116, 139, 0.06)' : 'rgba(255, 255, 255, 0.03)'),
+              border: Number(depositSummary?.heldDeposit ?? depositSummary?.kostDepositAmount ?? 0) > 0
+                ? '1px solid rgba(16, 185, 129, 0.3)'
+                : '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.85rem 1.15rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.75rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <Shield size={18} color={Number(depositSummary?.heldDeposit ?? depositSummary?.kostDepositAmount ?? 0) > 0 ? '#10b981' : '#94a3b8'} />
+              <div style={{ fontSize: '0.85rem' }}>
+                <strong style={{ color: isLight ? '#0f172a' : '#f8fafc' }}>Deposit Jaminan (Refundable): </strong>
+                {Number(depositSummary?.heldDeposit ?? 0) > 0 ? (
+                  <span style={{ color: isLight ? '#047857' : '#34d399', fontWeight: 800 }}>
+                    Rp {Number(depositSummary.heldDeposit).toLocaleString('id-ID')} Tersimpan • Wajib Dikembalikan Saat Check-Out
+                  </span>
+                ) : Number(depositSummary?.kostDepositAmount ?? 0) > 0 && depositSummary?.kostDepositEnabled ? (
+                  <span style={{ color: isLight ? '#0369a1' : '#38bdf8', fontWeight: 700 }}>
+                    Rp {Number(depositSummary.kostDepositAmount).toLocaleString('id-ID')} (Aktif di Setting Kost • Wajib Dikembalikan Saat Check-Out)
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Rp 0 (Bebas Deposit / Dinonaktifkan Pemilik)
+                  </span>
+                )}
+              </div>
+            </div>
+            {depositSummary?.checkoutRequest?.status === 'pending_checkout' ? (
+              <span className="badge badge-warning" style={{ fontSize: '0.74rem' }}>
+                Menunggu Check-Out &amp; Refund Deposit ({depositSummary.checkoutRequest.checkoutDate})
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setCheckoutReqNotice(null);
+                  setShowCheckoutRequestModal(true);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  color: isLight ? '#047857' : '#34d399',
+                  borderRadius: '8px',
+                  padding: '5px 12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Info &amp; Ajukan Check-Out
+              </button>
+            )}
           </div>
 
           {/* ── BANNER DUA ARAH: AJAK MITRA (ANAK KOST DAPAT +500 POIN & WARUNG DAPAT 500 NOTA GRATIS) ── */}
@@ -926,17 +1138,17 @@ const UserDashboard = ({ user }) => {
               </div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: isLight ? '#064e3b' : '#6ee7b7' }}>
-                  Mau Makan Gratis di Kantin?
+                  Ajak Warung &amp; Kost Pakai Kode Referral
                 </h3>
                 <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: isLight ? '#047857' : '#d1fae5', lineHeight: 1.4 }}>
-                  Ajak warung makan atau laundry langgananmu jadi Mitra KostKu! Kamu dapat <strong>+500 Poin Belanja</strong>, dan warung dapat <strong>500 Transaksi Kasir Gratis</strong>.
+                  Bagikan kode <strong>{userRefCode}</strong> ke pemilik warung (<strong>+500 Poin</strong> saat toko daftar, warung dapat <strong>500 Nota Gratis</strong>) atau ke pemilik kost sekitar (<strong>+1.000 Poin</strong> saat kost terdaftar). <em>Anti-abuse: poin cair hanya setelah pendaftaran resmi.</em>
                 </p>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Halo! Yuk pakai aplikasi kasir & pemesanan online KostKu untuk tokomu. Masukkan kode referral *${userRefCode}* saat daftar dan dapatkan 500 Kuota Transaksi Kasir GRATIS (hemat Rp 50.000)! Daftar di: https://kostku.riuph.me/mitra`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(`Halo! Yuk pakai aplikasi kasir & pemesanan online KostKu untuk tokomu. Masukkan kode referral *${userRefCode}* saat daftar di Kasir POS agar dapat 500 Kuota Transaksi Kasir GRATIS (hemat Rp 50.000)! Daftar di: https://kostku.riuph.me/kasir`)}`}
                 target="_blank"
                 rel="noreferrer"
                 style={{
@@ -954,7 +1166,29 @@ const UserDashboard = ({ user }) => {
                 }}
               >
                 <Send size={14} />
-                <span>Bagikan Link &amp; Kode via WhatsApp</span>
+                <span>Ajak Warung via WA</span>
+              </a>
+
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Halo Bapak/Ibu Pemilik Kost! Yuk kelola kamar & penghuni lewat KostKu. Masukkan kode referral *${userRefCode}* saat tambah properti kost untuk bonus +500 Poin selamat datang di: https://kostku.riuph.me/`)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: '#0284c7',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)'
+                }}
+              >
+                <Building2 size={14} />
+                <span>Ajak Kost via WA</span>
               </a>
 
               <button
@@ -1666,20 +1900,6 @@ const UserDashboard = ({ user }) => {
         }}
       />
 
-      <SmartLockAndTokenModal
-        isOpen={showSmartLockModal}
-        onClose={() => setShowSmartLockModal(false)}
-        user={currentUser}
-        roomNumber={currentUser?.kamar || '122'}
-      />
-
-      <PdamPaymentModal
-        isOpen={showPdamModal}
-        onClose={() => setShowPdamModal(false)}
-        user={currentUser}
-        roomNumber={currentUser?.kamar || '122'}
-      />
-
       {/* IN-APP DIRECT CHAT WITH OWNER (0% FAKE WA SPAM) */}
       <InAppChatModal
         isOpen={showOwnerChat}
@@ -1706,7 +1926,7 @@ const UserDashboard = ({ user }) => {
             background: isLight ? '#ffffff' : '#090e1a',
             border: isLight ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(245, 158, 11, 0.4)',
             borderRadius: '20px',
-            padding: '1.5rem',
+            padding: 'clamp(1rem, 3vw, 1.5rem)',
             maxWidth: '480px',
             width: '100%',
             maxHeight: '92vh',
@@ -2004,27 +2224,29 @@ const UserDashboard = ({ user }) => {
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#f8fafc' }}>
-                  Usulkan Warung Langganan
+                  Usulkan Warung Langganan (Kode Referral)
                 </h3>
                 <span style={{ fontSize: '0.72rem', color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700 }}>
-                  Dapatkan Bonus +500 Loyalty Points
+                  0 Poin Instan (Anti-Abuse) • +500 Poin Cair Saat Warung Daftar
                 </span>
               </div>
             </div>
 
             <p style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.45, marginBottom: '14px' }}>
-              Punya warung makan, laundry, atau langganan favorit di sekitar kost? Beritahu kami agar bisa dihubungi dan dimasukkan ke katalog KostKu!
+              Daftarkan usulan warung favorit dengan <strong>Kode Referral aktif</strong> agar tidak disalahgunakan. Poin +500 otomatis masuk ke pemilik kode setelah pemilik warung resmi mendaftar di KostKu.
             </p>
 
             {suggestNotice && (
               <div style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: suggestNotice.type === 'error' ? 'rgba(239, 68, 68, 0.14)' : 'rgba(16, 185, 129, 0.15)',
+                border: `1px solid ${suggestNotice.type === 'error' ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.4)'}`,
                 borderRadius: '10px',
                 padding: '10px 12px',
                 marginBottom: '14px',
                 fontSize: '0.75rem',
-                color: isLight ? '#15803d' : '#34d399',
+                color: suggestNotice.type === 'error'
+                  ? (isLight ? '#b91c1c' : '#fca5a5')
+                  : (isLight ? '#15803d' : '#34d399'),
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -2081,6 +2303,30 @@ const UserDashboard = ({ user }) => {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                  Kode Referral Wajib *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: KOSTKU-1234"
+                  value={suggestForm.referralCode || ''}
+                  onChange={e => setSuggestForm(prev => ({ ...prev, referralCode: e.target.value.toUpperCase() }))}
+                  style={{
+                    width: '100%',
+                    background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.8)',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    fontSize: '0.8rem',
+                    textTransform: 'uppercase',
+                    fontWeight: 700
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
                   Patokan Lokasi / Alamat (Opsional)
                 </label>
                 <input
@@ -2111,6 +2357,7 @@ const UserDashboard = ({ user }) => {
                 </button>
                 <button
                   type="submit"
+                  disabled={suggestSubmitting}
                   style={{
                     padding: '7px 16px',
                     background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
@@ -2119,11 +2366,11 @@ const UserDashboard = ({ user }) => {
                     color: '#ffffff',
                     fontWeight: 700,
                     fontSize: '0.75rem',
-                    cursor: 'pointer',
+                    cursor: suggestSubmitting ? 'wait' : 'pointer',
                     boxShadow: '0 2px 8px rgba(14, 165, 233, 0.35)'
                   }}
                 >
-                  Kirim Usulan & Klaim +500 Poin
+                  {suggestSubmitting ? 'Mengirim...' : 'Kirim Usulan via Kode Referral'}
                 </button>
               </div>
             </form>
@@ -2416,8 +2663,8 @@ const UserDashboard = ({ user }) => {
       <TenantRatingModal
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}
-        kostUid={currentUser?.kostUid || 'KOST-OJN64X'}
-        kostName={kostName || 'KostKu Residence Udinus'}
+        kostUid={currentUser?.kostUid || ''}
+        kostName={kostName || 'KostKu'}
         currentUser={currentUser}
       />
 
@@ -2429,6 +2676,211 @@ const UserDashboard = ({ user }) => {
         user={currentUser}
         kost={{ kostName: kostName || 'KostKu Residence', kostUid: currentUser?.kostUid }}
       />
+
+      {/* Tenant Request Check-Out & Mandatory Refund Deposit Modal */}
+      {showCheckoutRequestModal && createPortal(
+        <div
+          data-testid="tenant-checkout-request-modal"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              background: isLight ? '#ffffff' : '#0f172a',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.14)',
+              borderRadius: '18px',
+              padding: '22px',
+              color: isLight ? '#0f172a' : '#f8fafc',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RotateCcw size={18} color="#10b981" />
+                <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800 }}>Ajukan Check-Out &amp; Pengembalian Deposit</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCheckoutRequestModal(false)}
+                style={{ background: 'transparent', border: 'none', color: isLight ? '#475569' : '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                marginBottom: '14px',
+                fontSize: '0.82rem',
+                color: isLight ? '#065f46' : '#a7f3d0'
+              }}
+            >
+              <strong>Kewajiban Pengembalian Deposit:</strong> Deposit jaminan tersimpan sebesar{' '}
+              <strong>Rp {Number(depositSummary?.heldDeposit || 0).toLocaleString('id-ID')}</strong>{' '}
+              <strong>wajib dikembalikan</strong> oleh Pemilik Kost saat proses Check-Out selesai (setelah verifikasi kondisi kamar).
+            </div>
+
+            <form onSubmit={handleSubmitCheckoutRequest} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  Rencana Tanggal Check-Out
+                </label>
+                <input
+                  type="date"
+                  required
+                  data-testid="checkout-req-date"
+                  value={checkoutReqForm.checkoutDate}
+                  onChange={e => setCheckoutReqForm(prev => ({ ...prev, checkoutDate: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.16)',
+                    background: isLight ? '#f8fafc' : 'rgba(30,41,59,0.7)',
+                    color: isLight ? '#0f172a' : '#f8fafc'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                    Metode Refund
+                  </label>
+                  <select
+                    value={checkoutReqForm.refundMethod}
+                    onChange={e => setCheckoutReqForm(prev => ({ ...prev, refundMethod: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.16)',
+                      background: isLight ? '#f8fafc' : 'rgba(30,41,59,0.7)',
+                      color: isLight ? '#0f172a' : '#f8fafc'
+                    }}
+                  >
+                    <option value="Transfer Bank">Transfer Bank</option>
+                    <option value="E-Wallet">E-Wallet (GoPay/OVO/DANA)</option>
+                    <option value="Tunai">Tunai Langsung</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                    Bank / Dompet Tujuan
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="BCA / BRI / GoPay"
+                    value={checkoutReqForm.refundBankOrWallet}
+                    onChange={e => setCheckoutReqForm(prev => ({ ...prev, refundBankOrWallet: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.16)',
+                      background: isLight ? '#f8fafc' : 'rgba(30,41,59,0.7)',
+                      color: isLight ? '#0f172a' : '#f8fafc'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  Nomor Rekening / No. HP E-Wallet Penerima Refund
+                </label>
+                <input
+                  type="text"
+                  data-testid="checkout-req-account"
+                  placeholder="Contoh: 1234567890 a.n. Nama Anda"
+                  value={checkoutReqForm.refundAccount}
+                  onChange={e => setCheckoutReqForm(prev => ({ ...prev, refundAccount: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.16)',
+                    background: isLight ? '#f8fafc' : 'rgba(30,41,59,0.7)',
+                    color: isLight ? '#0f172a' : '#f8fafc'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  Catatan Check-Out (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Habis masa sewa / pindah tugas, kamar sudah dibersihkan"
+                  value={checkoutReqForm.reason}
+                  onChange={e => setCheckoutReqForm(prev => ({ ...prev, reason: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.16)',
+                    background: isLight ? '#f8fafc' : 'rgba(30,41,59,0.7)',
+                    color: isLight ? '#0f172a' : '#f8fafc',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              {checkoutReqNotice && (
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    background: checkoutReqNotice.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: checkoutReqNotice.type === 'success' ? '#10b981' : '#f87171',
+                    border: `1px solid ${checkoutReqNotice.type === 'success' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`
+                  }}
+                >
+                  {checkoutReqNotice.text}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCheckoutRequestModal(false)}
+                  className="btn btn-secondary"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  data-testid="submit-checkout-req-btn"
+                  disabled={checkoutReqSubmitting}
+                  className="btn btn-primary"
+                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none' }}
+                >
+                  {checkoutReqSubmitting ? 'Mengirim...' : 'Kirim Pengajuan Check-Out'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );
