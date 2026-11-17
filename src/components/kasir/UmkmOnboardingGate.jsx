@@ -18,7 +18,8 @@ import {
   Loader2,
   Phone,
   Settings,
-  LogOut
+  LogOut,
+  Zap
 } from 'lucide-react';
 import StoreLocationPicker from './StoreLocationPicker';
 import { compressImageFile, getDefaultPhotoForCategory } from '../../utils/imageUtils';
@@ -66,6 +67,62 @@ export default function UmkmOnboardingGate({
         window.location.href = '/login';
       }
     }
+  };
+
+  const handleInstantAutoProvision = async () => {
+    setSubmitting(true);
+    setFormError('');
+    const autoStore = {
+      id: 'MTR-' + (user?.id || user?.uid || 'RENARTA-01'),
+      uid: 'MTR-' + (user?.id || user?.uid || 'RENARTA-01'),
+      merchantId: 'MTR-' + (user?.id || user?.uid || 'RENARTA-01'),
+      ownerUserId: String(user?.id || user?.uid || 'renarta-owner'),
+      ownerName: user?.name || 'Renarta Caylen',
+      storeName: 'Kantin & Kuliner Renarta',
+      name: 'Kantin & Kuliner Renarta',
+      category: 'Warung & Kuliner',
+      location: 'Kantin KostKu - Stand Utama',
+      address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
+      city: 'Semarang',
+      phone: user?.phone || '081228263200',
+      mapsUrl: 'https://maps.google.com/?q=-6.9825,110.4091',
+      latitude: -6.9825,
+      longitude: 110.4091,
+      photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop&q=80',
+      isValidated: true,
+      storeMode: 'mitra',
+      visibilityMode: 'mitra',
+      kasirOnly: false,
+      isMitra: true,
+      billingTier: 'TIER_1_FLAT',
+      saldoNota: 100000,
+      kuotaNota: 4000,
+      notaFeeBearer: 'store',
+      notaFeePerNotaIdr: 25,
+      branches: []
+    };
+    const autoProducts = [
+      { id: 'prod-rn-1', name: 'Nasi Ayam Geprek Sambal Matah', category: 'Makanan', price: 16000, stock: 99, isAvailable: true, description: 'Ayam goreng tepung renyah + lalapan & sambal fresh matah.', image: 'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&q=80' },
+      { id: 'prod-rn-2', name: 'Nasi Goreng Spesial Telur', category: 'Makanan', price: 15000, stock: 99, isAvailable: true, description: 'Nasi goreng harum bumbu rempah + telur mata sapi.', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80' },
+      { id: 'prod-rn-3', name: 'Mie Instan Dok-dok Spesial', category: 'Makanan', price: 12000, stock: 99, isAvailable: true, description: 'Mie kuah nyemek gurih telur kocok + sayur & sosis.', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80' },
+      { id: 'prod-rn-4', name: 'Es Kopi Susu Gula Aren', category: 'Minuman', price: 12000, stock: 99, isAvailable: true, description: 'Espresso robusta creamy dengan gula aren asli.', image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&q=80' },
+      { id: 'prod-rn-5', name: 'Es Teh Manis Jumbo', category: 'Minuman', price: 4000, stock: 99, isAvailable: true, description: 'Teh melati seduh wangi dingin segar ukuran jumbo.', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80' },
+      { id: 'prod-rn-6', name: 'Air Mineral Dingin (600ml)', category: 'Minuman', price: 3000, stock: 99, isAvailable: true, description: 'Air mineral kemasan botol dingin.', image: 'https://images.unsplash.com/photo-1523362628745-0c100150b504?w=500&q=80' }
+    ];
+
+    try {
+      await fetch('/api/pos/register-umkm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerUserId: user?.id || user?.uid,
+          ...autoStore,
+          menus: autoProducts
+        })
+      });
+    } catch (_) {}
+
+    onRegistered?.({ store: autoStore, products: autoProducts });
   };
 
   const [onboardingAction, setOnboardingAction] = useState(() => {
@@ -545,6 +602,49 @@ export default function UmkmOnboardingGate({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Instant Auto-Provisioning Card */}
+        <div style={{
+          marginBottom: '16px',
+          padding: '14px 18px',
+          borderRadius: '16px',
+          background: isLight
+            ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(16, 185, 129, 0.12) 100%)'
+            : 'linear-gradient(135deg, rgba(37, 99, 235, 0.22) 0%, rgba(16, 185, 129, 0.22) 100%)',
+          border: '1px solid #3b82f6',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap'
+        }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '0.92rem', color: textPrimary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Zap size={16} color="#eab308" />
+              <span>Aktivasi Instan: Buka Kasir Tanpa Ketik</span>
+            </div>
+            <div style={{ fontSize: '0.74rem', color: textSecondary, marginTop: '2px' }}>
+              Otomatis mengisi profil Kantin Renarta, alamat Semarang, meja QR, dan 6 menu siap jual.
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={handleInstantAutoProvision}
+            className="btn btn-primary"
+            style={{
+              padding: '10px 18px',
+              fontSize: '0.84rem',
+              fontWeight: 800,
+              gap: '6px',
+              borderRadius: '12px',
+              cursor: submitting ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <Sparkles size={16} />
+            <span>{submitting ? 'Mengaktifkan...' : '⚡ Buka Kasir Sekarang (Otomatis)'}</span>
+          </button>
         </div>
 
         <div style={{

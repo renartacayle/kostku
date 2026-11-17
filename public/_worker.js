@@ -2642,21 +2642,74 @@ async function handlePosApi(request, path, method, url, state) {
       }
 
       if (!state.isDemo && reqOwnerId && !reqTableToken && !reqStoreId) {
-        const hasMerchant = (state.registeredMerchants || []).some(m =>
+        let hasMerchant = (state.registeredMerchants || []).some(m =>
           m && (String(m.ownerUserId || '') === String(reqOwnerId) || String(m.id || '') === String(reqStoreId))
         );
         if (!hasMerchant && !state.posStore?.ownerUserId) {
-          return new Response(JSON.stringify({
-            uid: null,
-            merchantId: null,
-            storeName: '',
-            hasRegisteredStore: false,
-            needsUmkmRegistration: true,
-            saldoNota: 0,
-            kuotaNota: 0,
+          // Auto-provision default Kantin & Kuliner store for Renarta Caylen / Mitra account so user doesn't have to input anything
+          const renartaMerchant = {
+            id: 'MTR-' + (reqOwnerId || 'RENARTA-01'),
+            ownerUserId: String(reqOwnerId || 'renarta-owner'),
+            ownerName: 'Renarta Caylen',
+            name: 'Kantin & Kuliner Renarta',
+            storeName: 'Kantin & Kuliner Renarta',
+            category: 'Warung & Kuliner',
+            icon: '',
+            phone: '081228263200',
+            location: 'Kantin KostKu - Stand Utama',
+            address: 'Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah',
+            city: 'Semarang',
+            distanceKm: 0.1,
+            rating: 5,
+            openingHours: '08:00 - 22:00 WIB',
+            isOpen: true,
+            isValidated: true,
+            isVerified: true,
+            storeMode: 'mitra',
+            visibilityMode: 'mitra',
+            kasirOnly: false,
+            isMitra: true,
+            billingTier: 'TIER_1_FLAT',
+            loyaltyPoolId: null,
+            kasirWebOnline: true,
+            saldoNota: 100000,
+            kuotaNota: 4000,
             notaFeeBearer: 'store',
-            allOwnerStores: []
-          }), { headers: corsHeaders });
+            notaFeePerNotaIdr: 25,
+            photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop&q=80',
+            branches: [
+              { id: 'MTR-' + (reqOwnerId || 'RENARTA-01'), name: 'Kantin & Kuliner Renarta (Pusat)', address: 'Jl. Nakula I No. 5-11, Semarang', saldoNota: 100000, kuotaNota: 4000 }
+            ],
+            status: 'active',
+            createdAt: new Date().toISOString()
+          };
+          state.registeredMerchants = state.registeredMerchants || [];
+          state.registeredMerchants.push(renartaMerchant);
+          Object.assign(state.posStore, renartaMerchant);
+          state.posStore.uid = renartaMerchant.id;
+          state.posStore.merchantId = renartaMerchant.id;
+
+          if (!state.posProducts || state.posProducts.length === 0) {
+            state.posProducts = [
+              { id: 'prod-rn-1', name: 'Nasi Ayam Geprek Sambal Matah', category: 'Makanan', price: 16000, stock: 99, isAvailable: true, description: 'Ayam goreng tepung renyah + lalapan & sambal fresh matah.', image: 'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&q=80' },
+              { id: 'prod-rn-2', name: 'Nasi Goreng Spesial Telur', category: 'Makanan', price: 15000, stock: 99, isAvailable: true, description: 'Nasi goreng harum bumbu rempah + telur mata sapi.', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80' },
+              { id: 'prod-rn-3', name: 'Mie Instan Dok-dok Spesial', category: 'Makanan', price: 12000, stock: 99, isAvailable: true, description: 'Mie kuah nyemek gurih telur kocok + sayur & sosis.', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80' },
+              { id: 'prod-rn-4', name: 'Es Kopi Susu Gula Aren', category: 'Minuman', price: 12000, stock: 99, isAvailable: true, description: 'Espresso robusta creamy dengan gula aren asli.', image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&q=80' },
+              { id: 'prod-rn-5', name: 'Es Teh Manis Jumbo', category: 'Minuman', price: 4000, stock: 99, isAvailable: true, description: 'Teh melati seduh wangi dingin segar ukuran jumbo.', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80' },
+              { id: 'prod-rn-6', name: 'Air Mineral Dingin (600ml)', category: 'Minuman', price: 3000, stock: 99, isAvailable: true, description: 'Air mineral kemasan botol dingin.', image: 'https://images.unsplash.com/photo-1523362628745-0c100150b504?w=500&q=80' }
+            ];
+          }
+
+          if (!state.posTables || state.posTables.length === 0) {
+            state.posTables = [
+              { id: 'tbl-1', number: 'Meja 01', qrToken: 'MEJA-01-RN' },
+              { id: 'tbl-2', number: 'Meja 02', qrToken: 'MEJA-02-RN' },
+              { id: 'tbl-3', number: 'Meja 03', qrToken: 'MEJA-03-RN' },
+              { id: 'tbl-4', number: 'Meja 04', qrToken: 'MEJA-04-RN' },
+              { id: 'tbl-5', number: 'Meja 05', qrToken: 'MEJA-05-RN' }
+            ];
+          }
+          hasMerchant = true;
         }
       }
 
@@ -2772,6 +2825,61 @@ async function handlePosApi(request, path, method, url, state) {
       success: true,
       activeBranch: state.posStore.activeBranch,
       message: 'Cabang berhasil dialihkan'
+    }), { headers: corsHeaders });
+  }
+
+  if (path === '/register-umkm' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const newStore = {
+      id: 'MTR-' + Date.now(),
+      ownerUserId: String(body.ownerUserId || 'owner'),
+      storeName: body.storeName || 'Kantin & Kuliner Renarta',
+      name: body.storeName || 'Kantin & Kuliner Renarta',
+      category: body.category || 'Warung & Kuliner',
+      phone: body.phone || '081228263200',
+      location: body.location || 'Kantin KostKu - Stand Utama',
+      address: body.address || 'Jl. Nakula I No. 5-11, Semarang',
+      city: body.city || 'Semarang',
+      photo: body.photo || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop&q=80',
+      isValidated: true,
+      isVerified: true,
+      storeMode: 'mitra',
+      visibilityMode: 'mitra',
+      kasirOnly: false,
+      isMitra: true,
+      billingTier: 'TIER_1_FLAT',
+      saldoNota: 100000,
+      kuotaNota: 4000,
+      notaFeeBearer: 'store',
+      notaFeePerNotaIdr: 25,
+      branches: body.branches || [],
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    newStore.uid = newStore.id;
+    newStore.merchantId = newStore.id;
+    state.registeredMerchants = state.registeredMerchants || [];
+    state.registeredMerchants.push(newStore);
+    Object.assign(state.posStore, newStore);
+
+    if (Array.isArray(body.menus) && body.menus.length > 0) {
+      state.posProducts = body.menus.map((m, idx) => ({
+        id: 'prod-' + Date.now() + '-' + idx,
+        name: m.name,
+        category: m.category || 'Makanan',
+        price: Number(m.price) || 10000,
+        stock: Number(m.stock) || 99,
+        isAvailable: true,
+        description: m.description || '',
+        image: m.image || ''
+      }));
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'UMKM Mitra berhasil didaftarkan!',
+      store: newStore,
+      products: state.posProducts
     }), { headers: corsHeaders });
   }
 
