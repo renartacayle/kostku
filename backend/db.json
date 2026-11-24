@@ -1791,6 +1791,33 @@
           "status": "occupied",
           "tenantId": 1784987632155,
           "tenantName": "Oscar Herdian Wijaya"
+        },
+        {
+          "id": "ROOM-OJN-101",
+          "number": "101",
+          "price": 1450000,
+          "size": "3x4",
+          "capacity": 1,
+          "status": "available",
+          "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80"
+        },
+        {
+          "id": "ROOM-OJN-102",
+          "number": "102",
+          "price": 1550000,
+          "size": "3.5x4",
+          "capacity": 1,
+          "status": "available",
+          "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80"
+        },
+        {
+          "id": "ROOM-OJN-201",
+          "number": "201",
+          "price": 1750000,
+          "size": "4x4",
+          "capacity": 2,
+          "status": "available",
+          "roomPhoto": "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80"
         }
       ],
       "settings": {
@@ -1851,6 +1878,143 @@
                 ]
               }
             }
+          },
+          {
+            "id": "ROOM-OJN-101",
+            "number": "101",
+            "price": 1450000,
+            "size": "3x4",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "single",
+              "pillows": 1,
+              "bedSide": "right",
+              "bedOrientation": "vertical",
+              "windowWall": "top",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#e2e8f0",
+              "blanketAccent": "#3b82f6",
+              "floorHex": "#b09e8a",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98.7,
+                "latencyMs": 11.4
+              }
+            }
+          },
+          {
+            "id": "ROOM-OJN-102",
+            "number": "102",
+            "price": 1550000,
+            "size": "3.5x4",
+            "capacity": 1,
+            "status": "available",
+            "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#f1f5f9",
+              "blanketAccent": "#0f766e",
+              "floorHex": "#b09e8a",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.1,
+                "latencyMs": 12.1
+              }
+            }
+          },
+          {
+            "id": "ROOM-OJN-201",
+            "number": "201",
+            "price": 1750000,
+            "size": "4x4",
+            "capacity": 2,
+            "status": "available",
+            "roomPhoto": "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80",
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "double",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_right",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_right",
+              "deskPos": "bottom_left",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#fef3c7",
+              "blanketAccent": "#b45309",
+              "floorHex": "#b09e8a",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.4,
+                "latencyMs": 12.8
+              }
+            }
           }
         ],
         "employees": [],
@@ -1903,1146 +2067,6 @@
             "AC dipasang di dinding top"
           ]
         }
-      }
-    },
-    {
-      "uid": "KOST-YOZ1PG",
-      "kostName": "Kost Griya Harmoni Utama",
-      "ownerId": "1794126835862",
-      "city": "Semarang",
-      "address": "",
-      "location": {
-        "lat": -6.9932,
-        "lng": 110.4208
-      },
-      "gmapsUrl": "https://maps.google.com/?q=-6.9932,110.4208",
-      "roomPhoto": "",
-      "floorPlan": {
-        "dimensions": "3.0m x 4.0m",
-        "bedType": "super_single",
-        "furnitures": [
-          "wardrobe",
-          "desk",
-          "bathroom",
-          "ac",
-          "window"
-        ],
-        "generated": true,
-        "mode": "ai"
-      },
-      "images": [
-        "/logo.png"
-      ],
-      "description": "",
-      "status": "verified",
-      "utilityScheme": "all_kost",
-      "settings": {
-        "rooms": [
-          {
-            "id": "RM-KOST-YOZ1PG-101",
-            "number": "101",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-YOZ1PG-102",
-            "number": "102",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-YOZ1PG-103",
-            "number": "103",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-YOZ1PG-104",
-            "number": "104",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-YOZ1PG-105",
-            "number": "105",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-YOZ1PG-106",
-            "number": "106",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 12,
-        "utilityScheme": "all_kost",
-        "waterRate": 5000,
-        "electricityRate": 2000,
-        "depositAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-G05UCH",
-      "kostName": "Kost Griya Harmoni Utama",
-      "ownerId": "1794126889973",
-      "city": "Semarang",
-      "address": "",
-      "location": {
-        "lat": -6.9932,
-        "lng": 110.4208
-      },
-      "gmapsUrl": "https://maps.google.com/?q=-6.9932,110.4208",
-      "roomPhoto": "",
-      "floorPlan": {
-        "dimensions": "3.0m x 4.0m",
-        "bedType": "super_single",
-        "furnitures": [
-          "wardrobe",
-          "desk",
-          "bathroom",
-          "ac",
-          "window"
-        ],
-        "generated": true,
-        "mode": "ai"
-      },
-      "images": [
-        "/logo.png"
-      ],
-      "description": "",
-      "status": "verified",
-      "utilityScheme": "all_kost",
-      "settings": {
-        "rooms": [
-          {
-            "id": "RM-KOST-G05UCH-101",
-            "number": "101",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-G05UCH-102",
-            "number": "102",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-G05UCH-103",
-            "number": "103",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-G05UCH-104",
-            "number": "104",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-G05UCH-105",
-            "number": "105",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-G05UCH-106",
-            "number": "106",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 12,
-        "utilityScheme": "all_kost",
-        "waterRate": 5000,
-        "electricityRate": 2000,
-        "depositAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-U8BFJA",
-      "kostName": "Kost Griya Harmoni Utama",
-      "ownerId": "1794126949265",
-      "city": "Semarang",
-      "address": "",
-      "location": {
-        "lat": -6.9932,
-        "lng": 110.4208
-      },
-      "gmapsUrl": "https://maps.google.com/?q=-6.9932,110.4208",
-      "roomPhoto": "",
-      "floorPlan": {
-        "dimensions": "3.0m x 4.0m",
-        "bedType": "super_single",
-        "furnitures": [
-          "wardrobe",
-          "desk",
-          "bathroom",
-          "ac",
-          "window"
-        ],
-        "generated": true,
-        "mode": "ai"
-      },
-      "images": [
-        "/logo.png"
-      ],
-      "description": "",
-      "status": "verified",
-      "utilityScheme": "all_kost",
-      "settings": {
-        "rooms": [
-          {
-            "id": "RM-KOST-U8BFJA-101",
-            "number": "101",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-U8BFJA-102",
-            "number": "102",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-U8BFJA-103",
-            "number": "103",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-U8BFJA-104",
-            "number": "104",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-U8BFJA-105",
-            "number": "105",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          },
-          {
-            "id": "RM-KOST-U8BFJA-106",
-            "number": "106",
-            "price": 1500000,
-            "size": "3.0m x 4.0m",
-            "capacity": 1,
-            "status": "available",
-            "roomPhoto": "",
-            "floorPlan": {
-              "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
-              "furnitures": [
-                "wardrobe",
-                "desk",
-                "bathroom",
-                "ac",
-                "window"
-              ],
-              "generated": true,
-              "mode": "ai"
-            },
-            "facilities": [
-              "WiFi",
-              "Kamar Mandi Dalam",
-              "Kasur Springbed",
-              "Meja Belajar",
-              "Lemari",
-              "AC"
-            ]
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 12,
-        "utilityScheme": "all_kost",
-        "waterRate": 5000,
-        "electricityRate": 2000,
-        "depositAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-TVUIF5",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794740185142,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794740185143",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794740185144",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [
-          {
-            "id": "1794740274783",
-            "name": "Rudi Pegawai Kost",
-            "role": "Penjaga Kost",
-            "accountRole": "staff",
-            "salary": 0,
-            "phone": "",
-            "email": "rudi.kost.1794740271723@example.com",
-            "assignedStoreIds": [
-              "all"
-            ],
-            "hasLogin": true
-          }
-        ],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-DXQV51",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794740564312,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794740564313",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794740564314",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [
-          {
-            "id": "1794740653390",
-            "name": "Rudi Pegawai Kost",
-            "role": "Penjaga Kost",
-            "accountRole": "staff",
-            "salary": 0,
-            "phone": "",
-            "email": "rudi.kost.1794740649371@example.com",
-            "assignedStoreIds": [
-              "all"
-            ],
-            "hasLogin": true
-          }
-        ],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-XGKSP0",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794740746996,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794740746997",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794740746998",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [
-          {
-            "id": "1794740834238",
-            "name": "Rudi Pegawai Kost",
-            "role": "Penjaga Kost",
-            "accountRole": "staff",
-            "salary": 0,
-            "phone": "",
-            "email": "rudi.kost.1794740830921@example.com",
-            "assignedStoreIds": [
-              "all"
-            ],
-            "hasLogin": true
-          }
-        ],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-VSYXYQ",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794740933830,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794740933831",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794740933832",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [
-          {
-            "id": "1794741021749",
-            "name": "Rudi Pegawai Kost",
-            "role": "Penjaga Kost",
-            "accountRole": "staff",
-            "salary": 0,
-            "phone": "",
-            "email": "rudi.kost.1794741018893@example.com",
-            "assignedStoreIds": [
-              "all"
-            ],
-            "hasLogin": true
-          }
-        ],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-U6RWDF",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794741453802,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794741453803",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794741453804",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-LF5KSV",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794741547798,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794741547799",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794741547800",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-0DRMVP",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794741765238,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794741765239",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794741765240",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-PK7IJE",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794742028018,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794742028019",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794742028020",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-E0F97G",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794742175835,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794742175836",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794742175837",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-RU7DDF",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794742237737,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794742237738",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794742237739",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
-      }
-    },
-    {
-      "uid": "KOST-D64AYP",
-      "kostName": "Kost Uji E2E",
-      "ownerId": 1794742383528,
-      "address": "Jl. Utama No. 1",
-      "location": {
-        "lat": -6.2088,
-        "lng": 106.8456
-      },
-      "images": [],
-      "status": "verified",
-      "description": "Kost terverifikasi milik Budi Owner E2E",
-      "settings": {
-        "rooms": [
-          {
-            "id": "1794742383529",
-            "number": "101",
-            "price": 1200000,
-            "size": "3x4",
-            "capacity": 1
-          },
-          {
-            "id": "1794742383530",
-            "number": "102",
-            "price": 1500000,
-            "size": "4x4",
-            "capacity": 1
-          }
-        ],
-        "employees": [],
-        "bedsheetCount": 20,
-        "waterRate": 0,
-        "electricityRate": 0,
-        "depositEnabled": false,
-        "depositAmount": 0,
-        "depositPreferredAmount": 500000
       }
     }
   ],

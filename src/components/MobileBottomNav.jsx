@@ -247,18 +247,14 @@ export default function MobileBottomNav({ user }) {
     !isMobileScreen ||
     location.pathname === '/login' ||
     location.pathname === '/register' ||
-    location.pathname === '/demo' ||
-    location.pathname === '/sandbox' ||
-    location.pathname === '/demo-showcase' ||
     location.pathname === '/checkout' || 
     location.pathname === '/bayar' || 
     location.pathname === '/pembayaran' ||
-    location.pathname === '/stress-test-report' ||
-    location.pathname.startsWith('/stress-test') ||
     location.pathname.startsWith('/order') ||
     location.pathname.startsWith('/meja') ||
     location.pathname.startsWith('/kasir') ||
     location.pathname.startsWith('/pos') ||
+    location.pathname.startsWith('/kost/') ||
     location.pathname.startsWith('/invite-staff') ||
     location.pathname.startsWith('/gabung-karyawan');
 

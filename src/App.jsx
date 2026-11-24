@@ -46,7 +46,6 @@ import { lazyRetry, getAdaptiveBufferTimeout } from './utils/lazyRetry';
 // Route-level code-splitting with resilient auto-retry across deployments
 const Login = lazyRetry(() => import('./pages/Login'), 'Login');
 const Register = lazyRetry(() => import('./pages/Register'), 'Register');
-const Demo = lazyRetry(() => import('./pages/Demo'), 'Demo');
 const Dashboard = lazyRetry(() => import('./pages/Dashboard'), 'Dashboard');
 const Penghuni = lazyRetry(() => import('./pages/Penghuni'), 'Penghuni');
 const Pengaturan = lazyRetry(() => import('./pages/Pengaturan'), 'Pengaturan');
@@ -63,7 +62,6 @@ const KebijakanPrivasi = lazyRetry(() => import('./pages/KebijakanPrivasi'), 'Ke
 const SyaratKetentuan = lazyRetry(() => import('./pages/SyaratKetentuan'), 'SyaratKetentuan');
 const TentangKami = lazyRetry(() => import('./pages/TentangKami'), 'TentangKami');
 const Checkout = lazyRetry(() => import('./pages/Checkout'), 'Checkout');
-const StressTestReport = lazyRetry(() => import('./pages/StressTestReport'), 'StressTestReport');
 const Kasir = lazyRetry(() => import('./pages/Kasir'), 'Kasir');
 const OrderMeja = lazyRetry(() => import('./pages/OrderMeja'), 'OrderMeja');
 const ClaimPoin = lazyRetry(() => import('./pages/ClaimPoin'), 'ClaimPoin');
@@ -393,11 +391,6 @@ function App() {
           <Route path="/tentang-kami" element={<TentangKami />} />
           <Route path="/about" element={<Navigate to="/tentang-kami" replace />} />
           <Route path="/about-us" element={<Navigate to="/tentang-kami" replace />} />
-          
-          {/* Stress Test 500 Real Bedroom Photos & Auto-2D Benchmark Report */}
-          <Route path="/stress-test-report" element={<StressTestReport />} />
-          <Route path="/stress-test" element={<Navigate to="/stress-test-report" replace />} />
-          <Route path="/denah-500" element={<Navigate to="/stress-test-report" replace />} />
 
           {/* Kasir POS & Table Self-Ordering (kasir.riuph.me) */}
           <Route
@@ -437,11 +430,6 @@ function App() {
             path="/register" 
             element={activeUser ? <Navigate to="/dashboard" replace /> : <Register onLogin={handleLogin} />} 
           />
-
-          {/* Dedicated Demo Showcase & Interactive Sandbox (Separated from Real Login) */}
-          <Route path="/demo" element={<Demo onLogin={handleLogin} />} />
-          <Route path="/sandbox" element={<Navigate to="/demo" replace />} />
-          <Route path="/demo-showcase" element={<Navigate to="/demo" replace />} />
 
           {/* Protected App Pages */}
           <Route 

@@ -17,12 +17,6 @@ const ROUTE_SEO = {
     description: 'Temukan pilihan kost terbaik dan layanan pendukung seperti laundry, warung makan, air galon, dan jasa servis terpercaya di KostKu.',
     canonical: 'https://kostku.riuph.me/cari-kost' // Canonical points to /cari-kost to prevent duplicate indexing
   },
-  '/demo': {
-    title: 'Sandbox Demo Interaktif Pemilik Kost - KostKu',
-    description: 'Uji coba fitur lengkap KostKu tanpa registrasi: denah kamar interaktif, simulasi penagihan sewa otomatis TriPay, dan monitoring utilitas IoT.',
-    canonical: 'https://kostku.riuph.me/demo',
-    robots: 'noindex, nofollow'
-  },
   '/mitra': {
     title: 'Portal Mitra UMKM & Warung Sekitar Kost - KostKu',
     description: 'Daftarkan bisnis warung makan, air minum galon, jasa laundry, atau servis di platform KostKu untuk menjangkau ribuan penghuni kos.',

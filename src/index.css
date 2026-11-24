@@ -259,8 +259,8 @@ html, body {
     font-size: 1.2rem !important;
   }
   .shopee-menu-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px 3px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 6px;
   }
 }
 
@@ -936,16 +936,34 @@ html, body {
 /* ════════════════════════════════════════════════════════
    RESPONSIVE KOST CARD SCALING (OPTIMAL 2 KOLOM DI HP)
    ════════════════════════════════════════════════════════ */
+.search-card-mobile-label {
+  display: none;
+}
+
 @media (max-width: 640px) {
+  .search-card-desktop-label {
+    display: none !important;
+  }
+  .search-card-mobile-label {
+    display: inline !important;
+  }
   .kost-responsive-grid,
   .koleksi-grid-4x2 {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.55rem !important;
+    gap: 0.65rem !important;
   }
 
-  /* Sembunyikan panah foto di HP (geser dengan swipe sentuh) */
+  .kost-card-image-wrapper {
+    height: 124px !important;
+  }
+
+  /* Sembunyikan panah foto & elemen sekunder yang menumpuk di grid 2 kolom HP */
   .kost-slider-container button[aria-label="Foto sebelumnya"],
-  .kost-slider-container button[aria-label="Foto selanjutnya"] {
+  .kost-slider-container button[aria-label="Foto selanjutnya"],
+  .search-card-photo-arrow,
+  .search-card-full-subtitle,
+  .search-card-extra-badge,
+  .search-card-facilities > span:nth-child(n+3) {
     display: none !important;
   }
 
@@ -954,20 +972,26 @@ html, body {
     border-radius: 14px !important;
   }
 
-  /* Padding kartu lebih proporsional khusus grid 2 kolom properti HP */
+  /* Padding kartu proporsional untuk 2 kolom ala Kasir di HP */
   .kost-card-container > div:last-child {
-    padding: 0.65rem 0.55rem !important;
+    padding: 0.6rem !important;
+    gap: 6px !important;
   }
 
   /* Judul nama kost di kartu 2 kolom mobile */
-  .kost-card-container h3 {
-    font-size: 0.88rem !important;
+  .kost-card-container h3,
+  .kost-card-title {
+    font-size: 0.85rem !important;
     line-height: 1.25 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
   }
 
   /* Baris lokasi dan spesifikasi */
   .kost-card-container p {
-    font-size: 0.72rem !important;
+    font-size: 0.7rem !important;
     margin-bottom: 6px !important;
   }
 
@@ -988,11 +1012,11 @@ html, body {
     top: 6px !important;
     left: 6px !important;
     gap: 4px !important;
-    max-width: calc(100% - 36px) !important;
+    max-width: calc(100% - 42px) !important;
   }
 
   .search-card-top-badges > span {
-    font-size: 0.62rem !important;
+    font-size: 0.6rem !important;
     padding: 2px 6px !important;
   }
 
@@ -1010,23 +1034,44 @@ html, body {
   }
 
   .kost-price-text {
-    font-size: 0.95rem !important;
+    font-size: 0.92rem !important;
   }
 
-  /* Action buttons pada SearchKost */
+  /* Action buttons pada SearchKost (1 baris rapi ala Kasir: [ Utama ] [ ikon ] [ ikon ]) */
   .search-card-actions {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
     gap: 5px !important;
     width: 100% !important;
   }
 
-  .search-card-actions > * {
-    width: 100% !important;
-    justify-content: center !important;
-    text-align: center !important;
+  .search-card-actions .search-card-main-btn {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 0 6px !important;
+    gap: 3px !important;
     font-size: 0.74rem !important;
-    padding: 7px 10px !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+  }
+
+  .search-card-actions .search-card-icon-btn {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+  }
+
+  .search-card-actions .search-card-icon-btn span {
+    display: none !important;
   }
 
   /* Fasilitas ringkas di kartu 2 kolom mobile */

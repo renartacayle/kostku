@@ -3216,7 +3216,7 @@ export default function Mitra({ user }) {
                 style={{ padding: '10px 18px', fontSize: '0.88rem', fontWeight: 700, gap: '8px' }}
               >
                 <Plus size={16} />
-                <span>+ Daftarkan Mitra Baru</span>
+                <span>Daftarkan Mitra Baru</span>
               </button>
             </div>
 
@@ -3258,26 +3258,31 @@ export default function Mitra({ user }) {
           {/* Owner Tabs */}
           <div style={{
             display: 'flex',
-            gap: '8px',
+            flexWrap: 'wrap',
+            gap: '6px',
             marginBottom: '1.5rem',
             background: 'rgba(15, 23, 42, 0.6)',
-            padding: '4px',
+            padding: '5px',
             borderRadius: '14px',
-            border: '1px solid var(--border-color)',
-            overflowX: 'auto'
+            border: '1px solid var(--border-color)'
           }}>
             <button
               onClick={() => setOwnerActiveTab('mitra')}
               style={{
-                padding: '9px 18px',
+                flex: '1 1 auto',
+                padding: '9px 12px',
                 borderRadius: '10px',
                 border: 'none',
                 fontWeight: 700,
-                fontSize: '0.88rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 background: ownerActiveTab === 'mitra' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
                 color: ownerActiveTab === 'mitra' ? '#fff' : '#94a3b8',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               Direktori Mitra ({merchants.length})
@@ -3286,18 +3291,21 @@ export default function Mitra({ user }) {
             <button
               onClick={() => setOwnerActiveTab('orders')}
               style={{
-                padding: '9px 18px',
+                flex: '1 1 auto',
+                padding: '9px 12px',
                 borderRadius: '10px',
                 border: 'none',
                 fontWeight: 700,
-                fontSize: '0.88rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 background: ownerActiveTab === 'orders' ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
                 color: ownerActiveTab === 'orders' ? '#fff' : '#94a3b8',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                justifyContent: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
               }}
             >
               <Package size={16} />
@@ -3307,18 +3315,21 @@ export default function Mitra({ user }) {
             <button
               onClick={() => setOwnerActiveTab('keuangan')}
               style={{
-                padding: '9px 18px',
+                flex: '1 1 auto',
+                padding: '9px 12px',
                 borderRadius: '10px',
                 border: 'none',
                 fontWeight: 700,
-                fontSize: '0.88rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 background: ownerActiveTab === 'keuangan' ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' : 'transparent',
                 color: ownerActiveTab === 'keuangan' ? '#fff' : '#94a3b8',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                justifyContent: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
               }}
             >
               <DollarSign size={16} />

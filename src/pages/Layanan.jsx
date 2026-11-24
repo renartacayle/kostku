@@ -835,8 +835,8 @@ export default function Layanan({ user }) {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobileScreen ? 'repeat(2, 1fr)' : 'repeat(4, minmax(0, 1fr))',
-            gap: isMobileScreen ? '8px' : '14px'
+            gridTemplateColumns: isMobileScreen ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
+            gap: isMobileScreen ? '10px' : '14px'
           }}>
             {list.map((item, idx) => (
               <MitraGridCard

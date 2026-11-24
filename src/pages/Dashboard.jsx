@@ -804,7 +804,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
             boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)',
             flexShrink: 0
           }}>
-            
+            <Shield size={20} color="#ffffff" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -832,7 +832,7 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
           type="button"
           onClick={onSwitchToStaffView}
           style={{
-            padding: '9px 16px',
+            padding: '9px 14px',
             borderRadius: '11px',
             background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
             border: 'none',
@@ -841,20 +841,25 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
             fontSize: '0.84rem',
             cursor: 'pointer',
             display: 'inline-flex',
+            flexWrap: 'wrap',
             alignItems: 'center',
+            justifyContent: 'space-between',
+            flex: '1 1 280px',
             gap: '8px',
             boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
             transition: 'all 0.2s ease'
           }}
           title="Buka panel operasional staf untuk catat meteran, terima paket, dan inspeksi kamar"
         >
-          <span>Ambil Alih Tugas & Meteran Staf</span>
+          <span>Ambil Alih Tugas &amp; Meteran Staf</span>
           <span style={{
             background: 'rgba(255, 255, 255, 0.25)',
-            padding: '2px 7px',
+            padding: '3px 8px',
             borderRadius: '6px',
-            fontSize: '0.7rem',
-            fontWeight: 800
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            whiteSpace: 'nowrap',
+            flexShrink: 0
           }}>
             Buka Panel Staf →
           </span>

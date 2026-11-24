@@ -286,7 +286,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             top: '6px',
             right: '6px',
             zIndex: 3,
-            fontSize: isMobileScreen ? '0.52rem' : '0.60rem',
+            fontSize: '0.62rem',
             padding: '2px 7px',
             borderRadius: '999px',
             fontWeight: 800,
@@ -311,10 +311,10 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
         </span>
 
         {/* Top-Left: Badges */}
-        <div style={{ position: 'absolute', top: '6px', left: '6px', zIndex: 2, display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'wrap', maxWidth: '62%' }}>
+        <div style={{ position: 'absolute', top: '6px', left: '6px', zIndex: 2, display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'wrap', maxWidth: '58%' }}>
           {hasOrderedBefore ? (
             <span style={{
-              fontSize: isMobileScreen ? '0.50rem' : '0.58rem',
+              fontSize: '0.62rem',
               padding: '2px 6px',
               borderRadius: '4px',
               background: 'linear-gradient(135deg, #7e22ce 0%, #9333ea 100%)',
@@ -332,8 +332,8 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             <>
               {isNewcomer ? (
                 <span style={{
-                  fontSize: isMobileScreen ? '0.50rem' : '0.58rem',
-                  padding: '2px 5px',
+                  fontSize: '0.62rem',
+                  padding: '2px 6px',
                   borderRadius: '4px',
                   background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
                   color: '#ffffff',
@@ -344,12 +344,12 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                   alignItems: 'center',
                   gap: '2px'
                 }} title="UMKM Baru di KostKu: Dapatkan bonus +150 Poin pada pesanan pertamamu!">
-                  Baru (+150 Pts)
+                  {isMobileScreen ? 'Baru +150' : 'Baru (+150 Pts)'}
                 </span>
               ) : activeItem.isRealTopSeller ? (
                 <span style={{
-                  fontSize: isMobileScreen ? '0.50rem' : '0.58rem',
-                  padding: '2px 5px',
+                  fontSize: '0.62rem',
+                  padding: '2px 6px',
                   borderRadius: '4px',
                   background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
                   color: '#ffffff',
@@ -360,12 +360,12 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                   alignItems: 'center',
                   gap: '2px'
                 }} title={`Beneran Terlaris: Akumulasi ${activeItem.effectiveSold || activeItem.totalSold || 30}+ pesanan nyata`}>
-                  Terlaris ({activeItem.effectiveSold || activeItem.totalSold || 30}x)
+                  {isMobileScreen ? 'Terlaris' : `Terlaris (${activeItem.effectiveSold || activeItem.totalSold || 30}x)`}
                 </span>
               ) : activeItem.isStorePick ? (
                 <span style={{
-                  fontSize: isMobileScreen ? '0.50rem' : '0.58rem',
-                  padding: '2px 5px',
+                  fontSize: '0.62rem',
+                  padding: '2px 6px',
                   borderRadius: '4px',
                   background: 'rgba(245, 158, 11, 0.90)',
                   color: '#0f172a',
@@ -380,8 +380,8 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 </span>
               ) : (
                 <span style={{
-                  fontSize: isMobileScreen ? '0.48rem' : '0.56rem',
-                  padding: '2px 4px',
+                  fontSize: '0.6rem',
+                  padding: '2px 5px',
                   borderRadius: '4px',
                   background: 'rgba(15, 23, 42, 0.75)',
                   color: '#f8fafc',
@@ -394,10 +394,10 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                 </span>
               )}
 
-              {isFnB && (
+              {!isMobileScreen && isFnB && (
                 activeItem?.isCameraVerified ? (
                   <span style={{
-                    fontSize: isMobileScreen ? '0.48rem' : '0.55rem',
+                    fontSize: '0.55rem',
                     padding: '2px 4px',
                     borderRadius: '4px',
                     background: 'rgba(6, 78, 59, 0.90)',
@@ -414,7 +414,7 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
                   </span>
                 ) : (
                   <span style={{
-                    fontSize: isMobileScreen ? '0.48rem' : '0.55rem',
+                    fontSize: '0.55rem',
                     padding: '2px 4px',
                     borderRadius: '4px',
                     background: 'rgba(239, 68, 68, 0.25)',
@@ -434,65 +434,6 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             </>
           )}
         </div>
-
-        {/* Top-Right: Partnership Badge */}
-        {!hasOrderedBefore && (
-          <div style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 2 }}>
-            {isMain ? (
-              <span style={{
-                fontSize: isMobileScreen ? '0.48rem' : '0.56rem',
-                padding: '2px 5px',
-                borderRadius: '4px',
-                background: 'rgba(245, 158, 11, 0.95)',
-                color: '#0f172a',
-                fontWeight: 900,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                lineHeight: 1
-              }}>
-                Utama
-              </span>
-            ) : isShared ? (
-              <span style={{
-                fontSize: isMobileScreen ? '0.48rem' : '0.56rem',
-                padding: '2px 5px',
-                borderRadius: '4px',
-                background: 'rgba(34, 197, 94, 0.95)',
-                color: '#0f172a',
-                fontWeight: 900,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                lineHeight: 1
-              }}>
-                Bersama
-              </span>
-            ) : isIndependent ? (
-              <span style={{
-                fontSize: isMobileScreen ? '0.48rem' : '0.56rem',
-                padding: '2px 5px',
-                borderRadius: '4px',
-                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.95) 0%, rgba(14, 165, 233, 0.95) 100%)',
-                color: '#ffffff',
-                fontWeight: 900,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                lineHeight: 1
-              }} title="UMKM Mandiri Sekitar Kost (Terbuka tanpa kontrak khusus pemilik kost)">
-                Mandiri
-              </span>
-            ) : (
-              <span style={{
-                fontSize: isMobileScreen ? '0.48rem' : '0.56rem',
-                padding: '2px 5px',
-                borderRadius: '4px',
-                background: 'rgba(59, 130, 246, 0.95)',
-                color: '#0f172a',
-                fontWeight: 900,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                lineHeight: 1
-              }}>
-                Jaringan
-              </span>
-            )}
-          </div>
-        )}
 
         {/* Bottom of Image: Name + Indicator Dots */}
         {activeItem?.image && (
@@ -542,31 +483,48 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
 
       {/* ── CARD BODY ── */}
       <div style={{
-        padding: isMobileScreen ? '7px 8px 9px' : '10px 12px 12px',
+        padding: isMobileScreen ? '8px 9px 10px' : '10px 12px 12px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         flex: 1,
-        gap: '4px'
+        gap: '6px'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-            <Store size={13} color={isLight ? '#0284c7' : '#38bdf8'} style={{ flexShrink: 0 }} />
-            <div style={{
-              fontSize: isMobileScreen ? '0.78rem' : '0.86rem',
-              fontWeight: 800,
-              color: isLight ? '#0f172a' : '#f8fafc',
-              lineHeight: 1.15,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1
-            }}>
-              {item.name || item.title}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '3px' }}>
+            <span style={{ fontSize: '0.64rem', fontWeight: 700, color: isLight ? '#64748b' : '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {isLaundry ? 'Laundry' : isGalon ? 'Depot Galon' : isGas ? 'Gas LPG' : (item.category || 'Kuliner')}
+            </span>
+            {!hasOrderedBefore && (
+              <span style={{
+                fontSize: '0.6rem',
+                padding: '1px 5px',
+                borderRadius: '4px',
+                fontWeight: 800,
+                flexShrink: 0,
+                background: isMain ? 'rgba(245, 158, 11, 0.18)' : isShared ? 'rgba(34, 197, 94, 0.18)' : isIndependent ? 'rgba(6, 182, 212, 0.16)' : 'rgba(59, 130, 246, 0.16)',
+                color: isMain ? (isLight ? '#b45309' : '#fbbf24') : isShared ? (isLight ? '#15803d' : '#4ade80') : isIndependent ? (isLight ? '#0e7490' : '#22d3ee') : (isLight ? '#1d4ed8' : '#60a5fa')
+              }}>
+                {isMain ? 'Utama' : isShared ? 'Bersama' : isIndependent ? 'Mandiri' : 'Jaringan'}
+              </span>
+            )}
           </div>
 
-          <div style={{ fontSize: isMobileScreen ? '0.56rem' : '0.62rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+          <div style={{
+            fontSize: isMobileScreen ? '0.84rem' : '0.88rem',
+            fontWeight: 800,
+            color: isLight ? '#0f172a' : '#f8fafc',
+            lineHeight: 1.25,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            marginBottom: '4px'
+          }}>
+            {item.name || item.title}
+          </div>
+
+          <div style={{ fontSize: isMobileScreen ? '0.66rem' : '0.68rem', color: isLight ? '#64748b' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}><Star size={10} color="#f59e0b" fill="#f59e0b" /> 4.8</span>
             <span>•</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}><MapPin size={10} /> {item.distanceKm || 0.2} km</span>
@@ -574,72 +532,58 @@ export default function MitraGridCard({ item, idx, isMobileScreen, onSelect, has
             <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
               <Bike size={10} /> {item.deliveryFeeType === 'per_km' ? `Rp ${(item.deliveryFeePerKm || 2500).toLocaleString('id-ID')}/km` : `Rp ${(item.deliveryFee || 2000).toLocaleString('id-ID')}`}
             </span>
-            {item.deliveryStartTime && item.deliveryEndTime && (
-              <>
-                <span>•</span>
-                <span style={{ color: isLight ? '#059669' : '#34d399', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                  <Clock size={10} /> {item.deliveryStartTime}-{item.deliveryEndTime}
-                </span>
-              </>
-            )}
           </div>
         </div>
 
         <div style={{
           display: 'flex',
+          flexDirection: isMobileScreen ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          marginTop: '3px',
-          paddingTop: '3px',
+          alignItems: isMobileScreen ? 'stretch' : 'flex-end',
+          gap: isMobileScreen ? '6px' : '4px',
+          marginTop: '2px',
+          paddingTop: '5px',
           borderTop: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255, 255, 255, 0.06)'
         }}>
-          <div>
-            <div style={{ fontSize: isMobileScreen ? '0.52rem' : '0.58rem', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1 }}>
-              Mulai dari:
-            </div>
-            <div style={{
-              fontSize: isMobileScreen ? '0.82rem' : '0.92rem',
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px' }}>
+            <span style={{ fontSize: isMobileScreen ? '0.62rem' : '0.58rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+              Mulai
+            </span>
+            <span style={{
+              fontSize: isMobileScreen ? '0.88rem' : '0.92rem',
               fontWeight: 900,
-              color: isLight ? '#15803d' : '#4ade80',
-              marginTop: '1px'
+              color: isLight ? '#15803d' : '#4ade80'
             }}>
               Rp {(cheapestProd?.price || 16000).toLocaleString('id-ID')}
-            </div>
+            </span>
           </div>
 
-          {isMobileScreen ? (
-            <span style={{
-              fontSize: '0.58rem',
-              fontWeight: 800,
-              color: isOnline ? (isLight ? '#2563eb' : '#60a5fa') : (isLight ? '#475569' : '#94a3b8')
-            }}>
-              {isOnline ? 'Pesan →' : 'Lihat Menu →'}
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(item);
-              }}
-              className="btn btn-primary btn-sm"
-              style={{
-                padding: '4px 10px',
-                fontSize: '0.70rem',
-                fontWeight: 700,
-                background: isOnline ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : (isLight ? '#e2e8f0' : '#334155'),
-                color: isOnline ? '#ffffff' : (isLight ? '#334155' : '#e2e8f0'),
-                border: 'none',
-                borderRadius: '6px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                cursor: 'pointer'
-              }}
-            >
-              {isOnline ? 'Mulai Pilih →' : 'Lihat Menu →'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(item);
+            }}
+            className={isOnline ? 'btn btn-primary btn-sm' : 'btn btn-sm'}
+            style={{
+              width: isMobileScreen ? '100%' : 'auto',
+              minHeight: isMobileScreen ? '34px' : undefined,
+              padding: isMobileScreen ? '6px 10px' : '4px 10px',
+              fontSize: isMobileScreen ? '0.76rem' : '0.70rem',
+              fontWeight: 700,
+              background: isOnline ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : (isLight ? '#e2e8f0' : '#334155'),
+              color: isOnline ? '#ffffff' : (isLight ? '#1e293b' : '#e2e8f0'),
+              border: isOnline ? 'none' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(148, 163, 184, 0.25)'),
+              borderRadius: '9px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              cursor: 'pointer'
+            }}
+          >
+            {isOnline ? 'Pesan →' : 'Lihat Menu →'}
+          </button>
         </div>
       </div>
     </div>

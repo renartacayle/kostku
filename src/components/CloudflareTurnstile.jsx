@@ -162,16 +162,20 @@ export default function CloudflareTurnstile({
   return (
     <div className={`cloudflare-turnstile-container ${className}`} style={{
       margin: '0.6rem 0',
-      padding: '8px 12px',
+      padding: '10px 12px',
       background: 'rgba(255, 255, 255, 0.03)',
       border: '1px solid rgba(255, 255, 255, 0.08)',
       borderRadius: '12px',
       display: 'flex',
+      flexWrap: 'wrap',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: '10px'
+      gap: '10px',
+      maxWidth: '100%',
+      overflow: 'hidden',
+      boxSizing: 'border-box'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#94a3b8' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#94a3b8', flex: '1 1 200px', minWidth: 0 }}>
         {status === 'verified' ? (
           <CheckCircle2 size={16} color="#34d399" style={{ flexShrink: 0 }} />
         ) : (
@@ -187,7 +191,7 @@ export default function CloudflareTurnstile({
       </div>
 
       {/* Target DOM node for official Cloudflare Turnstile widget */}
-      <div ref={containerRef} style={{ display: 'inline-block' }} />
+      <div ref={containerRef} style={{ display: 'flex', justifyContent: 'center', maxWidth: '100%', overflowX: 'auto' }} />
     </div>
   );
 }

@@ -1287,22 +1287,22 @@ export default function SearchKost({ user }) {
                         <div style={{
                           background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
                           color: '#ffffff',
-                          padding: '6px 14px',
+                          padding: '4px 10px',
                           borderRadius: '10px',
                           fontWeight: 900,
-                          fontSize: '0.85rem',
+                          fontSize: '0.74rem',
                           letterSpacing: '0.04em',
                           boxShadow: '0 4px 16px rgba(185, 28, 28, 0.6)',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px',
+                          gap: '5px',
                           textTransform: 'uppercase',
                           border: '1px solid rgba(255, 255, 255, 0.25)'
                         }}>
-                          <Ban size={15} strokeWidth={2.5} />
+                          <Ban size={13} strokeWidth={2.5} />
                           <span>Kamar Penuh</span>
                         </div>
-                        <span style={{
+                        <span className="search-card-full-subtitle" style={{
                           color: '#f8fafc',
                           fontSize: '0.72rem',
                           marginTop: '5px',
@@ -1319,6 +1319,7 @@ export default function SearchKost({ user }) {
                       <>
                         <button
                           type="button"
+                          className="search-card-photo-arrow"
                           onClick={(e) => prevCardPhoto(kost.uid, images.length, e)}
                           style={{
                             position: 'absolute',
@@ -1342,6 +1343,7 @@ export default function SearchKost({ user }) {
                         </button>
                         <button
                           type="button"
+                          className="search-card-photo-arrow"
                           onClick={(e) => nextCardPhoto(kost.uid, images.length, e)}
                           style={{
                             position: 'absolute',
@@ -1393,6 +1395,7 @@ export default function SearchKost({ user }) {
                     )}
 
                     {/* Top Floating Badges */}
+                    {!isFull && (
                     <div 
                       className="search-card-top-badges"
                       style={{
@@ -1478,7 +1481,7 @@ export default function SearchKost({ user }) {
                         </span>
                       )}
 
-                      <span style={{
+                      <span className="search-card-extra-badge" style={{
                         background: 'rgba(16, 185, 129, 0.92)',
                         color: 'white',
                         padding: '3px 8px',
@@ -1493,6 +1496,7 @@ export default function SearchKost({ user }) {
                         <span>Verifikasi</span>
                       </span>
                     </div>
+                    )}
 
                     {/* Top Right: Wishlist Heart Button */}
                     <button
@@ -1590,7 +1594,7 @@ export default function SearchKost({ user }) {
                       </p>
 
                       {/* Key Facilities Chips */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                      <div className="search-card-facilities" style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                         {(kost.facilities || ['AC', 'WiFi Cepat', 'KM Dalam']).slice(0, 3).map((f, i) => (
                           <span 
                             key={i} 
@@ -1648,6 +1652,7 @@ export default function SearchKost({ user }) {
                         {/* Compare checkbox button */}
                         <button
                           type="button"
+                          className="search-card-icon-btn"
                           onClick={(e) => toggleCompare(kost, e)}
                           style={{
                             padding: 'clamp(6px, 1.5vw, 9px) clamp(8px, 2vw, 12px)',
@@ -1674,6 +1679,7 @@ export default function SearchKost({ user }) {
                           href={getGmapsDirectionsUrl(coords?.lat, coords?.lng, userLocation?.lat, userLocation?.lng)}
                           target="_blank"
                           rel="noopener noreferrer"
+                          className="search-card-icon-btn"
                           onClick={(e) => e.stopPropagation()}
                           style={{
                             padding: 'clamp(6px, 1.5vw, 9px) clamp(8px, 2vw, 12px)',
@@ -1692,6 +1698,7 @@ export default function SearchKost({ user }) {
                           }}
                           title="Buka rute navigasi di Google Maps"
                         >
+                          <MapPin size={13} />
                           <span>GMaps</span>
                         </a>
 
@@ -1699,10 +1706,12 @@ export default function SearchKost({ user }) {
                         {isFull ? (
                           <button
                             type="button" 
+                            className="search-card-main-btn"
                             disabled
                             style={{
-                              flex: '1 1 90px',
+                              flex: '1 1 auto',
                               minWidth: 0,
+                              minHeight: '34px',
                               border: 'none',
                               padding: 'clamp(7px, 1.8vw, 10px) clamp(10px, 2.2vw, 14px)',
                               borderRadius: '10px',
@@ -1717,19 +1726,20 @@ export default function SearchKost({ user }) {
                               cursor: 'not-allowed'
                             }}
                           >
-                            <Ban size={15} />
-                            <span>Kamar Penuh</span>
+                            <Ban size={14} />
+                            <span>Penuh</span>
                           </button>
                         ) : (
                           <button
                             type="button" 
+                            className="search-card-main-btn"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/kost/${kost.uid}`);
                             }}
                             style={{
-                              flex: 1,
-                              minWidth: '130px',
+                              flex: '1 1 auto',
+                              minWidth: 0,
                               border: 'none',
                               textDecoration: 'none',
                               padding: '10px 14px',
@@ -1747,8 +1757,9 @@ export default function SearchKost({ user }) {
                               transition: 'opacity 0.2s'
                             }}
                           >
-                            <span>Pilih & Booking</span>
-                            <ChevronRight size={15} />
+                            <span className="search-card-desktop-label">Pilih &amp; Booking</span>
+                            <span className="search-card-mobile-label">Sewa</span>
+                            <ChevronRight size={14} />
                           </button>
                         )}
                       </div>

@@ -92,14 +92,10 @@ export default function FabFanMenu() {
   const shouldHideFab = 
     location.pathname === '/login' ||
     location.pathname === '/register' ||
-    location.pathname === '/demo' ||
-    location.pathname === '/sandbox' ||
-    location.pathname === '/demo-showcase' ||
+    location.pathname.startsWith('/kost/') ||
     location.pathname === '/checkout' || 
     location.pathname === '/bayar' ||
     location.pathname === '/pembayaran' ||
-    location.pathname === '/stress-test-report' ||
-    location.pathname.startsWith('/stress-test') ||
     location.pathname.startsWith('/order') ||
     location.pathname.startsWith('/meja') ||
     location.pathname.startsWith('/kasir') ||

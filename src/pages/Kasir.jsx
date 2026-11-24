@@ -6439,12 +6439,14 @@ export default function Kasir({ user, onLogout }) {
             padding: '0 2px',
             boxSizing: 'border-box',
             display: 'flex',
+            flexWrap: 'wrap',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '0.45rem'
+            gap: '0.45rem',
+            rowGap: '6px'
           }}>
             {/* Left: Mobile (Back Arrow + Logo + Store Name) vs Desktop (Active Module Title) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '185px', flex: '1 1 185px', overflow: 'hidden' }}>
               {/* Mobile View: Back Arrow + Logo + Store Name */}
               <div className="mobile-only-flex" style={{ alignItems: 'center', gap: '6px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
                 <Link 
@@ -6564,7 +6566,7 @@ export default function Kasir({ user, onLogout }) {
             </div>
 
             {/* Right: Sisa Nota + Desktop Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: 'auto' }}>
               {/* Buka Laci Cepat RJ11 di Desktop */}
               <div className="desktop-only-flex" style={{ alignItems: 'center', gap: '3px' }}>
                 <button
@@ -6606,7 +6608,8 @@ export default function Kasir({ user, onLogout }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '3px 7px',
+                    minHeight: '28px',
+                    padding: '4px 8px',
                     borderRadius: '999px',
                     background: kasirWebOnline
                       ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.2)')
@@ -6633,7 +6636,8 @@ export default function Kasir({ user, onLogout }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '3px',
-                    padding: '3px 7px',
+                    minHeight: '28px',
+                    padding: '4px 8px',
                     borderRadius: '999px',
                     background: storeSaldoNota < storeNotaFeeIdr 
                       ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
