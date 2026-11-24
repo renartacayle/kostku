@@ -10560,7 +10560,7 @@ export default function Kasir({ user, onLogout }) {
           onClick={() => setShowMobileCartDrawer(true)}
           style={{
             position: 'fixed',
-            bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(90px + env(safe-area-inset-bottom, 0px))',
             left: '3%',
             right: '3%',
             width: '94%',

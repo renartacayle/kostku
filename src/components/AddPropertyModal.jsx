@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Building2, 
   MapPin, 
@@ -138,7 +139,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
     }
   };
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed',
       inset: 0,
@@ -147,7 +148,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 9999,
+      zIndex: 100000,
       padding: '1rem'
     }}>
       <div style={{
@@ -319,7 +320,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
               <input
                 type="text"
                 required
-                placeholder="Contoh: https://maps.app.goo.gl/... atau https://www.google.com/maps/place/NamaKost/..."
+                placeholder="https://maps.app.goo.gl/... atau link profil kost"
                 value={gmapsUrl}
                 onChange={e => {
                   setGmapsUrl(e.target.value);
@@ -379,7 +380,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
           </div>
 
           {/* Kategori Kost & Jumlah Kamar */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>
                 Kategori Gender
@@ -768,6 +769,7 @@ export default function AddPropertyModal({ isOpen, onClose, user, onKostAdded })
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

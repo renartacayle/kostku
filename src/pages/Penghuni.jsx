@@ -975,7 +975,7 @@ const Penghuni = ({ user }) => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                     Pilih Kamar <span style={{ color: '#ef4444' }}>*</span>:
@@ -985,7 +985,7 @@ const Penghuni = ({ user }) => {
                     required 
                     value={kamar} 
                     onChange={e => setKamar(e.target.value)}
-                    style={{ background: '#0f172a', color: 'white' }}
+                    style={{ background: isLight ? '#ffffff' : '#0f172a', color: isLight ? '#0f172a' : '#ffffff' }}
                   >
                     <option value="">-- Pilih Kamar --</option>
                     {rooms.map(r => (

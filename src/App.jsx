@@ -355,6 +355,8 @@ function App() {
     }
   };
 
+  const isKasirHost = typeof window !== 'undefined' && window.location.hostname.toLowerCase().startsWith('kasir.');
+
   return (
     <Router>
       <ScrollToTop />
@@ -364,7 +366,7 @@ function App() {
         <Suspense fallback={<PageLoadingFallback />}>
           <Routes>
             {/* Public Landing & Marketplace */}
-            <Route path="/" element={<Home user={activeUser} />} />
+            <Route path="/" element={isKasirHost ? <Navigate to="/kasir" replace /> : <Home user={activeUser} />} />
           <Route path="/search" element={<SearchKost user={activeUser} />} />
           <Route path="/cari-kost" element={<SearchKost user={activeUser} />} />
           <Route path="/cari" element={<Navigate to="/search" replace />} />

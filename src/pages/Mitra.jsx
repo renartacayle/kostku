@@ -4847,12 +4847,12 @@ export default function Mitra({ user }) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(5, 10, 20, 0.85)',
+          background: isLight ? 'rgba(15, 23, 42, 0.65)' : 'rgba(5, 10, 20, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 10000,
+          zIndex: 100000,
           padding: '1rem'
         }} className="animate-fade-in">
           <div style={{
@@ -4863,7 +4863,7 @@ export default function Mitra({ user }) {
             maxWidth: '520px',
             maxHeight: '90vh',
             overflowY: 'auto',
-            padding: '1.75rem',
+            padding: '1.35rem',
             boxShadow: isLight ? '0 20px 40px rgba(0, 0, 0, 0.1)' : '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -4945,7 +4945,7 @@ export default function Mitra({ user }) {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>
                     Kategori:
@@ -5016,7 +5016,7 @@ export default function Mitra({ user }) {
               </div>
 
               {/* Delivery mode & Ongkir per KM */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>
                     Opsi Pengantaran:
