@@ -5,8 +5,8 @@ import { ShieldCheck, RefreshCw, CheckCircle2 } from 'lucide-react';
  * Cloudflare Turnstile Component for KostKu
  * Invisible / Managed Anti-Bot Protection (100% Free, Privacy-friendly, Zero-friction alternative to reCAPTCHA)
  * 
- * Uses Cloudflare's always-pass test sitekey by default in dev/test: '1x00000000000000000000AA'
- * or import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY if configured in production.
+ * Production sitekey defaults to public KostKu Turnstile key ('0x4AAAAAAGQ6qo0tgpbti-oo')
+ * or import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY if overridden via environment variables.
  */
 export default function CloudflareTurnstile({
   onVerify,
@@ -33,9 +33,9 @@ export default function CloudflareTurnstile({
     onExpireRef.current = onExpire;
   }, [onExpire]);
 
-  // Default sitekey: Cloudflare's official always-passing invisible test key
+  // Public Turnstile Site Key (safe to expose in frontend; secret verification stays strictly server-side)
   const siteKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY) 
-    || '1x00000000000000000000AA';
+    || '0x4AAAAAAGQ6qo0tgpbti-oo';
 
   useEffect(() => {
     let isMounted = true;
