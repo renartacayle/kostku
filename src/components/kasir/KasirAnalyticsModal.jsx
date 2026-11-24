@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
-import ActionTutorialBadge from './ActionTutorialBadge';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -537,10 +536,10 @@ export default function KasirAnalyticsModal({
             <YAxis
               type="category"
               dataKey="name"
-              width={118}
+              width={132}
               stroke={textSecondary}
               fontSize={11}
-              tickFormatter={(v) => truncateText(v, 15)}
+              tickFormatter={(v) => truncateText(v, 18)}
             />
             <Tooltip content={renderTooltipContent} />
             <Bar dataKey={chartMetric} name={metricLabel} radius={[0, 6, 6, 0]} maxBarSize={24}>
@@ -670,13 +669,7 @@ export default function KasirAnalyticsModal({
             <Download size={13} color="#2563eb" />
             <span>Export CSV</span>
           </button>
-          <ActionTutorialBadge
-            isLight={isLight}
-            size="sm"
-            title="Export CSV"
-            description="Mengunduh data statistik sesuai filter tanggal & dimensi yang sedang aktif ke format CSV (UTF-8)."
-            steps={['Atur rentang tanggal dan filter grafik yang diinginkan.', 'Klik Export CSV lalu buka file di Excel atau Google Sheets.']}
-          />
+
         </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           <button
@@ -701,12 +694,7 @@ export default function KasirAnalyticsModal({
             <FileSpreadsheet size={13} />
             <span>Export Excel</span>
           </button>
-          <ActionTutorialBadge
-            isLight={isLight}
-            size="sm"
-            title="Export Excel (.xlsx)"
-            description="Mengunduh workbook Excel multi-sheet berisi Ringkasan, Timeline, Metode Pembayaran, Jam Ramai, Item, Kategori, Toko, dan Karyawan."
-          />
+
         </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           <button
@@ -730,12 +718,7 @@ export default function KasirAnalyticsModal({
             <RefreshCw size={13} className={loadingAnalytics ? 'animate-spin' : ''} />
             <span>{loadingAnalytics ? 'Memuat...' : 'Refresh Grafik'}</span>
           </button>
-          <ActionTutorialBadge
-            isLight={isLight}
-            size="sm"
-            title="Refresh Grafik"
-            description="Memuat ulang angka omset, transaksi, dan grafik terbaru langsung dari database server."
-          />
+
         </div>
         {isFullPage ? (
           onClose && (
@@ -847,12 +830,7 @@ export default function KasirAnalyticsModal({
             <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, display: 'inline-flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
               <Calendar size={14} color="#2563eb" />
               <span>Periode Tanggal</span>
-              <ActionTutorialBadge
-                isLight={isLight}
-                size="sm"
-                title="Periode & Rentang Tanggal"
-                description="Pilih preset Hari Ini, Minggu Ini, Bulan Ini, Tahun Ini, All Time, atau Custom Tanggal untuk menyaring seluruh grafik sekaligus melihat persentase naik/turun terhadap periode sebelumnya."
-              />
+
             </span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -878,7 +856,7 @@ export default function KasirAnalyticsModal({
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          <div style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: '6px', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }} className="no-scrollbar">
             {DATE_PRESETS.map((preset) => {
               const isActive = activeFilters.range === preset.id;
               return (
@@ -995,12 +973,7 @@ export default function KasirAnalyticsModal({
             <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, display: 'inline-flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
               <Filter size={14} color="#4f46e5" />
               <span>Filter Dimensi Grafik</span>
-              <ActionTutorialBadge
-                isLight={isLight}
-                size="sm"
-                title="Filter Dimensi & Combine"
-                description="Gunakan All untuk ringkasan total, Per Item/Kategori/Toko/Karyawan untuk fokus satu dimensi, atau Combine untuk menggabungkan beberapa filter secara bersamaan."
-              />
+
             </span>
 
             {activeFilterBadges.length > 0 && (
@@ -1027,7 +1000,7 @@ export default function KasirAnalyticsModal({
             )}
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          <div style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: '6px', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }} className="no-scrollbar">
             {FILTER_MODES.map((mode) => {
               const IconComp = mode.icon;
               const isActive = activeFilters.filterMode === mode.id;
@@ -1060,7 +1033,7 @@ export default function KasirAnalyticsModal({
           {(showStoreSelect || showCategorySelect || showItemSelect || showEmployeeSelect) && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
               gap: '10px',
               padding: '10px 12px',
               borderRadius: '12px',
@@ -1139,17 +1112,17 @@ export default function KasirAnalyticsModal({
       {/* ── KPI SUMMARY STRIP (4 RINGKASAN ANGKA UTAMA) ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
-        gap: '10px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+        gap: '8px'
       }}>
         <div style={{
           background: bgCard,
           border: `1px solid ${borderColor}`,
           borderRadius: '14px',
-          padding: '12px 14px',
+          padding: '10px 10px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '8px',
           minWidth: 0
         }}>
           <div style={{
@@ -1178,10 +1151,10 @@ export default function KasirAnalyticsModal({
           background: bgCard,
           border: `1px solid ${borderColor}`,
           borderRadius: '14px',
-          padding: '12px 14px',
+          padding: '10px 10px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '8px',
           minWidth: 0
         }}>
           <div style={{
@@ -1210,10 +1183,10 @@ export default function KasirAnalyticsModal({
           background: bgCard,
           border: `1px solid ${borderColor}`,
           borderRadius: '14px',
-          padding: '12px 14px',
+          padding: '10px 10px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '8px',
           minWidth: 0
         }}>
           <div style={{
@@ -1242,10 +1215,10 @@ export default function KasirAnalyticsModal({
           background: bgCard,
           border: `1px solid ${borderColor}`,
           borderRadius: '14px',
-          padding: '12px 14px',
+          padding: '10px 10px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '8px',
           minWidth: 0
         }}>
           <div style={{

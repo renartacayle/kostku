@@ -46,14 +46,20 @@ import {
 import { useTheme } from '../context/ThemeContext';
 
 const AVAILABLE_ROLES = [
-  { id: 'Penjaga Kost', label: 'Penjaga Kost (All-round)', color: '#10b981' },
-  { id: 'Petugas Kebersihan', label: 'Petugas Kebersihan (Housekeeping)', color: '#06b6d4' },
-  { id: 'Teknisi Listrik & Air', label: 'Teknisi Listrik, Pompa & Pipa Air', color: '#f59e0b' },
-  { id: 'Satpam / Keamanan', label: 'Satpam / Keamanan & Ronda Malam', color: '#ec4899' },
-  { id: 'Admin Pembukuan', label: 'Admin Pembukuan & Kas Kecil', color: '#8b5cf6' },
-  { id: 'Resepsionis / Tour Kamar', label: 'Resepsionis / Tour Calon Penghuni', color: '#3b82f6' },
-  { id: 'Kasir Toko (Mitra POS)', label: 'Kasir Toko / Mitra POS', color: '#2563eb' },
-  { id: 'Staf Dapur & Pesanan', label: 'Staf Dapur & Pesanan (KDS)', color: '#db2777' }
+  // POS & Bisnis UMKM Roles (Priority untuk Mitra)
+  { id: 'Kasir Toko (Mitra POS)', label: 'Kasir Toko / Mitra POS', category: 'pos', desc: 'Melayani transaksi nota, laci kasir, & pembayaran QRIS/Tunai', color: '#2563eb' },
+  { id: 'Staf Dapur & Pesanan', label: 'Staf Dapur & Pesanan (KDS)', category: 'pos', desc: 'Melihat pesanan masuk meja QR & update status masakan', color: '#db2777' },
+  { id: 'Barista / Minuman', label: 'Barista / Racik Minuman', category: 'pos', desc: 'Fokus pesanan minuman cepat saji & racikan kopi', color: '#06b6d4' },
+  { id: 'Pelayan / Waiter', label: 'Pelayan / Waiter Antar Meja', category: 'pos', desc: 'Antar pesanan ke nomor meja pelanggan & hospitality', color: '#f59e0b' },
+  { id: 'Admin Pembukuan Toko', label: 'Admin Pembukuan Toko', category: 'pos', desc: 'Cek omset harian kasir & kelola stok bahan baku', color: '#8b5cf6' },
+
+  // Operasional Kost Roles
+  { id: 'Penjaga Kost', label: 'Penjaga Kost (All-round)', category: 'kost', desc: 'Pengawasan harian, kunci & operasional umum properti', color: '#10b981' },
+  { id: 'Petugas Kebersihan', label: 'Petugas Kebersihan (Housekeeping)', category: 'kost', desc: 'Pembersihan lorong, fasilitas umum, & kamar kosong', color: '#06b6d4' },
+  { id: 'Teknisi Listrik & Air', label: 'Teknisi Listrik, Pompa & Pipa Air', category: 'kost', desc: 'Perbaikan fasilitas fisik, AC, wifi, & saluran air', color: '#f59e0b' },
+  { id: 'Satpam / Keamanan', label: 'Satpam / Keamanan & Ronda Malam', category: 'kost', desc: 'Penjagaan gerbang, parkiran, & ketertiban kost', color: '#ec4899' },
+  { id: 'Admin Pembukuan', label: 'Admin Pembukuan & Kas Kecil Kost', category: 'kost', desc: 'Pencatatan uang sewa kamar, denda, & iuran kost', color: '#8b5cf6' },
+  { id: 'Resepsionis / Tour Kamar', label: 'Resepsionis / Tour Calon Penghuni', category: 'kost', desc: 'Melayani survei calon penghuni & check-in', color: '#3b82f6' }
 ];
 
 export default function StaffManagementCard({ user, selectedStaffId, onSelectStaff }) {
@@ -73,6 +79,18 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const isMitraContext = Boolean(user?.role === 'mitra' || user?.isMitra || user?.merchantId);
+  const prioritizedRoles = [...AVAILABLE_ROLES].sort((a, b) => {
+    if (isMitraContext) {
+      if (a.category === 'pos' && b.category !== 'pos') return -1;
+      if (a.category !== 'pos' && b.category === 'pos') return 1;
+    } else {
+      if (a.category === 'kost' && b.category !== 'kost') return -1;
+      if (a.category !== 'kost' && b.category === 'kost') return 1;
+    }
+    return 0;
+  });
+
   const [copiedInviteId, setCopiedInviteId] = useState(null);
   const [actionMsg, setActionMsg] = useState(null);
   const [actionError, setActionError] = useState(null);
@@ -1751,33 +1769,59 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
                   {/* Role Options */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
-                    {AVAILABLE_ROLES.map(r => {
+                    {prioritizedRoles.map((r, idx) => {
                       const isSelected = formSelectedRoles.includes(r.id);
+                      const prev = prioritizedRoles[idx - 1];
+                      const isNewCategory = !prev || prev.category !== r.category;
                       return (
-                        <div
-                          key={r.id}
-                          onClick={() => toggleFormRole(r.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            border: isSelected ? `1.5px solid ${r.color}` : `1px solid ${modalBorder}`,
-                            background: isSelected ? `${r.color}18` : 'transparent',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          {isSelected ? (
-                            <CheckSquare size={16} color={r.color} />
-                          ) : (
-                            <Square size={16} color="#64748b" />
+                        <React.Fragment key={r.id}>
+                          {isNewCategory && (
+                            <div style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              color: r.category === 'pos' ? '#2563eb' : '#10b981',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                              marginTop: idx > 0 ? '8px' : '0px',
+                              marginBottom: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              <span>{r.category === 'pos' ? '🏪 Peran Kasir & Usaha Toko (UMKM)' : '🏠 Peran Operasional Kost'}</span>
+                            </div>
                           )}
-                          <span style={{ fontSize: '0.82rem', color: isSelected ? modalText : modalSubText, fontWeight: isSelected ? 700 : 500 }}>
-                            {r.label}
-                          </span>
-                        </div>
+                          <div
+                            onClick={() => toggleFormRole(r.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              border: isSelected ? `1.5px solid ${r.color}` : `1px solid ${modalBorder}`,
+                              background: isSelected ? `${r.color}18` : 'transparent',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            {isSelected ? (
+                              <CheckSquare size={16} color={r.color} />
+                            ) : (
+                              <Square size={16} color="#64748b" />
+                            )}
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.82rem', color: isSelected ? modalText : modalSubText, fontWeight: isSelected ? 700 : 500 }}>
+                                {r.label}
+                              </span>
+                              {r.desc && (
+                                <span style={{ fontSize: '0.68rem', color: isSelected ? r.color : modalSubText, marginTop: '2px' }}>
+                                  {r.desc}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>
@@ -1955,32 +1999,56 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
 
             {/* Checkbox list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' }}>
-              {AVAILABLE_ROLES.map(r => {
+              {prioritizedRoles.map((r, idx) => {
                 const isSelected = editSelectedRoles.includes(r.id);
+                const prev = prioritizedRoles[idx - 1];
+                const isNewCategory = !prev || prev.category !== r.category;
                 return (
-                  <div
-                    key={r.id}
-                    onClick={() => toggleEditRole(r.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: isSelected ? `1.5px solid ${r.color}` : `1px solid ${modalBorder}`,
-                      background: isSelected ? `${r.color}18` : 'transparent',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {isSelected ? (
-                      <CheckSquare size={16} color={r.color} />
-                    ) : (
-                      <Square size={16} color="#64748b" />
+                  <React.Fragment key={r.id}>
+                    {isNewCategory && (
+                      <div style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        color: r.category === 'pos' ? '#2563eb' : '#10b981',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        marginTop: idx > 0 ? '8px' : '0px',
+                        marginBottom: '2px'
+                      }}>
+                        {r.category === 'pos' ? '🏪 Peran Kasir & Usaha Toko (UMKM)' : '🏠 Peran Operasional Kost'}
+                      </div>
                     )}
-                    <span style={{ fontSize: '0.82rem', color: isSelected ? modalText : modalSubText, fontWeight: isSelected ? 700 : 500 }}>
-                      {r.label}
-                    </span>
-                  </div>
+                    <div
+                      key={r.id}
+                      onClick={() => toggleEditRole(r.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: isSelected ? `1.5px solid ${r.color}` : `1px solid ${modalBorder}`,
+                        background: isSelected ? `${r.color}18` : 'transparent',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {isSelected ? (
+                        <CheckSquare size={16} color={r.color} />
+                      ) : (
+                        <Square size={16} color="#64748b" />
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.82rem', color: isSelected ? modalText : modalSubText, fontWeight: isSelected ? 700 : 500 }}>
+                          {r.label}
+                        </span>
+                        {r.desc && (
+                          <span style={{ fontSize: '0.68rem', color: isSelected ? r.color : modalSubText, marginTop: '2px' }}>
+                            {r.desc}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </React.Fragment>
                 );
               })}
             </div>

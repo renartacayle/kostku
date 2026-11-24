@@ -254,6 +254,14 @@ export function buildEscPosBuffer(order, options = {}) {
     const itemTitle = `${it.qty}x ${it.name}`;
     const priceStr = `Rp ${(it.subtotal || 0).toLocaleString('id-ID')}`;
     bytes.push(...textToBytes(formatTwoColumns(itemTitle, priceStr, maxCols) + '\n'));
+    if (Array.isArray(it.extras) && it.extras.length > 0) {
+      it.extras.forEach(ex => {
+        const exQty = Math.max(1, Number(ex.qty) || 1);
+        const exTotal = (Number(ex.price) || 0) * exQty;
+        const exSuffix = exTotal > 0 ? ` (+Rp ${exTotal.toLocaleString('id-ID')})` : '';
+        bytes.push(...textToBytes(`  + ${exQty > 1 ? `${exQty}x ` : ''}${ex.name}${exSuffix}\n`));
+      });
+    }
     if (it.notes) {
       bytes.push(...textToBytes(`  * Catatan: ${it.notes}\n`));
     }

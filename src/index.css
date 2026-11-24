@@ -491,6 +491,283 @@ html, body {
   }
 }
 
+/* Dashboard Kasir Responsive Bento Grid (Hero-First Mobile, 2x3 Tablet, 3x2 Desktop) */
+.pos-dashboard-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pos-dashboard-bento-tile {
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 18px;
+  padding: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (max-width: 639px) {
+  .bento-desktop-only {
+    display: none !important;
+  }
+  .bento-mobile-tab-hidden {
+    display: none !important;
+  }
+  .bento-hero-card {
+    grid-column: 1 / -1;
+    border-radius: 22px !important;
+    padding: 16px 18px !important;
+    min-height: 166px;
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06) !important;
+  }
+  [data-theme="dark"] .bento-hero-card {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35) !important;
+  }
+  .bento-hero-card .bento-hero-amount {
+    font-size: 1.85rem !important;
+  }
+  .bento-mobile-kpi-pair {
+    min-height: 122px;
+  }
+  .bento-mobile-tabs-bar {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+  }
+  .bento-mobile-sheet {
+    grid-column: 1 / -1;
+    border-radius: 20px !important;
+    padding: 16px !important;
+    min-height: 200px;
+    max-height: 360px;
+  }
+  .bento-mobile-flat-box {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .bento-mobile-only,
+  .bento-mobile-tabs-bar {
+    display: none !important;
+  }
+  .pos-dashboard-bento-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .pos-dashboard-bento-tile {
+    border-radius: 20px;
+    padding: 16px 18px;
+  }
+  .pos-dashboard-bento-tile--row1 {
+    min-height: 170px;
+  }
+  .pos-dashboard-bento-tile--row2 {
+    min-height: 280px;
+    max-height: 340px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pos-dashboard-bento-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .pos-dashboard-bento-tile {
+    padding: 18px 20px;
+  }
+  .pos-dashboard-bento-tile--row1 {
+    min-height: 178px;
+  }
+  .pos-dashboard-bento-tile--row2 {
+    min-height: 300px;
+    max-height: 350px;
+  }
+}
+
+/* ── OWNER SETUP (EXTRA & TOPPING + MENU MODAL) RESPONSIVE PHONE & DESKTOP ── */
+.kasir-extras-main {
+  width: 100%;
+  max-width: 100%;
+  margin: 1rem auto 0;
+  padding: 0 2% 2.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kasir-extras-mobile-header {
+  display: none !important;
+}
+
+.kasir-extras-mobile-tabs {
+  display: none !important;
+}
+
+.kasir-extras-layout {
+  display: grid;
+  grid-template-columns: minmax(310px, 420px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+}
+
+.kasir-extra-form-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.kasir-extra-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.kasir-extra-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.kasir-extra-item-actions button {
+  min-height: 36px;
+}
+
+.kasir-menu-modal-overlay {
+  align-items: center;
+  padding: 1rem;
+}
+
+.kasir-menu-modal-sheet {
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  padding: 1.25rem;
+  box-sizing: border-box;
+}
+
+.kasir-menu-modal-handle {
+  display: none;
+}
+
+.kasir-menu-modal-sheet input:focus,
+.kasir-menu-modal-sheet textarea:focus,
+.kasir-menu-modal-sheet select:focus {
+  outline: none;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.kasir-menu-extra-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+@media (max-width: 639px) {
+  .kasir-extras-main {
+    margin-top: 0.45rem;
+    padding: 0 12px 116px;
+    gap: 12px;
+  }
+  .kasir-extras-desktop-header {
+    display: none !important;
+  }
+  .kasir-extras-mobile-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .kasir-extras-mobile-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: rgba(148, 163, 184, 0.16);
+  }
+  .kasir-extras-mobile-hidden {
+    display: none !important;
+  }
+  .kasir-extras-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .kasir-extra-form-row2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .kasir-extra-item-actions button {
+    min-height: 38px;
+  }
+  .kasir-menu-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .kasir-menu-modal-sheet {
+    border-radius: 22px 22px 0 0;
+    max-width: 100%;
+    max-height: 92dvh;
+    padding: 10px 14px calc(22px + env(safe-area-inset-bottom, 0px));
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+  }
+  .kasir-menu-modal-handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    margin: 0 auto 6px;
+    flex-shrink: 0;
+  }
+  .kasir-menu-extra-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    box-sizing: border-box;
+  }
+  .kasir-menu-extra-name {
+    grid-column: 1 / -1;
+    width: 100% !important;
+  }
+  .kasir-menu-extra-price {
+    grid-column: 1;
+    width: 100% !important;
+  }
+  .kasir-menu-extra-del {
+    grid-column: 2;
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+
 @media (min-width: 901px) {
   html {
     scrollbar-gutter: stable;

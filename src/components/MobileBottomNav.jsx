@@ -178,15 +178,15 @@ export default function MobileBottomNav({ user }) {
   // Sync index on route or category change
   useEffect(() => {
     const newIdx = getActiveItemIdx();
-    if (newIdx !== currentIdx && !isHopping) {
+    if (newIdx !== currentIdx) {
       setIsHopping(true);
       setCurrentIdx(newIdx);
       if (hoppingTimerRef.current) clearTimeout(hoppingTimerRef.current);
       hoppingTimerRef.current = setTimeout(() => {
         setIsHopping(false);
-      }, 460);
+      }, 440);
     }
-  }, [getActiveItemIdx, currentIdx, isHopping]);
+  }, [getActiveItemIdx, currentIdx]);
 
   // Handle tab click within the active category navbar
   const handleTabClick = useCallback((e, item, idx) => {
@@ -342,7 +342,7 @@ export default function MobileBottomNav({ user }) {
                 {/* True Sunken U-Notch Crater Fill */}
                 <path
                   d="M 0,0 C 12,0 16,24 37,24 C 58,24 62,0 74,0 Z"
-                  fill={isLight ? '#f1f5f9' : '#080d1a'}
+                  fill={isLight ? '#f8fafc' : '#0a0f1d'}
                 />
                 {/* Notch Rim Border */}
                 <path

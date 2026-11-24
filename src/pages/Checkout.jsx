@@ -724,7 +724,7 @@ export default function Checkout({ user }) {
                       </h2>
                     </div>
                     <span style={{ fontSize: '0.72rem', color: '#059669', background: 'rgba(16, 185, 129, 0.15)', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                      ✓ Terverifikasi Asli
+                      <Check size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} /> Terverifikasi Asli
                     </span>
                   </div>
 
@@ -804,29 +804,42 @@ export default function Checkout({ user }) {
                         </div>
 
                         <div style={{ minWidth: 0 }}>
-                          <label htmlFor="checkout-duration-select" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                          <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                             Durasi Sewa:
                           </label>
-                          <select
-                            id="checkout-duration-select"
-                            value={duration}
-                            onChange={(e) => setDuration(Number(e.target.value))}
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px',
-                              borderRadius: '10px',
-                              background: themeStyles.bgInput,
-                              border: '1px solid rgba(59, 130, 246, 0.4)',
-                              color: themeStyles.textInput,
-                              fontSize: '0.88rem',
-                              fontWeight: 700
-                            }}
-                          >
-                            <option value={1} style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>1 Bulan (Reguler)</option>
-                            <option value={3} style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>3 Bulan (Kuartal)</option>
-                            <option value={6} style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>6 Bulan (Semester)</option>
-                            <option value={12} style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>12 Bulan (1 Tahun Penuh)</option>
-                          </select>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+                            {[
+                              { val: 1, label: '1 Bulan', tag: 'Reguler' },
+                              { val: 3, label: '3 Bulan', tag: 'Kuartal' },
+                              { val: 6, label: '6 Bulan', tag: 'Hemat 5%' },
+                              { val: 12, label: '1 Tahun', tag: 'Hemat 10%' }
+                            ].map((opt) => {
+                              const active = duration === opt.val;
+                              return (
+                                <button
+                                  key={opt.val}
+                                  type="button"
+                                  onClick={() => setDuration(opt.val)}
+                                  style={{
+                                    padding: '7px 8px',
+                                    borderRadius: '10px',
+                                    border: active ? '2px solid #2563eb' : '1px solid rgba(148, 163, 184, 0.35)',
+                                    background: active ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.22)') : themeStyles.bgInput,
+                                    color: active ? '#2563eb' : themeStyles.textTitle,
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>{opt.label}</span>
+                                  <span style={{ fontSize: '0.66rem', color: active ? '#2563eb' : themeStyles.textMuted }}>{opt.tag}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
 
@@ -957,28 +970,35 @@ export default function Checkout({ user }) {
 
                     <div className="checkout-two-col-grid">
                       <div style={{ minWidth: 0 }}>
-                        <label htmlFor="checkout-customer-job" style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', color: themeStyles.textBody, fontWeight: 600, marginBottom: '6px' }}>
                           Profesi / Status:
                         </label>
-                        <select
-                          id="checkout-customer-job"
-                          value={customerJob}
-                          onChange={(e) => setCustomerJob(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '11px 12px',
-                            borderRadius: '10px',
-                            background: themeStyles.bgInput,
-                            border: themeStyles.borderInput,
-                            color: themeStyles.textInput,
-                            fontSize: '0.88rem'
-                          }}
-                        >
-                          <option value="Mahasiswa" style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>Mahasiswa</option>
-                          <option value="Karyawan Swasta" style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>Karyawan Swasta</option>
-                          <option value="PNS / BUMN" style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>PNS / BUMN</option>
-                          <option value="Freelancer / WFH" style={{ background: themeStyles.bgCard, color: themeStyles.textTitle }}>Freelancer / WFH</option>
-                        </select>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+                          {['Mahasiswa', 'Karyawan Swasta', 'PNS / BUMN', 'Freelancer / WFH'].map((job) => {
+                            const active = customerJob === job;
+                            return (
+                              <button
+                                key={job}
+                                type="button"
+                                onClick={() => setCustomerJob(job)}
+                                style={{
+                                  padding: '8px 10px',
+                                  borderRadius: '10px',
+                                  border: active ? '2px solid #2563eb' : '1px solid rgba(148, 163, 184, 0.35)',
+                                  background: active ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.22)') : themeStyles.bgInput,
+                                  color: active ? '#2563eb' : themeStyles.textTitle,
+                                  fontSize: '0.78rem',
+                                  fontWeight: active ? 800 : 600,
+                                  cursor: 'pointer',
+                                  textAlign: 'center',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                {job}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       <div style={{ minWidth: 0 }}>
