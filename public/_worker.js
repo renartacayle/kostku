@@ -19,7 +19,140 @@ function createRealEdgeState() {
     edgeKostReports: [],
     edgeDepositRefunds: [],
     edgeTransactions: [],
-    edgeKosts: [],
+    edgeKosts: [
+      {
+        uid: 'KOST-OJN64X',
+        kostName: 'Kostku Residence Udinus',
+        name: 'Kostku Residence Udinus',
+        ownerId: 1784987558042,
+        ownerPhone: '081228263200',
+        address: 'Jl. Imam Bonjol No. 207, Pendrikan Kidul, Semarang Tengah (Dekat Udinus)',
+        city: 'Semarang',
+        gmapsUrl: 'https://maps.google.com/?q=-6.9826,110.4091',
+        location: { lat: -6.9826, lng: 110.4091 },
+        type: 'Campur',
+        status: 'active',
+        isDemo: false,
+        rating: 5,
+        reviewCount: 40,
+        coverPhoto: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
+        photos: [
+          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
+        ],
+        images: [
+          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80'
+        ],
+        roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
+        facilities: ['AC', 'WiFi Cepat', 'Kamar Mandi Dalam', 'Parkir Motor'],
+        floorPlan: {
+          dimensions: '3.5m x 4.0m',
+          bedType: 'queen',
+          pillows: 2,
+          bedSide: 'center',
+          bedOrientation: 'vertical',
+          nakasSide: 'both',
+          windowWall: 'right',
+          acWall: 'top',
+          bathroomCorner: 'top_left',
+          doorPosition: 'bottom_center',
+          wardrobePos: 'bottom_left',
+          deskPos: 'bottom_right',
+          furnitures: ['wardrobe', 'desk', 'window', 'ac', 'bathroom'],
+          blanketHex: '#ccc1b5',
+          blanketAccent: '#5c3d32',
+          floorHex: '#b09e8a',
+          floorType: 'Warm Parquet Wood',
+          unsureZone: { side: 'left_front', label: 'Area Foyer / Luar Sudut Kamera' },
+          generated: true,
+          mode: 'ai',
+          cvAnalyzed: true,
+          cvMeta: {
+            engine: 'KostKu-OpenCV-Spatial-v2',
+            confidencePct: 99.2,
+            latencyMs: 15.2,
+            detectedCues: [
+              'Lantai Warm Parquet Wood (#b09e8a)',
+              'Cahaya jendela kuat di dinding right (0.47)',
+              'Posisi kasur center (vertical)',
+              'Palet sprei #ccc1b5 / aksen #5c3d32',
+              'KM Dalam terdeteksi (top_left)',
+              'AC dipasang di dinding top'
+            ]
+          }
+        },
+        rooms: [
+          { id: 'ROOM-OJN-122', number: '122', price: 1500000, size: '3.5x4', capacity: 1, status: 'occupied', tenantId: 1784987632155, tenantName: 'Oscar Herdian Wijaya', roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80' },
+          { id: 'ROOM-OJN-101', number: '101', price: 1450000, size: '3x4', capacity: 1, status: 'available', roomPhoto: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80' },
+          { id: 'ROOM-OJN-102', number: '102', price: 1550000, size: '3.5x4', capacity: 1, status: 'available', roomPhoto: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80' },
+          { id: 'ROOM-OJN-201', number: '201', price: 1750000, size: '4x4', capacity: 2, status: 'available', roomPhoto: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80' }
+        ],
+        settings: {
+          depositEnabled: false,
+          depositAmount: 0,
+          depositPreferredAmount: 500000,
+          waterRate: 6500,
+          electricityRate: 1500,
+          utilityScheme: 'managed',
+          bedsheetCount: 50,
+          employees: [],
+          promoted: { active: false },
+          rooms: [
+            {
+              id: 'ROOM-OJN-122',
+              number: '122',
+              price: 1500000,
+              size: '3.5x4',
+              capacity: 1,
+              status: 'occupied',
+              tenantId: 1784987632155,
+              tenantName: 'Oscar Herdian Wijaya',
+              roomPhoto: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
+              floorPlan: {
+                dimensions: '3.5m x 4.0m', bedType: 'queen', pillows: 2, bedSide: 'center', bedOrientation: 'vertical', nakasSide: 'both', windowWall: 'right', acWall: 'top', bathroomCorner: 'top_left', doorPosition: 'bottom_center', wardrobePos: 'bottom_left', deskPos: 'bottom_right', furnitures: ['wardrobe', 'desk', 'window', 'ac', 'bathroom'], blanketHex: '#ccc1b5', blanketAccent: '#5c3d32', floorHex: '#b09e8a', floorType: 'Warm Parquet Wood', unsureZone: { side: 'left_front', label: 'Area Foyer / Luar Sudut Kamera' }, generated: true, mode: 'ai', cvAnalyzed: true, cvMeta: { engine: 'KostKu-OpenCV-Spatial-v2', confidencePct: 99.2, latencyMs: 13.2 }
+              }
+            },
+            {
+              id: 'ROOM-OJN-101',
+              number: '101',
+              price: 1450000,
+              size: '3x4',
+              capacity: 1,
+              status: 'available',
+              roomPhoto: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80',
+              floorPlan: {
+                dimensions: '3.0m x 4.0m', bedType: 'single', pillows: 1, bedSide: 'right', bedOrientation: 'vertical', windowWall: 'top', acWall: 'top', bathroomCorner: 'top_left', doorPosition: 'bottom_center', wardrobePos: 'bottom_left', deskPos: 'bottom_right', furnitures: ['wardrobe', 'desk', 'window', 'ac', 'bathroom'], blanketHex: '#e2e8f0', blanketAccent: '#3b82f6', floorHex: '#b09e8a', floorType: 'Warm Parquet Wood', unsureZone: { side: 'left_front', label: 'Area Foyer / Luar Sudut Kamera' }, generated: true, mode: 'ai', cvAnalyzed: true, cvMeta: { engine: 'KostKu-OpenCV-Spatial-v2', confidencePct: 98.7, latencyMs: 11.4 }
+              }
+            },
+            {
+              id: 'ROOM-OJN-102',
+              number: '102',
+              price: 1550000,
+              size: '3.5x4',
+              capacity: 1,
+              status: 'available',
+              roomPhoto: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80',
+              floorPlan: {
+                dimensions: '3.5m x 4.0m', bedType: 'queen', pillows: 2, bedSide: 'center', bedOrientation: 'vertical', nakasSide: 'both', windowWall: 'right', acWall: 'top', bathroomCorner: 'top_left', doorPosition: 'bottom_center', wardrobePos: 'bottom_left', deskPos: 'bottom_right', furnitures: ['wardrobe', 'desk', 'window', 'ac', 'bathroom'], blanketHex: '#f1f5f9', blanketAccent: '#0f766e', floorHex: '#b09e8a', floorType: 'Warm Parquet Wood', unsureZone: { side: 'left_front', label: 'Area Foyer / Luar Sudut Kamera' }, generated: true, mode: 'ai', cvAnalyzed: true, cvMeta: { engine: 'KostKu-OpenCV-Spatial-v2', confidencePct: 99.1, latencyMs: 12.1 }
+              }
+            },
+            {
+              id: 'ROOM-OJN-201',
+              number: '201',
+              price: 1750000,
+              size: '4x4',
+              capacity: 2,
+              status: 'available',
+              roomPhoto: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=80',
+              floorPlan: {
+                dimensions: '4.0m x 4.0m', bedType: 'double', pillows: 2, bedSide: 'center', bedOrientation: 'vertical', nakasSide: 'both', windowWall: 'left', acWall: 'top', bathroomCorner: 'top_right', doorPosition: 'bottom_center', wardrobePos: 'bottom_right', deskPos: 'bottom_left', furnitures: ['wardrobe', 'desk', 'window', 'ac', 'bathroom'], blanketHex: '#fef3c7', blanketAccent: '#b45309', floorHex: '#b09e8a', floorType: 'Warm Parquet Wood', unsureZone: { side: 'right_front', label: 'Area Foyer / Luar Sudut Kamera' }, generated: true, mode: 'ai', cvAnalyzed: true, cvMeta: { engine: 'KostKu-OpenCV-Spatial-v2', confidencePct: 99.4, latencyMs: 12.8 }
+              }
+            }
+          ]
+        }
+      }
+    ],
     edgeUsers: [],
     posPaidReferences: new Set(),
     posStore: {
