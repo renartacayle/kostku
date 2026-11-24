@@ -1805,7 +1805,52 @@
             "size": "3.5x4",
             "status": "occupied",
             "tenantId": 1784987632155,
-            "tenantName": "Oscar Herdian Wijaya"
+            "tenantName": "Oscar Herdian Wijaya",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#ccc1b5",
+              "blanketAccent": "#5c3d32",
+              "floorHex": "#b09e8a",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 13.2,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#b09e8a)",
+                  "Cahaya jendela kuat di dinding right (0.47)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #ccc1b5 / aksen #5c3d32",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "employees": [],
@@ -1813,7 +1858,52 @@
           "active": false
         }
       },
-      "uid": "KOST-OJN64X"
+      "uid": "KOST-OJN64X",
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#ccc1b5",
+        "blanketAccent": "#5c3d32",
+        "floorHex": "#b09e8a",
+        "floorType": "Warm Parquet Wood",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 15.2,
+          "detectedCues": [
+            "Lantai Warm Parquet Wood (#b09e8a)",
+            "Cahaya jendela kuat di dinding right (0.47)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #ccc1b5 / aksen #5c3d32",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-YOZ1PG",
@@ -2992,7 +3082,10 @@
         }
       ],
       "status": "active",
-      "createdAt": "2026-11-08T08:33:09.381Z"
+      "createdAt": "2026-11-08T08:33:09.381Z",
+      "saldoNota": 5000,
+      "kuotaNota": 200,
+      "notaHistory": []
     },
     {
       "id": "MTR-MW7KSMH5",
@@ -41628,9 +41721,9 @@
       "merchant_id": "PTR-1794740185169",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5215,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T10:56:25.537Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794740185655": {
       "merchant_id": "PTR-1794740185655",
@@ -41652,17 +41745,17 @@
       "merchant_id": "MTR-UMKM-1794740232610-1-92",
       "name": "Cafe Tier 2 Online 1794740228928",
       "whatsapp_number": "081255500022",
-      "available_balance": 4100,
-      "held_promo_balance": 240,
-      "updated_at": "2026-11-15T10:57:38.139Z"
+      "available_balance": 4340,
+      "held_promo_balance": 0,
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794740564357": {
       "merchant_id": "PTR-1794740564357",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5215,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:02:44.921Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794740565158": {
       "merchant_id": "PTR-1794740565158",
@@ -41684,9 +41777,9 @@
       "merchant_id": "MTR-UMKM-1794740610631-1-92",
       "name": "Cafe Tier 2 Online 1794740606908",
       "whatsapp_number": "081255500022",
-      "available_balance": 4400,
-      "held_promo_balance": 240,
-      "updated_at": "2026-11-15T11:03:55.829Z"
+      "available_balance": 4640,
+      "held_promo_balance": 0,
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "MTR-UMKM-1794740678202-1-50": {
       "merchant_id": "MTR-UMKM-1794740678202-1-50",
@@ -41700,9 +41793,9 @@
       "merchant_id": "PTR-1794740747022",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5215,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:05:47.498Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794740747699": {
       "merchant_id": "PTR-1794740747699",
@@ -41724,9 +41817,9 @@
       "merchant_id": "MTR-UMKM-1794740792166-1-14",
       "name": "Cafe Tier 2 Online 1794740788461",
       "whatsapp_number": "081255500022",
-      "available_balance": 4300,
-      "held_promo_balance": 240,
-      "updated_at": "2026-11-15T11:06:57.398Z"
+      "available_balance": 4540,
+      "held_promo_balance": 0,
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "MTR-UMKM-1794740857990-1-90": {
       "merchant_id": "MTR-UMKM-1794740857990-1-90",
@@ -41740,9 +41833,9 @@
       "merchant_id": "PTR-1794740933871",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5215,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:08:54.448Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794740934662": {
       "merchant_id": "PTR-1794740934662",
@@ -41764,17 +41857,17 @@
       "merchant_id": "MTR-UMKM-1794740980096-1-46",
       "name": "Cafe Tier 2 Online 1794740976373",
       "whatsapp_number": "081255500022",
-      "available_balance": 4400,
-      "held_promo_balance": 240,
-      "updated_at": "2026-11-15T11:10:05.328Z"
+      "available_balance": 4640,
+      "held_promo_balance": 0,
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794741453833": {
       "merchant_id": "PTR-1794741453833",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5155,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:17:34.337Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794741454584": {
       "merchant_id": "PTR-1794741454584",
@@ -41788,9 +41881,9 @@
       "merchant_id": "PTR-1794741547832",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5155,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:19:08.403Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794741548652": {
       "merchant_id": "PTR-1794741548652",
@@ -41804,9 +41897,9 @@
       "merchant_id": "PTR-1794741765275",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5155,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:22:45.790Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794741766014": {
       "merchant_id": "PTR-1794741766014",
@@ -41820,9 +41913,9 @@
       "merchant_id": "PTR-1794742028054",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5215,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:27:08.578Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794742028827": {
       "merchant_id": "PTR-1794742028827",
@@ -41836,9 +41929,9 @@
       "merchant_id": "PTR-1794742175875",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5155,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:29:36.416Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794742176662": {
       "merchant_id": "PTR-1794742176662",
@@ -41852,9 +41945,9 @@
       "merchant_id": "PTR-1794742237770",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5155,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:30:38.280Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794742238512": {
       "merchant_id": "PTR-1794742238512",
@@ -41868,9 +41961,9 @@
       "merchant_id": "PTR-1794742383574",
       "name": "Kedai Uji Nota & QRIS",
       "whatsapp_number": "081234500099",
-      "available_balance": 4975,
+      "available_balance": 5155,
       "held_promo_balance": 0,
-      "updated_at": "2026-11-15T11:33:04.170Z"
+      "updated_at": "2026-11-18T17:01:28.710Z"
     },
     "PTR-1794742384428": {
       "merchant_id": "PTR-1794742384428",
@@ -41895,7 +41988,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_0deb0f63cedf44e2",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_0deb0f63cedf44e2",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -41903,7 +41996,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:33:04.295Z"
     },
     {
@@ -41919,7 +42012,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_5ab1403684bc464e",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_5ab1403684bc464e",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -41927,7 +42020,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:33:04.072Z"
     },
     {
@@ -41943,7 +42036,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_f0c1d3ef5f744d61",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_f0c1d3ef5f744d61",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -41951,7 +42044,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:33:03.790Z"
     },
     {
@@ -41967,7 +42060,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_0ff47a389fcc4b39",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_0ff47a389fcc4b39",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -41975,7 +42068,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:30:38.387Z"
     },
     {
@@ -41991,7 +42084,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_2d2855621afa4a33",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_2d2855621afa4a33",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -41999,7 +42092,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:30:38.202Z"
     },
     {
@@ -42015,7 +42108,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_29a3793eec2048f0",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_29a3793eec2048f0",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42023,7 +42116,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:30:37.945Z"
     },
     {
@@ -42039,7 +42132,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_d1659de68f944c98",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_d1659de68f944c98",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42047,7 +42140,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:29:36.532Z"
     },
     {
@@ -42063,7 +42156,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_2364d54059f04537",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_2364d54059f04537",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42071,7 +42164,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:29:36.327Z"
     },
     {
@@ -42087,7 +42180,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_fd511da581f84eaf",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_fd511da581f84eaf",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42095,7 +42188,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:29:36.074Z"
     },
     {
@@ -42111,7 +42204,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_7c91f8698f3943d4",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_7c91f8698f3943d4",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42119,7 +42212,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:27:19.631Z"
     },
     {
@@ -42135,7 +42228,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_8ab61c864a4e402e",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_8ab61c864a4e402e",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42143,7 +42236,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:27:08.691Z"
     },
     {
@@ -42159,7 +42252,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_02d4598dc6b24239",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_02d4598dc6b24239",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42167,7 +42260,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:27:08.492Z"
     },
     {
@@ -42183,7 +42276,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_ba41287a5985401e",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_ba41287a5985401e",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42191,7 +42284,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:27:08.240Z"
     },
     {
@@ -42207,7 +42300,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_50d567f1990b4a5f",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_50d567f1990b4a5f",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42215,7 +42308,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:22:45.902Z"
     },
     {
@@ -42231,7 +42324,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_7458459bb64149b6",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_7458459bb64149b6",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42239,7 +42332,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:22:45.716Z"
     },
     {
@@ -42255,7 +42348,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_c204acaf2fcf42bf",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_c204acaf2fcf42bf",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42263,7 +42356,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:22:45.445Z"
     },
     {
@@ -42279,7 +42372,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_238246e547904cd1",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_238246e547904cd1",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42287,7 +42380,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:19:08.535Z"
     },
     {
@@ -42303,7 +42396,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_2315ec7458dc43a7",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_2315ec7458dc43a7",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42311,7 +42404,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:19:08.315Z"
     },
     {
@@ -42327,7 +42420,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_10820f412500488e",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_10820f412500488e",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42335,7 +42428,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:19:08.030Z"
     },
     {
@@ -42351,7 +42444,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_f973a1708593444e",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_f973a1708593444e",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42359,7 +42452,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:17:34.467Z"
     },
     {
@@ -42375,7 +42468,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_bfa5193d852d417b",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_bfa5193d852d417b",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42383,7 +42476,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:17:34.253Z"
     },
     {
@@ -42399,7 +42492,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_deb48b90cfd44626",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_deb48b90cfd44626",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42407,7 +42500,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:17:34.005Z"
     },
     {
@@ -42423,7 +42516,7 @@
       "loyalty_pool_id": "POOL-1794740980128-3240",
       "claim_token": "clm_5e4df18712bd4bdf",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_5e4df18712bd4bdf",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42431,7 +42524,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:10:05.329Z"
     },
     {
@@ -42472,7 +42565,7 @@
       "loyalty_pool_id": "POOL-1794740980128-3240",
       "claim_token": "clm_dc98e3726d204588",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_dc98e3726d204588",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -42480,7 +42573,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:09:40.459Z"
     },
     {
@@ -42496,7 +42589,7 @@
       "loyalty_pool_id": "POOL-1794740980128-3240",
       "claim_token": "clm_8321ca8684734877",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_8321ca8684734877",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -42504,7 +42597,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:09:40.386Z"
     },
     {
@@ -42520,7 +42613,7 @@
       "loyalty_pool_id": "POOL-1794740980128-3240",
       "claim_token": "clm_9daab60aab2c4da8",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_9daab60aab2c4da8",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -42528,7 +42621,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:09:40.295Z"
     },
     {
@@ -42569,7 +42662,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_6b326c8a66834fc4",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_6b326c8a66834fc4",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42577,7 +42670,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:09:07.134Z"
     },
     {
@@ -42593,7 +42686,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_a3637d45a6954932",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_a3637d45a6954932",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42601,7 +42694,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:08:54.562Z"
     },
     {
@@ -42617,7 +42710,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_df521c01752947cc",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_df521c01752947cc",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42625,7 +42718,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:08:54.379Z"
     },
     {
@@ -42641,7 +42734,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_1c770613b5384a0c",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_1c770613b5384a0c",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42649,7 +42742,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:08:54.104Z"
     },
     {
@@ -42665,7 +42758,7 @@
       "loyalty_pool_id": "POOL-1794740792185-20FB",
       "claim_token": "clm_8986bbfbf4d74a59",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_8986bbfbf4d74a59",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42673,7 +42766,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:06:57.398Z"
     },
     {
@@ -42739,7 +42832,7 @@
       "loyalty_pool_id": "POOL-1794740792185-20FB",
       "claim_token": "clm_ce36c5ff3da84d9b",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_ce36c5ff3da84d9b",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -42747,7 +42840,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:06:32.493Z"
     },
     {
@@ -42763,7 +42856,7 @@
       "loyalty_pool_id": "POOL-1794740792185-20FB",
       "claim_token": "clm_72ecad17a697439a",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_72ecad17a697439a",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -42771,7 +42864,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:06:32.423Z"
     },
     {
@@ -42787,7 +42880,7 @@
       "loyalty_pool_id": "POOL-1794740792185-20FB",
       "claim_token": "clm_4ce78f937eef4a10",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_4ce78f937eef4a10",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -42795,7 +42888,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:06:32.333Z"
     },
     {
@@ -42836,7 +42929,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_b613561316ff42be",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_b613561316ff42be",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42844,7 +42937,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:05:59.293Z"
     },
     {
@@ -42860,7 +42953,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_8ef51948a8be4a84",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_8ef51948a8be4a84",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42868,7 +42961,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:05:47.596Z"
     },
     {
@@ -42884,7 +42977,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_40a8c96dc9a24fb0",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_40a8c96dc9a24fb0",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42892,7 +42985,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:05:47.420Z"
     },
     {
@@ -42908,7 +43001,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_fdd8472140234656",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_fdd8472140234656",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42916,7 +43009,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:05:47.190Z"
     },
     {
@@ -42932,7 +43025,7 @@
       "loyalty_pool_id": "POOL-1794740610663-8DAB",
       "claim_token": "clm_06b13d5e9b1c49fd",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_06b13d5e9b1c49fd",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -42940,7 +43033,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:03:55.829Z"
     },
     {
@@ -42981,7 +43074,7 @@
       "loyalty_pool_id": "POOL-1794740610663-8DAB",
       "claim_token": "clm_73de9d4663f842f5",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_73de9d4663f842f5",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -42989,7 +43082,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:03:31.014Z"
     },
     {
@@ -43005,7 +43098,7 @@
       "loyalty_pool_id": "POOL-1794740610663-8DAB",
       "claim_token": "clm_c8f00c3ab04f4825",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_c8f00c3ab04f4825",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -43013,7 +43106,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:03:30.945Z"
     },
     {
@@ -43029,7 +43122,7 @@
       "loyalty_pool_id": "POOL-1794740610663-8DAB",
       "claim_token": "clm_e6a1550d462a4667",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_e6a1550d462a4667",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -43037,7 +43130,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:03:30.851Z"
     },
     {
@@ -43078,7 +43171,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_065b2de609ee4145",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_065b2de609ee4145",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43086,7 +43179,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:02:57.738Z"
     },
     {
@@ -43102,7 +43195,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_109b60d3b60a4f8c",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_109b60d3b60a4f8c",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43110,7 +43203,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:02:45.053Z"
     },
     {
@@ -43126,7 +43219,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_68db32b765804a01",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_68db32b765804a01",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43134,7 +43227,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:02:44.843Z"
     },
     {
@@ -43150,7 +43243,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_fa08dfbd09024baf",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_fa08dfbd09024baf",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43158,7 +43251,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T11:02:44.556Z"
     },
     {
@@ -43174,7 +43267,7 @@
       "loyalty_pool_id": "POOL-1794740232625-97E6",
       "claim_token": "clm_0f277a0939114498",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_0f277a0939114498",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43182,7 +43275,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:57:38.139Z"
     },
     {
@@ -43298,7 +43391,7 @@
       "loyalty_pool_id": "POOL-1794740232625-97E6",
       "claim_token": "clm_fe132cec9f2b4bad",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_fe132cec9f2b4bad",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -43306,7 +43399,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:57:12.987Z"
     },
     {
@@ -43322,7 +43415,7 @@
       "loyalty_pool_id": "POOL-1794740232625-97E6",
       "claim_token": "clm_41452c6dc9844e74",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_41452c6dc9844e74",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -43330,7 +43423,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:57:12.901Z"
     },
     {
@@ -43346,7 +43439,7 @@
       "loyalty_pool_id": "POOL-1794740232625-97E6",
       "claim_token": "clm_a14cec86d5e849a8",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_a14cec86d5e849a8",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 6,
       "referral_code_used": null,
@@ -43354,7 +43447,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:57:12.800Z"
     },
     {
@@ -43395,7 +43488,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_218c33a0000b438d",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_218c33a0000b438d",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43403,7 +43496,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:56:39.848Z"
     },
     {
@@ -43419,7 +43512,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_2c23d51ca4b545ed",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_2c23d51ca4b545ed",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43427,7 +43520,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:56:25.600Z"
     },
     {
@@ -43443,7 +43536,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_be4a45f9281d499d",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_be4a45f9281d499d",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43451,7 +43544,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:56:25.499Z"
     },
     {
@@ -43467,7 +43560,7 @@
       "loyalty_pool_id": null,
       "claim_token": "clm_500cac36001943b6",
       "qr_claim_url": "https://kostku.riuph.me/claim?token=clm_500cac36001943b6",
-      "status": "PENDING",
+      "status": "EXPIRED",
       "claimed_by_whatsapp": null,
       "points_awarded": 0,
       "referral_code_used": null,
@@ -43475,7 +43568,7 @@
       "referrer_points_awarded": 0,
       "claim_deadline": "2026-11-16T16:59:59.999Z",
       "claimed_at": null,
-      "refunded_at": null,
+      "refunded_at": "2026-11-18T17:01:28.710Z",
       "createdAt": "2026-11-15T10:56:25.336Z"
     }
   ],
@@ -43640,6 +43733,156 @@
     }
   ],
   "wallet_mutations": [
+    {
+      "id": "MUT-REF-1795021288819-998",
+      "merchant_id": "PTR-1794740185169",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 5215,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288819-763",
+      "merchant_id": "MTR-UMKM-1794740232610-1-92",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 4340,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288819-720",
+      "merchant_id": "PTR-1794740564357",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 5215,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288818-428",
+      "merchant_id": "MTR-UMKM-1794740610631-1-92",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 4640,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288818-206",
+      "merchant_id": "PTR-1794740747022",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 5215,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288818-106",
+      "merchant_id": "MTR-UMKM-1794740792166-1-14",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 4540,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288817-416",
+      "merchant_id": "PTR-1794740933871",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 5215,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288817-244",
+      "merchant_id": "MTR-UMKM-1794740980096-1-46",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 4640,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288816-965",
+      "merchant_id": "PTR-1794741453833",
+      "type": "REFUND_PROMO",
+      "amount": 180,
+      "unclaimed_count": 3,
+      "description": "Pengembalian Deposit Promo (3 nota tidak diklaim): +Rp 180",
+      "balance_after": 5155,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288816-705",
+      "merchant_id": "PTR-1794741547832",
+      "type": "REFUND_PROMO",
+      "amount": 180,
+      "unclaimed_count": 3,
+      "description": "Pengembalian Deposit Promo (3 nota tidak diklaim): +Rp 180",
+      "balance_after": 5155,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288816-216",
+      "merchant_id": "PTR-1794741765275",
+      "type": "REFUND_PROMO",
+      "amount": 180,
+      "unclaimed_count": 3,
+      "description": "Pengembalian Deposit Promo (3 nota tidak diklaim): +Rp 180",
+      "balance_after": 5155,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288815-379",
+      "merchant_id": "PTR-1794742028054",
+      "type": "REFUND_PROMO",
+      "amount": 240,
+      "unclaimed_count": 4,
+      "description": "Pengembalian Deposit Promo (4 nota tidak diklaim): +Rp 240",
+      "balance_after": 5215,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288815-395",
+      "merchant_id": "PTR-1794742175875",
+      "type": "REFUND_PROMO",
+      "amount": 180,
+      "unclaimed_count": 3,
+      "description": "Pengembalian Deposit Promo (3 nota tidak diklaim): +Rp 180",
+      "balance_after": 5155,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288810-350",
+      "merchant_id": "PTR-1794742237770",
+      "type": "REFUND_PROMO",
+      "amount": 180,
+      "unclaimed_count": 3,
+      "description": "Pengembalian Deposit Promo (3 nota tidak diklaim): +Rp 180",
+      "balance_after": 5155,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
+    {
+      "id": "MUT-REF-1795021288790-194",
+      "merchant_id": "PTR-1794742383574",
+      "type": "REFUND_PROMO",
+      "amount": 180,
+      "unclaimed_count": 3,
+      "description": "Pengembalian Deposit Promo (3 nota tidak diklaim): +Rp 180",
+      "balance_after": 5155,
+      "createdAt": "2026-11-18T17:01:28.710Z"
+    },
     {
       "id": "MUT-DED-1794742384295-589",
       "merchant_id": "PTR-1794742383574",
@@ -46442,8 +46685,72 @@
       "balance_after": 4800,
       "channel": "POS Order Checkout",
       "created_at": "2026-11-15T11:09:40.295Z"
+    }
+  ],
+  "store_pool_history": [],
+  "pos_promo_holds": [],
+  "pos_extras": [
+    {
+      "id": "ext-default-kerupuk",
+      "name": "Extra Kerupuk",
+      "price": 2000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Makanan",
+        "Paket Spesial",
+        "Snack"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-11-20T07:00:00.000Z"
     },
     {
-      "id": "NBL-1794740980150-3A307",
-      "store_id": "MTR-UMKM-1794740980096-1-46",
-      "st
+      "id": "ext-default-telur",
+      "name": "Extra Telur Mata Sapi",
+      "price": 4000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Makanan",
+        "Paket Spesial"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-11-20T07:00:00.000Z"
+    },
+    {
+      "id": "ext-default-pangsit",
+      "name": "Extra Pangsit Goreng (2 pcs)",
+      "price": 3000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Makanan",
+        "Paket Spesial",
+        "Snack"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-11-20T07:00:00.000Z"
+    },
+    {
+      "id": "ext-default-es",
+      "name": "Extra Es Batu / Gelas Jumbo",
+      "price": 1000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Minuman",
+        "Kopi & Minuman"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-11-20T07:00:00.000Z"
+    }
+  ]
+}

@@ -1,54 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 480" width="100%" height="100%" style="background:#090e17; border-radius:14px; font-family:'Inter',system-ui,-apple-system,sans-serif;">
   <defs>
-    <!-- Architectural Fine Grid (16px) -->
     <pattern id="grid_cad_423" width="16" height="16" patternUnits="userSpaceOnUse">
       <path d="M 16 0 L 0 0 0 16" fill="none" stroke="rgba(148, 163, 184, 0.04)" stroke-width="0.75" />
     </pattern>
-    <!-- Architectural Major Module Grid (80px) -->
     <pattern id="grid_major_423" width="80" height="80" patternUnits="userSpaceOnUse">
       <path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(56, 189, 248, 0.07)" stroke-width="1" />
     </pattern>
-    <!-- Luxury Parquet Wood Floor Pattern -->
     <pattern id="parquet_423" width="40" height="20" patternUnits="userSpaceOnUse">
-      <rect width="40" height="20" fill="#222428" fill-opacity="0.32" />
+      <rect width="40" height="20" fill="#1c1917" fill-opacity="0.34" />
       <path d="M 0 10 L 40 10 M 20 0 L 20 10 M 0 20 L 40 20 M 40 10 L 40 20 M 0 0 L 0 10" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="0.6" />
     </pattern>
-    <!-- Bathroom Ceramic Micro-Tile Pattern -->
     <pattern id="bm_tile_423" width="12" height="12" patternUnits="userSpaceOnUse">
       <rect width="12" height="12" fill="#0f2338" />
       <path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(56, 189, 248, 0.22)" stroke-width="0.6" />
     </pattern>
-    <!-- Frosted Glass Blur Filter for Camera Blind Spot -->
     <filter id="frost_blur_423" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur stdDeviation="4.5" result="blur" />
+      <feGaussianBlur stdDeviation="4.2" result="blur" />
     </filter>
-    <!-- Architectural 45-deg Hatch for Blind Spot -->
     <pattern id="blind_hatch_423" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
       <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(244, 63, 94, 0.35)" stroke-width="1.2" stroke-dasharray="2 2" />
     </pattern>
-    <!-- Reading Lamp Warm Radial Glow -->
     <radialGradient id="lamp_glow_423">
       <stop offset="0%" stop-color="#fef08a" stop-opacity="0.5" />
       <stop offset="100%" stop-color="#fef08a" stop-opacity="0" />
     </radialGradient>
-    <!-- Camera View Frustum Cone Gradient -->
     <radialGradient id="camera_frustum_423" cx="0%" cy="100%" r="100%">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.32" />
-      <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.10" />
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.30" />
+      <stop offset="65%" stop-color="#38bdf8" stop-opacity="0.09" />
       <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
     </radialGradient>
-    <!-- Drop Shadow Filter -->
     <filter id="drop_shadow_423" x="-5%" y="-5%" width="115%" height="115%">
       <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.45" />
     </filter>
   </defs>
 
-  <!-- Background CAD Drafting Paper -->
   <rect width="680" height="480" fill="#090e17" />
   <rect width="680" height="480" fill="url(#grid_cad_423)" />
   <rect width="680" height="480" fill="url(#grid_major_423)" />
 
-  <!-- Sheet Crop Registration Marks (Architectural Standard) -->
   <g stroke="rgba(148, 163, 184, 0.35)" stroke-width="1">
     <path d="M 14 20 L 20 20 M 20 14 L 20 20" />
     <path d="M 666 20 L 660 20 M 660 14 L 660 20" />
@@ -56,143 +45,82 @@
     <path d="M 666 460 L 660 460 M 660 466 L 660 460" />
   </g>
 
-  <!-- ── DIMENSION LINES (PROPORTIONAL 45° ARCHITECTURAL TICKS) ── -->
-  <!-- Top Horizontal Dimension (Width) -->
   <g stroke="#38bdf8" stroke-width="1.2">
-    <line x1="197" y1="96" x2="393" y2="96" opacity="0.85" />
-    <line x1="192" y1="101" x2="202" y2="91" stroke-width="1.8" />
-    <line x1="388" y1="101" x2="398" y2="91" stroke-width="1.8" />
-    <line x1="197" y1="108" x2="197" y2="88" opacity="0.4" stroke-width="0.75" />
-    <line x1="393" y1="108" x2="393" y2="88" opacity="0.4" stroke-width="0.75" />
-    <rect x="253.0" y="84" width="84" height="20" rx="4" fill="#0c1527" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
-    <text x="295.0" y="98" fill="#38bdf8" font-size="9.5" font-weight="700" text-anchor="middle" letter-spacing="0.5">
-      2.80 m
+    <line x1="194" y1="98" x2="397" y2="98" opacity="0.85" />
+    <line x1="189" y1="103" x2="199" y2="93" stroke-width="1.8" />
+    <line x1="392" y1="103" x2="402" y2="93" stroke-width="1.8" />
+    <line x1="194" y1="110" x2="194" y2="90" opacity="0.4" stroke-width="0.75" />
+    <line x1="397" y1="110" x2="397" y2="90" opacity="0.4" stroke-width="0.75" />
+    <rect x="253.5" y="86" width="84" height="20" rx="4" fill="#0c1527" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+    <text x="295.5" y="100" fill="#38bdf8" font-size="9.5" font-weight="700" text-anchor="middle" letter-spacing="0.5" stroke="none">
+      2.90 m
     </text>
   </g>
 
-  <!-- Left Vertical Dimension (Length) -->
   <g stroke="#38bdf8" stroke-width="1.2">
-    <line x1="179" y1="114" x2="179" y2="345" opacity="0.85" />
-    <line x1="174" y1="119" x2="184" y2="109" stroke-width="1.8" />
-    <line x1="174" y1="350" x2="184" y2="340" stroke-width="1.8" />
-    <line x1="191" y1="114" x2="171" y2="114" opacity="0.4" stroke-width="0.75" />
-    <line x1="191" y1="345" x2="171" y2="345" opacity="0.4" stroke-width="0.75" />
-    <g transform="translate(179, 229.5)">
+    <line x1="176" y1="116" x2="176" y2="340" opacity="0.85" />
+    <line x1="171" y1="121" x2="181" y2="111" stroke-width="1.8" />
+    <line x1="171" y1="345" x2="181" y2="335" stroke-width="1.8" />
+    <line x1="188" y1="116" x2="168" y2="116" opacity="0.4" stroke-width="0.75" />
+    <line x1="188" y1="340" x2="168" y2="340" opacity="0.4" stroke-width="0.75" />
+    <g transform="translate(176, 228.0)">
       <rect x="-42" y="-10" width="84" height="20" rx="4" fill="#0c1527" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" transform="rotate(-90)" />
-      <text x="0" y="4" fill="#38bdf8" font-size="9.5" font-weight="700" text-anchor="middle" letter-spacing="0.5" transform="rotate(-90)">
-        3.30 m
+      <text x="0" y="4" fill="#38bdf8" font-size="9.5" font-weight="700" text-anchor="middle" letter-spacing="0.5" transform="rotate(-90)" stroke="none">
+        3.20 m
       </text>
     </g>
   </g>
 
-  <!-- ── DYNAMICALLY PROPORTIONAL ROOM FLOOR ── -->
-  <rect x="197" y="114" width="196" height="231" rx="2" fill="url(#parquet_423)" />
-  <rect x="197" y="114" width="196" height="231" fill="none" stroke="rgba(0, 0, 0, 0.38)" stroke-width="5" />
+  <rect x="194" y="116" width="203" height="224" rx="2" fill="url(#parquet_423)" />
+  <rect x="194" y="116" width="203" height="224" fill="none" stroke="rgba(0, 0, 0, 0.38)" stroke-width="5" />
+  <rect x="189" y="111" width="213" height="234" fill="none" stroke="#1e293b" stroke-width="8" rx="2" />
+  <rect x="185" y="107" width="221" height="242" fill="none" stroke="#475569" stroke-width="1" rx="3" />
+  <rect x="193" y="115" width="205" height="226" fill="none" stroke="#64748b" stroke-width="1" rx="1" />
 
-  <!-- ── ARCHITECTURAL CAVITY WALLS (PROPORTIONAL DOUBLE LINE) ── -->
-  <rect x="192" y="109" width="206" height="241" fill="none" stroke="#1e293b" stroke-width="8" rx="2" />
-  <rect x="188" y="105" width="214" height="249" fill="none" stroke="#475569" stroke-width="1" rx="3" />
-  <rect x="196" y="113" width="198" height="233" fill="none" stroke="#64748b" stroke-width="1" rx="1" />
-
-  <!-- 📷 ARCHITECTURAL CAMERA VIEW FRUSTUM (Perspective Distortion Visualizer) -->
   <g id="camera_frustum_cone" opacity="0.85">
-    <polygon points="295,359 198.8,161.8 391.2,161.8" fill="url(#camera_frustum_423)" />
-    <line x1="295" y1="359" x2="198.8" y2="161.8" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
-    <line x1="295" y1="359" x2="391.2" y2="161.8" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
+    <polygon points="296,354 208.9,167.2 383.1,167.2" fill="url(#camera_frustum_423)" />
+    <line x1="296" y1="354" x2="208.9" y2="167.2" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
+    <line x1="296" y1="354" x2="383.1" y2="167.2" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5" />
   </g>
 
-  <!-- 🌫️ CAMERA BLIND SPOT (FROSTED ARCHITECTURAL BLUR) -->
   <g id="unsure_zone" opacity="0.95">
-    <rect x="203" y="262" width="69" height="77" rx="5" fill="rgba(15, 23, 42, 0.85)" filter="url(#frost_blur_423)" />
-    <rect x="203" y="262" width="69" height="77" rx="5" fill="url(#blind_hatch_423)" stroke="rgba(244, 63, 94, 0.45)" stroke-width="1" stroke-dasharray="3 2" />
-    
-    <rect x="209" y="287" width="57" height="26" rx="4" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(244, 63, 94, 0.5)" stroke-width="0.8" />
-    <text x="237.5" y="298" fill="#fda4af" font-size="7.5" font-weight="700" text-anchor="middle" letter-spacing="0.3">
-      ⚲ BLIND SPOT
-    </text>
-    <text x="237.5" y="307" fill="#94a3b8" font-size="6" font-weight="500" text-anchor="middle">
-      Sudut Terbatas Kamera
-    </text>
+    <rect x="200" y="269" width="54" height="63" rx="5" fill="rgba(15, 23, 42, 0.85)" filter="url(#frost_blur_423)" />
+    <rect x="200" y="269" width="54" height="63" rx="5" fill="url(#blind_hatch_423)" stroke="rgba(244, 63, 94, 0.45)" stroke-width="1" stroke-dasharray="3 2" />
+    <rect x="204" y="288" width="46" height="24" rx="4" fill="rgba(15, 23, 42, 0.94)" stroke="rgba(244, 63, 94, 0.5)" stroke-width="0.8" />
+    <text x="227.0" y="298" fill="#fda4af" font-size="6.8" font-weight="700" text-anchor="middle">BLIND SPOT</text>
+    <text x="227.0" y="307" fill="#94a3b8" font-size="5.3" font-weight="500" text-anchor="middle">Luar Sudut Kamera</text>
   </g>
 
-  <!-- Area Rug -->
-  <rect x="219" y="128" width="152" height="86" rx="6" fill="rgba(255, 255, 255, 0.04)" stroke="rgba(148, 163, 184, 0.18)" stroke-width="0.8" stroke-dasharray="3 2" />
+  <rect x="218" y="118" width="156" height="82" rx="6" fill="rgba(255, 255, 255, 0.04)" stroke="rgba(148, 163, 184, 0.18)" stroke-width="0.8" stroke-dasharray="3 2" />
 
-  <!-- 🛏️ BED CAD BLOCK (Horizontal Daybed along Back Wall) -->
   <g id="bed_unit" filter="url(#drop_shadow_423)">
-    <!-- Solid Wood Headboard on Left Wall -->
-    <rect x="219" y="122" width="8" height="70" rx="2" fill="#3b271d" stroke="#78350f" stroke-width="1" />
-    <circle cx="223" cy="157" r="10" fill="url(#lamp_glow_423)" />
-    <circle cx="223" cy="157" r="2.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" />
-
-    <!-- White Mattress Sheet Base -->
-    <rect x="227" y="122" width="138" height="70" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
-
-    <!-- Duvet with Exact Photo Blanket Hex -->
-    <rect x="259" y="124" width="104" height="66" rx="3" fill="#d9a5b3" stroke="rgba(0,0,0,0.15)" stroke-width="0.8" />
-    
-    <!-- Turnback Line -->
-    <path d="M 259 124 Q 265 157 259 190" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" />
-    
-    <!-- Accent Bed Runner at Foot (East) -->
-    <rect x="341" y="124" width="22" height="66" fill="#be185d" opacity="0.88" />
-    <line x1="341" y1="124" x2="341" y2="190" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
-
-    <!-- Single Hotel Pillow on Left -->
-    <rect x="231" y="139" width="22" height="36" rx="5" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
-    <path d="M 242 145 Q 245 157 242 169" fill="none" stroke="#cbd5e1" stroke-width="0.8" />
+    <rect x="221" y="124" width="7" height="70" rx="2" fill="#3b271d" stroke="#78350f" stroke-width="1" />
+    <circle cx="225" cy="159" r="9" fill="url(#lamp_glow_423)" />
+    <rect x="228" y="124" width="138" height="70" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+    <rect x="258" y="126" width="106" height="66" rx="3" fill="#27272a" stroke="rgba(0,0,0,0.18)" stroke-width="0.8" />
+    <path d="M 258 126 Q 264 159 258 192" fill="none" stroke="#ffffff" stroke-width="2" />
+    <rect x="344" y="126" width="20" height="66" fill="#f5c2cb" opacity="0.88" />
+    <rect x="232" y="129" width="20" height="24" rx="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1" /><rect x="232" y="165" width="20" height="24" rx="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
   </g>
 
-  <!-- Bedside Nakas -->
   <g filter="url(#drop_shadow_423)">
-    <rect x="201" y="126" width="22" height="22" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
-    <circle cx="212" cy="137" r="4.5" fill="#fef08a" stroke="#d97706" stroke-width="0.8" opacity="0.85" />
-    <circle cx="212" cy="137" r="1.5" fill="#d97706" />
+    <rect x="202" y="126" width="20" height="20" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="212.0" cy="136.0" r="4" fill="#fef08a" stroke="#d97706" stroke-width="0.8" opacity="0.85" />
   </g>
-
-  <!-- 🖥️ WORK DESK & ERGONOMIC CHAIR (Scaled) -->
-  <g id="desk_setup" filter="url(#drop_shadow_423)">
-    <rect x="326" y="299" width="59" height="38" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.2" />
-    <!-- Laptop -->
-    <rect x="343.5" y="305" width="24" height="15" rx="1.5" fill="#0f172a" stroke="#60a5fa" stroke-width="0.8" />
-    <rect x="345.5" y="307" width="20" height="10" rx="1" fill="#38bdf8" opacity="0.65" />
-    
-    <!-- Ergonomic Chair -->
-    <ellipse cx="356" cy="347" rx="11" ry="8" fill="#334155" stroke="#94a3b8" stroke-width="1" />
-    <path d="M 346 351 Q 356 354 366 351" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
-
-  </g>
-
-  <!-- ❄️ AC UNIT -->
-  <g id="ac_unit">
-    <rect x="266" y="115" width="58" height="10" rx="2" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2" />
-    <line x1="271" y1="122" x2="319" y2="122" stroke="#cbd5e1" stroke-width="1" />
-    <circle cx="318" cy="119" r="1" fill="#22c55e" />
-  </g>
-
-  <!-- 🪟 WINDOW (TOP WALL) -->
-  <g id="window_top">
-    <rect x="211" y="107" width="69" height="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1" />
-    <line x1="211" y1="110" x2="280" y2="110" stroke="#ffffff" stroke-width="1.2" />
-  </g>
-
-  <!-- 🚪 MAIN ENTRANCE DOORWAY -->
+<g id="tv_shelf"><rect x="359" y="124" width="30" height="44" rx="2" fill="#1e293b" stroke="#64748b" stroke-width="1.2" /><rect x="367" y="134" width="14" height="24" rx="1.5" fill="#0f172a" stroke="#38bdf8" stroke-width="0.8" /></g>
   <g id="main_door">
-    <rect x="265" y="341" width="60" height="8" fill="#090e17" />
-    <path d="M 265 345 A 52 52 0 0 1 317 293" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2.5 2" opacity="0.75" />
-    <line x1="265" y1="345" x2="265" y2="293" stroke="#f8fafc" stroke-width="2.5" stroke-linecap="round" />
-    <circle cx="270" cy="301" r="1.5" fill="#38bdf8" />
+    <rect x="266" y="336" width="59" height="8" fill="#090e17" />
+    <path d="M 266 340 A 51 51 0 0 1 317 289" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2.5 2" opacity="0.75" />
+    <line x1="266" y1="340" x2="266" y2="289" stroke="#f8fafc" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="271" cy="296" r="1.5" fill="#38bdf8" />
   </g>
 
-  <!-- 📷 CAMERA SIGHTLINE RAY & PERSPECTIVE BADGE -->
   <g id="camera_marker_overlay">
-    <!-- Central Sightline Ray from Camera to Bed Center -->
-    <line x1="295" y1="359" x2="295" y2="157" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.85" />
-    <circle cx="295" cy="157" r="3" fill="#38bdf8" opacity="0.85" />
-    <circle cx="295" cy="157" r="6.5" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.6" />
+    <line x1="296" y1="354" x2="296" y2="159" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.85" />
+    <circle cx="296" cy="159" r="3" fill="#38bdf8" opacity="0.85" />
+    <circle cx="296" cy="159" r="6.5" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.6" />
 
-    <!-- Camera Icon Glyph -->
-    <g transform="translate(295, 359) rotate(0.0)">
+    <g transform="translate(296, 354) rotate(0.0)">
       <rect x="-9" y="-6" width="18" height="12" rx="2.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1" />
       <path d="M -3 -6 L -1.5 -8.5 L 1.5 -8.5 L 3 -6 Z" fill="#38bdf8" />
       <circle cx="0" cy="0" r="4" fill="#0f172a" stroke="#ffffff" stroke-width="0.9" />
@@ -200,34 +128,32 @@
       <polygon points="0,-10 -2.5,-7 2.5,-7" fill="#38bdf8" />
     </g>
 
-    <!-- Camera Perspective Angle Badge (positioned neatly beside camera in margin) -->
-    <g transform="translate(175, 350)">
-      <rect width="108" height="18" rx="4" fill="rgba(12, 21, 39, 0.94)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="0.8" />
-      <text x="54" y="12" fill="#38bdf8" font-size="7" font-weight="700" text-anchor="middle" letter-spacing="0.2">
-        📷 SUDUT KAMERA 32°
+    <g transform="translate(178, 345)">
+      <rect width="104" height="18" rx="4" fill="rgba(12, 21, 39, 0.94)" stroke="rgba(56, 189, 248, 0.45)" stroke-width="0.8" />
+      <rect x="6" y="5" width="9" height="7" rx="1.5" fill="none" stroke="#38bdf8" stroke-width="1" />
+      <circle cx="10.5" cy="8.5" r="1.8" fill="#38bdf8" />
+      <text x="60" y="12" fill="#38bdf8" font-size="6.8" font-weight="700" text-anchor="middle" letter-spacing="0.2">
+        SUDUT KAMERA 28°
       </text>
     </g>
   </g>
 
-  <!-- ── SWISS ARCHITECTURAL TITLE BLOCK (CARTOUCHE) ── -->
-  <g id="title_block" transform="translate(435, 428)">
-    <rect x="0" y="0" width="230" height="40" rx="6" fill="rgba(12, 21, 39, 0.96)" stroke="rgba(56, 189, 248, 0.35)" stroke-width="1" />
-    <text x="10" y="14" fill="#f8fafc" font-size="9" font-weight="800" letter-spacing="0.5">
-      UNIT 923 • 9.2 m²
+  <g id="title_block" transform="translate(388, 428)">
+    <rect x="0" y="0" width="278" height="40" rx="6" fill="rgba(12, 21, 39, 0.96)" stroke="rgba(56, 189, 248, 0.35)" stroke-width="1" />
+    <text x="10" y="14" fill="#f8fafc" font-size="8.8" font-weight="800" letter-spacing="0.4">
+      UNIT 923 • 9.3 m²
     </text>
-    <text x="10" y="25" fill="#38bdf8" font-size="7.5" font-weight="700">
-      SINGLE BED (100x200) • ORIENTASI: HORIZONTAL
+    <text x="10" y="25" fill="#38bdf8" font-size="7.0" font-weight="700">
+      SINGLE (100x200) • HORIZONTAL
     </text>
-    <text x="10" y="34" fill="#94a3b8" font-size="6.5" font-weight="500">
+    <text x="10" y="34" fill="#94a3b8" font-size="6.3" font-weight="500">
       KM LUAR (SHARED) • SKALA 1:50
     </text>
-    <!-- Micro CAD Version Seal -->
-    <rect x="180" y="7" width="40" height="26" rx="4" fill="rgba(56, 189, 248, 0.12)" stroke="rgba(56, 189, 248, 0.3)" stroke-width="0.8" />
-    <text x="200" y="18" fill="#38bdf8" font-size="6.5" font-weight="800" text-anchor="middle">CAD</text>
-    <text x="200" y="27" fill="#4ade80" font-size="5.8" font-weight="700" text-anchor="middle">VERIFIED</text>
+    <rect x="228" y="7" width="42" height="26" rx="4" fill="rgba(56, 189, 248, 0.12)" stroke="rgba(56, 189, 248, 0.3)" stroke-width="0.8" />
+    <text x="249" y="18" fill="#38bdf8" font-size="6.5" font-weight="800" text-anchor="middle">CAD</text>
+    <text x="249" y="27" fill="#4ade80" font-size="5.6" font-weight="700" text-anchor="middle">VERIFIED</text>
   </g>
 
-  <!-- ── MINIMALIST ARCHITECTURAL COMPASS (NORTH) ── -->
   <g id="north_compass" transform="translate(625, 35)">
     <circle cx="15" cy="15" r="13" fill="rgba(12, 21, 39, 0.9)" stroke="rgba(148, 163, 184, 0.4)" stroke-width="1" />
     <line x1="15" y1="4" x2="15" y2="26" stroke="rgba(148, 163, 184, 0.3)" stroke-width="0.75" />

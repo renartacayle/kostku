@@ -317,19 +317,51 @@
         "lng": 106.8532
       },
       "gmapsUrl": "https://maps.google.com/?q=-6.2383,106.8532",
-      "roomPhoto": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80",
+      "roomPhoto": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&auto=format&fit=crop&q=80",
       "floorPlan": {
-        "dimensions": "4.0m x 4.5m",
-        "bedType": "queen",
+        "dimensions": "4.0m x 5.0m",
+        "bedType": "king",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_right",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_right",
+        "deskPos": "bottom_left",
         "furnitures": [
           "wardrobe",
           "desk",
-          "bathroom",
+          "window",
           "ac",
-          "window"
+          "bathroom"
         ],
+        "blanketHex": "#77746b",
+        "blanketAccent": "#c2c3bd",
+        "floorHex": "#aaaaa3",
+        "floorType": "Parquet Wood",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
         "generated": true,
-        "mode": "ai"
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 17.1,
+          "detectedCues": [
+            "Lantai Parquet Wood (#aaaaa3)",
+            "Cahaya jendela kuat di dinding right (0.12)",
+            "Posisi kasur left (vertical)",
+            "Palet sprei #77746b / aksen #c2c3bd",
+            "KM Dalam terdeteksi (top_right)",
+            "AC dipasang di dinding top"
+          ]
+        }
       },
       "rating": 5,
       "reviewCount": 4,
@@ -337,7 +369,7 @@
       "description": "Kost Co-Living modern bergaya tropis kontemporer di jantung Jakarta Selatan. Hanya 5 menit ke Stasiun Tebet dan area perkantoran Kuningan/Casablanca. Dilengkapi rooftop lounge, communal kitchen mewah, sistem access card pintar, dan kamar mandi dalam di setiap unit.",
       "images": [
         "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1200&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&auto=format&fit=crop&q=80",
         "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&auto=format&fit=crop&q=80",
         "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&auto=format&fit=crop&q=80"
       ],
@@ -385,8 +417,53 @@
             "size": "4x5",
             "capacity": 1,
             "status": "available",
-            "roomPhoto": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80",
-            "photo": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80"
+            "roomPhoto": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&auto=format&fit=crop&q=80",
+            "photo": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&auto=format&fit=crop&q=80",
+            "floorPlan": {
+              "dimensions": "4.0m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_right",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_right",
+              "deskPos": "bottom_left",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#77746b",
+              "blanketAccent": "#c2c3bd",
+              "floorHex": "#abaca5",
+              "floorType": "Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 16.2,
+                "detectedCues": [
+                  "Lantai Parquet Wood (#abaca5)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur left (vertical)",
+                  "Palet sprei #77746b / aksen #c2c3bd",
+                  "KM Dalam terdeteksi (top_right)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-JKT-102",
@@ -398,7 +475,52 @@
             "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
             "photo": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
             "tenantId": "1794408500026",
-            "tenantName": "Pemilik Kode Referral"
+            "tenantName": "Pemilik Kode Referral",
+            "floorPlan": {
+              "dimensions": "4.0m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4b4745",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 19.2,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4b4745",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-JKT-201",
@@ -408,7 +530,52 @@
             "capacity": 1,
             "status": "available",
             "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80",
-            "photo": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80"
+            "photo": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&auto=format&fit=crop&q=80",
+            "floorPlan": {
+              "dimensions": "4.0m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#c0c1c2",
+              "blanketAccent": "#40444a",
+              "floorHex": "#605e62",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 11.4,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#605e62)",
+                  "Cahaya jendela kuat di dinding right (0.24)",
+                  "Posisi kasur right (vertical)",
+                  "Palet sprei #c0c1c2 / aksen #40444a",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-JKT-202",
@@ -418,7 +585,52 @@
             "capacity": 2,
             "status": "available",
             "roomPhoto": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
-            "photo": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80"
+            "photo": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
+            "floorPlan": {
+              "dimensions": "5.0m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#5e4a34",
+              "blanketAccent": "#c7c6c0",
+              "floorHex": "#644e37",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 12.3,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#644e37)",
+                  "Cahaya jendela kuat di dinding right (0.74)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #5e4a34 / aksen #c7c6c0",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
@@ -600,7 +812,51 @@
             "status": "occupied",
             "occupiedBy": "Annisa Rahmawati",
             "plnMeterNo": "54210098231",
-            "pdamMeterNo": "PDAM-BDG-8821"
+            "pdamMeterNo": "PDAM-BDG-8821",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4b4744",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 25.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4b4744",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           },
           {
             "id": "RM-BDG-102",
@@ -610,7 +866,51 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098232",
-            "pdamMeterNo": "PDAM-BDG-8822"
+            "pdamMeterNo": "PDAM-BDG-8822",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4b4744",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 25.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4b4744",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           },
           {
             "id": "RM-BDG-201",
@@ -620,7 +920,51 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098233",
-            "pdamMeterNo": "PDAM-BDG-8823"
+            "pdamMeterNo": "PDAM-BDG-8823",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4b4744",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 25.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4b4744",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           },
           {
             "id": "RM-BDG-202",
@@ -630,7 +974,51 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098234",
-            "pdamMeterNo": "PDAM-BDG-8824"
+            "pdamMeterNo": "PDAM-BDG-8824",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4b4744",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 25.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4b4744",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 6500,
@@ -642,7 +1030,51 @@
         }
       },
       "ownerId": 1790690895763,
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "none",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "bathroom",
+          "fridge"
+        ],
+        "blanketHex": "#cdcece",
+        "blanketAccent": "#4b4744",
+        "floorHex": "#5b5148",
+        "floorType": "Soft Carpet",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 98,
+          "latencyMs": 20.2,
+          "detectedCues": [
+            "Lantai Soft Carpet (#5b5148)",
+            "Cahaya jendela kuat di dinding right (0.21)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #cdcece / aksen #4b4744",
+            "KM Dalam terdeteksi (top_left)"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-BSD-03",
@@ -704,7 +1136,50 @@
             "price": 2800000,
             "size": "4x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_right",
+              "deskPos": "bottom_left",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac"
+              ],
+              "blanketHex": "#c1c2bc",
+              "blanketAccent": "#352e25",
+              "floorHex": "#a9a9a2",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 18.3,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#a9a9a2)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur left (vertical)",
+                  "Palet sprei #c1c2bc / aksen #352e25",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-BSD-02",
@@ -712,7 +1187,50 @@
             "price": 2800000,
             "size": "4x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_right",
+              "deskPos": "bottom_left",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac"
+              ],
+              "blanketHex": "#c1c2bc",
+              "blanketAccent": "#352e25",
+              "floorHex": "#a9a9a2",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 18.3,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#a9a9a2)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur left (vertical)",
+                  "Palet sprei #c1c2bc / aksen #352e25",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-BSD-03",
@@ -720,13 +1238,99 @@
             "price": 3100000,
             "size": "4x5",
             "capacity": 2,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "4.0m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_right",
+              "deskPos": "bottom_left",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac"
+              ],
+              "blanketHex": "#c1c2bc",
+              "blanketAccent": "#352e25",
+              "floorHex": "#aaaaa3",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 18.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#aaaaa3)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur left (vertical)",
+                  "Palet sprei #c1c2bc / aksen #352e25",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "4.0m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "none",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_right",
+        "deskPos": "bottom_left",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac"
+        ],
+        "blanketHex": "#78766c",
+        "blanketAccent": "#c3c4be",
+        "floorHex": "#aaaaa4",
+        "floorType": "Soft Carpet",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 98,
+          "latencyMs": 19.1,
+          "detectedCues": [
+            "Lantai Soft Carpet (#aaaaa4)",
+            "Cahaya jendela kuat di dinding right (0.12)",
+            "Posisi kasur left (vertical)",
+            "Palet sprei #78766c / aksen #c3c4be",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-JOG-04",
@@ -787,7 +1391,53 @@
             "price": 1350000,
             "size": "3x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#d2d0c6",
+              "blanketAccent": "#826945",
+              "floorHex": "#786140",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 14.2,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#786140)",
+                  "Cahaya jendela kuat di dinding right (0.41)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #d2d0c6 / aksen #826945",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-JOG-102",
@@ -795,7 +1445,53 @@
             "price": 1350000,
             "size": "3x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#d2d0c6",
+              "blanketAccent": "#826945",
+              "floorHex": "#786140",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 14.2,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#786140)",
+                  "Cahaya jendela kuat di dinding right (0.41)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #d2d0c6 / aksen #826945",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-JOG-201",
@@ -803,13 +1499,105 @@
             "price": 1450000,
             "size": "3x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#d2d0c6",
+              "blanketAccent": "#826945",
+              "floorHex": "#786140",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 14.2,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#786140)",
+                  "Cahaya jendela kuat di dinding right (0.41)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #d2d0c6 / aksen #826945",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.0m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom",
+          "fridge"
+        ],
+        "blanketHex": "#d2d0c7",
+        "blanketAccent": "#826945",
+        "floorHex": "#776140",
+        "floorType": "Warm Parquet Wood",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 13.1,
+          "detectedCues": [
+            "Lantai Warm Parquet Wood (#776140)",
+            "Cahaya jendela kuat di dinding right (0.41)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #d2d0c7 / aksen #826945",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-MLG-05",
@@ -870,7 +1658,50 @@
             "price": 1200000,
             "size": "3x3.5",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 3.5m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom"
+              ],
+              "blanketHex": "#c8cbce",
+              "blanketAccent": "#363939",
+              "floorHex": "#a4a7ac",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 14.3,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#a4a7ac)",
+                  "Cahaya jendela kuat di dinding left (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #c8cbce / aksen #363939",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           },
           {
             "id": "RM-MLG-102",
@@ -878,7 +1709,50 @@
             "price": 1200000,
             "size": "3x3.5",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 3.5m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom"
+              ],
+              "blanketHex": "#c8cbce",
+              "blanketAccent": "#363939",
+              "floorHex": "#a4a7ac",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 14.3,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#a4a7ac)",
+                  "Cahaya jendela kuat di dinding left (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #c8cbce / aksen #363939",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           },
           {
             "id": "RM-MLG-201",
@@ -886,13 +1760,99 @@
             "price": 1300000,
             "size": "3x3.5",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 3.5m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom"
+              ],
+              "blanketHex": "#c8cbce",
+              "blanketAccent": "#363939",
+              "floorHex": "#a4a7ac",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 14.3,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#a4a7ac)",
+                  "Cahaya jendela kuat di dinding left (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #c8cbce / aksen #363939",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.0m x 3.5m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "left",
+        "acWall": "none",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "bathroom"
+        ],
+        "blanketHex": "#c8cbce",
+        "blanketAccent": "#353939",
+        "floorHex": "#a4a7ac",
+        "floorType": "Concrete Screed",
+        "unsureZone": {
+          "side": "right_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 98,
+          "latencyMs": 17.3,
+          "detectedCues": [
+            "Lantai Concrete Screed (#a4a7ac)",
+            "Cahaya jendela kuat di dinding left (0.21)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #c8cbce / aksen #353939",
+            "KM Dalam terdeteksi (top_left)"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-SBY-06",
@@ -910,7 +1870,7 @@
       "description": "Kost eksekutif khusus putra di Surabaya Timur. Dekat kampus UPN Veteran Jatim, UBAYA Rungkut, dan kawasan SIER. Dilengkapi AC super dingin, carport berkanopi muat 8 mobil, serta layanan laundry gratis.",
       "images": [
         "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1540518614846-7ede433c4550?w=1200&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&auto=format&fit=crop&q=80",
         "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=1200&auto=format&fit=crop&q=80",
         "https://images.unsplash.com/photo-1600585152220-90363fe7e115?w=1200&auto=format&fit=crop&q=80"
       ],
@@ -953,7 +1913,52 @@
             "price": 1500000,
             "size": "3.5x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4b4744",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 19.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4b4744",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-SBY-A2",
@@ -961,7 +1966,52 @@
             "price": 1500000,
             "size": "3.5x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4b4744",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 19.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4b4744",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-SBY-B1",
@@ -969,13 +2019,103 @@
             "price": 1700000,
             "size": "4x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#d1d4d5",
+              "blanketAccent": "#544f4a",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 28.4,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #d1d4d5 / aksen #544f4a",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#cdcece",
+        "blanketAccent": "#4b4744",
+        "floorHex": "#5b5148",
+        "floorType": "Soft Carpet",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 18.8,
+          "detectedCues": [
+            "Lantai Soft Carpet (#5b5148)",
+            "Cahaya jendela kuat di dinding right (0.21)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #cdcece / aksen #4b4744",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-SCBD-07",
@@ -1037,7 +2177,51 @@
             "price": 3500000,
             "size": "5x5",
             "capacity": 2,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "5.0m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#322114",
+              "blanketAccent": "#d0cfc6",
+              "floorHex": "#72583f",
+              "floorType": "Dark Timber Floor",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 17.2,
+                "detectedCues": [
+                  "Lantai Dark Timber Floor (#72583f)",
+                  "Cahaya jendela kuat di dinding left (0.28)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #322114 / aksen #d0cfc6",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           },
           {
             "id": "RM-SCBD-02",
@@ -1045,13 +2229,101 @@
             "price": 3800000,
             "size": "5x6",
             "capacity": 2,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "5.0m x 6.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "none",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#322114",
+              "blanketAccent": "#d0cfc6",
+              "floorHex": "#72583f",
+              "floorType": "Dark Timber Floor",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 21.5,
+                "detectedCues": [
+                  "Lantai Dark Timber Floor (#72583f)",
+                  "Cahaya jendela kuat di dinding left (0.28)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #322114 / aksen #d0cfc6",
+                  "KM Dalam terdeteksi (top_left)"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "5.0m x 5.0m",
+        "bedType": "king",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "left",
+        "acWall": "none",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "bathroom",
+          "fridge"
+        ],
+        "blanketHex": "#322114",
+        "blanketAccent": "#d0cec5",
+        "floorHex": "#72583f",
+        "floorType": "Dark Timber Floor",
+        "unsureZone": {
+          "side": "right_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 98,
+          "latencyMs": 17.2,
+          "detectedCues": [
+            "Lantai Dark Timber Floor (#72583f)",
+            "Cahaya jendela kuat di dinding left (0.28)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #322114 / aksen #d0cec5",
+            "KM Dalam terdeteksi (top_left)"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-TEBET-08",
@@ -1111,7 +2383,52 @@
             "price": 1850000,
             "size": "3x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#bab6aa",
+              "blanketAccent": "#554c3a",
+              "floorHex": "#c3bdb0",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.8,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#c3bdb0)",
+                  "Cahaya jendela kuat di dinding left (0.26)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #bab6aa / aksen #554c3a",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-TBT-102",
@@ -1119,7 +2436,52 @@
             "price": 1850000,
             "size": "3x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#bab6aa",
+              "blanketAccent": "#554c3a",
+              "floorHex": "#c3bdb0",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.8,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#c3bdb0)",
+                  "Cahaya jendela kuat di dinding left (0.26)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #bab6aa / aksen #554c3a",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-TBT-201",
@@ -1127,13 +2489,103 @@
             "price": 1950000,
             "size": "3.5x4",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#bab6aa",
+              "blanketAccent": "#554b3a",
+              "floorHex": "#c3bdb0",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 14.6,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#c3bdb0)",
+                  "Cahaya jendela kuat di dinding left (0.26)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #bab6aa / aksen #554b3a",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.0m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "left",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#bab6aa",
+        "blanketAccent": "#554b3a",
+        "floorHex": "#c3bdb0",
+        "floorType": "Warm Parquet Wood",
+        "unsureZone": {
+          "side": "right_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 15.2,
+          "detectedCues": [
+            "Lantai Warm Parquet Wood (#c3bdb0)",
+            "Cahaya jendela kuat di dinding left (0.26)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #bab6aa / aksen #554b3a",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-SMG-09",
@@ -1192,7 +2644,48 @@
             "price": 950000,
             "size": "3x3",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 3.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "none",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window"
+              ],
+              "blanketHex": "#c0c1c2",
+              "blanketAccent": "#40434a",
+              "floorHex": "#605f62",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 95.9,
+                "latencyMs": 12.3,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#605f62)",
+                  "Cahaya jendela kuat di dinding right (0.25)",
+                  "Posisi kasur right (vertical)",
+                  "Palet sprei #c0c1c2 / aksen #40434a"
+                ]
+              }
+            }
           },
           {
             "id": "RM-SMG-02",
@@ -1200,7 +2693,48 @@
             "price": 950000,
             "size": "3x3",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 3.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "none",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window"
+              ],
+              "blanketHex": "#c0c1c2",
+              "blanketAccent": "#40434a",
+              "floorHex": "#605f62",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 95.9,
+                "latencyMs": 12.3,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#605f62)",
+                  "Cahaya jendela kuat di dinding right (0.25)",
+                  "Posisi kasur right (vertical)",
+                  "Palet sprei #c0c1c2 / aksen #40434a"
+                ]
+              }
+            }
           },
           {
             "id": "RM-SMG-03",
@@ -1208,13 +2742,95 @@
             "price": 1200000,
             "size": "3x3.5",
             "capacity": 1,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 3.5m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "none",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window"
+              ],
+              "blanketHex": "#c0c1c2",
+              "blanketAccent": "#40434a",
+              "floorHex": "#5f5e62",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 95.9,
+                "latencyMs": 13.9,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#5f5e62)",
+                  "Cahaya jendela kuat di dinding right (0.25)",
+                  "Posisi kasur right (vertical)",
+                  "Palet sprei #c0c1c2 / aksen #40434a"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.0m x 3.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "none",
+        "bathroomCorner": "none",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window"
+        ],
+        "blanketHex": "#c0c1c3",
+        "blanketAccent": "#41444b",
+        "floorHex": "#5f5e62",
+        "floorType": "Concrete Screed",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 95.9,
+          "latencyMs": 17.3,
+          "detectedCues": [
+            "Lantai Concrete Screed (#5f5e62)",
+            "Cahaya jendela kuat di dinding right (0.25)",
+            "Posisi kasur right (vertical)",
+            "Palet sprei #c0c1c3 / aksen #41444b"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-BALI-10",
@@ -1275,7 +2891,50 @@
             "price": 3200000,
             "size": "4.5x5",
             "capacity": 2,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "4.5m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "top",
+              "acWall": "top",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac"
+              ],
+              "blanketHex": "#2a1f15",
+              "blanketAccent": "#d7cebf",
+              "floorHex": "#382a1a",
+              "floorType": "Dark Timber Floor",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 17.3,
+                "detectedCues": [
+                  "Lantai Dark Timber Floor (#382a1a)",
+                  "Cahaya jendela kuat di dinding top (0.05)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #2a1f15 / aksen #d7cebf",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-BLI-02",
@@ -1283,7 +2942,50 @@
             "price": 3200000,
             "size": "4.5x5",
             "capacity": 2,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "4.5m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "top",
+              "acWall": "top",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac"
+              ],
+              "blanketHex": "#2a1f15",
+              "blanketAccent": "#d7cebf",
+              "floorHex": "#382a1a",
+              "floorType": "Dark Timber Floor",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 17.3,
+                "detectedCues": [
+                  "Lantai Dark Timber Floor (#382a1a)",
+                  "Cahaya jendela kuat di dinding top (0.05)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #2a1f15 / aksen #d7cebf",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-BLI-03",
@@ -1291,13 +2993,99 @@
             "price": 3600000,
             "size": "5x5",
             "capacity": 2,
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "5.0m x 5.0m",
+              "bedType": "king",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "top",
+              "acWall": "top",
+              "bathroomCorner": "none",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac"
+              ],
+              "blanketHex": "#2a1f15",
+              "blanketAccent": "#d7cebf",
+              "floorHex": "#382a1a",
+              "floorType": "Dark Timber Floor",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 98,
+                "latencyMs": 17,
+                "detectedCues": [
+                  "Lantai Dark Timber Floor (#382a1a)",
+                  "Cahaya jendela kuat di dinding top (0.05)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #2a1f15 / aksen #d7cebf",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
         "electricityRate": 0
       },
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "4.5m x 5.0m",
+        "bedType": "king",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "top",
+        "acWall": "top",
+        "bathroomCorner": "none",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac"
+        ],
+        "blanketHex": "#2a1f15",
+        "blanketAccent": "#d7cebf",
+        "floorHex": "#382a1a",
+        "floorType": "Dark Timber Floor",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 98,
+          "latencyMs": 19,
+          "detectedCues": [
+            "Lantai Dark Timber Floor (#382a1a)",
+            "Cahaya jendela kuat di dinding top (0.05)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #2a1f15 / aksen #d7cebf",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-K12DQR",
@@ -1314,7 +3102,52 @@
             "size": "3x4m",
             "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80",
             "plnMeterNo": "14285930219",
-            "status": "available"
+            "status": "available",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#bdbec0",
+              "blanketAccent": "#2e353f",
+              "floorHex": "#605f62",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 11.1,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#605f62)",
+                  "Cahaya jendela kuat di dinding right (0.24)",
+                  "Posisi kasur right (vertical)",
+                  "Palet sprei #bdbec0 / aksen #2e353f",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "R2",
@@ -1323,7 +3156,52 @@
             "capacity": 1,
             "size": "3x4m",
             "roomPhoto": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80",
-            "plnMeterNo": "14285930220"
+            "plnMeterNo": "14285930220",
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#bdbec0",
+              "blanketAccent": "#2e353f",
+              "floorHex": "#605f62",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 11.1,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#605f62)",
+                  "Cahaya jendela kuat di dinding right (0.24)",
+                  "Posisi kasur right (vertical)",
+                  "Palet sprei #bdbec0 / aksen #2e353f",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "employees": [],
@@ -1403,7 +3281,52 @@
         "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80"
       ],
       "roomPhoto": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80",
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "top",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#928869",
+        "blanketAccent": "#e0dbcb",
+        "floorHex": "#c8b9a3",
+        "floorType": "Warm Parquet Wood",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 13.8,
+          "detectedCues": [
+            "Lantai Warm Parquet Wood (#c8b9a3)",
+            "Cahaya jendela kuat di dinding top (0.81)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #928869 / aksen #e0dbcb",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-DAQ3E4",
@@ -1427,14 +3350,104 @@
             "number": "101",
             "price": 1200000,
             "size": "3x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#5e4a34",
+              "blanketAccent": "#c7c6c0",
+              "floorHex": "#654e37",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 11.4,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#654e37)",
+                  "Cahaya jendela kuat di dinding right (0.74)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #5e4a34 / aksen #c7c6c0",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "1790636581962",
             "number": "102",
             "price": 1500000,
             "size": "4x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#5e4a34",
+              "blanketAccent": "#c8c7c1",
+              "floorHex": "#654e37",
+              "floorType": "Warm Parquet Wood",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 13.1,
+                "detectedCues": [
+                  "Lantai Warm Parquet Wood (#654e37)",
+                  "Cahaya jendela kuat di dinding right (0.74)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #5e4a34 / aksen #c8c7c1",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "employees": [],
@@ -1447,7 +3460,52 @@
       "reviewCount": 12,
       "city": "Semarang",
       "gmapsUrl": "https://maps.google.com/?q=-6.9912,110.4245",
-      "roomPhoto": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80"
+      "roomPhoto": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#5e4a34",
+        "blanketAccent": "#c7c6c0",
+        "floorHex": "#654e37",
+        "floorType": "Warm Parquet Wood",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 11.9,
+          "detectedCues": [
+            "Lantai Warm Parquet Wood (#654e37)",
+            "Cahaya jendela kuat di dinding right (0.74)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #5e4a34 / aksen #c7c6c0",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-8LTCXN",
@@ -1471,14 +3529,104 @@
             "number": "101",
             "price": 1200000,
             "size": "3x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#cdcece",
+              "blanketAccent": "#4a4744",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 24.1,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcece / aksen #4a4744",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "1790667808121",
             "number": "102",
             "price": 1500000,
             "size": "4x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#cdcecf",
+              "blanketAccent": "#4c4945",
+              "floorHex": "#5b5148",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 18.2,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#5b5148)",
+                  "Cahaya jendela kuat di dinding right (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #cdcecf / aksen #4c4945",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "employees": [],
@@ -1491,7 +3639,52 @@
       "reviewCount": 12,
       "city": "Semarang",
       "gmapsUrl": "https://maps.google.com/?q=-6.9940,110.4220",
-      "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80"
+      "roomPhoto": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80",
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#cdcece",
+        "blanketAccent": "#4b4845",
+        "floorHex": "#5b5148",
+        "floorType": "Soft Carpet",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 18.7,
+          "detectedCues": [
+            "Lantai Soft Carpet (#5b5148)",
+            "Cahaya jendela kuat di dinding right (0.21)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #cdcece / aksen #4b4845",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-SVD7KL",
@@ -1515,14 +3708,104 @@
             "number": "101",
             "price": 1200000,
             "size": "3x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#c8cbce",
+              "blanketAccent": "#363a3a",
+              "floorHex": "#a4a8ac",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 14.4,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#a4a8ac)",
+                  "Cahaya jendela kuat di dinding left (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #c8cbce / aksen #363a3a",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "1790690895765",
             "number": "102",
             "price": 1500000,
             "size": "4x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#c8cbce",
+              "blanketAccent": "#363a3a",
+              "floorHex": "#a4a8ac",
+              "floorType": "Concrete Screed",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 12.5,
+                "detectedCues": [
+                  "Lantai Concrete Screed (#a4a8ac)",
+                  "Cahaya jendela kuat di dinding left (0.21)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #c8cbce / aksen #363a3a",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "employees": [],
@@ -1536,7 +3819,52 @@
       "city": "Semarang",
       "gmapsUrl": "https://maps.google.com/?q=-7.0498,110.3945",
       "roomPhoto": "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80",
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "left",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#c8cbce",
+        "blanketAccent": "#36393a",
+        "floorHex": "#a4a8ac",
+        "floorType": "Concrete Screed",
+        "unsureZone": {
+          "side": "right_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 13.4,
+          "detectedCues": [
+            "Lantai Concrete Screed (#a4a8ac)",
+            "Cahaya jendela kuat di dinding left (0.21)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #c8cbce / aksen #36393a",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-CJ9S06",
@@ -1550,17 +3878,49 @@
       "gmapsUrl": "https://maps.google.com/?q=-6.9785,110.4180",
       "roomPhoto": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80",
       "floorPlan": {
-        "dimensions": "3.0m x 4.0m",
-        "bedType": "super_single",
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
         "furnitures": [
           "wardrobe",
           "desk",
-          "bathroom",
+          "window",
           "ac",
-          "window"
+          "bathroom"
         ],
+        "blanketHex": "#b7b6b4",
+        "blanketAccent": "#49453f",
+        "floorHex": "#726860",
+        "floorType": "Soft Carpet",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
         "generated": true,
-        "mode": "ai"
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 16.4,
+          "detectedCues": [
+            "Lantai Soft Carpet (#726860)",
+            "Cahaya jendela kuat di dinding right (0.11)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #b7b6b4 / aksen #49453f",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
       },
       "images": [
         "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&auto=format&fit=crop&q=80",
@@ -1582,16 +3942,48 @@
             "roomPhoto": "",
             "floorPlan": {
               "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
               "furnitures": [
                 "wardrobe",
                 "desk",
-                "bathroom",
+                "window",
                 "ac",
-                "window"
+                "bathroom"
               ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#4b4641",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
               "generated": true,
-              "mode": "ai"
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.11)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #4b4641",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
             },
             "facilities": [
               "WiFi",
@@ -1612,16 +4004,48 @@
             "roomPhoto": "",
             "floorPlan": {
               "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
               "furnitures": [
                 "wardrobe",
                 "desk",
-                "bathroom",
+                "window",
                 "ac",
-                "window"
+                "bathroom"
               ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#4b4641",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
               "generated": true,
-              "mode": "ai"
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.11)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #4b4641",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
             },
             "facilities": [
               "WiFi",
@@ -1642,16 +4066,48 @@
             "roomPhoto": "",
             "floorPlan": {
               "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
               "furnitures": [
                 "wardrobe",
                 "desk",
-                "bathroom",
+                "window",
                 "ac",
-                "window"
+                "bathroom"
               ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#4b4641",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
               "generated": true,
-              "mode": "ai"
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.11)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #4b4641",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
             },
             "facilities": [
               "WiFi",
@@ -1672,16 +4128,48 @@
             "roomPhoto": "",
             "floorPlan": {
               "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
               "furnitures": [
                 "wardrobe",
                 "desk",
-                "bathroom",
+                "window",
                 "ac",
-                "window"
+                "bathroom"
               ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#4b4641",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
               "generated": true,
-              "mode": "ai"
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.11)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #4b4641",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
             },
             "facilities": [
               "WiFi",
@@ -1702,16 +4190,48 @@
             "roomPhoto": "",
             "floorPlan": {
               "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
               "furnitures": [
                 "wardrobe",
                 "desk",
-                "bathroom",
+                "window",
                 "ac",
-                "window"
+                "bathroom"
               ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#4b4641",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
               "generated": true,
-              "mode": "ai"
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.11)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #4b4641",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
             },
             "facilities": [
               "WiFi",
@@ -1732,16 +4252,48 @@
             "roomPhoto": "",
             "floorPlan": {
               "dimensions": "3.0m x 4.0m",
-              "bedType": "super_single",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
               "furnitures": [
                 "wardrobe",
                 "desk",
-                "bathroom",
+                "window",
                 "ac",
-                "window"
+                "bathroom"
               ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#4b4641",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
               "generated": true,
-              "mode": "ai"
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 15.7,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.11)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #4b4641",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
             },
             "facilities": [
               "WiFi",
@@ -1784,14 +4336,104 @@
             "number": "101",
             "price": 1200000,
             "size": "3x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "3.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#312114",
+              "blanketAccent": "#cfcdc3",
+              "floorHex": "#71583f",
+              "floorType": "Dark Timber Floor",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 17.1,
+                "detectedCues": [
+                  "Lantai Dark Timber Floor (#71583f)",
+                  "Cahaya jendela kuat di dinding left (0.28)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #312114 / aksen #cfcdc3",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "1792372571802",
             "number": "102",
             "price": 1500000,
             "size": "4x4",
-            "capacity": 1
+            "capacity": 1,
+            "floorPlan": {
+              "dimensions": "4.0m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "left",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom"
+              ],
+              "blanketHex": "#322214",
+              "blanketAccent": "#d0cec5",
+              "floorHex": "#72583f",
+              "floorType": "Dark Timber Floor",
+              "unsureZone": {
+                "side": "right_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 16.4,
+                "detectedCues": [
+                  "Lantai Dark Timber Floor (#72583f)",
+                  "Cahaya jendela kuat di dinding left (0.28)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #322214 / aksen #d0cec5",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "employees": [],
@@ -1802,7 +4444,52 @@
       },
       "city": "Semarang",
       "gmapsUrl": "https://maps.google.com/?q=-7.0520,110.4370",
-      "roomPhoto": "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80"
+      "roomPhoto": "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&auto=format&fit=crop&q=80",
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "left",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom"
+        ],
+        "blanketHex": "#322214",
+        "blanketAccent": "#d0cec4",
+        "floorHex": "#71583f",
+        "floorType": "Dark Timber Floor",
+        "unsureZone": {
+          "side": "right_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 15.8,
+          "detectedCues": [
+            "Lantai Dark Timber Floor (#71583f)",
+            "Cahaya jendela kuat di dinding left (0.28)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #322214 / aksen #d0cec4",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     },
     {
       "uid": "KOST-BARU-01",
@@ -1869,7 +4556,53 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098901",
-            "pdamMeterNo": "PDAM-SMG-701"
+            "pdamMeterNo": "PDAM-SMG-701",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#49443f",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 16.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #49443f",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-HMN-102",
@@ -1879,7 +4612,53 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098902",
-            "pdamMeterNo": "PDAM-SMG-702"
+            "pdamMeterNo": "PDAM-SMG-702",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#49443f",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 16.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #49443f",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-HMN-103",
@@ -1889,7 +4668,53 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098903",
-            "pdamMeterNo": "PDAM-SMG-703"
+            "pdamMeterNo": "PDAM-SMG-703",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#49443f",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 16.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #49443f",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-HMN-201",
@@ -1899,7 +4724,53 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098904",
-            "pdamMeterNo": "PDAM-SMG-704"
+            "pdamMeterNo": "PDAM-SMG-704",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#49443f",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 16.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #49443f",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-HMN-202",
@@ -1909,7 +4780,53 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098905",
-            "pdamMeterNo": "PDAM-SMG-705"
+            "pdamMeterNo": "PDAM-SMG-705",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.0m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#49443f",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 16.6,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #49443f",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           },
           {
             "id": "RM-HMN-203",
@@ -1919,7 +4836,53 @@
             "capacity": 1,
             "status": "available",
             "plnMeterNo": "54210098906",
-            "pdamMeterNo": "PDAM-SMG-706"
+            "pdamMeterNo": "PDAM-SMG-706",
+            "floorPlan": {
+              "dimensions": "3.5m x 4.5m",
+              "bedType": "queen",
+              "pillows": 2,
+              "bedSide": "center",
+              "bedOrientation": "vertical",
+              "nakasSide": "both",
+              "windowWall": "right",
+              "acWall": "top",
+              "bathroomCorner": "top_left",
+              "doorPosition": "bottom_center",
+              "wardrobePos": "bottom_left",
+              "deskPos": "bottom_right",
+              "furnitures": [
+                "wardrobe",
+                "desk",
+                "window",
+                "ac",
+                "bathroom",
+                "fridge"
+              ],
+              "blanketHex": "#b8b6b4",
+              "blanketAccent": "#4a4540",
+              "floorHex": "#726860",
+              "floorType": "Soft Carpet",
+              "unsureZone": {
+                "side": "left_front",
+                "label": "Area Foyer / Luar Sudut Kamera"
+              },
+              "generated": true,
+              "mode": "ai",
+              "cvAnalyzed": true,
+              "cvMeta": {
+                "engine": "KostKu-OpenCV-Spatial-v2",
+                "confidencePct": 99.2,
+                "latencyMs": 17.1,
+                "detectedCues": [
+                  "Lantai Soft Carpet (#726860)",
+                  "Cahaya jendela kuat di dinding right (0.12)",
+                  "Posisi kasur center (vertical)",
+                  "Palet sprei #b8b6b4 / aksen #4a4540",
+                  "KM Dalam terdeteksi (top_left)",
+                  "AC dipasang di dinding top"
+                ]
+              }
+            }
           }
         ],
         "waterRate": 0,
@@ -1930,20 +4893,56 @@
       "additionalOwnerIds": [
         "1790690895763"
       ],
-      "isDemo": true
+      "isDemo": true,
+      "floorPlan": {
+        "dimensions": "3.5m x 4.0m",
+        "bedType": "queen",
+        "pillows": 2,
+        "bedSide": "center",
+        "bedOrientation": "vertical",
+        "nakasSide": "both",
+        "windowWall": "right",
+        "acWall": "top",
+        "bathroomCorner": "top_left",
+        "doorPosition": "bottom_center",
+        "wardrobePos": "bottom_left",
+        "deskPos": "bottom_right",
+        "furnitures": [
+          "wardrobe",
+          "desk",
+          "window",
+          "ac",
+          "bathroom",
+          "fridge"
+        ],
+        "blanketHex": "#b8b6b4",
+        "blanketAccent": "#49443f",
+        "floorHex": "#726860",
+        "floorType": "Soft Carpet",
+        "unsureZone": {
+          "side": "left_front",
+          "label": "Area Foyer / Luar Sudut Kamera"
+        },
+        "generated": true,
+        "mode": "ai",
+        "cvAnalyzed": true,
+        "cvMeta": {
+          "engine": "KostKu-OpenCV-Spatial-v2",
+          "confidencePct": 99.2,
+          "latencyMs": 16.4,
+          "detectedCues": [
+            "Lantai Soft Carpet (#726860)",
+            "Cahaya jendela kuat di dinding right (0.12)",
+            "Posisi kasur center (vertical)",
+            "Palet sprei #b8b6b4 / aksen #49443f",
+            "KM Dalam terdeteksi (top_left)",
+            "AC dipasang di dinding top"
+          ]
+        }
+      }
     }
   ],
   "complaints": [
-    {
-      "id": "COMP-BDG-002",
-      "kostUid": "KOST-BDG-02",
-      "userId": 1790690390205,
-      "userName": "Annisa Rahmawati",
-      "kamar": "101",
-      "text": "Bohlam lampu meja belajar redup. Sudah diganti bohlam LED baru oleh Pak Joko.",
-      "status": "selesai",
-      "date": "2026-10-05T14:20:00.000Z"
-    },
     {
       "id": "COMP-BDG-001",
       "kostUid": "KOST-BDG-02",
@@ -1954,6 +4953,16 @@
       "photo": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80",
       "status": "diproses",
       "date": "2026-10-17T09:15:00.000Z"
+    },
+    {
+      "id": "COMP-BDG-002",
+      "kostUid": "KOST-BDG-02",
+      "userId": 1790690390205,
+      "userName": "Annisa Rahmawati",
+      "kamar": "101",
+      "text": "Bohlam lampu meja belajar redup. Sudah diganti bohlam LED baru oleh Pak Joko.",
+      "status": "selesai",
+      "date": "2026-10-05T14:20:00.000Z"
     }
   ],
   "activities": [
@@ -3850,22 +6859,6 @@
   ],
   "invoices": [
     {
-      "id": "INV-202609-BDG-101",
-      "kostUid": "KOST-BDG-02",
-      "userId": 1790690390205,
-      "userName": "Annisa Rahmawati",
-      "kamar": "101",
-      "basePrice": 1650000,
-      "amount": 1650000,
-      "total": 1650000,
-      "status": "lunas",
-      "month": "September 2026",
-      "date": "2026-09-01T08:00:00.000Z",
-      "paidAt": "2026-09-03T11:24:18.000Z",
-      "paymentMethod": "QRIS INSTANT",
-      "receiptNumber": "RCP-QRIS-202609-88412"
-    },
-    {
       "id": "INV-202610-BDG-101",
       "kostUid": "KOST-BDG-02",
       "userId": 1790690390205,
@@ -3878,6 +6871,19 @@
       "month": "Oktober 2026",
       "date": "2026-10-01T08:00:00.000Z",
       "dueDate": "2026-10-25T23:59:59.000Z"
+    },
+    {
+      "id": "INV-1792134800001",
+      "kostUid": "KOST-K12DQR",
+      "userId": 1790329612918,
+      "userName": "Andi Pratama",
+      "kamar": "A01",
+      "basePrice": 1200000,
+      "amount": 1200000,
+      "total": 1200000,
+      "status": "belum_lunas",
+      "month": "Oktober 2026",
+      "date": "2026-10-01T08:00:00.000Z"
     },
     {
       "id": "INV-1790329613117",
@@ -3919,17 +6925,20 @@
       "date": "2026-09-25T09:46:52.917Z"
     },
     {
-      "id": "INV-1792134800001",
-      "kostUid": "KOST-K12DQR",
-      "userId": 1790329612918,
-      "userName": "Andi Pratama",
-      "kamar": "A01",
-      "basePrice": 1200000,
-      "amount": 1200000,
-      "total": 1200000,
-      "status": "belum_lunas",
-      "month": "Oktober 2026",
-      "date": "2026-10-01T08:00:00.000Z"
+      "id": "INV-202609-BDG-101",
+      "kostUid": "KOST-BDG-02",
+      "userId": 1790690390205,
+      "userName": "Annisa Rahmawati",
+      "kamar": "101",
+      "basePrice": 1650000,
+      "amount": 1650000,
+      "total": 1650000,
+      "status": "lunas",
+      "month": "September 2026",
+      "date": "2026-09-01T08:00:00.000Z",
+      "paidAt": "2026-09-03T11:24:18.000Z",
+      "paymentMethod": "QRIS INSTANT",
+      "receiptNumber": "RCP-QRIS-202609-88412"
     },
     {
       "id": "INV-1792980977143",
@@ -23881,6 +26890,46 @@
       "status": "pending",
       "createdAt": "2026-11-08T08:48:46.557Z",
       "expiryTime": "2026-11-08T09:03:46.237Z"
+    },
+    {
+      "id": 1795481752433,
+      "orderId": "ORDER-1795481752144-7021",
+      "invoiceId": null,
+      "kostUid": "KOST-JAKSEL-01",
+      "userId": "USER-1795481752142",
+      "customerName": "Tester Checkout",
+      "customerEmail": "checkout.tester@kostku.id",
+      "customerPhone": "081234567890",
+      "roomNumber": "101",
+      "amount": 2417550,
+      "paymentMethod": "QRIS",
+      "vaNumber": null,
+      "paymentCode": null,
+      "tripayReference": null,
+      "tripayCheckoutUrl": null,
+      "qrString": "00020101021226660014ID.LINKAJA.WWW01189360091100222079080215ID10202688920190303UME51630014ID.DANA.WWW01189360089800002079080215ID10202688920190303UME520454115303360540724175505802ID5914KOSTKU KMR 1016007JAKARTA6105128106220011695481752144-70216304449D",
+      "qrCodeUrl": "data:image/png;base64,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",
+      "instructions": [],
+      "bookingData": {
+        "kostUid": "KOST-JAKSEL-01",
+        "room": "101",
+        "duration": 1,
+        "checkInDate": "2026-11-25",
+        "job": "Mahasiswa",
+        "notes": "",
+        "phone": "081234567890",
+        "monthlyRent": 2400000,
+        "subtotalRent": 2400000,
+        "discountAmount": 0,
+        "netRent": 2400000,
+        "depositAmount": 0,
+        "depositRefundable": false,
+        "gatewayFee": 17550
+      },
+      "status": "pending",
+      "createdAt": "2026-11-24T00:55:52.433Z",
+      "expiryTime": "2026-11-24T01:10:52.506Z",
+      "provider": "aspi_emvco_dynamic"
     }
   ],
   "contracts": [
@@ -24609,15 +27658,17 @@
       "merchantId": ""
     },
     "posStore": {
-      "uid": "MTR-KASIR-MASTER",
-      "merchantId": "MTR-KASIR-MASTER",
+      "uid": "MTR-1790948804999",
+      "merchantId": "MTR-1790948804999",
       "location": "Lantai 1 Dekat Gazebo",
       "address": "Jl. Imam Bonjol No. 45, Semarang Tengah",
       "city": "Semarang",
       "phone": "081299990001",
       "mapsUrl": "https://maps.google.com/?q=-6.9825,110.4091",
       "latitude": -6.9825,
-      "longitude": 110.4091
+      "longitude": 110.4091,
+      "kasirWebOnline": false,
+      "lastKasirHeartbeatAt": "2026-11-24T01:16:13.126Z"
     },
     "posTripay": {
       "apiKey": "",
@@ -24658,7 +27709,48 @@
     }
   ],
   "partner_orders": [],
-  "merchants": [],
+  "merchants": [
+    {
+      "id": "MTR-1790948804999",
+      "ownerUserId": "1790948804999",
+      "name": "Kantin & Kuliner Renarta",
+      "storeName": "Kantin & Kuliner Renarta",
+      "category": "Warung & Kuliner",
+      "icon": "",
+      "phone": "081398765432",
+      "location": "Kantin KostKu - Stand Utama",
+      "address": "Jl. Nakula I No. 5-11, Pendrikan Kidul, Semarang Tengah",
+      "city": "Semarang",
+      "mapsUrl": "https://maps.google.com/?q=-6.9825,110.4091",
+      "latitude": -6.9825,
+      "longitude": 110.4091,
+      "photo": "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop&q=80",
+      "distanceKm": 0.1,
+      "rating": 5,
+      "openingHours": "08:00 - 22:00 WIB",
+      "isOpen": true,
+      "isValidated": true,
+      "isVerified": true,
+      "storeMode": "mitra",
+      "visibilityMode": "mitra",
+      "kasirOnly": false,
+      "isMitra": true,
+      "billingTier": "TIER_1_FLAT",
+      "saldoNota": 100000,
+      "kuotaNota": 4000,
+      "notaFeeBearer": "store",
+      "notaFeePerNotaIdr": 25,
+      "branches": [],
+      "status": "active",
+      "createdAt": "2026-11-20T06:17:15.246Z",
+      "notaHistory": [],
+      "kasirWebOnline": false,
+      "isShiftOpen": true,
+      "lastKasirHeartbeatAt": "2026-11-24T01:16:13.126Z",
+      "lastOnlineCashierName": "Bu Siti (Warung & Laundry)",
+      "lastOnlineCashierId": "1790948804999"
+    }
+  ],
   "staffAttendance": [],
   "staffLeaves": [],
   "staffWorkLogs": [],
@@ -27919,6 +31011,15 @@
       "totalSettled": 0,
       "gateway": "TriPay Master KostKu (T53543)",
       "history": []
+    },
+    "MTR-1790948804999": {
+      "uid": "MTR-1790948804999",
+      "name": "Kantin & Kuliner Renarta",
+      "balance": 0,
+      "totalEarned": 0,
+      "totalSettled": 0,
+      "gateway": "TriPay Master KostKu (T53543)",
+      "history": []
     }
   },
   "staffInvites": [],
@@ -28489,5 +31590,67 @@
   "customers": {},
   "points_ledger": [],
   "wallet_mutations": [],
-  "pos_shifts": []
+  "pos_shifts": [],
+  "pos_extras": [
+    {
+      "id": "ext-demo-kerupuk",
+      "name": "Extra Kerupuk",
+      "price": 2000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Makanan",
+        "Snack"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-04-01T08:00:00.000Z"
+    },
+    {
+      "id": "ext-demo-telur",
+      "name": "Extra Telur Mata Sapi",
+      "price": 4000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Makanan"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-04-01T08:00:00.000Z"
+    },
+    {
+      "id": "ext-demo-pangsit",
+      "name": "Extra Pangsit Goreng (2 pcs)",
+      "price": 3000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Makanan",
+        "Snack"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-04-01T08:00:00.000Z"
+    },
+    {
+      "id": "ext-demo-es",
+      "name": "Extra Es Batu / Gelas Jumbo",
+      "price": 1000,
+      "scope": "CATEGORY",
+      "targetCategories": [
+        "Minuman"
+      ],
+      "targetProductIds": [],
+      "isAvailable": true,
+      "merchantId": null,
+      "storeId": null,
+      "createdAt": "2026-04-01T08:00:00.000Z"
+    }
+  ],
+  "depositRefunds": [],
+  "pos_promo_holds": []
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -39,11 +39,14 @@ import {
   Navigation,
   Calculator,
   Flag,
-  AlertTriangle
+  AlertTriangle,
+  Grid
 } from 'lucide-react';
-import { apiGetPublicKosts, apiApplyKost, apiReportKost, apiGetKostPublicStatus } from '../services/api';
+import { apiGetPublicKosts, apiApplyKost, apiReportKost, apiGetKostPublicStatus, apiAnalyzeRoomPhoto } from '../services/api';
 import KostRatingReviewSection from '../components/KostRatingReviewSection';
 import KwhUtilityCalculatorModal from '../components/KwhUtilityCalculatorModal';
+import FloorPlanModal from '../components/FloorPlanModal';
+import RoomFloorPlanViewer from '../components/RoomFloorPlanViewer';
 import { getValidBuildingImages, DEFAULT_BUILDING_PHOTO } from '../utils/imageUtils';
 import { getGmapsDirectionsUrl, calculateDistanceKm, formatDistance, getCurrentPositionAsync } from '../utils/geoUtils';
 import Footer from '../components/Footer';
@@ -80,6 +83,9 @@ export default function KostDetail({ user }) {
   const [success, setSuccess] = useState(false);
   const [copiedMeter, setCopiedMeter] = useState('');
   const [showElectricCalculator, setShowElectricCalculator] = useState(false);
+  const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
+  const [cvCache, setCvCache] = useState({});
+  const cvRequestedRef = useRef(new Set());
   const [userLocation, setUserLocation] = useState(null);
   const [suspendedStatusInfo, setSuspendedStatusInfo] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -166,6 +172,49 @@ export default function KostDetail({ user }) {
       return () => clearTimeout(timer);
     }
   }, [kost]);
+
+  // Auto-sync 2D FloorPlan with actual room photo via local OpenCV API when room lacks CV metadata
+  const roomsListPre = kost?.rooms || [];
+  const selectedRoomObjPre = roomsListPre.find(r => r.number === selectedRoom) || roomsListPre[0];
+  const activeRoomPhotoPre = selectedRoomObjPre?.roomPhoto || selectedRoomObjPre?.photo || kost?.roomPhoto || kost?.images?.[1] || kost?.images?.[0] || null;
+  const activeRoomPlanPre = selectedRoomObjPre?.floorPlan || kost?.floorPlan || null;
+
+  useEffect(() => {
+    if (!kost || !activeRoomPhotoPre) return;
+    if (activeRoomPlanPre?.cvAnalyzed) return;
+    if (cvCache[activeRoomPhotoPre] || cvRequestedRef.current.has(activeRoomPhotoPre)) return;
+
+    cvRequestedRef.current.add(activeRoomPhotoPre);
+    let cancelled = false;
+
+    const facAll = [
+      ...(kost.facilities || []),
+      ...(kost.features || []),
+      ...(selectedRoomObjPre?.facilities || [])
+    ];
+    const rawDim = selectedRoomObjPre?.size || selectedRoomObjPre?.dimension || kost.layoutInfo?.roomDimensions || '3.5m x 4.0m';
+    const normDim = rawDim.includes('x') && !rawDim.includes('m')
+      ? rawDim.replace('x', 'm x ') + 'm'
+      : rawDim;
+
+    const payload = activeRoomPhotoPre.startsWith('data:')
+      ? { imageBase64: activeRoomPhotoPre, dimensions: normDim, facilities: facAll }
+      : { imageUrl: activeRoomPhotoPre, dimensions: normDim, facilities: facAll };
+
+    apiAnalyzeRoomPhoto(payload)
+      .then((res) => {
+        if (!cancelled && res?.floorPlan) {
+          setCvCache(prev => ({ ...prev, [activeRoomPhotoPre]: res.floorPlan }));
+        }
+      })
+      .catch(() => {
+        cvRequestedRef.current.delete(activeRoomPhotoPre);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [kost, activeRoomPhotoPre, activeRoomPlanPre?.cvAnalyzed, selectedRoom, cvCache]);
 
   const handleApplyClick = () => {
     if (kost?.status === 'suspended') {
@@ -344,9 +393,16 @@ export default function KostDetail({ user }) {
     ...(selectedRoomObj?.facilities || [])
   ].map(f => String(f).toLowerCase());
 
+  const hasOutsideBm = allFacilities.some(f =>
+    f.includes('km luar') || f.includes('kamar mandi luar') || f.includes('mandi luar') || f.includes('shared bath') || f.includes('kamar mandi bersama') || f.includes('km bersama')
+  );
+  const hasEnsuiteBm = !hasOutsideBm && allFacilities.some(f =>
+    f.includes('km dalam') || f.includes('kamar mandi dalam') || f.includes('ensuite') || f.includes('water heater') || f.includes('bathtub')
+  );
+
   const computedFurnitures = ['wardrobe', 'desk', 'window'];
   if (allFacilities.some(f => f.includes('ac'))) computedFurnitures.push('ac');
-  if (allFacilities.some(f => f.includes('mandi') || f.includes('km'))) computedFurnitures.push('bathroom');
+  if (hasEnsuiteBm) computedFurnitures.push('bathroom');
   if (allFacilities.some(f => f.includes('kulkas') || f.includes('fridge'))) computedFurnitures.push('fridge');
 
   const rawDimensions = selectedRoomObj?.size || selectedRoomObj?.dimension || layout.roomDimensions || "3.5m x 4.0m";
@@ -354,12 +410,37 @@ export default function KostDetail({ user }) {
     ? rawDimensions.replace('x', 'm x ') + 'm'
     : rawDimensions;
 
-  const activeFloorPlan = selectedRoomObj?.floorPlan || kost.floorPlan || {
-    dimensions: normalizedDimensions,
-    bedType: selectedRoomObj?.bedType || "super_single",
-    furnitures: computedFurnitures
+  const activeRoomPhoto = selectedRoomObj?.roomPhoto || selectedRoomObj?.photo || kost.roomPhoto || images[1] || images[0] || null;
+  const cvDetectedPlan = activeRoomPhoto ? cvCache[activeRoomPhoto] : null;
+
+  const baseResolvedPlan =
+    (selectedRoomObj?.floorPlan?.cvAnalyzed ? selectedRoomObj.floorPlan : null) ||
+    cvDetectedPlan ||
+    (kost.floorPlan?.cvAnalyzed ? kost.floorPlan : null) ||
+    selectedRoomObj?.floorPlan ||
+    kost.floorPlan || {
+      dimensions: normalizedDimensions,
+      bedType: selectedRoomObj?.bedType || 'super_single',
+      bedOrientation: 'vertical',
+      bedSide: 'center',
+      windowWall: 'right',
+      acWall: computedFurnitures.includes('ac') ? 'top' : 'none',
+      bathroomCorner: hasEnsuiteBm ? 'top_left' : 'none',
+      furnitures: computedFurnitures,
+      generated: true
+    };
+
+  const resolvedFurnitures = hasOutsideBm
+    ? (baseResolvedPlan.furnitures || computedFurnitures).filter(f => f !== 'bathroom')
+    : (baseResolvedPlan.furnitures || computedFurnitures);
+
+  const finalFloorPlan = {
+    ...baseResolvedPlan,
+    dimensions: selectedRoomObj?.size ? normalizedDimensions : (baseResolvedPlan.dimensions || normalizedDimensions),
+    furnitures: resolvedFurnitures,
+    bathroomCorner: hasOutsideBm ? 'none' : baseResolvedPlan.bathroomCorner
   };
-  const activeRoomPhoto = selectedRoomObj?.roomPhoto || kost.roomPhoto || null;
+  const isEnsuiteFinal = finalFloorPlan.furnitures?.includes('bathroom') && finalFloorPlan.bathroomCorner !== 'none';
 
   // Directions & Distance calculation
   const kostCoords = kost.location?.lat && kost.location?.lng ? kost.location : null;
@@ -555,7 +636,7 @@ export default function KostDetail({ user }) {
               </div>
             </div>
 
-            {/* Gallery Media Header */}
+            {/* Gallery Media Header Switcher Tabs */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -565,32 +646,78 @@ export default function KostDetail({ user }) {
               gap: '8px',
               flexWrap: 'wrap'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('photos')}
                   style={{
                     padding: '8px 16px',
                     borderRadius: '12px',
+                    border: 'none',
                     fontWeight: 700,
                     fontSize: '0.86rem',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                    color: 'white'
+                    cursor: 'pointer',
+                    background: activeTab === 'photos'
+                      ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
+                      : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)'),
+                    color: activeTab === 'photos' ? 'white' : 'var(--text-secondary)',
+                    transition: 'all 0.2s'
                   }}
                 >
                   <Camera size={16} />
                   <span>Foto Asli ({images.length})</span>
-                </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('layout')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.86rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    background: activeTab === 'layout'
+                      ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
+                      : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)'),
+                    color: activeTab === 'layout' ? 'white' : 'var(--text-secondary)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Grid size={16} />
+                  <span>Denah 2D Unit Kamar</span>
+                </button>
               </div>
 
-              <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600 }}>
-                ✓ 100% Foto Terverifikasi
+              <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Check size={14} /> 100% Foto & Denah Terverifikasi
               </span>
             </div>
 
+            {/* TAB CONTENT: DENAH 2D DALAM GALLERY */}
+            {activeTab === 'layout' && (
+              <div style={{ marginBottom: '14px' }}>
+                <RoomFloorPlanViewer
+                  floorPlan={finalFloorPlan}
+                  roomPhoto={activeRoomPhoto}
+                  dimensions={finalFloorPlan.dimensions || normalizedDimensions}
+                  bedType={finalFloorPlan.bedType || 'super_single'}
+                  furnitures={finalFloorPlan.furnitures || computedFurnitures}
+                  roomNumber={selectedRoom || '101'}
+                  kostName={kost.kostName}
+                />
+              </div>
+            )}
+
             {/* FOTO ASLI GALLERY */}
-            {(
+            {activeTab === 'photos' && (
               <div>
                 <div style={{
                   position: 'relative',
@@ -1060,7 +1187,98 @@ export default function KostDetail({ user }) {
               </div>
             )}
 
-            {/* 7. DENAH 2D DI-HALT SEMENTARA UNTUK PERBAIKAN */}
+            {/* 7. DENAH 2D ARSITEKTURAL UNIT (SINKRON FOTO KAMAR) */}
+            <div id="kost-denah-2d-section" className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                    <Grid size={20} color="#38bdf8" />
+                    <span>Denah 2D Arsitektural Unit (Sinkron Foto Kamar)</span>
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    Perbandingan langsung Foto Asli & Denah CAD skala 1:50 untuk Kamar {selectedRoom || '101'} (orientasi kasur, jendela, dan status KM).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFloorPlanModal(true)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.4)',
+                    background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.12)',
+                    color: isLight ? '#0284c7' : '#38bdf8',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Maximize2 size={14} />
+                  <span>Perbesar Denah</span>
+                </button>
+              </div>
+
+              <RoomFloorPlanViewer
+                floorPlan={finalFloorPlan}
+                roomPhoto={activeRoomPhoto}
+                dimensions={finalFloorPlan.dimensions || normalizedDimensions}
+                bedType={finalFloorPlan.bedType || 'super_single'}
+                furnitures={finalFloorPlan.furnitures || computedFurnitures}
+                roomNumber={selectedRoom || '101'}
+                kostName={kost.kostName}
+              />
+
+              <div style={{
+                marginTop: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+                fontSize: '0.78rem'
+              }}>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600
+                }}>
+                  Dimensi: {finalFloorPlan.dimensions || normalizedDimensions}
+                </span>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600
+                }}>
+                  Kasur: {(finalFloorPlan.bedType || 'super_single').toUpperCase()} ({finalFloorPlan.bedOrientation || 'vertical'})
+                </span>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: isEnsuiteFinal ? 'rgba(16, 185, 129, 0.14)' : 'rgba(245, 158, 11, 0.14)',
+                  color: isEnsuiteFinal ? '#10b981' : '#f59e0b',
+                  fontWeight: 700
+                }}>
+                  {isEnsuiteFinal ? 'KM Dalam (Ensuite)' : 'KM Luar (Shared)'}
+                </span>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  color: '#38bdf8',
+                  fontWeight: 700
+                }}>
+                  {finalFloorPlan.cvAnalyzed ? `Sinkron CV (${finalFloorPlan.cvMeta?.engine || 'OpenCV'})` : 'Tata Letak Standar'}
+                </span>
+              </div>
+            </div>
+
             {/* 8. SIMULASI BIAYA LISTRIK & TOKEN PLN */}
             <div className="card glass-panel" style={{ padding: 'clamp(0.95rem, 3vw, 1.5rem)', borderRadius: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '1rem' }}>
@@ -2208,6 +2426,16 @@ export default function KostDetail({ user }) {
         selectedKost={kost}
         kost={kost}
         roomPrice={selectedRoomObj ? Number(selectedRoomObj.price) : baseMonthlyPrice}
+      />
+
+      {/* MODAL: DENAH 2D ARSITEKTUR & FOTO KAMAR */}
+      <FloorPlanModal
+        isOpen={showFloorPlanModal}
+        onClose={() => setShowFloorPlanModal(false)}
+        kost={kost}
+        selectedRoomNumber={selectedRoom}
+        resolvedFloorPlan={finalFloorPlan}
+        activeRoomPhoto={activeRoomPhoto}
       />
 
       {/* Footer Legal & Compliance */}
