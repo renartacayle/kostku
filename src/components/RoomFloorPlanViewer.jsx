@@ -845,7 +845,6 @@ export default function RoomFloorPlanViewer({
             <svg
               ref={svgRef}
               width="100%"
-              height="auto"
               viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
@@ -853,6 +852,7 @@ export default function RoomFloorPlanViewer({
               onClick={() => editable && setSelectedItem(null)}
               style={{
                 maxWidth: viewMode === 'cad' ? '660px' : '100%',
+                height: 'auto',
                 aspectRatio: `${CANVAS_W} / ${CANVAS_H}`,
                 display: 'block',
                 touchAction: editable ? 'none' : 'auto',
