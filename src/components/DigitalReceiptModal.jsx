@@ -70,7 +70,8 @@ const DigitalReceiptModal = ({ isOpen, onClose, invoiceId }) => {
 
       // Generate verification QR code
       const rNum = data?.receiptNumber || `RCP-KST-${invoiceId}`;
-      const verifyUrl = `https://kostku-kohl.vercel.app/keuangan?receipt=${encodeURIComponent(rNum)}`;
+      const baseOrigin = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : 'https://kostku.riuph.me';
+      const verifyUrl = `${baseOrigin}/keuangan?receipt=${encodeURIComponent(rNum)}`;
       QRCode.toDataURL(verifyUrl, {
         width: 140,
         margin: 1,
