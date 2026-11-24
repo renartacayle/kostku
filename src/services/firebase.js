@@ -57,9 +57,11 @@ export const setFirebaseConfig = (projectId, apiKey, enable = true) => {
 export const testFirebaseConnection = async (projectId = null, apiKey = null) => {
   const pId = projectId || firebaseConfig.projectId;
   const start = performance.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error('Koneksi Firebase timeout (8 detik)')), 8000);
   try {
     const url = `https://${pId}-default-rtdb.asia-southeast1.firebasedatabase.app/system_health.json`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
     const latency = Math.round(performance.now() - start);
     if (res.ok) {
       return { ok: true, latency, error: null };
@@ -68,6 +70,8 @@ export const testFirebaseConnection = async (projectId = null, apiKey = null) =>
     return { ok: false, latency, error: `HTTP ${res.status}: ${errText || 'Akses ditolak'}` };
   } catch (err) {
     return { ok: false, latency: 0, error: err.message || 'Gagal tersambung ke Firebase' };
+  } finally {
+    clearTimeout(timer);
   }
 };
 

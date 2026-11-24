@@ -33,6 +33,27 @@ const {
 function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDeltaToFirebase }) {
   const router = express.Router();
 
+  // Express 4 async-rejection & sync-throw safety guard for all POS routes
+  const wrapRouteArg = (arg) => {
+    if (Array.isArray(arg)) return arg.map(wrapRouteArg);
+    if (typeof arg !== 'function' || arg.length >= 4 || typeof arg.use === 'function') return arg;
+    return function asyncPosRouteWrapper(req, res, next) {
+      try {
+        const out = arg.call(this, req, res, next);
+        if (out && typeof out.then === 'function') {
+          out.catch(next);
+        }
+        return out;
+      } catch (err) {
+        return next(err);
+      }
+    };
+  };
+  for (const method of ['get', 'post', 'put', 'patch', 'delete', 'all']) {
+    const origMethod = router[method].bind(router);
+    router[method] = (path, ...handlers) => origMethod(path, ...handlers.map(wrapRouteArg));
+  }
+
   // Non-blocking Granular Delta Sync Helper (< 5 KB payload)
   let syncDelta = syncDeltaToFirebase;
   if (!syncDelta) {
@@ -134,6 +155,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     // Koleksi Promo Makanan (Mulai kosong pada Mode Real — demo data ada di demo_db.json)
     db.pos_food_promos = db.pos_food_promos || [];
+    // Koleksi Temporary Hold Kuota Promo saat item berada di keranjang (TTL 15 menit)
+    db.pos_promo_holds = db.pos_promo_holds || [];
+    // Koleksi Extra / Topping Menu (Kerupuk, Telur, dll.) per Toko / Kategori / Menu
+    db.pos_extras = db.pos_extras || [];
 
     // ── KOLEKSI GUDANG & BAHAN BAKU (Mulai kosong pada Mode Real) ──
     db.pos_inventory = db.pos_inventory || [];
@@ -839,6 +864,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       merchantId: activeUid,
       storeName: resolvedName,
       category: target?.category || store.category || 'Makanan & Minuman',
+      description: target?.description || store.description || 'Kantin lezat, bersih, dan higienis khas KostKu. Menyediakan hidangan rumahan hangat, snack, dan aneka minuman segar siap saji ke mejamu.',
+      rating: target?.rating ?? store.rating ?? 4.9,
+      reviewsCount: target?.reviewsCount ?? store.reviewsCount ?? 128,
       storeMode: 'mitra',
       kasirOnly: resolvedKasirOnly,
       isMitra: true,
@@ -889,11 +917,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     // Public customer table QR access: only resolves the store owning this exact tableToken
     if (requestedTableToken) {
       const matchedTable = (db.pos_tables || []).find(t => String(t.qrToken || '') === requestedTableToken);
-      const targetStoreId = matchedTable?.storeId || matchedTable?.merchantId || requestedStoreId || null;
-      const targetMerchant =
-        (targetStoreId && db.merchants.find(m => m && m.status !== 'deleted' && String(m.id) === String(targetStoreId))) ||
-        null;
-      if (!targetMerchant) {
+      if (!matchedTable && !req.isDemo) {
         return res.status(404).json({
           error: 'Meja QR tidak ditemukan atau toko belum terdaftar.',
           hasRegisteredStore: false,
@@ -901,6 +925,16 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           merchantId: null,
           uid: null
         });
+      }
+      const targetStoreId = matchedTable?.storeId || matchedTable?.merchantId || requestedStoreId || null;
+      let targetMerchant =
+        (targetStoreId && (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(targetStoreId))) ||
+        null;
+      if (!targetMerchant) {
+        targetMerchant = (db.merchants || []).find(m => m && m.status !== 'deleted') || null;
+      }
+      if (!targetMerchant) {
+        return res.json(buildActiveStorePayload(db, store, null));
       }
       return res.json(buildActiveStorePayload(db, targetMerchant, targetMerchant.ownerUserId || null));
     }
@@ -2703,52 +2737,258 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     });
   });
 
-  // ── 0G. PROMO MAKANAN ENGINE (OWNER, MITRA, KASIR, ADMIN - KUOTA / TANGGAL) ──
+  // ── 0G. PROMO MAKANAN ENGINE (OWNER, MITRA, KASIR, ADMIN - KUOTA / TANGGAL + CART HOLD) ──
+  const PROMO_HOLD_TTL_MS = 15 * 60 * 1000;
+
+  const pruneExpiredPromoHolds = (db) => {
+    db.pos_promo_holds = db.pos_promo_holds || [];
+    const nowMs = Date.now();
+    const beforeLen = db.pos_promo_holds.length;
+    db.pos_promo_holds = db.pos_promo_holds.filter(
+      (h) => h && Number(h.qty) > 0 && new Date(h.expiresAt).getTime() > nowMs
+    );
+    return db.pos_promo_holds.length !== beforeLen;
+  };
+
+  const getPromoHeldQty = (db, promoId, excludeSessionId = null) => {
+    return (db.pos_promo_holds || []).reduce((sum, h) => {
+      if (!h || h.promoId !== promoId) return sum;
+      if (excludeSessionId && h.sessionId === excludeSessionId) return sum;
+      return sum + (Number(h.qty) || 0);
+    }, 0);
+  };
+
+  const getPromoSessionHeldQty = (db, promoId, sessionId) => {
+    if (!sessionId) return 0;
+    return (db.pos_promo_holds || []).reduce((sum, h) => {
+      if (!h || h.promoId !== promoId || h.sessionId !== sessionId) return sum;
+      return sum + (Number(h.qty) || 0);
+    }, 0);
+  };
+
+  const formatPromoForClient = (db, p, storeCtx, sessionId = null) => {
+    const now = new Date();
+    let isQuotaEmpty = false;
+    let remainingQuota = null;
+    let heldCount = 0;
+    let myHeldCount = 0;
+    let maxAvailableForSession = null;
+
+    if (p.limitType === 'QUOTA' || p.limitType === 'BOTH') {
+      const maxQ = Number(p.maxQuota) || 0;
+      const used = Number(p.usedCount) || 0;
+      heldCount = getPromoHeldQty(db, p.id);
+      myHeldCount = sessionId ? getPromoSessionHeldQty(db, p.id, sessionId) : 0;
+      const otherHeldCount = Math.max(0, heldCount - myHeldCount);
+      remainingQuota = Math.max(0, maxQ - used - heldCount);
+      maxAvailableForSession = Math.max(0, maxQ - used - otherHeldCount);
+      isQuotaEmpty = (used + heldCount) >= maxQ;
+    }
+
+    let isDateExpired = false;
+    if (p.limitType === 'DATE' || p.limitType === 'BOTH') {
+      if (p.expiryDate) {
+        const exp = new Date(p.expiryDate + 'T23:59:59');
+        if (now > exp) isDateExpired = true;
+      }
+    }
+
+    const isPointVoucher = isPointConversionVoucher(p);
+    const isAvailable = Boolean(p.isActive && !isDateExpired && (!isQuotaEmpty || myHeldCount > 0));
+    const eligibleOnStore = !isPointVoucher || storeCtx.isTier2;
+
+    return {
+      ...p,
+      remainingQuota,
+      heldCount,
+      myHeldCount,
+      maxAvailableForSession,
+      isQuotaEmpty,
+      isDateExpired,
+      isAvailable,
+      requiresTier2Loyalty: isPointVoucher,
+      eligibleOnStore
+    };
+  };
+
   router.get('/promos', (req, res) => {
     const db = getDB(req);
     ensurePosCollections(db);
 
-    const { storeId, merchantId, tableToken, customerView } = req.query;
+    if (pruneExpiredPromoHolds(db)) {
+      writeDB(db, req);
+    }
+
+    const { storeId, merchantId, tableToken, customerView, sessionId = null } = req.query;
     const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken });
-    const now = new Date();
-    const rawPromos = (db.pos_food_promos || []).map(p => {
-      let isQuotaEmpty = false;
-      let remainingQuota = null;
-
-      if (p.limitType === 'QUOTA' || p.limitType === 'BOTH') {
-        const maxQ = Number(p.maxQuota) || 0;
-        const used = Number(p.usedCount) || 0;
-        remainingQuota = Math.max(0, maxQ - used);
-        isQuotaEmpty = used >= maxQ;
-      }
-
-      let isDateExpired = false;
-      if (p.limitType === 'DATE' || p.limitType === 'BOTH') {
-        if (p.expiryDate) {
-          const exp = new Date(p.expiryDate + 'T23:59:59');
-          if (now > exp) isDateExpired = true;
-        }
-      }
-
-      const isPointVoucher = isPointConversionVoucher(p);
-      const isAvailable = Boolean(p.isActive && !isQuotaEmpty && !isDateExpired);
-      const eligibleOnStore = !isPointVoucher || storeCtx.isTier2;
-
-      return {
-        ...p,
-        remainingQuota,
-        isQuotaEmpty,
-        isDateExpired,
-        isAvailable,
-        requiresTier2Loyalty: isPointVoucher,
-        eligibleOnStore
-      };
-    });
+    const rawPromos = (db.pos_food_promos || []).map((p) =>
+      formatPromoForClient(db, p, storeCtx, sessionId || null)
+    );
 
     const filterCustomerTier1 = (Boolean(tableToken) || String(customerView) === 'true' || Boolean(storeId || merchantId)) && !storeCtx.isTier2;
     const promos = filterCustomerTier1 ? rawPromos.filter(p => !p.requiresTier2Loyalty) : rawPromos;
 
     res.json({ success: true, promos, billingTier: storeCtx.billingProfile.billingTier, isTier2: storeCtx.isTier2 });
+  });
+
+  router.post('/promos/hold', (req, res) => {
+    const {
+      promoId,
+      promoCode,
+      sessionId,
+      tableToken = null,
+      qty = 1,
+      storeId = null,
+      merchantId = null
+    } = req.body || {};
+
+    if (!sessionId || !String(sessionId).trim()) {
+      return res.status(400).json({ error: 'sessionId wajib diisi untuk hold kuota promo' });
+    }
+    const cleanSessionId = String(sessionId).trim();
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+    pruneExpiredPromoHolds(db);
+
+    const effectiveCode = promoCode ? String(promoCode).trim().toUpperCase() : null;
+    const promo = (db.pos_food_promos || []).find((p) =>
+      p.isActive && (
+        (promoId && p.id === promoId) ||
+        (effectiveCode && String(p.code).toUpperCase() === effectiveCode)
+      )
+    );
+
+    if (!promo) {
+      return res.status(404).json({ error: 'Promo makanan tidak ditemukan atau non-aktif' });
+    }
+
+    if (promo.limitType === 'DATE' || promo.limitType === 'BOTH') {
+      if (promo.expiryDate) {
+        const exp = new Date(promo.expiryDate + 'T23:59:59');
+        if (new Date() > exp) {
+          return res.status(400).json({ error: `Promo '${promo.code}' sudah kadaluarsa sejak ${promo.expiryDate}!` });
+        }
+      }
+    }
+
+    const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken });
+    const desiredQty = Math.max(0, parseInt(qty, 10) || 0);
+
+    if (desiredQty === 0) {
+      db.pos_promo_holds = (db.pos_promo_holds || []).filter(
+        (h) => !(h.promoId === promo.id && h.sessionId === cleanSessionId)
+      );
+      writeDB(db, req);
+      return res.json({
+        success: true,
+        capped: false,
+        exhausted: false,
+        heldQty: 0,
+        promo: formatPromoForClient(db, promo, storeCtx, cleanSessionId),
+        message: 'Hold kuota promo dilepas'
+      });
+    }
+
+    if (promo.limitType === 'QUOTA' || promo.limitType === 'BOTH') {
+      const maxQ = Number(promo.maxQuota) || 0;
+      const used = Number(promo.usedCount) || 0;
+      const otherHeld = getPromoHeldQty(db, promo.id, cleanSessionId);
+      const maxAvailableForSession = Math.max(0, maxQ - used - otherHeld);
+      const effectiveDesired = promo.scope === 'ALL' ? Math.min(1, desiredQty) : desiredQty;
+      const grantedQty = Math.min(effectiveDesired, maxAvailableForSession);
+
+      db.pos_promo_holds = (db.pos_promo_holds || []).filter(
+        (h) => !(h.promoId === promo.id && h.sessionId === cleanSessionId)
+      );
+
+      if (grantedQty > 0) {
+        const nowIso = new Date().toISOString();
+        db.pos_promo_holds.push({
+          id: 'HOLD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          promoId: promo.id,
+          sessionId: cleanSessionId,
+          tableToken: tableToken || null,
+          qty: grantedQty,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+          expiresAt: new Date(Date.now() + PROMO_HOLD_TTL_MS).toISOString()
+        });
+      }
+
+      writeDB(db, req);
+      return res.json({
+        success: grantedQty > 0,
+        capped: grantedQty < effectiveDesired,
+        exhausted: grantedQty === 0,
+        heldQty: grantedQty,
+        promo: formatPromoForClient(db, promo, storeCtx, cleanSessionId),
+        message: grantedQty === 0
+          ? 'Kuota promo habis'
+          : grantedQty < effectiveDesired
+            ? `Kuota promo hanya tersisa ${grantedQty} porsi`
+            : `${grantedQty} kuota promo di-hold untuk keranjangmu`
+      });
+    }
+
+    // DATE-only promo: no quota pool to hold
+    return res.json({
+      success: true,
+      capped: false,
+      exhausted: false,
+      heldQty: desiredQty,
+      promo: formatPromoForClient(db, promo, storeCtx, cleanSessionId),
+      message: 'Promo tanggal aktif untuk keranjangmu'
+    });
+  });
+
+  router.post('/promos/release', (req, res) => {
+    const { promoId = null, sessionId, storeId = null, merchantId = null, tableToken = null } = req.body || {};
+    if (!sessionId || !String(sessionId).trim()) {
+      return res.status(400).json({ error: 'sessionId wajib diisi' });
+    }
+    const cleanSessionId = String(sessionId).trim();
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+    pruneExpiredPromoHolds(db);
+
+    db.pos_promo_holds = (db.pos_promo_holds || []).filter(
+      (h) => !(h.sessionId === cleanSessionId && (!promoId || h.promoId === promoId))
+    );
+    writeDB(db, req);
+
+    const promoObj = promoId ? (db.pos_food_promos || []).find((p) => p.id === promoId) : null;
+    const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken });
+    return res.json({
+      success: true,
+      released: true,
+      promo: promoObj ? formatPromoForClient(db, promoObj, storeCtx, cleanSessionId) : null
+    });
+  });
+
+  router.post('/promos/release-session', (req, res) => {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (_) {
+        body = {};
+      }
+    }
+    const { sessionId } = body || {};
+    if (!sessionId || !String(sessionId).trim()) {
+      return res.status(400).json({ error: 'sessionId wajib diisi' });
+    }
+    const cleanSessionId = String(sessionId).trim();
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+    pruneExpiredPromoHolds(db);
+
+    db.pos_promo_holds = (db.pos_promo_holds || []).filter((h) => h.sessionId !== cleanSessionId);
+    writeDB(db, req);
+    return res.json({ success: true });
   });
 
   router.post('/promos', (req, res) => {
@@ -2883,9 +3123,12 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
   });
 
   router.post('/promos/validate', (req, res) => {
-    const { promoId, promoCode, code, items = [], subtotal = 0, orderTotal = 0, storeId = null, merchantId = null, tableToken = null } = req.body;
+    const { promoId, promoCode, code, items = [], subtotal = 0, orderTotal = 0, storeId = null, merchantId = null, tableToken = null, sessionId = null } = req.body;
     const db = getDB(req);
     ensurePosCollections(db);
+    if (pruneExpiredPromoHolds(db)) {
+      writeDB(db, req);
+    }
     const effectiveCode = promoCode || code || null;
     const effectiveSubtotal = Number(subtotal || orderTotal || 0);
     const storeCtx = resolveStoreContextForRequest(db, { storeId, merchantId, tableToken });
@@ -2921,10 +3164,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     }
 
-    // Check quota limit
+    // Check quota limit (used + held by other sessions)
     if (promo.limitType === 'QUOTA' || promo.limitType === 'BOTH') {
-      if (typeof promo.maxQuota === 'number' && (promo.usedCount || 0) >= promo.maxQuota) {
-        return res.status(400).json({ valid: false, error: `Maaf, kuota promo '${promo.code}' sudah habis! (${promo.usedCount}/${promo.maxQuota})` });
+      const otherHeld = getPromoHeldQty(db, promo.id, sessionId || null);
+      if (typeof promo.maxQuota === 'number' && ((promo.usedCount || 0) + otherHeld) >= promo.maxQuota) {
+        return res.status(400).json({ valid: false, error: `Maaf, kuota promo '${promo.code}' sudah habis! (${(promo.usedCount || 0) + otherHeld}/${promo.maxQuota})` });
       }
     }
 
@@ -2941,7 +3185,11 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     let calculatedDiscount = 0;
     if (promo.scope === 'SPECIFIC_ITEM' && promo.targetProductId) {
       const targetItems = items.filter(it => (it.productId === promo.targetProductId || it.id === promo.targetProductId));
-      const targetSubtotal = targetItems.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.qty || 1)), 0);
+      const targetSubtotal = targetItems.reduce((sum, it) => {
+        const prodObj = (db.pos_products || []).find(p => p.id === (it.productId || it.id));
+        const unitPrice = Number(it.price ?? prodObj?.price ?? 0);
+        return sum + (unitPrice * Number(it.qty || 1));
+      }, 0);
       if (targetSubtotal === 0) {
         return res.status(400).json({
           valid: false,
@@ -2962,16 +3210,19 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       }
     }
 
+    const totalHeldAll = getPromoHeldQty(db, promo.id);
     return res.json({
       valid: true,
       promoId: promo.id,
       code: promo.code,
       title: promo.title,
+      scope: promo.scope || 'ALL',
+      targetProductId: promo.targetProductId || null,
       discountType: promo.discountType,
       discountValue: promo.discountValue,
       discountAmount: calculatedDiscount,
       limitType: promo.limitType,
-      remainingQuota: promo.limitType === 'QUOTA' || promo.limitType === 'BOTH' ? Math.max(0, (promo.maxQuota || 0) - (promo.usedCount || 0)) : null,
+      remainingQuota: promo.limitType === 'QUOTA' || promo.limitType === 'BOTH' ? Math.max(0, (promo.maxQuota || 0) - (promo.usedCount || 0) - totalHeldAll) : null,
       message: `Promo '${promo.title}' valid! Potongan: Rp ${calculatedDiscount.toLocaleString('id-ID')}`
     });
   });
@@ -3007,6 +3258,95 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     res.json({ success: true, message: 'Konfigurasi TriPay POS berhasil disimpan!' });
   });
 
+  function sanitizeProductExtras(rawExtras) {
+    if (!Array.isArray(rawExtras)) return [];
+    const seen = new Set();
+    const clean = [];
+    for (let i = 0; i < rawExtras.length; i++) {
+      const item = rawExtras[i];
+      if (!item || typeof item !== 'object') continue;
+      const name = String(item.name || '').trim();
+      if (!name) continue;
+      const priceNum = Math.max(0, Math.round(Number(item.price) || 0));
+      const id = String(item.id || `pext-${Date.now()}-${i}`).trim();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      clean.push({
+        id,
+        name,
+        price: priceNum,
+        isAvailable: item.isAvailable !== false
+      });
+    }
+    return clean;
+  }
+
+  function sanitizeCommonNotes(rawNotes) {
+    if (!Array.isArray(rawNotes)) return [];
+    const seen = new Set();
+    const clean = [];
+    for (const entry of rawNotes) {
+      const txt = String(entry || '').trim();
+      if (!txt || seen.has(txt.toLowerCase())) continue;
+      seen.add(txt.toLowerCase());
+      clean.push(txt);
+    }
+    return clean;
+  }
+
+  function getAvailableExtrasForProduct(db, prod, effectiveStoreId) {
+    if (!prod) return [];
+    const map = new Map();
+    const prodStoreIds = new Set(
+      [effectiveStoreId, prod.storeId, prod.merchantId].filter(Boolean).map(String)
+    );
+
+    const storeExtras = Array.isArray(db.pos_extras) ? db.pos_extras : [];
+    for (const ext of storeExtras) {
+      if (!ext || ext.isAvailable === false) continue;
+      const extStore = ext.storeId ? String(ext.storeId) : null;
+      const extMerch = ext.merchantId ? String(ext.merchantId) : null;
+      if (extStore || extMerch) {
+        if (prodStoreIds.size > 0) {
+          const matchesStore = (extStore && prodStoreIds.has(extStore)) || (extMerch && prodStoreIds.has(extMerch));
+          if (!matchesStore) continue;
+        }
+      }
+      const scope = String(ext.scope || 'ALL').toUpperCase();
+      if (scope === 'CATEGORY') {
+        const cats = Array.isArray(ext.targetCategories)
+          ? ext.targetCategories
+          : (ext.targetCategory ? [ext.targetCategory] : []);
+        const prodCat = String(prod.category || '').trim().toLowerCase();
+        if (!cats.some(c => String(c || '').trim().toLowerCase() === prodCat)) continue;
+      } else if (scope === 'SPECIFIC_MENU') {
+        const ids = Array.isArray(ext.targetProductIds) ? ext.targetProductIds.map(String) : [];
+        if (!ids.includes(String(prod.id))) continue;
+      }
+      map.set(String(ext.id), {
+        id: String(ext.id),
+        name: String(ext.name || '').trim(),
+        price: Math.max(0, Math.round(Number(ext.price) || 0)),
+        isAvailable: true,
+        source: 'STORE'
+      });
+    }
+
+    const menuExtras = sanitizeProductExtras(prod.extras);
+    for (const mExt of menuExtras) {
+      if (mExt.isAvailable === false) continue;
+      map.set(String(mExt.id), {
+        id: String(mExt.id),
+        name: mExt.name,
+        price: mExt.price,
+        isAvailable: true,
+        source: 'MENU'
+      });
+    }
+
+    return Array.from(map.values());
+  }
+
   // ── 2. PRODUCTS & CATEGORY MANAGEMENT (ISOLATED PER MERCHANT/ACCOUNT & STORE) ──
   router.get('/products', (req, res) => {
     const db = getDB(req);
@@ -3017,12 +3357,19 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     let effectiveStoreId = storeId ? String(storeId) : '';
     if (!effectiveStoreId && tableToken) {
       const matchedTbl = (db.pos_tables || []).find(t => String(t.qrToken || '') === String(tableToken).trim());
-      if (!matchedTbl) return res.json([]);
-      effectiveStoreId = String(matchedTbl.storeId || matchedTbl.merchantId || '');
+      effectiveStoreId = String(matchedTbl?.storeId || matchedTbl?.merchantId || '');
+      if (!effectiveStoreId) {
+        const fallbackStore = (db.merchants || []).find(m => m && m.status !== 'deleted');
+        if (fallbackStore) effectiveStoreId = String(fallbackStore.id);
+      }
+    }
+
+    if (req.isDemo) {
+      return res.json(db.pos_products || []);
     }
 
     if (!req.isDemo && !effectiveStoreId && !merchantId && !headerOwnerId) {
-      return res.json([]);
+      return res.json(db.pos_products || []);
     }
 
     let list = db.pos_products || [];
@@ -3094,6 +3441,8 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       isAvailable: isAvailable !== false,
       description: String(description).trim(),
       image: String(image).trim(),
+      extras: sanitizeProductExtras(req.body.extras),
+      commonNotes: sanitizeCommonNotes(req.body.commonNotes),
       merchantId: merchantId ? String(merchantId) : null,
       storeId: storeId ? String(storeId) : null,
       createdAt: new Date().toISOString()
@@ -3146,6 +3495,12 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       ...req.body,
       price: req.body.price !== undefined ? Number(req.body.price) : db.pos_products[idx].price,
       stock: req.body.stock !== undefined ? Number(req.body.stock) : db.pos_products[idx].stock,
+      extras: req.body.extras !== undefined
+        ? sanitizeProductExtras(req.body.extras)
+        : (db.pos_products[idx].extras || []),
+      commonNotes: req.body.commonNotes !== undefined
+        ? sanitizeCommonNotes(req.body.commonNotes)
+        : (db.pos_products[idx].commonNotes || []),
       updatedAt: new Date().toISOString()
     };
 
@@ -3161,6 +3516,155 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     ensurePosCollections(db);
 
     db.pos_products = db.pos_products.filter(p => p.id !== id);
+    writeDB(db, req);
+    res.json({ success: true });
+  });
+
+  // ── 2b. STORE EXTRAS & TOPPINGS CRUD (OWNER KASIR -> ORDER MEJA) ──
+  router.get('/extras', (req, res) => {
+    const db = getDB(req);
+    ensurePosCollections(db);
+    const { merchantId, storeId, ownerId, tableToken, activeOnly } = req.query;
+    const headerOwnerId = ownerId || req.user?.id || req.headers['x-user-id'] || null;
+    const table = tableToken ? (db.pos_tables || []).find(t => t.qrToken === tableToken) : null;
+    const activeStore = db.settings?.posStore || {};
+    const targetIds = new Set(
+      [
+        storeId,
+        merchantId,
+        ownerId,
+        headerOwnerId,
+        table?.storeId,
+        table?.merchantId,
+        activeStore.merchantId,
+        activeStore.uid
+      ].filter(Boolean).map(String)
+    );
+
+    const extras = (db.pos_extras || []).filter(ext => {
+      if (activeOnly === 'true' && ext.isAvailable === false) return false;
+      const extStore = ext.storeId ? String(ext.storeId) : null;
+      const extMerch = ext.merchantId ? String(ext.merchantId) : null;
+      if (!extStore && !extMerch) return true;
+      if (targetIds.size === 0) return true;
+      return (extStore && targetIds.has(extStore)) || (extMerch && targetIds.has(extMerch));
+    });
+
+    res.json(extras);
+  });
+
+  router.post('/extras', (req, res) => {
+    const {
+      id,
+      name,
+      price,
+      scope,
+      targetCategories,
+      targetCategory,
+      targetProductIds,
+      isAvailable,
+      merchantId,
+      storeId
+    } = req.body;
+
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: 'Nama extra/topping wajib diisi' });
+    }
+    const priceNum = Number(price);
+    if (price === undefined || isNaN(priceNum) || priceNum < 0) {
+      return res.status(400).json({ error: 'Harga extra wajib diisi (minimal Rp 0)' });
+    }
+
+    const resolvedScope = ['ALL', 'CATEGORY', 'SPECIFIC_MENU'].includes(String(scope || 'ALL').toUpperCase())
+      ? String(scope || 'ALL').toUpperCase()
+      : 'ALL';
+
+    const resolvedCategories = Array.isArray(targetCategories)
+      ? targetCategories.map(c => String(c || '').trim()).filter(Boolean)
+      : (targetCategory ? [String(targetCategory).trim()] : []);
+
+    const resolvedProductIds = Array.isArray(targetProductIds)
+      ? targetProductIds.map(p => String(p || '').trim()).filter(Boolean)
+      : [];
+
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const newExtra = {
+      id: id ? String(id).trim() : 'ext-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      name: String(name).trim(),
+      price: Math.max(0, Math.round(priceNum)),
+      scope: resolvedScope,
+      targetCategories: resolvedCategories,
+      targetProductIds: resolvedProductIds,
+      isAvailable: isAvailable !== false,
+      merchantId: merchantId ? String(merchantId) : null,
+      storeId: storeId ? String(storeId) : null,
+      createdAt: new Date().toISOString()
+    };
+
+    db.pos_extras.unshift(newExtra);
+    writeDB(db, req);
+    res.json(newExtra);
+  });
+
+  router.put('/extras/:id', (req, res) => {
+    const { id } = req.params;
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    const idx = db.pos_extras.findIndex(e => e.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Extra tidak ditemukan' });
+
+    const existing = db.pos_extras[idx];
+    const nextName = req.body.name !== undefined ? String(req.body.name).trim() : existing.name;
+    if (!nextName) {
+      return res.status(400).json({ error: 'Nama extra/topping wajib diisi' });
+    }
+    const nextPrice = req.body.price !== undefined
+      ? Math.max(0, Math.round(Number(req.body.price)))
+      : existing.price;
+    if (isNaN(nextPrice) || nextPrice < 0) {
+      return res.status(400).json({ error: 'Harga extra wajib valid (>= Rp 0)' });
+    }
+
+    const nextScope = req.body.scope !== undefined
+      ? (['ALL', 'CATEGORY', 'SPECIFIC_MENU'].includes(String(req.body.scope).toUpperCase())
+          ? String(req.body.scope).toUpperCase()
+          : existing.scope)
+      : existing.scope;
+
+    const nextCategories = req.body.targetCategories !== undefined
+      ? (Array.isArray(req.body.targetCategories) ? req.body.targetCategories.map(c => String(c || '').trim()).filter(Boolean) : [])
+      : (req.body.targetCategory !== undefined
+          ? (req.body.targetCategory ? [String(req.body.targetCategory).trim()] : [])
+          : (existing.targetCategories || []));
+
+    const nextProductIds = req.body.targetProductIds !== undefined
+      ? (Array.isArray(req.body.targetProductIds) ? req.body.targetProductIds.map(p => String(p || '').trim()).filter(Boolean) : [])
+      : (existing.targetProductIds || []);
+
+    db.pos_extras[idx] = {
+      ...existing,
+      name: nextName,
+      price: nextPrice,
+      scope: nextScope,
+      targetCategories: nextCategories,
+      targetProductIds: nextProductIds,
+      isAvailable: req.body.isAvailable !== undefined ? req.body.isAvailable !== false : existing.isAvailable,
+      updatedAt: new Date().toISOString()
+    };
+
+    writeDB(db, req);
+    res.json(db.pos_extras[idx]);
+  });
+
+  router.delete('/extras/:id', (req, res) => {
+    const { id } = req.params;
+    const db = getDB(req);
+    ensurePosCollections(db);
+
+    db.pos_extras = db.pos_extras.filter(e => e.id !== id);
     writeDB(db, req);
     res.json({ success: true });
   });
@@ -3323,14 +3827,10 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       pointsToRedeem = 0,
       isLoggedIn = false,
       promoId = null,
-      promoCode = null
+      promoCode = null,
+      appliedPromoIds = null,
+      sessionId = null
     } = req.body;
-
-    // VALIDASI: Wajib input beli atas nama siapa!
-    const cleanCustomerName = String(customerName || '').trim();
-    if (!cleanCustomerName) {
-      return res.status(400).json({ error: 'Nama pemesan wajib diisi (beli atas nama siapa)!' });
-    }
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Pilih minimal 1 item makanan/minuman' });
@@ -3338,10 +3838,21 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
 
     const db = getDB(req);
     ensurePosCollections(db);
+    pruneExpiredPromoHolds(db);
 
-    const table = db.pos_tables.find(t => t.qrToken === tableToken) || { number: 'Meja Walk-in' };
+    const table = db.pos_tables.find(t => t.qrToken === tableToken) || (tableToken ? { number: 'Meja Tamu' } : { number: 'Meja Walk-in' });
 
-    // Calculate subtotal from products in DB to avoid client-side price tampering
+    // Jika pemesanan lewat QR meja tanpa input Atas Nama, otomatis pakai nomor meja (misal: "Meja 01")
+    const cleanCustomerName = String(customerName || '').trim() || (tableToken ? (table.number || 'Meja Tamu') : '');
+    if (!cleanCustomerName) {
+      return res.status(400).json({ error: 'Nama pemesan wajib diisi (beli atas nama siapa)!' });
+    }
+
+    // ── IDENTIFIKASI TOKO & BILLING PROFILE (TIER 1 Rp 25 vs TIER 2 Rp 100) ──
+    const currentActiveStore = db.settings.posStore || {};
+    const storeId = req.body.storeId || table?.storeId || table?.merchantId || currentActiveStore.merchantId || currentActiveStore.uid || 'MTR-KASIR-MASTER';
+
+    // Calculate subtotal from products & authoritative extras in DB to avoid client-side price tampering
     let subtotal = 0;
     const validatedItems = [];
 
@@ -3349,12 +3860,47 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       const prod = db.pos_products.find(p => p.id === (it.productId || it.id));
       if (prod) {
         const qty = Math.max(1, parseInt(it.qty) || 1);
-        const itemSubtotal = prod.price * qty;
+        const rawSelExtras = Array.isArray(it.selectedExtras)
+          ? it.selectedExtras
+          : (Array.isArray(it.extras) ? it.extras : []);
+        const availableExtras = getAvailableExtrasForProduct(db, prod, storeId);
+        const availableById = new Map(availableExtras.map(e => [String(e.id), e]));
+        const seenExtraIds = new Set();
+        const validatedExtras = [];
+        let extrasUnitTotal = 0;
+
+        for (const sel of rawSelExtras) {
+          const selId = typeof sel === 'string' ? sel : (sel && sel.id ? String(sel.id) : '');
+          if (!selId || seenExtraIds.has(selId)) continue;
+          const rawExQty = (sel && typeof sel === 'object' && sel.qty !== undefined)
+            ? parseInt(sel.qty, 10)
+            : 1;
+          if (isNaN(rawExQty) || rawExQty <= 0) continue; // block 0 or negative qty discount tamper
+          const exQty = Math.min(99, rawExQty);
+          const matchedExtra = availableById.get(selId);
+          if (!matchedExtra) continue;
+          seenExtraIds.add(selId);
+          const extraSubtotal = matchedExtra.price * exQty;
+          extrasUnitTotal += extraSubtotal;
+          validatedExtras.push({
+            id: matchedExtra.id,
+            name: matchedExtra.name,
+            price: matchedExtra.price,
+            qty: exQty,
+            subtotal: extraSubtotal
+          });
+        }
+
+        const unitPriceWithExtras = prod.price + extrasUnitTotal;
+        const itemSubtotal = unitPriceWithExtras * qty;
         subtotal += itemSubtotal;
         validatedItems.push({
           productId: prod.id,
           name: prod.name,
           price: prod.price,
+          extras: validatedExtras,
+          extrasUnitTotal,
+          unitPriceWithExtras,
           qty,
           subtotal: itemSubtotal,
           notes: it.notes || '',
@@ -3366,10 +3912,6 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     if (validatedItems.length === 0) {
       return res.status(400).json({ error: 'Item yang dipilih tidak valid di katalog' });
     }
-
-    // ── IDENTIFIKASI TOKO & BILLING PROFILE (TIER 1 Rp 25 vs TIER 2 Rp 100) ──
-    const currentActiveStore = db.settings.posStore || {};
-    const storeId = req.body.storeId || table?.storeId || table?.merchantId || currentActiveStore.merchantId || currentActiveStore.uid || 'MTR-KASIR-MASTER';
     let resolvedMerchant = (db.merchants || []).find(m => m && m.status !== 'deleted' && String(m.id) === String(storeId))
       || (db.merchants || []).find(m => m && m.status !== 'deleted');
     if (!resolvedMerchant) {
@@ -3391,14 +3933,28 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const userIsLoggedIn = Boolean(isLoggedIn);
     const cleanPhone = String(customerPhone || '').replace(/\D/g, '');
 
-    // ── PROMO MAKANAN BERKUOTA ATAU TANGGAL (validasi dulu sebelum mutasi) ──
+    // ── PROMO MAKANAN BERKUOTA ATAU TANGGAL (validasi dulu sebelum mutasi, dukung multi-promo + konversi cart hold) ──
     let promoDiscount = 0;
-    let appliedPromo = null;
-    let appliedPromoObj = null;
+    const appliedPromos = [];
+    const appliedPromoMutations = [];
 
+    const requestedPromoRefs = [];
+    if (Array.isArray(appliedPromoIds)) {
+      appliedPromoIds.forEach((pid) => {
+        const cleanId = pid ? String(pid).trim() : null;
+        if (cleanId) requestedPromoRefs.push({ id: cleanId, code: null });
+      });
+    }
     if (promoId || promoCode) {
-      const pId = promoId ? String(promoId).trim() : null;
-      const pCode = promoCode ? String(promoCode).trim().toUpperCase() : null;
+      const cleanId = promoId ? String(promoId).trim() : null;
+      const cleanCode = promoCode ? String(promoCode).trim().toUpperCase() : null;
+      requestedPromoRefs.push({ id: cleanId, code: cleanCode });
+    }
+
+    const seenResolvedPromoIds = new Set();
+    for (const ref of requestedPromoRefs) {
+      const pId = ref.id;
+      const pCode = ref.code;
 
       const promo = (db.pos_food_promos || []).find(p =>
         p.isActive && (
@@ -3419,6 +3975,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         return res.status(404).json({ error: 'Kode promo tidak ditemukan atau non-aktif' });
       }
 
+      if (seenResolvedPromoIds.has(promo.id)) continue;
+      seenResolvedPromoIds.add(promo.id);
+
       if (promo.limitType === 'DATE' || promo.limitType === 'BOTH') {
         if (promo.expiryDate) {
           const exp = new Date(promo.expiryDate + 'T23:59:59');
@@ -3428,11 +3987,14 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         }
       }
 
+      let availableForSession = null;
       if (promo.limitType === 'QUOTA' || promo.limitType === 'BOTH') {
         const maxQ = Number(promo.maxQuota) || 0;
         const used = Number(promo.usedCount) || 0;
-        if (used >= maxQ) {
-          return res.status(400).json({ error: `Kuota promo '${promo.code}' sudah habis (${used}/${maxQ})!` });
+        const otherHeld = getPromoHeldQty(db, promo.id, sessionId || null);
+        availableForSession = Math.max(0, maxQ - used - otherHeld);
+        if (availableForSession <= 0) {
+          return res.status(400).json({ error: `Kuota promo '${promo.code}' sudah habis (${used + otherHeld}/${maxQ})!` });
         }
       }
 
@@ -3441,6 +4003,9 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
         return res.status(400).json({ error: `Minimum pembelanjaan untuk promo '${promo.code}' adalah Rp ${minOrder.toLocaleString('id-ID')}` });
       }
 
+      let singleDiscount = 0;
+      let consumeCount = 1;
+
       if (promo.scope === 'SPECIFIC_ITEM' && promo.targetProductId) {
         const targetItems = validatedItems.filter(it => it.productId === promo.targetProductId);
         const targetSubtotal = targetItems.reduce((s, it) => s + it.subtotal, 0);
@@ -3448,33 +4013,48 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
           return res.status(400).json({ error: `Promo ini hanya berlaku untuk menu '${promo.targetProductName || 'spesifik'}'` });
         }
 
+        const totalTargetQty = targetItems.reduce((s, it) => s + it.qty, 0);
+        const eligibleQty = (availableForSession !== null)
+          ? Math.min(totalTargetQty, availableForSession)
+          : totalTargetQty;
+        const unitPrice = targetItems[0].price;
+        const eligibleSubtotal = unitPrice * eligibleQty;
+
         if (promo.discountType === 'PERCENT') {
-          promoDiscount = Math.round(targetSubtotal * (Math.min(100, promo.discountValue) / 100));
+          singleDiscount = Math.round(eligibleSubtotal * (Math.min(100, promo.discountValue) / 100));
         } else {
-          const totalTargetQty = targetItems.reduce((s, it) => s + it.qty, 0);
-          promoDiscount = Math.min(targetSubtotal, promo.discountValue * totalTargetQty);
+          singleDiscount = Math.min(eligibleSubtotal, promo.discountValue * eligibleQty);
         }
+        consumeCount = (promo.limitType === 'QUOTA' || promo.limitType === 'BOTH') ? eligibleQty : 1;
       } else {
+        const remainingSubtotal = Math.max(0, subtotal - promoDiscount);
         if (promo.discountType === 'PERCENT') {
-          promoDiscount = Math.round(subtotal * (Math.min(100, promo.discountValue) / 100));
+          singleDiscount = Math.round(remainingSubtotal * (Math.min(100, promo.discountValue) / 100));
         } else {
-          promoDiscount = Math.min(subtotal, promo.discountValue);
+          singleDiscount = Math.min(remainingSubtotal, promo.discountValue);
         }
+        consumeCount = 1;
       }
 
-      if (promoDiscount > 0) {
-        appliedPromoObj = promo;
-        appliedPromo = {
+      if (singleDiscount > 0) {
+        promoDiscount += singleDiscount;
+        appliedPromoMutations.push({ promoObj: promo, consumeCount });
+        appliedPromos.push({
           id: promo.id,
           code: promo.code,
           title: promo.title,
+          scope: promo.scope || 'ALL',
+          targetProductId: promo.targetProductId || null,
           discountType: promo.discountType,
           discountValue: promo.discountValue,
           limitType: promo.limitType,
-          amount: promoDiscount
-        };
+          consumedQuota: consumeCount,
+          amount: singleDiscount
+        });
       }
     }
+
+    const appliedPromo = appliedPromos[0] || null;
 
     // ── PREVIEW SHARED LOYALTY POOL & TIERED BILLING FEE ──
     const requestedRedeemPoints = Math.max(0, Math.floor(Number(req.body.redeemPoints ?? pointsToRedeem) || 0));
@@ -3530,8 +4110,15 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     const totalAmount = feeSnap.totalAmount;
     const ownerDeduction = feeSnap.notaFeeBearer === 'customer' ? 0 : billingFeeIdr;
 
-    if (appliedPromoObj) {
-      appliedPromoObj.usedCount = (appliedPromoObj.usedCount || 0) + 1;
+    // Konversi temporary hold menjadi pemakaian kuota permanen tanpa double deduction
+    appliedPromoMutations.forEach(({ promoObj, consumeCount }) => {
+      promoObj.usedCount = (promoObj.usedCount || 0) + consumeCount;
+    });
+    if (sessionId) {
+      const cleanSessionId = String(sessionId).trim();
+      db.pos_promo_holds = (db.pos_promo_holds || []).filter(
+        (h) => h.sessionId !== cleanSessionId
+      );
     }
 
     // ── AUTO-DEDUCT INVENTORY STOK GUDANG (SETIAP MENU DI PESAN MENGURANGI GUDANG) ──
@@ -3608,6 +4195,7 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
       promoId: appliedPromo ? appliedPromo.id : null,
       promoCode: appliedPromo ? appliedPromo.code : null,
       appliedPromo,
+      appliedPromos,
       adminDiscount: null,
       pointsRedeemed: redeemAmount,
       pointsEarned: poolCommit.pointsEarned || 0,
@@ -3917,12 +4505,17 @@ function createPosRouter({ getDB, writeDB, createTripayClosedTransaction, syncDe
     }
 
     // Kembalikan pemakaian kuota promo jika pesanan dibatalkan
-    if (order.appliedPromo && order.appliedPromo.id) {
-      const promoItem = (db.pos_food_promos || []).find(p => p.id === order.appliedPromo.id);
+    const promosToRestore = Array.isArray(order.appliedPromos) && order.appliedPromos.length > 0
+      ? order.appliedPromos
+      : (order.appliedPromo ? [order.appliedPromo] : []);
+    promosToRestore.forEach(ap => {
+      if (!ap || !ap.id) return;
+      const promoItem = (db.pos_food_promos || []).find(p => p.id === ap.id);
       if (promoItem && typeof promoItem.usedCount === 'number') {
-        promoItem.usedCount = Math.max(0, promoItem.usedCount - 1);
+        const qtyToRestore = Math.max(1, Number(ap.consumedQuota) || 1);
+        promoItem.usedCount = Math.max(0, promoItem.usedCount - qtyToRestore);
       }
-    }
+    });
 
     // Kembalikan pemotongan stok bahan baku gudang jika pesanan dibatalkan
     if (Array.isArray(order.inventoryDeductions)) {

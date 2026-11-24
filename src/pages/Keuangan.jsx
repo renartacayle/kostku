@@ -44,7 +44,8 @@ import {
   Search,
   Zap,
   Gift,
-  Info
+  Info,
+  RotateCcw
 } from 'lucide-react';
 import { 
   apiGetInvoices, 
@@ -345,7 +346,10 @@ const Keuangan = ({ user }) => {
   };
 
   const fetchData = async () => {
-    if (!user?.kostUid) return;
+    if (!user?.kostUid) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [dataInv, dataExp] = await Promise.all([
@@ -1756,7 +1760,7 @@ const Keuangan = ({ user }) => {
                   borderRadius: '8px',
                   fontSize: '0.76rem'
                 }}>
-                  <span style={{ color: '#2563eb', fontWeight: 700 }}>↩️ Tidak Diklaim (Refund Saldo):</span>
+                  <span style={{ color: '#2563eb', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}><RotateCcw size={13} /> Tidak Diklaim (Refund Saldo):</span>
                   <strong>{escrowWallet.expiredCount || 0} Nota</strong>
                 </div>
               </div>
@@ -1904,7 +1908,7 @@ const Keuangan = ({ user }) => {
                               fontSize: '0.68rem',
                               border: '1px solid #bfdbfe'
                             }}>
-                              ↩️ Poin Tidak Diklaim (Kembali Rp 75)
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><RotateCcw size={12} /> Poin Tidak Diklaim (Kembali Rp 75)</span>
                             </span>
                           )}
                         </td>

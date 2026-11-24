@@ -54,9 +54,14 @@ export default function CloudSyncModal({ isOpen, onClose }) {
   const handleTestServer = async () => {
     setTesting(true);
     setTestResult(null);
-    const res = await testApiConnection(useCloud ? cloudUrl : null);
-    setTesting(false);
-    setTestResult(res);
+    try {
+      const res = await testApiConnection(useCloud ? cloudUrl : null);
+      setTestResult(res);
+    } catch (err) {
+      setTestResult({ ok: false, latency: 0, error: err?.message || 'Gagal tersambung ke server' });
+    } finally {
+      setTesting(false);
+    }
   };
 
   const handleSaveServer = () => {
@@ -67,9 +72,14 @@ export default function CloudSyncModal({ isOpen, onClose }) {
   const handleTestSupabase = async () => {
     setSbTesting(true);
     setSbResult(null);
-    const res = await testSupabaseConnection(sbUrl, sbKey);
-    setSbTesting(false);
-    setSbResult(res);
+    try {
+      const res = await testSupabaseConnection(sbUrl, sbKey);
+      setSbResult(res);
+    } catch (err) {
+      setSbResult({ ok: false, latency: 0, error: err?.message || 'Gagal tersambung ke Supabase' });
+    } finally {
+      setSbTesting(false);
+    }
   };
 
   const handleSaveSupabase = () => {
@@ -80,9 +90,14 @@ export default function CloudSyncModal({ isOpen, onClose }) {
   const handleTestFirebase = async () => {
     setFbTesting(true);
     setFbResult(null);
-    const res = await testFirebaseConnection(fbProjectId, fbApiKey);
-    setFbTesting(false);
-    setFbResult(res);
+    try {
+      const res = await testFirebaseConnection(fbProjectId, fbApiKey);
+      setFbResult(res);
+    } catch (err) {
+      setFbResult({ ok: false, latency: 0, error: err?.message || 'Gagal tersambung ke Firebase' });
+    } finally {
+      setFbTesting(false);
+    }
   };
 
   const handleSaveFirebase = () => {

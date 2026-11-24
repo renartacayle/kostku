@@ -1770,3 +1770,11 @@ export const apiDeclareRoomAppliances = (data) => {
   });
 };
 
+export const apiAnalyzeRoomPhoto = (payload) => {
+  return request('/vision/analyze-room', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    timeoutMs: 12000
+  });
+};
+

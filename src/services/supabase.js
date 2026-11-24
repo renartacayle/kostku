@@ -31,9 +31,12 @@ export const testSupabaseConnection = async (testUrl = null, testKey = null) => 
   }
 
   const startTime = performance.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error('Koneksi Supabase timeout (8 detik)')), 8000);
   try {
     const res = await fetch(`${url}/rest/v1/kosts?select=count`, {
       method: 'GET',
+      signal: controller.signal,
       headers: {
         'apikey': key,
         'Authorization': `Bearer ${key}`,
@@ -54,9 +57,11 @@ export const testSupabaseConnection = async (testUrl = null, testKey = null) => 
     }
   } catch (err) {
     let msg = err.message || 'Gagal tersambung ke Supabase';
-    if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
-      msg = 'Gagal menghubungi server Supabase. Pastikan URL project sudah benar dan koneksi internet aktif.';
+    if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network') || err?.name === 'AbortError') {
+      msg = 'Gagal menghubungi server Supabase (timeout / jaringan). Pastikan URL project sudah benar dan koneksi internet aktif.';
     }
     return { ok: false, latency: 0, error: msg };
+  } finally {
+    clearTimeout(timer);
   }
 };

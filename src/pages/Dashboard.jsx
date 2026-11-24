@@ -425,16 +425,71 @@ const OwnerDashboard = ({ user, onSwitchToStaffView }) => {
         setPendingApplications(apps.filter(a => a.status === 'pending'));
       }
 
-      // Fetch POS Kantin & Kasir Data
-      fetch('/api/pos/store').then(r => r.json()).then(st => {
-        if (st) setPosStore(st);
-      }).catch(() => {});
-      fetch('/api/pos/orders').then(r => r.json()).then(ord => {
-        if (Array.isArray(ord)) setPosOrders(ord);
-      }).catch(() => {});
-      fetch('/api/wallet/account/pos').then(r => r.json()).then(wRes => {
-        if (wRes?.wallet) setUnifiedWalletData(wRes.wallet);
-      }).catch(() => {});
+      // Fetch POS Kantin & Kasir Data only when user owns/operates a POS store
+      const normalizedRole = String(user?.role || '').toLowerCase();
+      const activeOwnerKey = String(user?.id || user?.uid || '');
+      const ownedPosMerchant = activeOwnerKey && Array.isArray(merchs)
+        ? merchs.find(m => m && m.status !== 'deleted' && (
+            String(m.ownerUserId || '') === activeOwnerKey ||
+            String(m.ownerId || '') === activeOwnerKey
+          ))
+        : null;
+      const hasPosCapability = Boolean(
+        activeOwnerKey && (
+          normalizedRole === 'mitra' ||
+          user?.isMitra ||
+          user?.activePosStoreId ||
+          user?.storeName ||
+          ownedPosMerchant
+        )
+      );
+
+      if (hasPosCapability) {
+        const isDemoMode = Boolean(
+          user?.isDemo ||
+          (typeof window !== 'undefined' && (
+            window.location.search.includes('demo=true') ||
+            window.location.pathname.startsWith('/demo') ||
+            localStorage.getItem('kostku_is_demo_mode') === 'true'
+          ))
+        );
+        const posHeaders = {
+          'x-user-id': activeOwnerKey,
+          ...(normalizedRole ? { 'x-user-role': normalizedRole } : {}),
+          ...(isDemoMode ? { 'x-demo-mode': 'true' } : {})
+        };
+        const posQs = `ownerId=${encodeURIComponent(activeOwnerKey)}&userRole=${encodeURIComponent(normalizedRole || 'owner')}`;
+
+        fetch(`/api/pos/store?${posQs}`, { headers: posHeaders })
+          .then(r => (r.ok ? r.json() : null))
+          .then(st => {
+            if (st && !st.error && (st.merchantId || st.uid || st.storeName)) {
+              setPosStore(st);
+            } else {
+              setPosStore(null);
+            }
+          })
+          .catch(() => {});
+
+        fetch(`/api/pos/orders?${posQs}`, { headers: posHeaders })
+          .then(r => (r.ok ? r.json() : null))
+          .then(ord => {
+            if (Array.isArray(ord)) setPosOrders(ord);
+          })
+          .catch(() => {});
+
+        const walletTargetId = encodeURIComponent(ownedPosMerchant?.id || user?.activePosStoreId || 'pos');
+        fetch(`/api/wallet/account/${walletTargetId}`, { headers: posHeaders })
+          .then(r => (r.ok ? r.json() : null))
+          .then(wRes => {
+            if (wRes?.wallet) setUnifiedWalletData(wRes.wallet);
+          })
+          .catch(() => {});
+      } else {
+        setPosStore(null);
+        setPosOrders([]);
+        setUnifiedWalletData(null);
+      }
     } catch (err) {
       console.error('Error loading dashboard:', err);
     } finally {

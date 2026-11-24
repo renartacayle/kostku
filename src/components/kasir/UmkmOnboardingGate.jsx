@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import StoreLocationPicker from './StoreLocationPicker';
 import { compressImageFile, getDefaultPhotoForCategory } from '../../utils/imageUtils';
+import { matchBusinessPreset } from '../../utils/businessCategories';
 import { apiSuggestMerchant } from '../../services/api';
 
 const UMKM_CATEGORIES = [
@@ -111,18 +112,24 @@ export default function UmkmOnboardingGate({
     ];
 
     try {
-      await fetch('/api/pos/register-umkm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ownerUserId: user?.id || user?.uid,
-          ...autoStore,
-          menus: autoProducts
-        })
-      });
-    } catch (_) {}
+      try {
+        await fetch('/api/pos/register-umkm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ownerUserId: user?.id || user?.uid,
+            ...autoStore,
+            menus: autoProducts
+          })
+        });
+      } catch (_) {}
 
-    onRegistered?.({ store: autoStore, products: autoProducts });
+      onRegistered?.({ store: autoStore, products: autoProducts });
+    } catch (err) {
+      setFormError(err?.message || 'Gagal mengaktifkan toko otomatis.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const [onboardingAction, setOnboardingAction] = useState(() => {
@@ -139,8 +146,8 @@ export default function UmkmOnboardingGate({
   const [suggestSubmitting, setSuggestSubmitting] = useState(false);
   const [suggestNotice, setSuggestNotice] = useState(null);
 
-  const [selectedCategoryPreset, setSelectedCategoryPreset] = useState('Warung & Kuliner');
-  const [customCategory, setCustomCategory] = useState('');
+  const [selectedCategoryPreset, setSelectedCategoryPreset] = useState(() => matchBusinessPreset(user?.category) || 'Warung & Kuliner');
+  const [customCategory, setCustomCategory] = useState(() => (matchBusinessPreset(user?.category) === 'Lainnya' ? String(user.category) : ''));
   const [storeName, setStoreName] = useState('');
   const [phone, setPhone] = useState(user?.phone || '');
   const [branchCount, setBranchCount] = useState(1);
@@ -643,7 +650,7 @@ export default function UmkmOnboardingGate({
             }}
           >
             <Sparkles size={16} />
-            <span>{submitting ? 'Mengaktifkan...' : '⚡ Buka Kasir Sekarang (Otomatis)'}</span>
+            <span>{submitting ? 'Mengaktifkan...' : 'Buka Kasir Sekarang (Otomatis)'}</span>
           </button>
         </div>
 

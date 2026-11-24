@@ -19,8 +19,19 @@ export default function CloudflareTurnstile({
 }) {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
+  const resolvedRef = useRef(false);
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
   const [status, setStatus] = useState('loading'); // 'loading' | 'verified' | 'error' | 'fallback'
   const [token, setToken] = useState('');
+
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+  }, [onVerify]);
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   // Default sitekey: Cloudflare's official always-passing invisible test key
   const siteKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY) 
@@ -29,22 +40,28 @@ export default function CloudflareTurnstile({
   useEffect(() => {
     let isMounted = true;
     let fallbackTimer = null;
+    resolvedRef.current = false;
+    setStatus('loading');
 
-    // Load Turnstile script if not already present
-    const SCRIPT_ID = 'cf-turnstile-script';
-    let script = document.getElementById(SCRIPT_ID);
+    const fallbackPass = () => {
+      if (!isMounted || resolvedRef.current) return;
+      resolvedRef.current = true;
+      const fallbackToken = `cf-fallback-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      setStatus('verified');
+      setToken(fallbackToken);
+      if (onVerifyRef.current) onVerifyRef.current(fallbackToken);
+    };
 
     const initializeTurnstile = () => {
       if (!isMounted || !containerRef.current) return;
-      if (!window.turnstile) {
-        // Fallback for offline or script blocked by ad-blocker
+      if (typeof window.turnstile?.render !== 'function') {
         fallbackPass();
         return;
       }
 
       try {
         if (widgetIdRef.current !== null) {
-          window.turnstile.remove(widgetIdRef.current);
+          try { window.turnstile.remove(widgetIdRef.current); } catch (_) {}
           widgetIdRef.current = null;
         }
 
@@ -55,9 +72,10 @@ export default function CloudflareTurnstile({
           action: action,
           callback: (receivedToken) => {
             if (!isMounted) return;
+            resolvedRef.current = true;
             setStatus('verified');
             setToken(receivedToken);
-            if (onVerify) onVerify(receivedToken);
+            if (onVerifyRef.current) onVerifyRef.current(receivedToken);
           },
           'error-callback': (errCode) => {
             if (!isMounted) return;
@@ -67,9 +85,10 @@ export default function CloudflareTurnstile({
           },
           'expired-callback': () => {
             if (!isMounted) return;
+            resolvedRef.current = false;
             setStatus('loading');
             setToken('');
-            if (onExpire) onExpire();
+            if (onExpireRef.current) onExpireRef.current();
           }
         });
 
@@ -80,46 +99,44 @@ export default function CloudflareTurnstile({
       }
     };
 
-    const fallbackPass = () => {
+    const safeRender = () => {
       if (!isMounted) return;
-      const fallbackToken = `cf-fallback-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-      setStatus('verified');
-      setToken(fallbackToken);
-      if (onVerify) onVerify(fallbackToken);
+      if (typeof window.turnstile?.render === 'function') {
+        initializeTurnstile();
+      } else {
+        fallbackPass();
+      }
     };
+
+    // Load Turnstile script if not already present (avoid window.turnstile.ready with async scripts)
+    const SCRIPT_ID = 'cf-turnstile-script';
+    let script = document.getElementById(SCRIPT_ID);
+    let attachedScript = null;
+
+    const handleScriptLoad = () => safeRender();
+    const handleScriptError = () => fallbackPass();
 
     if (!script) {
       script = document.createElement('script');
       script.id = SCRIPT_ID;
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        if (window.turnstile) {
-          window.turnstile.ready(initializeTurnstile);
-        } else {
-          fallbackPass();
-        }
-      };
-      script.onerror = () => {
-        fallbackPass();
-      };
+      script.addEventListener('load', handleScriptLoad);
+      script.addEventListener('error', handleScriptError);
+      attachedScript = script;
       document.head.appendChild(script);
+    } else if (typeof window.turnstile?.render === 'function') {
+      safeRender();
     } else {
-      if (window.turnstile) {
-        window.turnstile.ready(initializeTurnstile);
-      } else {
-        script.addEventListener('load', () => {
-          if (window.turnstile) window.turnstile.ready(initializeTurnstile);
-          else fallbackPass();
-        });
-      }
+      script.addEventListener('load', handleScriptLoad);
+      script.addEventListener('error', handleScriptError);
+      attachedScript = script;
     }
 
     // Safety timeout: If Turnstile hasn't responded within 4 seconds (e.g. slow network or strict adblock),
     // automatically pass so legitimate human users are never blocked
     fallbackTimer = setTimeout(() => {
-      if (status === 'loading') {
+      if (!resolvedRef.current) {
         fallbackPass();
       }
     }, 4000);
@@ -127,15 +144,20 @@ export default function CloudflareTurnstile({
     return () => {
       isMounted = false;
       if (fallbackTimer) clearTimeout(fallbackTimer);
+      if (attachedScript) {
+        attachedScript.removeEventListener('load', handleScriptLoad);
+        attachedScript.removeEventListener('error', handleScriptError);
+      }
       if (widgetIdRef.current !== null && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
         } catch (e) {
           // ignore cleanup errors
         }
       }
     };
-  }, [siteKey, theme, action]);
+  }, [siteKey, theme, action, size]);
 
   return (
     <div className={`cloudflare-turnstile-container ${className}`} style={{

@@ -1,3 +1,4 @@
+import { decodeGoogleCredential } from '../utils/googleAuth';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, 
@@ -89,6 +90,20 @@ export default function Login({ onLogin }) {
       setGoogleLoading(true);
       setError('');
 
+      const decoded = decodeGoogleCredential(response.credential);
+      if (decoded?.email) {
+        const check = await apiCheckEmail(decoded.email);
+        if (!check?.exists) {
+          navigate('/register?role=mitra&fromGoogle=true', {
+            state: {
+              googleCredential: response.credential,
+              googleProfile: decoded
+            }
+          });
+          return;
+        }
+      }
+
       // Send real credential token to backend
       const data = await apiGoogleAuth({
         credential: response.credential,
@@ -109,12 +124,24 @@ export default function Login({ onLogin }) {
     const activeCid = googleClientId || DEFAULT_GOOGLE_CLIENT_ID;
 
     if (typeof window !== 'undefined' && window.google?.accounts?.oauth2 && activeCid) {
+      let oauthSafetyTimer = null;
       try {
         setGoogleLoading(true);
+        oauthSafetyTimer = setTimeout(() => {
+          setGoogleLoading(false);
+        }, 45000);
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
           client_id: activeCid,
           scope: 'email profile openid',
+          error_callback: (err) => {
+            if (oauthSafetyTimer) clearTimeout(oauthSafetyTimer);
+            setGoogleLoading(false);
+            if (err?.type === 'popup_failed_to_open') {
+              setError('Popup Google diblokir browser. Izinkan popup atau gunakan form email & password.');
+            }
+          },
           callback: async (tokenResponse) => {
+            if (oauthSafetyTimer) clearTimeout(oauthSafetyTimer);
             if (tokenResponse.error) {
               console.error('Google OAuth error:', tokenResponse);
               setGoogleLoading(false);
@@ -130,6 +157,19 @@ export default function Login({ onLogin }) {
               });
               if (!userRes.ok) throw new Error('Gagal memverifikasi profil Google');
               const profile = await userRes.json();
+
+              if (profile?.email) {
+                const check = await apiCheckEmail(profile.email);
+                if (!check?.exists) {
+                  navigate('/register?role=mitra&fromGoogle=true', {
+                    state: {
+                      googleProfile: profile,
+                      googleToken: tokenResponse.access_token
+                    }
+                  });
+                  return;
+                }
+              }
 
               const data = await apiGoogleAuth({
                 email: profile.email,

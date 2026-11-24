@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
+const { spawn } = require('child_process');
 const QRCode = require('qrcode');
 const nodemailer = require('nodemailer');
 const { AsyncLocalStorage } = require('async_hooks');
@@ -60,11 +61,17 @@ const sendPaymentReceiptEmail = async ({ toEmail, receiptNumber, invoice, kost, 
 
   try {
     let activeTransporter = null;
+    const smtpTimeoutCfg = {
+      connectionTimeout: 6000,
+      greetingTimeout: 6000,
+      socketTimeout: 8000
+    };
     if (process.env.SMTP_HOST && process.env.SMTP_USER) {
       activeTransporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT) || 587,
         secure: process.env.SMTP_SECURE === 'true',
+        ...smtpTimeoutCfg,
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
@@ -72,11 +79,15 @@ const sendPaymentReceiptEmail = async ({ toEmail, receiptNumber, invoice, kost, 
       });
     } else {
       // Ethereal test account fallback (safe for dev & free testing)
-      const testAccount = await nodemailer.createTestAccount();
+      const testAccount = await Promise.race([
+        nodemailer.createTestAccount(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Ethereal mail account timeout')), 6000))
+      ]);
       activeTransporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
         secure: false,
+        ...smtpTimeoutCfg,
         auth: {
           user: testAccount.user,
           pass: testAccount.pass
@@ -154,8 +165,59 @@ const sendPaymentReceiptEmail = async ({ toEmail, receiptNumber, invoice, kost, 
   }
 };
 
+// Global backend fetch timeout safety net (12s) unless caller passes AbortSignal
+if (typeof globalThis.fetch === 'function' && !globalThis.__kostkuBackendFetchWrapped) {
+  const nativeBackendFetch = globalThis.fetch.bind(globalThis);
+  globalThis.__kostkuBackendFetchWrapped = true;
+  globalThis.fetch = async (input, init = {}) => {
+    const hasCallerSignal = Boolean(
+      (init && init.signal) ||
+      (typeof Request !== 'undefined' && input instanceof Request && input.signal)
+    );
+    if (hasCallerSignal) {
+      return nativeBackendFetch(input, init);
+    }
+    const controller = new AbortController();
+    const timeoutMs = Number(init?.timeoutMs) > 0 ? Number(init.timeoutMs) : 12000;
+    const timer = setTimeout(() => {
+      controller.abort(new Error(`Upstream fetch timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+    try {
+      return await nativeBackendFetch(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Express 4 async-rejection & sync-throw safety guard for all routes
+const wrapExpressHandler = (arg) => {
+  if (Array.isArray(arg)) return arg.map(wrapExpressHandler);
+  if (typeof arg !== 'function' || arg.length >= 4 || typeof arg.use === 'function') return arg;
+  return function asyncGuardedRoute(req, res, next) {
+    try {
+      const out = arg.call(this, req, res, next);
+      if (out && typeof out.then === 'function') {
+        out.catch(next);
+      }
+      return out;
+    } catch (err) {
+      return next(err);
+    }
+  };
+};
+for (const method of ['get', 'post', 'put', 'patch', 'delete', 'all']) {
+  const origMethod = app[method].bind(app);
+  app[method] = (routePath, ...handlers) => {
+    if (method === 'get' && handlers.length === 0) {
+      return origMethod(routePath);
+    }
+    return origMethod(routePath, ...handlers.map(wrapExpressHandler));
+  };
+}
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
@@ -1180,11 +1242,17 @@ const maskOtpTarget = (target, channel) => {
 
 // Helper: Buat Mail Transporter (SMTP / Gmail App Pass / Ethereal Dev Fallback)
 const createMailTransporter = async (timeoutMs = 3500) => {
+  const smtpTimeoutCfg = {
+    connectionTimeout: 6000,
+    greetingTimeout: 6000,
+    socketTimeout: 8000
+  };
   if (process.env.SMTP_HOST && process.env.SMTP_USER) {
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
       secure: process.env.SMTP_SECURE === 'true',
+      ...smtpTimeoutCfg,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
@@ -1194,6 +1262,7 @@ const createMailTransporter = async (timeoutMs = 3500) => {
   if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
     return nodemailer.createTransport({
       service: 'gmail',
+      ...smtpTimeoutCfg,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASS
@@ -1208,6 +1277,7 @@ const createMailTransporter = async (timeoutMs = 3500) => {
     host: 'smtp.ethereal.email',
     port: 587,
     secure: false,
+    ...smtpTimeoutCfg,
     auth: {
       user: testAccount.user,
       pass: testAccount.pass
@@ -1608,8 +1678,8 @@ app.post('/api/register', async (req, res) => {
   const isOwner = (effectiveRole === 'owner');
   const isOwnerManualAdd = (effectiveRole === 'user' && Boolean(kostUid));
 
-  if (!password || password.length < 6) {
-    return res.status(400).json({ error: 'Password minimal 6 karakter' });
+  if (!password || password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+    return res.status(400).json({ error: 'Password minimal 8 karakter dan harus mengandung huruf serta angka' });
   }
 
   if (email) {
@@ -1816,7 +1886,7 @@ app.post('/api/register', async (req, res) => {
       let defaultProducts = [];
       if (req.isDemo) {
         const catLower = (category || '').toLowerCase();
-        if (catLower.includes('makan') || catLower.includes('warung') || catLower.includes('kuliner') || catLower.includes('minum')) {
+        if (catLower.includes('makan') || catLower.includes('warung') || catLower.includes('kuliner') || catLower.includes('minum') || catLower.includes('kopi')) {
           defaultProducts = [
             { id: 'p1', name: 'Nasi Goreng Spesial', price: 15000, desc: 'Porsi kenyang + telur dadar/ceplok', isAvailable: true },
             { id: 'p2', name: 'Es Teh Manis Jumbo', price: 5000, desc: 'Segar dan manis pas', isAvailable: true }
@@ -1869,6 +1939,7 @@ app.post('/api/register', async (req, res) => {
       newUser.role = 'mitra';
       newUser.merchantId = merchantId;
       newUser.storeName = storeName.trim();
+      newUser.category = newMerchant.category;
       newUser.kostUid = kostUid || (req.isDemo ? 'KOST-JAKSEL-01' : '');
 
       db.users.push(newUser);
@@ -5344,7 +5415,7 @@ app.post('/api/auth/google', (req, res) => {
           name: requestedStoreName,
           category: effectiveCategory,
           icon: '',
-          phone: '',
+          phone: req.body.phone ? String(req.body.phone).trim() : '',
           address: req.body.address || 'Area Kantin Kost',
           distanceKm: 0.1,
           rating: 5.0,
@@ -5374,6 +5445,8 @@ app.post('/api/auth/google', (req, res) => {
         email: effectiveEmail,
         role: 'mitra',
         referralCode: computeDeterministicReferralCode(newUserId),
+        phone: req.body.phone ? String(req.body.phone).trim() : '',
+        category: req.body.category || 'Warung & Kuliner',
         ...(merchantId ? { merchantId, storeName: requestedStoreName } : {}),
         picture: effectivePicture || '',
         authProvider: 'google',
@@ -10088,6 +10161,111 @@ setInterval(() => {
   }
 }, 30000); // Check every 30 seconds
 
+// ── ENDPOINT: LOCAL OPENCV SPATIAL ROOM PHOTO ANALYZER ──
+app.post('/api/vision/analyze-room', (req, res) => {
+  const { imageBase64, imageUrl, dimensions = '3.5m x 4.0m', facilities = [] } = req.body || {};
+
+  if ((!imageBase64 || typeof imageBase64 !== 'string') && (!imageUrl || typeof imageUrl !== 'string')) {
+    return res.status(400).json({ error: 'imageBase64 atau imageUrl wajib diisi untuk analisis denah 2D.' });
+  }
+
+  const buildFallbackPlan = (reason = 'fallback') => {
+    const facArr = Array.isArray(facilities) ? facilities.map(f => String(f).toLowerCase()) : [];
+    const joined = facArr.join(' ');
+    const hasOutsideBm = /luar|shared|bersama/.test(joined);
+    const hasBathroom = !hasOutsideBm && /km dalam|kamar mandi dalam|ensuite|water heater|bathtub/.test(joined);
+    const hasAc = /\bac\b|air cond|pendingin/.test(joined);
+    const furnitures = ['wardrobe', 'desk', 'window'];
+    if (hasAc) furnitures.push('ac');
+    if (hasBathroom) furnitures.push('bathroom');
+    if (/kulkas|fridge/.test(joined)) furnitures.push('fridge');
+    return {
+      dimensions: dimensions || '3.5m x 4.0m',
+      bedType: 'super_single',
+      pillows: 1,
+      bedSide: 'center',
+      bedOrientation: 'vertical',
+      nakasSide: 'both',
+      windowWall: 'right',
+      acWall: hasAc ? 'top' : 'none',
+      bathroomCorner: hasBathroom ? 'top_left' : 'none',
+      doorPosition: 'bottom_center',
+      wardrobePos: 'bottom_left',
+      deskPos: 'bottom_right',
+      furnitures,
+      blanketHex: '#3b82f6',
+      blanketAccent: '#1e3a8a',
+      floorHex: '#334155',
+      floorType: 'Parquet Wood',
+      unsureZone: { side: 'left_front', label: 'Area Foyer / Luar Sudut Kamera' },
+      generated: true,
+      mode: 'ai',
+      cvAnalyzed: false,
+      cvMeta: {
+        engine: 'fallback',
+        confidencePct: 72.0,
+        latencyMs: 0,
+        detectedCues: [`Fallback (${reason})`]
+      }
+    };
+  };
+
+  const scriptPath = path.join(__dirname, 'vision', 'analyze_room.py');
+  let responded = false;
+  const finish = (status, body) => {
+    if (responded) return;
+    responded = true;
+    res.status(status).json(body);
+  };
+
+  try {
+    const py = spawn('python3', [scriptPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+
+    const timer = setTimeout(() => {
+      try { py.kill('SIGKILL'); } catch (_) {}
+      finish(200, { success: true, fallback: true, floorPlan: buildFallbackPlan('timeout_8000ms') });
+    }, 8000);
+
+    py.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    py.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    py.on('error', (err) => {
+      clearTimeout(timer);
+      finish(200, { success: true, fallback: true, floorPlan: buildFallbackPlan(err.message) });
+    });
+    py.on('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0 && stdout.trim()) {
+        try {
+          const parsed = JSON.parse(stdout.trim());
+          if (parsed?.success && parsed.floorPlan) {
+            return finish(200, { success: true, floorPlan: parsed.floorPlan });
+          }
+          return finish(200, { success: true, fallback: true, floorPlan: buildFallbackPlan(parsed?.error || 'invalid_output') });
+        } catch (parseErr) {
+          return finish(200, { success: true, fallback: true, floorPlan: buildFallbackPlan(parseErr.message) });
+        }
+      }
+      let errMsg = stderr.trim() || `exit_${code}`;
+      try {
+        const parsedErr = JSON.parse(stdout.trim());
+        if (parsedErr?.error) errMsg = parsedErr.error;
+      } catch (_) {}
+      return finish(200, { success: true, fallback: true, floorPlan: buildFallbackPlan(errMsg) });
+    });
+
+    py.stdin.write(JSON.stringify({ imageBase64, imageUrl, dimensions, facilities }));
+    py.stdin.end();
+  } catch (err) {
+    finish(200, { success: true, fallback: true, floorPlan: buildFallbackPlan(err.message) });
+  }
+});
+
 // Serve built SPA static files if dist folder exists (Item #27: Browser caching for static files)
 const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
@@ -10116,6 +10294,14 @@ if (fs.existsSync(distPath)) {
     next();
   });
 }
+
+// Express 4 global JSON error middleware so async rejections never hang requests
+app.use((err, req, res, next) => {
+  console.error(`[Express Error] ${req.method} ${req.originalUrl}:`, err);
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({ error: err.message || 'Terjadi kesalahan internal pada server.' });
+  }
+});
 
 // Start server only when run directly (local dev), not when required by Vercel serverless
 if (require.main === module) {

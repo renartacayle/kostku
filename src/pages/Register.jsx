@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getPasswordChecks, isPasswordValid, PASSWORD_MIN_LENGTH, PASSWORD_POLICY_MESSAGE } from '../utils/passwordPolicy';
+import { BUSINESS_CATEGORIES, DEFAULT_BUSINESS_CATEGORY, resolveBusinessCategory } from '../utils/businessCategories';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
@@ -32,6 +34,7 @@ import {
 import { apiRegister, apiSendOtp, apiVerifyOtp, apiGoogleAuth, apiCheckEmail } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { DEFAULT_GOOGLE_CLIENT_ID } from '../config/version';
+import { decodeGoogleCredential } from '../utils/googleAuth';
 import CloudflareTurnstile from '../components/CloudflareTurnstile';
 import { getStaffDefaultPath } from '../utils/staffRole';
 
@@ -47,15 +50,41 @@ const Register = () => {
   const [selectedRole, setSelectedRole] = useState(initialRole);
   const [kostName, setKostName] = useState('');
   const [storeName, setStoreName] = useState('');
-  const [businessCategory, setBusinessCategory] = useState('Kantin & Kuliner');
+  const [businessPreset, setBusinessPreset] = useState(DEFAULT_BUSINESS_CATEGORY);
+  const [customBusinessCategory, setCustomBusinessCategory] = useState('');
+  const businessCategory = resolveBusinessCategory(businessPreset, customBusinessCategory);
   const [showTermsModal, setShowTermsModal] = useState(false);
   
+  useEffect(() => {
+    if (location.state?.googleProfile) {
+      if (location.state.googleProfile.name) setName(location.state.googleProfile.name);
+      if (location.state.googleProfile.email) setEmail(location.state.googleProfile.email);
+      setGoogleAuthData({
+        credential: location.state.googleCredential,
+        profile: location.state.googleProfile,
+        token: location.state.googleToken
+      });
+    }
+  }, [location.state]);
+
   // Step Workflow: 'form' | 'otp' | 'success'
   const [step, setStep] = useState('form');
 
+  // State Google Auth Connected Data
+  const [googleAuthData, setGoogleAuthData] = useState(() => {
+    if (location.state?.googleProfile) {
+      return {
+        credential: location.state.googleCredential,
+        profile: location.state.googleProfile,
+        token: location.state.googleToken
+      };
+    }
+    return null;
+  });
+
   // Identitas & Akun (Nama Lengkap Disimpan)
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState(() => location.state?.googleProfile?.name || '');
+  const [email, setEmail] = useState(() => location.state?.googleProfile?.email || '');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -109,6 +138,59 @@ const Register = () => {
     setError('');
     setOtpError('');
 
+    // Jika mendaftar lewat Akun Google: langsung finalisasi registrasi tanpa OTP manual terpisah
+    if (googleAuthData) {
+      if (!agreedTerms) {
+        setError('Anda wajib mencentang persetujuan Syarat & Ketentuan (S&K).');
+        return false;
+      }
+      if (selectedRole === 'mitra' && !businessCategory) {
+        setError('Pilih kategori bisnis Anda.');
+        return false;
+      }
+      if (selectedRole === 'mitra' && !storeName.trim()) {
+        setError('Nama usaha / bisnis / toko wajib diisi untuk Akun Pemilik Bisnis.');
+        return false;
+      }
+      if (!phone || phone.trim().length < 8) {
+        setError('Nomor WhatsApp wajib diisi (minimal 8 digit).');
+        return false;
+      }
+
+      setOtpSending(true);
+      try {
+        const data = await apiGoogleAuth({
+          credential: googleAuthData.credential,
+          email: googleAuthData.profile?.email || email.trim(),
+          name: name.trim() || googleAuthData.profile?.name,
+          picture: googleAuthData.profile?.picture,
+          googleId: googleAuthData.profile?.sub,
+          role: selectedRole,
+          storeName: selectedRole === 'mitra' ? storeName.trim() : undefined,
+          category: selectedRole === 'mitra' ? businessCategory : undefined,
+          kostName: selectedRole === 'owner' ? kostName.trim() : undefined,
+          phone: phone.trim()
+        });
+
+        if (data.user) {
+          localStorage.setItem('kostUser', JSON.stringify(data.user));
+          if (data.kostName) localStorage.setItem('kostName', data.kostName);
+          setStep('success');
+          setMessage('Pendaftaran akun Google berhasil! Profil usaha dan sistem kasir POS Anda siap digunakan.');
+          setTimeout(() => {
+            const targetPath = getStaffDefaultPath(data.user);
+            navigate(targetPath, { replace: true });
+          }, 1800);
+          return true;
+        }
+      } catch (err) {
+        setError(err.message || 'Gagal menyelesaikan pendaftaran dengan Google.');
+        return false;
+      } finally {
+        setOtpSending(false);
+      }
+    }
+
     // 0. Wajib Setujui Syarat & Ketentuan serta Kebijakan Privasi & Perjanjian
     if (!agreedTerms) {
       setError('Anda wajib mencentang persetujuan Syarat & Ketentuan (S&K), Perjanjian Sewa/Kemitraan, serta Kebijakan Privasi KostKu untuk membuat akun.');
@@ -124,6 +206,10 @@ const Register = () => {
       return false;
     }
 
+    if (selectedRole === 'mitra' && !businessCategory) {
+      setError('Pilih kategori bisnis Anda.');
+      return false;
+    }
     if (selectedRole === 'mitra' && !storeName.trim()) {
       setError('Nama usaha / bisnis / toko wajib diisi untuk Akun Pemilik Bisnis.');
       return false;
@@ -148,8 +234,8 @@ const Register = () => {
     }
 
     // 3. Validasi Password
-    if (password.length < 6) {
-      setError('Password minimal 6 karakter.');
+    if (!isPasswordValid(password)) {
+      setError(PASSWORD_POLICY_MESSAGE);
       return false;
     }
 
@@ -306,23 +392,42 @@ const Register = () => {
       setGoogleLoading(true);
       setError('');
 
-      const data = await apiGoogleAuth({
+      const decoded = decodeGoogleCredential(response.credential);
+      if (!decoded?.email) throw new Error('Kredensial profil Google tidak valid');
+
+      // Cek apakah akun sudah terdaftar
+      const check = await apiCheckEmail(decoded.email);
+      if (check?.exists) {
+        // Pengguna sudah punya akun: langsung login
+        const data = await apiGoogleAuth({
+          credential: response.credential,
+          role: check.role || selectedRole
+        });
+        if (data.user) {
+          localStorage.setItem('kostUser', JSON.stringify(data.user));
+          if (data.kostName) localStorage.setItem('kostName', data.kostName);
+          setShowGoogleModal(false);
+          const targetPath = getStaffDefaultPath(data.user);
+          navigate(targetPath, { replace: true });
+        }
+        return;
+      }
+
+      // Pengguna baru Google: jangan langsung dialihkan ke landing page! Isi form pendaftaran
+      setName(decoded.name || '');
+      setEmail(decoded.email || '');
+      setGoogleAuthData({
         credential: response.credential,
-        role: selectedRole,
-        storeName: selectedRole === 'mitra' ? storeName.trim() : undefined,
-        category: selectedRole === 'mitra' ? businessCategory : undefined,
-        kostName: selectedRole === 'owner' ? kostName.trim() : undefined
+        profile: decoded
       });
 
-      if (data.user) {
-        localStorage.setItem('kostUser', JSON.stringify(data.user));
-        if (data.kostName) localStorage.setItem('kostName', data.kostName);
-        setShowGoogleModal(false);
-        const targetPath = getStaffDefaultPath(data.user);
-        navigate(targetPath, { replace: true });
-      }
+      // Gulir ke field nama usaha / form
+      setTimeout(() => {
+        const targetInput = document.querySelector('input[placeholder*="Kantin"], input[placeholder*="Contoh:"]') || document.querySelector('form');
+        targetInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 250);
     } catch (err) {
-      setError(err.message || 'Gagal mendaftar dengan akun Google resmi.');
+      setError(err.message || 'Gagal menghubungkan akun Google resmi.');
     } finally {
       setGoogleLoading(false);
     }
@@ -334,12 +439,24 @@ const Register = () => {
     const activeCid = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
 
     if (typeof window !== 'undefined' && window.google?.accounts?.oauth2 && activeCid) {
+      let oauthSafetyTimer = null;
       try {
         setGoogleLoading(true);
+        oauthSafetyTimer = setTimeout(() => {
+          setGoogleLoading(false);
+        }, 45000);
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
           client_id: activeCid,
           scope: 'email profile openid',
+          error_callback: (err) => {
+            if (oauthSafetyTimer) clearTimeout(oauthSafetyTimer);
+            setGoogleLoading(false);
+            if (err?.type === 'popup_failed_to_open') {
+              setError('Popup Google diblokir browser. Izinkan popup atau gunakan form pendaftaran email & password.');
+            }
+          },
           callback: async (tokenResponse) => {
+            if (oauthSafetyTimer) clearTimeout(oauthSafetyTimer);
             if (tokenResponse.error) {
               console.error('Google OAuth error:', tokenResponse);
               setGoogleLoading(false);
@@ -356,24 +473,38 @@ const Register = () => {
               if (!userRes.ok) throw new Error('Gagal memverifikasi profil Google');
               const profile = await userRes.json();
 
-              const data = await apiGoogleAuth({
-                email: profile.email,
-                name: profile.name,
-                picture: profile.picture,
-                googleId: profile.sub,
-                role: selectedRole,
-                storeName: selectedRole === 'mitra' ? storeName.trim() : undefined,
-                category: selectedRole === 'mitra' ? businessCategory : undefined,
-                kostName: selectedRole === 'owner' ? kostName.trim() : undefined
-              });
-
-              if (data.user) {
-                localStorage.setItem('kostUser', JSON.stringify(data.user));
-                if (data.kostName) localStorage.setItem('kostName', data.kostName);
-                setShowGoogleModal(false);
-                const targetPath = getStaffDefaultPath(data.user);
-                navigate(targetPath, { replace: true });
+              if (profile?.email) {
+                const check = await apiCheckEmail(profile.email);
+                if (check?.exists) {
+                  const data = await apiGoogleAuth({
+                    email: profile.email,
+                    name: profile.name,
+                    picture: profile.picture,
+                    googleId: profile.sub,
+                    role: check.role || selectedRole
+                  });
+                  if (data.user) {
+                    localStorage.setItem('kostUser', JSON.stringify(data.user));
+                    if (data.kostName) localStorage.setItem('kostName', data.kostName);
+                    setShowGoogleModal(false);
+                    const targetPath = getStaffDefaultPath(data.user);
+                    navigate(targetPath, { replace: true });
+                  }
+                  return;
+                }
               }
+
+              // Pengguna baru Google: isi form pendaftaran
+              setName(profile.name || '');
+              setEmail(profile.email || '');
+              setGoogleAuthData({
+                profile,
+                token: tokenResponse.access_token
+              });
+              setTimeout(() => {
+                const targetInput = document.querySelector('input[placeholder*="Kantin"], input[placeholder*="Contoh:"]') || document.querySelector('form');
+                targetInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 250);
             } catch (err) {
               setError(err.message || 'Gagal mendaftar dengan akun Google.');
             } finally {
@@ -476,11 +607,14 @@ const Register = () => {
     if (!name.trim()) return true;
     if (!agreedTerms) return true;
     if (selectedRole === 'owner' && !kostName.trim()) return true;
-    if (selectedRole === 'mitra' && !storeName.trim()) return true;
+    if (selectedRole === 'mitra' && (!storeName.trim() || !businessCategory)) return true;
     if ((selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && (!email || !email.includes('@'))) return true;
-    if (password.length < 6 || password !== confirmPassword) return true;
-    if (otpChannel === 'whatsapp' && (!phone || phone.trim().length < 8)) return true;
-    if (otpChannel === 'email' && (!email || !email.includes('@'))) return true;
+    if (!phone || phone.trim().length < 8) return true;
+
+    // Untuk pendaftaran manual (non-Google), wajib password valid
+    if (!googleAuthData) {
+      if (!isPasswordValid(password) || password !== confirmPassword) return true;
+    }
     return false;
   };
 
@@ -866,6 +1000,50 @@ const Register = () => {
                 Data Akun &amp; Kontak
               </h4>
 
+              {googleAuthData && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.15)',
+                  border: '1.5px solid #3b82f6',
+                  marginBottom: '1rem'
+                }}>
+                  {googleAuthData.profile?.picture ? (
+                    <img src={googleAuthData.profile.picture} alt="" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                      G
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      ✓ Terhubung Akun Google: {googleAuthData.profile?.name}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      {googleAuthData.profile?.email} • Lengkapi nama usaha & nomor WhatsApp di bawah
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setGoogleAuthData(null); }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: isLight ? '#2563eb' : '#60a5fa',
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Batal Google
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                 {/* Nama Lengkap Pengguna */}
                 <div>
@@ -919,24 +1097,49 @@ const Register = () => {
                       <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                         Kategori Bisnis / Usaha <span style={{ color: '#ef4444' }}>*</span>
                       </label>
-                      <select
-                        value={businessCategory}
-                        onChange={e => setBusinessCategory(e.target.value)}
-                        className="input-field"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <option value="Kantin & Kuliner">Kantin, Warung Makan & Kuliner</option>
-                        <option value="Cafe & Minuman">Cafe, Coffee Shop & Minuman Kekinian</option>
-                        <option value="Laundry & Cuci Pakaian">Laundry & Cuci Pakaian Express</option>
-                        <option value="Toko Kelontong & Minimarket">Minimarket, Sembako & Toko Kelontong</option>
-                        <option value="Jasa & Lain-lain">Jasa Fotokopi, Servis & Lainnya</option>
-                      </select>
+                      <div data-testid="register-business-category" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                        {BUSINESS_CATEGORIES.map((cat) => {
+                          const active = businessPreset === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              data-testid={`register-category-${cat.id}`}
+                              onClick={() => setBusinessPreset(cat.id)}
+                              style={{
+                                textAlign: 'left',
+                                padding: '10px 12px',
+                                borderRadius: '12px',
+                                border: active ? '2px solid #f59e0b' : '1px solid var(--border-color, rgba(148,163,184,0.35))',
+                                background: active ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
+                                color: 'var(--text-primary)',
+                                cursor: 'pointer',
+                                minHeight: '48px'
+                              }}
+                            >
+                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: active ? '#f59e0b' : 'var(--text-primary)' }}>{cat.label}</div>
+                              <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>{cat.hint}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {businessPreset === 'Lainnya' && (
+                        <input
+                          type="text"
+                          required
+                          value={customBusinessCategory}
+                          onChange={(e) => setCustomBusinessCategory(e.target.value)}
+                          placeholder="Tulis jenis usaha (mis: Barbershop, Bengkel)"
+                          className="input-field"
+                          style={{ marginTop: '8px' }}
+                        />
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Email & No WhatsApp */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {/* Email & No WhatsApp (Atas Bawah Vertikal) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                       {selectedRole === 'owner' ? 'Akun Gmail Pemilik Kost' : selectedRole === 'mitra' ? 'Akun Gmail Pemilik Bisnis' : selectedRole === 'staff' ? 'Akun Gmail Pribadi Karyawan' : 'Email (Opsional)'} {(selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && <span style={{ color: '#ef4444' }}>*</span>}
@@ -948,10 +1151,12 @@ const Register = () => {
                       onChange={e => setEmail(e.target.value)} 
                       placeholder={selectedRole === 'staff' ? 'karyawan@gmail.com' : selectedRole === 'mitra' ? 'bisnis@gmail.com' : 'owner@gmail.com'} 
                       className="input-field" 
+                      disabled={Boolean(googleAuthData)}
+                      style={googleAuthData ? { opacity: 0.85, background: 'rgba(255,255,255,0.05)', cursor: 'not-allowed' } : {}}
                     />
                     {(selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && (
                       <span style={{ fontSize: '0.68rem', color: selectedRole === 'staff' ? '#10b981' : selectedRole === 'mitra' ? '#f59e0b' : '#3b82f6', display: 'block', marginTop: '3px' }}>
-                        * Gunakan Gmail aktif Anda
+                        {googleAuthData ? '✓ Terverifikasi via Akun Google' : '* Gunakan Gmail aktif Anda'}
                       </span>
                     )}
                   </div>
@@ -965,143 +1170,157 @@ const Register = () => {
                       required
                       value={phone} 
                       onChange={e => setPhone(e.target.value)} 
-                      placeholder="081234567890" 
+                      placeholder="Contoh: 081234567890" 
                       className="input-field" 
                     />
                   </div>
                 </div>
 
-                {/* Pilihan Metode Verifikasi OTP (Pilar 2) */}
-                <div style={{
-                  margin: '0.5rem 0',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '14px',
-                  padding: '12px 14px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <label style={{ fontSize: '0.82rem', color: '#cbd5e1', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <KeyRound size={15} color="#38bdf8" /> Kirim Kode OTP Verifikasi Melalui:
-                    </label>
-                    <span style={{ fontSize: '0.7rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>
-                      Pilih 1 Saluran
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {/* Pilihan WhatsApp */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOtpChannel('whatsapp');
-                        if (error) setError('');
-                      }}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '10px 8px',
-                        borderRadius: '10px',
-                        border: otpChannel === 'whatsapp' ? '2px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.1)',
-                        background: otpChannel === 'whatsapp' ? 'rgba(34, 197, 94, 0.14)' : 'rgba(255, 255, 255, 0.02)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <MessageSquare size={16} color="#22c55e" />
-                        <strong style={{ fontSize: '0.85rem', color: otpChannel === 'whatsapp' ? '#4ade80' : '#e2e8f0' }}>
-                          WhatsApp OTP
-                        </strong>
+                {/* Password & Konfirmasi Password (Atas Bawah Vertikal) */}
+                {!googleAuthData ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Password <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input 
+                          type={showPassword ? 'text' : 'password'} 
+                          required 
+                          value={password} 
+                          onChange={e => setPassword(e.target.value)} 
+                          placeholder={`Min. ${PASSWORD_MIN_LENGTH} karakter (huruf & angka)`} 
+                          className="input-field" 
+                          style={{ paddingRight: '40px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '10px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
                       </div>
-                      <span style={{ fontSize: '0.7rem', color: otpChannel === 'whatsapp' ? '#86efac' : '#94a3b8', marginTop: '3px' }}>
-                        {phone.trim() ? phone.trim() : 'Ke nomor WhatsApp'}
-                      </span>
-                    </button>
-
-                    {/* Pilihan Gmail / Email */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOtpChannel('email');
-                        if (error) setError('');
-                      }}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '10px 8px',
-                        borderRadius: '10px',
-                        border: otpChannel === 'email' ? '2px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
-                        background: otpChannel === 'email' ? 'rgba(56, 189, 248, 0.14)' : 'rgba(255, 255, 255, 0.02)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Mail size={16} color="#38bdf8" />
-                        <strong style={{ fontSize: '0.85rem', color: otpChannel === 'email' ? '#38bdf8' : '#e2e8f0' }}>
-                          Gmail / Email OTP
-                        </strong>
+                      <div data-testid="password-checklist" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: '8px' }}>
+                        {getPasswordChecks(password).map((c) => (
+                          <span key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 600, color: c.ok ? '#10b981' : 'var(--text-secondary)' }}>
+                            {c.ok ? <Check size={13} /> : <span style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid currentColor', display: 'inline-block', boxSizing: 'border-box' }} />}
+                            {c.label}
+                          </span>
+                        ))}
                       </div>
-                      <span style={{ fontSize: '0.7rem', color: otpChannel === 'email' ? '#7dd3fc' : '#94a3b8', marginTop: '3px' }}>
-                        {email.trim() ? email.trim() : 'Ke alamat Gmail'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
+                    </div>
 
-                {/* Password & Konfirmasi Password */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Password <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <div style={{ position: 'relative' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Konfirmasi Password <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
                       <input 
                         type={showPassword ? 'text' : 'password'} 
                         required 
-                        value={password} 
-                        onChange={e => setPassword(e.target.value)} 
-                        placeholder="Min. 6 karakter" 
+                        value={confirmPassword} 
+                        onChange={e => setConfirmPassword(e.target.value)} 
+                        placeholder="Ketik ulang password untuk konfirmasi" 
                         className="input-field" 
-                        style={{ paddingRight: '36px' }}
                       />
+                      {confirmPassword && password !== confirmPassword && (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#ef4444', display: 'block', marginTop: '4px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertCircle size={13} /> Konfirmasi password belum cocok</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    fontSize: '0.78rem',
+                    color: isLight ? '#047857' : '#86efac',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <Check size={16} />
+                    <span>Terverifikasi dengan Akun Google. Anda dapat masuk langsung 1-klik tanpa password manual.</span>
+                  </div>
+                )}
+
+                {/* Pilihan Metode Verifikasi OTP (Hanya untuk Pendaftaran Manual Biasa) */}
+                {!googleAuthData && (
+                  <div style={{
+                    margin: '0.25rem 0',
+                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                    border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)'}`,
+                    borderRadius: '14px',
+                    padding: '12px 14px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <KeyRound size={15} color="#38bdf8" /> Kirim Kode OTP Verifikasi Melalui:
+                      </label>
+                      <span style={{ fontSize: '0.7rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                        Pilih 1 Saluran
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                       <button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={() => { setOtpChannel('whatsapp'); if (error) setError(''); }}
                         style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer'
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '10px 8px',
+                          borderRadius: '10px',
+                          border: otpChannel === 'whatsapp' ? '2px solid #22c55e' : `1px solid ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.1)'}`,
+                          background: otpChannel === 'whatsapp' ? (isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.14)') : 'transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
                         }}
                       >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        <MessageSquare size={16} color="#22c55e" />
+                        <strong style={{ fontSize: '0.82rem', color: otpChannel === 'whatsapp' ? (isLight ? '#15803d' : '#4ade80') : 'var(--text-primary)' }}>
+                          WhatsApp
+                        </strong>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setOtpChannel('email'); if (error) setError(''); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '10px 8px',
+                          borderRadius: '10px',
+                          border: otpChannel === 'email' ? '2px solid #38bdf8' : `1px solid ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.1)'}`,
+                          background: otpChannel === 'email' ? (isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.14)') : 'transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Mail size={16} color="#38bdf8" />
+                        <strong style={{ fontSize: '0.82rem', color: otpChannel === 'email' ? (isLight ? '#0369a1' : '#38bdf8') : 'var(--text-primary)' }}>
+                          Gmail / Email
+                        </strong>
                       </button>
                     </div>
                   </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Konfirmasi Password <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input 
-                      type={showPassword ? 'text' : 'password'} 
-                      required 
-                      value={confirmPassword} 
-                      onChange={e => setConfirmPassword(e.target.value)} 
-                      placeholder="Ketik ulang password" 
-                      className="input-field" 
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -1262,7 +1481,11 @@ const Register = () => {
               >
                 {otpSending ? (
                   <>
-                    <RefreshCw size={16} className="animate-spin" /> Mengirim OTP...
+                    <RefreshCw size={16} className="animate-spin" /> {googleAuthData ? 'Mendaftarkan Akun...' : 'Mengirim OTP...'}
+                  </>
+                ) : googleAuthData ? (
+                  <>
+                    <Check size={18} /> Selesaikan Pendaftaran &amp; Buka Kasir →
                   </>
                 ) : (
                   <>

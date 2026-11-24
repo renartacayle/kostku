@@ -117,6 +117,7 @@ import ActionTutorialBadge from '../components/kasir/ActionTutorialBadge';
 import LoyaltyPoolsPanel from '../components/kasir/LoyaltyPoolsPanel';
 import DemandForecastPanel from '../components/kasir/DemandForecastPanel';
 import UmkmOnboardingGate from '../components/kasir/UmkmOnboardingGate';
+import KasirMobileBottomNav from '../components/kasir/KasirMobileBottomNav';
 import { extractCoordsFromMapsUrl } from '../utils/geoUtils';
 import { compressImageFile, getDefaultPhotoForCategory } from '../utils/imageUtils';
 import { calculateQrisCustomerFee } from '../utils/qrisEngine';
@@ -641,6 +642,20 @@ export default function Kasir({ user, onLogout }) {
   const [savingPromo, setSavingPromo] = useState(false);
   const [promoSaveFeedback, setPromoSaveFeedback] = useState(null);
 
+  // ── Extra & Topping Menu State (Owner Kelola Kerupuk, Telur, Keju, dll.) ──
+  const [storeExtras, setStoreExtras] = useState([]);
+  const [loadingStoreExtras, setLoadingStoreExtras] = useState(false);
+  const [savingStoreExtra, setSavingStoreExtra] = useState(false);
+  const [editingExtraId, setEditingExtraId] = useState(null);
+  const [extraForm, setExtraForm] = useState({
+    name: '',
+    price: '',
+    scope: 'ALL',
+    targetCategory: 'Makanan',
+    targetProductIds: []
+  });
+  const [extraFeedback, setExtraFeedback] = useState(null);
+
   // ── STATISTIK KEUANGAN MULTI-DIMENSI STATE ──
   const [analyticsTab, setAnalyticsTab] = useState('perMenu'); // 'perMenu' | 'perStore' | 'crossBranch' | 'perCashier'
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -658,6 +673,8 @@ export default function Kasir({ user, onLogout }) {
   const [consolidatedSummary, setConsolidatedSummary] = useState(null);
   const [loadingConsolidated, setLoadingConsolidated] = useState(false);
   const [dashboardReceiptScope, setDashboardReceiptScope] = useState('active'); // 'active' | 'all'
+  const [mobileDashTab, setMobileDashTab] = useState('nota'); // 'nota' | 'terlaris' | 'ringkasan'
+  const [mobileExtrasView, setMobileExtrasView] = useState('list'); // 'list' | 'form'
 
   // ── GUDANG, RESEP & ALERT STOK MENIPIS STATE ──
   const DEFAULT_INITIAL_INVENTORY = [
@@ -977,7 +994,9 @@ export default function Kasir({ user, onLogout }) {
     description: '',
     image: '',
     stock: 99,
-    isAvailable: true
+    isAvailable: true,
+    extras: [],
+    commonNotesText: ''
   });
   const [addMenuError, setAddMenuError] = useState('');
   const [savingMenu, setSavingMenu] = useState(false);
@@ -1089,6 +1108,18 @@ export default function Kasir({ user, onLogout }) {
       price: priceNum,
       description: newMenuForm.description.trim(),
       image: newMenuForm.image.trim(),
+      extras: (Array.isArray(newMenuForm.extras) ? newMenuForm.extras : [])
+        .filter(ex => ex && String(ex.name || '').trim())
+        .map((ex, i) => ({
+          id: ex.id || `pext-${Date.now()}-${i}`,
+          name: String(ex.name).trim(),
+          price: Math.max(0, Math.round(Number(ex.price) || 0)),
+          isAvailable: ex.isAvailable !== false
+        })),
+      commonNotes: String(newMenuForm.commonNotesText || '')
+        .split(/[\n,]/)
+        .map(s => s.trim())
+        .filter(Boolean),
       merchantId: effectiveAccountId,
       storeId: storeInfo.merchantId || storeInfo.uid || undefined,
       stock: Number(newMenuForm.stock !== undefined && newMenuForm.stock !== '' ? newMenuForm.stock : 99),
@@ -1124,7 +1155,10 @@ export default function Kasir({ user, onLogout }) {
         const method = editingProduct ? 'PUT' : 'POST';
         const res = await fetch(endpoint, {
           method,
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+          },
           body: JSON.stringify(productPayload)
         });
 
@@ -1179,7 +1213,9 @@ export default function Kasir({ user, onLogout }) {
       description: '',
       image: '',
       stock: 99,
-      isAvailable: true
+      isAvailable: true,
+      extras: [],
+      commonNotesText: ''
     });
     setAddMenuError('');
     setShowAddMenuModal(true);
@@ -1196,7 +1232,9 @@ export default function Kasir({ user, onLogout }) {
       description: p.description || '',
       image: p.image || '',
       stock: p.stock ?? 99,
-      isAvailable: p.isAvailable !== false
+      isAvailable: p.isAvailable !== false,
+      extras: Array.isArray(p.extras) ? p.extras.map(ex => ({ ...ex })) : [],
+      commonNotesText: Array.isArray(p.commonNotes) ? p.commonNotes.join(', ') : ''
     });
     setAddMenuError('');
     setShowAddMenuModal(true);
@@ -1929,7 +1967,8 @@ export default function Kasir({ user, onLogout }) {
       const storeEndpoint = ownerQuery ? `/api/pos/store?${ownerQuery}` : '/api/pos/store';
       const posHeaders = {
         ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
-        ...(user?.role ? { 'x-user-role': String(user.role) } : {})
+        ...(user?.role ? { 'x-user-role': String(user.role) } : {}),
+        ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
       };
       const scopedSuffix = ownerQuery ? `?${ownerQuery}` : '';
 
@@ -1991,7 +2030,10 @@ export default function Kasir({ user, onLogout }) {
 
           fetch('/api/pos/register-umkm', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+            },
             body: JSON.stringify({
               ownerUserId: ownerIdVal,
               ...autoStore,
@@ -2028,8 +2070,8 @@ export default function Kasir({ user, onLogout }) {
         : `${accountQuery}&${ownerQuery || `ownerId=${encodeURIComponent(effectiveAccountId)}`}`;
       const shiftsQuery = resolvedStoreId ? `?storeId=${encodeURIComponent(resolvedStoreId)}` : '';
       const [resProd, resShifts] = await Promise.all([
-        fetch(`/api/pos/products?${prodQuery}`),
-        fetch(`/api/pos/shifts${shiftsQuery}`)
+        fetch(`/api/pos/products?${prodQuery}`, { headers: posHeaders }),
+        fetch(`/api/pos/shifts${shiftsQuery}`, { headers: posHeaders })
       ]);
       const [remoteProds, remoteShiftsPayload] = await Promise.all([
         parseJsonIfOk(resProd),
@@ -2105,6 +2147,7 @@ export default function Kasir({ user, onLogout }) {
       }
       loadRedeemCodes();
       loadPromos();
+      loadStoreExtras();
       loadInventory();
       loadAnalytics();
       loadRecipes();
@@ -2126,6 +2169,14 @@ export default function Kasir({ user, onLogout }) {
     }
 
     let cancelled = false;
+    const isDemoHeader = Boolean(
+      user?.isDemo ||
+      (typeof window !== 'undefined' && (
+        window.location.search.includes('demo=true') ||
+        window.location.pathname.startsWith('/demo') ||
+        localStorage.getItem('kostku_is_demo_mode') === 'true'
+      ))
+    );
     const heartbeatPayload = JSON.stringify({
       merchantId: activeMerchantId,
       storeId: activeMerchantId,
@@ -2142,7 +2193,8 @@ export default function Kasir({ user, onLogout }) {
           headers: {
             'Content-Type': 'application/json',
             'x-user-id': String(user.id),
-            ...(user?.role ? { 'x-user-role': String(user.role) } : {})
+            ...(user?.role ? { 'x-user-role': String(user.role) } : {}),
+            ...(isDemoHeader ? { 'x-demo-mode': 'true' } : {})
           },
           body: heartbeatPayload
         });
@@ -2157,7 +2209,12 @@ export default function Kasir({ user, onLogout }) {
       try {
         fetch('/api/pos/store/offline', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': String(user.id),
+            ...(user?.role ? { 'x-user-role': String(user.role) } : {}),
+            ...(isDemoHeader ? { 'x-demo-mode': 'true' } : {})
+          },
           body: JSON.stringify({
             merchantId: activeMerchantId,
             storeId: activeMerchantId,
@@ -2472,6 +2529,23 @@ export default function Kasir({ user, onLogout }) {
     }
   };
 
+  const buildPosJsonHeaders = () => {
+    const isDemo = Boolean(
+      user?.isDemo ||
+      (typeof window !== 'undefined' && (
+        window.location.search.includes('demo=true') ||
+        window.location.pathname.startsWith('/demo') ||
+        localStorage.getItem('kostku_is_demo_mode') === 'true'
+      ))
+    );
+    return {
+      'Content-Type': 'application/json',
+      ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+      ...(user?.role ? { 'x-user-role': String(user.role) } : {}),
+      ...(isDemo ? { 'x-demo-mode': 'true' } : {})
+    };
+  };
+
   const handleInitiateTripayTopup = async (nominal) => {
     try {
       setPosTopupLoading(true);
@@ -2479,14 +2553,14 @@ export default function Kasir({ user, onLogout }) {
       const chosenQuota = Math.max(1, Math.floor(chosenAmount / 100));
       const res = await fetch('/api/pos/topup-tripay', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           amount: chosenAmount,
           quota: chosenQuota,
           merchantId: storeInfo?.merchantId
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         let qrDataUrl = data.qrUrl || data.qrDataUrl || '';
         if (!qrDataUrl && data.qrString) {
@@ -2515,7 +2589,7 @@ export default function Kasir({ user, onLogout }) {
       setTripayStatusFeedback(null);
       const res = await fetch('/api/pos/topup-tripay/confirm', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           reference: tripayTopupData.reference,
           amount: tripayTopupData.amount,
@@ -2523,7 +2597,7 @@ export default function Kasir({ user, onLogout }) {
           merchantId: storeInfo?.merchantId
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok && data.success && data.isPaid) {
         try { playChime(880, 0.2); } catch (_) {}
         setStoreInfo(prev => ({
@@ -2559,14 +2633,14 @@ export default function Kasir({ user, onLogout }) {
       const chosenQuota = Math.max(1, Math.floor(chosenAmount / 100));
       const res = await fetch('/api/pos/topup-nota', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           amount: chosenAmount,
           quota: chosenQuota,
           merchantId: storeInfo?.merchantId
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         try { playChime(880, 0.15); } catch (_) {}
         setStoreInfo(prev => ({
@@ -3045,6 +3119,149 @@ export default function Kasir({ user, onLogout }) {
       setPromoSaveFeedback({ type: 'error', message: 'Kesalahan jaringan: ' + err.message });
     } finally {
       setSavingPromo(false);
+    }
+  };
+
+  // ── SISTEM EXTRA & TOPPING MENU (KERUPUK, TELUR, KEJU, DLL.) ──
+  const loadStoreExtras = async () => {
+    try {
+      setLoadingStoreExtras(true);
+      const qs = new URLSearchParams();
+      if (effectiveAccountId) qs.set('merchantId', effectiveAccountId);
+      const activeStoreId = storeInfo?.merchantId || storeInfo?.uid;
+      if (activeStoreId) qs.set('storeId', activeStoreId);
+      const res = await fetch(`/api/pos/extras?${qs.toString()}`, {
+        headers: isDemoKasir ? { 'x-demo-mode': 'true' } : {}
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        setStoreExtras(data);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat extra/topping menu:', err);
+    } finally {
+      setLoadingStoreExtras(false);
+    }
+  };
+
+  const resetExtraForm = () => {
+    setEditingExtraId(null);
+    setExtraForm({
+      name: '',
+      price: '',
+      scope: 'ALL',
+      targetCategory: 'Makanan',
+      targetProductIds: []
+    });
+  };
+
+  const handleSaveStoreExtra = async (e) => {
+    if (e) e.preventDefault();
+    const cleanName = String(extraForm.name || '').trim();
+    if (!cleanName) {
+      setExtraFeedback({ type: 'error', message: 'Nama extra / topping wajib diisi!' });
+      return;
+    }
+    const priceNum = Number(extraForm.price === '' ? 0 : extraForm.price);
+    if (isNaN(priceNum) || priceNum < 0) {
+      setExtraFeedback({ type: 'error', message: 'Harga extra wajib valid (minimal Rp 0)!' });
+      return;
+    }
+    if (extraForm.scope === 'CATEGORY' && !extraForm.targetCategory) {
+      setExtraFeedback({ type: 'error', message: 'Pilih kategori target untuk extra ini!' });
+      return;
+    }
+    if (extraForm.scope === 'SPECIFIC_MENU' && (!extraForm.targetProductIds || extraForm.targetProductIds.length === 0)) {
+      setExtraFeedback({ type: 'error', message: 'Centang minimal satu menu target untuk extra ini!' });
+      return;
+    }
+
+    try {
+      setSavingStoreExtra(true);
+      setExtraFeedback(null);
+      const endpoint = editingExtraId ? `/api/pos/extras/${editingExtraId}` : '/api/pos/extras';
+      const method = editingExtraId ? 'PUT' : 'POST';
+      const res = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        },
+        body: JSON.stringify({
+          name: cleanName,
+          price: Math.max(0, Math.round(priceNum)),
+          scope: extraForm.scope,
+          targetCategories: extraForm.scope === 'CATEGORY' ? [extraForm.targetCategory] : [],
+          targetProductIds: extraForm.scope === 'SPECIFIC_MENU' ? extraForm.targetProductIds : [],
+          merchantId: effectiveAccountId,
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data?.id) {
+        setExtraFeedback({
+          type: 'success',
+          message: editingExtraId
+            ? `Extra "${data.name}" berhasil diperbarui!`
+            : `Extra "${data.name}" (+Rp ${Number(data.price || 0).toLocaleString('id-ID')}) berhasil ditambahkan!`
+        });
+        resetExtraForm();
+        await loadStoreExtras();
+        setMobileExtrasView('list');
+      } else {
+        setExtraFeedback({ type: 'error', message: data?.error || 'Gagal menyimpan extra' });
+      }
+    } catch (err) {
+      setExtraFeedback({ type: 'error', message: 'Kesalahan jaringan: ' + err.message });
+    } finally {
+      setSavingStoreExtra(false);
+    }
+  };
+
+  const handleEditStoreExtra = (ext) => {
+    setEditingExtraId(ext.id);
+    setExtraForm({
+      name: ext.name || '',
+      price: String(ext.price ?? ''),
+      scope: ext.scope || 'ALL',
+      targetCategory: (ext.targetCategories && ext.targetCategories[0]) || 'Makanan',
+      targetProductIds: Array.isArray(ext.targetProductIds) ? ext.targetProductIds : []
+    });
+    setExtraFeedback(null);
+    setMobileExtrasView('form');
+  };
+
+  const handleToggleStoreExtra = async (ext) => {
+    try {
+      const res = await fetch(`/api/pos/extras/${ext.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        },
+        body: JSON.stringify({ isAvailable: ext.isAvailable === false })
+      });
+      if (res.ok) {
+        await loadStoreExtras();
+      }
+    } catch (err) {
+      console.warn('Gagal toggle status extra:', err);
+    }
+  };
+
+  const handleDeleteStoreExtra = async (extraId) => {
+    try {
+      const res = await fetch(`/api/pos/extras/${extraId}`, {
+        method: 'DELETE',
+        headers: isDemoKasir ? { 'x-demo-mode': 'true' } : {}
+      });
+      if (res.ok) {
+        setExtraFeedback({ type: 'success', message: 'Extra berhasil dihapus dari katalog toko.' });
+        if (editingExtraId === extraId) resetExtraForm();
+        await loadStoreExtras();
+      }
+    } catch (err) {
+      setExtraFeedback({ type: 'error', message: 'Gagal menghapus extra: ' + err.message });
     }
   };
 
@@ -4399,7 +4616,7 @@ export default function Kasir({ user, onLogout }) {
                     onClick={() => setActiveCartPromo(null)}
                     style={{ fontSize: '0.68rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800 }}
                   >
-                    ✕ Lepas
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><X size={12} /> Lepas</span>
                   </button>
                 ) : (
                   <button
@@ -5858,6 +6075,29 @@ export default function Kasir({ user, onLogout }) {
               <span style={{ flex: 1 }}>Promo &amp; Diskon</span>
             </button>
 
+            {/* 6b. Extra & Topping */}
+            <button
+              type="button"
+              data-testid="sidebar-extras-btn"
+              onClick={() => { setActiveTab('extras'); loadStoreExtras(); }}
+              style={sidebarItemStyle(activeTab === 'extras')}
+            >
+              <PlusCircle size={17} color={activeTab === 'extras' ? '#2563eb' : '#d97706'} />
+              <span style={{ flex: 1 }}>Extra &amp; Topping</span>
+              {storeExtras.filter(e => e.isAvailable !== false).length > 0 && (
+                <span style={{
+                  fontSize: '0.6rem',
+                  fontWeight: 900,
+                  background: '#d97706',
+                  color: '#ffffff',
+                  padding: '1px 5px',
+                  borderRadius: '999px'
+                }}>
+                  {storeExtras.filter(e => e.isAvailable !== false).length}
+                </span>
+              )}
+            </button>
+
             {/* 7. Gudang */}
             <button
               type="button"
@@ -6598,6 +6838,16 @@ export default function Kasir({ user, onLogout }) {
 
         <button
           type="button"
+          data-testid="quick-pill-extras-btn"
+          onClick={() => { setActiveTab('extras'); loadStoreExtras(); }}
+          style={quickPillStyle(activeTab === 'extras' ? '#2563eb' : '#d97706')}
+        >
+          <PlusCircle size={12} color="#d97706" />
+          <span>Extra Menu</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => {
             setActiveTab('inventory');
             setInventoryTab('stock');
@@ -6876,182 +7126,150 @@ export default function Kasir({ user, onLogout }) {
         </div>
       </div>
 
-      {/* ── TAB 0: DASHBOARD KASIR & STATISTIK FNB ── */}
+      {/* ── TAB 0: DASHBOARD KASIR & STATISTIK FNB (3x2 BENTO GRID) ── */}
       {activeTab === 'dashboard' && (
-        <main style={{ width: '100%', maxWidth: '100%', margin: '0.8rem auto 0', padding: '0 2%', boxSizing: 'border-box' }}>
-          {/* Header Bar: Status Shift & Aksi Cepat */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem',
-            flexWrap: 'wrap',
-            gap: '10px'
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <main style={{ width: '100%', maxWidth: '100%', margin: '0.75rem auto 0', padding: '0 2% 1.25rem', boxSizing: 'border-box' }}>
+          {/* Streamlined Single-Row Header Bar (Desktop Only — Mobile Integrated inside Hero Card) */}
+          <div
+            className="bento-header-wrap bento-desktop-only"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.9rem',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h2 style={{
                   margin: 0,
-                  fontSize: '1.25rem',
+                  fontSize: '1.22rem',
                   fontWeight: 900,
                   color: textPrimary,
                   letterSpacing: '-0.3px'
                 }}>
-                  Dashboard Kasir &amp; Ringkasan Operasional
+                  Dashboard Kasir
                 </h2>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '3px 8px',
+                  padding: '3px 9px',
                   borderRadius: '999px',
-                  fontSize: '0.72rem',
+                  fontSize: '0.7rem',
                   fontWeight: 800,
+                  whiteSpace: 'nowrap',
                   background: cashierShift.isOpen ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)'),
-                  color: cashierShift.isOpen ? '#10b981' : '#ef4444',
-                  border: cashierShift.isOpen ? '1px solid #10b981' : '1px solid #ef4444'
+                  color: cashierShift.isOpen ? (isLight ? '#047857' : '#34d399') : '#ef4444',
+                  border: cashierShift.isOpen ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)'
                 }}>
                   <span style={{
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    background: cashierShift.isOpen ? '#10b981' : '#ef4444',
-                    boxShadow: cashierShift.isOpen ? '0 0 6px #10b981' : 'none'
+                    background: cashierShift.isOpen ? '#10b981' : '#ef4444'
                   }} />
                   {cashierShift.isOpen ? 'Shift Aktif' : 'Shift Tutup'}
                 </span>
               </div>
-              <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: textSecondary }}>
-                Kasir: <strong>{cashierShift.cashierName}</strong> &bull; {storeInfo.storeName || 'Kantin KostKu POS'} &bull; {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: textSecondary }}>
+                <strong>{cashierShift.cashierName}</strong> &middot; {storeInfo.storeName || 'Kantin KostKu POS'} &middot; {new Date().toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
 
-            {/* Quick Shift Controls */}
+            {/* Clean Shift & Utility Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {cashierShift.isOpen ? (
                 <>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowPettyCashModal(true)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '7px 13px',
-                        borderRadius: '10px',
-                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                        background: bgCard,
-                        color: textPrimary,
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-                      }}
-                    >
-                      <Coins size={15} color="#f59e0b" />
-                      <span>Catat Kas</span>
-                    </button>
-                    <ActionTutorialBadge
-                      title="Catat Kas Masuk / Keluar (Petty Cash)"
-                      description="Mencatat uang masuk tambahan (modal susuk) atau pengeluaran kas laci (belanja es/gas) selama shift berjalan agar hitungan saldo laci akurat."
-                      size="sm"
-                      isLight={isLight}
-                    />
-                  </div>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                      type="button"
-                      data-testid="open-tutup-shift-page-btn"
-                      onClick={openClosingShiftPage}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '7px 13px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                        color: '#ffffff',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
-                      }}
-                    >
-                      <Lock size={15} />
-                      <span>Tutup Shift</span>
-                    </button>
-                    <ActionTutorialBadge
-                      title="Tutup Shift & Rekonsiliasi Kas"
-                      description="Membuka halaman penuh closing kasir, membandingkan uang tunai fisik di laci vs sistem, serta melampirkan foto barang basi/sisa/rusak."
-                      size="sm"
-                      isLight={isLight}
-                    />
-                  </div>
-                </>
-              ) : (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <button
                     type="button"
-                    onClick={() => setShowShiftOpeningModal(true)}
+                    onClick={() => setShowPettyCashModal(true)}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
-                      padding: '8px 16px',
+                      padding: '7px 12px',
                       borderRadius: '10px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                      color: '#ffffff',
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 3px 10px rgba(37, 99, 235, 0.35)'
+                      border: `1px solid ${borderColor}`,
+                      background: bgCard,
+                      color: textPrimary,
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
                     }}
                   >
-                    <Unlock size={16} />
-                    <span>Buka Shift Baru</span>
+                    <Coins size={14} color="#f59e0b" />
+                    <span>Catat Kas</span>
                   </button>
-                    <ActionTutorialBadge
-                      title="Buka Shift Kasir Baru"
-                      description="Memulai sesi kerja kasir baru dengan mencatat nama kasir bertugas dan nominal modal awal (uang kembalian) di laci."
-                      size="sm"
-                      isLight={isLight}
-                    />
-                  </div>
-                )}
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    type="button"
+                    data-testid="open-tutup-shift-page-btn"
+                    onClick={openClosingShiftPage}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 13px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: '#dc2626',
+                      color: '#ffffff',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Lock size={14} />
+                    <span>Tutup Shift</span>
+                  </button>
+                </>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    setInventoryTab('forecast');
-                    setActiveTab('inventory');
-                  }}
+                  onClick={() => setShowShiftOpeningModal(true)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '7px 13px',
+                    padding: '7px 14px',
                     borderRadius: '10px',
-                    border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.35)',
-                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)',
-                    color: isLight ? '#1d4ed8' : '#93c5fd',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
                     fontSize: '0.78rem',
                     fontWeight: 800,
                     cursor: 'pointer'
                   }}
                 >
-                  <TrendingUp size={15} />
-                  <span>Demand Forecast (ML)</span>
+                  <Unlock size={15} />
+                  <span>Buka Shift</span>
                 </button>
-                <ActionTutorialBadge
-                  title="Buka Demand & Sales Forecasting ML"
-                  description="Melihat proyeksi penjualan SKU rentang P10–P90 untuk Besok (H+1), Minggu Depan (H+7), dan Bulan Depan (H+30) beserta rekomendasi restock."
-                  size="sm"
-                  isLight={isLight}
-                />
-              </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setInventoryTab('forecast');
+                  setActiveTab('inventory');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(59, 130, 246, 0.35)',
+                  background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)',
+                  color: isLight ? '#1d4ed8' : '#93c5fd',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <TrendingUp size={14} />
+                <span>Forecast</span>
+              </button>
             </div>
           </div>
 
@@ -7062,9 +7280,9 @@ export default function Kasir({ user, onLogout }) {
               background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.15)',
               border: '1px solid #10b981',
               color: isLight ? '#047857' : '#34d399',
-              fontSize: '0.82rem',
+              fontSize: '0.8rem',
               fontWeight: 700,
-              marginBottom: '1rem',
+              marginBottom: '0.9rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -7081,53 +7299,24 @@ export default function Kasir({ user, onLogout }) {
           )}
 
           {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* ── 3 KPI CARDS UTAMA: PENDAPATAN (SWIPEABLE), KARYAWAN, NOTA ── */}
+          {/* ── 3x2 BENTO GRID UTAMA DASHBOARD KASIR ── */}
           {/* ═════════════════════════════════════════════════════════════════ */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
-            gap: '12px',
-            marginBottom: '1.25rem'
-          }}>
-            {/* 1. PENDAPATAN HARIAN, BULANAN & TAHUNAN (1 BOX SWIPEABLE + BUBBLE INDICATORS) */}
+          <div className="pos-dashboard-bento-grid" data-testid="kasir-dashboard-bento">
+            {/* TILE 1: HERO OMSET & SHIFT CONTROLS (MOBILE DARK HERO + DESKTOP BENTO TILE 1) */}
             {(() => {
-              const slideThemes = [
-                {
-                  accent: '#10b981',
-                  tintBorder: isLight ? '1.5px solid #d1fae5' : '1px solid rgba(16, 185, 129, 0.35)',
-                  tintShadow: isLight ? '0 4px 14px rgba(16, 185, 129, 0.09)' : '0 4px 14px rgba(0,0,0,0.22)',
-                  glow: '0 2px 8px rgba(16, 185, 129, 0.35)',
-                  badgeBg: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
-                  badgeColor: isLight ? '#047857' : '#6ee7b7'
-                },
-                {
-                  accent: '#2563eb',
-                  tintBorder: isLight ? '1.5px solid #dbeafe' : '1px solid rgba(37, 99, 235, 0.38)',
-                  tintShadow: isLight ? '0 4px 14px rgba(37, 99, 235, 0.09)' : '0 4px 14px rgba(0,0,0,0.22)',
-                  glow: '0 2px 8px rgba(37, 99, 235, 0.35)',
-                  badgeBg: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.18)',
-                  badgeColor: isLight ? '#1d4ed8' : '#93c5fd'
-                },
-                {
-                  accent: '#8b5cf6',
-                  tintBorder: isLight ? '1.5px solid #ede9fe' : '1px solid rgba(139, 92, 246, 0.38)',
-                  tintShadow: isLight ? '0 4px 14px rgba(139, 92, 246, 0.1)' : '0 4px 14px rgba(0,0,0,0.22)',
-                  glow: '0 2px 8px rgba(139, 92, 246, 0.35)',
-                  badgeBg: isLight ? '#f5f3ff' : 'rgba(139, 92, 246, 0.18)',
-                  badgeColor: isLight ? '#6d28d9' : '#c4b5fd'
-                }
-              ];
-              const activeTheme = slideThemes[revenueCardIndex] || slideThemes[0];
               const bubbleItems = [
                 { idx: 0, label: 'Harian', color: '#10b981' },
                 { idx: 1, label: 'Bulanan', color: '#2563eb' },
                 { idx: 2, label: 'Tahunan', color: '#8b5cf6' }
               ];
               const currentMonthShort = new Date().toLocaleDateString('id-ID', { month: 'short' });
+              const tileShadow = isLight ? '0 1px 4px rgba(15, 23, 42, 0.04)' : '0 2px 8px rgba(0, 0, 0, 0.2)';
 
               return (
                 <div
+                  className="pos-dashboard-bento-tile pos-dashboard-bento-tile--row1 bento-hero-card"
                   data-testid="kasir-swipeable-revenue-card"
+                  data-bento-tile="1"
                   onTouchStart={(e) => e.touches?.[0] && handleRevenueSwipeStart(e.touches[0].clientX, e.touches[0].clientY)}
                   onTouchMove={(e) => e.touches?.[0] && handleRevenueSwipeMove(e.touches[0].clientX, e.touches[0].clientY)}
                   onTouchEnd={(e) => e.changedTouches?.[0] && handleRevenueSwipeEnd(e.changedTouches[0].clientX)}
@@ -7142,20 +7331,119 @@ export default function Kasir({ user, onLogout }) {
                   }}
                   style={{
                     background: bgCard,
-                    border: activeTheme.tintBorder,
-                    borderRadius: '18px',
-                    padding: 'clamp(13px, 3vw, 18px)',
-                    boxShadow: activeTheme.tintShadow,
+                    border: `1px solid ${borderColor}`,
+                    boxShadow: tileShadow,
                     position: 'relative',
                     overflow: 'hidden',
                     touchAction: 'pan-y',
                     userSelect: 'none',
-                    cursor: isRevenueSwiping ? 'grabbing' : 'grab',
-                    transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
-                    minWidth: 0
+                    cursor: isRevenueSwiping ? 'grabbing' : 'grab'
                   }}
                 >
-                  {/* Horizontal Swipe Track (3 Slides inside 1 Box) */}
+                  {/* Integrated Mobile Status & Shift Controls Header inside Hero */}
+                  <div
+                    className="bento-mobile-only"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      marginBottom: '12px',
+                      paddingBottom: '10px',
+                      borderBottom: `1px solid ${borderColor}`
+                    }}
+                  >
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '3px 9px',
+                      borderRadius: '999px',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      background: cashierShift.isOpen ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.18)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.18)'),
+                      color: cashierShift.isOpen ? (isLight ? '#047857' : '#34d399') : (isLight ? '#b91c1c' : '#fca5a5'),
+                      border: cashierShift.isOpen ? (isLight ? '1px solid #86efac' : '1px solid rgba(52, 211, 153, 0.35)') : (isLight ? '1px solid #fca5a5' : '1px solid rgba(248, 113, 113, 0.35)')
+                    }}>
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: cashierShift.isOpen ? '#10b981' : '#ef4444'
+                      }} />
+                      {cashierShift.isOpen ? 'Shift Aktif' : 'Shift Tutup'}
+                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {cashierShift.isOpen ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setShowPettyCashModal(true)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 9px',
+                              borderRadius: '8px',
+                              border: `1px solid ${borderColor}`,
+                              background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.08)',
+                              color: textPrimary,
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Coins size={12} color={isLight ? '#d97706' : '#fbbf24'} />
+                            <span>Catat Kas</span>
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="mobile-tutup-shift-btn"
+                            onClick={openClosingShiftPage}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 10px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: '#ef4444',
+                              color: '#ffffff',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Lock size={12} />
+                            <span>Tutup Shift</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowShiftOpeningModal(true)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '5px 11px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: '#2563eb',
+                            color: '#ffffff',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Unlock size={12} />
+                          <span>Buka Shift</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div style={{ overflow: 'hidden', width: '100%' }}>
                     <div style={{
                       display: 'flex',
@@ -7166,47 +7454,45 @@ export default function Kasir({ user, onLogout }) {
                       {/* Slide 0: PENDAPATAN HARIAN */}
                       <div style={{ width: 'calc(100% / 3)', flexShrink: 0, boxSizing: 'border-box', minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Pendapatan Harian
-                            </span>
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 800,
-                              padding: '2px 7px',
-                              borderRadius: '999px',
-                              background: slideThemes[0].badgeBg,
-                              color: slideThemes[0].badgeColor
-                            }}>
-                              Hari Ini
-                            </span>
-                          </div>
-                          <span style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '9px',
-                            background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            <Coins size={16} color="#10b981" />
+                          <span className="bento-hero-label" style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                            Omset Hari Ini
+                          </span>
+                          <span
+                            className="bento-hero-icon-badge"
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '8px',
+                              background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.18)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                          >
+                            <Coins size={15} color="#10b981" />
                           </span>
                         </div>
-                        <span style={{
-                          fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
-                          fontWeight: 900,
-                          color: isLight ? '#065f46' : '#34d399',
-                          display: 'block',
-                          letterSpacing: '-0.5px',
-                          lineHeight: 1.1
-                        }}>
+                        <span
+                          className="bento-hero-amount"
+                          style={{
+                            fontSize: 'clamp(1.32rem, 3.8vw, 1.62rem)',
+                            fontWeight: 900,
+                            color: isLight ? '#065f46' : '#34d399',
+                            display: 'block',
+                            letterSpacing: '-0.5px',
+                            lineHeight: 1.15,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums'
+                          }}
+                        >
                           Rp {revenueMetrics.dailyRevenue.toLocaleString('id-ID')}
                         </span>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '8px', fontSize: '0.71rem', color: textSecondary }}>
-                          <span>{revenueMetrics.dailyOrdersCount} pesanan selesai hari ini</span>
-                          <span style={{ fontWeight: 700, color: isLight ? '#047857' : '#10b981' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '7px', fontSize: '0.72rem' }}>
+                          <span className="bento-hero-meta" style={{ color: textSecondary }}>
+                            {revenueMetrics.dailyOrdersCount} pesanan selesai
+                          </span>
+                          <span className="bento-hero-cash" style={{ fontWeight: 700, color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                             Tunai: Rp {revenueMetrics.dailyCashRevenue.toLocaleString('id-ID')}
                           </span>
                         </div>
@@ -7215,47 +7501,45 @@ export default function Kasir({ user, onLogout }) {
                       {/* Slide 1: PENDAPATAN BULANAN */}
                       <div style={{ width: 'calc(100% / 3)', flexShrink: 0, boxSizing: 'border-box', minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Pendapatan Bulanan
-                            </span>
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 800,
-                              padding: '2px 7px',
-                              borderRadius: '999px',
-                              background: slideThemes[1].badgeBg,
-                              color: slideThemes[1].badgeColor
-                            }}>
-                              {currentMonthShort} {revenueMetrics.currentYear}
-                            </span>
-                          </div>
-                          <span style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '9px',
-                            background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            <TrendingUp size={16} color="#2563eb" />
+                          <span className="bento-hero-label" style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                            Omset {currentMonthShort} {revenueMetrics.currentYear}
+                          </span>
+                          <span
+                            className="bento-hero-icon-badge"
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '8px',
+                              background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                          >
+                            <TrendingUp size={15} color="#2563eb" />
                           </span>
                         </div>
-                        <span style={{
-                          fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
-                          fontWeight: 900,
-                          color: isLight ? '#1e40af' : '#60a5fa',
-                          display: 'block',
-                          letterSpacing: '-0.5px',
-                          lineHeight: 1.1
-                        }}>
+                        <span
+                          className="bento-hero-amount"
+                          style={{
+                            fontSize: 'clamp(1.32rem, 3.8vw, 1.62rem)',
+                            fontWeight: 900,
+                            color: isLight ? '#1e40af' : '#60a5fa',
+                            display: 'block',
+                            letterSpacing: '-0.5px',
+                            lineHeight: 1.15,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums'
+                          }}
+                        >
                           Rp {revenueMetrics.monthlyRevenue.toLocaleString('id-ID')}
                         </span>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '8px', fontSize: '0.71rem', color: textSecondary }}>
-                          <span>{revenueMetrics.monthlyOrdersCount} transaksi bulan {currentMonthShort}</span>
-                          <span style={{ fontWeight: 700, color: isLight ? '#1d4ed8' : '#60a5fa' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '7px', fontSize: '0.72rem' }}>
+                          <span className="bento-hero-meta" style={{ color: textSecondary }}>
+                            {revenueMetrics.monthlyOrdersCount} transaksi
+                          </span>
+                          <span className="bento-hero-cash" style={{ fontWeight: 700, color: isLight ? '#1d4ed8' : '#60a5fa', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                             Tunai: Rp {revenueMetrics.monthlyCashRevenue.toLocaleString('id-ID')}
                           </span>
                         </div>
@@ -7264,47 +7548,45 @@ export default function Kasir({ user, onLogout }) {
                       {/* Slide 2: PENDAPATAN TAHUNAN */}
                       <div style={{ width: 'calc(100% / 3)', flexShrink: 0, boxSizing: 'border-box', minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Pendapatan Tahunan
-                            </span>
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 800,
-                              padding: '2px 7px',
-                              borderRadius: '999px',
-                              background: slideThemes[2].badgeBg,
-                              color: slideThemes[2].badgeColor
-                            }}>
-                              Tahun {revenueMetrics.currentYear}
-                            </span>
-                          </div>
-                          <span style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '9px',
-                            background: isLight ? '#f5f3ff' : 'rgba(139, 92, 246, 0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            <BarChart3 size={16} color="#8b5cf6" />
+                          <span className="bento-hero-label" style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                            Omset Tahun {revenueMetrics.currentYear}
+                          </span>
+                          <span
+                            className="bento-hero-icon-badge"
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '8px',
+                              background: isLight ? '#f5f3ff' : 'rgba(139, 92, 246, 0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                          >
+                            <BarChart3 size={15} color="#8b5cf6" />
                           </span>
                         </div>
-                        <span style={{
-                          fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
-                          fontWeight: 900,
-                          color: isLight ? '#5b21b6' : '#c4b5fd',
-                          display: 'block',
-                          letterSpacing: '-0.5px',
-                          lineHeight: 1.1
-                        }}>
+                        <span
+                          className="bento-hero-amount"
+                          style={{
+                            fontSize: 'clamp(1.32rem, 3.8vw, 1.62rem)',
+                            fontWeight: 900,
+                            color: isLight ? '#5b21b6' : '#c4b5fd',
+                            display: 'block',
+                            letterSpacing: '-0.5px',
+                            lineHeight: 1.15,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums'
+                          }}
+                        >
                           Rp {revenueMetrics.yearlyRevenue.toLocaleString('id-ID')}
                         </span>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '8px', fontSize: '0.71rem', color: textSecondary }}>
-                          <span>{revenueMetrics.yearlyOrdersCount} transaksi tahun {revenueMetrics.currentYear}</span>
-                          <span style={{ fontWeight: 700, color: isLight ? '#6d28d9' : '#c4b5fd' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 8px', marginTop: '7px', fontSize: '0.72rem' }}>
+                          <span className="bento-hero-meta" style={{ color: textSecondary }}>
+                            {revenueMetrics.yearlyOrdersCount} transaksi
+                          </span>
+                          <span className="bento-hero-cash" style={{ fontWeight: 700, color: isLight ? '#6d28d9' : '#c4b5fd', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                             Tunai: Rp {revenueMetrics.yearlyCashRevenue.toLocaleString('id-ID')}
                           </span>
                         </div>
@@ -7312,691 +7594,443 @@ export default function Kasir({ user, onLogout }) {
                     </div>
                   </div>
 
-                  {/* Interactive Bubble Indicators + Geser ↔ Cues */}
+                  {/* Sleek Segmented Pill Footer */}
                   <div
+                    className="bento-hero-pill-track"
                     data-testid="revenue-swipe-bubbles"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '5px',
-                      marginTop: '11px',
-                      paddingTop: '9px',
-                      borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(148, 163, 184, 0.22)'
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                      gap: '4px',
+                      marginTop: '12px',
+                      padding: '3px',
+                      borderRadius: '10px',
+                      background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.65)',
+                      border: `1px solid ${borderColor}`
                     }}
                   >
-                    <div style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                      {bubbleItems.map((b) => {
-                        const isActive = revenueCardIndex === b.idx;
-                        return (
-                          <button
-                            key={b.idx}
-                            type="button"
-                            data-testid={`revenue-bubble-${b.idx}`}
-                            aria-label={`Lihat Pendapatan ${b.label}`}
-                            aria-pressed={isActive}
-                            onClick={() => setRevenueCardIndex(b.idx)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '3px 8px',
-                              borderRadius: '999px',
-                              border: isActive
-                                ? `1px solid ${b.color}`
-                                : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(148, 163, 184, 0.3)'),
-                              background: isActive
-                                ? b.color
-                                : (isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.55)'),
-                              color: isActive ? '#ffffff' : textSecondary,
-                              fontSize: '0.64rem',
-                              fontWeight: isActive ? 800 : 700,
-                              cursor: 'pointer',
-                              boxShadow: isActive ? slideThemes[b.idx].glow : 'none',
-                              transition: 'all 0.22s ease',
-                              lineHeight: 1.15
-                            }}
-                          >
-                            <span style={{
-                              width: isActive ? '6px' : '5px',
-                              height: isActive ? '6px' : '5px',
-                              borderRadius: '50%',
-                              background: isActive ? '#ffffff' : b.color,
-                              opacity: isActive ? 1 : 0.72,
-                              flexShrink: 0
-                            }} />
-                            <span>{b.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                      <button
-                        type="button"
-                        aria-label="Slide pendapatan sebelumnya"
-                        onClick={() => setRevenueCardIndex(prev => (prev > 0 ? prev - 1 : 2))}
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '999px',
-                          border: `1px solid ${borderColor}`,
-                          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.55)',
-                          color: textSecondary,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          padding: 0
-                        }}
-                      >
-                        <ChevronRight size={11} style={{ transform: 'rotate(180deg)' }} />
-                      </button>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 700, color: textSecondary, minWidth: '20px', textAlign: 'center' }}>
-                        {revenueCardIndex + 1}/3
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="Slide pendapatan berikutnya"
-                        onClick={() => setRevenueCardIndex(prev => (prev < 2 ? prev + 1 : 0))}
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '999px',
-                          border: `1px solid ${borderColor}`,
-                          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.55)',
-                          color: textSecondary,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          padding: 0
-                        }}
-                      >
-                        <ChevronRight size={11} />
-                      </button>
-                    </div>
+                    {bubbleItems.map((b) => {
+                      const isActive = revenueCardIndex === b.idx;
+                      return (
+                        <button
+                          key={b.idx}
+                          type="button"
+                          className="bento-hero-pill-btn"
+                          data-testid={`revenue-bubble-${b.idx}`}
+                          aria-label={`Lihat Pendapatan ${b.label}`}
+                          aria-pressed={isActive}
+                          onClick={() => setRevenueCardIndex(b.idx)}
+                          style={{
+                            padding: '5px 6px',
+                            borderRadius: '7px',
+                            border: 'none',
+                            background: isActive ? b.color : 'transparent',
+                            color: isActive ? '#ffffff' : textSecondary,
+                            fontSize: '0.68rem',
+                            fontWeight: isActive ? 800 : 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.18s ease',
+                            textAlign: 'center'
+                          }}
+                        >
+                          {b.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })()}
 
-            {/* 3. KARYAWAN YG ONLINE */}
-            <div style={{
-              background: bgCard,
-              border: isLight ? '1.5px solid #e0e7ff' : '1px solid rgba(99, 102, 241, 0.3)',
-              borderRadius: '18px',
-              padding: 'clamp(13px, 3vw, 18px)',
-              boxShadow: isLight ? '0 4px 14px rgba(99, 102, 241, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)',
-              position: 'relative',
-              overflow: 'hidden',
-              minWidth: 0
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Karyawan yg Online
-                </span>
-                <span style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '9px',
-                  background: isLight ? '#eef2ff' : 'rgba(99, 102, 241, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Users size={16} color="#6366f1" />
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                <span style={{
-                  fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
-                  fontWeight: 900,
-                  color: isLight ? '#3730a3' : '#a5b4fc',
-                  display: 'block',
-                  letterSpacing: '-0.5px',
-                  lineHeight: 1.1
-                }}>
-                  {onlineStaffList.length} Orang
-                </span>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  color: '#10b981',
-                  background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
-                  padding: '2px 6px',
-                  borderRadius: '999px'
-                }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }} />
-                  Aktif
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', color: textSecondary }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {onlineStaffList[0]?.name ? `${onlineStaffList[0].name}${onlineStaffList.length > 1 ? ` +${onlineStaffList.length - 1} lainnya` : ''}` : 'Belum ada staf online'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('karyawan')}
-                  style={{
-                    fontWeight: 700,
-                    color: '#6366f1',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    fontSize: 'inherit'
-                  }}
-                >
-                  <span>Detail</span>
-                  <ChevronRight size={13} />
-                </button>
-              </div>
-            </div>
-
-            {/* 4. SISA SALDO NOTA */}
+            {/* TILE 2: SALDO NOTA & KUOTA */}
             {(() => {
               const isNotaLow = storeSaldoNota < storeNotaFeeIdr || storeKuotaNota <= 5;
+              const notaPct = Math.min(100, Math.round((storeKuotaNota / Math.max(storeKuotaNota, 100)) * 100));
               return (
-                <div style={{
-                  background: bgCard,
-                  border: isNotaLow
-                    ? (isLight ? '1.5px solid #fecaca' : '1px solid rgba(239, 68, 68, 0.45)')
-                    : (isLight ? '1.5px solid #fef3c7' : '1px solid rgba(245, 158, 11, 0.3)'),
-                  borderRadius: '18px',
-                  padding: 'clamp(13px, 3vw, 18px)',
-                  boxShadow: isNotaLow
-                    ? (isLight ? '0 4px 14px rgba(239, 68, 68, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)')
-                    : (isLight ? '0 4px 14px rgba(245, 158, 11, 0.08)' : '0 4px 14px rgba(0,0,0,0.2)'),
-                  position: 'relative',
-                  overflow: 'hidden',
-                  minWidth: 0
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Sisa Saldo Nota
+                <div
+                  className="pos-dashboard-bento-tile pos-dashboard-bento-tile--row1 bento-mobile-kpi-pair"
+                  data-bento-tile="2"
+                  style={{
+                    background: bgCard,
+                    border: isNotaLow ? '1.5px solid rgba(239, 68, 68, 0.45)' : `1px solid ${borderColor}`,
+                    boxShadow: isLight ? '0 1px 4px rgba(15, 23, 42, 0.04)' : '0 2px 8px rgba(0, 0, 0, 0.2)'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Saldo Nota
+                      </span>
+                      <span style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '8px',
+                        background: isNotaLow
+                          ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)')
+                          : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.18)'),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Receipt size={14} color={isNotaLow ? '#ef4444' : '#d97706'} />
+                      </span>
+                    </div>
+                    <span
+                      data-testid="dashboard-saldo-nota-value"
+                      style={{
+                        fontSize: 'clamp(1.12rem, 4.4vw, 1.62rem)',
+                        fontWeight: 900,
+                        color: isNotaLow ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
+                        display: 'block',
+                        letterSpacing: '-0.5px',
+                        lineHeight: 1.15,
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}
+                    >
+                      Rp {storeSaldoNota.toLocaleString('id-ID')}
                     </span>
-                    <span style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '9px',
-                      background: isNotaLow
-                        ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)')
-                        : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                    <div style={{
+                      width: '100%',
+                      height: '4px',
+                      borderRadius: '999px',
+                      background: isLight ? '#f1f5f9' : '#0f172a',
+                      marginTop: '9px',
+                      overflow: 'hidden'
                     }}>
-                      <Receipt size={16} color={isNotaLow ? '#ef4444' : '#f59e0b'} />
-                    </span>
+                      <div style={{
+                        width: `${notaPct}%`,
+                        height: '100%',
+                        borderRadius: '999px',
+                        background: isNotaLow ? '#ef4444' : '#f59e0b'
+                      }} />
+                    </div>
                   </div>
-                  <span
-                    data-testid="dashboard-saldo-nota-value"
-                    style={{
-                      fontSize: 'clamp(1.28rem, 4.5vw, 1.6rem)',
-                      fontWeight: 900,
-                      color: isNotaLow ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
-                      display: 'block',
-                      letterSpacing: '-0.5px',
-                      lineHeight: 1.1
-                    }}
-                  >
-                    Rp {storeSaldoNota.toLocaleString('id-ID')}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', gap: '8px' }}>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', gap: '6px' }}>
                     <span
                       data-testid="dashboard-kuota-nota-value"
-                      style={{ color: isNotaLow ? '#ef4444' : textSecondary, fontWeight: isNotaLow ? 700 : 500 }}
+                      style={{
+                        fontSize: '0.68rem',
+                        color: isNotaLow ? '#ef4444' : textSecondary,
+                        fontWeight: isNotaLow ? 700 : 600,
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}
                     >
-                      ~{storeKuotaNota} lembar nota
+                      ~{storeKuotaNota} nota
                     </span>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowPosTopupModal(true)}
-                    style={{
-                      background: '#2563eb',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '2px 8px',
-                      fontSize: '0.68rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 1px 4px rgba(37, 99, 235, 0.3)'
-                    }}
-                  >
-                    + Top Up
-                  </button>
-                  <ActionTutorialBadge
-                    title="Top Up Saldo Kuota Nota"
-                    description="Mengisi ulang saldo nota prabayar toko aktif agar transaksi pembayaran tunai terus berjalan lancar."
-                    size="sm"
-                    isLight={isLight}
-                  />
+                    <button
+                      type="button"
+                      onClick={() => setShowPosTopupModal(true)}
+                      style={{
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '7px',
+                        padding: '4px 9px',
+                        fontSize: '0.66rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
+                      }}
+                    >
+                      + Top Up
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
               );
             })()}
-          </div>
 
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* ── RINGKASAN KONSOLIDASI SEMUA TOKO (MULTI-BRANCH) ── */}
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {consolidatedSummary && Array.isArray(consolidatedSummary.stores) && consolidatedSummary.stores.length > 0 && (
+            {/* TILE 3: TIM ONLINE & RIWAYAT SHIFT (TERINTEGRASI, BALANCED PAIR ON MOBILE) */}
             <div
-              data-testid="consolidated-summary-card"
+              className="pos-dashboard-bento-tile pos-dashboard-bento-tile--row1 bento-mobile-kpi-pair"
+              data-bento-tile="3"
               style={{
                 background: bgCard,
-                border: `1.5px solid ${borderColor}`,
-                borderRadius: '18px',
-                padding: '16px 18px',
-                boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
-                marginBottom: '1.25rem'
+                border: `1px solid ${borderColor}`,
+                boxShadow: isLight ? '0 1px 4px rgba(15, 23, 42, 0.04)' : '0 2px 8px rgba(0, 0, 0, 0.2)'
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Tim Online
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('karyawan')}
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      color: '#2563eb',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '1px',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span>Kelola</span>
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+
+                {/* Mobile Primary Focal Stat (Matches Weight of Saldo Nota Rp 100.000) */}
+                <div className="bento-mobile-only">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: onlineStaffList.length > 0 ? '#10b981' : '#94a3b8',
+                      flexShrink: 0
+                    }} />
+                    <span style={{
+                      fontSize: 'clamp(1.12rem, 4.4vw, 1.45rem)',
+                      fontWeight: 900,
+                      color: textPrimary,
+                      letterSpacing: '-0.4px',
+                      lineHeight: 1.15,
+                      fontFamily: 'var(--font-mono)',
+                      fontVariantNumeric: 'tabular-nums'
+                    }}>
+                      {onlineStaffList.length} Aktif
+                    </span>
+                  </div>
+                  <div style={{
+                    fontSize: '0.69rem',
+                    color: textSecondary,
+                    marginTop: '4px',
+                    fontWeight: 600,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {loadingOnlineStaff
+                      ? 'Memeriksa staf...'
+                      : (onlineStaffList[0]?.name
+                          ? `${onlineStaffList[0].name}${onlineStaffList.length > 1 ? ` +${onlineStaffList.length - 1}` : ''}`
+                          : 'Belum ada staf online')}
+                  </div>
+                </div>
+
+                {/* Desktop Staff List (Up to 3 Online Cards) */}
+                <div className="bento-desktop-only">
+                  {loadingOnlineStaff ? (
+                    <div style={{ padding: '8px 0', fontSize: '0.72rem', color: textSecondary }}>
+                      Memeriksa staf...
+                    </div>
+                  ) : onlineStaffList.length === 0 ? (
+                    <div style={{ padding: '8px 0', fontSize: '0.72rem', color: textSecondary }}>
+                      Belum ada staf online.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      {onlineStaffList.slice(0, 3).map((st, idx) => (
+                        <div
+                          key={st.id || idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '6px',
+                            padding: '5px 8px',
+                            borderRadius: '10px',
+                            background: isLight ? '#f8fafc' : '#0f172a',
+                            border: `1px solid ${borderColor}`
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                            <span style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              background: st.isCurrentCashier ? '#2563eb' : '#6366f1',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 900,
+                              fontSize: '0.62rem',
+                              flexShrink: 0
+                            }}>
+                              {st.name ? st.name.slice(0, 2).toUpperCase() : 'ST'}
+                            </span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '0.73rem', fontWeight: 800, color: textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {st.name}
+                              </div>
+                              <div style={{ fontSize: '0.62rem', color: textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {st.role}
+                              </div>
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '0.64rem', color: textSecondary, fontWeight: 600, flexShrink: 0 }}>
+                            {st.since}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={openClosingShiftPage}
+                style={{
+                  marginTop: '10px',
+                  paddingTop: '7px',
+                  borderTop: `1px dashed ${borderColor}`,
+                  borderLeft: 'none',
+                  borderRight: 'none',
+                  borderBottom: 'none',
+                  background: 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  color: textSecondary,
+                  cursor: 'pointer',
+                  paddingLeft: 0,
+                  paddingRight: 0,
+                  paddingBottom: 0
+                }}
+              >
+                <span>
+                  <span className="bento-desktop-only">Riwayat Closing Shift ({shiftHistory.length})</span>
+                  <span className="bento-mobile-only">Shift ({shiftHistory.length})</span>
+                </span>
+                <span style={{ color: '#2563eb', fontWeight: 800 }}>Buka &rarr;</span>
+              </button>
+            </div>
+
+            {/* MOBILE SEGMENTED ACTIVITY SWITCHER (Nota Terbaru | Terlaris | Ringkasan) */}
+            <div
+              className="bento-mobile-tabs-bar"
+              data-testid="mobile-dashboard-tabs"
+              style={{
+                background: isLight ? '#e2e8f0' : '#1e293b',
+                border: `1px solid ${borderColor}`
+              }}
+            >
+              {[
+                { id: 'nota', label: `Nota (${displayedDashboardOrders.length})` },
+                { id: 'terlaris', label: 'Terlaris' },
+                { id: 'ringkasan', label: 'Ringkasan' }
+              ].map((tb) => {
+                const active = mobileDashTab === tb.id;
+                return (
+                  <button
+                    key={tb.id}
+                    type="button"
+                    data-testid={`mobile-dash-tab-${tb.id}`}
+                    aria-pressed={active}
+                    onClick={() => setMobileDashTab(tb.id)}
+                    style={{
+                      padding: '8px 6px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: active ? (isLight ? '#ffffff' : '#0f172a') : 'transparent',
+                      color: active ? textPrimary : textSecondary,
+                      fontSize: '0.75rem',
+                      fontWeight: active ? 800 : 700,
+                      cursor: 'pointer',
+                      boxShadow: active ? '0 1px 4px rgba(15, 23, 42, 0.08)' : 'none',
+                      transition: 'all 0.16s ease'
+                    }}
+                  >
+                    {tb.label}
+                  </button>
+                );
+              })}
+            </div>
+
+
+
+
+
+            {/* TILE 4: MENU TERLARIS (TOP FNB — MOBILE TAB "terlaris" / DESKTOP TILE 4) */}
+            <div
+              className={`pos-dashboard-bento-tile pos-dashboard-bento-tile--row2 bento-mobile-sheet${mobileDashTab !== 'terlaris' ? ' bento-mobile-tab-hidden' : ''}`}
+              data-bento-tile="4"
+              style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                boxShadow: isLight ? '0 1px 4px rgba(15, 23, 42, 0.04)' : '0 2px 8px rgba(0, 0, 0, 0.2)',
+                justifyContent: 'flex-start'
               }}
             >
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '10px',
-                marginBottom: '12px',
-                paddingBottom: '10px',
-                borderBottom: `1px solid ${borderColor}`
+                marginBottom: '10px',
+                paddingBottom: '8px',
+                borderBottom: `1px solid ${borderColor}`,
+                flexShrink: 0
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <Layers size={18} color="#2563eb" />
-                  <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 900, color: textPrimary }}>
-                    Ringkasan Konsolidasi Semua Toko
-                  </h3>
-                  <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
-                    color: '#2563eb'
-                  }}>
-                    {consolidatedSummary.totalStores || consolidatedSummary.stores.length} Cabang
-                  </span>
-                  <ActionTutorialBadge
-                    title="Dashboard Konsolidasi Multi-Cabang"
-                    description="Menggabungkan performa omset dan jumlah nota dari seluruh cabang toko milik Anda dalam satu layar."
-                    steps={[
-                      'Bandingkan pendapatan hari ini, bulan ini, dan sisa kuota nota tiap cabang.',
-                      'Klik tombol Aktifkan Cabang untuk berpindah operasional kasir ke cabang tersebut.'
-                    ]}
-                    size="sm"
-                    isLight={isLight}
-                  />
-                </div>
-                {loadingConsolidated && (
-                  <span style={{ fontSize: '0.72rem', color: textSecondary, fontWeight: 700 }}>
-                    Memperbarui...
-                  </span>
-                )}
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 175px), 1fr))',
-                gap: '10px',
-                marginBottom: '12px'
-              }}>
-                <div style={{
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  background: isLight ? '#f0fdf4' : 'rgba(16,185,129,0.12)',
-                  border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(16,185,129,0.3)'
-                }}>
-                  <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
-                    Omset Hari Ini (Gabungan)
-                  </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)' }}>
-                    Rp {Number(consolidatedSummary.totals?.todayRevenue || 0).toLocaleString('id-ID')}
-                  </strong>
-                  <span style={{ display: 'block', fontSize: '0.68rem', color: textSecondary, marginTop: '2px' }}>
-                    {consolidatedSummary.totals?.todayOrders || 0} transaksi hari ini
-                  </span>
-                </div>
-
-                <div style={{
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  background: isLight ? '#eff6ff' : 'rgba(37,99,235,0.14)',
-                  border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(37,99,235,0.35)'
-                }}>
-                  <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
-                    Omset Bulan Ini (Gabungan)
-                  </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: isLight ? '#1d4ed8' : '#60a5fa', fontFamily: 'var(--font-mono)' }}>
-                    Rp {Number(consolidatedSummary.totals?.monthRevenue || 0).toLocaleString('id-ID')}
-                  </strong>
-                  <span style={{ display: 'block', fontSize: '0.68rem', color: textSecondary, marginTop: '2px' }}>
-                    {consolidatedSummary.totals?.monthOrders || 0} transaksi bulan ini
-                  </span>
-                </div>
-
-                <div style={{
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  background: isLight ? '#f8fafc' : 'rgba(148,163,184,0.1)',
-                  border: `1px solid ${borderColor}`
-                }}>
-                  <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase' }}>
-                    Akumulasi All-Time
-                  </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
-                    Rp {Number(consolidatedSummary.totals?.allTimeRevenue || 0).toLocaleString('id-ID')}
-                  </strong>
-                  <span style={{ display: 'block', fontSize: '0.68rem', color: textSecondary, marginTop: '2px' }}>
-                    {consolidatedSummary.totals?.allTimeOrders || 0} nota total
-                  </span>
-                </div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))',
-                gap: '10px'
-              }}>
-                {consolidatedSummary.stores.map((cs) => {
-                  const isCurrent = String(cs.storeId) === String(storeInfo?.merchantId || consolidatedSummary.activeStoreId);
-                  return (
-                    <div
-                      key={cs.storeId}
-                      style={{
-                        padding: '12px',
-                        borderRadius: '12px',
-                        border: isCurrent ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
-                        background: isLight ? (isCurrent ? '#f8fafc' : '#ffffff') : (isCurrent ? '#1e293b' : 'rgba(15, 23, 42, 0.55)'),
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, fontSize: '0.84rem', color: textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {cs.storeName}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {cs.location || cs.address || 'Cabang POS'}
-                          </div>
-                        </div>
-                        {isCurrent && (
-                          <span style={{
-                            fontSize: '0.62rem',
-                            fontWeight: 800,
-                            padding: '2px 7px',
-                            borderRadius: '999px',
-                            background: '#2563eb',
-                            color: '#ffffff',
-                            flexShrink: 0
-                          }}>
-                            Aktif
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.73rem', color: textSecondary }}>
-                        <span>Hari Ini: <strong style={{ color: textPrimary }}>Rp {Number(cs.todayRevenue || 0).toLocaleString('id-ID')}</strong></span>
-                        <span>{cs.todayOrders || 0} nota</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: textSecondary }}>
-                        <span>Bulan Ini: <strong style={{ color: textPrimary }}>Rp {Number(cs.monthRevenue || 0).toLocaleString('id-ID')}</strong></span>
-                        <span>Sisa {cs.kuotaNota ?? 0} nota</span>
-                      </div>
-                      {!isCurrent && (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleSwitchPosStore(cs.storeId)}
-                            style={{
-                              flex: 1,
-                              padding: '5px 10px',
-                              borderRadius: '8px',
-                              border: `1px solid ${borderColor}`,
-                              background: isLight ? '#eff6ff' : 'rgba(37,99,235,0.2)',
-                              color: '#2563eb',
-                              fontSize: '0.71rem',
-                              fontWeight: 800,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Aktifkan Cabang
-                          </button>
-                          <ActionTutorialBadge
-                            title="Aktifkan Cabang Ini"
-                            description="Memindahkan mode kasir, katalog menu, dan antrean transaksi ke cabang yang dipilih."
-                            size="sm"
-                            isLight={isLight}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* ── SECTION DETAIL: KARYAWAN YG ONLINE & STATISTIK FNB TOP 10 ── */}
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '14px',
-            marginBottom: '1.5rem'
-          }}>
-            {/* ── PANEL KARYAWAN YG ONLINE ── */}
-            <div style={{
-              background: bgCard,
-              border: `1.5px solid ${borderColor}`,
-              borderRadius: '18px',
-              padding: '16px 18px',
-              boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '12px',
-                paddingBottom: '10px',
-                borderBottom: `1px solid ${borderColor}`
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users size={18} color="#6366f1" />
-                  <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: textPrimary }}>
-                    Karyawan yg Online
-                  </h3>
-                  <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                    background: isLight ? '#eef2ff' : 'rgba(99, 102, 241, 0.2)',
-                    color: '#6366f1'
-                  }}>
-                    {onlineStaffList.length} Aktif
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Award size={15} color="#d97706" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                    Menu Terlaris
                   </span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveTab('karyawan')}
+                  onClick={() => {
+                    setActiveTab('settings');
+                    setKeuanganSubTab('analytics');
+                    loadAnalytics();
+                  }}
                   style={{
-                    fontSize: '0.74rem',
+                    fontSize: '0.72rem',
                     fontWeight: 700,
                     color: '#2563eb',
                     background: 'none',
                     border: 'none',
                     padding: 0,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px'
                   }}
                 >
-                  Kelola Staf &rarr;
+                  <span>Analitik</span>
+                  <ChevronRight size={13} />
                 </button>
-              </div>
-
-              {loadingOnlineStaff ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.78rem' }}>
-                  <RefreshCw size={18} className="animate-spin" style={{ margin: '0 auto 8px' }} />
-                  <span>Memeriksa status kehadiran staf...</span>
-                </div>
-              ) : onlineStaffList.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.78rem' }}>
-                  Tidak ada karyawan yang terdeteksi online saat ini.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '360px' }}>
-                  {onlineStaffList.map((st, idx) => (
-                    <div
-                      key={st.id || idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '9px 12px',
-                        borderRadius: '12px',
-                        background: isLight ? '#f8fafc' : '#0f172a',
-                        border: `1px solid ${borderColor}`,
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '50%',
-                          background: st.isCurrentCashier ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 900,
-                          fontSize: '0.82rem',
-                          flexShrink: 0
-                        }}>
-                          {st.name ? st.name.slice(0, 2).toUpperCase() : 'ST'}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <span style={{
-                            display: 'block',
-                            fontWeight: 800,
-                            fontSize: '0.84rem',
-                            color: textPrimary,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {st.name}
-                          </span>
-                          <span style={{
-                            display: 'block',
-                            fontSize: '0.7rem',
-                            color: textSecondary,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {st.role}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '2px 7px',
-                          borderRadius: '999px',
-                          background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.2)',
-                          color: '#10b981',
-                          fontSize: '0.66rem',
-                          fontWeight: 800
-                        }}>
-                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }} />
-                          Online
-                        </span>
-                        <span style={{ display: 'block', fontSize: '0.64rem', color: textSecondary, marginTop: '2px' }}>
-                          Sejak: {st.since}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ── PANEL STATISTIK FNB TOP 10 TERLARIS ── */}
-            <div style={{
-              background: bgCard,
-              border: `1.5px solid ${borderColor}`,
-              borderRadius: '18px',
-              padding: '16px 18px',
-              boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '12px',
-                paddingBottom: '10px',
-                borderBottom: `1px solid ${borderColor}`
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Award size={18} color="#f59e0b" />
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: textPrimary }}>
-                      Statistik FnB Terlaris (Top 10)
-                    </h3>
-                  </div>
-                </div>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  padding: '2px 7px',
-                  borderRadius: '999px',
-                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)',
-                  color: isLight ? '#92400e' : '#fbbf24'
-                }}>
-                  Top 10 Menu
-                </span>
               </div>
 
               {top10SoldProducts.length === 0 ? (
                 <div style={{
-                  padding: '2.5rem 1rem',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   textAlign: 'center',
                   color: textSecondary,
-                  fontSize: '0.8rem',
-                  border: `1.5px dashed ${borderColor}`,
-                  borderRadius: '14px',
-                  margin: 'auto 0'
+                  fontSize: '0.76rem',
+                  border: `1px dashed ${borderColor}`,
+                  borderRadius: '12px',
+                  padding: '20px 14px'
                 }}>
-                  <Utensils size={32} color={textSecondary} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                  <p style={{ margin: 0, fontWeight: 700 }}>Belum ada data penjualan menu FnB</p>
-                  <span style={{ fontSize: '0.72rem', color: textSecondary }}>
-                    Pesanan FnB yang berstatus selesai akan otomatis terakumulasi di sini.
-                  </span>
+                  <Utensils size={24} color={textSecondary} style={{ opacity: 0.45, marginBottom: '6px' }} />
+                  <div style={{ fontWeight: 700, color: textPrimary }}>Belum ada data penjualan</div>
+                  <div style={{ fontSize: '0.69rem', marginTop: '2px' }}>
+                    Pesanan selesai otomatis direkap di sini.
+                  </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', overflowY: 'auto', maxHeight: '360px' }}>
-                  {top10SoldProducts.map((p, idx) => {
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', flex: 1, minHeight: 0, paddingRight: '2px' }}>
+                  {top10SoldProducts.slice(0, 10).map((p, idx) => {
                     const maxQty = top10SoldProducts[0]?.qty || 1;
                     const percent = Math.min(100, Math.round((p.qty / maxQty) * 100));
                     const isTop1 = idx === 0;
@@ -8007,19 +8041,15 @@ export default function Kasir({ user, onLogout }) {
                       <div
                         key={p.name}
                         style={{
-                          padding: '8px 10px',
-                          borderRadius: '12px',
-                          background: isTop1
-                            ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)')
-                            : (isLight ? '#f8fafc' : '#0f172a'),
-                          border: isTop1
-                            ? (isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.35)')
-                            : `1px solid ${borderColor}`,
+                          padding: '7px 10px',
+                          borderRadius: '10px',
+                          background: isLight ? '#f8fafc' : '#0f172a',
+                          border: `1px solid ${borderColor}`,
                           position: 'relative',
-                          overflow: 'hidden'
+                          overflow: 'hidden',
+                          flexShrink: 0
                         }}
                       >
-                        {/* Subtle Progress Bar Background */}
                         <div style={{
                           position: 'absolute',
                           top: 0,
@@ -8038,19 +8068,20 @@ export default function Kasir({ user, onLogout }) {
                           zIndex: 1,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between'
+                          justifyContent: 'space-between',
+                          gap: '8px'
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                             <span style={{
-                              width: '22px',
-                              height: '22px',
+                              width: '20px',
+                              height: '20px',
                               borderRadius: '50%',
                               background: isTop1 ? '#f59e0b' : (isTop2 ? '#94a3b8' : (isTop3 ? '#cd7f32' : (isLight ? '#e2e8f0' : '#334155'))),
                               color: isTop1 || isTop2 || isTop3 ? '#ffffff' : textSecondary,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '0.65rem',
+                              fontSize: '0.62rem',
                               fontWeight: 900,
                               flexShrink: 0
                             }}>
@@ -8058,8 +8089,8 @@ export default function Kasir({ user, onLogout }) {
                             </span>
                             <div style={{ minWidth: 0 }}>
                               <span style={{
-                                fontWeight: 800,
-                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                fontSize: '0.78rem',
                                 color: textPrimary,
                                 display: 'block',
                                 overflow: 'hidden',
@@ -8068,22 +8099,24 @@ export default function Kasir({ user, onLogout }) {
                               }}>
                                 {p.name}
                               </span>
-                              <span style={{ fontSize: '0.66rem', color: textSecondary }}>
+                              <span style={{ fontSize: '0.64rem', color: textSecondary }}>
                                 {p.category || 'FnB'}
                               </span>
                             </div>
                           </div>
 
-                          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
                             <span style={{
-                              fontWeight: 900,
-                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              fontSize: '0.75rem',
                               color: isTop1 ? '#d97706' : '#2563eb',
-                              display: 'block'
+                              display: 'block',
+                              fontFamily: 'var(--font-mono)',
+                              fontVariantNumeric: 'tabular-nums'
                             }}>
                               {p.qty} porsi
                             </span>
-                            <span style={{ fontSize: '0.68rem', color: textSecondary, fontWeight: 700 }}>
+                            <span style={{ fontSize: '0.64rem', color: textSecondary, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                               Rp {p.revenue.toLocaleString('id-ID')}
                             </span>
                           </div>
@@ -8094,60 +8127,50 @@ export default function Kasir({ user, onLogout }) {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* ── DAFTAR NOTA TERBARU (KASIR, TOTAL BAYAR & KLIK DETAIL) ── */}
-          <div style={{
-            background: bgCard,
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: '18px',
-            padding: '16px 18px',
-            boxShadow: '0 3px 12px rgba(0,0,0,0.04)',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '8px',
-              marginBottom: '12px',
-              paddingBottom: '10px',
-              borderBottom: `1px solid ${borderColor}`
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <Receipt size={18} color="#2563eb" />
-                <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: textPrimary }}>
-                  Daftar Nota Terbaru
-                </h3>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  background: isLight ? '#dbeafe' : 'rgba(37,99,235,0.2)',
-                  color: '#2563eb'
-                }}>
-                  {displayedDashboardOrders.length} Nota
-                </span>
-                <ActionTutorialBadge
-                  title="Daftar Nota Terbaru"
-                  description="Menampilkan riwayat transaksi terkini beserta nama kasir dan detail menu. Gunakan toggle untuk melihat nota cabang aktif saja atau seluruh cabang."
-                  steps={[
-                    'Pilih Toko Aktif untuk fokus pada cabang yang sedang dibuka.',
-                    'Pilih Semua Toko untuk memantau transaksi lintas semua cabang.',
-                    'Klik kartu nota untuk membuka rincian item & mencetak ulang struk.'
-                  ]}
-                  size="sm"
-                  isLight={isLight}
-                />
-              </div>
+            {/* TILE 5: NOTA TERBARU (MOBILE TAB "nota" / DESKTOP TILE 5) */}
+            <div
+              className={`pos-dashboard-bento-tile pos-dashboard-bento-tile--row2 bento-mobile-sheet${mobileDashTab !== 'nota' ? ' bento-mobile-tab-hidden' : ''}`}
+              data-bento-tile="5"
+              style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                boxShadow: isLight ? '0 1px 4px rgba(15, 23, 42, 0.04)' : '0 2px 8px rgba(0, 0, 0, 0.2)',
+                justifyContent: 'flex-start'
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '6px',
+                marginBottom: '10px',
+                paddingBottom: '8px',
+                borderBottom: `1px solid ${borderColor}`,
+                flexShrink: 0
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Receipt size={15} color="#2563eb" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                    Nota Terbaru
+                  </span>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 800,
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                    background: isLight ? '#dbeafe' : 'rgba(37, 99, 235, 0.2)',
+                    color: '#2563eb'
+                  }}>
+                    {displayedDashboardOrders.length}
+                  </span>
+                </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <div style={{
                   display: 'inline-flex',
-                  padding: '3px',
-                  borderRadius: '9px',
+                  padding: '2px',
+                  borderRadius: '8px',
                   background: isLight ? '#f1f5f9' : '#1e293b',
                   border: `1px solid ${borderColor}`
                 }}>
@@ -8156,251 +8179,446 @@ export default function Kasir({ user, onLogout }) {
                     data-testid="receipt-scope-active"
                     onClick={() => setDashboardReceiptScope('active')}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '7px',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
                       border: 'none',
                       background: dashboardReceiptScope === 'active' ? '#2563eb' : 'transparent',
                       color: dashboardReceiptScope === 'active' ? '#ffffff' : textSecondary,
-                      fontSize: '0.72rem',
+                      fontSize: '0.66rem',
                       fontWeight: 800,
                       cursor: 'pointer'
                     }}
                   >
-                    Toko Aktif
+                    Aktif
                   </button>
                   <button
                     type="button"
                     data-testid="receipt-scope-all"
                     onClick={() => setDashboardReceiptScope('all')}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '7px',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
                       border: 'none',
                       background: dashboardReceiptScope === 'all' ? '#2563eb' : 'transparent',
                       color: dashboardReceiptScope === 'all' ? '#ffffff' : textSecondary,
-                      fontSize: '0.72rem',
+                      fontSize: '0.66rem',
                       fontWeight: 800,
                       cursor: 'pointer'
                     }}
                   >
-                    Semua Toko
+                    Semua
                   </button>
                 </div>
-                <span style={{ fontSize: '0.74rem', color: textSecondary }}>
-                  Klik nota untuk rincian menu &amp; cetak struk
-                </span>
               </div>
-            </div>
 
-            {displayedDashboardOrders.length === 0 ? (
-              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: textSecondary, fontSize: '0.8rem' }}>
-                Belum ada nota transaksi tercatat pada filter ini.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {displayedDashboardOrders.slice(0, 15).map((ord) => {
-                  const isExpanded = selectedDashboardOrderId === ord.id;
-                  const cashierDisplay = ord.cashierName || cashierShift.cashierName || 'Kasir Shift';
-                  const statusLabel = ord.status === 'COMPLETED'
-                    ? 'Selesai'
-                    : ord.status === 'PREPARING'
-                      ? 'Dimasak'
-                      : ord.status === 'WAITING_PAYMENT'
-                        ? 'Tunggu Bayar'
-                        : ord.status === 'CANCELLED'
-                          ? 'Dibatalkan'
-                          : 'Masuk';
-                  return (
-                    <div
-                      key={ord.id}
-                      style={{
-                        border: isExpanded ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
-                        borderRadius: '12px',
-                        background: isLight ? (isExpanded ? '#f8fafc' : '#ffffff') : (isExpanded ? '#1e293b' : 'rgba(15, 23, 42, 0.55)'),
-                        overflow: 'hidden',
-                        transition: 'border-color 0.15s ease'
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDashboardOrderId(isExpanded ? null : ord.id)}
+              {displayedDashboardOrders.length === 0 ? (
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  color: textSecondary,
+                  fontSize: '0.76rem',
+                  border: `1px dashed ${borderColor}`,
+                  borderRadius: '12px',
+                  padding: '20px 14px'
+                }}>
+                  <Receipt size={24} color={textSecondary} style={{ opacity: 0.45, marginBottom: '6px' }} />
+                  <div style={{ fontWeight: 700, color: textPrimary }}>Belum ada nota transaksi</div>
+                  <div style={{ fontSize: '0.69rem', marginTop: '2px' }}>
+                    Transaksi meja &amp; kasir tampil otomatis.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', flex: 1, minHeight: 0, paddingRight: '2px' }}>
+                  {displayedDashboardOrders.slice(0, 12).map((ord) => {
+                    const isExpanded = selectedDashboardOrderId === ord.id;
+                    const cashierDisplay = ord.cashierName || cashierShift.cashierName || 'Kasir';
+                    const statusLabel = ord.status === 'COMPLETED'
+                      ? 'Selesai'
+                      : ord.status === 'PREPARING'
+                        ? 'Dimasak'
+                        : ord.status === 'WAITING_PAYMENT'
+                          ? 'Bayar'
+                          : ord.status === 'CANCELLED'
+                            ? 'Batal'
+                            : 'Masuk';
+                    return (
+                      <div
+                        key={ord.id}
                         style={{
-                          width: '100%',
-                          padding: '11px 14px',
-                          background: 'transparent',
-                          border: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: '8px',
-                          cursor: 'pointer',
-                          textAlign: 'left'
+                          border: isExpanded ? '1px solid #2563eb' : `1px solid ${borderColor}`,
+                          borderRadius: '10px',
+                          background: isLight ? '#f8fafc' : '#0f172a',
+                          overflow: 'hidden',
+                          flexShrink: 0
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 200px' }}>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 800, fontSize: '0.84rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
-                                {ord.invoice || `#${String(ord.id).slice(-8)}`}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDashboardOrderId(isExpanded ? null : ord.id)}
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            background: 'transparent',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 800, fontSize: '0.76rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                                {ord.invoice || `#${String(ord.id).slice(-6)}`}
                               </span>
-                              {dashboardReceiptScope === 'all' && ord.storeName && (
-                                <span style={{
-                                  fontSize: '0.66rem',
-                                  fontWeight: 800,
-                                  padding: '2px 7px',
-                                  borderRadius: '6px',
-                                  background: isLight ? '#e0e7ff' : 'rgba(99,102,241,0.2)',
-                                  color: isLight ? '#3730a3' : '#a5b4fc'
-                                }}>
-                                  {ord.storeName}
-                                </span>
-                              )}
                               <span style={{
-                                fontSize: '0.68rem',
+                                fontSize: '0.62rem',
                                 fontWeight: 700,
-                                padding: '2px 7px',
-                                borderRadius: '6px',
-                                background: isLight ? '#f1f5f9' : '#334155',
+                                padding: '1px 5px',
+                                borderRadius: '5px',
+                                background: isLight ? '#e2e8f0' : '#1e293b',
                                 color: textPrimary
                               }}>
                                 {ord.tableNumber || 'Walk-in'}
                               </span>
                               <span style={{
-                                fontSize: '0.66rem',
-                                fontWeight: 700,
-                                padding: '2px 7px',
+                                fontSize: '0.6rem',
+                                fontWeight: 800,
+                                padding: '1px 6px',
                                 borderRadius: '999px',
                                 background: ord.status === 'COMPLETED' ? (isLight ? '#dcfce7' : 'rgba(16,185,129,0.2)') : (isLight ? '#fef3c7' : 'rgba(245,158,11,0.2)'),
-                                color: ord.status === 'COMPLETED' ? '#15803d' : '#b45309'
+                                color: ord.status === 'COMPLETED' ? '#047857' : '#b45309'
                               }}>
                                 {statusLabel}
                               </span>
                             </div>
-                            <div style={{ fontSize: '0.73rem', color: textSecondary, marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              <span>Kasir: <strong style={{ color: textPrimary }}>{cashierDisplay}</strong></span>
-                              <span>•</span>
-                              <span>{ord.customerName || 'Tamu'}</span>
-                              <span>•</span>
-                              <span>{ord.createdAt ? new Date(ord.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                            <div style={{ fontSize: '0.66rem', color: textSecondary, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {ord.customerName || 'Tamu'} &middot; {cashierDisplay}
+                              {dashboardReceiptScope === 'all' && ord.storeName ? ` · ${ord.storeName}` : ''}
                             </div>
                           </div>
-                        </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 900, fontSize: '0.92rem', color: textPrimary, fontFamily: 'var(--font-mono)' }}>
-                              Rp {Number(ord.totalAmount || 0).toLocaleString('id-ID')}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 800, fontSize: '0.78rem', color: textPrimary, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                                Rp {Number(ord.totalAmount || 0).toLocaleString('id-ID')}
+                              </div>
+                              <div style={{ fontSize: '0.58rem', color: textSecondary, fontWeight: 700, textTransform: 'uppercase' }}>
+                                {ord.paymentMethod || 'TUNAI'}
+                              </div>
                             </div>
-                            <div style={{ fontSize: '0.66rem', color: textSecondary, fontWeight: 700, textTransform: 'uppercase' }}>
-                              {ord.paymentMethod || 'TUNAI'}
-                            </div>
+                            {isExpanded ? <ChevronUp size={14} color="#2563eb" /> : <ChevronDown size={14} color={textSecondary} />}
                           </div>
-                          {isExpanded ? <ChevronUp size={16} color="#2563eb" /> : <ChevronDown size={16} color={textSecondary} />}
-                        </div>
-                      </button>
+                        </button>
 
-                      {isExpanded && (
-                        <div style={{
-                          padding: '12px 14px',
-                          borderTop: `1px dashed ${borderColor}`,
-                          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.75)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '10px'
-                        }}>
+                        {isExpanded && (
                           <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
-                            gap: '8px',
-                            fontSize: '0.75rem'
-                          }}>
-                            <div>
-                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>ID Transaksi</span>
-                              <strong style={{ color: textPrimary, fontFamily: 'var(--font-mono)' }}>{ord.id}</strong>
-                            </div>
-                            <div>
-                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>Kasir Bertugas</span>
-                              <strong style={{ color: textPrimary }}>{cashierDisplay}</strong>
-                            </div>
-                            <div>
-                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>Pembayaran</span>
-                              <strong style={{ color: textPrimary }}>{ord.paymentMethod || 'TUNAI'} ({ord.paymentStatus || 'PAID'})</strong>
-                            </div>
-                            <div>
-                              <span style={{ color: textSecondary, display: 'block', fontSize: '0.68rem' }}>Waktu Transaksi</span>
-                              <strong style={{ color: textPrimary }}>
-                                {ord.createdAt ? new Date(ord.createdAt).toLocaleString('id-ID') : '-'}
-                              </strong>
-                            </div>
-                          </div>
-
-                          <div style={{
-                            borderTop: `1px solid ${borderColor}`,
-                            borderBottom: `1px solid ${borderColor}`,
-                            padding: '8px 0',
+                            padding: '8px 10px',
+                            borderTop: `1px dashed ${borderColor}`,
+                            background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '5px'
+                            gap: '6px'
                           }}>
                             {(ord.items || []).map((item, idx) => (
-                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                                <span style={{ color: textPrimary }}>
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', fontSize: '0.72rem' }}>
+                                <span style={{ color: textPrimary, minWidth: 0 }}>
                                   <strong>{item.qty}x</strong> {item.name}
+                                  {Array.isArray(item.extras) && item.extras.length > 0 && (
+                                    <span style={{ color: '#d97706', fontWeight: 700 }}>
+                                      {' '}[+ {item.extras.map(ex => {
+                                        const exQty = Math.max(1, Number(ex.qty) || 1);
+                                        const exTotal = (Number(ex.price) || 0) * exQty;
+                                        return `${exQty > 1 ? `${exQty}x ` : ''}${ex.name} (+Rp ${exTotal.toLocaleString('id-ID')})`;
+                                      }).join(', ')}]
+                                    </span>
+                                  )}
                                   {item.notes ? <em style={{ color: textSecondary }}> ({item.notes})</em> : ''}
                                 </span>
-                                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: textPrimary }}>
+                                <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: textPrimary, flexShrink: 0 }}>
                                   Rp {Number(item.subtotal || ((item.price || 0) * (item.qty || 1))).toLocaleString('id-ID')}
                                 </span>
                               </div>
                             ))}
-                          </div>
 
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                            <div style={{ fontSize: '0.78rem', color: textSecondary }}>
-                              Subtotal Rp {Number(ord.subtotal || ord.totalAmount || 0).toLocaleString('id-ID')}
-                              {Number(ord.discount || ord.discountAmount || 0) > 0 && ` • Diskon -Rp ${Number(ord.discount || ord.discountAmount).toLocaleString('id-ID')}`}
-                              {' • '}
-                              <strong style={{ color: textPrimary }}>Total Pembayaran: Rp {Number(ord.totalAmount || 0).toLocaleString('id-ID')}</strong>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: `1px solid ${borderColor}` }}>
+                              <span style={{ fontSize: '0.68rem', color: textSecondary, fontWeight: 700 }}>
+                                Total: <strong style={{ color: textPrimary }}>Rp {Number(ord.totalAmount || 0).toLocaleString('id-ID')}</strong>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setReceiptOrder(ord)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '4px 9px',
+                                  borderRadius: '7px',
+                                  border: 'none',
+                                  background: '#0f172a',
+                                  color: '#ffffff',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Printer size={12} />
+                                <span>Lihat / Cetak Nota</span>
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setReceiptOrder(ord)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                border: 'none',
-                                background: '#0f172a',
-                                color: '#ffffff',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Printer size={13} />
-                              <span>Lihat / Cetak Nota</span>
-                            </button>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-          <ShiftHistoryPhotoGalleryCard
-            shifts={shiftHistory}
-            isLight={isLight}
-            textPrimary={textPrimary}
-            textSecondary={textSecondary}
-            bgCard={bgCard}
-            borderColor={borderColor}
-          />
+            {/* TILE 6: OPERASIONAL, CABANG & AKSI CEPAT (MOBILE TAB "ringkasan" / DESKTOP TILE 6) */}
+            <div
+              className={`pos-dashboard-bento-tile pos-dashboard-bento-tile--row2 bento-mobile-sheet${mobileDashTab !== 'ringkasan' ? ' bento-mobile-tab-hidden' : ''}`}
+              data-bento-tile="6"
+              data-testid="bento-tile-ops"
+              style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                boxShadow: isLight ? '0 1px 4px rgba(15, 23, 42, 0.04)' : '0 2px 8px rgba(0, 0, 0, 0.2)'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: 0 }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingBottom: '8px',
+                  borderBottom: `1px solid ${borderColor}`
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Layers size={15} color="#2563eb" />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: textSecondary, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                      Operasional &amp; Cabang
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.64rem',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: '999px',
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.18)',
+                    color: '#2563eb',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {consolidatedSummary?.stores?.length || 1} Toko
+                  </span>
+                </div>
+
+                {/* Live Pulse 3 Mini Counters */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
+                  <div style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    background: isLight ? '#fff7ed' : 'rgba(249, 115, 22, 0.12)',
+                    border: isLight ? '1px solid #fed7aa' : '1px solid rgba(249, 115, 22, 0.3)'
+                  }}>
+                    <span style={{ display: 'block', fontSize: '0.6rem', fontWeight: 700, color: textSecondary }}>
+                      Antrean Dapur
+                    </span>
+                    <strong style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ea580c', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                      {pendingOrders.length + cookingOrders.length}
+                    </strong>
+                    <span style={{ display: 'block', fontSize: '0.58rem', color: textSecondary }}>
+                      {pendingOrders.length} baru &middot; {cookingOrders.length} masak
+                    </span>
+                  </div>
+
+                  <div style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    background: isLight ? '#f8fafc' : '#0f172a',
+                    border: `1px solid ${borderColor}`
+                  }}>
+                    <span style={{ display: 'block', fontSize: '0.6rem', fontWeight: 700, color: textSecondary }}>
+                      Katalog
+                    </span>
+                    <strong style={{ fontSize: '0.95rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                      {scopedProducts.length}
+                    </strong>
+                    <span style={{ display: 'block', fontSize: '0.58rem', color: textSecondary }}>
+                      {storeExtras.filter(e => e.isAvailable !== false).length} extra aktif
+                    </span>
+                  </div>
+
+                  <div style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.12)',
+                    border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(16, 185, 129, 0.3)'
+                  }}>
+                    <span style={{ display: 'block', fontSize: '0.6rem', fontWeight: 700, color: textSecondary }}>
+                      Promo Aktif
+                    </span>
+                    <strong style={{ fontSize: '0.95rem', fontWeight: 900, color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                      {promosList.filter(p => p.isAvailable).length}
+                    </strong>
+                    <span style={{ display: 'block', fontSize: '0.58rem', color: textSecondary }}>
+                      Promo berjalan
+                    </span>
+                  </div>
+                </div>
+
+                {/* Compact Consolidated Branch Summary */}
+                {consolidatedSummary && Array.isArray(consolidatedSummary.stores) && consolidatedSummary.stores.length > 0 && (
+                  <div
+                    data-testid="consolidated-summary-card"
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      background: isLight ? '#f8fafc' : '#0f172a',
+                      border: `1px solid ${borderColor}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '5px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: textSecondary }}>
+                      <span>Gabungan Hari Ini</span>
+                      <strong style={{ color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                        Rp {Number(consolidatedSummary.totals?.todayRevenue || 0).toLocaleString('id-ID')}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: textSecondary }}>
+                      <span>Gabungan Bulan Ini</span>
+                      <strong style={{ color: '#2563eb', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                        Rp {Number(consolidatedSummary.totals?.monthRevenue || 0).toLocaleString('id-ID')}
+                      </strong>
+                    </div>
+                    {consolidatedSummary.stores.length > 1 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '3px', paddingTop: '5px', borderTop: `1px dashed ${borderColor}`, maxHeight: '64px', overflowY: 'auto' }}>
+                        {consolidatedSummary.stores
+                          .filter(cs => String(cs.storeId) !== String(storeInfo?.merchantId || consolidatedSummary.activeStoreId))
+                          .slice(0, 3)
+                          .map((cs) => (
+                            <div key={cs.storeId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', fontSize: '0.67rem' }}>
+                              <span style={{ color: textPrimary, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {cs.storeName}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleSwitchPosStore(cs.storeId)}
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  border: `1px solid ${borderColor}`,
+                                  background: isLight ? '#eff6ff' : 'rgba(37,99,235,0.2)',
+                                  color: '#2563eb',
+                                  fontSize: '0.64rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  flexShrink: 0
+                                }}
+                              >
+                                Pindah
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 2x2 Quick Launch Shortcut Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('pos')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)',
+                    color: isLight ? '#1d4ed8' : '#93c5fd',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ShoppingBag size={14} />
+                  <span>Kasir POS</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('kds')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#fff7ed' : 'rgba(249, 115, 22, 0.15)',
+                    color: isLight ? '#c2410c' : '#fdba74',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ChefHat size={14} />
+                  <span>Dapur KDS</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('extras'); loadStoreExtras(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.15)',
+                    color: isLight ? '#b45309' : '#fcd34d',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <PlusCircle size={14} />
+                  <span>Extra Menu</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('tables')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#f5f3ff' : 'rgba(139, 92, 246, 0.15)',
+                    color: isLight ? '#6d28d9' : '#c4b5fd',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <QrCode size={14} />
+                  <span>Meja QR</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </main>
       )}
 
@@ -9446,6 +9664,15 @@ export default function Kasir({ user, onLogout }) {
                                   }}>
                                     <strong style={{ color: isItemReady ? '#16a34a' : '#2563eb' }}>{it.qty}x</strong> {it.name}
                                   </span>
+                                  {Array.isArray(it.extras) && it.extras.length > 0 && (
+                                    <span style={{ fontSize: '0.7rem', color: isLight ? '#b45309' : '#fbbf24', fontWeight: 700, display: 'block' }}>
+                                      + Extra: {it.extras.map(ex => {
+                                        const exQty = Math.max(1, Number(ex.qty) || 1);
+                                        const exTotal = (Number(ex.price) || 0) * exQty;
+                                        return `${exQty > 1 ? `${exQty}x ` : ''}${ex.name} (+Rp ${exTotal.toLocaleString('id-ID')})`;
+                                      }).join(', ')}
+                                    </span>
+                                  )}
                                   {it.notes && (
                                     <span style={{ fontSize: '0.7rem', color: textSecondary, fontStyle: 'italic', display: 'block' }}>
                                       Catatan: {it.notes}
@@ -10573,6 +10800,13 @@ export default function Kasir({ user, onLogout }) {
                   icon: <Tag size={20} color="#f59e0b" />,
                   badge: promosList.filter(p => p.isAvailable).length ? `${promosList.filter(p => p.isAvailable).length} aktif` : null,
                   onClick: () => { setActiveTab('promo'); loadPromos(); setShowToolsDrawer(false); }
+                },
+                {
+                  title: 'Extra & Topping',
+                  desc: 'Kerupuk, telur & add-on',
+                  icon: <PlusCircle size={20} color="#d97706" />,
+                  badge: storeExtras.filter(e => e.isAvailable !== false).length ? `${storeExtras.filter(e => e.isAvailable !== false).length} aktif` : null,
+                  onClick: () => { setActiveTab('extras'); loadStoreExtras(); setShowToolsDrawer(false); }
                 },
                 {
                   title: 'Gudang & Resep',
@@ -14290,6 +14524,617 @@ export default function Kasir({ user, onLogout }) {
         </main>
       )}
 
+      {/* ── TAB 6b: KELOLA EXTRA & TOPPING MENU (OWNER / KASIR -> ORDER MEJA) ── */}
+      {activeTab === 'extras' && (
+        <main
+          data-testid="kasir-extras-panel"
+          className="kasir-extras-main"
+        >
+          <div className="kasir-extras-desktop-header">
+            {renderManajemenHeader(
+              'Extra & Topping Menu (Kerupuk, Telur, Keju, dll.)',
+              'Tambahkan pilihan extra berbayar atau topping opsional untuk pelanggan Order Meja. Bisa diterapkan ke semua menu, kategori tertentu, atau menu spesifik.',
+              <PlusCircle size={20} color="#d97706" />,
+              <button
+                type="button"
+                onClick={loadStoreExtras}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${borderColor}`,
+                  background: isLight ? '#ffffff' : '#1e293b',
+                  color: textPrimary,
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <RefreshCw size={13} className={loadingStoreExtras ? 'animate-spin' : ''} />
+                <span>{loadingStoreExtras ? 'Memuat...' : 'Muat Ulang'}</span>
+              </button>
+            )}
+          </div>
+
+          <div className="kasir-extras-mobile-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '11px',
+                background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.16)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <PlusCircle size={18} color="#d97706" />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 800, color: textPrimary, lineHeight: 1.2 }}>
+                    Extra &amp; Topping
+                  </h2>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: '999px',
+                    background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.18)',
+                    color: isLight ? '#b45309' : '#fbbf24',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {storeExtras.length} item
+                  </span>
+                </div>
+                <p style={{
+                  margin: '2px 0 0',
+                  fontSize: '0.73rem',
+                  color: textSecondary,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Tambahan berbayar &amp; topping di Order Meja
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={loadStoreExtras}
+              aria-label="Muat ulang extra"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '999px',
+                border: `1px solid ${borderColor}`,
+                background: isLight ? '#ffffff' : '#1e293b',
+                color: textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                cursor: 'pointer'
+              }}
+            >
+              <RefreshCw size={15} className={loadingStoreExtras ? 'animate-spin' : ''} />
+            </button>
+          </div>
+
+          <div className="kasir-extras-mobile-tabs" data-testid="mobile-extras-tabs">
+            <button
+              type="button"
+              data-testid="mobile-extras-tab-list"
+              aria-pressed={mobileExtrasView === 'list'}
+              onClick={() => setMobileExtrasView('list')}
+              style={{
+                border: 'none',
+                borderRadius: '10px',
+                padding: '8px 10px',
+                minHeight: '38px',
+                fontSize: '0.8rem',
+                fontWeight: mobileExtrasView === 'list' ? 800 : 700,
+                cursor: 'pointer',
+                background: mobileExtrasView === 'list' ? (isLight ? '#ffffff' : '#1e293b') : 'transparent',
+                color: mobileExtrasView === 'list' ? textPrimary : textSecondary,
+                boxShadow: mobileExtrasView === 'list' ? '0 1px 4px rgba(15, 23, 42, 0.10)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Daftar ({storeExtras.length})
+            </button>
+            <button
+              type="button"
+              data-testid="mobile-extras-tab-form"
+              aria-pressed={mobileExtrasView === 'form'}
+              onClick={() => setMobileExtrasView('form')}
+              style={{
+                border: 'none',
+                borderRadius: '10px',
+                padding: '8px 10px',
+                minHeight: '38px',
+                fontSize: '0.8rem',
+                fontWeight: mobileExtrasView === 'form' ? 800 : 700,
+                cursor: 'pointer',
+                background: mobileExtrasView === 'form' ? (isLight ? '#ffffff' : '#1e293b') : 'transparent',
+                color: mobileExtrasView === 'form' ? textPrimary : textSecondary,
+                boxShadow: mobileExtrasView === 'form' ? '0 1px 4px rgba(15, 23, 42, 0.10)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {editingExtraId ? 'Edit Extra' : '+ Tambah Baru'}
+            </button>
+          </div>
+
+          {extraFeedback && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              background: extraFeedback.type === 'success' ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.16)') : (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.16)'),
+              color: extraFeedback.type === 'success' ? (isLight ? '#15803d' : '#86efac') : (isLight ? '#b91c1c' : '#fca5a5'),
+              border: `1px solid ${extraFeedback.type === 'success' ? '#86efac' : '#fca5a5'}`
+            }}>
+              {extraFeedback.message}
+            </div>
+          )}
+
+          <div className="kasir-extras-layout">
+            {/* Kiri: Form Tambah / Edit Extra */}
+            <div
+              className={mobileExtrasView !== 'form' ? 'kasir-extras-mobile-hidden' : ''}
+              style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '16px',
+                boxShadow: 'var(--shadow-sm)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <PlusCircle size={18} color="#d97706" />
+                  <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: textPrimary }}>
+                    {editingExtraId ? 'Edit Extra / Topping' : 'Tambah Extra / Topping Baru'}
+                  </h3>
+                </div>
+                {editingExtraId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetExtraForm();
+                      setMobileExtrasView('list');
+                    }}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: `1px solid ${borderColor}`,
+                      background: 'transparent',
+                      color: textSecondary,
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Batal Edit
+                  </button>
+                )}
+              </div>
+
+              {!editingExtraId && (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: textSecondary, marginBottom: '6px' }}>
+                    Isi Cepat Populer (1 Tap):
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[
+                      { name: 'Extra Kerupuk', price: 2000, label: 'Extra Kerupuk · 2rb' },
+                      { name: 'Telur Dadar', price: 4000, label: 'Telur Dadar · 4rb' },
+                      { name: 'Keju Parut', price: 3000, label: 'Keju Parut · 3rb' },
+                      { name: 'Sambal Extra', price: 1000, label: 'Sambal Extra · 1rb' }
+                    ].map(preset => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => setExtraForm(prev => ({ ...prev, name: preset.name, price: String(preset.price) }))}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '999px',
+                          border: `1px solid ${borderLight}`,
+                          background: isLight ? '#f8fafc' : '#0f172a',
+                          color: textPrimary,
+                          fontSize: '0.71rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveStoreExtra} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
+                    Nama Extra / Topping:
+                  </label>
+                  <input
+                    type="text"
+                    data-testid="extra-name-input"
+                    placeholder="Contoh: Extra Kerupuk, Telur Dadar, Keju Parut"
+                    value={extraForm.name}
+                    onChange={e => setExtraForm(prev => ({ ...prev, name: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      minHeight: '42px',
+                      padding: '8px 11px',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderLight}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      color: textPrimary,
+                      fontSize: '0.88rem',
+                      fontWeight: 600
+                    }}
+                  />
+                </div>
+
+                <div className="kasir-extra-form-row2">
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
+                      Harga Tambahan (Rp):
+                    </label>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: '10px',
+                      border: `1px solid ${borderLight}`,
+                      background: isLight ? '#f8fafc' : '#1e293b',
+                      overflow: 'hidden'
+                    }}>
+                      <span style={{
+                        padding: '0 10px',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        color: textSecondary,
+                        borderRight: `1px solid ${borderColor}`,
+                        minHeight: '42px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}>
+                        Rp
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        data-testid="extra-price-input"
+                        placeholder="2000"
+                        value={extraForm.price}
+                        onChange={e => setExtraForm(prev => ({ ...prev, price: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          minWidth: 0,
+                          flex: 1,
+                          boxSizing: 'border-box',
+                          minHeight: '42px',
+                          padding: '8px 10px',
+                          border: 'none',
+                          outline: 'none',
+                          background: 'transparent',
+                          color: textPrimary,
+                          fontSize: '0.88rem',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 700
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
+                      Berlaku Untuk:
+                    </label>
+                    <select
+                      data-testid="extra-scope-select"
+                      value={extraForm.scope}
+                      onChange={e => setExtraForm(prev => ({ ...prev, scope: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        minHeight: '42px',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.88rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      <option value="ALL">Semua Menu</option>
+                      <option value="CATEGORY">Kategori Tertentu</option>
+                      <option value="SPECIFIC_MENU">Pilih Menu Spesifik</option>
+                    </select>
+                  </div>
+                </div>
+
+                {extraForm.scope === 'CATEGORY' && (
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
+                      Pilih Kategori Target:
+                    </label>
+                    <select
+                      data-testid="extra-category-select"
+                      value={extraForm.targetCategory}
+                      onChange={e => setExtraForm(prev => ({ ...prev, targetCategory: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        minHeight: '42px',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: `1px solid ${borderLight}`,
+                        background: isLight ? '#f8fafc' : '#1e293b',
+                        color: textPrimary,
+                        fontSize: '0.88rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      {availableCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {extraForm.scope === 'SPECIFIC_MENU' && (
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px' }}>
+                      Centang Menu yang Menyediakan Extra Ini:
+                    </label>
+                    <div style={{
+                      maxHeight: '160px',
+                      overflowY: 'auto',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '10px',
+                      padding: '8px',
+                      background: isLight ? '#f8fafc' : '#0f172a',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '5px'
+                    }}>
+                      {(scopedProducts.length > 0 ? scopedProducts : products).map(p => {
+                        const checked = (extraForm.targetProductIds || []).includes(p.id);
+                        return (
+                          <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', minHeight: '28px', color: textPrimary, cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setExtraForm(prev => {
+                                  const cur = prev.targetProductIds || [];
+                                  const next = cur.includes(p.id)
+                                    ? cur.filter(id => id !== p.id)
+                                    : [...cur, p.id];
+                                  return { ...prev, targetProductIds: next };
+                                })
+                              }
+                            />
+                            <span style={{ fontWeight: checked ? 700 : 500 }}>{p.name}</span>
+                            <span style={{ fontSize: '0.68rem', color: textSecondary }}>({p.category})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  data-testid="save-extra-btn"
+                  disabled={savingStoreExtra}
+                  style={{
+                    marginTop: '4px',
+                    width: '100%',
+                    minHeight: '44px',
+                    padding: '10px 14px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: savingStoreExtra ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)'
+                  }}
+                >
+                  {savingStoreExtra ? 'Menyimpan...' : (editingExtraId ? 'Simpan Perubahan Extra' : 'Simpan Extra & Topping')}
+                </button>
+              </form>
+            </div>
+
+            {/* Kanan: Daftar Extra & Topping Aktif */}
+            <div
+              className={mobileExtrasView !== 'list' ? 'kasir-extras-mobile-hidden' : ''}
+              style={{
+                background: bgCard,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '18px',
+                padding: '16px',
+                boxShadow: 'var(--shadow-sm)',
+                minWidth: 0,
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: textPrimary }}>
+                  Daftar Extra &amp; Topping ({storeExtras.length})
+                </h3>
+                <span style={{ fontSize: '0.73rem', color: textSecondary }}>
+                  Otomatis tampil sebagai opsi -/+ di Order Meja
+                </span>
+              </div>
+
+              {storeExtras.length === 0 ? (
+                <div style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  borderRadius: '12px',
+                  border: `1px dashed ${borderColor}`,
+                  color: textSecondary,
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <span>Belum ada extra/topping. Tambahkan extra pertama (mis. Extra Kerupuk Rp 2.000).</span>
+                  <button
+                    type="button"
+                    onClick={() => setMobileExtrasView('form')}
+                    style={{
+                      padding: '8px 14px',
+                      minHeight: '38px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: '#d97706',
+                      color: '#ffffff',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Tambah Extra Pertama
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {storeExtras.map((ext) => {
+                    const isAvail = ext.isAvailable !== false;
+                    const scopeText = ext.scope === 'CATEGORY'
+                      ? `Kategori: ${(ext.targetCategories || []).join(', ') || '-'}`
+                      : ext.scope === 'SPECIFIC_MENU'
+                        ? `${(ext.targetProductIds || []).length} menu terpilih`
+                        : 'Semua Menu';
+                    return (
+                      <div
+                        key={ext.id}
+                        data-testid={`kasir-extra-card-${ext.id}`}
+                        className="kasir-extra-item-card"
+                        style={{
+                          border: `1px solid ${isAvail ? borderColor : '#fca5a5'}`,
+                          background: isAvail ? (isLight ? '#f8fafc' : '#1e293b') : (isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.08)')
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: textPrimary, lineHeight: 1.3 }}>
+                              {ext.name}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: textSecondary, marginTop: '3px' }}>
+                              Berlaku: {scopeText}
+                            </div>
+                          </div>
+                          <span style={{
+                            flexShrink: 0,
+                            whiteSpace: 'nowrap',
+                            fontSize: '0.76rem',
+                            fontWeight: 800,
+                            padding: '3px 9px',
+                            borderRadius: '8px',
+                            background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.18)',
+                            color: isLight ? '#b45309' : '#fbbf24',
+                            fontFamily: 'var(--font-mono)'
+                          }}>
+                            {Number(ext.price) > 0 ? `+Rp ${Number(ext.price).toLocaleString('id-ID')}` : 'Gratis'}
+                          </span>
+                        </div>
+
+                        <div className="kasir-extra-item-actions">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStoreExtra(ext)}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '9px',
+                              border: `1px solid ${isAvail ? '#10b981' : borderColor}`,
+                              background: isAvail ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
+                              color: isAvail ? '#059669' : textSecondary,
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <span style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '999px',
+                              background: isAvail ? '#10b981' : '#94a3b8',
+                              flexShrink: 0
+                            }} />
+                            <span>{isAvail ? 'Aktif' : 'Nonaktif'}</span>
+                          </button>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleEditStoreExtra(ext)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '9px',
+                                border: `1px solid ${borderColor}`,
+                                background: bgCard,
+                                color: textPrimary,
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteStoreExtra(ext.id)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '9px',
+                                border: 'none',
+                                background: 'rgba(239, 68, 68, 0.12)',
+                                color: '#ef4444',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      )}
+
       {/* ── TAB 7: STATISTIK & ANALITIK KEUANGAN MULTI-DIMENSI (FULL PAGE) ── */}
       {activeTab === 'analytics' && (
         <KasirAnalyticsModal
@@ -16760,26 +17605,34 @@ export default function Kasir({ user, onLogout }) {
                               disabled={receiptClaimLoading}
                               onClick={async () => {
                                 setReceiptClaimLoading(true);
-                                const res = await submitCashierPhoneClaim({
-                                  token: claimToken,
-                                  orderId: receiptOrder.id,
-                                  invoice: receiptOrder.invoice_number,
-                                  phone: receiptClaimPhone,
-                                  name: receiptOrder.customerName
-                                });
-                                setReceiptClaimLoading(false);
-                                if (res.ok) {
-                                  setReceiptClaimResult(res);
-                                  setReceiptOrder(prev => prev ? {
-                                    ...prev,
-                                    claimStatus: 'CLAIMED',
-                                    claimedByWhatsapp: res.data.phone,
-                                    claimPointsAwarded: res.data.pointsAwarded,
-                                    customerPhone: res.data.phone
-                                  } : prev);
-                                  fetchData();
-                                } else {
-                                  setReceiptClaimResult(res);
+                                try {
+                                  const res = await submitCashierPhoneClaim({
+                                    token: claimToken,
+                                    orderId: receiptOrder.id,
+                                    invoice: receiptOrder.invoice_number,
+                                    phone: receiptClaimPhone,
+                                    name: receiptOrder.customerName
+                                  });
+                                  if (res.ok) {
+                                    setReceiptClaimResult(res);
+                                    setReceiptOrder(prev => prev ? {
+                                      ...prev,
+                                      claimStatus: 'CLAIMED',
+                                      claimedByWhatsapp: res.data.phone,
+                                      claimPointsAwarded: res.data.pointsAwarded,
+                                      customerPhone: res.data.phone
+                                    } : prev);
+                                    fetchData();
+                                  } else {
+                                    setReceiptClaimResult(res);
+                                  }
+                                } catch (err) {
+                                  setReceiptClaimResult({
+                                    ok: false,
+                                    error: err?.message || 'Gagal memproses klaim HP.'
+                                  });
+                                } finally {
+                                  setReceiptClaimLoading(false);
                                 }
                               }}
                               style={{
@@ -16975,33 +17828,33 @@ export default function Kasir({ user, onLogout }) {
 
       {/* ── MODAL: TAMBAH MENU & KATEGORI BARU (FOTO WAJIB / MUST HAVE) ── */}
       {showAddMenuModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.72)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 150,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          overflowY: 'auto'
-        }}>
-          <div style={{
-            background: bgCard,
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '520px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '1.25rem',
-            boxShadow: 'var(--shadow-xl)',
+        <div
+          className="kasir-menu-modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 150,
             display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            position: 'relative'
-          }}>
+            justifyContent: 'center',
+            overflowY: 'auto'
+          }}
+        >
+          <div
+            className="kasir-menu-modal-sheet"
+            style={{
+              background: bgCard,
+              border: `1.5px solid ${borderColor}`,
+              overflowY: 'auto',
+              boxShadow: 'var(--shadow-xl)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              position: 'relative'
+            }}
+          >
+            <div className="kasir-menu-modal-handle" style={{ background: isLight ? '#cbd5e1' : '#475569' }} />
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
@@ -17256,11 +18109,11 @@ export default function Kasir({ user, onLogout }) {
                   ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.05)')
                   : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.08)')
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: textPrimary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: textPrimary, display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
                     <Camera size={14} color="#f59e0b" />
                     <span>Foto Produk</span>
-                    <span style={{ color: '#ef4444', fontWeight: 800 }}>* (Wajib Diunggah)</span>
+                    <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>
                   </label>
                   {newMenuForm.image ? (
                     <span style={{
@@ -17268,13 +18121,14 @@ export default function Kasir({ user, onLogout }) {
                       fontWeight: 800,
                       color: '#16a34a',
                       background: isLight ? '#dcfce7' : 'rgba(22, 163, 74, 0.2)',
-                      padding: '2px 8px',
+                      padding: '3px 9px',
                       borderRadius: '999px',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '3px'
+                      gap: '4px',
+                      whiteSpace: 'nowrap'
                     }}>
-                      <Check size={11} strokeWidth={3} /> Foto Siap Digunakan
+                      <Check size={11} strokeWidth={3} /> Siap Dipakai
                     </span>
                   ) : (
                     <span style={{
@@ -17282,8 +18136,9 @@ export default function Kasir({ user, onLogout }) {
                       fontWeight: 800,
                       color: '#dc2626',
                       background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
-                      padding: '2px 8px',
-                      borderRadius: '999px'
+                      padding: '3px 9px',
+                      borderRadius: '999px',
+                      whiteSpace: 'nowrap'
                     }}>
                       Wajib Diunggah
                     </span>
@@ -17406,6 +18261,204 @@ export default function Kasir({ user, onLogout }) {
                 </button>
               </div>
 
+              {/* Per-Menu Extras & Custom Common Questions Editor */}
+              <div
+                data-testid="menu-extras-editor"
+                style={{
+                  marginTop: '2px',
+                  padding: '12px',
+                  borderRadius: '14px',
+                  border: `1px dashed ${borderLight}`,
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ minWidth: 0, flex: '1 1 200px' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: textPrimary }}>
+                      Extra / Topping Khusus Menu Ini (Opsional)
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: textSecondary, lineHeight: 1.35, marginTop: '2px' }}>
+                      Contoh: Extra Kerupuk Rp 2.000, Telur Dadar Rp 4.000 (muncul sbg checkbox di Order Meja)
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="add-menu-extra-row-btn"
+                    onClick={() =>
+                      setNewMenuForm(prev => ({
+                        ...prev,
+                        extras: [
+                          ...(Array.isArray(prev.extras) ? prev.extras : []),
+                          { id: `pext-${Date.now()}-${(prev.extras || []).length}`, name: '', price: '', isAvailable: true }
+                        ]
+                      }))
+                    }
+                    style={{
+                      minHeight: '36px',
+                      padding: '6px 12px',
+                      borderRadius: '9px',
+                      border: '1px solid #f59e0b',
+                      background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.16)',
+                      color: isLight ? '#b45309' : '#fbbf24',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Plus size={14} /> Tambah Extra
+                  </button>
+                </div>
+
+                {(Array.isArray(newMenuForm.extras) ? newMenuForm.extras : []).map((ex, exIdx) => (
+                  <div key={ex.id || exIdx} className="kasir-menu-extra-row">
+                    <input
+                      type="text"
+                      className="kasir-menu-extra-name"
+                      placeholder="Nama extra (mis. Extra Kerupuk)"
+                      value={ex.name || ''}
+                      onChange={e =>
+                        setNewMenuForm(prev => {
+                          const next = [...(prev.extras || [])];
+                          next[exIdx] = { ...next[exIdx], name: e.target.value };
+                          return { ...prev, extras: next };
+                        })
+                      }
+                      style={{
+                        flex: 2,
+                        minWidth: 0,
+                        minHeight: '38px',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${borderLight}`,
+                        background: bgCard,
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        fontWeight: 600
+                      }}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      className="kasir-menu-extra-price"
+                      placeholder="Harga (Rp)"
+                      value={ex.price ?? ''}
+                      onChange={e =>
+                        setNewMenuForm(prev => {
+                          const next = [...(prev.extras || [])];
+                          next[exIdx] = { ...next[exIdx], price: e.target.value };
+                          return { ...prev, extras: next };
+                        })
+                      }
+                      style={{
+                        width: '105px',
+                        minWidth: 0,
+                        minHeight: '38px',
+                        boxSizing: 'border-box',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${borderLight}`,
+                        background: bgCard,
+                        color: textPrimary,
+                        fontSize: '0.82rem',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 700
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="kasir-menu-extra-del"
+                      aria-label="Hapus extra"
+                      onClick={() =>
+                        setNewMenuForm(prev => ({
+                          ...prev,
+                          extras: (prev.extras || []).filter((_, i) => i !== exIdx)
+                        }))
+                      }
+                      style={{
+                        width: '36px',
+                        minHeight: '38px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'rgba(239, 68, 68, 0.14)',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+
+                <div>
+                  <label style={{ fontSize: '0.73rem', fontWeight: 700, color: textSecondary, display: 'block', marginBottom: '4px', lineHeight: 1.35 }}>
+                    Opsi Pertanyaan Checkbox Order Meja (pisahkan dengan koma, kosongkan untuk default):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Tidak Pedas, Pedas Sedang, Kuah Dipisah, Tanpa Bawang"
+                    value={newMenuForm.commonNotesText || ''}
+                    onChange={e => setNewMenuForm(prev => ({ ...prev, commonNotesText: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      minHeight: '40px',
+                      padding: '8px 10px',
+                      borderRadius: '9px',
+                      border: `1px solid ${borderLight}`,
+                      background: bgCard,
+                      color: textPrimary,
+                      fontSize: '0.82rem'
+                    }}
+                  />
+                  {(() => {
+                    const parsedTags = String(newMenuForm.commonNotesText || '')
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                    if (parsedTags.length === 0) return null;
+                    return (
+                      <div
+                        data-testid="common-notes-preview"
+                        style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}
+                      >
+                        {parsedTags.map((tag, tagIdx) => (
+                          <span
+                            key={`${tag}-${tagIdx}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 9px',
+                              borderRadius: '999px',
+                              border: `1px solid ${isLight ? '#93c5fd' : 'rgba(59, 130, 246, 0.4)'}`,
+                              background: isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.16)',
+                              color: isLight ? '#1d4ed8' : '#93c5fd',
+                              fontSize: '0.71rem',
+                              fontWeight: 700
+                            }}
+                          >
+                            <Check size={11} strokeWidth={3} />
+                            <span>{tag}</span>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
               {/* Validation Error Summary right above CTA so always visible on mobile scroll */}
               {addMenuError && (
                 <div
@@ -17438,12 +18491,13 @@ export default function Kasir({ user, onLogout }) {
                   }}
                   style={{
                     flex: 1,
+                    minHeight: '44px',
                     padding: '10px',
                     borderRadius: '12px',
                     border: `1px solid ${borderColor}`,
                     background: isLight ? '#f1f5f9' : '#1e293b',
                     color: textSecondary,
-                    fontSize: '0.82rem',
+                    fontSize: '0.84rem',
                     fontWeight: 700,
                     cursor: 'pointer'
                   }}
@@ -17455,12 +18509,13 @@ export default function Kasir({ user, onLogout }) {
                   disabled={savingMenu}
                   style={{
                     flex: 2,
+                    minHeight: '44px',
                     padding: '10px',
                     borderRadius: '12px',
                     border: 'none',
                     background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                     color: '#ffffff',
-                    fontSize: '0.82rem',
+                    fontSize: '0.84rem',
                     fontWeight: 800,
                     cursor: savingMenu ? 'not-allowed' : 'pointer',
                     display: 'flex',
@@ -19093,268 +20148,18 @@ export default function Kasir({ user, onLogout }) {
         }}
       />
 
-      {/* ── MOBILE 5-ITEM BOTTOM NAVBAR (HP BOTTOM DOCK) ── */}
-      <nav
-        className="mobile-only"
-        aria-label="Navigasi Kasir & Operasional Mobile"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 90,
-          background: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 23, 42, 0.96)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderTop: `1px solid ${isLight ? '#e2e8f0' : 'rgba(51, 65, 85, 0.7)'}`,
-          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.12)',
-          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)',
-          paddingTop: '4px'
-        }}
-      >
-        <div style={{
-          width: '100%',
-          maxWidth: '520px',
-          margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-          alignItems: 'center',
-          height: '56px',
-          position: 'relative',
-          padding: '0 1%',
-          boxSizing: 'border-box'
-        }}>
-          {/* 1. DASHBOARD KASIR & SHIFT (GANTI POSISI KASIR LAMA) */}
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('dashboard');
-              setShowMobileMenuHub(false);
-            }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              background: 'none',
-              border: 'none',
-              padding: '4px 0',
-              cursor: 'pointer',
-              color: (activeTab === 'dashboard' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <div style={{ position: 'relative' }}>
-              <LayoutDashboard size={20} strokeWidth={(activeTab === 'dashboard' && !showMobileMenuHub) ? 2.5 : 2} />
-              {cashierShift.isOpen && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-2px',
-                  right: '-3px',
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '999px',
-                  background: '#10b981'
-                }} />
-              )}
-            </div>
-            <span style={{
-              fontSize: '0.68rem',
-              fontWeight: (activeTab === 'dashboard' && !showMobileMenuHub) ? 800 : 600,
-              letterSpacing: '-0.01em'
-            }}>
-              Dashboard
-            </span>
-          </button>
-
-          {/* 2. DAPUR */}
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('kds');
-              setShowMobileMenuHub(false);
-            }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              background: 'none',
-              border: 'none',
-              padding: '4px 0',
-              cursor: 'pointer',
-              color: (activeTab === 'kds' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <div style={{ position: 'relative' }}>
-              <Flame size={20} strokeWidth={(activeTab === 'kds' && !showMobileMenuHub) ? 2.5 : 2} />
-              {pendingOrders.length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-8px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '0.6rem',
-                  fontWeight: 900,
-                  borderRadius: '999px',
-                  padding: '1px 4px',
-                  lineHeight: 1
-                }}>
-                  {pendingOrders.length}
-                </span>
-              )}
-            </div>
-            <span style={{
-              fontSize: '0.68rem',
-              fontWeight: (activeTab === 'kds' && !showMobileMenuHub) ? 800 : 600,
-              letterSpacing: '-0.01em'
-            }}>
-              Dapur
-            </span>
-          </button>
-
-          {/* 3. KASIR (TENGAH - PINDAH KE TEMPAT MENU SEBELUMNYA) */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('pos');
-                setShowMobileMenuHub(false);
-              }}
-              aria-label="Kasir Walk-in Register"
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: (activeTab === 'pos' && !showMobileMenuHub)
-                  ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
-                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                color: '#ffffff',
-                border: isLight ? '3.5px solid #ffffff' : '3.5px solid #0f172a',
-                boxShadow: (activeTab === 'pos' && !showMobileMenuHub)
-                  ? '0 6px 18px rgba(37, 99, 235, 0.55), 0 0 0 3px rgba(37, 99, 235, 0.25)'
-                  : '0 6px 18px rgba(37, 99, 235, 0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transform: 'translateY(-12px)',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                position: 'relative'
-              }}
-              title="Kasir POS Walk-in"
-            >
-              <ShoppingBag size={22} strokeWidth={2.6} color="#ffffff" />
-              {Object.values(posCart).length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-6px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '0.62rem',
-                  fontWeight: 900,
-                  borderRadius: '999px',
-                  padding: '2px 5px',
-                  lineHeight: 1,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                  border: '1.5px solid #ffffff'
-                }}>
-                  {Object.values(posCart).reduce((s, it) => s + it.qty, 0)}
-                </span>
-              )}
-            </button>
-            <span style={{
-              fontSize: '0.68rem',
-              fontWeight: (activeTab === 'pos' && !showMobileMenuHub) ? 800 : 700,
-              color: (activeTab === 'pos' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#1e293b' : '#f8fafc'),
-              marginTop: '-10px',
-              letterSpacing: '-0.01em'
-            }}>
-              Kasir
-            </span>
-          </div>
-
-          {/* 4. KEUANGAN */}
-          <button
-            type="button"
-            data-testid="mobile-nav-keuangan-btn"
-            onClick={() => {
-              setActiveTab('settings');
-              setShowMobileMenuHub(false);
-            }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              background: 'none',
-              border: 'none',
-              padding: '4px 0',
-              cursor: 'pointer',
-              color: (activeTab === 'settings' && !showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <DollarSign size={20} strokeWidth={(activeTab === 'settings' && !showMobileMenuHub) ? 2.5 : 2} />
-            <span style={{
-              fontSize: '0.68rem',
-              fontWeight: (activeTab === 'settings' && !showMobileMenuHub) ? 800 : 600,
-              letterSpacing: '-0.01em'
-            }}>
-              Keuangan
-            </span>
-          </button>
-
-          {/* 5. KELOLA (FITUR TOKO) */}
-          <button
-            type="button"
-            data-testid="mobile-nav-kelola-btn"
-            onClick={() => setShowMobileMenuHub(prev => !prev)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              background: 'none',
-              border: 'none',
-              padding: '4px 0',
-              cursor: 'pointer',
-              color: (activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? '#2563eb' : (isLight ? '#64748b' : '#94a3b8'),
-              transition: 'all 0.15s ease',
-              position: 'relative'
-            }}
-          >
-            <div style={{ position: 'relative' }}>
-              <Sliders size={20} strokeWidth={(activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 2.5 : 2} />
-              {inventoryAlerts.length > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-2px',
-                  right: '-4px',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '999px',
-                  background: '#ef4444'
-                }} />
-              )}
-            </div>
-            <span style={{
-              fontSize: '0.68rem',
-              fontWeight: (activeTab === 'tables' || activeTab === 'hardware' || MANAJEMEN_TABS.includes(activeTab) || showMobileMenuHub) ? 800 : 600,
-              letterSpacing: '-0.01em'
-            }}>
-              Kelola
-            </span>
-          </button>
-        </div>
-      </nav>
+      {/* ── MOBILE 5-ITEM BOTTOM NAVBAR DENGAN ANIMASI BUBBLE GESER ── */}
+      <KasirMobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        showMobileMenuHub={showMobileMenuHub}
+        setShowMobileMenuHub={setShowMobileMenuHub}
+        cashierShift={cashierShift}
+        pendingOrders={pendingOrders}
+        posCart={posCart}
+        inventoryAlerts={inventoryAlerts}
+        MANAJEMEN_TABS={MANAJEMEN_TABS}
+      />
 
       {/* ── MOBILE MENU HUB BOTTOM SHEET (TENGAH) ── */}
       {showMobileMenuHub && (
@@ -19625,6 +20430,15 @@ export default function Kasir({ user, onLogout }) {
                   badge: promosList.filter(p => p.isAvailable).length ? `${promosList.filter(p => p.isAvailable).length} aktif` : null,
                   badgeBg: '#f59e0b',
                   onClick: () => { setActiveTab('promo'); loadPromos(); setShowMobileMenuHub(false); }
+                },
+                {
+                  id: 'extras',
+                  title: 'Extra & Topping',
+                  desc: 'Kelola kerupuk, telur & topping berbayar',
+                  icon: <PlusCircle size={20} color="#d97706" />,
+                  badge: storeExtras.filter(e => e.isAvailable !== false).length ? `${storeExtras.filter(e => e.isAvailable !== false).length} aktif` : null,
+                  badgeBg: '#d97706',
+                  onClick: () => { setActiveTab('extras'); loadStoreExtras(); setShowMobileMenuHub(false); }
                 },
                 {
                   id: 'gudang',
@@ -20191,21 +21005,29 @@ export default function Kasir({ user, onLogout }) {
               }
               setCashierClaimFeedback(null);
               setCashierClaimLoading(true);
-              const res = await submitCashierPhoneClaim({
-                token: cashierClaimToken.trim(),
-                phone: cashierClaimPhone
-              });
-              setCashierClaimLoading(false);
-              if (res.ok) {
-                setCashierClaimFeedback({
-                  type: 'success',
-                  text: res.data?.message || `Berhasil! +${res.data?.pointsAwarded} Poin masuk ke QR ${res.data?.phone}.`,
-                  data: res.data
+              try {
+                const res = await submitCashierPhoneClaim({
+                  token: cashierClaimToken.trim(),
+                  phone: cashierClaimPhone
                 });
-                fetchData();
-                setCashierClaimUnclaimed(prev => prev.filter(x => x.claimToken !== res.data?.claimToken));
-              } else {
-                setCashierClaimFeedback({ type: 'error', text: res.error });
+                if (res.ok) {
+                  setCashierClaimFeedback({
+                    type: 'success',
+                    text: res.data?.message || `Berhasil! +${res.data?.pointsAwarded} Poin masuk ke QR ${res.data?.phone}.`,
+                    data: res.data
+                  });
+                  fetchData();
+                  setCashierClaimUnclaimed(prev => prev.filter(x => x.claimToken !== res.data?.claimToken));
+                } else {
+                  setCashierClaimFeedback({ type: 'error', text: res.error });
+                }
+              } catch (err) {
+                setCashierClaimFeedback({
+                  type: 'error',
+                  text: err?.message || 'Gagal memproses klaim HP.'
+                });
+              } finally {
+                setCashierClaimLoading(false);
               }
             }}
             style={{

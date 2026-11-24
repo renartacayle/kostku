@@ -455,11 +455,12 @@ const PartnerOrderModal = ({
     if (!qrisData?.orderId) return;
     setSubmitting(true);
     try {
-      await apiSimulateQrisScan({ orderId: qrisData.orderId });
+      try {
+        await apiSimulateQrisScan({ orderId: qrisData.orderId });
+      } catch (_) {}
       await executeFinalOrder(qrisData.orderId, 'qris');
-    } catch (err) {
-      // Fallback
-      await executeFinalOrder(qrisData.orderId, 'qris');
+    } finally {
+      setSubmitting(false);
     }
   };
 

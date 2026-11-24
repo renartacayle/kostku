@@ -266,7 +266,7 @@ export default function ClaimPoin() {
           referral_code: referralCode.trim() || undefined
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         setClaimError(data.error || 'Gagal memproses klaim struk.');
@@ -318,7 +318,7 @@ export default function ClaimPoin() {
       }, 4800);
 
     } catch (err) {
-      setClaimError('Terjadi gangguan jaringan saat memutar roda. Silakan coba lagi.');
+      setClaimError(err?.message || 'Terjadi gangguan jaringan saat memutar roda. Silakan coba lagi.');
       setIsSpinning(false);
     }
   };

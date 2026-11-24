@@ -11,7 +11,8 @@ import {
   Share2,
   Search,
   ChevronDown,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 import {
   apiGetPdamOperators,

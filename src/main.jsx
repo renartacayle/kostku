@@ -5,7 +5,10 @@ import './index.css'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import './utils/userTracker'
+import { installSafeFetchTimeout } from './utils/safeFetch'
 import { initPerformanceMonitoring } from './utils/performanceMonitor'
+
+installSafeFetchTimeout()
 
 // Item #30: Real User Performance Monitoring (Core Web Vitals)
 initPerformanceMonitoring()
