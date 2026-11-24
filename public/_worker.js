@@ -1010,6 +1010,28 @@ export default {
       }
     }
 
+    const normalizedPath = url.pathname.replace(/\/+$/, '') || '/';
+    const removedEdgePaths = new Set([
+      '/stress-test-report',
+      '/stress-test-report.html',
+      '/stress-test-document.html',
+      '/stress-test',
+      '/denah-500',
+      '/report.html',
+      '/demo',
+      '/sandbox',
+      '/demo-showcase'
+    ]);
+    if (removedEdgePaths.has(normalizedPath)) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: `${url.origin}/`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+    }
+
     if (env.ASSETS) {
       if (url.pathname.startsWith('/assets/')) {
         const assetRes = await env.ASSETS.fetch(request);
