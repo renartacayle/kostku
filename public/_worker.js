@@ -3484,18 +3484,25 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         }
       }
 
-      const notaFeePerNotaIdr = Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
-      const matchedM = (state.registeredMerchants || []).find(m => m && (String(m.id) === String(reqStoreId || state.posStore.merchantId || '') || (reqOwnerId && String(m.ownerUserId) === String(reqOwnerId))));
-      const targetForPresence = matchedM || state.posStore;
-      const kasirOnline = isEdgeMerchantOnline(targetForPresence);
-      const tier = resolveEdgeStoreTier(state, reqStoreId || targetForPresence?.id || state.posStore.merchantId);
+      const matchedM = (state.registeredMerchants || []).find(m => m && (
+        (reqOwnerId && String(m.ownerUserId || '') === String(reqOwnerId)) ||
+        (reqStoreId && String(m.id || '') === String(reqStoreId)) ||
+        (!reqOwnerId && !reqStoreId && state.posStore.merchantId && String(m.id || '') === String(state.posStore.merchantId))
+      ));
+      const storeView = matchedM || state.posStore;
+      const notaFeePerNotaIdr = Number(storeView.notaFeePerNotaIdr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
+      const kasirOnline = isEdgeMerchantOnline(storeView);
+      const tier = resolveEdgeStoreTier(state, reqStoreId || storeView?.id || storeView?.merchantId || state.posStore.merchantId);
+      const resolvedStoreName = storeView.storeName || storeView.name || '';
+      const resolvedMerchantId = storeView.merchantId || storeView.id || '';
       return new Response(JSON.stringify({
-        storeName: state.posStore.storeName,
-        location: state.posStore.location,
-        address: state.posStore.address,
-        city: state.posStore.city,
-        phone: state.posStore.phone,
-        isValidated: state.posStore.isValidated,
+        hasRegisteredStore: Boolean(resolvedStoreName || resolvedMerchantId),
+        storeName: resolvedStoreName,
+        location: storeView.location || '',
+        address: storeView.address || '',
+        city: storeView.city || '',
+        phone: storeView.phone || '',
+        isValidated: storeView.isValidated ?? true,
         storeMode: 'mitra',
         visibilityMode: 'mitra',
         kasirOnly: false,
@@ -3507,15 +3514,15 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         kasirOnline,
         isOnline: kasirOnline,
         onlineStatus: kasirOnline ? 'online' : 'offline',
-        lastKasirHeartbeatAt: targetForPresence?.lastKasirHeartbeatAt || null,
-        saldoNota: state.posStore.saldoNota,
-        kuotaNota: state.posStore.kuotaNota,
+        lastKasirHeartbeatAt: storeView?.lastKasirHeartbeatAt || null,
+        saldoNota: Number(storeView.saldoNota ?? state.posStore.saldoNota ?? 0),
+        kuotaNota: Number(storeView.kuotaNota ?? state.posStore.kuotaNota ?? 0),
         notaFeePerNotaIdr,
-        notaFeeBearer: normalizeEdgeNotaFeeBearer(state.posStore.notaFeeBearer),
-        uid: state.posStore.uid,
-        merchantId: state.posStore.merchantId,
-        activeBranch: state.posStore.activeBranch,
-        branches: state.posStore.branches
+        notaFeeBearer: normalizeEdgeNotaFeeBearer(storeView.notaFeeBearer || state.posStore.notaFeeBearer),
+        uid: storeView.uid || resolvedMerchantId,
+        merchantId: resolvedMerchantId,
+        activeBranch: storeView.activeBranch || resolvedMerchantId,
+        branches: Array.isArray(storeView.branches) ? storeView.branches : (state.posStore.branches || [])
       }), { headers: corsHeaders });
     }
     if (method === 'POST') {
