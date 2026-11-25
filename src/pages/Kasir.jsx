@@ -7641,7 +7641,7 @@ export default function Kasir({ user, onLogout }) {
                 background: isLight
                   ? 'linear-gradient(155deg, #0f172a 0%, #1e293b 100%)'
                   : 'linear-gradient(155deg, #0b1120 0%, #172033 100%)',
-                color: '#f8fafc',
+                color: '#ffffff',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 boxShadow: '0 10px 28px rgba(15, 23, 42, 0.14)',
                 display: 'flex',
@@ -7723,8 +7723,8 @@ export default function Kasir({ user, onLogout }) {
                 <div style={{
                   padding: '9px 11px',
                   borderRadius: '11px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.07)'
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
                   <div style={{ fontSize: '0.64rem', color: '#94a3b8', fontWeight: 500 }}>Omset Bulan Ini</div>
                   <div style={{
@@ -7741,14 +7741,14 @@ export default function Kasir({ user, onLogout }) {
                 <div style={{
                   padding: '9px 11px',
                   borderRadius: '11px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.07)'
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
                   <div style={{ fontSize: '0.64rem', color: '#94a3b8', fontWeight: 500 }}>Total Kuota Nota</div>
                   <div style={{
                     fontSize: '0.88rem',
                     fontWeight: 700,
-                    color: '#f8fafc',
+                    color: '#ffffff',
                     marginTop: '2px',
                     fontFamily: 'var(--font-mono)',
                     fontVariantNumeric: 'tabular-nums'
