@@ -1156,7 +1156,7 @@ async function saveMerchantListToKv(env, ownerId, list) {
 
 async function saveMerchantToKv(env, merchantObj, setAsActive = true) {
   if (!env?.KOSTKU_KV || !merchantObj) return;
-  const ops = [];
+    const ops = [];
   if (merchantObj.id) ops.push(kvPutJson(env, `merchant:id:${merchantObj.id}`, merchantObj));
   if (merchantObj.ownerUserId) {
     if (setAsActive) {
@@ -1170,6 +1170,55 @@ async function saveMerchantToKv(env, merchantObj, setAsActive = true) {
     ops.push(kvPutJson(env, `merchants:owner:${merchantObj.ownerUserId}`, nextList));
   }
   await Promise.all(ops);
+}
+
+async function resolvePosOwnerId(state, env, rawOwnerId) {
+  const cleanId = String(rawOwnerId || '').trim();
+  if (!cleanId) return '';
+  let caller = (state.edgeUsers || []).find(u => u && String(u.id) === cleanId);
+  if (!caller && !state.isDemo && env?.KOSTKU_KV) {
+    caller = await findUserInKv(env, { id: cleanId });
+    if (caller) {
+      state.edgeUsers = state.edgeUsers || [];
+      state.edgeUsers.push(caller);
+    }
+  }
+  if (caller && String(caller.role || '').toLowerCase() === 'admin' && caller.ownerId) {
+    return String(caller.ownerId);
+  }
+  return cleanId;
+}
+
+async function getStoreProductsFromKv(env, storeId, ownerId) {
+  if (!env?.KOSTKU_KV) return null;
+  if (storeId) {
+    const byStore = await kvGetJson(env, `products:store:${storeId}`);
+    if (Array.isArray(byStore)) return byStore;
+  }
+  if (ownerId) {
+    const byOwner = await kvGetJson(env, `products:owner:${ownerId}`);
+    if (Array.isArray(byOwner)) return byOwner;
+  }
+  return null;
+}
+
+async function saveStoreProductsToKv(env, storeId, ownerId, list) {
+  if (!env?.KOSTKU_KV || !Array.isArray(list)) return;
+  const ops = [];
+  if (storeId) {
+    ops.push(kvPutJson(env, `products:store:${storeId}`, list));
+  } else if (ownerId) {
+    ops.push(kvPutJson(env, `products:owner:${ownerId}`, list));
+  }
+  await Promise.all(ops);
+}
+
+async function saveProductMetaToKv(env, productId, storeId, ownerId) {
+  if (!env?.KOSTKU_KV || !productId) return;
+  await kvPutJson(env, `product:meta:${productId}`, {
+    storeId: storeId ? String(storeId) : '',
+    ownerId: ownerId ? String(ownerId) : ''
+  });
 }
 
 async function getOwnerStaffFromKv(env, ownerId) {
@@ -1962,12 +2011,13 @@ async function handleApi(request, url, env) {
         isMitra: true,
         billingTier: body.billingTier === 'TIER_2_LOYALTY' || body.loyaltyPoolId ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT',
         loyaltyPoolId: body.loyaltyPoolId || null,
+        customerDiscountEnabled: Boolean(body.billingTier === 'TIER_2_LOYALTY' || body.loyaltyPoolId),
         kasirWebOnline: false,
         lastKasirHeartbeatAt: null,
         status: 'active',
         saldoNota: 5000,
-        kuotaNota: 50,
-        notaFeePerNotaIdr: 25,
+        kuotaNota: (body.billingTier === 'TIER_2_LOYALTY' || body.loyaltyPoolId) ? 50 : 200,
+        notaFeePerNotaIdr: (body.billingTier === 'TIER_2_LOYALTY' || body.loyaltyPoolId) ? 100 : 25,
         notaFeeBearer: 'store',
         products: [],
         createdAt: new Date().toISOString()
@@ -3538,15 +3588,20 @@ function isEdgeMerchantOnline(target) {
 function resolveEdgeStoreTier(state, storeId) {
   const cleanId = String(storeId || '').trim();
   const matched = cleanId
-    ? (state.registeredMerchants || []).find(m => String(m.id) === cleanId)
+    ? (state.registeredMerchants || []).find(m => m && String(m.id) === cleanId)
     : null;
   const target = matched || state.posStore || {};
   const loyaltyPoolId = target.loyaltyPoolId || target.loyalty_pool_id || null;
-  const isTier2 = target.billingTier === 'TIER_2_LOYALTY' || Boolean(loyaltyPoolId);
+  const customerDiscountEnabled = target.customerDiscountEnabled !== undefined
+    ? Boolean(target.customerDiscountEnabled)
+    : (target.billingTier === 'TIER_2_LOYALTY' || Boolean(loyaltyPoolId));
+  const isTier2 = customerDiscountEnabled;
   return {
     billingTier: isTier2 ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT',
     loyaltyPoolId: isTier2 ? (loyaltyPoolId || 'POOL-DEFAULT') : null,
     canRedeemPoints: isTier2,
+    customerDiscountEnabled: isTier2,
+    notaFeePerNotaIdr: isTier2 ? 100 : 25,
     pointValueIdr: isTier2 ? 10 : 0
   };
 }
@@ -3899,27 +3954,33 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           (reqStoreId && String(m.id || '') === String(reqStoreId))
         ));
       const storeView = matchedM || state.posStore;
-      const notaFeePerNotaIdr = Number(storeView.notaFeePerNotaIdr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
       const kasirOnline = isEdgeMerchantOnline(storeView);
       const tier = resolveEdgeStoreTier(state, reqStoreId || storeView?.id || storeView?.merchantId || state.posStore.merchantId);
+      const customerDiscountEnabled = tier.customerDiscountEnabled;
+      const notaFeePerNotaIdr = tier.notaFeePerNotaIdr;
       const resolvedStoreName = storeView.storeName || storeView.name || '';
       const resolvedMerchantId = storeView.merchantId || storeView.id || '';
       const baseStores = ownerStoresRaw.length > 0
         ? ownerStoresRaw
         : (resolvedMerchantId ? [{ ...storeView, id: resolvedMerchantId, storeName: resolvedStoreName }] : []);
-      const allOwnerStores = baseStores.map(s => ({
-        id: s.id || s.merchantId,
-        merchantId: s.id || s.merchantId,
-        uid: s.uid || s.id || s.merchantId,
-        name: s.storeName || s.name || 'Ruko POS',
-        storeName: s.storeName || s.name || 'Ruko POS',
-        location: s.location || '',
-        address: s.address || '',
-        category: s.category || 'Warung & Kuliner',
-        saldoNota: Number(s.saldoNota ?? 0),
-        kuotaNota: Number(s.kuotaNota ?? 0),
-        isMitra: s.isMitra !== false
-      }));
+      const allOwnerStores = baseStores.map(s => {
+        const sTier = resolveEdgeStoreTier(state, s.id || s.merchantId);
+        return {
+          id: s.id || s.merchantId,
+          merchantId: s.id || s.merchantId,
+          uid: s.uid || s.id || s.merchantId,
+          name: s.storeName || s.name || 'Ruko POS',
+          storeName: s.storeName || s.name || 'Ruko POS',
+          location: s.location || '',
+          address: s.address || '',
+          category: s.category || 'Warung & Kuliner',
+          saldoNota: Number(s.saldoNota ?? 0),
+          kuotaNota: Number(s.kuotaNota ?? 0),
+          customerDiscountEnabled: sTier.customerDiscountEnabled,
+          notaFeePerNotaIdr: sTier.notaFeePerNotaIdr,
+          isMitra: s.isMitra !== false
+        };
+      });
       return new Response(JSON.stringify({
         hasRegisteredStore: Boolean(resolvedStoreName || resolvedMerchantId),
         storeName: resolvedStoreName,
@@ -3935,6 +3996,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         billingTier: tier.billingTier,
         loyaltyPoolId: tier.loyaltyPoolId,
         canRedeemPoints: tier.canRedeemPoints,
+        customerDiscountEnabled,
         pointValueIdr: tier.pointValueIdr,
         kasirOnline,
         isOnline: kasirOnline,
@@ -3953,6 +4015,15 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const targetId = String(body.merchantId || body.storeId || state.posStore.merchantId || state.posStore.id || '').trim();
+      let targetM = (state.registeredMerchants || []).find(m => m && String(m.id) === targetId);
+      if (!targetM && !state.isDemo && targetId && env?.KOSTKU_KV) {
+        targetM = await kvGetJson(env, `merchant:id:${targetId}`);
+        if (targetM) {
+          state.registeredMerchants = state.registeredMerchants || [];
+          state.registeredMerchants.push(targetM);
+        }
+      }
       Object.assign(state.posStore, body, {
         storeMode: 'mitra',
         visibilityMode: 'mitra',
@@ -3962,8 +4033,22 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       if (body.notaFeeBearer !== undefined) {
         state.posStore.notaFeeBearer = normalizeEdgeNotaFeeBearer(body.notaFeeBearer);
       }
-      const targetId = String(body.merchantId || state.posStore.merchantId || state.posStore.id || '').trim();
-      const targetM = (state.registeredMerchants || []).find(m => m && String(m.id) === targetId);
+      if (body.customerDiscountEnabled !== undefined) {
+        const enabled = Boolean(body.customerDiscountEnabled);
+        const nextFee = enabled ? 100 : 25;
+        const nextTier = enabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT';
+        const nextPoolId = enabled ? (targetM?.loyaltyPoolId || state.posStore.loyaltyPoolId || 'POOL-DEFAULT') : null;
+        const currSaldo = Number(targetM?.saldoNota ?? state.posStore.saldoNota ?? 0);
+        const nextKuota = Math.floor(currSaldo / nextFee);
+        Object.assign(state.posStore, {
+          customerDiscountEnabled: enabled,
+          notaFeePerNotaIdr: nextFee,
+          billingTier: nextTier,
+          loyaltyPoolId: nextPoolId,
+          canRedeemPoints: enabled,
+          kuotaNota: nextKuota
+        });
+      }
       if (targetM) {
         Object.assign(targetM, body, {
           name: body.storeName || targetM.storeName || targetM.name,
@@ -3971,6 +4056,26 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           storeMode: 'mitra',
           isMitra: true
         });
+        if (body.notaFeeBearer !== undefined) {
+          targetM.notaFeeBearer = normalizeEdgeNotaFeeBearer(body.notaFeeBearer);
+        }
+        if (body.customerDiscountEnabled !== undefined) {
+          const enabled = Boolean(body.customerDiscountEnabled);
+          const nextFee = enabled ? 100 : 25;
+          const nextTier = enabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT';
+          const nextPoolId = enabled ? (targetM.loyaltyPoolId || state.posStore.loyaltyPoolId || 'POOL-DEFAULT') : null;
+          const currSaldo = Number(targetM.saldoNota ?? state.posStore.saldoNota ?? 0);
+          const nextKuota = Math.floor(currSaldo / nextFee);
+          Object.assign(targetM, {
+            customerDiscountEnabled: enabled,
+            notaFeePerNotaIdr: nextFee,
+            billingTier: nextTier,
+            loyaltyPoolId: nextPoolId,
+            canRedeemPoints: enabled,
+            kuotaNota: nextKuota
+          });
+          syncEdgeStoreWallet(state, targetId || targetM.id, currSaldo, nextKuota, nextFee);
+        }
         if (!state.isDemo) await saveMerchantToKv(env, targetM, true);
       }
       return new Response(JSON.stringify({
@@ -4018,17 +4123,100 @@ async function handlePosApi(request, path, method, url, state, env = null) {
 
   if (path === '/store/fee-settings' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
-    const bearer = normalizeEdgeNotaFeeBearer(body.notaFeeBearer);
-    state.posStore.notaFeeBearer = bearer;
+    const rawOwner = body.ownerUserId || body.ownerId || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const targetId = String(body.merchantId || body.storeId || state.posStore?.merchantId || state.posStore?.uid || '').trim();
+    let targetM = (state.registeredMerchants || []).find(m => m && String(m.id) === targetId);
+    if (!targetM && !state.isDemo && env?.KOSTKU_KV) {
+      if (targetId) {
+        targetM = await kvGetJson(env, `merchant:id:${targetId}`);
+      }
+      if (!targetM && reqOwnerId) {
+        const kvList = await getOwnerMerchantsFromKv(env, reqOwnerId);
+        targetM = (targetId ? kvList.find(m => m && String(m.id) === targetId) : null) || kvList[0] || null;
+      }
+      if (targetM) {
+        state.registeredMerchants = state.registeredMerchants || [];
+        if (!state.registeredMerchants.some(m => m && String(m.id) === String(targetM.id))) {
+          state.registeredMerchants.push(targetM);
+        }
+      }
+    }
+
+    const currentStoreTier = resolveEdgeStoreTier(state, targetId || targetM?.id);
+    const bearer = body.notaFeeBearer !== undefined
+      ? normalizeEdgeNotaFeeBearer(body.notaFeeBearer)
+      : normalizeEdgeNotaFeeBearer(targetM?.notaFeeBearer || state.posStore.notaFeeBearer);
+    const customerDiscountEnabled = body.customerDiscountEnabled !== undefined
+      ? Boolean(body.customerDiscountEnabled)
+      : currentStoreTier.customerDiscountEnabled;
+    const nextFee = customerDiscountEnabled ? 100 : 25;
+    const nextTier = customerDiscountEnabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT';
+    const nextPoolId = customerDiscountEnabled
+      ? (targetM?.loyaltyPoolId || state.posStore.loyaltyPoolId || 'POOL-DEFAULT')
+      : null;
+    const currSaldo = Number(targetM?.saldoNota ?? state.posStore.saldoNota ?? 0);
+    const nextKuota = Math.floor(currSaldo / nextFee);
+
+    Object.assign(state.posStore, {
+      notaFeeBearer: bearer,
+      customerDiscountEnabled,
+      notaFeePerNotaIdr: nextFee,
+      billingTier: nextTier,
+      loyaltyPoolId: nextPoolId,
+      canRedeemPoints: customerDiscountEnabled,
+      kuotaNota: nextKuota
+    });
+    if (targetM) {
+      Object.assign(targetM, {
+        notaFeeBearer: bearer,
+        customerDiscountEnabled,
+        notaFeePerNotaIdr: nextFee,
+        billingTier: nextTier,
+        loyaltyPoolId: nextPoolId,
+        canRedeemPoints: customerDiscountEnabled,
+        kuotaNota: nextKuota
+      });
+      if (!state.isDemo) {
+        await saveMerchantToKv(env, targetM, true);
+      }
+    }
+    if (body.customerDiscountEnabled !== undefined) {
+      syncEdgeStoreWallet(state, targetId || targetM?.id || state.posStore.merchantId || 'STORE-DEFAULT', currSaldo, nextKuota, nextFee);
+    }
+
+    const msgParts = [];
+    if (body.customerDiscountEnabled !== undefined) {
+      msgParts.push(customerDiscountEnabled
+        ? 'Diskon customer diaktifkan — tarif nota Rp 100/nota.'
+        : 'Tarif nota dikembalikan ke default Rp 25/nota (tanpa diskon customer).');
+    }
+    if (body.notaFeeBearer !== undefined || msgParts.length === 0) {
+      msgParts.push(bearer === 'customer'
+        ? 'Biaya admin nota diatur ditanggung Customer.'
+        : 'Biaya nota dikembalikan ditanggung oleh Toko (Default).');
+    }
+
     return new Response(JSON.stringify({
       success: true,
       notaFeeBearer: bearer,
-      message: bearer === 'customer'
-        ? 'Biaya admin nota diatur ditanggung Customer.'
-        : 'Biaya nota dikembalikan ditanggung oleh Toko (Default).',
+      customerDiscountEnabled,
+      notaFeePerNotaIdr: nextFee,
+      billingTier: nextTier,
+      loyaltyPoolId: nextPoolId,
+      canRedeemPoints: customerDiscountEnabled,
+      kuotaNota: nextKuota,
+      message: msgParts.join(' '),
       store: {
         ...state.posStore,
-        notaFeeBearer: bearer
+        ...(targetM || {}),
+        notaFeeBearer: bearer,
+        customerDiscountEnabled,
+        notaFeePerNotaIdr: nextFee,
+        billingTier: nextTier,
+        loyaltyPoolId: nextPoolId,
+        canRedeemPoints: customerDiscountEnabled,
+        kuotaNota: nextKuota
       }
     }), { headers: corsHeaders });
   }
@@ -4134,8 +4322,9 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         kasirOnly: false,
         isMitra: true,
         billingTier: 'TIER_1_FLAT',
+        customerDiscountEnabled: false,
         saldoNota: 5000,
-        kuotaNota: 50,
+        kuotaNota: 200,
         notaFeeBearer: 'store',
         notaFeePerNotaIdr: 25,
         branches: [],
@@ -4146,12 +4335,38 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       state.registeredMerchants.push(newStore);
 
       let clonedProductsCount = 0;
-      if (body.cloneMenu !== false && Array.isArray(state.posProducts) && state.posProducts.length > 0) {
-        const sourceId = body.sourceStoreId || state.posStore?.merchantId || '';
-        const sourceItems = sourceId
-          ? state.posProducts.filter(p => !p.storeId || String(p.storeId) === String(sourceId))
-          : state.posProducts;
-        clonedProductsCount = sourceItems.length;
+      if (body.cloneMenu !== false) {
+        const sourceId = String(body.sourceStoreId || state.posStore?.merchantId || '').trim();
+        let sourceItems = [];
+        if (!state.isDemo && env?.KOSTKU_KV) {
+          const kvSource = await getStoreProductsFromKv(env, sourceId, effectiveOwner);
+          if (Array.isArray(kvSource)) sourceItems = kvSource;
+        }
+        if (sourceItems.length === 0 && Array.isArray(state.posProducts) && state.posProducts.length > 0) {
+          sourceItems = sourceId
+            ? state.posProducts.filter(p => !p.storeId || String(p.storeId) === sourceId)
+            : state.posProducts;
+        }
+        if (sourceItems.length > 0) {
+          const nowTs = Date.now();
+          const nowIso = new Date().toISOString();
+          const clonedItems = sourceItems.map((p, idx) => ({
+            ...p,
+            id: `prod-${nowTs}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+            storeId: newId,
+            merchantId: effectiveOwner || p.merchantId || '',
+            ownerUserId: effectiveOwner || p.ownerUserId || '',
+            createdAt: nowIso,
+            updatedAt: nowIso
+          }));
+          state.posProducts = state.posProducts || [];
+          state.posProducts.push(...clonedItems);
+          if (!state.isDemo && env?.KOSTKU_KV) {
+            await saveStoreProductsToKv(env, newId, effectiveOwner, clonedItems);
+            await Promise.all(clonedItems.map(item => saveProductMetaToKv(env, item.id, newId, effectiveOwner)));
+          }
+          clonedProductsCount = clonedItems.length;
+        }
       }
 
       if (body.switchAfterCreate !== false) {
@@ -4425,6 +4640,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       kasirOnly: false,
       isMitra: true,
       billingTier: 'TIER_1_FLAT',
+      customerDiscountEnabled: false,
       saldoNota: 100000,
       kuotaNota: 4000,
       notaFeeBearer: 'store',
@@ -4442,7 +4658,8 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     if (!state.isDemo) await saveMerchantToKv(env, newStore, true);
 
     if (Array.isArray(body.menus) && body.menus.length > 0) {
-      state.posProducts = body.menus.map((m, idx) => ({
+      const nowIso = new Date().toISOString();
+      const starterMenus = body.menus.map((m, idx) => ({
         id: 'prod-' + Date.now() + '-' + idx,
         name: m.name,
         category: m.category || 'Makanan',
@@ -4450,32 +4667,61 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         stock: Number(m.stock) || 99,
         isAvailable: true,
         description: m.description || '',
-        image: m.image || ''
+        image: m.image || '',
+        storeId: newStore.id,
+        merchantId: newStore.ownerUserId || '',
+        ownerUserId: newStore.ownerUserId || '',
+        createdAt: nowIso,
+        updatedAt: nowIso
       }));
+      state.posProducts = [
+        ...(state.posProducts || []).filter(p => String(p?.storeId || '') !== String(newStore.id)),
+        ...starterMenus
+      ];
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        await saveStoreProductsToKv(env, newStore.id, newStore.ownerUserId || '', starterMenus);
+        await Promise.all(starterMenus.map(item => saveProductMetaToKv(env, item.id, newStore.id, newStore.ownerUserId || '')));
+      }
     }
 
     return new Response(JSON.stringify({
       success: true,
       message: 'UMKM Mitra berhasil didaftarkan!',
       store: newStore,
-      products: state.posProducts
+      products: (state.posProducts || []).filter(p => String(p?.storeId || '') === String(newStore.id))
     }), { headers: corsHeaders });
   }
 
   if (path === '/topup-nota' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
+    const targetStoreId = String(body.storeId || body.merchantId || state.posStore.activeBranch || state.posStore.merchantId || state.posStore.uid || 'STORE-DEFAULT').trim();
+    let matchedMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === targetStoreId || String(m.uid || '') === targetStoreId));
+    if (!matchedMerchant && !state.isDemo && targetStoreId !== 'STORE-DEFAULT' && env?.KOSTKU_KV) {
+      matchedMerchant = await kvGetJson(env, `merchant:id:${targetStoreId}`);
+      if (matchedMerchant) {
+        state.registeredMerchants = state.registeredMerchants || [];
+        state.registeredMerchants.push(matchedMerchant);
+      }
+    }
+    const storeTier = resolveEdgeStoreTier(state, targetStoreId);
+    const activeFee = Math.max(1, Number(matchedMerchant?.notaFeePerNotaIdr ?? storeTier.notaFeePerNotaIdr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
     const addSaldo = Number(body.amount) || 10000;
-    const activeFee = Math.max(1, Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
-    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / activeFee));
-    const nextKuota = (Number(state.posStore.kuotaNota) || 0) + addQuota;
-    const nextSaldo = (Number(state.posStore.saldoNota) || 0) + addSaldo;
-    const targetStoreId = body.storeId || state.posStore.activeBranch || state.posStore.merchantId || state.posStore.uid || 'STORE-DEFAULT';
+    const prevSaldo = Number(matchedMerchant?.saldoNota ?? state.posStore.saldoNota ?? 0);
+    const nextSaldo = prevSaldo + addSaldo;
+    const nextKuota = Math.floor(nextSaldo / activeFee);
+    const addQuota = Math.max(1, Math.floor(addSaldo / activeFee));
     syncEdgeStoreWallet(state, targetStoreId, nextSaldo, nextKuota, activeFee);
+    if (matchedMerchant) {
+      matchedMerchant.saldoNota = nextSaldo;
+      matchedMerchant.kuotaNota = nextKuota;
+      if (!state.isDemo) await saveMerchantToKv(env, matchedMerchant, false);
+    }
     return new Response(JSON.stringify({
       success: true,
       message: `Top up kuota kasir berhasil (+${addQuota} nota)`,
-      saldoNota: state.posStore.saldoNota,
-      kuotaNota: state.posStore.kuotaNota
+      saldoNota: nextSaldo,
+      kuotaNota: nextKuota,
+      notaFeePerNotaIdr: activeFee
     }), { headers: corsHeaders });
   }
 
@@ -4752,44 +4998,173 @@ async function handlePosApi(request, path, method, url, state, env = null) {
 
   if (path === '/products') {
     if (method === 'GET') {
-      const reqOwnerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+      const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+      const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
       const reqTableToken = url.searchParams.get('tableToken') || '';
-      const reqStoreId = url.searchParams.get('storeId') || url.searchParams.get('merchantId') || '';
+      const reqStoreId = String(url.searchParams.get('storeId') || '').trim();
       if (!state.isDemo && !reqOwnerId && !reqTableToken && !reqStoreId) {
         return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+      if (!state.isDemo) {
+        let effectiveStoreId = reqStoreId;
+        if (!effectiveStoreId && reqTableToken) {
+          let tbl = (state.posTables || []).find(t => t && String(t.qrToken || '') === reqTableToken);
+          if (!tbl && env?.KOSTKU_KV) {
+            tbl = await kvGetJson(env, `table:token:${reqTableToken}`);
+          }
+          if (tbl) effectiveStoreId = String(tbl.storeId || tbl.merchantId || '').trim();
+        }
+        if (!effectiveStoreId && reqOwnerId && env?.KOSTKU_KV) {
+          const activeMerchant = await kvGetJson(env, `merchant:owner:${reqOwnerId}`);
+          if (activeMerchant?.id) {
+            effectiveStoreId = String(activeMerchant.id);
+          } else {
+            const ownerList = await getOwnerMerchantsFromKv(env, reqOwnerId);
+            if (ownerList[0]?.id) effectiveStoreId = String(ownerList[0].id);
+          }
+        }
+        const kvProds = await getStoreProductsFromKv(env, effectiveStoreId, reqOwnerId);
+        if (Array.isArray(kvProds)) {
+          const kvIds = new Set(kvProds.map(p => String(p?.id || '')));
+          state.posProducts = [
+            ...(state.posProducts || []).filter(p =>
+              p && (!effectiveStoreId || String(p.storeId || '') !== effectiveStoreId) && !kvIds.has(String(p.id || ''))
+            ),
+            ...kvProds
+          ];
+          return new Response(JSON.stringify(kvProds), { headers: corsHeaders });
+        }
+        const scopedRam = (state.posProducts || []).filter(p => {
+          if (!p) return false;
+          if (effectiveStoreId && p.storeId) return String(p.storeId) === effectiveStoreId;
+          if (reqOwnerId) return String(p.ownerUserId || p.merchantId || '') === reqOwnerId;
+          return false;
+        });
+        return new Response(JSON.stringify(scopedRam), { headers: corsHeaders });
       }
       return new Response(JSON.stringify(state.posProducts), { headers: corsHeaders });
     }
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const rawOwner = body.ownerUserId || body.ownerId || body.merchantId || request.headers.get('x-user-id') || '';
+      const ownerId = await resolvePosOwnerId(state, env, rawOwner);
+      let storeId = String(body.storeId || state.posStore?.merchantId || state.posStore?.uid || '').trim();
+      if (!state.isDemo && !storeId && ownerId && env?.KOSTKU_KV) {
+        const activeMerchant = await kvGetJson(env, `merchant:owner:${ownerId}`);
+        if (activeMerchant?.id) {
+          storeId = String(activeMerchant.id);
+        } else {
+          const ownerList = await getOwnerMerchantsFromKv(env, ownerId);
+          if (ownerList[0]?.id) storeId = String(ownerList[0].id);
+        }
+      }
+      const nowIso = new Date().toISOString();
       const newProduct = {
-        id: 'prod-' + Date.now(),
+        id: String(body.id || '').trim() || ('prod-' + Date.now()),
         name: body.name || 'Produk Baru',
         category: body.category || 'Makanan',
         price: Number(body.price) || 10000,
-        stock: Number(body.stock) || 99,
+        stock: body.stock !== undefined && body.stock !== '' ? Number(body.stock) : 99,
         isAvailable: body.isAvailable !== false,
         description: body.description || '',
-        image: body.image || ''
+        image: body.image || '',
+        extras: Array.isArray(body.extras) ? body.extras : [],
+        commonNotes: Array.isArray(body.commonNotes) ? body.commonNotes : [],
+        merchantId: String(body.merchantId || ownerId || ''),
+        ownerUserId: String(ownerId || body.merchantId || ''),
+        storeId,
+        createdAt: body.createdAt || nowIso,
+        updatedAt: nowIso
       };
-      state.posProducts.push(newProduct);
+      state.posProducts = [
+        newProduct,
+        ...(state.posProducts || []).filter(p => p && String(p.id) !== String(newProduct.id))
+      ];
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const existingKv = (await getStoreProductsFromKv(env, storeId, ownerId)) || [];
+        const nextKv = [
+          newProduct,
+          ...existingKv.filter(p => p && String(p.id) !== String(newProduct.id))
+        ];
+        await Promise.all([
+          saveStoreProductsToKv(env, storeId, ownerId, nextKv),
+          saveProductMetaToKv(env, newProduct.id, storeId, ownerId)
+        ]);
+      }
       return new Response(JSON.stringify(newProduct), { status: 201, headers: corsHeaders });
     }
   }
 
   if (path.startsWith('/products/')) {
-    const id = path.replace('/products/', '');
+    const id = decodeURIComponent(path.replace('/products/', ''));
     if (method === 'PUT') {
       const body = await request.json().catch(() => ({}));
-      const p = state.posProducts.find(x => x.id === id);
+      let storeId = String(body.storeId || url.searchParams.get('storeId') || '').trim();
+      let ownerId = await resolvePosOwnerId(state, env, body.ownerUserId || body.ownerId || body.merchantId || url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '');
+      if (!state.isDemo && (!storeId || !ownerId) && env?.KOSTKU_KV) {
+        const meta = await kvGetJson(env, `product:meta:${id}`);
+        if (meta) {
+          if (!storeId && meta.storeId) storeId = String(meta.storeId);
+          if (!ownerId && meta.ownerId) ownerId = String(meta.ownerId);
+        }
+      }
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const kvList = await getStoreProductsFromKv(env, storeId, ownerId);
+        if (Array.isArray(kvList)) {
+          const idx = kvList.findIndex(x => x && String(x.id) === String(id));
+          if (idx >= 0) {
+            const updated = {
+              ...kvList[idx],
+              ...body,
+              id,
+              storeId: kvList[idx].storeId || storeId || '',
+              ownerUserId: kvList[idx].ownerUserId || ownerId || '',
+              updatedAt: new Date().toISOString()
+            };
+            const nextKv = [...kvList];
+            nextKv[idx] = updated;
+            await saveStoreProductsToKv(env, updated.storeId || storeId, updated.ownerUserId || ownerId, nextKv);
+            const ramIdx = (state.posProducts || []).findIndex(x => x && String(x.id) === String(id));
+            if (ramIdx >= 0) state.posProducts[ramIdx] = updated;
+            else (state.posProducts = state.posProducts || []).push(updated);
+            return new Response(JSON.stringify(updated), { headers: corsHeaders });
+          }
+        }
+      }
+      const p = (state.posProducts || []).find(x => x && String(x.id) === String(id));
       if (p) {
-        Object.assign(p, body);
+        Object.assign(p, body, { id, updatedAt: new Date().toISOString() });
+        if (!state.isDemo && env?.KOSTKU_KV) {
+          const effStoreId = p.storeId || storeId;
+          const effOwnerId = p.ownerUserId || p.merchantId || ownerId;
+          const existingKv = (await getStoreProductsFromKv(env, effStoreId, effOwnerId)) || [];
+          const nextKv = [p, ...existingKv.filter(x => x && String(x.id) !== String(id))];
+          await Promise.all([
+            saveStoreProductsToKv(env, effStoreId, effOwnerId, nextKv),
+            saveProductMetaToKv(env, p.id, effStoreId, effOwnerId)
+          ]);
+        }
         return new Response(JSON.stringify(p), { headers: corsHeaders });
       }
       return new Response(JSON.stringify({ error: 'Produk tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
     if (method === 'DELETE') {
-      state.posProducts = state.posProducts.filter(x => x.id !== id);
+      let storeId = String(url.searchParams.get('storeId') || '').trim();
+      let ownerId = await resolvePosOwnerId(state, env, url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '');
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const meta = await kvGetJson(env, `product:meta:${id}`);
+        if (meta) {
+          if (!storeId && meta.storeId) storeId = String(meta.storeId);
+          if (!ownerId && meta.ownerId) ownerId = String(meta.ownerId);
+        }
+        const kvList = await getStoreProductsFromKv(env, storeId, ownerId);
+        if (Array.isArray(kvList)) {
+          const filtered = kvList.filter(x => x && String(x.id) !== String(id));
+          await saveStoreProductsToKv(env, storeId, ownerId, filtered);
+        }
+        await env.KOSTKU_KV.delete(`product:meta:${id}`).catch(() => {});
+      }
+      state.posProducts = (state.posProducts || []).filter(x => x && String(x.id) !== String(id));
       return new Response(JSON.stringify({ success: true, message: 'Produk berhasil dihapus' }), { headers: corsHeaders });
     }
   }
@@ -4920,16 +5295,30 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const storeId = body.storeId || state.posStore.activeBranch || state.posStore.merchantId || 'STORE-DEFAULT';
-      const billingFeeIdr = Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
 
-      // Cold Cloudflare isolate resilience: sync wallet balance if isolate just booted with 0
+      // Cold Cloudflare isolate resilience: hydrate merchant from KV if not yet in RAM
+      let existingMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === String(storeId) || String(m.uid || '') === String(storeId)));
+      if (!state.isDemo && !existingMerchant && storeId && storeId !== 'STORE-DEFAULT' && env?.KOSTKU_KV) {
+        const kvM = await kvGetJson(env, `merchant:id:${storeId}`);
+        if (kvM) {
+          state.registeredMerchants = state.registeredMerchants || [];
+          state.registeredMerchants.push(kvM);
+          existingMerchant = kvM;
+          Object.assign(state.posStore, kvM, { uid: kvM.id, merchantId: kvM.id });
+          const kvTier = resolveEdgeStoreTier(state, storeId);
+          syncEdgeStoreWallet(state, storeId, kvM.saldoNota ?? 0, kvM.kuotaNota ?? 0, kvTier.notaFeePerNotaIdr);
+        }
+      }
+
+      const orderTier = resolveEdgeStoreTier(state, storeId);
+      const billingFeeIdr = Number(existingMerchant?.notaFeePerNotaIdr ?? orderTier.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
+
       const hasExplicitStoreSaldo = body.storeSaldoNota !== undefined && body.storeSaldoNota !== null;
       const explicitStoreSaldo = hasExplicitStoreSaldo
         ? Math.min(Math.max(0, Math.round(Number(body.storeSaldoNota) || 0)), 1000000)
         : null;
       const walletMissing = !state.merchantWallets?.[storeId];
       const existingPosSaldo = Number(state.posStore.saldoNota || 0);
-      const existingMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === String(storeId) || String(m.uid || '') === String(storeId)));
       if (!state.isDemo && walletMissing && existingPosSaldo === 0 && !existingMerchant) {
         const hydratedSaldo = hasExplicitStoreSaldo
           ? explicitStoreSaldo
@@ -4942,12 +5331,11 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         }
       }
 
-      const orderTier = resolveEdgeStoreTier(state, storeId);
       const requestedPointsToRedeem = Math.max(0, Math.floor(Number(body.pointsToRedeem) || 0));
       const reqPromoCode = String(body.promoCode || '').trim().toUpperCase();
       if (!orderTier.canRedeemPoints && (requestedPointsToRedeem > 0 || reqPromoCode.startsWith('POIN-'))) {
         return new Response(JSON.stringify({
-          error: 'Toko ini belum mengaktifkan Loyalty Pool (Tier 2). Customer belum dapat menukar poin di toko ini.',
+          error: 'Toko ini belum mengaktifkan Loyalty Pool / Diskon Customer (Rp 100/nota). Customer belum dapat menukar poin di toko ini.',
           code: 'POIN_NOT_ACTIVE_ON_STORE',
           billingTier: orderTier.billingTier
         }), { status: 422, headers: corsHeaders });
@@ -4979,7 +5367,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         });
       });
 
-      const storeName = body.storeName || state.posStore.storeName || 'Toko Kasir';
+      const storeName = body.storeName || existingMerchant?.storeName || state.posStore.storeName || 'Toko Kasir';
       const now = new Date();
       const orderId = 'POS-' + Date.now().toString().slice(-6) + '-' + Math.floor(100 + Math.random() * 900);
       const invoiceNumber = 'INV-' + now.toISOString().slice(0, 10).replace(/-/g, '') + '-' + orderId.slice(-4);
@@ -4988,7 +5376,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       const qrClaimUrl = `https://kostku.riuph.me/claim?token=${claimToken}`;
 
       const requestedPaymentMethod = String(body.paymentMethod || '').toUpperCase().trim();
-      const notaFeeBearer = normalizeEdgeNotaFeeBearer(state.posStore.notaFeeBearer);
+      const notaFeeBearer = normalizeEdgeNotaFeeBearer(existingMerchant?.notaFeeBearer || state.posStore.notaFeeBearer);
       const isDeferredSelfOrder = !requestedPaymentMethod || requestedPaymentMethod === 'CASH_COUNTER';
       const isImmediateCustomerViaQris = requestedPaymentMethod === 'QRIS' && notaFeeBearer === 'customer';
       const shouldDeductAtCreate = !isDeferredSelfOrder && !isImmediateCustomerViaQris;
@@ -5043,11 +5431,14 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         createdAt: now.toISOString()
       };
 
-      let deductRes = { ok: true, kuotaAfter: Number(state.posStore.kuotaNota ?? 0), saldoAfter: Number(state.posStore.saldoNota ?? 0) };
+      let deductRes = { ok: true, kuotaAfter: Number(existingMerchant?.kuotaNota ?? state.posStore.kuotaNota ?? 0), saldoAfter: Number(existingMerchant?.saldoNota ?? state.posStore.saldoNota ?? 0) };
       if (shouldDeductAtCreate) {
         deductRes = deductEdgeStoreNotaOnce(state, newOrder, storeId, billingFeeIdr);
         if (!deductRes.ok) {
           return new Response(JSON.stringify(deductRes), { status: 402, headers: corsHeaders });
+        }
+        if (!state.isDemo && existingMerchant) {
+          await saveMerchantToKv(env, existingMerchant, false);
         }
       } else if (isImmediateCustomerViaQris) {
         newOrder.notaDeducted = 0;

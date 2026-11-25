@@ -392,6 +392,7 @@ export default function Kasir({ user, onLogout }) {
     kuotaNota: 0,
     loyaltyPoolId: null,
     loyaltyPoolName: null,
+    customerDiscountEnabled: false,
     billingTier: 'TIER_1_FLAT',
     notaFeePerNotaIdr: 25,
     notaFeeBearer: 'store',
@@ -1124,6 +1125,7 @@ export default function Kasir({ user, onLogout }) {
         .map(s => s.trim())
         .filter(Boolean),
       merchantId: effectiveAccountId,
+      ownerUserId: ownerIdVal || effectiveAccountId,
       storeId: storeInfo.merchantId || storeInfo.uid || undefined,
       stock: Number(newMenuForm.stock !== undefined && newMenuForm.stock !== '' ? newMenuForm.stock : 99),
       isAvailable: editingProduct ? (newMenuForm.isAvailable !== false) : true,
@@ -1160,6 +1162,8 @@ export default function Kasir({ user, onLogout }) {
           method,
           headers: {
             'Content-Type': 'application/json',
+            ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+            ...(user?.role ? { 'x-user-role': String(user.role) } : {}),
             ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
           },
           body: JSON.stringify(productPayload)
@@ -1938,7 +1942,19 @@ export default function Kasir({ user, onLogout }) {
         delete copy[productId];
         return copy;
       });
-      await fetch(`/api/pos/products/${productId}`, { method: 'DELETE' }).catch(() => {});
+      const delStoreId = storeInfo?.merchantId || storeInfo?.uid || '';
+      const delParams = new URLSearchParams();
+      if (delStoreId) delParams.set('storeId', delStoreId);
+      if (effectiveAccountId) delParams.set('ownerId', effectiveAccountId);
+      const delQuery = delParams.toString();
+      await fetch(`/api/pos/products/${encodeURIComponent(productId)}${delQuery ? `?${delQuery}` : ''}`, {
+        method: 'DELETE',
+        headers: {
+          ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+          ...(user?.role ? { 'x-user-role': String(user.role) } : {}),
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        }
+      }).catch(() => {});
     } catch (_) {}
   };
 
@@ -2635,7 +2651,7 @@ export default function Kasir({ user, onLogout }) {
     try {
       setPosTopupLoading(true);
       const chosenAmount = nominal || posTopupAmount || 10000;
-      const chosenQuota = Math.max(1, Math.floor(chosenAmount / 100));
+      const chosenQuota = Math.max(1, Math.floor(chosenAmount / Math.max(1, storeNotaFeeIdr)));
       const res = await fetch('/api/pos/topup-nota', {
         method: 'POST',
         headers: buildPosJsonHeaders(),
@@ -2670,7 +2686,9 @@ export default function Kasir({ user, onLogout }) {
     const targetOrder = orders.find(o => o.id === orderId);
     const pm = String(targetOrder?.paymentMethod || '').toUpperCase().trim();
     const isGatewayQris = pm === 'TRIPAY' || pm === 'QRIS';
-    const activeNotaFee = Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25));
+    const activeNotaFee = (storeInfo.customerDiscountEnabled || storeInfo.loyaltyPoolId || storeInfo.billingTier === 'TIER_2_LOYALTY')
+      ? 100
+      : Math.max(1, Number(storeInfo.notaFeePerNotaIdr || 25));
     if (!isGatewayQris && Number(storeInfo.saldoNota ?? 0) < activeNotaFee) {
       setShowPosTopupModal(true);
       setPosCheckoutFeedback({
@@ -2715,7 +2733,7 @@ export default function Kasir({ user, onLogout }) {
     try {
       const res = await fetch('/api/pos/store/fee-settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
           ownerUserId: user?.id || user?.uid || effectiveAccountId,
@@ -2737,6 +2755,44 @@ export default function Kasir({ user, onLogout }) {
       });
     } catch (err) {
       setPosCheckoutFeedback({ type: 'error', text: err.message || 'Gagal memperbarui pengaturan biaya nota' });
+    } finally {
+      setSavingFeeBearer(false);
+    }
+  };
+
+  const handleToggleCustomerDiscount = async (nextEnabled) => {
+    const enabled = Boolean(nextEnabled);
+    if (savingFeeBearer) return;
+    setSavingFeeBearer(true);
+    try {
+      const res = await fetch('/api/pos/store/fee-settings', {
+        method: 'POST',
+        headers: buildPosJsonHeaders(),
+        body: JSON.stringify({
+          merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
+          ownerUserId: user?.id || user?.uid || effectiveAccountId,
+          customerDiscountEnabled: enabled
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Gagal memperbarui tarif diskon customer nota');
+      setStoreInfo(prev => ({
+        ...prev,
+        ...(data?.store || {}),
+        customerDiscountEnabled: data?.customerDiscountEnabled ?? enabled,
+        notaFeePerNotaIdr: data?.notaFeePerNotaIdr ?? (enabled ? 100 : 25),
+        billingTier: data?.billingTier ?? (enabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT'),
+        loyaltyPoolId: data?.loyaltyPoolId !== undefined ? data.loyaltyPoolId : (enabled ? (prev.loyaltyPoolId || 'POOL-DEFAULT') : null),
+        kuotaNota: data?.kuotaNota ?? prev.kuotaNota
+      }));
+      setPosCheckoutFeedback({
+        type: 'success',
+        text: data?.message || (enabled
+          ? 'Diskon customer diaktifkan — tarif nota Rp 100/nota.'
+          : 'Tarif nota dikembalikan ke default Rp 25/nota.')
+      });
+    } catch (err) {
+      setPosCheckoutFeedback({ type: 'error', text: err.message || 'Gagal memperbarui tarif nota' });
     } finally {
       setSavingFeeBearer(false);
     }
@@ -3673,7 +3729,14 @@ export default function Kasir({ user, onLogout }) {
   const totalPettyOut = (cashierShift.cashOuts || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
   const expectedDrawerCash = (Number(cashierShift.initialFloat) || 0) + cashRevenue + totalPettyIn - totalPettyOut;
   const nonCashRevenue = Math.max(0, totalRevenue - cashRevenue);
-  const storeNotaFeeIdr = Math.max(1, Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25)));
+  const storeCustomerDiscountEnabled = Boolean(
+    storeInfo.customerDiscountEnabled !== undefined
+      ? storeInfo.customerDiscountEnabled
+      : (storeInfo.loyaltyPoolId || storeInfo.billingTier === 'TIER_2_LOYALTY')
+  );
+  const storeNotaFeeIdr = storeCustomerDiscountEnabled
+    ? 100
+    : Math.max(1, Number(storeInfo.notaFeePerNotaIdr || 25));
   const storeSaldoNota = Math.max(0, Number(storeInfo.saldoNota ?? 0) || 0);
   const storeKuotaNota = storeInfo.kuotaNota != null
     ? Math.max(0, Number(storeInfo.kuotaNota) || 0)
@@ -4445,7 +4508,9 @@ export default function Kasir({ user, onLogout }) {
     const posCartItems = Object.values(posCart);
     const posCartSubtotal = posCartItems.reduce((s, it) => s + (it.product.price * it.qty), 0);
     const posPromoDiscount = activeCartPromo ? calculatePromoDiscountForCart(activeCartPromo, posCart) : 0;
-    const activeNotaFee = Number(storeInfo.notaFeePerNotaIdr || (storeInfo.loyaltyPoolId ? 100 : 25));
+    const activeNotaFee = (storeInfo.customerDiscountEnabled || storeInfo.loyaltyPoolId || storeInfo.billingTier === 'TIER_2_LOYALTY')
+      ? 100
+      : Math.max(1, Number(storeInfo.notaFeePerNotaIdr || 25));
     const activeBillingTier = storeInfo.billingTier || (storeInfo.loyaltyPoolId ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT');
     const activeNotaFeeBearer = storeInfo.notaFeeBearer === 'customer' ? 'customer' : 'store';
     const posAdminFee = activeNotaFeeBearer === 'customer' ? activeNotaFee : 0;
@@ -12719,7 +12784,7 @@ export default function Kasir({ user, onLogout }) {
               fontSize: '0.72rem',
               color: textSecondary
             }}>
-              <span>✦ Terhubung ke TriPay Master KostKu (T53543) • Biaya admin flat Rp 100</span>
+              <span>✦ Terhubung ke TriPay Master KostKu (T53543) • Biaya nota Rp {storeNotaFeeIdr.toLocaleString('id-ID')}/nota</span>
               <span style={{ color: '#10b981', fontWeight: 700 }}>● Sinkronisasi Real-Time Mitra &amp; Kasir Aktif</span>
             </div>
           </div>
@@ -12778,6 +12843,96 @@ export default function Kasir({ user, onLogout }) {
                 <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: textSecondary }}>
                   Biaya platform transaksi nota: <strong>Rp {storeNotaFeeIdr.toLocaleString('id-ID')} / transaksi</strong> (QRIS Rp 750 + 0,70% selalu ditanggung Customer).
                 </p>
+
+                {/* Pengaturan Owner: Tarif Nota (Default Rp 25 vs Diskon Customer Rp 100) */}
+                <div
+                  data-testid="owner-nota-tariff-toggle"
+                  style={{
+                    marginTop: '10px',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    background: isLight ? 'rgba(255, 255, 255, 0.78)' : 'rgba(15, 23, 42, 0.55)',
+                    border: `1px solid ${borderColor}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '7px',
+                    maxWidth: '420px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: textPrimary }}>
+                      Tarif Nota &amp; Diskon Customer
+                    </span>
+                    <span
+                      data-testid="nota-tariff-status-badge"
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        background: storeCustomerDiscountEnabled ? 'rgba(99, 102, 241, 0.18)' : 'rgba(16, 185, 129, 0.16)',
+                        color: storeCustomerDiscountEnabled ? '#6366f1' : '#10b981'
+                      }}
+                    >
+                      {storeCustomerDiscountEnabled ? 'Rp 100/nota • Diskon Aktif' : 'Rp 25/nota • Default'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <button
+                      type="button"
+                      data-testid="nota-tariff-25-btn"
+                      disabled={savingFeeBearer}
+                      onClick={() => handleToggleCustomerDiscount(false)}
+                      style={{
+                        padding: '7px 8px',
+                        borderRadius: '8px',
+                        border: !storeCustomerDiscountEnabled
+                          ? '1.5px solid #10b981'
+                          : `1px solid ${borderColor}`,
+                        background: !storeCustomerDiscountEnabled
+                          ? (isLight ? '#d1fae5' : 'rgba(16, 185, 129, 0.22)')
+                          : 'transparent',
+                        color: !storeCustomerDiscountEnabled
+                          ? (isLight ? '#047857' : '#34d399')
+                          : textSecondary,
+                        fontWeight: 700,
+                        fontSize: '0.72rem',
+                        cursor: savingFeeBearer ? 'wait' : 'pointer'
+                      }}
+                    >
+                      Default Rp 25/nota
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="nota-tariff-100-btn"
+                      disabled={savingFeeBearer}
+                      onClick={() => handleToggleCustomerDiscount(true)}
+                      style={{
+                        padding: '7px 8px',
+                        borderRadius: '8px',
+                        border: storeCustomerDiscountEnabled
+                          ? '1.5px solid #6366f1'
+                          : `1px solid ${borderColor}`,
+                        background: storeCustomerDiscountEnabled
+                          ? (isLight ? '#e0e7ff' : 'rgba(99, 102, 241, 0.22)')
+                          : 'transparent',
+                        color: storeCustomerDiscountEnabled
+                          ? (isLight ? '#4338ca' : '#a5b4fc')
+                          : textSecondary,
+                        fontWeight: 700,
+                        fontSize: '0.72rem',
+                        cursor: savingFeeBearer ? 'wait' : 'pointer'
+                      }}
+                    >
+                      Rp 100/nota • Diskon Customer
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.69rem', color: textSecondary, lineHeight: 1.35 }}>
+                    {storeCustomerDiscountEnabled
+                      ? 'Customer dapat menikmati diskon & tukar poin lintas toko (tarif nota Rp 100/transaksi).'
+                      : 'Tarif standar hemat Rp 25/nota. Aktifkan Rp 100/nota jika ingin memberi fitur diskon/poin customer.'}
+                  </span>
+                </div>
 
                 {/* Pengaturan Owner: Penanggung Biaya Admin Nota */}
                 <div
@@ -19674,9 +19829,9 @@ export default function Kasir({ user, onLogout }) {
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                     {[
-                      { amount: 5000, label: '50 Nota', sub: 'Rp 5.000' },
-                      { amount: 10000, label: '100 Nota', sub: 'Rp 10.000' },
-                      { amount: 25000, label: '250 Nota', sub: 'Rp 25.000' }
+                      { amount: 5000, label: `${Math.floor(5000 / Math.max(1, storeNotaFeeIdr)).toLocaleString('id-ID')} Nota`, sub: 'Rp 5.000' },
+                      { amount: 10000, label: `${Math.floor(10000 / Math.max(1, storeNotaFeeIdr)).toLocaleString('id-ID')} Nota`, sub: 'Rp 10.000' },
+                      { amount: 25000, label: `${Math.floor(25000 / Math.max(1, storeNotaFeeIdr)).toLocaleString('id-ID')} Nota`, sub: 'Rp 25.000' }
                     ].map(pkg => (
                       <button
                         key={pkg.amount}
