@@ -134,8 +134,8 @@ const Register = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const registerGoogleBtnRef = useRef(null);
 
-  // Verifikasi OTP (Email sebagai default utama, WhatsApp 1-tap)
-  const [otpChannel, setOtpChannel] = useState(() => savedDraft.current.otpChannel || 'email'); // 'email' | 'whatsapp'
+  // Verifikasi OTP (Khusus Gmail / Email saat ini)
+  const [otpChannel, setOtpChannel] = useState('email'); // 'email'
   const [otpCode, setOtpCode] = useState('');
   const [otpMaskedTarget, setOtpMaskedTarget] = useState(() => savedSession.current.otpMaskedTarget || '');
   const [otpChallenge, setOtpChallenge] = useState(() => savedSession.current.otpChallenge || '');
@@ -827,7 +827,7 @@ const Register = () => {
             Daftar Akun KostKu
           </h1>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.88rem' }}>
-            Verifikasi instan via WhatsApp OTP &amp; Cloudflare Turnstile (Anti-Bot Tanpa Captcha).
+            Verifikasi instan via Email OTP &amp; Cloudflare Turnstile (Anti-Bot Tanpa Captcha).
           </p>
         </div>
 
@@ -1056,7 +1056,7 @@ const Register = () => {
             {/* Separator */}
             <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
               <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-              <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>atau daftar dengan nomor WhatsApp</span>
+              <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>atau daftar dengan Email &amp; Password</span>
               <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
             </div>
 
@@ -1410,69 +1410,26 @@ const Register = () => {
                   </div>
                 )}
 
-                {/* Pilihan Metode Verifikasi OTP (Hanya untuk Pendaftaran Manual Biasa) */}
+                {/* Informasi Metode Verifikasi OTP Email (Hanya untuk Pendaftaran Manual Biasa) */}
                 {!googleAuthData && (
                   <div style={{
                     margin: '0.25rem 0',
-                    background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
-                    border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)'}`,
+                    background: isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.08)',
+                    border: `1px solid ${isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.25)'}`,
                     borderRadius: '14px',
                     padding: '12px 14px'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <label style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <KeyRound size={15} color="#38bdf8" /> Kirim Kode OTP Verifikasi Melalui:
+                        <KeyRound size={15} color="#0284c7" /> Verifikasi OTP via Email
                       </label>
-                      <span style={{ fontSize: '0.7rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>
-                        Pilih 1 Saluran
+                      <span style={{ fontSize: '0.7rem', color: isLight ? '#0369a1' : '#38bdf8', background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.14)', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                        Aktif
                       </span>
                     </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => { setOtpChannel('whatsapp'); if (error) setError(''); }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          padding: '10px 8px',
-                          borderRadius: '10px',
-                          border: otpChannel === 'whatsapp' ? '2px solid #22c55e' : `1px solid ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.1)'}`,
-                          background: otpChannel === 'whatsapp' ? (isLight ? '#f0fdf4' : 'rgba(34, 197, 94, 0.14)') : 'transparent',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <MessageSquare size={16} color="#22c55e" />
-                        <strong style={{ fontSize: '0.82rem', color: otpChannel === 'whatsapp' ? (isLight ? '#15803d' : '#4ade80') : 'var(--text-primary)' }}>
-                          WhatsApp
-                        </strong>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => { setOtpChannel('email'); if (error) setError(''); }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          padding: '10px 8px',
-                          borderRadius: '10px',
-                          border: otpChannel === 'email' ? '2px solid #38bdf8' : `1px solid ${isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.1)'}`,
-                          background: otpChannel === 'email' ? (isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.14)') : 'transparent',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <Mail size={16} color="#38bdf8" />
-                        <strong style={{ fontSize: '0.82rem', color: otpChannel === 'email' ? (isLight ? '#0369a1' : '#38bdf8') : 'var(--text-primary)' }}>
-                          Gmail / Email
-                        </strong>
-                      </button>
-                    </div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: isLight ? '#475569' : '#94a3b8', lineHeight: 1.45 }}>
+                      Kode keamanan 6 digit akan dikirim langsung ke alamat Gmail / Email yang Anda daftarkan.
+                    </p>
                   </div>
                 )}
               </div>
@@ -1696,7 +1653,7 @@ const Register = () => {
                   </>
                 ) : (
                   <>
-                    Lanjut ke OTP ({otpChannel === 'whatsapp' ? 'WA' : 'Gmail'}) <ArrowRight size={16}/>
+                    Lanjut ke OTP Email <ArrowRight size={16}/>
                   </>
                 )}
               </button>
@@ -1875,35 +1832,9 @@ const Register = () => {
                 </div>
                 {otpDeliveryMethod === 'instant_fallback' && (
                   <span style={{ color: isLight ? '#475569' : '#94a3b8', fontSize: '0.72rem', lineHeight: 1.4 }}>
-                    Gateway WA/Email otomatis belum aktif di server. Ketuk &ldquo;Isi Otomatis&rdquo;{otpChannel === 'whatsapp' ? ' atau klik Buka WhatsApp di bawah' : ''} untuk melanjutkan.
+                    Pengiriman Email gateway belum aktif untuk alamat ini. Ketuk &ldquo;Isi Otomatis&rdquo; untuk melanjutkan.
                   </span>
                 )}
-              </div>
-            )}
-
-            {/* WhatsApp Direct Link (Jika ada) */}
-            {otpWaDirectUrl && otpChannel === 'whatsapp' && (
-              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-                <a
-                  href={otpWaDirectUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    color: '#4ade80',
-                    fontSize: '0.8rem',
-                    textDecoration: 'none',
-                    background: 'rgba(34, 197, 94, 0.1)',
-                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    fontWeight: 600
-                  }}
-                >
-                  <Send size={14} /> Buka WhatsApp untuk Melihat Kode
-                </a>
               </div>
             )}
 
@@ -1915,7 +1846,7 @@ const Register = () => {
                 </span>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: '#cbd5e1' }}>Belum menerima kode?</span>
+                  <span style={{ color: isLight ? '#475569' : '#cbd5e1' }}>Belum menerima kode?</span>
                   <button
                     type="button"
                     onClick={handleResendOtp}
@@ -1934,49 +1865,6 @@ const Register = () => {
                     {otpSending ? 'Mengirim...' : 'Kirim Ulang OTP'}
                   </button>
                 </div>
-              )}
-            </div>
-
-            {/* Switch Channel Option */}
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              {otpChannel === 'whatsapp' ? (
-                <button
-                  type="button"
-                  onClick={() => handleSwitchChannel('email')}
-                  disabled={otpSending}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <Mail size={13} color="#38bdf8" />
-                  <span>Tidak bisa akses WhatsApp? <strong style={{ color: '#38bdf8' }}>Kirim via Gmail / Email</strong></span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleSwitchChannel('whatsapp')}
-                  disabled={otpSending}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <MessageSquare size={13} color="#22c55e" />
-                  <span>Tidak ada akses Email? <strong style={{ color: '#4ade80' }}>Kirim via WhatsApp</strong></span>
-                </button>
               )}
             </div>
 
