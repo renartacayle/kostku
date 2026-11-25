@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Utensils,
@@ -6781,7 +6782,7 @@ export default function Kasir({ user, onLogout }) {
             </div>
           </div>
 
-          {/* ── TOP RUKO SWITCHER BAR (PINDAH RUKO • ALL RUKO • + TAMBAH RUKO) ── */}
+          {/* ── TOP RUKO SWITCHER BAR (UNIFIED SEGMENTED TRACK + PORTAL PICKER SHEET) ── */}
           {(() => {
             const ownerStoresList = Array.isArray(storeInfo?.allOwnerStores) && storeInfo.allOwnerStores.length > 0
               ? storeInfo.allOwnerStores
@@ -6794,96 +6795,255 @@ export default function Kasir({ user, onLogout }) {
                   kuotaNota: storeKuotaNota
                 }];
             const canManageRukoHeader = isOwnerRole(user?.role) || isMitraRole(user?.role);
+            const activeStoreLabel = rukoScopeMode === 'all'
+              ? `Semua Ruko (${ownerStoresList.length})`
+              : (storeInfo?.storeName || 'Ruko Utama');
+            const trackBg = isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)';
+            const trackBorder = isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)';
+
             return (
-              <div
-                data-testid="top-ruko-switcher-bar"
-                style={{
-                  marginTop: '6px',
-                  paddingTop: '6px',
-                  borderTop: `1px dashed ${borderColor}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  flexWrap: 'wrap',
-                  position: 'relative'
-                }}
-              >
-                {/* Pindah Ruko Dropdown Trigger */}
-                <div style={{ position: 'relative' }}>
+              <>
+                <div
+                  data-testid="top-ruko-switcher-bar"
+                  style={{
+                    marginTop: '8px',
+                    height: '36px',
+                    padding: '3px',
+                    borderRadius: '11px',
+                    background: trackBg,
+                    border: `1px solid ${trackBorder}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {/* Segment 1: Active Ruko Trigger (opens bottom sheet) */}
                   <button
                     type="button"
                     data-testid="top-ruko-switcher-btn"
                     onClick={() => setShowTopRukoDropdown(prev => !prev)}
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '999px',
-                      border: `1px solid ${showTopRukoDropdown || rukoScopeMode === 'single' ? '#2563eb' : borderColor}`,
+                      flex: 1,
+                      minWidth: 0,
+                      height: '28px',
+                      padding: '0 9px',
+                      borderRadius: '8px',
+                      border: 'none',
                       background: rukoScopeMode === 'single'
-                        ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)')
-                        : (isLight ? '#f8fafc' : '#1e293b'),
-                      color: rukoScopeMode === 'single' ? (isLight ? '#1d4ed8' : '#93c5fd') : textPrimary,
-                      fontSize: '0.71rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      maxWidth: '210px'
+                        ? (isLight ? '#ffffff' : '#1e293b')
+                        : 'transparent',
+                      boxShadow: rukoScopeMode === 'single'
+                        ? (isLight ? '0 1px 2px rgba(15, 23, 42, 0.08)' : '0 1px 2px rgba(0, 0, 0, 0.35)')
+                        : 'none',
+                      color: rukoScopeMode === 'single' ? textPrimary : textSecondary,
+                      fontSize: '0.73rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer'
                     }}
                     title="Pindah Ruko / Cabang Aktif"
                   >
-                    <Store size={12} style={{ flexShrink: 0 }} />
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {rukoScopeMode === 'all'
-                        ? 'Pindah Ruko'
-                        : (storeInfo?.storeName || 'Ruko Utama')}
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      flexShrink: 0
+                    }} />
+                    <span style={{
+                      flex: 1,
+                      minWidth: 0,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {activeStoreLabel}
                     </span>
                     <span style={{
-                      fontSize: '0.62rem',
-                      padding: '0 5px',
-                      borderRadius: '999px',
-                      background: isLight ? '#dbeafe' : 'rgba(59,130,246,0.3)',
-                      color: isLight ? '#1e40af' : '#bfdbfe',
-                      fontWeight: 900,
-                      flexShrink: 0
+                      fontSize: '0.64rem',
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      borderRadius: '6px',
+                      background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                      color: textSecondary,
+                      flexShrink: 0,
+                      fontVariantNumeric: 'tabular-nums'
                     }}>
                       {ownerStoresList.length}
                     </span>
-                    <ChevronDown size={12} style={{ flexShrink: 0 }} />
+                    <ChevronDown size={13} color={textSecondary} style={{ flexShrink: 0 }} />
                   </button>
 
-                  {showTopRukoDropdown && (
+                  {/* Segment 2: All Ruko Toggle */}
+                  <button
+                    type="button"
+                    data-testid="top-all-ruko-btn"
+                    onClick={() => {
+                      const nextAll = rukoScopeMode !== 'all';
+                      setRukoScopeMode(nextAll ? 'all' : 'single');
+                      setDashboardReceiptScope(nextAll ? 'all' : 'active');
+                      setShowTopRukoDropdown(false);
+                      if (nextAll && activeTab !== 'dashboard') setActiveTab('dashboard');
+                    }}
+                    style={{
+                      flexShrink: 0,
+                      height: '28px',
+                      padding: '0 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: rukoScopeMode === 'all'
+                        ? (isLight ? '#0f172a' : '#f8fafc')
+                        : 'transparent',
+                      color: rukoScopeMode === 'all'
+                        ? (isLight ? '#ffffff' : '#0f172a')
+                        : textSecondary,
+                      boxShadow: rukoScopeMode === 'all'
+                        ? (isLight ? '0 1px 2px rgba(15, 23, 42, 0.16)' : 'none')
+                        : 'none',
+                      fontSize: '0.71rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title="Lihat ringkasan gabungan semua Ruko"
+                  >
+                    <Layers size={12} />
+                    <span>All Ruko</span>
+                  </button>
+
+                  {/* Segment 3: + Ruko Action */}
+                  {canManageRukoHeader && (
+                    <>
+                      <span style={{
+                        width: '1px',
+                        height: '16px',
+                        background: isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.14)',
+                        flexShrink: 0
+                      }} />
+                      <button
+                        type="button"
+                        data-testid="top-add-ruko-btn"
+                        onClick={() => {
+                          setShowTopRukoDropdown(false);
+                          setCreateStoreError('');
+                          setShowCreateStoreModal(true);
+                        }}
+                        style={{
+                          flexShrink: 0,
+                          height: '28px',
+                          padding: '0 9px',
+                          borderRadius: '8px',
+                          border: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.12)'}`,
+                          background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
+                          color: textPrimary,
+                          fontSize: '0.71rem',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                        title="Tambah cabang atau ruko baru"
+                      >
+                        <Plus size={12} />
+                        <span>Ruko</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Portal Bottom Sheet for Selecting / Switching Ruko */}
+                {showTopRukoDropdown && typeof document !== 'undefined' && createPortal(
+                  <div
+                    onClick={() => setShowTopRukoDropdown(false)}
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      zIndex: 99990,
+                      background: 'rgba(15, 23, 42, 0.46)',
+                      backdropFilter: 'blur(4px)',
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      justifyContent: 'center',
+                      padding: 0
+                    }}
+                  >
                     <div
                       data-testid="top-ruko-dropdown"
+                      onClick={(e) => e.stopPropagation()}
                       style={{
-                        position: 'absolute',
-                        top: 'calc(100% + 6px)',
-                        left: 0,
-                        zIndex: 80,
-                        width: 'min(300px, calc(100vw - 24px))',
+                        width: '100%',
+                        maxWidth: '460px',
                         background: isLight ? '#ffffff' : '#0f172a',
-                        border: `1.5px solid ${borderColor}`,
-                        borderRadius: '14px',
-                        boxShadow: '0 14px 36px rgba(0, 0, 0, 0.25)',
-                        padding: '8px',
+                        color: textPrimary,
+                        borderTopLeftRadius: '22px',
+                        borderTopRightRadius: '22px',
+                        borderTop: `1px solid ${isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)'}`,
+                        padding: '10px 16px 20px',
+                        boxShadow: '0 -12px 40px rgba(15, 23, 42, 0.24)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '5px'
+                        gap: '12px',
+                        boxSizing: 'border-box'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px 4px' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: textPrimary }}>
-                          Pilih / Pindah Ruko ({ownerStoresList.length})
-                        </span>
+                      {/* Drag Handle */}
+                      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '2px' }}>
+                        <span style={{
+                          width: '36px',
+                          height: '4px',
+                          borderRadius: '999px',
+                          background: isLight ? '#cbd5e1' : '#334155'
+                        }} />
+                      </div>
+
+                      {/* Sheet Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: textPrimary, letterSpacing: '-0.2px' }}>
+                            Pilih Ruko
+                          </h3>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: '999px',
+                            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                            color: textSecondary
+                          }}>
+                            {ownerStoresList.length} cabang
+                          </span>
+                        </div>
                         <button
                           type="button"
                           onClick={() => setShowTopRukoDropdown(false)}
-                          style={{ background: 'transparent', border: 'none', color: textSecondary, cursor: 'pointer', padding: '2px' }}
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '999px',
+                            border: 'none',
+                            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                            color: textSecondary,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                          title="Tutup"
                         >
-                          <X size={14} />
+                          <X size={15} />
                         </button>
                       </div>
 
+                      {/* All Ruko Combined Row */}
                       <button
                         type="button"
                         onClick={() => {
@@ -6895,30 +7055,78 @@ export default function Kasir({ user, onLogout }) {
                         style={{
                           width: '100%',
                           textAlign: 'left',
-                          padding: '8px 10px',
-                          borderRadius: '10px',
-                          border: rukoScopeMode === 'all' ? '1.5px solid #0ea5e9' : `1px solid ${borderColor}`,
+                          padding: '10px 12px',
+                          borderRadius: '13px',
+                          border: rukoScopeMode === 'all'
+                            ? `1.5px solid ${isLight ? '#0f172a' : '#38bdf8'}`
+                            : `1px solid ${borderColor}`,
                           background: rukoScopeMode === 'all'
-                            ? (isLight ? '#e0f2fe' : 'rgba(14, 165, 233, 0.2)')
-                            : (isLight ? '#f8fafc' : '#1e293b'),
+                            ? (isLight ? '#f8fafc' : 'rgba(56, 189, 248, 0.1)')
+                            : 'transparent',
                           color: textPrimary,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '8px'
+                          gap: '10px'
                         }}
                       >
-                        <div>
-                          <div style={{ fontSize: '0.76rem', fontWeight: 800 }}>All Ruko (Gabungan)</div>
-                          <div style={{ fontSize: '0.64rem', color: textSecondary }}>
-                            Pantau omset &amp; nota dari seluruh {ownerStoresList.length} ruko
+                        <div style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '11px',
+                          background: isLight ? '#0f172a' : 'rgba(255, 255, 255, 0.1)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <Layers size={17} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: textPrimary }}>
+                            All Ruko (Gabungan)
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: textSecondary, marginTop: '1px' }}>
+                            Pantau total omset &amp; nota dari semua {ownerStoresList.length} ruko
                           </div>
                         </div>
-                        {rukoScopeMode === 'all' && <Check size={14} color="#0284c7" />}
+                        <span style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '999px',
+                          border: rukoScopeMode === 'all' ? 'none' : `1.5px solid ${isLight ? '#cbd5e1' : '#475569'}`,
+                          background: rukoScopeMode === 'all' ? (isLight ? '#0f172a' : '#38bdf8') : 'transparent',
+                          color: rukoScopeMode === 'all' ? (isLight ? '#ffffff' : '#0f172a') : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          {rukoScopeMode === 'all' && <Check size={12} strokeWidth={3} />}
+                        </span>
                       </button>
 
-                      <div style={{ maxHeight: '210px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {/* Section Caption */}
+                      <div style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.07em',
+                        color: textSecondary,
+                        textTransform: 'uppercase',
+                        padding: '0 2px'
+                      }}>
+                        Daftar Ruko
+                      </div>
+
+                      {/* Scrollable Store List */}
+                      <div style={{
+                        maxHeight: '42vh',
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '7px'
+                      }}>
                         {ownerStoresList.map((st) => {
                           const sid = String(st.id || st.merchantId);
                           const isCurr = rukoScopeMode === 'single' && String(storeInfo?.merchantId || storeInfo?.uid || '') === sid;
@@ -6936,32 +7144,77 @@ export default function Kasir({ user, onLogout }) {
                               style={{
                                 width: '100%',
                                 textAlign: 'left',
-                                padding: '7px 10px',
-                                borderRadius: '10px',
-                                border: isCurr ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
-                                background: isCurr ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.18)') : 'transparent',
+                                padding: '10px 12px',
+                                borderRadius: '13px',
+                                border: isCurr
+                                  ? `1.5px solid ${isLight ? '#0f172a' : '#38bdf8'}`
+                                  : `1px solid ${borderColor}`,
+                                background: isCurr
+                                  ? (isLight ? '#f8fafc' : 'rgba(56, 189, 248, 0.09)')
+                                  : 'transparent',
                                 color: textPrimary,
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '8px'
+                                gap: '10px'
                               }}
                             >
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <div style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '11px',
+                                background: isLight ? '#f1f5f9' : '#1e293b',
+                                color: isCurr ? (isLight ? '#0f172a' : '#38bdf8') : textSecondary,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                <Store size={17} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{
+                                  fontSize: '0.84rem',
+                                  fontWeight: 700,
+                                  color: textPrimary,
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}>
                                   {st.storeName || st.name}
                                 </div>
-                                <div style={{ fontSize: '0.63rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {st.location || 'Cabang'} &bull; {Number(st.kuotaNota ?? 0).toLocaleString('id-ID')} nota
+                                <div style={{
+                                  fontSize: '0.68rem',
+                                  color: textSecondary,
+                                  marginTop: '1px',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  fontVariantNumeric: 'tabular-nums'
+                                }}>
+                                  {st.location || 'Cabang'} &middot; {Number(st.kuotaNota ?? 0).toLocaleString('id-ID')} nota
                                 </div>
                               </div>
-                              {isCurr && <Check size={14} color="#2563eb" style={{ flexShrink: 0 }} />}
+                              <span style={{
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '999px',
+                                border: isCurr ? 'none' : `1.5px solid ${isLight ? '#cbd5e1' : '#475569'}`,
+                                background: isCurr ? (isLight ? '#0f172a' : '#38bdf8') : 'transparent',
+                                color: isCurr ? (isLight ? '#ffffff' : '#0f172a') : 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                {isCurr && <Check size={12} strokeWidth={3} />}
+                              </span>
                             </button>
                           );
                         })}
                       </div>
 
+                      {/* Primary Sheet Footer Action */}
                       {canManageRukoHeader && (
                         <button
                           type="button"
@@ -6972,93 +7225,30 @@ export default function Kasir({ user, onLogout }) {
                           }}
                           style={{
                             width: '100%',
-                            padding: '7px 10px',
-                            borderRadius: '10px',
+                            height: '44px',
+                            borderRadius: '12px',
                             border: 'none',
-                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                            color: '#ffffff',
-                            fontSize: '0.74rem',
-                            fontWeight: 800,
+                            background: isLight ? '#0f172a' : '#f8fafc',
+                            color: isLight ? '#ffffff' : '#0f172a',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '5px',
+                            gap: '6px',
                             marginTop: '2px'
                           }}
                         >
-                          <Plus size={13} />
+                          <Plus size={15} />
                           <span>Tambah Ruko Baru</span>
                         </button>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {/* All Ruko Quick Toggle Pill */}
-                <button
-                  type="button"
-                  data-testid="top-all-ruko-btn"
-                  onClick={() => {
-                    const nextAll = rukoScopeMode !== 'all';
-                    setRukoScopeMode(nextAll ? 'all' : 'single');
-                    setDashboardReceiptScope(nextAll ? 'all' : 'active');
-                    setShowTopRukoDropdown(false);
-                    if (nextAll && activeTab !== 'dashboard') setActiveTab('dashboard');
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 10px',
-                    borderRadius: '999px',
-                    border: `1px solid ${rukoScopeMode === 'all' ? '#0284c7' : borderColor}`,
-                    background: rukoScopeMode === 'all'
-                      ? 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)'
-                      : (isLight ? '#f8fafc' : '#1e293b'),
-                    color: rukoScopeMode === 'all' ? '#ffffff' : textPrimary,
-                    fontSize: '0.71rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Lihat ringkasan gabungan semua Ruko"
-                >
-                  <Layers size={12} />
-                  <span>All Ruko</span>
-                </button>
-
-                {/* + Tambah Ruko Button */}
-                {canManageRukoHeader && (
-                  <button
-                    type="button"
-                    data-testid="top-add-ruko-btn"
-                    onClick={() => {
-                      setShowTopRukoDropdown(false);
-                      setCreateStoreError('');
-                      setShowCreateStoreModal(true);
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '4px 10px',
-                      borderRadius: '999px',
-                      border: '1px solid rgba(16, 185, 129, 0.5)',
-                      background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
-                      color: isLight ? '#047857' : '#34d399',
-                      fontSize: '0.71rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                    title="Tambah cabang atau ruko baru"
-                  >
-                    <Plus size={12} />
-                    <span>Tambah Ruko</span>
-                  </button>
+                  </div>,
+                  document.body
                 )}
-              </div>
+              </>
             );
           })()}
         </header>
@@ -7445,24 +7635,43 @@ export default function Kasir({ user, onLogout }) {
             <div
               data-testid="all-ruko-dashboard-banner"
               style={{
-                marginBottom: '0.85rem',
-                padding: '12px 14px',
-                borderRadius: '14px',
+                marginBottom: '0.9rem',
+                padding: '15px 16px',
+                borderRadius: '18px',
                 background: isLight
-                  ? 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)'
-                  : 'linear-gradient(135deg, rgba(37, 99, 235, 0.22) 0%, rgba(14, 165, 233, 0.16) 100%)',
-                border: '1.5px solid rgba(37, 99, 235, 0.4)',
+                  ? 'linear-gradient(155deg, #0f172a 0%, #1e293b 100%)'
+                  : 'linear-gradient(155deg, #0b1120 0%, #172033 100%)',
+                color: '#f8fafc',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 10px 28px rgba(15, 23, 42, 0.14)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px'
+                gap: '12px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <Layers size={16} color="#2563eb" />
-                  <strong style={{ fontSize: '0.84rem', color: textPrimary }}>
-                    Mode All Ruko ({consolidatedSummary?.stores?.length || storeInfo?.allOwnerStores?.length || 1} Cabang Gabungan)
-                  </strong>
+              {/* Single-line header row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'nowrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                  <span style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: '#10b981',
+                    boxShadow: '0 0 8px rgba(16, 185, 129, 0.7)',
+                    flexShrink: 0
+                  }} />
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.07em',
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    All Ruko &bull; {consolidatedSummary?.stores?.length || storeInfo?.allOwnerStores?.length || 1} Cabang
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -7471,41 +7680,94 @@ export default function Kasir({ user, onLogout }) {
                     setDashboardReceiptScope('active');
                   }}
                   style={{
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                     padding: '4px 10px',
                     borderRadius: '999px',
-                    border: `1px solid ${borderColor}`,
-                    background: isLight ? '#ffffff' : '#0f172a',
-                    color: textPrimary,
-                    fontSize: '0.68rem',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#e2e8f0',
+                    fontSize: '0.67rem',
                     fontWeight: 700,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  Kembali ke 1 Ruko
+                  <span>1 Ruko</span>
+                  <X size={11} />
                 </button>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
-                <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
-                  <div style={{ fontSize: '0.64rem', color: textSecondary }}>Omset Hari Ini (All)</div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)' }}>
-                    Rp {Number(consolidatedSummary?.totals?.todayRevenue || 0).toLocaleString('id-ID')}
-                  </div>
+
+              {/* Hero Combined Today Revenue */}
+              <div>
+                <div style={{ fontSize: '0.69rem', color: '#94a3b8', fontWeight: 500 }}>
+                  Total Omset Hari Ini
                 </div>
-                <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
-                  <div style={{ fontSize: '0.64rem', color: textSecondary }}>Omset Bulan Ini (All)</div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#2563eb', fontFamily: 'var(--font-mono)' }}>
+                <div style={{
+                  fontSize: '1.48rem',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  letterSpacing: '-0.4px',
+                  marginTop: '2px',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums'
+                }}>
+                  Rp {Number(consolidatedSummary?.totals?.todayRevenue || 0).toLocaleString('id-ID')}
+                </div>
+              </div>
+
+              {/* Balanced 2-Column Sub-Metric Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{
+                  padding: '9px 11px',
+                  borderRadius: '11px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)'
+                }}>
+                  <div style={{ fontSize: '0.64rem', color: '#94a3b8', fontWeight: 500 }}>Omset Bulan Ini</div>
+                  <div style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    color: '#38bdf8',
+                    marginTop: '2px',
+                    fontFamily: 'var(--font-mono)',
+                    fontVariantNumeric: 'tabular-nums'
+                  }}>
                     Rp {Number(consolidatedSummary?.totals?.monthRevenue || 0).toLocaleString('id-ID')}
                   </div>
                 </div>
-                <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
-                  <div style={{ fontSize: '0.64rem', color: textSecondary }}>Total Kuota Nota</div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                <div style={{
+                  padding: '9px 11px',
+                  borderRadius: '11px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)'
+                }}>
+                  <div style={{ fontSize: '0.64rem', color: '#94a3b8', fontWeight: 500 }}>Total Kuota Nota</div>
+                  <div style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    color: '#f8fafc',
+                    marginTop: '2px',
+                    fontFamily: 'var(--font-mono)',
+                    fontVariantNumeric: 'tabular-nums'
+                  }}>
                     {Number(consolidatedSummary?.totals?.totalKuotaNota ?? storeKuotaNota ?? 0).toLocaleString('id-ID')} nota
                   </div>
                 </div>
               </div>
+
+              {/* Horizontal Branch Quick-Jump Pills */}
               {Array.isArray(storeInfo?.allOwnerStores) && storeInfo.allOwnerStores.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  paddingTop: '2px',
+                  scrollbarWidth: 'none'
+                }}>
                   {storeInfo.allOwnerStores.map((st) => {
                     const sid = String(st.id || st.merchantId);
                     return (
@@ -7518,17 +7780,19 @@ export default function Kasir({ user, onLogout }) {
                           handleSwitchPosStore(sid);
                         }}
                         style={{
-                          padding: '3px 9px',
-                          borderRadius: '8px',
-                          border: `1px solid ${borderColor}`,
-                          background: isLight ? '#ffffff' : '#1e293b',
-                          color: textPrimary,
-                          fontSize: '0.67rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
+                          flexShrink: 0,
+                          padding: '5px 10px',
+                          borderRadius: '999px',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          color: '#e2e8f0',
+                          fontSize: '0.68rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
                         }}
                       >
-                        {st.storeName || st.name} ({Number(st.kuotaNota ?? 0)} nota)
+                        {st.storeName || st.name} &middot; {Number(st.kuotaNota ?? 0).toLocaleString('id-ID')}
                       </button>
                     );
                   })}
