@@ -4201,11 +4201,14 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     let ownerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
     if (!state.isDemo && ownerId) {
       const kvList = await getOwnerMerchantsFromKv(env, ownerId);
-      state.registeredMerchants = state.registeredMerchants || [];
-      for (const m of kvList) {
-        if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
-          state.registeredMerchants.push(m);
-        }
+      if (kvList.length > 0) {
+        const kvIds = new Set(kvList.map(m => String(m?.id || '')));
+        state.registeredMerchants = [
+          ...(state.registeredMerchants || []).filter(m =>
+            m && String(m.ownerUserId || '') !== String(ownerId) && !kvIds.has(String(m.id || ''))
+          ),
+          ...kvList
+        ];
       }
     }
     const targetStore = (state.registeredMerchants || []).find(m => m && String(m.id) === String(targetId));
@@ -4261,11 +4264,14 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
     if (!state.isDemo && ownerId) {
       const kvList = await getOwnerMerchantsFromKv(env, ownerId);
-      state.registeredMerchants = state.registeredMerchants || [];
-      for (const m of kvList) {
-        if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
-          state.registeredMerchants.push(m);
-        }
+      if (kvList.length > 0) {
+        const kvIds = new Set(kvList.map(m => String(m?.id || '')));
+        state.registeredMerchants = [
+          ...(state.registeredMerchants || []).filter(m =>
+            m && String(m.ownerUserId || '') !== String(ownerId) && !kvIds.has(String(m.id || ''))
+          ),
+          ...kvList
+        ];
       }
     }
     let targetStore = targetId
