@@ -1991,9 +1991,15 @@ export default function Kasir({ user, onLogout }) {
         ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
       };
       const scopedSuffix = ownerQuery ? `?${ownerQuery}` : '';
+      const safeEarlyStoreId = typeof overrideStoreId === 'string' && overrideStoreId.trim()
+        ? overrideStoreId.trim()
+        : (storeInfo?.merchantId || '');
+      const ordersQuery = [ownerQuery, safeEarlyStoreId ? `storeId=${encodeURIComponent(safeEarlyStoreId)}` : '']
+        .filter(Boolean)
+        .join('&');
 
       const [resOrders, resTables, resConfig, resStore, consolidatedRes] = await Promise.all([
-        fetch(`/api/pos/orders${scopedSuffix}`, { headers: posHeaders }),
+        fetch(`/api/pos/orders${ordersQuery ? `?${ordersQuery}` : ''}`, { headers: posHeaders }),
         fetch(`/api/pos/tables${scopedSuffix}`, { headers: posHeaders }),
         fetch('/api/pos/config/tripay', { headers: posHeaders }),
         fetch(storeEndpoint, { headers: posHeaders }),
@@ -2089,7 +2095,11 @@ export default function Kasir({ user, onLogout }) {
       const prodQuery = resolvedStoreId
         ? `${accountQuery}&${ownerQuery || `ownerId=${encodeURIComponent(effectiveAccountId)}`}&storeId=${encodeURIComponent(resolvedStoreId)}`
         : `${accountQuery}&${ownerQuery || `ownerId=${encodeURIComponent(effectiveAccountId)}`}`;
-      const shiftsQuery = resolvedStoreId ? `?storeId=${encodeURIComponent(resolvedStoreId)}` : '';
+      const shiftsQueryParams = [
+        resolvedStoreId ? `storeId=${encodeURIComponent(resolvedStoreId)}` : '',
+        `ownerId=${encodeURIComponent(ownerIdVal || effectiveAccountId)}`
+      ].filter(Boolean).join('&');
+      const shiftsQuery = shiftsQueryParams ? `?${shiftsQueryParams}` : '';
       const [resProd, resShifts] = await Promise.all([
         fetch(`/api/pos/products?${prodQuery}`, { headers: posHeaders }),
         fetch(`/api/pos/shifts${shiftsQuery}`, { headers: posHeaders })
@@ -2293,7 +2303,7 @@ export default function Kasir({ user, onLogout }) {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [audioAlert, orders.length, effectiveAccountId]);
+  }, [audioAlert, orders.length, effectiveAccountId, storeInfo?.merchantId]);
 
   // ── FETCH KARYAWAN ONLINE & ABSENSI HARI INI ──
   useEffect(() => {
@@ -2398,7 +2408,14 @@ export default function Kasir({ user, onLogout }) {
   // 2. Kitchen / Cashier Actions
   const handleAccOrder = async (orderId) => {
     try {
-      const res = await fetch(`/api/pos/orders/${orderId}/acc`, { method: 'POST' });
+      const res = await fetch(`/api/pos/orders/${orderId}/acc`, {
+        method: 'POST',
+        headers: buildPosJsonHeaders(),
+        body: JSON.stringify({
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
+        })
+      });
       if (res.ok) {
         playNotificationBell();
         fetchData();
@@ -2417,8 +2434,12 @@ export default function Kasir({ user, onLogout }) {
     try {
       const res = await fetch(`/api/pos/orders/${orderId}/reject`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason })
+        headers: buildPosJsonHeaders(),
+        body: JSON.stringify({
+          reason,
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
+        })
       });
       if (res.ok) fetchData();
     } catch (err) {
@@ -2700,8 +2721,10 @@ export default function Kasir({ user, onLogout }) {
     try {
       const res = await fetch(`/api/pos/orders/${orderId}/confirm-payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId,
           cashierId: user?.id || 'KSR-01',
           cashierName: cashierShift.cashierName || user?.name || 'Kasir Shift'
         })
@@ -2800,7 +2823,14 @@ export default function Kasir({ user, onLogout }) {
 
   const handleCompleteOrder = async (orderId) => {
     try {
-      const res = await fetch(`/api/pos/orders/${orderId}/complete`, { method: 'POST' });
+      const res = await fetch(`/api/pos/orders/${orderId}/complete`, {
+        method: 'POST',
+        headers: buildPosJsonHeaders(),
+        body: JSON.stringify({
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
+        })
+      });
       if (res.ok) fetchData();
     } catch (err) {
       alert('Gagal menyelesaikan pesanan: ' + err.message);
@@ -3981,6 +4011,7 @@ export default function Kasir({ user, onLogout }) {
       id: `RECORD-${Date.now()}`,
       storeId: storeInfo?.merchantId || storeInfo?.uid || 'MTR-KASIR-MASTER',
       merchantId: storeInfo?.merchantId || storeInfo?.uid || 'MTR-KASIR-MASTER',
+      ownerUserId: ownerIdVal || effectiveAccountId,
       storeName: storeInfo?.storeName || 'Toko POS',
       shiftOpenedAt: cashierShift.openedAt,
       closedAt: Date.now(),
@@ -4006,7 +4037,7 @@ export default function Kasir({ user, onLogout }) {
       setClosingModalError('');
       const res = await fetch('/api/pos/shifts/close', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify(closingRecord)
       });
       const data = await parseJsonIfOk(res);
@@ -5539,6 +5570,7 @@ export default function Kasir({ user, onLogout }) {
                       customerPhone: parseCustomerQrOrPhone(cartCustomerPhone).phone || undefined,
                       redeemPoints: resolveStoreTier2Enabled() && cartRedeemPoints > 0 ? cartRedeemPoints : 0,
                       storeId: storeInfo.merchantId || storeInfo.uid || undefined,
+                      ownerUserId: ownerIdVal || effectiveAccountId,
                       storeName: storeInfo.storeName || undefined,
                       storeSaldoNota: storeSaldoNota,
                       storeKuotaNota: storeKuotaNota,

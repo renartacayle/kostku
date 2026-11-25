@@ -1221,6 +1221,100 @@ async function saveProductMetaToKv(env, productId, storeId, ownerId) {
   });
 }
 
+async function resolveActiveStoreIdForOwnerKv(env, storeId, ownerId) {
+  const cleanStoreId = String(storeId || '').trim();
+  if (cleanStoreId) return cleanStoreId;
+  if (!env?.KOSTKU_KV || !ownerId) return '';
+  const activeMerchant = await kvGetJson(env, `merchant:owner:${ownerId}`);
+  if (activeMerchant?.id) return String(activeMerchant.id);
+  const ownerList = await getOwnerMerchantsFromKv(env, ownerId);
+  return ownerList[0]?.id ? String(ownerList[0].id) : '';
+}
+
+async function getStoreOrdersFromKv(env, storeId, ownerId) {
+  if (!env?.KOSTKU_KV) return null;
+  if (storeId) {
+    const byStore = await kvGetJson(env, `orders:store:${storeId}`);
+    if (Array.isArray(byStore)) return byStore;
+  }
+  if (ownerId) {
+    const byOwner = await kvGetJson(env, `orders:owner:${ownerId}`);
+    if (Array.isArray(byOwner)) return byOwner;
+  }
+  return null;
+}
+
+async function upsertStoreOrderToKv(env, orderObj, ownerId = '') {
+  if (!env?.KOSTKU_KV || !orderObj?.id) return;
+  const effStoreId = String(orderObj.storeId || '').trim();
+  const effOwnerId = String(ownerId || orderObj.ownerUserId || '').trim();
+  const existing = (await getStoreOrdersFromKv(env, effStoreId, effOwnerId)) || [];
+  const next = [
+    orderObj,
+    ...existing.filter(o => o && String(o.id) !== String(orderObj.id))
+  ].slice(0, 250);
+  const ops = [];
+  if (effStoreId) {
+    ops.push(kvPutJson(env, `orders:store:${effStoreId}`, next));
+  } else if (effOwnerId) {
+    ops.push(kvPutJson(env, `orders:owner:${effOwnerId}`, next));
+  }
+  ops.push(kvPutJson(env, `order:meta:${orderObj.id}`, {
+    storeId: effStoreId,
+    ownerId: effOwnerId
+  }));
+  await Promise.all(ops);
+}
+
+async function hydrateOrderById(state, env, orderId, hintStoreId = '', hintOwnerId = '') {
+  const foundRam = (state.posOrders || []).find(o => o && String(o.id) === String(orderId));
+  if (foundRam) return foundRam;
+  if (state.isDemo || !env?.KOSTKU_KV || !orderId) return null;
+  let storeId = String(hintStoreId || '').trim();
+  let ownerId = String(hintOwnerId || '').trim();
+  if (!storeId && !ownerId) {
+    const meta = await kvGetJson(env, `order:meta:${orderId}`);
+    if (meta) {
+      storeId = String(meta.storeId || '').trim();
+      ownerId = String(meta.ownerId || '').trim();
+    }
+  }
+  if (!storeId && !ownerId) return null;
+  const kvOrders = await getStoreOrdersFromKv(env, storeId, ownerId);
+  if (!Array.isArray(kvOrders)) return null;
+  const matched = kvOrders.find(o => o && String(o.id) === String(orderId)) || null;
+  if (matched) {
+    state.posOrders = state.posOrders || [];
+    if (!state.posOrders.some(o => o && String(o.id) === String(matched.id))) {
+      state.posOrders.unshift(matched);
+    }
+  }
+  return matched;
+}
+
+async function getStoreShiftsFromKv(env, storeId, ownerId) {
+  if (!env?.KOSTKU_KV) return null;
+  if (storeId) {
+    const byStore = await kvGetJson(env, `shifts:store:${storeId}`);
+    if (Array.isArray(byStore)) return byStore;
+  }
+  if (ownerId) {
+    const byOwner = await kvGetJson(env, `shifts:owner:${ownerId}`);
+    if (Array.isArray(byOwner)) return byOwner;
+  }
+  return null;
+}
+
+async function saveStoreShiftsToKv(env, storeId, ownerId, list) {
+  if (!env?.KOSTKU_KV || !Array.isArray(list)) return;
+  const trimmed = list.slice(0, 100);
+  if (storeId) {
+    await kvPutJson(env, `shifts:store:${storeId}`, trimmed);
+  } else if (ownerId) {
+    await kvPutJson(env, `shifts:owner:${ownerId}`, trimmed);
+  }
+}
+
 async function getOwnerStaffFromKv(env, ownerId) {
   if (!env?.KOSTKU_KV || !ownerId) return [];
   const list = await kvGetJson(env, `owner:staff:${ownerId}`);
@@ -4570,7 +4664,29 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     const baseStores = ownerStoresRaw.length > 0
       ? ownerStoresRaw
       : (state.posStore?.merchantId ? [state.posStore] : []);
-    const orders = Array.isArray(state.posOrders) ? state.posOrders : [];
+    let orders = Array.isArray(state.posOrders) ? state.posOrders : [];
+    if (!state.isDemo && env?.KOSTKU_KV && baseStores.length > 0) {
+      const kvOrderLists = await Promise.all(
+        baseStores.map(st => getStoreOrdersFromKv(env, String(st.id || st.merchantId || ''), reqOwnerId))
+      );
+      const mergedMap = new Map();
+      for (const list of kvOrderLists) {
+        if (Array.isArray(list)) {
+          for (const o of list) {
+            if (o?.id && !mergedMap.has(String(o.id))) mergedMap.set(String(o.id), o);
+          }
+        }
+      }
+      if (mergedMap.size > 0) {
+        orders = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+      } else {
+        orders = orders.filter(o =>
+          o && (!reqOwnerId || String(o.ownerUserId || '') === String(reqOwnerId) || baseStores.some(s => String(s.id || s.merchantId) === String(o.storeId || '')))
+        );
+      }
+    }
     const todayKey = new Date().toISOString().slice(0, 10);
     const monthKey = todayKey.slice(0, 7);
     const perStore = baseStores.map(st => {
@@ -4579,10 +4695,10 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       const paidOrders = stOrders.filter(o => String(o.paymentStatus || '').toLowerCase() === 'paid' || String(o.status || '').toLowerCase() === 'completed');
       const todayRevenue = paidOrders
         .filter(o => String(o.createdAt || '').startsWith(todayKey))
-        .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        .reduce((acc, o) => acc + (Number(o.totalAmount ?? o.total ?? 0) || 0), 0);
       const monthRevenue = paidOrders
         .filter(o => String(o.createdAt || '').startsWith(monthKey))
-        .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        .reduce((acc, o) => acc + (Number(o.totalAmount ?? o.total ?? 0) || 0), 0);
       return {
         storeId: sid,
         storeName: st.storeName || st.name || 'Ruko POS',
@@ -5283,12 +5399,197 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     return new Response(JSON.stringify(calculateAnalytics(state)), { headers: corsHeaders });
   }
 
+  if (path === '/shifts' && method === 'GET') {
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') || 30)));
+    if (!state.isDemo && !reqOwnerId && !rawStoreId) {
+      return new Response(JSON.stringify({ success: true, shifts: [] }), { headers: corsHeaders });
+    }
+    let list = Array.isArray(state.posShifts) ? [...state.posShifts] : [];
+    if (!state.isDemo && env?.KOSTKU_KV) {
+      if (rawStoreId === 'ALL' && reqOwnerId) {
+        const stores = await getOwnerMerchantsFromKv(env, reqOwnerId);
+        const shiftArrays = await Promise.all(stores.map(s => getStoreShiftsFromKv(env, s.id, reqOwnerId)));
+        const merged = [];
+        const seen = new Set();
+        for (const arr of shiftArrays) {
+          if (Array.isArray(arr)) {
+            for (const sh of arr) {
+              if (sh?.id && !seen.has(String(sh.id))) {
+                seen.add(String(sh.id));
+                merged.push(sh);
+              }
+            }
+          }
+        }
+        list = merged;
+      } else {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
+        const kvShifts = await getStoreShiftsFromKv(env, effStoreId, reqOwnerId);
+        if (Array.isArray(kvShifts)) {
+          const kvIds = new Set(kvShifts.map(s => String(s?.id || '')));
+          state.posShifts = [
+            ...(state.posShifts || []).filter(s => s && (!effStoreId || String(s.storeId || '') !== effStoreId) && !kvIds.has(String(s.id || ''))),
+            ...kvShifts
+          ];
+          list = kvShifts;
+        } else {
+          list = list.filter(s =>
+            s && ((effStoreId && String(s.storeId || s.merchantId || '') === effStoreId) || (reqOwnerId && String(s.ownerUserId || s.closedByUserId || '') === reqOwnerId))
+          );
+        }
+      }
+    } else if (rawStoreId && rawStoreId !== 'ALL') {
+      list = list.filter(s => s && String(s.storeId || s.merchantId || '') === rawStoreId);
+    }
+    list.sort((a, b) => Number(b.closedAt || 0) - Number(a.closedAt || 0));
+    return new Response(JSON.stringify({
+      success: true,
+      shifts: list.slice(0, limit)
+    }), { headers: corsHeaders });
+  }
+
+  if (path === '/shifts/close' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const rawOwner = body.ownerUserId || body.ownerId || body.closedByUserId || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    let targetStoreId = String(body.storeId || body.merchantId || state.posStore?.merchantId || state.posStore?.uid || '').trim();
+    if (!state.isDemo) {
+      targetStoreId = await resolveActiveStoreIdForOwnerKv(env, targetStoreId, reqOwnerId);
+    }
+    let matchedM = (state.registeredMerchants || []).find(m => m && String(m.id) === targetStoreId);
+    if (!matchedM && !state.isDemo && targetStoreId && env?.KOSTKU_KV) {
+      matchedM = await kvGetJson(env, `merchant:id:${targetStoreId}`);
+      if (matchedM) {
+        state.registeredMerchants = state.registeredMerchants || [];
+        state.registeredMerchants.push(matchedM);
+      }
+    }
+    const rawPhotos = Array.isArray(body.photoRecaps) ? body.photoRecaps : [];
+    const sanitizedPhotos = rawPhotos.slice(0, 24).map((p, idx) => {
+      if (!p || typeof p !== 'object') return null;
+      const imageData = String(p.imageData || p.photoUrl || p.url || '').trim();
+      if (!imageData) return null;
+      return {
+        id: String(p.id || `SHF-IMG-${Date.now()}-${idx + 1}`),
+        category: String(p.category || 'lainnya').trim() || 'lainnya',
+        categoryLabel: String(p.categoryLabel || 'Rekap Foto'),
+        customId: p.customId ? String(p.customId).trim() : null,
+        customLabel: p.customLabel ? String(p.customLabel).trim() : '',
+        itemName: String(p.itemName || '').trim(),
+        qtyText: String(p.qtyText || '').trim(),
+        note: String(p.note || '').trim(),
+        imageData,
+        takenAt: p.takenAt || new Date().toISOString()
+      };
+    }).filter(Boolean);
+
+    const policy = matchedM?.closingShiftSettings || state.posStore?.closingShiftSettings || {};
+    if (policy.requireClosingPhoto && sanitizedPhotos.length === 0) {
+      return new Response(JSON.stringify({
+        error: 'Tutup shift wajib menyertakan minimal 1 foto rekap kondisi toko/barang.'
+      }), { status: 400, headers: corsHeaders });
+    }
+
+    const closedTs = Number(body.closedAt) || Date.now();
+    const resolvedOwner = reqOwnerId || matchedM?.ownerUserId || '';
+    const shiftRecord = {
+      id: String(body.id || `RECORD-${closedTs}`),
+      storeId: targetStoreId || matchedM?.id || 'MTR-KASIR-MASTER',
+      merchantId: targetStoreId || matchedM?.id || 'MTR-KASIR-MASTER',
+      ownerUserId: resolvedOwner,
+      storeName: String(body.storeName || matchedM?.storeName || matchedM?.name || state.posStore?.storeName || 'Toko POS'),
+      shiftOpenedAt: Number(body.shiftOpenedAt) || closedTs,
+      closedAt: closedTs,
+      closedAtIso: new Date(closedTs).toISOString(),
+      cashierName: String(body.cashierName || 'Kasir Shift').trim(),
+      closedByUserId: body.closedByUserId || request.headers.get('x-user-id') || resolvedOwner || null,
+      initialFloat: Number(body.initialFloat) || 0,
+      cashRevenue: Number(body.cashRevenue) || 0,
+      qrisRevenue: Number(body.qrisRevenue) || 0,
+      nonCashRevenue: Number(body.nonCashRevenue) || 0,
+      totalRevenue: Number(body.totalRevenue) || 0,
+      totalPettyIn: Number(body.totalPettyIn) || 0,
+      totalPettyOut: Number(body.totalPettyOut) || 0,
+      expectedDrawerCash: Number(body.expectedDrawerCash) || 0,
+      actualCash: Number(body.actualCash) || 0,
+      diff: Number(body.diff) || 0,
+      note: String(body.note || '').trim(),
+      completedOrdersCount: Number(body.completedOrdersCount) || 0,
+      photoRecaps: sanitizedPhotos
+    };
+
+    state.posShifts = [
+      shiftRecord,
+      ...(state.posShifts || []).filter(s => s && String(s.id) !== String(shiftRecord.id))
+    ].slice(0, 100);
+
+    let storeShifts = state.posShifts.filter(s => s && String(s.storeId || '') === String(shiftRecord.storeId));
+    if (!state.isDemo && env?.KOSTKU_KV) {
+      const existingKv = (await getStoreShiftsFromKv(env, shiftRecord.storeId, resolvedOwner)) || [];
+      const nextKv = [
+        shiftRecord,
+        ...existingKv.filter(s => s && String(s.id) !== String(shiftRecord.id))
+      ].slice(0, 100);
+      await saveStoreShiftsToKv(env, shiftRecord.storeId, resolvedOwner, nextKv);
+      storeShifts = nextKv;
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Closing shift dan rekapan foto berhasil disimpan!',
+      shift: shiftRecord,
+      shifts: storeShifts.slice(0, 30)
+    }), { headers: corsHeaders });
+  }
+
   if (path === '/orders' || path === '/checkout') {
     if (method === 'GET') {
-      const reqOwnerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
-      const reqStoreId = url.searchParams.get('storeId') || url.searchParams.get('merchantId') || '';
+      const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+      const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+      const reqStoreId = String(url.searchParams.get('storeId') || '').trim();
       if (!state.isDemo && !reqOwnerId && !reqStoreId) {
         return new Response(JSON.stringify({ error: 'Login diperlukan untuk melihat pesanan Kasir POS.' }), { status: 401, headers: corsHeaders });
+      }
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        if (reqStoreId === 'ALL' && reqOwnerId) {
+          const stores = await getOwnerMerchantsFromKv(env, reqOwnerId);
+          const orderArrays = await Promise.all(stores.map(s => getStoreOrdersFromKv(env, s.id, reqOwnerId)));
+          const merged = [];
+          const seen = new Set();
+          for (const arr of orderArrays) {
+            if (Array.isArray(arr)) {
+              for (const o of arr) {
+                if (o?.id && !seen.has(String(o.id))) {
+                  seen.add(String(o.id));
+                  merged.push(o);
+                }
+              }
+            }
+          }
+          merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          return new Response(JSON.stringify(merged), { headers: corsHeaders });
+        }
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, reqStoreId, reqOwnerId);
+        const kvOrders = await getStoreOrdersFromKv(env, effStoreId, reqOwnerId);
+        if (Array.isArray(kvOrders)) {
+          const kvIds = new Set(kvOrders.map(o => String(o?.id || '')));
+          state.posOrders = [
+            ...kvOrders,
+            ...(state.posOrders || []).filter(o => o && (!effStoreId || String(o.storeId || '') !== effStoreId) && !kvIds.has(String(o.id || '')))
+          ];
+          return new Response(JSON.stringify(kvOrders), { headers: corsHeaders });
+        }
+        const scopedRam = (state.posOrders || []).filter(o =>
+          o && ((effStoreId && String(o.storeId || '') === effStoreId) || (reqOwnerId && String(o.ownerUserId || '') === reqOwnerId))
+        );
+        return new Response(JSON.stringify(scopedRam), { headers: corsHeaders });
+      }
+      if (state.isDemo && reqStoreId && reqStoreId !== 'ALL') {
+        const filteredDemo = (state.posOrders || []).filter(o => o && (!o.storeId || String(o.storeId) === reqStoreId));
+        return new Response(JSON.stringify(filteredDemo), { headers: corsHeaders });
       }
       return new Response(JSON.stringify(state.posOrders), { headers: corsHeaders });
     }
@@ -5392,6 +5693,12 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       const BASE_ADMIN_FEE = 40.00;
       const HELD_PROMO_FEE = 60.00;
 
+      const orderOwnerId = await resolvePosOwnerId(
+        state,
+        env,
+        body.ownerUserId || body.ownerId || body.merchantId || existingMerchant?.ownerUserId || request.headers.get('x-user-id') || ''
+      );
+
       const newOrder = {
         id: orderId,
         invoice_number: invoiceNumber,
@@ -5412,11 +5719,14 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         feeBorneBy: feeSnap.notaFeeBearer,
         paymentFeeBorneBy: feeSnap.qrisFee > 0 ? 'customer' : null,
         billing_fee_idr: billingFeeIdr,
+        total: feeSnap.totalAmount,
         totalAmount: feeSnap.totalAmount,
         paymentMethod: requestedPaymentMethod || null,
         paymentStatus: 'UNPAID',
         status: body.status || 'PENDING_CONFIRMATION',
         storeId,
+        merchantId: storeId,
+        ownerUserId: orderOwnerId,
         storeName,
         cashierId: body.cashierId || 'KSR-01',
         cashierName: body.cashierName || 'Kasir',
@@ -5482,6 +5792,9 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       syncDeltaToFirebaseAsync(state, `receipt_claims/${claimRecord.id}`, claimRecord, 'PUT');
 
       state.posOrders.unshift(newOrder);
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        await upsertStoreOrderToKv(env, newOrder, orderOwnerId);
+      }
       return new Response(JSON.stringify({
         ...newOrder,
         invoice: invoiceNumber,
@@ -5502,7 +5815,16 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     const parts = path.replace('/orders/', '').split('/');
     const orderId = parts[0];
     const subAction = parts[1];
-    let order = state.posOrders.find(o => o.id === orderId);
+    const hdrUserId = request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, url.searchParams.get('ownerId') || hdrUserId);
+    const hintStoreId = url.searchParams.get('storeId') || url.searchParams.get('merchantId') || '';
+    let order = await hydrateOrderById(state, env, orderId, hintStoreId, reqOwnerId);
+
+    const persistUpdatedOrder = async (ord) => {
+      if (!state.isDemo && env?.KOSTKU_KV && ord) {
+        await upsertStoreOrderToKv(env, ord, ord.ownerUserId || reqOwnerId);
+      }
+    };
 
     if (!subAction && method === 'GET') {
       if (order) return new Response(JSON.stringify(order), { headers: corsHeaders });
@@ -5510,9 +5832,13 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
     if ((subAction === 'table' || !subAction) && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
       const body = await request.json().catch(() => ({}));
+      if (!order && (body.storeId || body.ownerId || body.ownerUserId)) {
+        order = await hydrateOrderById(state, env, orderId, body.storeId, body.ownerUserId || body.ownerId);
+      }
       if (order) {
         if (body.tableNumber !== undefined) order.tableNumber = body.tableNumber;
         if (body.customerName !== undefined) order.customerName = body.customerName;
+        await persistUpdatedOrder(order);
         syncDeltaToFirebaseAsync(state, `pos_orders/${orderId}`, { tableNumber: order.tableNumber, customerName: order.customerName }, 'PATCH');
         return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
       }
@@ -5520,6 +5846,9 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
     if (subAction === 'acc' && method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      if (!order && (body.storeId || body.ownerId || body.ownerUserId)) {
+        order = await hydrateOrderById(state, env, orderId, body.storeId, body.ownerUserId || body.ownerId);
+      }
       if (!order && body.orderSnapshot && String(body.orderSnapshot.id || '') === String(orderId)) {
         order = { ...body.orderSnapshot, id: orderId, status: body.orderSnapshot.status || 'PENDING_CONFIRMATION' };
         state.posOrders.unshift(order);
@@ -5527,6 +5856,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       if (order) {
         order.status = 'WAITING_PAYMENT';
         order.accAt = new Date().toISOString();
+        await persistUpdatedOrder(order);
         return new Response(JSON.stringify({ success: true, message: 'Pesanan berhasil di-ACC! Pembeli kini dapat membayar.', order }), { headers: corsHeaders });
       }
       return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
@@ -5542,12 +5872,16 @@ async function handlePosApi(request, path, method, url, state, env = null) {
             if (inv) inv.currentStock = (Number(inv.currentStock) || 0) + ((Number(ing.amount) || 0) * qty);
           });
         });
+        await persistUpdatedOrder(order);
         return new Response(JSON.stringify({ success: true, order, message: 'Order dibatalkan dan stok gudang dipulihkan' }), { headers: corsHeaders });
       }
       return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
     if (subAction === 'pay' && method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      if (!order && (body.storeId || body.ownerId || body.ownerUserId)) {
+        order = await hydrateOrderById(state, env, orderId, body.storeId, body.ownerUserId || body.ownerId);
+      }
       if (!order && body.orderSnapshot && String(body.orderSnapshot.id || '') === String(orderId)) {
         order = {
           ...body.orderSnapshot,
@@ -5561,8 +5895,15 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         return new Response(JSON.stringify({ error: 'Pesanan belum di-ACC oleh dapur atau sudah dibayar' }), { status: 400, headers: corsHeaders });
       }
       const normMethod = String(body.method || body.paymentMethod || '').toUpperCase().trim();
-      const billingFeeIdr = Number(order.billing_fee_idr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
-      const notaFeeBearer = normalizeEdgeNotaFeeBearer(state.posStore.notaFeeBearer);
+      const targetStoreId = String(order.storeId || state.posStore?.merchantId || '').trim();
+      let matchedM = (state.registeredMerchants || []).find(m => m && String(m.id) === targetStoreId);
+      if (!matchedM && !state.isDemo && targetStoreId && env?.KOSTKU_KV) {
+        matchedM = await kvGetJson(env, `merchant:id:${targetStoreId}`);
+        if (matchedM) (state.registeredMerchants = state.registeredMerchants || []).push(matchedM);
+      }
+      const storeTier = resolveEdgeStoreTier(state, targetStoreId);
+      const billingFeeIdr = Number(order.billing_fee_idr ?? matchedM?.notaFeePerNotaIdr ?? storeTier.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
+      const notaFeeBearer = normalizeEdgeNotaFeeBearer(matchedM?.notaFeeBearer || state.posStore.notaFeeBearer);
       const baseAmt = Number(order.baseAmountBeforePaymentFee ?? Math.max(0, Number(order.totalAmount || 0) - (Number(order.qrisFee) || 0) - (Number(order.customerAdminFee) || 0)));
 
       if (normMethod === 'CASH_COUNTER') {
@@ -5573,10 +5914,12 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         order.notaFeeBearer = feeSnap.notaFeeBearer;
         order.notaFeeBorneBy = feeSnap.notaFeeBearer;
         order.paymentFeeBorneBy = null;
+        order.total = feeSnap.totalAmount;
         order.totalAmount = feeSnap.totalAmount;
         order.paymentMethod = 'CASH';
         order.customerSelectedPayment = 'CASH_COUNTER';
         order.paymentStatus = 'WAITING_CASHIER';
+        await persistUpdatedOrder(order);
         return new Response(JSON.stringify({
           success: true,
           method: 'CASH_COUNTER',
@@ -5604,12 +5947,14 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         order.customerSelectedPayment = 'TRIPAY';
         order.paymentStatus = 'PENDING';
         order.paymentMethod = 'TRIPAY';
+        order.total = feeSnap.totalAmount;
         order.totalAmount = feeSnap.totalAmount;
         const amtStr = String(Math.round(feeSnap.totalAmount));
         const mockQr = `00020101021226670016ID.CO.TRIPAY.WWW01189360099900000000000215${order.id}52045812530336054${String(amtStr.length).padStart(2, '0')}${amtStr}5802ID5914RIUPH KASIR POS6007JAKARTA62070703A016304E8A2`;
         order.tripayReference = 'EDGE-TRIPAY-' + order.id;
         order.tripayQrString = mockQr;
         order.tripayCheckoutUrl = `https://tripay.co.id/checkout/${order.tripayReference}`;
+        await persistUpdatedOrder(order);
         return new Response(JSON.stringify({
           success: true,
           method: 'TRIPAY',
@@ -5633,8 +5978,9 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         order.notaFeeBearer = feeSnap.notaFeeBearer;
         order.notaFeeBorneBy = feeSnap.notaFeeBearer;
         order.paymentFeeBorneBy = feeSnap.qrisFee > 0 ? 'customer' : null;
+        order.total = feeSnap.totalAmount;
         order.totalAmount = feeSnap.totalAmount;
-        let deductRes = { ok: true, feeDeducted: 0, saldoAfter: state.posStore.saldoNota ?? 0, kuotaAfter: state.posStore.kuotaNota ?? 0 };
+        let deductRes = { ok: true, feeDeducted: 0, saldoAfter: matchedM?.saldoNota ?? state.posStore.saldoNota ?? 0, kuotaAfter: matchedM?.kuotaNota ?? state.posStore.kuotaNota ?? 0 };
         if (normMethod === 'QRIS' && feeSnap.notaFeeBearer === 'customer') {
           order.notaDeducted = 0;
           order.notaBypassReason = 'CUSTOMER_PAID_VIA_KOSTKU_QRIS';
@@ -5643,12 +5989,14 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           if (!deductRes.ok) {
             return new Response(JSON.stringify(deductRes), { status: 400, headers: corsHeaders });
           }
+          if (!state.isDemo && matchedM) await saveMerchantToKv(env, matchedM, false);
         }
         order.paymentMethod = normMethod;
         order.paymentStatus = 'PAID';
         order.status = 'PREPARING';
         order.paidAt = new Date().toISOString();
         if (normMethod === 'QRIS') settleEdgePosUnifiedWallet(state, order, order.storeId, billingFeeIdr);
+        await persistUpdatedOrder(order);
         return new Response(JSON.stringify({
           success: true,
           method: normMethod,
@@ -5667,21 +6015,32 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
     if (subAction === 'confirm-payment' && method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      if (!order && (body.storeId || body.ownerId || body.ownerUserId)) {
+        order = await hydrateOrderById(state, env, orderId, body.storeId, body.ownerUserId || body.ownerId);
+      }
       if (!order) return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
       if (body.cashierName) order.cashierName = body.cashierName;
       if (body.cashierId) order.cashierId = body.cashierId;
-      const billingFeeIdr = Number(order.billing_fee_idr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
+      const targetStoreId = String(order.storeId || state.posStore?.merchantId || '').trim();
+      let matchedM = (state.registeredMerchants || []).find(m => m && String(m.id) === targetStoreId);
+      if (!matchedM && !state.isDemo && targetStoreId && env?.KOSTKU_KV) {
+        matchedM = await kvGetJson(env, `merchant:id:${targetStoreId}`);
+        if (matchedM) (state.registeredMerchants = state.registeredMerchants || []).push(matchedM);
+      }
+      const storeTier = resolveEdgeStoreTier(state, targetStoreId);
+      const billingFeeIdr = Number(order.billing_fee_idr ?? matchedM?.notaFeePerNotaIdr ?? storeTier.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
       const baseAmt = Number(order.baseAmountBeforePaymentFee ?? Math.max(0, Number(order.totalAmount || 0) - (Number(order.qrisFee) || 0) - (Number(order.customerAdminFee) || 0)));
       const pm = String(order.paymentMethod || '').toUpperCase().trim();
       const isGatewayQris = pm === 'TRIPAY' || pm === 'QRIS';
-      const bearer = normalizeEdgeNotaFeeBearer(order.notaFeeBorneBy || order.notaFeeBearer || state.posStore.notaFeeBearer);
+      const bearer = normalizeEdgeNotaFeeBearer(order.notaFeeBorneBy || order.notaFeeBearer || matchedM?.notaFeeBearer || state.posStore.notaFeeBearer);
 
       if (isGatewayQris) {
         if (bearer === 'customer') {
           order.notaDeducted = 0;
           order.notaBypassReason = 'CUSTOMER_PAID_VIA_KOSTKU_QRIS';
-        } else if (!order.notaDeducted && Number(state.posStore.saldoNota ?? 0) >= billingFeeIdr) {
+        } else if (!order.notaDeducted && Number(matchedM?.saldoNota ?? state.posStore.saldoNota ?? 0) >= billingFeeIdr) {
           deductEdgeStoreNotaOnce(state, order, order.storeId || 'STORE-DEFAULT', billingFeeIdr);
+          if (!state.isDemo && matchedM) await saveMerchantToKv(env, matchedM, false);
         } else if (!order.notaDeducted) {
           order.notaDeducted = 0;
           order.notaSettledFromPayout = billingFeeIdr;
@@ -5698,31 +6057,39 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         order.customerAdminFee = feeSnap.customerAdminFee;
         order.notaFeeBearer = feeSnap.notaFeeBearer;
         order.notaFeeBorneBy = feeSnap.notaFeeBearer;
+        order.total = feeSnap.totalAmount;
         order.totalAmount = feeSnap.totalAmount;
         const deductRes = deductEdgeStoreNotaOnce(state, order, order.storeId || 'STORE-DEFAULT', billingFeeIdr);
         if (!deductRes.ok) {
           return new Response(JSON.stringify(deductRes), { status: 400, headers: corsHeaders });
         }
+        if (!state.isDemo && matchedM) await saveMerchantToKv(env, matchedM, false);
         order.paymentMethod = 'CASH';
         order.paymentStatus = 'PAID';
         order.status = 'PREPARING';
         order.paidAt = order.paidAt || new Date().toISOString();
       }
+      await persistUpdatedOrder(order);
       return new Response(JSON.stringify({ success: true, message: 'Pembayaran dikonfirmasi! Pesanan sedang dimasak.', order }), { headers: corsHeaders });
     }
     if (subAction === 'complete' && method === 'POST') {
       if (order) {
         order.status = 'COMPLETED';
+        await persistUpdatedOrder(order);
         return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
       }
       return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
     if (subAction === 'toggle-item' && method === 'POST') {
       const body = await request.json().catch(() => ({}));
-      if (order && order.items) {
-        const item = order.items.find(i => (i.productId || i.id) === body.productId);
+      if (order && Array.isArray(order.items)) {
+        const idx = body.itemIndex != null ? Number(body.itemIndex) : -1;
+        const item = (Number.isInteger(idx) && idx >= 0 && order.items[idx])
+          ? order.items[idx]
+          : order.items.find(i => (i.productId || i.id) === body.productId);
         if (item) {
-          item.isReady = !item.isReady;
+          item.isReady = body.isReady !== undefined ? Boolean(body.isReady) : !item.isReady;
+          await persistUpdatedOrder(order);
           return new Response(JSON.stringify({ success: true, order }), { headers: corsHeaders });
         }
       }
