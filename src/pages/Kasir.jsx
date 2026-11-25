@@ -83,7 +83,7 @@ import QRCode from 'qrcode';
 import { useTheme } from '../context/ThemeContext';
 import { triggerCometArc } from '../utils/cometArc';
 import { parseCustomerQrOrPhone, encodeCustomerPersonalQrPayload } from '../utils/customerQr';
-import { isMitraRole, isMitraStaff, canDisburseMoney } from '../utils/staffRole';
+import { isOwnerRole, isMitraRole, isMitraStaff, canDisburseMoney } from '../utils/staffRole';
 import {
   getSavedPrinterSettings,
   savePrinterSettings,
@@ -7488,13 +7488,13 @@ export default function Kasir({ user, onLogout }) {
                 <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
                   <div style={{ fontSize: '0.64rem', color: textSecondary }}>Omset Hari Ini (All)</div>
                   <div style={{ fontSize: '0.88rem', fontWeight: 900, color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)' }}>
-                    Rp {Number(consolidatedSummary?.totals?.todayRevenue ?? todayOmzet ?? 0).toLocaleString('id-ID')}
+                    Rp {Number(consolidatedSummary?.totals?.todayRevenue || 0).toLocaleString('id-ID')}
                   </div>
                 </div>
                 <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
                   <div style={{ fontSize: '0.64rem', color: textSecondary }}>Omset Bulan Ini (All)</div>
                   <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#2563eb', fontFamily: 'var(--font-mono)' }}>
-                    Rp {Number(consolidatedSummary?.totals?.monthRevenue ?? monthOmzet ?? 0).toLocaleString('id-ID')}
+                    Rp {Number(consolidatedSummary?.totals?.monthRevenue || 0).toLocaleString('id-ID')}
                   </div>
                 </div>
                 <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
