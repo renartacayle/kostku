@@ -1746,6 +1746,77 @@ async function handleApi(request, url, env) {
     }), { headers: corsHeaders });
   }
 
+  if (path === '/wallet/settle-mitra' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const disburseCheck = await isDisburseBlockedCaller(request, body, activeState, env);
+    if (disburseCheck.blocked) {
+      return new Response(JSON.stringify({
+        error: 'Akun Admin tidak memiliki izin untuk menyetor atau mengeluarkan dana.',
+        code: 'ADMIN_NO_DISBURSE'
+      }), { status: 403, headers: corsHeaders });
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      settledAmount: Number(body.amount) || 0,
+      message: 'Setoran mitra berhasil dicatat.'
+    }), { headers: corsHeaders });
+  }
+
+  if (path === '/expenses' || path.startsWith('/expenses/')) {
+    activeState.edgeExpenses = activeState.edgeExpenses || [];
+    const resolveCallerRole = async (body = {}) => {
+      const hdrRole = String(request.headers.get('x-user-role') || body?.actorRole || body?.userRole || '').trim().toLowerCase();
+      if (hdrRole) return hdrRole;
+      const actorId = request.headers.get('x-user-id') || body?.actorId || '';
+      if (actorId) {
+        let caller = activeState.edgeUsers.find(u => String(u.id) === String(actorId));
+        if (!caller && !activeState.isDemo && env?.KOSTKU_KV) {
+          caller = await findUserInKv(env, { id: actorId });
+          if (caller) activeState.edgeUsers.push(caller);
+        }
+        if (caller?.role) return String(caller.role).trim().toLowerCase();
+      }
+      return '';
+    };
+    if (path === '/expenses' && method === 'GET') {
+      const reqKost = url.searchParams.get('kostUid') || '';
+      const list = activeState.edgeExpenses.filter(e => !reqKost || !e.kostUid || e.kostUid === reqKost);
+      return new Response(JSON.stringify(list), { headers: corsHeaders });
+    }
+    if (path === '/expenses' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const callerRole = await resolveCallerRole(body);
+      if (callerRole === 'admin') {
+        return new Response(JSON.stringify({
+          error: 'Akun Admin tidak memiliki izin untuk mencatat atau mengeluarkan dana pengeluaran.',
+          code: 'ADMIN_NO_DISBURSE'
+        }), { status: 403, headers: corsHeaders });
+      }
+      const newExp = {
+        id: 'EXP-' + Date.now(),
+        kostUid: body.kostUid || '',
+        title: body.title || 'Pengeluaran Operasional',
+        amount: Number(body.amount) || 0,
+        category: body.category || 'Operasional',
+        date: new Date().toISOString()
+      };
+      activeState.edgeExpenses.unshift(newExp);
+      return new Response(JSON.stringify({ success: true, expense: newExp }), { status: 201, headers: corsHeaders });
+    }
+    if (path.startsWith('/expenses/') && method === 'DELETE') {
+      const callerRole = await resolveCallerRole();
+      if (callerRole === 'admin') {
+        return new Response(JSON.stringify({
+          error: 'Akun Admin tidak memiliki izin untuk menghapus pengeluaran dana.',
+          code: 'ADMIN_NO_DISBURSE'
+        }), { status: 403, headers: corsHeaders });
+      }
+      const expId = decodeURIComponent(path.replace('/expenses/', ''));
+      activeState.edgeExpenses = activeState.edgeExpenses.filter(e => String(e.id) !== String(expId));
+      return new Response(JSON.stringify({ success: true, deletedId: expId }), { headers: corsHeaders });
+    }
+  }
+
   if (path.startsWith('/merchant/wallet') || path.startsWith('/pos/wallet')) {
     const mId = url.searchParams.get('merchantId') || activeState.posStore.activeBranch || (activeState.isDemo ? 'MTR-KASIR-MASTER' : 'STORE-DEFAULT');
     executeBatchSettlement(activeState);

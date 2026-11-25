@@ -84,7 +84,7 @@ import QRCode from 'qrcode';
 import { useTheme } from '../context/ThemeContext';
 import { triggerCometArc } from '../utils/cometArc';
 import { parseCustomerQrOrPhone, encodeCustomerPersonalQrPayload } from '../utils/customerQr';
-import { isOwnerRole, isMitraRole, isMitraStaff, canDisburseMoney } from '../utils/staffRole';
+import { isOwnerRole, isMitraRole, isMitraStaff, isAdminRole, canDisburseMoney } from '../utils/staffRole';
 import {
   getSavedPrinterSettings,
   savePrinterSettings,
@@ -3814,6 +3814,10 @@ export default function Kasir({ user, onLogout }) {
 
   const handleSavePettyCash = (e) => {
     if (e) e.preventDefault();
+    if (pettyCashType === 'OUT' && isAdminRole(user?.role)) {
+      alert('Akun Admin tidak diizinkan mengeluarkan kas/uang operasional. Hanya Kas Masuk yang diperbolehkan.');
+      return;
+    }
     const amountVal = Number(pettyCashAmount);
     if (!amountVal || amountVal <= 0) return;
 
@@ -3841,6 +3845,10 @@ export default function Kasir({ user, onLogout }) {
   };
 
   const handleDeletePettyCash = (id, type) => {
+    if (type === 'OUT' && isAdminRole(user?.role)) {
+      alert('Akun Admin tidak diizinkan menghapus catatan kas keluar.');
+      return;
+    }
     setCashierShift(prev => {
       const next = { ...prev };
       if (type === 'IN') {
@@ -7784,7 +7792,10 @@ export default function Kasir({ user, onLogout }) {
                 <>
                   <button
                     type="button"
-                    onClick={() => setShowPettyCashModal(true)}
+                    onClick={() => {
+                      if (isAdminRole(user?.role)) setPettyCashType('IN');
+                      setShowPettyCashModal(true);
+                    }}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -7978,7 +7989,11 @@ export default function Kasir({ user, onLogout }) {
                         <>
                           <button
                             type="button"
-                            onClick={() => setShowPettyCashModal(true)}
+                            data-testid="mobile-catat-kas-btn"
+                            onClick={() => {
+                              if (isAdminRole(user?.role)) setPettyCashType('IN');
+                              setShowPettyCashModal(true);
+                            }}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -20039,19 +20054,26 @@ export default function Kasir({ user, onLogout }) {
             }}>
               <button
                 type="button"
-                onClick={() => setPettyCashType('OUT')}
+                data-testid="petty-cash-out-btn"
+                disabled={isAdminRole(user?.role)}
+                onClick={() => {
+                  if (isAdminRole(user?.role)) return;
+                  setPettyCashType('OUT');
+                }}
                 style={{
                   padding: '7px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: pettyCashType === 'OUT' ? '#ef4444' : 'transparent',
-                  color: pettyCashType === 'OUT' ? '#ffffff' : textSecondary,
+                  background: pettyCashType === 'OUT' && !isAdminRole(user?.role) ? '#ef4444' : 'transparent',
+                  color: pettyCashType === 'OUT' && !isAdminRole(user?.role) ? '#ffffff' : textSecondary,
                   fontSize: '0.78rem',
                   fontWeight: 800,
-                  cursor: 'pointer'
+                  cursor: isAdminRole(user?.role) ? 'not-allowed' : 'pointer',
+                  opacity: isAdminRole(user?.role) ? 0.45 : 1
                 }}
+                title={isAdminRole(user?.role) ? 'Akses Admin: tidak diizinkan mengeluarkan kas' : 'Catat pengeluaran tunai kasir'}
               >
-                - Kas Keluar (Belanja)
+                - Kas Keluar (Belanja){isAdminRole(user?.role) ? ' (Terkunci)' : ''}
               </button>
               <button
                 type="button"

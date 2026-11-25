@@ -65,7 +65,7 @@ import DigitalReceiptModal from '../components/DigitalReceiptModal';
 import FintechDunningAndReconcile from '../components/FintechDunningAndReconcile';
 import OwnerNavBanner from '../components/OwnerNavBanner';
 import { useTheme } from '../context/ThemeContext';
-import { canDisburseMoney } from '../utils/staffRole';
+import { canDisburseMoney, isAdminRole } from '../utils/staffRole';
 
 const PIE_COLORS = ['#10b981', '#ef4444'];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
@@ -156,6 +156,7 @@ const Keuangan = ({ user }) => {
   };
 
   const canDisburse = canDisburseMoney(user);
+  const isAdminAccount = isAdminRole(user?.role);
 
   const handleOpenPayoutModal = () => {
     if (!canDisburse) {
@@ -411,6 +412,10 @@ const Keuangan = ({ user }) => {
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
+    if (isAdminAccount) {
+      alert('Akun Admin tidak diizinkan mencatat atau mengeluarkan dana pengeluaran.');
+      return;
+    }
     if (!newExp.title || !newExp.amount) return;
     setSubmitting(true);
 
@@ -427,6 +432,10 @@ const Keuangan = ({ user }) => {
   };
 
   const handleDeleteExpense = async (id, title) => {
+    if (isAdminAccount) {
+      alert('Akun Admin tidak diizinkan menghapus catatan pengeluaran dana.');
+      return;
+    }
     if (!window.confirm(`Hapus catatan pengeluaran "${title}"?`)) return;
     try {
       await apiDeleteExpense(id);
@@ -656,11 +665,23 @@ const Keuangan = ({ user }) => {
               <Printer size={15} /> Cetak Laporan
             </button>
             <button 
+              data-testid="keuangan-add-expense-btn"
+              disabled={isAdminAccount}
               className="btn btn-primary btn-sm"
-              onClick={() => setShowExpenseModal(true)}
-              style={{ gap: '6px' }}
+              onClick={() => {
+                if (isAdminAccount) {
+                  alert('Akun Admin tidak diizinkan mencatat atau mengeluarkan dana pengeluaran.');
+                  return;
+                }
+                setShowExpenseModal(true);
+              }}
+              style={{
+                gap: '6px',
+                ...(isAdminAccount ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+              }}
+              title={isAdminAccount ? 'Akses Admin: tidak diizinkan mencatat pengeluaran dana' : 'Catat Pengeluaran Baru'}
             >
-              <Plus size={15} /> Catat Pengeluaran
+              <Plus size={15} /> {isAdminAccount ? 'Pengeluaran Dibatasi' : 'Catat Pengeluaran'}
             </button>
           </div>
         </>
@@ -694,11 +715,22 @@ const Keuangan = ({ user }) => {
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
             <button 
+              disabled={isAdminAccount}
               className="btn btn-primary btn-sm"
-              onClick={() => setShowExpenseModal(true)}
-              style={{ gap: '6px' }}
+              onClick={() => {
+                if (isAdminAccount) {
+                  alert('Akun Admin tidak diizinkan mencatat pengeluaran dana.');
+                  return;
+                }
+                setShowExpenseModal(true);
+              }}
+              style={{
+                gap: '6px',
+                ...(isAdminAccount ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+              }}
+              title={isAdminAccount ? 'Akses Admin: tidak diizinkan mencatat pengeluaran dana' : 'Catat Pengeluaran Baru'}
             >
-              <Plus size={15} /> Catat Pengeluaran
+              <Plus size={15} /> {isAdminAccount ? 'Pengeluaran Dibatasi' : 'Catat Pengeluaran'}
             </button>
           </div>
         </div>
@@ -1476,9 +1508,11 @@ const Keuangan = ({ user }) => {
                       - {formatRupiah(exp.amount)}
                     </strong>
                     <button
+                      disabled={isAdminAccount}
                       onClick={() => handleDeleteExpense(exp.id, exp.title)}
                       className="btn btn-danger btn-sm no-print"
-                      title="Hapus Pengeluaran"
+                      style={isAdminAccount ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                      title={isAdminAccount ? 'Akses Admin: tidak diizinkan menghapus pengeluaran dana' : 'Hapus Pengeluaran'}
                     >
                       <Trash2 size={15} />
                     </button>
