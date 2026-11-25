@@ -1141,12 +1141,95 @@ async function findUserInKv(env, { id = '', email = '', loginId = '' } = {}) {
   return null;
 }
 
-async function saveMerchantToKv(env, merchantObj) {
+async function getOwnerMerchantsFromKv(env, ownerId) {
+  if (!env?.KOSTKU_KV || !ownerId) return [];
+  const list = await kvGetJson(env, `merchants:owner:${ownerId}`);
+  if (Array.isArray(list) && list.length > 0) return list;
+  const single = await kvGetJson(env, `merchant:owner:${ownerId}`);
+  return single ? [single] : [];
+}
+
+async function saveMerchantListToKv(env, ownerId, list) {
+  if (!env?.KOSTKU_KV || !ownerId || !Array.isArray(list)) return;
+  await kvPutJson(env, `merchants:owner:${ownerId}`, list);
+}
+
+async function saveMerchantToKv(env, merchantObj, setAsActive = true) {
   if (!env?.KOSTKU_KV || !merchantObj) return;
   const ops = [];
   if (merchantObj.id) ops.push(kvPutJson(env, `merchant:id:${merchantObj.id}`, merchantObj));
-  if (merchantObj.ownerUserId) ops.push(kvPutJson(env, `merchant:owner:${merchantObj.ownerUserId}`, merchantObj));
+  if (merchantObj.ownerUserId) {
+    if (setAsActive) {
+      ops.push(kvPutJson(env, `merchant:owner:${merchantObj.ownerUserId}`, merchantObj));
+    }
+    const existingList = await getOwnerMerchantsFromKv(env, merchantObj.ownerUserId);
+    const idx = existingList.findIndex(m => m && String(m.id) === String(merchantObj.id));
+    const nextList = [...existingList];
+    if (idx >= 0) nextList[idx] = merchantObj;
+    else nextList.push(merchantObj);
+    ops.push(kvPutJson(env, `merchants:owner:${merchantObj.ownerUserId}`, nextList));
+  }
   await Promise.all(ops);
+}
+
+async function getOwnerStaffFromKv(env, ownerId) {
+  if (!env?.KOSTKU_KV || !ownerId) return [];
+  const list = await kvGetJson(env, `owner:staff:${ownerId}`);
+  return Array.isArray(list) ? list : [];
+}
+
+async function saveOwnerStaffMemberToKv(env, ownerId, staffUser) {
+  if (!env?.KOSTKU_KV || !ownerId || !staffUser) return;
+  await saveUserToKv(env, staffUser);
+  const list = await getOwnerStaffFromKv(env, ownerId);
+  const idx = list.findIndex(u => u && String(u.id) === String(staffUser.id));
+  const next = [...list];
+  if (idx >= 0) next[idx] = staffUser;
+  else next.unshift(staffUser);
+  await kvPutJson(env, `owner:staff:${ownerId}`, next);
+}
+
+async function getOwnerInvitesFromKv(env, ownerId) {
+  if (!env?.KOSTKU_KV || !ownerId) return [];
+  const list = await kvGetJson(env, `owner:invites:${ownerId}`);
+  return Array.isArray(list) ? list : [];
+}
+
+async function saveStaffInviteToKv(env, inv) {
+  if (!env?.KOSTKU_KV || !inv) return;
+  const ops = [];
+  if (inv.token) ops.push(kvPutJson(env, `invite:token:${inv.token}`, inv));
+  if (inv.ownerId) {
+    const list = await getOwnerInvitesFromKv(env, inv.ownerId);
+    const idx = list.findIndex(i => i && (String(i.id) === String(inv.id) || (inv.token && i.token === inv.token)));
+    const next = [...list];
+    if (idx >= 0) next[idx] = inv;
+    else next.unshift(inv);
+    ops.push(kvPutJson(env, `owner:invites:${inv.ownerId}`, next));
+  }
+  await Promise.all(ops);
+}
+
+async function isDisburseBlockedCaller(request, body, activeState, env) {
+  const headerRole = String(request.headers.get('x-user-role') || '').trim().toLowerCase();
+  const bodyRole = String(body?.actorRole || body?.userRole || '').trim().toLowerCase();
+  const declaredRole = headerRole || bodyRole;
+  if (['admin', 'staff', 'karyawan'].includes(declaredRole)) {
+    return { blocked: true, role: declaredRole };
+  }
+  const actorId = request.headers.get('x-user-id') || body?.actorId || body?.callerId || '';
+  if (actorId) {
+    let caller = activeState.edgeUsers.find(u => String(u.id) === String(actorId));
+    if (!caller && !activeState.isDemo && env?.KOSTKU_KV) {
+      caller = await findUserInKv(env, { id: actorId });
+      if (caller) activeState.edgeUsers.push(caller);
+    }
+    const storedRole = String(caller?.role || '').trim().toLowerCase();
+    if (['admin', 'staff', 'karyawan'].includes(storedRole)) {
+      return { blocked: true, role: storedRole };
+    }
+  }
+  return { blocked: false, role: declaredRole || 'owner' };
 }
 
 async function saveKostToKv(env, kostObj) {
@@ -1607,6 +1690,13 @@ async function handleApi(request, url, env) {
         w.balance = (Number(w.balance) || 0) + numAmt;
         w.totalEarned = (Number(w.totalEarned) || 0) + numAmt;
       } else if (type === 'withdraw' || type === 'payout') {
+        const disburseCheck = await isDisburseBlockedCaller(request, body, activeState, env);
+        if (disburseCheck.blocked) {
+          return new Response(JSON.stringify({
+            error: 'Akun Admin tidak memiliki izin untuk mencairkan atau mengeluarkan dana. Hanya Pemilik Utama (Owner/Mitra) yang dapat menarik dana.',
+            code: 'ADMIN_NO_DISBURSE'
+          }), { status: 403, headers: corsHeaders });
+        }
         if ((Number(w.balance) || 0) < numAmt) {
           return new Response(JSON.stringify({ error: 'Saldo Unified Wallet tidak mencukupi untuk penarikan dana.' }), { status: 400, headers: corsHeaders });
         }
@@ -1630,6 +1720,29 @@ async function handleApi(request, url, env) {
       wallet: w,
       unifiedUid: targetUid,
       isShared: true
+    }), { headers: corsHeaders });
+  }
+
+  if (path === '/payout/flip/disburse' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const disburseCheck = await isDisburseBlockedCaller(request, body, activeState, env);
+    if (disburseCheck.blocked) {
+      return new Response(JSON.stringify({
+        error: 'Akun Admin tidak memiliki izin untuk mencairkan atau mengeluarkan dana. Hanya Pemilik Utama (Owner/Mitra) yang dapat menarik dana.',
+        code: 'ADMIN_NO_DISBURSE'
+      }), { status: 403, headers: corsHeaders });
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      id: `TRIPAY-DISB-${Date.now().toString().slice(-6)}`,
+      status: 'DONE',
+      bank_code: body.bank_code || 'BCA',
+      account_number: body.account_number || '8830192831',
+      account_holder: body.account_holder || 'Pemilik KostKu',
+      amount: Number(body.amount) || 0,
+      fee: 5000,
+      timestamp: new Date().toLocaleString('id-ID'),
+      message: 'Disbursement berhasil diproses via TriPay Payout Gateway'
     }), { headers: corsHeaders });
   }
 
@@ -2301,16 +2414,36 @@ async function handleApi(request, url, env) {
         return new Response(JSON.stringify({ error: 'Password salah.' }), { status: 401, headers: corsHeaders });
       }
     }
-    let matchedKost = realEdgeState.edgeKosts.find(k => k.uid === found.kostUid);
-    if (!matchedKost && (found.kostUid || found.id)) {
+    const lookupOwnerId = (String(found.role || '').toLowerCase() === 'admin' && found.ownerId)
+      ? found.ownerId
+      : found.id;
+    let matchedKost = realEdgeState.edgeKosts.find(k =>
+      k.uid === found.kostUid || (lookupOwnerId && String(k.ownerId || '') === String(lookupOwnerId))
+    );
+    if (!matchedKost && (found.kostUid || lookupOwnerId)) {
       matchedKost = (found.kostUid ? await kvGetJson(env, `kost:uid:${found.kostUid}`) : null) ||
-        await kvGetJson(env, `kost:owner:${found.id}`);
+        await kvGetJson(env, `kost:owner:${lookupOwnerId}`);
       if (matchedKost) realEdgeState.edgeKosts.push(matchedKost);
     }
-    let matchedMerchant = realEdgeState.registeredMerchants.find(m => m && String(m.ownerUserId) === String(found.id));
-    if (!matchedMerchant && found.id) {
-      matchedMerchant = await kvGetJson(env, `merchant:owner:${found.id}`);
-      if (matchedMerchant) realEdgeState.registeredMerchants.push(matchedMerchant);
+    let matchedMerchant = realEdgeState.registeredMerchants.find(m =>
+      m && (String(m.ownerUserId) === String(lookupOwnerId) || (found.merchantId && String(m.id) === String(found.merchantId)))
+    );
+    if (!matchedMerchant && (lookupOwnerId || found.merchantId)) {
+      const kvOwnerMerchants = lookupOwnerId ? await getOwnerMerchantsFromKv(env, lookupOwnerId) : [];
+      if (kvOwnerMerchants.length > 0) {
+        for (const m of kvOwnerMerchants) {
+          if (m && !realEdgeState.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
+            realEdgeState.registeredMerchants.push(m);
+          }
+        }
+      }
+      matchedMerchant = (found.merchantId ? await kvGetJson(env, `merchant:id:${found.merchantId}`) : null) ||
+        (lookupOwnerId ? await kvGetJson(env, `merchant:owner:${lookupOwnerId}`) : null) ||
+        kvOwnerMerchants[0] ||
+        null;
+      if (matchedMerchant && !realEdgeState.registeredMerchants.some(x => x && String(x.id) === String(matchedMerchant.id))) {
+        realEdgeState.registeredMerchants.push(matchedMerchant);
+      }
     }
     const hydratedUser = {
       ...stripSensitiveUser(found),
@@ -2771,19 +2904,105 @@ async function handleApi(request, url, env) {
     }), { headers: corsHeaders });
   }
 
-  // ── Staff Invites, Staff Listing & Admin Promotion (Edge Sync) ──
+  // ── Staff Invites, Staff Listing, Direct Create & Admin Role (KV-Backed) ──
   if (path === '/owner/staff' && method === 'GET') {
     const reqOwnerId = url.searchParams.get('ownerId') || '';
     const reqKostUid = url.searchParams.get('kostUid') || '';
-    const caller = reqOwnerId ? activeState.edgeUsers.find(u => String(u.id) === String(reqOwnerId)) : null;
+    let caller = reqOwnerId ? activeState.edgeUsers.find(u => String(u.id) === String(reqOwnerId)) : null;
+    if (!caller && !activeState.isDemo && reqOwnerId) {
+      caller = await findUserInKv(env, { id: reqOwnerId });
+      if (caller) activeState.edgeUsers.push(caller);
+    }
     const resolvedOwnerId = (caller && caller.ownerId) ? caller.ownerId : reqOwnerId;
+    if (!activeState.isDemo && resolvedOwnerId) {
+      const kvStaff = await getOwnerStaffFromKv(env, resolvedOwnerId);
+      for (const s of kvStaff) {
+        if (s && !activeState.edgeUsers.some(u => String(u.id) === String(s.id))) {
+          activeState.edgeUsers.push(s);
+        }
+      }
+    }
     const list = (activeState.edgeUsers || []).filter(u => {
       if (!['staff', 'admin', 'karyawan'].includes(String(u.role || '').toLowerCase())) return false;
       if (reqKostUid && u.kostUid !== reqKostUid) return false;
       if (resolvedOwnerId && u.ownerId && String(u.ownerId) !== String(resolvedOwnerId)) return false;
       return true;
-    }).map(({ password: _, ...safe }) => safe);
+    }).map(u => stripSensitiveUser(u));
     return new Response(JSON.stringify(list), { headers: corsHeaders });
+  }
+
+  if (path === '/owner/staff' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const rawActorId = request.headers.get('x-user-id') || body.actorId || body.ownerId || '';
+    let actor = rawActorId ? activeState.edgeUsers.find(u => String(u.id) === String(rawActorId)) : null;
+    if (!actor && !activeState.isDemo && rawActorId) {
+      actor = await findUserInKv(env, { id: rawActorId });
+      if (actor) activeState.edgeUsers.push(actor);
+    }
+    const actorRole = actor
+      ? String(actor.role || '').toLowerCase()
+      : String(request.headers.get('x-user-role') || body.actorRole || 'owner').toLowerCase();
+    if (!['owner', 'mitra', 'master', 'admin'].includes(actorRole)) {
+      return new Response(JSON.stringify({
+        error: 'Hanya Pemilik (Owner / Mitra) atau Admin yang dapat menambahkan akun staf/admin.'
+      }), { status: 403, headers: corsHeaders });
+    }
+    const rawTargetRole = String(body.targetRole || body.accountRole || body.accessRole || 'staff').trim().toLowerCase();
+    const assignedRole = rawTargetRole === 'admin' ? 'admin' : 'staff';
+    const resolvedOwnerId = String((actor && actor.role === 'admin' && actor.ownerId) ? actor.ownerId : (body.ownerId || rawActorId || '')).trim();
+    const cleanName = String(body.name || '').trim();
+    const cleanEmail = String(body.email || '').trim().toLowerCase();
+    const cleanPhone = String(body.phone || '').trim();
+    if (!cleanName || (!cleanEmail && cleanPhone.replace(/\D/g, '').length < 9)) {
+      return new Response(JSON.stringify({ error: 'Nama dan minimal Email atau No. WhatsApp wajib diisi.' }), { status: 400, headers: corsHeaders });
+    }
+    const dupInRam = activeState.edgeUsers.find(u =>
+      (cleanEmail && String(u.email || '').toLowerCase() === cleanEmail) ||
+      (cleanPhone && String(u.phone || '') === cleanPhone)
+    );
+    const dupInKv = (!activeState.isDemo && cleanEmail) ? await findUserInKv(env, { email: cleanEmail }) : null;
+    if (dupInRam || dupInKv) {
+      return new Response(JSON.stringify({ error: 'Email atau No. WA sudah terdaftar di sistem.' }), { status: 409, headers: corsHeaders });
+    }
+    const rawPassword = String(body.password || 'kostku123');
+    const passwordSalt = randomHexEdge(8);
+    const passwordHash = await hashPasswordEdge(rawPassword, passwordSalt);
+    const rolesArr = Array.isArray(body.roles) && body.roles.length > 0
+      ? body.roles
+      : [assignedRole === 'admin' ? 'Admin Pengelola (Akses Owner Tanpa Tarik Dana)' : 'Kasir Toko (Mitra POS)'];
+    const newStaff = {
+      id: 'usr-stf-' + Date.now() + '-' + randomHexEdge(2),
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      passwordHash,
+      passwordSalt,
+      role: assignedRole,
+      ownerId: resolvedOwnerId,
+      kostUid: body.kostUid || actor?.kostUid || '',
+      merchantId: body.merchantId || actor?.merchantId || '',
+      roles: rolesArr,
+      jobTitle: String(body.jobTitle || rolesArr.join(', ')),
+      assignedStoreIds: Array.isArray(body.assignedStoreIds) && body.assignedStoreIds.length > 0 ? body.assignedStoreIds : ['all'],
+      salary: Number(body.salary) || 0,
+      status: 'active',
+      canDisburse: false,
+      createdAt: new Date().toISOString()
+    };
+    activeState.edgeUsers.push(newStaff);
+    if (!activeState.isDemo && resolvedOwnerId) {
+      await saveOwnerStaffMemberToKv(env, resolvedOwnerId, newStaff);
+    } else if (!activeState.isDemo) {
+      await saveUserToKv(env, newStaff);
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      staff: stripSensitiveUser(newStaff),
+      user: stripSensitiveUser(newStaff),
+      message: assignedRole === 'admin'
+        ? `Akun Admin "${cleanName}" berhasil dibuat (akses setara Owner tanpa izin tarik dana).`
+        : `Akun staf "${cleanName}" berhasil dibuat.`
+    }), { status: 201, headers: corsHeaders });
   }
 
   const staffRoleMatch = path.match(/^\/owner\/staff\/([^/]+)\/role$/);
@@ -2796,21 +3015,34 @@ async function handleApi(request, url, env) {
       return new Response(JSON.stringify({ error: 'Role tujuan harus "admin" atau "staff".' }), { status: 400, headers: corsHeaders });
     }
     const actorId = request.headers.get('x-user-id') || body.actorId || body.ownerId || '';
-    const actor = activeState.edgeUsers.find(u => String(u.id) === String(actorId));
+    let actor = activeState.edgeUsers.find(u => String(u.id) === String(actorId));
+    if (!actor && !activeState.isDemo && actorId) {
+      actor = await findUserInKv(env, { id: actorId });
+      if (actor) activeState.edgeUsers.push(actor);
+    }
     const actorRole = actor ? String(actor.role || '').toLowerCase() : String(request.headers.get('x-user-role') || '').toLowerCase();
     if (!['owner', 'mitra', 'master', 'admin'].includes(actorRole)) {
       return new Response(JSON.stringify({ error: 'Hanya Pemilik (Owner / Mitra) atau Admin yang dapat menaikkan/mengubah role karyawan.' }), { status: 403, headers: corsHeaders });
     }
-    const target = activeState.edgeUsers.find(u => String(u.id) === tid);
+    let target = activeState.edgeUsers.find(u => String(u.id) === tid);
+    if (!target && !activeState.isDemo) {
+      target = await findUserInKv(env, { id: tid });
+      if (target) activeState.edgeUsers.push(target);
+    }
     if (!target || ['owner', 'mitra', 'master'].includes(String(target.role || '').toLowerCase())) {
       return new Response(JSON.stringify({ error: 'Karyawan tidak ditemukan atau merupakan akun Pemilik.' }), { status: target ? 403 : 404, headers: corsHeaders });
     }
     target.role = nextRole;
-    const { password: _, ...safe } = target;
+    target.canDisburse = false;
+    if (!activeState.isDemo) {
+      const targetOwner = target.ownerId || (actor?.ownerId || actorId);
+      if (targetOwner) await saveOwnerStaffMemberToKv(env, targetOwner, target);
+      else await saveUserToKv(env, target);
+    }
     return new Response(JSON.stringify({
       success: true,
-      message: nextRole === 'admin' ? `${target.name} dinaikkan menjadi Admin.` : `${target.name} diturunkan ke Karyawan.`,
-      staff: safe
+      message: nextRole === 'admin' ? `${target.name} dinaikkan menjadi Admin (tanpa izin tarik dana).` : `${target.name} diturunkan ke Karyawan.`,
+      staff: stripSensitiveUser(target)
     }), { headers: corsHeaders });
   }
 
@@ -2818,11 +3050,21 @@ async function handleApi(request, url, env) {
     activeState.staffInvites = activeState.staffInvites || [];
     if (method === 'GET') {
       const ownerId = url.searchParams.get('ownerId') || '';
+      if (!activeState.isDemo && ownerId) {
+        const kvInvs = await getOwnerInvitesFromKv(env, ownerId);
+        for (const ki of kvInvs) {
+          if (ki && !activeState.staffInvites.some(x => x.id === ki.id || x.token === ki.token)) {
+            activeState.staffInvites.push(ki);
+          }
+        }
+      }
       const list = activeState.staffInvites.filter(i => !ownerId || String(i.ownerId) === String(ownerId));
       return new Response(JSON.stringify(list), { headers: corsHeaders });
     }
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const rawTargetRole = String(body.targetRole || body.accountRole || body.accessRole || 'staff').trim().toLowerCase();
+      const targetRole = rawTargetRole === 'admin' ? 'admin' : 'staff';
       const token = 'inv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       const inv = {
         id: 'INV-' + Date.now(),
@@ -2835,13 +3077,17 @@ async function handleApi(request, url, env) {
         suggestedName: body.name || '',
         email: body.email || '',
         phone: body.phone || '',
+        targetRole,
+        accountRole: targetRole,
         roles: Array.isArray(body.roles) && body.roles.length > 0 ? body.roles : ['Penjaga Kost'],
         jobTitle: body.jobTitle || 'Penjaga Kost',
+        assignedStoreIds: Array.isArray(body.assignedStoreIds) && body.assignedStoreIds.length > 0 ? body.assignedStoreIds : ['all'],
         salary: Number(body.salary) || 0,
         status: 'pending',
         inviteUrl: `${body.origin || url.origin}/invite-staff/${token}`
       };
       activeState.staffInvites.unshift(inv);
+      if (!activeState.isDemo) await saveStaffInviteToKv(env, inv);
       return new Response(JSON.stringify({ success: true, invite: inv, inviteUrl: inv.inviteUrl }), { status: 201, headers: corsHeaders });
     }
   }
@@ -2850,7 +3096,11 @@ async function handleApi(request, url, env) {
   if (acceptInviteMatch && method === 'POST') {
     const token = decodeURIComponent(acceptInviteMatch[1]);
     activeState.staffInvites = activeState.staffInvites || [];
-    const inv = activeState.staffInvites.find(i => i.token === token);
+    let inv = activeState.staffInvites.find(i => i.token === token);
+    if (!inv && !activeState.isDemo) {
+      inv = await kvGetJson(env, `invite:token:${token}`);
+      if (inv) activeState.staffInvites.push(inv);
+    }
     if (!inv || inv.status !== 'pending') {
       return new Response(JSON.stringify({ error: 'Link undangan tidak valid atau sudah digunakan.' }), { status: inv ? 409 : 404, headers: corsHeaders });
     }
@@ -2861,6 +3111,10 @@ async function handleApi(request, url, env) {
       (cleanEmail && String(u.email || '').toLowerCase() === cleanEmail) ||
       (existingId && String(u.id) === String(existingId) && String(u.id) !== String(inv.ownerId))
     );
+    if (!user && !activeState.isDemo && cleanEmail) {
+      user = await findUserInKv(env, { email: cleanEmail });
+      if (user) activeState.edgeUsers.push(user);
+    }
     if (!user) {
       user = { id: 'usr-' + Date.now(), createdAt: new Date().toISOString() };
       activeState.edgeUsers.push(user);
@@ -2868,19 +3122,32 @@ async function handleApi(request, url, env) {
     user.name = String(body.name || inv.suggestedName || user.name || 'Karyawan').trim();
     if (cleanEmail) user.email = cleanEmail;
     if (body.phone || inv.phone) user.phone = body.phone || inv.phone;
-    user.role = 'staff';
+    if (body.password && String(body.password).trim()) {
+      user.passwordSalt = randomHexEdge(8);
+      user.passwordHash = await hashPasswordEdge(String(body.password).trim(), user.passwordSalt);
+    }
+    user.role = inv.targetRole === 'admin' ? 'admin' : 'staff';
+    user.canDisburse = false;
     user.ownerId = inv.ownerId;
     user.kostUid = inv.kostUid;
     user.roles = inv.roles || ['Penjaga Kost'];
     user.jobTitle = inv.jobTitle || 'Penjaga Kost';
+    user.assignedStoreIds = inv.assignedStoreIds || ['all'];
     inv.status = 'accepted';
     inv.acceptedUserId = user.id;
     inv.acceptedName = user.name;
-    const { password: _, ...safeUser } = user;
+    if (!activeState.isDemo) {
+      await Promise.all([
+        inv.ownerId ? saveOwnerStaffMemberToKv(env, inv.ownerId, user) : saveUserToKv(env, user),
+        saveStaffInviteToKv(env, inv)
+      ]);
+    }
     return new Response(JSON.stringify({
       success: true,
-      message: `Selamat bergabung ${user.name}! Akun karyawan Anda resmi aktif.`,
-      user: safeUser,
+      message: user.role === 'admin'
+        ? `Selamat bergabung ${user.name}! Akun Admin Anda resmi aktif (akses Owner tanpa izin tarik dana).`
+        : `Selamat bergabung ${user.name}! Akun karyawan Anda resmi aktif.`,
+      user: stripSensitiveUser(user),
       kostName: inv.kostName || 'KostKu',
       staffRole: user.jobTitle
     }), { headers: corsHeaders });
@@ -2890,7 +3157,11 @@ async function handleApi(request, url, env) {
   if (getInviteMatch && method === 'GET') {
     const token = decodeURIComponent(getInviteMatch[1]);
     activeState.staffInvites = activeState.staffInvites || [];
-    const inv = activeState.staffInvites.find(i => i.token === token);
+    let inv = activeState.staffInvites.find(i => i.token === token);
+    if (!inv && !activeState.isDemo) {
+      inv = await kvGetJson(env, `invite:token:${token}`);
+      if (inv) activeState.staffInvites.push(inv);
+    }
     if (!inv) return new Response(JSON.stringify({ error: 'Undangan tidak ditemukan.' }), { status: 404, headers: corsHeaders });
     return new Response(JSON.stringify({ invite: inv }), { headers: corsHeaders });
   }
@@ -3375,9 +3646,21 @@ function deductEdgeStoreNotaOnce(state, order, storeId, billingFeeIdr) {
 async function handlePosApi(request, path, method, url, state, env = null) {
   if (path === '/store') {
     if (method === 'GET') {
-      const reqOwnerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+      const rawReqOwnerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
       const reqTableToken = url.searchParams.get('tableToken') || '';
       const reqStoreId = url.searchParams.get('storeId') || url.searchParams.get('merchantId') || '';
+
+      let reqOwnerId = rawReqOwnerId;
+      if (rawReqOwnerId) {
+        let callerUser = (state.edgeUsers || []).find(u => String(u.id) === String(rawReqOwnerId));
+        if (!callerUser && !state.isDemo && env?.KOSTKU_KV) {
+          callerUser = await findUserInKv(env, { id: rawReqOwnerId });
+          if (callerUser) (state.edgeUsers = state.edgeUsers || []).push(callerUser);
+        }
+        if (callerUser && String(callerUser.role || '').toLowerCase() === 'admin' && callerUser.ownerId) {
+          reqOwnerId = String(callerUser.ownerId);
+        }
+      }
 
       if (!state.isDemo && !reqOwnerId && !reqTableToken && !reqStoreId) {
         return new Response(JSON.stringify({
@@ -3393,26 +3676,38 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       }
 
       if (!state.isDemo && reqOwnerId && !reqTableToken) {
-        let hasMerchant = (state.registeredMerchants || []).some(m =>
+        const kvOwnerList = await getOwnerMerchantsFromKv(env, reqOwnerId);
+        state.registeredMerchants = state.registeredMerchants || [];
+        for (const m of kvOwnerList) {
+          if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
+            state.registeredMerchants.push(m);
+          }
+        }
+        let hasMerchant = state.registeredMerchants.some(m =>
           m && (String(m.ownerUserId || '') === String(reqOwnerId) || (reqStoreId && String(m.id || '') === String(reqStoreId)))
         );
-        if (!hasMerchant) {
-          const kvMerchant = await kvGetJson(env, `merchant:owner:${reqOwnerId}`) ||
-            (reqStoreId ? await kvGetJson(env, `merchant:id:${reqStoreId}`) : null);
-          if (kvMerchant) {
-            state.registeredMerchants = state.registeredMerchants || [];
-            state.registeredMerchants.push(kvMerchant);
-            Object.assign(state.posStore, kvMerchant);
-            state.posStore.uid = kvMerchant.id;
-            state.posStore.merchantId = kvMerchant.id;
+        if (!hasMerchant && reqStoreId) {
+          const byId = await kvGetJson(env, `merchant:id:${reqStoreId}`);
+          if (byId) {
+            state.registeredMerchants.push(byId);
+            hasMerchant = true;
+          }
+        }
+        if (hasMerchant) {
+          const activeKvMerchant = await kvGetJson(env, `merchant:owner:${reqOwnerId}`) || kvOwnerList[0];
+          const syncTarget = (reqStoreId && state.registeredMerchants.find(m => m && String(m.id) === String(reqStoreId))) || activeKvMerchant;
+          if (syncTarget) {
+            Object.assign(state.posStore, syncTarget);
+            state.posStore.uid = syncTarget.id;
+            state.posStore.merchantId = syncTarget.id;
+            state.posStore.activeBranch = syncTarget.id;
             syncEdgeStoreWallet(
               state,
-              kvMerchant.id,
-              kvMerchant.saldoNota ?? 5000,
-              kvMerchant.kuotaNota ?? 50,
-              kvMerchant.notaFeePerNotaIdr ?? 25
+              syncTarget.id,
+              syncTarget.saldoNota ?? 5000,
+              syncTarget.kuotaNota ?? 50,
+              syncTarget.notaFeePerNotaIdr ?? 25
             );
-            hasMerchant = true;
           }
         }
         if (!hasMerchant && !state.posStore?.ownerUserId && !reqStoreId) {
@@ -3480,21 +3775,44 @@ async function handlePosApi(request, path, method, url, state, env = null) {
               { id: 'tbl-5', number: 'Meja 05', qrToken: 'MEJA-05-RN' }
             ];
           }
+          await saveMerchantToKv(env, renartaMerchant, true);
           hasMerchant = true;
         }
       }
 
-      const matchedM = (state.registeredMerchants || []).find(m => m && (
-        (reqOwnerId && String(m.ownerUserId || '') === String(reqOwnerId)) ||
-        (reqStoreId && String(m.id || '') === String(reqStoreId)) ||
-        (!reqOwnerId && !reqStoreId && state.posStore.merchantId && String(m.id || '') === String(state.posStore.merchantId))
-      ));
+      const ownerStoresRaw = (state.registeredMerchants || []).filter(m =>
+        m && (!reqOwnerId || String(m.ownerUserId || '') === String(reqOwnerId))
+      );
+      const preferredId = reqStoreId || state.posStore.activeBranch || state.posStore.merchantId || '';
+      const matchedM =
+        ownerStoresRaw.find(m => preferredId && String(m.id || '') === String(preferredId)) ||
+        ownerStoresRaw[0] ||
+        (state.registeredMerchants || []).find(m => m && (
+          (reqOwnerId && String(m.ownerUserId || '') === String(reqOwnerId)) ||
+          (reqStoreId && String(m.id || '') === String(reqStoreId))
+        ));
       const storeView = matchedM || state.posStore;
       const notaFeePerNotaIdr = Number(storeView.notaFeePerNotaIdr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
       const kasirOnline = isEdgeMerchantOnline(storeView);
       const tier = resolveEdgeStoreTier(state, reqStoreId || storeView?.id || storeView?.merchantId || state.posStore.merchantId);
       const resolvedStoreName = storeView.storeName || storeView.name || '';
       const resolvedMerchantId = storeView.merchantId || storeView.id || '';
+      const baseStores = ownerStoresRaw.length > 0
+        ? ownerStoresRaw
+        : (resolvedMerchantId ? [{ ...storeView, id: resolvedMerchantId, storeName: resolvedStoreName }] : []);
+      const allOwnerStores = baseStores.map(s => ({
+        id: s.id || s.merchantId,
+        merchantId: s.id || s.merchantId,
+        uid: s.uid || s.id || s.merchantId,
+        name: s.storeName || s.name || 'Ruko POS',
+        storeName: s.storeName || s.name || 'Ruko POS',
+        location: s.location || '',
+        address: s.address || '',
+        category: s.category || 'Warung & Kuliner',
+        saldoNota: Number(s.saldoNota ?? 0),
+        kuotaNota: Number(s.kuotaNota ?? 0),
+        isMitra: s.isMitra !== false
+      }));
       return new Response(JSON.stringify({
         hasRegisteredStore: Boolean(resolvedStoreName || resolvedMerchantId),
         storeName: resolvedStoreName,
@@ -3522,6 +3840,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         uid: storeView.uid || resolvedMerchantId,
         merchantId: resolvedMerchantId,
         activeBranch: storeView.activeBranch || resolvedMerchantId,
+        allOwnerStores,
         branches: Array.isArray(storeView.branches) ? storeView.branches : (state.posStore.branches || [])
       }), { headers: corsHeaders });
     }
@@ -3535,6 +3854,17 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       });
       if (body.notaFeeBearer !== undefined) {
         state.posStore.notaFeeBearer = normalizeEdgeNotaFeeBearer(body.notaFeeBearer);
+      }
+      const targetId = String(body.merchantId || state.posStore.merchantId || state.posStore.id || '').trim();
+      const targetM = (state.registeredMerchants || []).find(m => m && String(m.id) === targetId);
+      if (targetM) {
+        Object.assign(targetM, body, {
+          name: body.storeName || targetM.storeName || targetM.name,
+          storeName: body.storeName || targetM.storeName || targetM.name,
+          storeMode: 'mitra',
+          isMitra: true
+        });
+        if (!state.isDemo) await saveMerchantToKv(env, targetM, true);
       }
       return new Response(JSON.stringify({
         success: true,
@@ -3596,13 +3926,369 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }), { headers: corsHeaders });
   }
 
-  if (path === '/store/switch' && method === 'POST') {
-    const body = await request.json().catch(() => ({}));
-    if (body.storeId) state.posStore.activeBranch = body.storeId;
+  if (path === '/stores') {
+    const reqOwnerIdRaw = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+    let reqOwnerId = reqOwnerIdRaw;
+    if (reqOwnerIdRaw) {
+      let caller = (state.edgeUsers || []).find(u => String(u.id) === String(reqOwnerIdRaw));
+      if (!caller && !state.isDemo && env?.KOSTKU_KV) {
+        caller = await findUserInKv(env, { id: reqOwnerIdRaw });
+        if (caller) (state.edgeUsers = state.edgeUsers || []).push(caller);
+      }
+      if (caller && String(caller.role || '').toLowerCase() === 'admin' && caller.ownerId) {
+        reqOwnerId = String(caller.ownerId);
+      }
+    }
+    if (!state.isDemo && reqOwnerId) {
+      const kvList = await getOwnerMerchantsFromKv(env, reqOwnerId);
+      state.registeredMerchants = state.registeredMerchants || [];
+      for (const m of kvList) {
+        if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
+          state.registeredMerchants.push(m);
+        }
+      }
+    }
+    if (method === 'GET') {
+      const ownerStores = (state.registeredMerchants || []).filter(m =>
+        m && (!reqOwnerId || String(m.ownerUserId || '') === String(reqOwnerId))
+      );
+      const effectiveStores = ownerStores.length > 0
+        ? ownerStores
+        : (state.posStore?.merchantId ? [state.posStore] : []);
+      const mapped = effectiveStores.map(s => ({
+        id: s.id || s.merchantId,
+        merchantId: s.id || s.merchantId,
+        uid: s.uid || s.id || s.merchantId,
+        name: s.storeName || s.name || 'Ruko POS',
+        storeName: s.storeName || s.name || 'Ruko POS',
+        location: s.location || '',
+        address: s.address || '',
+        city: s.city || '',
+        phone: s.phone || '',
+        category: s.category || 'Warung & Kuliner',
+        saldoNota: Number(s.saldoNota ?? 0),
+        kuotaNota: Number(s.kuotaNota ?? 0),
+        isMitra: s.isMitra !== false
+      }));
+      return new Response(JSON.stringify({
+        success: true,
+        stores: mapped,
+        allOwnerStores: mapped
+      }), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const cleanName = String(body.storeName || body.name || '').trim();
+      const cleanLocation = String(body.location || '').trim();
+      if (!cleanName) {
+        return new Response(JSON.stringify({ error: 'Nama ruko/toko wajib diisi.' }), { status: 400, headers: corsHeaders });
+      }
+      let effectiveOwner = String(body.ownerUserId || reqOwnerId || request.headers.get('x-user-id') || 'owner').trim();
+      if (effectiveOwner) {
+        let creator = (state.edgeUsers || []).find(u => String(u.id) === effectiveOwner);
+        if (!creator && !state.isDemo && env?.KOSTKU_KV) {
+          creator = await findUserInKv(env, { id: effectiveOwner });
+          if (creator) (state.edgeUsers = state.edgeUsers || []).push(creator);
+        }
+        if (creator && String(creator.role || '').toLowerCase() === 'admin' && creator.ownerId) {
+          effectiveOwner = String(creator.ownerId);
+        }
+      }
+      if (!state.isDemo && effectiveOwner) {
+        const kvList = await getOwnerMerchantsFromKv(env, effectiveOwner);
+        state.registeredMerchants = state.registeredMerchants || [];
+        for (const m of kvList) {
+          if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
+            state.registeredMerchants.push(m);
+          }
+        }
+      }
+      const newId = 'MTR-' + Date.now() + '-' + randomHexEdge(2);
+      const newStore = {
+        id: newId,
+        uid: newId,
+        merchantId: newId,
+        activeBranch: newId,
+        ownerUserId: effectiveOwner,
+        kostUid: body.kostUid || '',
+        name: cleanName,
+        storeName: cleanName,
+        location: cleanLocation || 'Cabang Baru',
+        category: body.category || 'Makanan & Minuman',
+        address: body.address || '',
+        city: body.city || '',
+        phone: body.phone || '',
+        mapsUrl: body.mapsUrl || '',
+        photo: body.photo || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop&q=80',
+        isValidated: true,
+        isVerified: true,
+        storeMode: 'mitra',
+        visibilityMode: 'mitra',
+        kasirOnly: false,
+        isMitra: true,
+        billingTier: 'TIER_1_FLAT',
+        saldoNota: 5000,
+        kuotaNota: 50,
+        notaFeeBearer: 'store',
+        notaFeePerNotaIdr: 25,
+        branches: [],
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+      state.registeredMerchants = state.registeredMerchants || [];
+      state.registeredMerchants.push(newStore);
+
+      let clonedProductsCount = 0;
+      if (body.cloneMenu !== false && Array.isArray(state.posProducts) && state.posProducts.length > 0) {
+        const sourceId = body.sourceStoreId || state.posStore?.merchantId || '';
+        const sourceItems = sourceId
+          ? state.posProducts.filter(p => !p.storeId || String(p.storeId) === String(sourceId))
+          : state.posProducts;
+        clonedProductsCount = sourceItems.length;
+      }
+
+      if (body.switchAfterCreate !== false) {
+        Object.assign(state.posStore, newStore);
+        state.posStore.uid = newId;
+        state.posStore.merchantId = newId;
+        state.posStore.activeBranch = newId;
+        syncEdgeStoreWallet(state, newId, newStore.saldoNota, newStore.kuotaNota, newStore.notaFeePerNotaIdr);
+      }
+
+      if (!state.isDemo) {
+        await saveMerchantToKv(env, newStore, body.switchAfterCreate !== false);
+      }
+
+      const ownerStores = (state.registeredMerchants || []).filter(m =>
+        m && String(m.ownerUserId || '') === String(effectiveOwner)
+      );
+      const allOwnerStores = ownerStores.map(s => ({
+        id: s.id || s.merchantId,
+        merchantId: s.id || s.merchantId,
+        uid: s.uid || s.id || s.merchantId,
+        name: s.storeName || s.name,
+        storeName: s.storeName || s.name,
+        location: s.location || '',
+        address: s.address || '',
+        category: s.category || 'Warung & Kuliner',
+        saldoNota: Number(s.saldoNota ?? 0),
+        kuotaNota: Number(s.kuotaNota ?? 0),
+        isMitra: s.isMitra !== false
+      }));
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Ruko "${cleanName}" berhasil dibuat.`,
+        clonedProductsCount,
+        store: {
+          ...newStore,
+          allOwnerStores
+        },
+        allOwnerStores
+      }), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  const deleteStoreMatch = path.match(/^\/stores\/([^/]+)$/);
+  if (deleteStoreMatch && method === 'DELETE') {
+    const targetId = decodeURIComponent(deleteStoreMatch[1]);
+    let ownerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+    if (!state.isDemo && ownerId) {
+      const kvList = await getOwnerMerchantsFromKv(env, ownerId);
+      state.registeredMerchants = state.registeredMerchants || [];
+      for (const m of kvList) {
+        if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
+          state.registeredMerchants.push(m);
+        }
+      }
+    }
+    const targetStore = (state.registeredMerchants || []).find(m => m && String(m.id) === String(targetId));
+    if (!targetStore) {
+      return new Response(JSON.stringify({ error: 'Ruko tidak ditemukan.' }), { status: 404, headers: corsHeaders });
+    }
+    const effectiveOwner = ownerId || targetStore.ownerUserId || '';
+    const ownerStores = (state.registeredMerchants || []).filter(m => m && String(m.ownerUserId || '') === String(effectiveOwner));
+    if (ownerStores.length <= 1) {
+      return new Response(JSON.stringify({ error: 'Tidak dapat menghapus satu-satunya ruko yang tersisa.' }), { status: 400, headers: corsHeaders });
+    }
+    state.registeredMerchants = (state.registeredMerchants || []).filter(m => !m || String(m.id) !== String(targetId));
+    const remainingOwnerStores = (state.registeredMerchants || []).filter(m => m && String(m.ownerUserId || '') === String(effectiveOwner));
+    const nextActive = remainingOwnerStores[0] || state.posStore;
+    Object.assign(state.posStore, nextActive);
+    state.posStore.uid = nextActive.id;
+    state.posStore.merchantId = nextActive.id;
+    state.posStore.activeBranch = nextActive.id;
+    if (!state.isDemo && effectiveOwner) {
+      await Promise.all([
+        saveMerchantListToKv(env, effectiveOwner, remainingOwnerStores),
+        kvPutJson(env, `merchant:owner:${effectiveOwner}`, nextActive)
+      ]);
+    }
     return new Response(JSON.stringify({
       success: true,
-      activeBranch: state.posStore.activeBranch,
-      message: 'Cabang berhasil dialihkan'
+      message: `Ruko "${targetStore.storeName || targetStore.name}" berhasil dihapus.`,
+      store: {
+        ...nextActive,
+        uid: nextActive.id,
+        merchantId: nextActive.id,
+        allOwnerStores: remainingOwnerStores.map(s => ({
+          id: s.id, merchantId: s.id, uid: s.id, name: s.storeName || s.name, storeName: s.storeName || s.name,
+          location: s.location || '', saldoNota: Number(s.saldoNota ?? 0), kuotaNota: Number(s.kuotaNota ?? 0)
+        }))
+      }
+    }), { headers: corsHeaders });
+  }
+
+  if (path === '/store/switch' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const targetId = String(body.merchantId || body.storeId || '').trim();
+    let ownerId = String(body.ownerUserId || request.headers.get('x-user-id') || '').trim();
+    if (ownerId) {
+      let caller = (state.edgeUsers || []).find(u => String(u.id) === ownerId);
+      if (!caller && !state.isDemo && env?.KOSTKU_KV) {
+        caller = await findUserInKv(env, { id: ownerId });
+        if (caller) (state.edgeUsers = state.edgeUsers || []).push(caller);
+      }
+      if (caller && String(caller.role || '').toLowerCase() === 'admin' && caller.ownerId) {
+        ownerId = String(caller.ownerId);
+      }
+    }
+    if (!state.isDemo && ownerId) {
+      const kvList = await getOwnerMerchantsFromKv(env, ownerId);
+      state.registeredMerchants = state.registeredMerchants || [];
+      for (const m of kvList) {
+        if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
+          state.registeredMerchants.push(m);
+        }
+      }
+    }
+    let targetStore = targetId
+      ? (state.registeredMerchants || []).find(m => m && (String(m.id) === targetId || String(m.merchantId) === targetId))
+      : null;
+    if (!targetStore && !state.isDemo && targetId) {
+      targetStore = await kvGetJson(env, `merchant:id:${targetId}`);
+      if (targetStore) {
+        state.registeredMerchants = state.registeredMerchants || [];
+        state.registeredMerchants.push(targetStore);
+      }
+    }
+    if (targetStore) {
+      Object.assign(state.posStore, targetStore);
+      state.posStore.uid = targetStore.id;
+      state.posStore.merchantId = targetStore.id;
+      state.posStore.activeBranch = targetStore.id;
+      syncEdgeStoreWallet(state, targetStore.id, targetStore.saldoNota ?? 5000, targetStore.kuotaNota ?? 50, targetStore.notaFeePerNotaIdr ?? 25);
+      if (!state.isDemo) {
+        const persistOwner = ownerId || targetStore.ownerUserId;
+        if (persistOwner) await kvPutJson(env, `merchant:owner:${persistOwner}`, targetStore);
+      }
+    } else if (targetId) {
+      state.posStore.activeBranch = targetId;
+    }
+    const effectiveOwner = ownerId || targetStore?.ownerUserId || '';
+    const ownerStores = (state.registeredMerchants || []).filter(m =>
+      m && (!effectiveOwner || String(m.ownerUserId || '') === String(effectiveOwner))
+    );
+    const allOwnerStores = ownerStores.map(s => ({
+      id: s.id || s.merchantId,
+      merchantId: s.id || s.merchantId,
+      uid: s.uid || s.id || s.merchantId,
+      name: s.storeName || s.name,
+      storeName: s.storeName || s.name,
+      location: s.location || '',
+      address: s.address || '',
+      category: s.category || 'Warung & Kuliner',
+      saldoNota: Number(s.saldoNota ?? 0),
+      kuotaNota: Number(s.kuotaNota ?? 0),
+      isMitra: s.isMitra !== false
+    }));
+    const activeView = targetStore || state.posStore;
+    return new Response(JSON.stringify({
+      success: true,
+      activeBranch: activeView.activeBranch || targetId || activeView.merchantId,
+      store: {
+        ...activeView,
+        uid: activeView.uid || activeView.id || activeView.merchantId,
+        merchantId: activeView.merchantId || activeView.id,
+        allOwnerStores
+      },
+      message: `Ruko aktif dialihkan ke ${activeView.storeName || activeView.name || 'Ruko'}`
+    }), { headers: corsHeaders });
+  }
+
+  if (path === '/consolidated-summary' && method === 'GET') {
+    let reqOwnerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+    if (reqOwnerId) {
+      let caller = (state.edgeUsers || []).find(u => String(u.id) === String(reqOwnerId));
+      if (!caller && !state.isDemo && env?.KOSTKU_KV) {
+        caller = await findUserInKv(env, { id: reqOwnerId });
+        if (caller) (state.edgeUsers = state.edgeUsers || []).push(caller);
+      }
+      if (caller && String(caller.role || '').toLowerCase() === 'admin' && caller.ownerId) {
+        reqOwnerId = String(caller.ownerId);
+      }
+    }
+    if (!state.isDemo && reqOwnerId) {
+      const kvList = await getOwnerMerchantsFromKv(env, reqOwnerId);
+      state.registeredMerchants = state.registeredMerchants || [];
+      for (const m of kvList) {
+        if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
+          state.registeredMerchants.push(m);
+        }
+      }
+    }
+    const ownerStoresRaw = (state.registeredMerchants || []).filter(m =>
+      m && (!reqOwnerId || String(m.ownerUserId || '') === String(reqOwnerId))
+    );
+    const baseStores = ownerStoresRaw.length > 0
+      ? ownerStoresRaw
+      : (state.posStore?.merchantId ? [state.posStore] : []);
+    const orders = Array.isArray(state.posOrders) ? state.posOrders : [];
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const monthKey = todayKey.slice(0, 7);
+    const perStore = baseStores.map(st => {
+      const sid = String(st.id || st.merchantId);
+      const stOrders = orders.filter(o => !o.storeId && baseStores.length === 1 ? true : String(o.storeId || o.merchantId || '') === sid);
+      const paidOrders = stOrders.filter(o => String(o.paymentStatus || '').toLowerCase() === 'paid' || String(o.status || '').toLowerCase() === 'completed');
+      const todayRevenue = paidOrders
+        .filter(o => String(o.createdAt || '').startsWith(todayKey))
+        .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+      const monthRevenue = paidOrders
+        .filter(o => String(o.createdAt || '').startsWith(monthKey))
+        .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+      return {
+        storeId: sid,
+        storeName: st.storeName || st.name || 'Ruko POS',
+        location: st.location || '',
+        saldoNota: Number(st.saldoNota ?? 0),
+        kuotaNota: Number(st.kuotaNota ?? 0),
+        todayRevenue,
+        monthRevenue,
+        orderCount: stOrders.length
+      };
+    });
+    const totals = perStore.reduce((acc, item) => ({
+      storeCount: acc.storeCount + 1,
+      todayRevenue: acc.todayRevenue + item.todayRevenue,
+      monthRevenue: acc.monthRevenue + item.monthRevenue,
+      totalSaldoNota: acc.totalSaldoNota + item.saldoNota,
+      totalKuotaNota: acc.totalKuotaNota + item.kuotaNota,
+      totalOrders: acc.totalOrders + item.orderCount
+    }), {
+      storeCount: 0, todayRevenue: 0, monthRevenue: 0, totalSaldoNota: 0, totalKuotaNota: 0, totalOrders: 0
+    });
+    const recentOrders = orders.slice(0, 40).map(o => {
+      const matched = baseStores.find(s => String(s.id || s.merchantId) === String(o.storeId || o.merchantId || ''));
+      return {
+        ...o,
+        storeName: o.storeName || matched?.storeName || matched?.name || state.posStore?.storeName || 'Ruko Utama'
+      };
+    });
+    return new Response(JSON.stringify({
+      success: true,
+      activeStoreId: state.posStore?.merchantId || baseStores[0]?.id || '',
+      stores: perStore,
+      totals,
+      recentOrders
     }), { headers: corsHeaders });
   }
 
@@ -3640,6 +4326,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     state.registeredMerchants.push(newStore);
     Object.assign(state.posStore, newStore);
     syncEdgeStoreWallet(state, newStore.id, newStore.saldoNota, newStore.kuotaNota, newStore.notaFeePerNotaIdr);
+    if (!state.isDemo) await saveMerchantToKv(env, newStore, true);
 
     if (Array.isArray(body.menus) && body.menus.length > 0) {
       state.posProducts = body.menus.map((m, idx) => ({

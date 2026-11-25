@@ -14,6 +14,23 @@ export function isOwnerRole(role) {
   return normalized === 'owner' || normalized === 'master' || normalized === 'admin';
 }
 
+export function isAdminRole(role) {
+  return normalizeRole(role) === 'admin';
+}
+
+export function isPrimaryOwnerRole(role) {
+  const normalized = normalizeRole(role);
+  return normalized === 'owner' || normalized === 'mitra' || normalized === 'master' || normalized === 'merchant' || normalized === 'bisnis';
+}
+
+export function canDisburseMoney(userOrRole) {
+  const role = typeof userOrRole === 'string'
+    ? normalizeRole(userOrRole)
+    : normalizeRole(userOrRole?.role);
+  if (role === 'admin') return false;
+  return role === 'owner' || role === 'mitra' || role === 'master' || role === 'merchant' || role === 'bisnis';
+}
+
 export function isMitraRole(role) {
   const normalized = normalizeRole(role);
   return normalized === 'mitra' || normalized === 'bisnis' || normalized === 'merchant';

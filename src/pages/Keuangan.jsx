@@ -65,6 +65,7 @@ import DigitalReceiptModal from '../components/DigitalReceiptModal';
 import FintechDunningAndReconcile from '../components/FintechDunningAndReconcile';
 import OwnerNavBanner from '../components/OwnerNavBanner';
 import { useTheme } from '../context/ThemeContext';
+import { canDisburseMoney } from '../utils/staffRole';
 
 const PIE_COLORS = ['#10b981', '#ef4444'];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
@@ -154,7 +155,13 @@ const Keuangan = ({ user }) => {
     }
   };
 
+  const canDisburse = canDisburseMoney(user);
+
   const handleOpenPayoutModal = () => {
+    if (!canDisburse) {
+      alert('Akun Admin memiliki akses operasional setara Owner, tetapi tidak diizinkan mencairkan atau mengeluarkan dana.');
+      return;
+    }
     const total = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
     setWithdrawAmount(total);
     setPayoutStep('form');
@@ -162,6 +169,10 @@ const Keuangan = ({ user }) => {
   };
 
   const handleExecutePayout = async () => {
+    if (!canDisburse) {
+      alert('Akun Admin tidak diizinkan mencairkan atau mengeluarkan dana.');
+      return;
+    }
     const totalAvailable = (Number(unifiedWallet.owner_commission_balance) || 0) + (Number(unifiedWallet.mitra_escrow_balance) || 0);
     const amountToWithdraw = Number(withdrawAmount) || 0;
 
@@ -183,6 +194,8 @@ const Keuangan = ({ user }) => {
         account_number: payoutBank.account_number,
         account_holder: payoutBank.account_holder,
         amount: amountToWithdraw,
+        actorId: user?.id,
+        actorRole: user?.role,
         remark: `Payout KostKu ${user?.kostUid || 'General'}`
       });
 
@@ -229,6 +242,10 @@ const Keuangan = ({ user }) => {
   };
 
   const handleExecuteSetorMitra = async () => {
+    if (!canDisburse) {
+      alert('Akun Admin tidak diizinkan mengeluarkan atau menyetor dana keluar.');
+      return;
+    }
     const escrowAmt = Number(unifiedWallet.mitra_escrow_balance) || 0;
     try {
       const res = await apiSettleMitraWallet(escrowAmt);
@@ -1623,25 +1640,30 @@ const Keuangan = ({ user }) => {
 
               <button
                 type="button"
+                data-testid="keuangan-payout-btn"
+                disabled={!canDisburse}
                 onClick={handleOpenPayoutModal}
                 style={{
                   width: '100%',
                   padding: '9px',
                   borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: '#ffffff',
+                  border: !canDisburse ? '1px solid rgba(148, 163, 184, 0.35)' : 'none',
+                  background: !canDisburse
+                    ? (isLight ? '#e2e8f0' : '#334155')
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: !canDisburse ? (isLight ? '#64748b' : '#94a3b8') : '#ffffff',
                   fontWeight: 800,
                   fontSize: '0.8rem',
-                  cursor: 'pointer',
+                  cursor: !canDisburse ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px'
                 }}
+                title={!canDisburse ? 'Akses Admin: tidak diizinkan mencairkan atau mengeluarkan dana' : 'Tarik Dana ke Rekening Bank'}
               >
                 <ArrowUpRight size={15} />
-                <span>Tarik Dana ke Rekening Bank</span>
+                <span>{!canDisburse ? 'Tarik Dana Dibatasi (Khusus Pemilik)' : 'Tarik Dana ke Rekening Bank'}</span>
               </button>
             </div>
 

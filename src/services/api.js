@@ -1497,6 +1497,9 @@ export const apiFlipDisburse = async (data) => {
       message: res?.message || 'Disbursement berhasil diproses via TriPay Payout Gateway'
     };
   } catch (err) {
+    if (err?.status === 403 || /403|izin|admin|tarik|cair|disburse|akses/i.test(String(err?.message || ''))) {
+      throw err;
+    }
     console.warn('[apiFlipDisburse] Client fallback disbursement:', err.message);
     return {
       id: `TRIPAY-DISB-${Date.now().toString().slice(-6)}`,

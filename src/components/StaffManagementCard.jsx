@@ -44,6 +44,7 @@ import {
   apiCancelStaffInvite
 } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { isPrimaryOwnerRole } from '../utils/staffRole';
 
 const AVAILABLE_ROLES = [
   // POS & Bisnis UMKM Roles (Priority untuk Mitra)
@@ -110,6 +111,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     kostUid: user?.kostUid || ''
   });
   const [formRoleMode, setFormRoleMode] = useState('single'); // 'single' | 'multiple'
+  const [formAccountRole, setFormAccountRole] = useState('staff'); // 'staff' | 'admin'
   const [formSelectedRoles, setFormSelectedRoles] = useState(['Penjaga Kost']);
   const [formAssignedStoreIds, setFormAssignedStoreIds] = useState(['all']);
   const [submitting, setSubmitting] = useState(false);
@@ -192,6 +194,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
     });
     setFormSelectedRoles(defaultStaffRoles);
     setFormAssignedStoreIds(['all']);
+    setFormAccountRole('staff');
     setFormRoleMode('single');
     setErrorMsg('');
   };
@@ -240,6 +243,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
           email: formData.email.trim(),
           name: formData.name.trim(),
           salary: formData.salary,
+          accountRole: formAccountRole,
+          targetRole: formAccountRole,
           roles: formSelectedRoles,
           jobTitle: formSelectedRoles.join(', '),
           assignedStoreIds: formAssignedStoreIds
@@ -267,7 +272,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       setErrorMsg('Isi minimal alamat Gmail atau nomor WhatsApp aktif karyawan.');
       return;
     }
-    if (!effectiveKostUid) {
+    if (!effectiveKostUid && posStores.length === 0) {
       setErrorMsg('Pilih cabang penempatan karyawan terlebih dahulu.');
       return;
     }
@@ -279,6 +284,8 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
         ...formData,
         kostUid: effectiveKostUid,
         password: effectivePassword,
+        accountRole: formAccountRole,
+        targetRole: formAccountRole,
         roles: formSelectedRoles,
         jobTitle: formSelectedRoles.join(', '),
         assignedStoreIds: formAssignedStoreIds,
@@ -290,7 +297,9 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
       }
       setShowModal(false);
       resetFormFields();
-      setActionMsg('Akun login staf berhasil dibuat!');
+      setActionMsg(formAccountRole === 'admin'
+        ? 'Akun Admin berhasil dibuat (akses setara Owner tanpa izin tarik dana).'
+        : 'Akun login staf berhasil dibuat!');
       setTimeout(() => setActionMsg(null), 4000);
       loadStaffAndKosts();
     } catch (err) {
@@ -913,7 +922,7 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                           fontWeight: 800
                         }}
                       >
-                        {staff.role === 'admin' ? <><Crown size={11} /> Admin</> : 'Karyawan'}
+                        {staff.role === 'admin' ? <><Crown size={11} /> Admin &bull; Tanpa Tarik Dana</> : 'Karyawan'}
                       </span>
                       <span style={{
                         fontSize: '0.68rem',
@@ -1707,6 +1716,58 @@ export default function StaffManagementCard({ user, selectedStaffId, onSelectSta
                       </div>
                     </div>
                   </>
+                )}
+
+                {/* LEVEL AKSES AKUN (STAF BIASA VS ADMIN SETARA OWNER) */}
+                {canManageAdminRoles && (
+                  <div style={{
+                    background: modalPanelBg,
+                    border: `1px solid ${modalBorder}`,
+                    borderRadius: '12px',
+                    padding: '12px'
+                  }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: modalText, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <Crown size={14} color="#f59e0b" /> Tingkat Akses Akun *
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <button
+                        type="button"
+                        data-testid="select-account-role-staff"
+                        onClick={() => setFormAccountRole('staff')}
+                        style={{
+                          padding: '9px 10px',
+                          borderRadius: '10px',
+                          border: formAccountRole === 'staff' ? '2px solid #10b981' : `1px solid ${modalBorder}`,
+                          background: formAccountRole === 'staff' ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)') : 'transparent',
+                          color: formAccountRole === 'staff' ? (isLight ? '#047857' : '#34d399') : modalSubText,
+                          textAlign: 'left',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>Karyawan / Kasir</div>
+                        <div style={{ fontSize: '0.67rem', opacity: 0.85, marginTop: '2px' }}>Operasional sesuai tugas shift</div>
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="select-account-role-admin"
+                        onClick={() => setFormAccountRole('admin')}
+                        style={{
+                          padding: '9px 10px',
+                          borderRadius: '10px',
+                          border: formAccountRole === 'admin' ? '2px solid #f59e0b' : `1px solid ${modalBorder}`,
+                          background: formAccountRole === 'admin' ? (isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.16)') : 'transparent',
+                          color: formAccountRole === 'admin' ? (isLight ? '#b45309' : '#fbbf24') : modalSubText,
+                          textAlign: 'left',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Crown size={12} /> Admin Pengelola
+                        </div>
+                        <div style={{ fontSize: '0.67rem', opacity: 0.9, marginTop: '2px' }}>Hak akses sama Owner, tidak bisa tarik/keluarkan dana</div>
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {/* ROLE MODE SWITCHER (SINGLE VS MULTIPLE ROLES) */}

@@ -83,7 +83,7 @@ import QRCode from 'qrcode';
 import { useTheme } from '../context/ThemeContext';
 import { triggerCometArc } from '../utils/cometArc';
 import { parseCustomerQrOrPhone, encodeCustomerPersonalQrPayload } from '../utils/customerQr';
-import { isMitraRole, isMitraStaff } from '../utils/staffRole';
+import { isMitraRole, isMitraStaff, canDisburseMoney } from '../utils/staffRole';
 import {
   getSavedPrinterSettings,
   savePrinterSettings,
@@ -673,6 +673,8 @@ export default function Kasir({ user, onLogout }) {
   const [consolidatedSummary, setConsolidatedSummary] = useState(null);
   const [loadingConsolidated, setLoadingConsolidated] = useState(false);
   const [dashboardReceiptScope, setDashboardReceiptScope] = useState('active'); // 'active' | 'all'
+  const [rukoScopeMode, setRukoScopeMode] = useState('single'); // 'single' | 'all'
+  const [showTopRukoDropdown, setShowTopRukoDropdown] = useState(false);
   const [mobileDashTab, setMobileDashTab] = useState('nota'); // 'nota' | 'terlaris' | 'ringkasan'
   const [mobileExtrasView, setMobileExtrasView] = useState('list'); // 'list' | 'form'
 
@@ -1961,7 +1963,8 @@ export default function Kasir({ user, onLogout }) {
       setLoadingOrders(true);
       setLoadingConsolidated(true);
       const accountQuery = `merchantId=${encodeURIComponent(effectiveAccountId)}`;
-      const ownerIdVal = user?.id || user?.uid || '';
+      const isAdminAccount = String(user?.role || '').toLowerCase() === 'admin';
+      const ownerIdVal = (isAdminAccount && user?.ownerId) ? user.ownerId : (user?.id || user?.uid || '');
       const roleQuery = user?.role ? `&userRole=${encodeURIComponent(user.role)}` : '';
       const ownerQuery = ownerIdVal ? `ownerId=${encodeURIComponent(ownerIdVal)}${roleQuery}` : '';
       const storeEndpoint = ownerQuery ? `/api/pos/store?${ownerQuery}` : '/api/pos/store';
@@ -6777,6 +6780,287 @@ export default function Kasir({ user, onLogout }) {
               </div>
             </div>
           </div>
+
+          {/* ── TOP RUKO SWITCHER BAR (PINDAH RUKO • ALL RUKO • + TAMBAH RUKO) ── */}
+          {(() => {
+            const ownerStoresList = Array.isArray(storeInfo?.allOwnerStores) && storeInfo.allOwnerStores.length > 0
+              ? storeInfo.allOwnerStores
+              : [{
+                  id: storeInfo?.merchantId || storeInfo?.uid || 'RUKO-UTAMA',
+                  merchantId: storeInfo?.merchantId || storeInfo?.uid || 'RUKO-UTAMA',
+                  name: storeInfo?.storeName || 'Ruko Utama',
+                  storeName: storeInfo?.storeName || 'Ruko Utama',
+                  location: storeInfo?.location || 'Cabang Pusat',
+                  kuotaNota: storeKuotaNota
+                }];
+            const canManageRukoHeader = isOwnerRole(user?.role) || isMitraRole(user?.role);
+            return (
+              <div
+                data-testid="top-ruko-switcher-bar"
+                style={{
+                  marginTop: '6px',
+                  paddingTop: '6px',
+                  borderTop: `1px dashed ${borderColor}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                  position: 'relative'
+                }}
+              >
+                {/* Pindah Ruko Dropdown Trigger */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    data-testid="top-ruko-switcher-btn"
+                    onClick={() => setShowTopRukoDropdown(prev => !prev)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      border: `1px solid ${showTopRukoDropdown || rukoScopeMode === 'single' ? '#2563eb' : borderColor}`,
+                      background: rukoScopeMode === 'single'
+                        ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.2)')
+                        : (isLight ? '#f8fafc' : '#1e293b'),
+                      color: rukoScopeMode === 'single' ? (isLight ? '#1d4ed8' : '#93c5fd') : textPrimary,
+                      fontSize: '0.71rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      maxWidth: '210px'
+                    }}
+                    title="Pindah Ruko / Cabang Aktif"
+                  >
+                    <Store size={12} style={{ flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {rukoScopeMode === 'all'
+                        ? 'Pindah Ruko'
+                        : (storeInfo?.storeName || 'Ruko Utama')}
+                    </span>
+                    <span style={{
+                      fontSize: '0.62rem',
+                      padding: '0 5px',
+                      borderRadius: '999px',
+                      background: isLight ? '#dbeafe' : 'rgba(59,130,246,0.3)',
+                      color: isLight ? '#1e40af' : '#bfdbfe',
+                      fontWeight: 900,
+                      flexShrink: 0
+                    }}>
+                      {ownerStoresList.length}
+                    </span>
+                    <ChevronDown size={12} style={{ flexShrink: 0 }} />
+                  </button>
+
+                  {showTopRukoDropdown && (
+                    <div
+                      data-testid="top-ruko-dropdown"
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 6px)',
+                        left: 0,
+                        zIndex: 80,
+                        width: 'min(300px, calc(100vw - 24px))',
+                        background: isLight ? '#ffffff' : '#0f172a',
+                        border: `1.5px solid ${borderColor}`,
+                        borderRadius: '14px',
+                        boxShadow: '0 14px 36px rgba(0, 0, 0, 0.25)',
+                        padding: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '5px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px 4px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: textPrimary }}>
+                          Pilih / Pindah Ruko ({ownerStoresList.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowTopRukoDropdown(false)}
+                          style={{ background: 'transparent', border: 'none', color: textSecondary, cursor: 'pointer', padding: '2px' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRukoScopeMode('all');
+                          setDashboardReceiptScope('all');
+                          setShowTopRukoDropdown(false);
+                          if (activeTab !== 'dashboard') setActiveTab('dashboard');
+                        }}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: rukoScopeMode === 'all' ? '1.5px solid #0ea5e9' : `1px solid ${borderColor}`,
+                          background: rukoScopeMode === 'all'
+                            ? (isLight ? '#e0f2fe' : 'rgba(14, 165, 233, 0.2)')
+                            : (isLight ? '#f8fafc' : '#1e293b'),
+                          color: textPrimary,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '0.76rem', fontWeight: 800 }}>All Ruko (Gabungan)</div>
+                          <div style={{ fontSize: '0.64rem', color: textSecondary }}>
+                            Pantau omset &amp; nota dari seluruh {ownerStoresList.length} ruko
+                          </div>
+                        </div>
+                        {rukoScopeMode === 'all' && <Check size={14} color="#0284c7" />}
+                      </button>
+
+                      <div style={{ maxHeight: '210px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {ownerStoresList.map((st) => {
+                          const sid = String(st.id || st.merchantId);
+                          const isCurr = rukoScopeMode === 'single' && String(storeInfo?.merchantId || storeInfo?.uid || '') === sid;
+                          return (
+                            <button
+                              key={sid}
+                              type="button"
+                              data-testid={`top-ruko-item-${sid}`}
+                              onClick={() => {
+                                setRukoScopeMode('single');
+                                setDashboardReceiptScope('active');
+                                setShowTopRukoDropdown(false);
+                                handleSwitchPosStore(sid);
+                              }}
+                              style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '7px 10px',
+                                borderRadius: '10px',
+                                border: isCurr ? '1.5px solid #2563eb' : `1px solid ${borderColor}`,
+                                background: isCurr ? (isLight ? '#eff6ff' : 'rgba(37, 99, 235, 0.18)') : 'transparent',
+                                color: textPrimary,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '8px'
+                              }}
+                            >
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {st.storeName || st.name}
+                                </div>
+                                <div style={{ fontSize: '0.63rem', color: textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {st.location || 'Cabang'} &bull; {Number(st.kuotaNota ?? 0).toLocaleString('id-ID')} nota
+                                </div>
+                              </div>
+                              {isCurr && <Check size={14} color="#2563eb" style={{ flexShrink: 0 }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {canManageRukoHeader && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowTopRukoDropdown(false);
+                            setCreateStoreError('');
+                            setShowCreateStoreModal(true);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '7px 10px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: '#ffffff',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            marginTop: '2px'
+                          }}
+                        >
+                          <Plus size={13} />
+                          <span>Tambah Ruko Baru</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* All Ruko Quick Toggle Pill */}
+                <button
+                  type="button"
+                  data-testid="top-all-ruko-btn"
+                  onClick={() => {
+                    const nextAll = rukoScopeMode !== 'all';
+                    setRukoScopeMode(nextAll ? 'all' : 'single');
+                    setDashboardReceiptScope(nextAll ? 'all' : 'active');
+                    setShowTopRukoDropdown(false);
+                    if (nextAll && activeTab !== 'dashboard') setActiveTab('dashboard');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    border: `1px solid ${rukoScopeMode === 'all' ? '#0284c7' : borderColor}`,
+                    background: rukoScopeMode === 'all'
+                      ? 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)'
+                      : (isLight ? '#f8fafc' : '#1e293b'),
+                    color: rukoScopeMode === 'all' ? '#ffffff' : textPrimary,
+                    fontSize: '0.71rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Lihat ringkasan gabungan semua Ruko"
+                >
+                  <Layers size={12} />
+                  <span>All Ruko</span>
+                </button>
+
+                {/* + Tambah Ruko Button */}
+                {canManageRukoHeader && (
+                  <button
+                    type="button"
+                    data-testid="top-add-ruko-btn"
+                    onClick={() => {
+                      setShowTopRukoDropdown(false);
+                      setCreateStoreError('');
+                      setShowCreateStoreModal(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                      background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.16)',
+                      color: isLight ? '#047857' : '#34d399',
+                      fontSize: '0.71rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title="Tambah cabang atau ruko baru"
+                  >
+                    <Plus size={12} />
+                    <span>Tambah Ruko</span>
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </header>
 
       {/* ── PERINGATAN KUOTA MENIPIS (THRESHOLD ALERT <= 15 NOTA) ── */}
@@ -7157,6 +7441,102 @@ export default function Kasir({ user, onLogout }) {
       {/* ── TAB 0: DASHBOARD KASIR & STATISTIK FNB (3x2 BENTO GRID) ── */}
       {activeTab === 'dashboard' && (
         <main style={{ width: '100%', maxWidth: '100%', margin: '0.75rem auto 0', padding: '0 2% 1.25rem', boxSizing: 'border-box' }}>
+          {rukoScopeMode === 'all' && (
+            <div
+              data-testid="all-ruko-dashboard-banner"
+              style={{
+                marginBottom: '0.85rem',
+                padding: '12px 14px',
+                borderRadius: '14px',
+                background: isLight
+                  ? 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)'
+                  : 'linear-gradient(135deg, rgba(37, 99, 235, 0.22) 0%, rgba(14, 165, 233, 0.16) 100%)',
+                border: '1.5px solid rgba(37, 99, 235, 0.4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <Layers size={16} color="#2563eb" />
+                  <strong style={{ fontSize: '0.84rem', color: textPrimary }}>
+                    Mode All Ruko ({consolidatedSummary?.stores?.length || storeInfo?.allOwnerStores?.length || 1} Cabang Gabungan)
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRukoScopeMode('single');
+                    setDashboardReceiptScope('active');
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    border: `1px solid ${borderColor}`,
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    color: textPrimary,
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Kembali ke 1 Ruko
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: '0.64rem', color: textSecondary }}>Omset Hari Ini (All)</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: isLight ? '#047857' : '#34d399', fontFamily: 'var(--font-mono)' }}>
+                    Rp {Number(consolidatedSummary?.totals?.todayRevenue ?? todayOmzet ?? 0).toLocaleString('id-ID')}
+                  </div>
+                </div>
+                <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: '0.64rem', color: textSecondary }}>Omset Bulan Ini (All)</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#2563eb', fontFamily: 'var(--font-mono)' }}>
+                    Rp {Number(consolidatedSummary?.totals?.monthRevenue ?? monthOmzet ?? 0).toLocaleString('id-ID')}
+                  </div>
+                </div>
+                <div style={{ padding: '7px 10px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: '0.64rem', color: textSecondary }}>Total Kuota Nota</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: textPrimary, fontFamily: 'var(--font-mono)' }}>
+                    {Number(consolidatedSummary?.totals?.totalKuotaNota ?? storeKuotaNota ?? 0).toLocaleString('id-ID')} nota
+                  </div>
+                </div>
+              </div>
+              {Array.isArray(storeInfo?.allOwnerStores) && storeInfo.allOwnerStores.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  {storeInfo.allOwnerStores.map((st) => {
+                    const sid = String(st.id || st.merchantId);
+                    return (
+                      <button
+                        key={sid}
+                        type="button"
+                        onClick={() => {
+                          setRukoScopeMode('single');
+                          setDashboardReceiptScope('active');
+                          handleSwitchPosStore(sid);
+                        }}
+                        style={{
+                          padding: '3px 9px',
+                          borderRadius: '8px',
+                          border: `1px solid ${borderColor}`,
+                          background: isLight ? '#ffffff' : '#1e293b',
+                          color: textPrimary,
+                          fontSize: '0.67rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {st.storeName || st.name} ({Number(st.kuotaNota ?? 0)} nota)
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Streamlined Single-Row Header Bar (Desktop Only — Mobile Integrated inside Hero Card) */}
           <div
             className="bento-header-wrap bento-desktop-only"
@@ -12058,47 +12438,63 @@ export default function Kasir({ user, onLogout }) {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentBal = walletData?.balance || 0;
-                    if (currentBal <= 0) {
-                      alert('Saldo dompet terpadu Anda masih Rp 0.');
-                      return;
-                    }
-                    if (window.confirm(`Tarik saldo Rp ${currentBal.toLocaleString('id-ID')} ke rekening bank terdaftar via Flip / BI-FAST?`)) {
-                      apiMutateAccountWallet(storeInfo?.uid || walletData?.uid || 'pos', {
-                        amount: currentBal,
-                        type: 'payout',
-                        description: 'Penarikan saldo dompet terpadu kasir & mitra'
-                      }).then(res => {
-                        alert('Permintaan penarikan dana berhasil diproses ke antrean transfer BI-FAST!');
-                        if (res?.wallet) setWalletData(res.wallet);
-                      }).catch(err => alert(err.message || 'Gagal memproses penarikan'));
-                    }
-                  }}
-                  className="btn"
-                  style={{
-                    padding: '9px 16px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                    color: '#ffffff',
-                    fontSize: '0.82rem',
-                    fontWeight: 800,
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <CreditCard size={14} /> Tarik Saldo (Payout)
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {(() => {
+                  const canDisburseKasir = canDisburseMoney(user);
+                  return (
+                    <button
+                      type="button"
+                      data-testid="kasir-payout-btn"
+                      disabled={!canDisburseKasir}
+                      onClick={() => {
+                        if (!canDisburseKasir) {
+                          alert('Akun Admin memiliki akses operasional setara Owner, tetapi tidak diizinkan mencairkan atau mengeluarkan dana.');
+                          return;
+                        }
+                        const currentBal = walletData?.balance || 0;
+                        if (currentBal <= 0) {
+                          alert('Saldo dompet terpadu Anda masih Rp 0.');
+                          return;
+                        }
+                        if (window.confirm(`Tarik saldo Rp ${currentBal.toLocaleString('id-ID')} ke rekening bank terdaftar via Flip / BI-FAST?`)) {
+                          apiMutateAccountWallet(storeInfo?.uid || walletData?.uid || 'pos', {
+                            amount: currentBal,
+                            type: 'payout',
+                            actorId: user?.id,
+                            actorRole: user?.role,
+                            description: 'Penarikan saldo dompet terpadu kasir & mitra'
+                          }).then(res => {
+                            alert('Permintaan penarikan dana berhasil diproses ke antrean transfer BI-FAST!');
+                            if (res?.wallet) setWalletData(res.wallet);
+                          }).catch(err => alert(err.message || 'Gagal memproses penarikan'));
+                        }
+                      }}
+                      className="btn"
+                      style={{
+                        padding: '9px 16px',
+                        borderRadius: '12px',
+                        background: !canDisburseKasir
+                          ? (isLight ? '#e2e8f0' : '#334155')
+                          : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                        color: !canDisburseKasir ? (isLight ? '#64748b' : '#94a3b8') : '#ffffff',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        border: !canDisburseKasir ? '1px solid rgba(148, 163, 184, 0.35)' : 'none',
+                        cursor: !canDisburseKasir ? 'not-allowed' : 'pointer',
+                        boxShadow: !canDisburseKasir ? 'none' : '0 4px 14px rgba(139, 92, 246, 0.3)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                      title={!canDisburseKasir ? 'Akses Admin: tidak diizinkan menarik atau mengeluarkan dana' : 'Tarik saldo dompet ke rekening bank'}
+                    >
+                      <CreditCard size={14} /> {!canDisburseKasir ? 'Tarik Saldo Dibatasi (Khusus Pemilik)' : 'Tarik Saldo (Payout)'}
+                    </button>
+                  );
+                })()}
                 <ActionTutorialBadge
                   title="Tarik Saldo Dompet Terpadu"
-                  description="Mencairkan saldo pembayaran QRIS Kasir & Mitra ke rekening bank terdaftar melalui jalur transfer bank."
+                  description="Mencairkan saldo pembayaran QRIS Kasir & Mitra ke rekening bank terdaftar melalui jalur transfer bank (khusus Pemilik Utama)."
                   size="sm"
                   isLight={isLight}
                 />
