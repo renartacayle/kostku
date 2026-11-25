@@ -6627,73 +6627,8 @@ export default function Kasir({ user, onLogout }) {
                 />
               </div>
 
-              {/* Status Online Kasir Web + Saldo Kuota Nota Chip */}
+              {/* Quick Link to Settings & Logout */}
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                <span
-                  data-testid="kasir-web-online-badge"
-                  title={kasirWebOnline ? 'Kasir Web Online — toko tampil sebagai Online di katalog Mitra (/layanan)' : 'Kasir Offline — buka shift di web agar toko tampil Online di katalog Mitra'}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    minHeight: '28px',
-                    padding: '4px 8px',
-                    borderRadius: '999px',
-                    background: kasirWebOnline
-                      ? (isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.2)')
-                      : (isLight ? '#f1f5f9' : 'rgba(148, 163, 184, 0.16)'),
-                    border: kasirWebOnline ? '1px solid #10b981' : `1px solid ${borderColor}`,
-                    color: kasirWebOnline ? (isLight ? '#047857' : '#6ee7b7') : textSecondary,
-                    fontSize: '0.64rem',
-                    fontWeight: 800,
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: kasirWebOnline ? '#10b981' : '#94a3b8'
-                  }} />
-                  <span>{kasirWebOnline ? 'Online' : 'Offline'}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowPosTopupModal(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    minHeight: '28px',
-                    padding: '4px 8px',
-                    borderRadius: '999px',
-                    background: storeSaldoNota < storeNotaFeeIdr 
-                      ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.25)') 
-                      : (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.2)'),
-                    border: storeSaldoNota < storeNotaFeeIdr ? '1px solid #ef4444' : '1px solid rgba(245, 158, 11, 0.5)',
-                    cursor: 'pointer',
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    color: storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : (isLight ? '#92400e' : '#fbbf24'),
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Klik untuk Top Up Saldo Kuota Nota Kasir"
-                >
-                  <Coins size={12} color={storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : '#d97706'} />
-                  <span>{storeKuotaNota}</span>
-                  <span style={{
-                    fontSize: '0.58rem',
-                    fontWeight: 900,
-                    background: storeSaldoNota < storeNotaFeeIdr ? '#ef4444' : '#2563eb',
-                    color: '#ffffff',
-                    padding: '1px 4px',
-                    borderRadius: '999px',
-                    marginLeft: '1px'
-                  }}>+Top Up</span>
-                </button>
-
-                {/* Quick Link to Settings & Logout for Mobile */}
                 <Link
                   to="/pengaturan"
                   title="Pengaturan Akun & Keluar"
@@ -6701,8 +6636,8 @@ export default function Kasir({ user, onLogout }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '28px',
-                    height: '28px',
+                    width: '32px',
+                    height: '32px',
                     borderRadius: '8px',
                     background: isLight ? '#f1f5f9' : '#1e293b',
                     border: `1px solid ${borderColor}`,
@@ -6711,16 +6646,8 @@ export default function Kasir({ user, onLogout }) {
                     flexShrink: 0
                   }}
                 >
-                  <Settings size={14} />
+                  <Settings size={15} />
                 </Link>
-                <div className="desktop-only-flex" style={{ alignItems: 'center' }}>
-                  <ActionTutorialBadge
-                    title="Kuota & Top Up Saldo Nota"
-                    description={`Menampilkan sisa kuota nota toko aktif (${storeInfo.loyaltyPoolId ? `Tier 2 Pool: Rp 100/nota` : `Tier 1 Flat: Rp 25/nota`}). Klik chip ini untuk isi ulang saldo nota.`}
-                    size="sm"
-                    isLight={isLight}
-                  />
-                </div>
               </div>
 
               {/* Desktop-Only Secondary Controls: Theme, Sound, Refresh */}
