@@ -134,8 +134,8 @@ const Register = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const registerGoogleBtnRef = useRef(null);
 
-  // Verifikasi OTP (WhatsApp / Gmail)
-  const [otpChannel, setOtpChannel] = useState(() => savedDraft.current.otpChannel || 'whatsapp'); // 'whatsapp' | 'email'
+  // Verifikasi OTP (Email sebagai default utama, WhatsApp 1-tap)
+  const [otpChannel, setOtpChannel] = useState(() => savedDraft.current.otpChannel || 'email'); // 'email' | 'whatsapp'
   const [otpCode, setOtpCode] = useState('');
   const [otpMaskedTarget, setOtpMaskedTarget] = useState(() => savedSession.current.otpMaskedTarget || '');
   const [otpChallenge, setOtpChallenge] = useState(() => savedSession.current.otpChallenge || '');
@@ -2065,15 +2065,16 @@ const Register = () => {
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 8px 0', color: isLight ? '#0f172a' : '#f8fafc' }}>
             Pendaftaran Berhasil!
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.88rem', maxWidth: '420px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+          <p style={{ color: isLight ? '#475569' : '#94a3b8', fontSize: '0.88rem', maxWidth: '420px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
             Nomor kontak Anda telah terverifikasi resmi via <strong>{otpChannel === 'whatsapp' ? 'WhatsApp' : 'Gmail'}</strong> dan dilindungi oleh <strong>Cloudflare Turnstile</strong>.
           </p>
           <div style={{
-            background: 'rgba(16, 185, 129, 0.1)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+            background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.1)',
+            border: `1px solid ${isLight ? '#86efac' : 'rgba(16, 185, 129, 0.3)'}`,
             borderRadius: '12px',
             padding: '12px',
-            color: '#a7f3d0',
+            color: isLight ? '#065f46' : '#a7f3d0',
+            fontWeight: 600,
             fontSize: '0.82rem',
             marginBottom: '1.5rem'
           }}>

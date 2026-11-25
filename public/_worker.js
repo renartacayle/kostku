@@ -1850,6 +1850,7 @@ async function handleApi(request, url, env) {
     const recipientName = String(body.name || 'Pengguna KostKu').trim() || 'Pengguna KostKu';
     let deliveredExternally = false;
     let deliveryMethod = 'instant_fallback';
+    let gatewayNotice = null;
     const waMessage = `*KOSTKU SECURITY - KODE OTP*\n\nHalo *${recipientName}*,\nKode verifikasi 6 digit Anda adalah:\n\n*${code}*\n\nBerlaku selama 5 menit.`;
     const waDirectUrl = selectedChannel === 'whatsapp'
       ? `https://api.whatsapp.com/send?phone=${cleanTarget}&text=${encodeURIComponent(waMessage)}`
@@ -1873,8 +1874,13 @@ async function handleApi(request, url, env) {
         if (mailRes.ok) {
           deliveredExternally = true;
           deliveryMethod = 'resend';
+        } else {
+          const mailErr = await mailRes.json().catch(() => ({}));
+          gatewayNotice = mailErr?.message || `HTTP ${mailRes.status}`;
         }
-      } catch (_) {}
+      } catch (err) {
+        gatewayNotice = err?.message || 'Koneksi ke gateway Email gagal';
+      }
     } else if (selectedChannel === 'whatsapp' && env?.WA_GATEWAY_URL && env?.WA_API_KEY) {
       try {
         const waRes = await fetch(env.WA_GATEWAY_URL, {
@@ -1888,17 +1894,27 @@ async function handleApi(request, url, env) {
         if (waRes.ok) {
           deliveredExternally = true;
           deliveryMethod = 'wa_gateway';
+        } else {
+          const waErr = await waRes.json().catch(() => ({}));
+          gatewayNotice = waErr?.message || `HTTP ${waRes.status}`;
         }
-      } catch (_) {}
+      } catch (err) {
+        gatewayNotice = err?.message || 'Koneksi ke gateway WA gagal';
+      }
     }
 
     const masked = maskEdgeOtpTarget(cleanTarget, selectedChannel);
-    const channelLabel = selectedChannel === 'whatsapp' ? 'WhatsApp' : 'Email';
     const responseMessage = deliveredExternally
-      ? `Kode OTP 6 digit telah dikirim ke ${channelLabel} Anda (${masked}).`
+      ? selectedChannel === 'email'
+        ? `Kode OTP 6 digit telah dikirim ke Email Anda (${masked}). Periksa folder Inbox atau Spam.`
+        : `Kode OTP 6 digit telah dikirim ke WhatsApp Anda (${masked}).`
       : selectedChannel === 'whatsapp'
         ? `Kode OTP 6 digit siap (${masked}). Gateway WA otomatis belum terhubung di server — gunakan Kode Verifikasi Instan di bawah atau klik Buka WhatsApp.`
-        : `Kode OTP 6 digit siap (${masked}). Gateway Email (Resend/SMTP) belum terhubung di server — gunakan Kode Verifikasi Instan di bawah untuk melanjutkan.`;
+        : env?.RESEND_API_KEY
+          ? (/only send testing emails|verify a domain/i.test(gatewayNotice || '')
+            ? `Kode OTP 6 digit siap (${masked}). Resend aktif dalam mode testing (hanya bisa kirim langsung ke email akun Resend sampai domain riuph.me diverifikasi) — gunakan Kode Verifikasi Instan di bawah.`
+            : `Kode OTP 6 digit siap (${masked}). Pengiriman Email gateway tertunda sementara — gunakan Kode Verifikasi Instan di bawah untuk melanjutkan.`)
+          : `Kode OTP 6 digit siap (${masked}). Gateway Email (Resend/SMTP) belum terhubung di server — gunakan Kode Verifikasi Instan di bawah untuk melanjutkan.`;
 
     return new Response(JSON.stringify({
       success: true,
@@ -1909,6 +1925,7 @@ async function handleApi(request, url, env) {
       otpChallenge,
       deliveryMethod,
       deliveredExternally,
+      gatewayNotice,
       waDirectUrl,
       ...(!deliveredExternally ? { instantOtpCode: code, devOtp: code } : {})
     }), { status: 200, headers: corsHeaders });
