@@ -61,11 +61,27 @@ const clearRegisterDraftStorage = () => {
   } catch (_) {}
 };
 
-const Register = () => {
+const Register = ({ onLogin }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const [registeredSession, setRegisteredSession] = useState(null);
+
+  const completeAutoLogin = (userObj, kostNameVal = '') => {
+    if (!userObj) {
+      navigate('/login');
+      return;
+    }
+    try {
+      localStorage.setItem('kostUser', JSON.stringify(userObj));
+      if (kostNameVal) localStorage.setItem('kostName', kostNameVal);
+    } catch (_) {}
+    if (typeof onLogin === 'function') {
+      onLogin(userObj);
+    }
+    navigate(getStaffDefaultPath(userObj), { replace: true });
+  };
 
   const savedDraft = useRef(readStorageDraft(typeof window !== 'undefined' ? window.localStorage : null, REGISTER_DRAFT_KEY));
   const savedSession = useRef(readStorageDraft(typeof window !== 'undefined' ? window.sessionStorage : null, REGISTER_SESSION_KEY));
@@ -471,6 +487,13 @@ const Register = () => {
 
       const regRes = await apiRegister(payload);
       clearRegisterDraftStorage();
+      if (regRes?.user) {
+        setRegisteredSession({ user: regRes.user, kostName: regRes.kostName || '' });
+        try {
+          localStorage.setItem('kostUser', JSON.stringify(regRes.user));
+          if (regRes.kostName) localStorage.setItem('kostName', regRes.kostName);
+        } catch (_) {}
+      }
       setStep('success');
       setMessage(
         selectedRole === 'owner'
@@ -481,7 +504,7 @@ const Register = () => {
           ? 'Pendaftaran Karyawan Berhasil! Akun Gmail Anda aktif dan siap dihubungkan oleh Pemilik Kost atau Pemilik Bisnis.'
           : 'Pendaftaran Berhasil! Akun Anda aktif dan siap digunakan.'
       );
-      setTimeout(() => navigate('/login'), 2200);
+      setTimeout(() => completeAutoLogin(regRes?.user, regRes?.kostName || ''), 1600);
     } catch (err) {
       setOtpError(err.message || 'Verifikasi OTP gagal. Silakan periksa kembali kode Anda.');
     } finally {
@@ -1966,14 +1989,14 @@ const Register = () => {
             fontSize: '0.82rem',
             marginBottom: '1.5rem'
           }}>
-            Akun siap digunakan. Anda sedang dialihkan ke halaman Masuk...
+            Akun aktif! Anda sedang masuk otomatis ke halaman utama...
           </div>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => completeAutoLogin(registeredSession?.user, registeredSession?.kostName)}
             className="btn btn-primary"
             style={{ width: '100%', padding: '12px', fontWeight: 700 }}
           >
-            Masuk ke Akun Sekarang →
+            Buka Halaman Utama Sekarang →
           </button>
         </div>
       )}

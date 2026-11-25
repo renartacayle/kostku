@@ -1055,6 +1055,108 @@ export default {
   }
 };
 
+async function kvGetJson(env, key) {
+  try {
+    if (!env?.KOSTKU_KV || !key) return null;
+    return await env.KOSTKU_KV.get(key, 'json');
+  } catch (_) {
+    return null;
+  }
+}
+
+async function kvPutJson(env, key, value) {
+  try {
+    if (!env?.KOSTKU_KV || !key) return;
+    await env.KOSTKU_KV.put(key, JSON.stringify(value));
+  } catch (_) {}
+}
+
+function normalizePhoneKey(raw) {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) digits = '62' + digits.slice(1);
+  else if (digits.startsWith('8') && digits.length >= 8 && digits.length <= 13) digits = '62' + digits;
+  return digits;
+}
+
+function randomHexEdge(byteLen = 8) {
+  const bytes = new Uint8Array(byteLen);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function hashPasswordEdge(password, salt) {
+  const data = new TextEncoder().encode(`${salt}:${String(password || '')}`);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPasswordEdge(userObj, inputPassword) {
+  if (!userObj) return false;
+  const rawInput = String(inputPassword || '');
+  if (userObj.passwordHash && userObj.passwordSalt) {
+    if (!rawInput) return false;
+    const computed = await hashPasswordEdge(rawInput, userObj.passwordSalt);
+    return computed === userObj.passwordHash;
+  }
+  if (userObj.password) {
+    return Boolean(rawInput) && userObj.password === rawInput;
+  }
+  return false;
+}
+
+function stripSensitiveUser(userObj) {
+  if (!userObj) return null;
+  const { password: _, passwordHash: __, passwordSalt: ___, ...safeUser } = userObj;
+  return safeUser;
+}
+
+async function saveUserToKv(env, userObj) {
+  if (!env?.KOSTKU_KV || !userObj) return;
+  const cleanEmail = String(userObj.email || '').trim().toLowerCase();
+  const cleanPhone = normalizePhoneKey(userObj.phone);
+  const ops = [];
+  if (userObj.id) ops.push(kvPutJson(env, `user:id:${userObj.id}`, userObj));
+  if (cleanEmail) ops.push(kvPutJson(env, `user:email:${cleanEmail}`, userObj));
+  if (cleanPhone.length >= 8) ops.push(kvPutJson(env, `user:phone:${cleanPhone}`, userObj));
+  await Promise.all(ops);
+}
+
+async function findUserInKv(env, { id = '', email = '', loginId = '' } = {}) {
+  if (!env?.KOSTKU_KV) return null;
+  if (id) {
+    const byId = await kvGetJson(env, `user:id:${String(id).trim()}`);
+    if (byId) return byId;
+  }
+  const emailCandidate = String(email || loginId || '').trim().toLowerCase();
+  if (emailCandidate && emailCandidate.includes('@')) {
+    const byEmail = await kvGetJson(env, `user:email:${emailCandidate}`);
+    if (byEmail) return byEmail;
+  }
+  const phoneKey = normalizePhoneKey(loginId || '');
+  if (phoneKey.length >= 8) {
+    const byPhone = await kvGetJson(env, `user:phone:${phoneKey}`);
+    if (byPhone) return byPhone;
+  }
+  return null;
+}
+
+async function saveMerchantToKv(env, merchantObj) {
+  if (!env?.KOSTKU_KV || !merchantObj) return;
+  const ops = [];
+  if (merchantObj.id) ops.push(kvPutJson(env, `merchant:id:${merchantObj.id}`, merchantObj));
+  if (merchantObj.ownerUserId) ops.push(kvPutJson(env, `merchant:owner:${merchantObj.ownerUserId}`, merchantObj));
+  await Promise.all(ops);
+}
+
+async function saveKostToKv(env, kostObj) {
+  if (!env?.KOSTKU_KV || !kostObj) return;
+  const ops = [];
+  if (kostObj.uid) ops.push(kvPutJson(env, `kost:uid:${kostObj.uid}`, kostObj));
+  if (kostObj.ownerId) ops.push(kvPutJson(env, `kost:owner:${kostObj.ownerId}`, kostObj));
+  await Promise.all(ops);
+}
+
 async function handleApi(request, url, env) {
   const path = url.pathname.replace(/^\/api/, '');
   const method = request.method.toUpperCase();
@@ -1577,25 +1679,48 @@ async function handleApi(request, url, env) {
   // ── POS & TABLE QR ENGINE ENDPOINTS (/api/pos/*) ─────────────────
   if (path.startsWith('/pos/')) {
     const posPath = path.replace(/^\/pos/, '');
-    return await handlePosApi(request, posPath, method, url, activeState);
+    return await handlePosApi(request, posPath, method, url, activeState, env);
   }
 
   if (path === '/payments/tripay-callback' || path === '/payments/callback' || path === '/tripay-callback') {
-    return await handlePosApi(request, '/tripay/callback', method, url, activeState);
+    return await handlePosApi(request, '/tripay/callback', method, url, activeState, env);
   }
 
-  // ── Auth: Registration (Real Mode) ──────────────────────────────
+  // ── Auth: Check Email Exists ─────────────────────────────────────
+  if (path === '/auth/check-email' && method === 'GET') {
+    const email = String(url.searchParams.get('email') || '').trim().toLowerCase();
+    if (!email) {
+      return new Response(JSON.stringify({ exists: false, role: null }), { headers: corsHeaders });
+    }
+    const isDemoEmail = email.endsWith('@kostku.id');
+    const pool = isDemoEmail ? demoEdgeState : realEdgeState;
+    let found = pool.edgeUsers.find(u => String(u.email || '').toLowerCase() === email);
+    if (!found && !isDemoEmail) {
+      found = await findUserInKv(env, { email });
+      if (found) realEdgeState.edgeUsers.push(found);
+    }
+    return new Response(JSON.stringify({
+      exists: Boolean(found),
+      role: found?.role || null
+    }), { headers: corsHeaders });
+  }
+
+  // ── Auth: Registration (Real Mode + Persistent KV) ───────────────
   if (path === '/register' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || '').trim().toLowerCase();
     const name = String(body.name || '').trim();
     const role = body.role || 'mitra';
-    const regState = (body.isDemo || email.endsWith('@kostku.id')) ? demoEdgeState : realEdgeState;
+    const isDemoReg = Boolean(body.isDemo) || email.endsWith('@kostku.id');
+    const regState = isDemoReg ? demoEdgeState : realEdgeState;
 
     if (!name || !email) {
       return new Response(JSON.stringify({ error: 'Nama dan email wajib diisi' }), { status: 400, headers: corsHeaders });
     }
-    if (regState.users?.some?.(u => u.email?.toLowerCase() === email) || regState.edgeUsers.some(u => u.email?.toLowerCase() === email)) {
+    const existsInRam = regState.users?.some?.(u => u.email?.toLowerCase() === email) ||
+      regState.edgeUsers.some(u => u.email?.toLowerCase() === email);
+    const existsInKv = !isDemoReg ? await findUserInKv(env, { email }) : null;
+    if (existsInRam || existsInKv) {
       return new Response(JSON.stringify({ error: 'Email sudah terdaftar' }), { status: 409, headers: corsHeaders });
     }
 
@@ -1607,7 +1732,7 @@ async function handleApi(request, url, env) {
     if (role === 'owner') {
       resolvedKostUid = 'KOST-' + Date.now().toString(36).toUpperCase().slice(-6);
       resolvedKostName = String(body.kostName || `Kost ${name}`).trim();
-      regState.edgeKosts.push({
+      const newKostObj = {
         uid: resolvedKostUid,
         kostName: resolvedKostName,
         name: resolvedKostName,
@@ -1630,15 +1755,20 @@ async function handleApi(request, url, env) {
           utilityScheme: 'managed',
           rooms: Array.isArray(body.rooms) ? body.rooms : []
         }
-      });
+      };
+      regState.edgeKosts.push(newKostObj);
+      if (!isDemoReg) await saveKostToKv(env, newKostObj);
     } else if (role === 'mitra' && String(body.storeName || '').trim()) {
       merchantId = 'MTR-' + Date.now().toString(36).toUpperCase();
       const sName = String(body.storeName).trim();
       const visibilityMode = 'mitra';
-      regState.registeredMerchants.push({
+      const newMerchantObj = {
         id: merchantId,
+        uid: merchantId,
         ownerUserId: newUserId,
+        ownerName: name,
         name: sName,
+        storeName: sName,
         category: body.category || 'Warung & Kuliner',
         phone: body.phone || '',
         address: body.address || '',
@@ -1653,17 +1783,25 @@ async function handleApi(request, url, env) {
         status: 'active',
         saldoNota: 5000,
         kuotaNota: 50,
+        notaFeePerNotaIdr: 25,
+        notaFeeBearer: 'store',
         products: [],
         createdAt: new Date().toISOString()
-      });
+      };
+      regState.registeredMerchants.push(newMerchantObj);
+      if (!isDemoReg) await saveMerchantToKv(env, newMerchantObj);
     }
+
+    const rawPassword = String(body.password || '');
+    const passwordSalt = rawPassword ? randomHexEdge(8) : '';
+    const passwordHash = rawPassword ? await hashPasswordEdge(rawPassword, passwordSalt) : '';
 
     const newUser = {
       id: newUserId,
       name,
       email,
       phone: body.phone || '',
-      password: body.password || '',
+      ...(passwordHash ? { passwordHash, passwordSalt } : {}),
       role,
       kostUid: resolvedKostUid,
       kamar: '',
@@ -1671,13 +1809,14 @@ async function handleApi(request, url, env) {
       storeName: role === 'mitra' ? String(body.storeName || '').trim() : '',
       status: 'active',
       depositPaid: 0,
-      depositStatus: 'none'
+      depositStatus: 'none',
+      createdAt: new Date().toISOString()
     };
     regState.edgeUsers.push(newUser);
-    const { password: _, ...safeUser } = newUser;
+    if (!isDemoReg) await saveUserToKv(env, newUser);
     return new Response(JSON.stringify({
       success: true,
-      user: safeUser,
+      user: stripSensitiveUser(newUser),
       kostUid: resolvedKostUid,
       kostName: resolvedKostName,
       message: 'Pendaftaran berhasil'
@@ -2040,27 +2179,42 @@ async function handleApi(request, url, env) {
     }
 
     let existing = authState.edgeUsers.find(u => String(u.email || '').toLowerCase() === email);
+    if (!existing && !isDemoAuth) {
+      const kvUser = await findUserInKv(env, { email });
+      if (kvUser) {
+        existing = kvUser;
+        authState.edgeUsers.push(existing);
+      }
+    }
     if (!existing) {
       const finalRole = body.role || 'mitra';
       existing = {
         id: 'usr-' + Date.now(),
         name: name || email.split('@')[0],
         email,
+        phone: body.phone || '',
         picture: picture || null,
         role: finalRole,
         kamar: '',
         kostUid: body.kostUid || '',
+        storeName: finalRole === 'mitra' ? String(body.storeName || '').trim() : '',
         loyalty_points: 0,
         authProvider: 'google',
         referralCode: ''
       };
       authState.edgeUsers.push(existing);
+      if (!isDemoAuth) await saveUserToKv(env, existing);
     }
 
-    const matchedKost = authState.edgeKosts.find(k => k.uid === existing.kostUid);
+    let matchedKost = authState.edgeKosts.find(k => k.uid === existing.kostUid);
+    if (!matchedKost && !isDemoAuth && (existing.kostUid || existing.id)) {
+      matchedKost = (existing.kostUid ? await kvGetJson(env, `kost:uid:${existing.kostUid}`) : null) ||
+        await kvGetJson(env, `kost:owner:${existing.id}`);
+      if (matchedKost) authState.edgeKosts.push(matchedKost);
+    }
     return new Response(JSON.stringify({
       success: true,
-      user: existing,
+      user: stripSensitiveUser(existing),
       kostName: matchedKost?.kostName || '',
       message: 'Berhasil masuk dengan akun Google'
     }), { headers: corsHeaders });
@@ -2127,24 +2281,46 @@ async function handleApi(request, url, env) {
       return new Response(JSON.stringify({ error: 'Email atau nomor HP wajib diisi.' }), { status: 400, headers: corsHeaders });
     }
 
-    const found = realEdgeState.edgeUsers.find(u =>
+    let found = realEdgeState.edgeUsers.find(u =>
       String(u.email || '').toLowerCase() === lowerLogin ||
       String(u.phone || '') === loginId ||
       String(u.name || '').toLowerCase() === lowerLogin
     );
     if (!found) {
+      found = await findUserInKv(env, { loginId });
+      if (found) realEdgeState.edgeUsers.push(found);
+    }
+    if (!found) {
       return new Response(JSON.stringify({
         error: 'Akun belum terdaftar. Silakan daftar akun baru terlebih dahulu.'
       }), { status: 401, headers: corsHeaders });
     }
-    if (found.password && body.password && found.password !== body.password) {
-      return new Response(JSON.stringify({ error: 'Password salah.' }), { status: 401, headers: corsHeaders });
+    if (found.passwordHash || found.password) {
+      const pwValid = await verifyPasswordEdge(found, body.password);
+      if (!pwValid) {
+        return new Response(JSON.stringify({ error: 'Password salah.' }), { status: 401, headers: corsHeaders });
+      }
     }
-    const { password: _, ...safeUser } = found;
-    const matchedKost = realEdgeState.edgeKosts.find(k => k.uid === found.kostUid);
+    let matchedKost = realEdgeState.edgeKosts.find(k => k.uid === found.kostUid);
+    if (!matchedKost && (found.kostUid || found.id)) {
+      matchedKost = (found.kostUid ? await kvGetJson(env, `kost:uid:${found.kostUid}`) : null) ||
+        await kvGetJson(env, `kost:owner:${found.id}`);
+      if (matchedKost) realEdgeState.edgeKosts.push(matchedKost);
+    }
+    let matchedMerchant = realEdgeState.registeredMerchants.find(m => m && String(m.ownerUserId) === String(found.id));
+    if (!matchedMerchant && found.id) {
+      matchedMerchant = await kvGetJson(env, `merchant:owner:${found.id}`);
+      if (matchedMerchant) realEdgeState.registeredMerchants.push(matchedMerchant);
+    }
+    const hydratedUser = {
+      ...stripSensitiveUser(found),
+      ...(matchedKost?.uid && !found.kostUid ? { kostUid: matchedKost.uid } : {}),
+      ...(matchedMerchant?.id && !found.merchantId ? { merchantId: matchedMerchant.id } : {}),
+      ...(matchedMerchant?.storeName && !found.storeName ? { storeName: matchedMerchant.storeName } : {})
+    };
     return new Response(JSON.stringify({
       success: true,
-      user: safeUser,
+      user: hydratedUser,
       kostName: matchedKost?.kostName || '',
       message: 'Login berhasil'
     }), { headers: corsHeaders });
@@ -2158,12 +2334,22 @@ async function handleApi(request, url, env) {
       (id && String(u.id) === String(id)) ||
       (email && String(u.email || '').toLowerCase() === String(email).trim().toLowerCase())
     );
+    if (!user && !activeState.isDemo) {
+      user = await findUserInKv(env, { id, email });
+      if (user) activeState.edgeUsers.push(user);
+    }
 
     if (user && newPassword && String(newPassword).trim()) {
-      if (user.authProvider !== 'google' && user.password && user.password !== currentPassword) {
-        return new Response(JSON.stringify({ error: 'Kata sandi saat ini tidak cocok' }), { status: 400, headers: corsHeaders });
+      if (user.authProvider !== 'google' && (user.passwordHash || user.password)) {
+        const curOk = await verifyPasswordEdge(user, currentPassword);
+        if (!curOk) {
+          return new Response(JSON.stringify({ error: 'Kata sandi saat ini tidak cocok' }), { status: 400, headers: corsHeaders });
+        }
       }
-      user.password = String(newPassword).trim();
+      const nextSalt = randomHexEdge(8);
+      user.passwordSalt = nextSalt;
+      user.passwordHash = await hashPasswordEdge(String(newPassword).trim(), nextSalt);
+      delete user.password;
     }
 
     if (!user) {
@@ -2181,7 +2367,9 @@ async function handleApi(request, url, env) {
         referralCode: `KOSTKU-${Math.abs(String(id || email || '1').split('').reduce((a, c) => ((a << 5) - a) + c.charCodeAt(0), 0) % 9000) + 1000}`
       };
       if (newPassword && String(newPassword).trim()) {
-        user.password = String(newPassword).trim();
+        const nextSalt = randomHexEdge(8);
+        user.passwordSalt = nextSalt;
+        user.passwordHash = await hashPasswordEdge(String(newPassword).trim(), nextSalt);
       }
       activeState.edgeUsers.push(user);
     } else {
@@ -2194,11 +2382,12 @@ async function handleApi(request, url, env) {
       }
     }
 
-    const { password: _, ...safeUser } = user;
+    if (!activeState.isDemo) await saveUserToKv(env, user);
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Profil berhasil diperbarui',
-      user: safeUser
+      user: stripSensitiveUser(user)
     }), { headers: corsHeaders });
   }
 
@@ -2721,18 +2910,26 @@ async function handleApi(request, url, env) {
   const singleUserMatch = path.match(/^\/users\/([^/]+)$/);
   if (singleUserMatch && method === 'GET') {
     const uid = decodeURIComponent(singleUserMatch[1]);
-    const user = activeState.edgeUsers.find(u => String(u.id) === String(uid));
+    let user = activeState.edgeUsers.find(u => String(u.id) === String(uid));
+    if (!user && !activeState.isDemo) {
+      user = await findUserInKv(env, { id: uid });
+      if (user) activeState.edgeUsers.push(user);
+    }
     if (!user) {
       return new Response(JSON.stringify({ error: 'User tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
-    const targetKost = activeState.edgeKosts.find(k => k.uid === user.kostUid);
+    let targetKost = activeState.edgeKosts.find(k => k.uid === user.kostUid);
+    if (!targetKost && !activeState.isDemo && user.kostUid) {
+      targetKost = await kvGetJson(env, `kost:uid:${user.kostUid}`);
+      if (targetKost) activeState.edgeKosts.push(targetKost);
+    }
     const depCfg = targetKost ? resolveEdgeDepositConfig(targetKost) : { depositEnabled: false, depositAmount: 0 };
     const heldDeposit = user.status === 'checked_out' ? 0 : resolveEdgeHeldDeposit(user, targetKost);
     const latestRefund = activeState.edgeDepositRefunds
       .filter(r => String(r.userId) === String(user.id))
       .sort((a, b) => new Date(b.checkedOutAt || 0) - new Date(a.checkedOutAt || 0))[0] || null;
     return new Response(JSON.stringify({
-      user,
+      user: stripSensitiveUser(user),
       kostName: targetKost?.kostName || '',
       activeApplication: user.status === 'checked_out' ? { status: 'checked_out', kostUid: user.kostUid, kamar: user.kamar } : null,
       depositSummary: {
@@ -3175,7 +3372,7 @@ function deductEdgeStoreNotaOnce(state, order, storeId, billingFeeIdr) {
   return { ok: true, feeDeducted: fee, saldoAfter: wallet.available_balance, kuotaAfter: nextKuota };
 }
 
-async function handlePosApi(request, path, method, url, state) {
+async function handlePosApi(request, path, method, url, state, env = null) {
   if (path === '/store') {
     if (method === 'GET') {
       const reqOwnerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
@@ -3195,11 +3392,30 @@ async function handlePosApi(request, path, method, url, state) {
         }), { status: 401, headers: corsHeaders });
       }
 
-      if (!state.isDemo && reqOwnerId && !reqTableToken && !reqStoreId) {
+      if (!state.isDemo && reqOwnerId && !reqTableToken) {
         let hasMerchant = (state.registeredMerchants || []).some(m =>
-          m && (String(m.ownerUserId || '') === String(reqOwnerId) || String(m.id || '') === String(reqStoreId))
+          m && (String(m.ownerUserId || '') === String(reqOwnerId) || (reqStoreId && String(m.id || '') === String(reqStoreId)))
         );
-        if (!hasMerchant && !state.posStore?.ownerUserId) {
+        if (!hasMerchant) {
+          const kvMerchant = await kvGetJson(env, `merchant:owner:${reqOwnerId}`) ||
+            (reqStoreId ? await kvGetJson(env, `merchant:id:${reqStoreId}`) : null);
+          if (kvMerchant) {
+            state.registeredMerchants = state.registeredMerchants || [];
+            state.registeredMerchants.push(kvMerchant);
+            Object.assign(state.posStore, kvMerchant);
+            state.posStore.uid = kvMerchant.id;
+            state.posStore.merchantId = kvMerchant.id;
+            syncEdgeStoreWallet(
+              state,
+              kvMerchant.id,
+              kvMerchant.saldoNota ?? 5000,
+              kvMerchant.kuotaNota ?? 50,
+              kvMerchant.notaFeePerNotaIdr ?? 25
+            );
+            hasMerchant = true;
+          }
+        }
+        if (!hasMerchant && !state.posStore?.ownerUserId && !reqStoreId) {
           // Auto-provision default Kantin & Kuliner store for Renarta Caylen / Mitra account so user doesn't have to input anything
           const renartaMerchant = {
             id: 'MTR-' + (reqOwnerId || 'RENARTA-01'),
