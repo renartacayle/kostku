@@ -3435,6 +3435,7 @@ async function handleApi(request, url, env) {
       createdAt: new Date().toISOString()
     };
     activeState.edgeTransactions.push(trx);
+    if (!activeState.isDemo) await kvPutJson(env, `payment:trx:${orderId}`, trx);
     return new Response(JSON.stringify(trx), { headers: corsHeaders });
   }
 
@@ -3458,7 +3459,11 @@ async function handleApi(request, url, env) {
 
   if (path.startsWith('/payments/status/') && method === 'GET') {
     const orderId = decodeURIComponent(path.replace('/payments/status/', ''));
-    const trx = activeState.edgeTransactions.find(t => t.orderId === orderId);
+    let trx = activeState.edgeTransactions.find(t => t.orderId === orderId);
+    if (!trx && !activeState.isDemo && orderId) {
+      trx = await kvGetJson(env, `payment:trx:${orderId}`);
+      if (trx) activeState.edgeTransactions.push(trx);
+    }
     return new Response(JSON.stringify({
       orderId,
       status: trx?.status || 'pending',
@@ -3468,7 +3473,11 @@ async function handleApi(request, url, env) {
 
   if (path === '/payments/verify' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
-    const trx = activeState.edgeTransactions.find(t => t.orderId === body.orderId);
+    let trx = activeState.edgeTransactions.find(t => t.orderId === body.orderId);
+    if (!trx && !activeState.isDemo && body.orderId) {
+      trx = await kvGetJson(env, `payment:trx:${body.orderId}`);
+      if (trx) activeState.edgeTransactions.push(trx);
+    }
     return new Response(JSON.stringify({
       success: trx?.status === 'settlement',
       status: trx?.status || 'pending',
@@ -4788,7 +4797,15 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         return new Response(JSON.stringify([]), { headers: corsHeaders });
       }
       if (reqTableToken) {
-        return new Response(JSON.stringify(state.posTables.filter(t => String(t.qrToken || '') === reqTableToken)), { headers: corsHeaders });
+        let matchedTbls = state.posTables.filter(t => String(t.qrToken || '') === reqTableToken);
+        if (matchedTbls.length === 0 && !state.isDemo && env?.KOSTKU_KV) {
+          const kvTbl = await kvGetJson(env, `table:token:${reqTableToken}`);
+          if (kvTbl) {
+            state.posTables.push(kvTbl);
+            matchedTbls = [kvTbl];
+          }
+        }
+        return new Response(JSON.stringify(matchedTbls), { headers: corsHeaders });
       }
       return new Response(JSON.stringify(state.posTables), { headers: corsHeaders });
     }
@@ -4800,6 +4817,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         qrToken: `MEJA-${state.posTables.length + 1}-TKN${Math.floor(Math.random() * 900 + 100)}`
       };
       state.posTables.push(newTable);
+      if (!state.isDemo) await kvPutJson(env, `table:token:${newTable.qrToken}`, newTable);
       return new Response(JSON.stringify(newTable), { status: 201, headers: corsHeaders });
     }
   }
