@@ -2032,7 +2032,8 @@ export default function Kasir({ user, onLogout }) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+              ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {}),
+              ...(ownerIdVal ? { 'x-user-id': String(ownerIdVal) } : {})
             },
             body: JSON.stringify({
               ownerUserId: ownerIdVal,
@@ -5440,13 +5441,20 @@ export default function Kasir({ user, onLogout }) {
 
                   const items = Object.values(posCart).map(it => ({
                     productId: it.product.id,
+                    name: it.product.name,
+                    price: Number(it.product.price) || 0,
                     qty: it.qty,
                     notes: it.notes || ''
                   }));
+                  const checkoutHeaders = {
+                    'Content-Type': 'application/json',
+                    ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {}),
+                    ...(user?.id ? { 'x-user-id': String(user.id) } : {})
+                  };
                   const cartSnapshot = { ...posCart };
                   const res = await fetch('/api/pos/orders', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: checkoutHeaders,
                     body: JSON.stringify({
                       tableToken: null,
                       tableNumber: 'Menunggu Meja',
@@ -5455,6 +5463,8 @@ export default function Kasir({ user, onLogout }) {
                       redeemPoints: resolveStoreTier2Enabled() && cartRedeemPoints > 0 ? cartRedeemPoints : 0,
                       storeId: storeInfo.merchantId || storeInfo.uid || undefined,
                       storeName: storeInfo.storeName || undefined,
+                      storeSaldoNota: storeSaldoNota,
+                      storeKuotaNota: storeKuotaNota,
                       cashierId: user?.id || 'KSR-01',
                       cashierName: cashierShift.cashierName || user?.name || 'Kasir Shift',
                       items,
@@ -5469,16 +5479,21 @@ export default function Kasir({ user, onLogout }) {
                   });
                   if (res.ok) {
                     const newO = await res.json();
-                    await fetch(`/api/pos/orders/${newO.id}/acc`, { method: 'POST' });
+                    await fetch(`/api/pos/orders/${newO.id}/acc`, {
+                      method: 'POST',
+                      headers: checkoutHeaders,
+                      body: JSON.stringify({ orderSnapshot: newO })
+                    });
                     const payRes = await fetch(`/api/pos/orders/${newO.id}/pay`, {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: checkoutHeaders,
                       body: JSON.stringify({
                         method: posPaymentMethod,
                         cashierId: user?.id || 'KSR-01',
                         cashierName: cashierShift.cashierName || user?.name || 'Kasir Shift',
                         cashReceived: effectiveCashReceived,
-                        cashChange: effectiveChange
+                        cashChange: effectiveChange,
+                        orderSnapshot: { ...newO, status: 'WAITING_PAYMENT' }
                       })
                     });
                     const payData = await payRes.json();
@@ -5486,6 +5501,15 @@ export default function Kasir({ user, onLogout }) {
                       if (payData.requiresTopupNota) setShowPosTopupModal(true);
                       setPosCheckoutFeedback({ type: 'error', text: payData.error || 'Gagal memproses pembayaran.' });
                       return;
+                    }
+                    const updatedSaldo = payData?.sisaSaldoNota ?? newO?.sisaSaldoNota;
+                    const updatedKuota = payData?.sisaKuotaNota ?? newO?.sisaKuotaNota ?? newO?.kuotaNota;
+                    if (updatedSaldo != null || updatedKuota != null) {
+                      setStoreInfo(prev => ({
+                        ...prev,
+                        ...(updatedSaldo != null ? { saldoNota: updatedSaldo } : {}),
+                        ...(updatedKuota != null ? { kuotaNota: updatedKuota } : {})
+                      }));
                     }
                     const enteredPhoneForClaim = parseCustomerQrOrPhone(cartCustomerPhone).phone || cartCustomerPhone.trim();
                     const enteredNameForClaim = cartCustomerName.trim();

@@ -2735,26 +2735,83 @@ function settleEdgePosUnifiedWallet(state, order, storeId, billingFeeIdr) {
   order.netWalletCredited = netAmount;
 }
 
+function syncEdgeStoreWallet(state, storeId, saldoNota, kuotaNota = null, feePerNota = null) {
+  if (!state) return;
+  const targetId = String(storeId || state.posStore?.merchantId || state.posStore?.uid || 'STORE-DEFAULT');
+  const safeSaldo = Math.max(0, Number(saldoNota) || 0);
+  const safeFee = Math.max(1, Number(feePerNota ?? state.posStore?.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
+  const safeKuota = kuotaNota != null ? Math.max(0, Number(kuotaNota) || 0) : Math.floor(safeSaldo / safeFee);
+
+  state.merchantWallets = state.merchantWallets || {};
+  state.merchantWallets[targetId] = {
+    ...(state.merchantWallets[targetId] || {}),
+    merchantId: targetId,
+    name: state.posStore?.storeName || state.merchantWallets[targetId]?.name || 'Toko Kasir',
+    whatsappNumber: state.posStore?.phone || state.merchantWallets[targetId]?.whatsappNumber || '',
+    available_balance: safeSaldo,
+    held_promo_balance: Number(state.merchantWallets[targetId]?.held_promo_balance || 0),
+    _exhaustedByDeduction: false,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!state.posStore?.merchantId || String(state.posStore.merchantId) === targetId || String(state.posStore.uid) === targetId || targetId === 'STORE-DEFAULT') {
+    state.posStore.saldoNota = safeSaldo;
+    state.posStore.kuotaNota = safeKuota;
+  }
+
+  if (Array.isArray(state.registeredMerchants)) {
+    state.registeredMerchants.forEach(m => {
+      if (m && (String(m.id) === targetId || String(m.uid || '') === targetId)) {
+        m.saldoNota = safeSaldo;
+        m.kuotaNota = safeKuota;
+      }
+    });
+  }
+
+  if (Array.isArray(state.posStore?.branches)) {
+    state.posStore.branches.forEach(b => {
+      if (b && String(b.id) === targetId) {
+        b.saldoNota = safeSaldo;
+        b.kuotaNota = safeKuota;
+      }
+    });
+  }
+}
+
 function deductEdgeStoreNotaOnce(state, order, storeId, billingFeeIdr) {
   if (!order) return { ok: true, feeDeducted: 0 };
+  const targetId = String(storeId || state.posStore?.merchantId || state.posStore?.uid || 'STORE-DEFAULT');
   const fee = Math.max(0, Math.round(Number(billingFeeIdr) || 25));
   if (Number(order.notaDeducted) > 0) {
-    const w = state.merchantWallets?.[storeId];
-    return { ok: true, feeDeducted: 0, saldoAfter: w?.available_balance ?? state.posStore.saldoNota ?? 0, kuotaAfter: state.posStore.kuotaNota ?? 0 };
-  }
-  state.merchantWallets = state.merchantWallets || {};
-  if (!state.merchantWallets[storeId]) {
-    state.merchantWallets[storeId] = {
-      merchantId: storeId,
-      name: state.posStore.storeName || 'Toko Kasir',
-      whatsappNumber: state.posStore.phone || '',
-      available_balance: Number(state.posStore.saldoNota) || 0,
-      held_promo_balance: 0.00,
-      updatedAt: new Date().toISOString()
+    const w = state.merchantWallets?.[targetId];
+    return {
+      ok: true,
+      feeDeducted: 0,
+      saldoAfter: w?.available_balance ?? order.sisaSaldoNota ?? state.posStore.saldoNota ?? 0,
+      kuotaAfter: order.kuotaNota ?? state.posStore.kuotaNota ?? 0
     };
   }
-  const wallet = state.merchantWallets[storeId];
-  const currentSaldo = Number(wallet.available_balance ?? state.posStore.saldoNota ?? 0);
+  state.merchantWallets = state.merchantWallets || {};
+  const matchedMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === targetId || String(m.uid || '') === targetId));
+  const posMatches = !state.posStore?.merchantId || String(state.posStore.merchantId) === targetId || String(state.posStore.uid) === targetId || targetId === 'STORE-DEFAULT';
+  const fallbackSaldo = Number(matchedMerchant?.saldoNota ?? (posMatches ? state.posStore.saldoNota : 0) ?? 0);
+
+  if (!state.merchantWallets[targetId]) {
+    state.merchantWallets[targetId] = {
+      merchantId: targetId,
+      name: state.posStore.storeName || matchedMerchant?.storeName || 'Toko Kasir',
+      whatsappNumber: state.posStore.phone || matchedMerchant?.phone || '',
+      available_balance: fallbackSaldo,
+      held_promo_balance: 0.00,
+      _exhaustedByDeduction: false,
+      updatedAt: new Date().toISOString()
+    };
+  } else if (Number(state.merchantWallets[targetId].available_balance) === 0 && fallbackSaldo > 0 && !state.merchantWallets[targetId]._exhaustedByDeduction) {
+    state.merchantWallets[targetId].available_balance = fallbackSaldo;
+  }
+
+  const wallet = state.merchantWallets[targetId];
+  const currentSaldo = Number(wallet.available_balance ?? fallbackSaldo ?? 0);
   if (currentSaldo < fee) {
     return {
       ok: false,
@@ -2766,11 +2823,24 @@ function deductEdgeStoreNotaOnce(state, order, storeId, billingFeeIdr) {
     };
   }
   wallet.available_balance = Math.max(0, currentSaldo - fee);
+  wallet._exhaustedByDeduction = wallet.available_balance < fee;
   wallet.updatedAt = new Date().toISOString();
   const nextKuota = Math.floor(wallet.available_balance / Math.max(1, fee));
-  if (state.posStore.merchantId === storeId || state.posStore.uid === storeId || storeId === 'STORE-DEFAULT') {
+  if (posMatches) {
     state.posStore.saldoNota = wallet.available_balance;
     state.posStore.kuotaNota = nextKuota;
+  }
+  if (matchedMerchant) {
+    matchedMerchant.saldoNota = wallet.available_balance;
+    matchedMerchant.kuotaNota = nextKuota;
+  }
+  if (Array.isArray(state.posStore?.branches)) {
+    state.posStore.branches.forEach(b => {
+      if (b && String(b.id) === targetId) {
+        b.saldoNota = wallet.available_balance;
+        b.kuotaNota = nextKuota;
+      }
+    });
   }
   order.notaDeducted = fee;
   return { ok: true, feeDeducted: fee, saldoAfter: wallet.available_balance, kuotaAfter: nextKuota };
@@ -2843,6 +2913,7 @@ async function handlePosApi(request, path, method, url, state) {
           Object.assign(state.posStore, renartaMerchant);
           state.posStore.uid = renartaMerchant.id;
           state.posStore.merchantId = renartaMerchant.id;
+          syncEdgeStoreWallet(state, renartaMerchant.id, renartaMerchant.saldoNota, renartaMerchant.kuotaNota, renartaMerchant.notaFeePerNotaIdr);
 
           if (!state.posProducts || state.posProducts.length === 0) {
             state.posProducts = [
@@ -3016,6 +3087,7 @@ async function handlePosApi(request, path, method, url, state) {
     state.registeredMerchants = state.registeredMerchants || [];
     state.registeredMerchants.push(newStore);
     Object.assign(state.posStore, newStore);
+    syncEdgeStoreWallet(state, newStore.id, newStore.saldoNota, newStore.kuotaNota, newStore.notaFeePerNotaIdr);
 
     if (Array.isArray(body.menus) && body.menus.length > 0) {
       state.posProducts = body.menus.map((m, idx) => ({
@@ -3041,17 +3113,12 @@ async function handlePosApi(request, path, method, url, state) {
   if (path === '/topup-nota' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
     const addSaldo = Number(body.amount) || 10000;
-    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / 100));
-    state.posStore.kuotaNota = (Number(state.posStore.kuotaNota) || 0) + addQuota;
-    state.posStore.saldoNota = (Number(state.posStore.saldoNota) || 0) + addSaldo;
-    if (Array.isArray(state.posStore.branches)) {
-      state.posStore.branches.forEach(b => {
-        if (b.id === state.posStore.activeBranch) {
-          b.saldoNota = state.posStore.saldoNota;
-          b.kuotaNota = state.posStore.kuotaNota;
-        }
-      });
-    }
+    const activeFee = Math.max(1, Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
+    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / activeFee));
+    const nextKuota = (Number(state.posStore.kuotaNota) || 0) + addQuota;
+    const nextSaldo = (Number(state.posStore.saldoNota) || 0) + addSaldo;
+    const targetStoreId = body.storeId || state.posStore.activeBranch || state.posStore.merchantId || state.posStore.uid || 'STORE-DEFAULT';
+    syncEdgeStoreWallet(state, targetStoreId, nextSaldo, nextKuota, activeFee);
     return new Response(JSON.stringify({
       success: true,
       message: `Top up kuota kasir berhasil (+${addQuota} nota)`,
@@ -3156,16 +3223,11 @@ async function handlePosApi(request, path, method, url, state) {
     }
 
     state.posPaidReferences.add(reference);
-    state.posStore.kuotaNota = (Number(state.posStore.kuotaNota) || 0) + addQuota;
-    state.posStore.saldoNota = (Number(state.posStore.saldoNota) || 0) + addSaldo;
-    if (Array.isArray(state.posStore.branches)) {
-      state.posStore.branches.forEach(b => {
-        if (b.id === state.posStore.activeBranch) {
-          b.saldoNota = state.posStore.saldoNota;
-          b.kuotaNota = state.posStore.kuotaNota;
-        }
-      });
-    }
+    const activeFee = Math.max(1, Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
+    const nextKuota = (Number(state.posStore.kuotaNota) || 0) + addQuota;
+    const nextSaldo = (Number(state.posStore.saldoNota) || 0) + addSaldo;
+    const targetStoreId = body.storeId || state.posStore.activeBranch || state.posStore.merchantId || state.posStore.uid || 'STORE-DEFAULT';
+    syncEdgeStoreWallet(state, targetStoreId, nextSaldo, nextKuota, activeFee);
     return new Response(JSON.stringify({
       success: true,
       isPaid: true,
@@ -3497,6 +3559,28 @@ async function handlePosApi(request, path, method, url, state) {
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const storeId = body.storeId || state.posStore.activeBranch || state.posStore.merchantId || 'STORE-DEFAULT';
+      const billingFeeIdr = Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
+
+      // Cold Cloudflare isolate resilience: sync wallet balance if isolate just booted with 0
+      const hasExplicitStoreSaldo = body.storeSaldoNota !== undefined && body.storeSaldoNota !== null;
+      const explicitStoreSaldo = hasExplicitStoreSaldo
+        ? Math.min(Math.max(0, Math.round(Number(body.storeSaldoNota) || 0)), 1000000)
+        : null;
+      const walletMissing = !state.merchantWallets?.[storeId];
+      const existingPosSaldo = Number(state.posStore.saldoNota || 0);
+      const existingMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === String(storeId) || String(m.uid || '') === String(storeId)));
+      if (!state.isDemo && walletMissing && existingPosSaldo === 0 && !existingMerchant) {
+        const hydratedSaldo = hasExplicitStoreSaldo
+          ? explicitStoreSaldo
+          : (String(storeId).startsWith('MTR-') ? 100000 : 0);
+        if (hydratedSaldo > 0) {
+          if (!state.posStore.merchantId) state.posStore.merchantId = storeId;
+          if (!state.posStore.uid) state.posStore.uid = storeId;
+          if (!state.posStore.storeName) state.posStore.storeName = body.storeName || 'Kantin & Kuliner Renarta';
+          syncEdgeStoreWallet(state, storeId, hydratedSaldo, Math.floor(hydratedSaldo / Math.max(1, billingFeeIdr)), billingFeeIdr);
+        }
+      }
+
       const orderTier = resolveEdgeStoreTier(state, storeId);
       const requestedPointsToRedeem = Math.max(0, Math.floor(Number(body.pointsToRedeem) || 0));
       const reqPromoCode = String(body.promoCode || '').trim().toUpperCase();
@@ -3507,7 +3591,17 @@ async function handlePosApi(request, path, method, url, state) {
           billingTier: orderTier.billingTier
         }), { status: 422, headers: corsHeaders });
       }
-      const items = (body.items || []).map(it => ({ ...it, productId: it.productId || it.id, isReady: false }));
+      const items = (body.items || []).map(it => {
+        const pid = it.productId || it.id;
+        const matchedProd = (state.posProducts || []).find(p => String(p.id) === String(pid));
+        return {
+          ...it,
+          productId: pid,
+          name: it.name || matchedProd?.name || 'Menu',
+          price: it.price != null ? Number(it.price) : Number(matchedProd?.price || 0),
+          isReady: false
+        };
+      });
       const subtotal = items.reduce((sum, it) => sum + ((Number(it.price) || 0) * (Number(it.qty) || 1)), 0);
       const discount = Number(body.discountAmount || 0);
       const totalAmount = Math.max(0, subtotal - discount);
@@ -3532,7 +3626,6 @@ async function handlePosApi(request, path, method, url, state) {
       const claimToken = 'clm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
       const qrClaimUrl = `https://kostku.riuph.me/claim?token=${claimToken}`;
 
-      const billingFeeIdr = Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25));
       const requestedPaymentMethod = String(body.paymentMethod || '').toUpperCase().trim();
       const notaFeeBearer = normalizeEdgeNotaFeeBearer(state.posStore.notaFeeBearer);
       const isDeferredSelfOrder = !requestedPaymentMethod || requestedPaymentMethod === 'CASH_COUNTER';
@@ -3645,6 +3738,8 @@ async function handlePosApi(request, path, method, url, state) {
         claim_token: claimToken,
         claim_deadline: claimDeadline.toISOString(),
         kuotaNota: remainingKuotaNota,
+        sisaSaldoNota: deductRes.saldoAfter,
+        sisaKuotaNota: remainingKuotaNota,
         isLowQuota,
         lowQuotaWarning
       }), { status: 200, headers: corsHeaders });
@@ -3655,7 +3750,7 @@ async function handlePosApi(request, path, method, url, state) {
     const parts = path.replace('/orders/', '').split('/');
     const orderId = parts[0];
     const subAction = parts[1];
-    const order = state.posOrders.find(o => o.id === orderId);
+    let order = state.posOrders.find(o => o.id === orderId);
 
     if (!subAction && method === 'GET') {
       if (order) return new Response(JSON.stringify(order), { headers: corsHeaders });
@@ -3672,6 +3767,11 @@ async function handlePosApi(request, path, method, url, state) {
       return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
     if (subAction === 'acc' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      if (!order && body.orderSnapshot && String(body.orderSnapshot.id || '') === String(orderId)) {
+        order = { ...body.orderSnapshot, id: orderId, status: body.orderSnapshot.status || 'PENDING_CONFIRMATION' };
+        state.posOrders.unshift(order);
+      }
       if (order) {
         order.status = 'WAITING_PAYMENT';
         order.accAt = new Date().toISOString();
@@ -3696,6 +3796,14 @@ async function handlePosApi(request, path, method, url, state) {
     }
     if (subAction === 'pay' && method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      if (!order && body.orderSnapshot && String(body.orderSnapshot.id || '') === String(orderId)) {
+        order = {
+          ...body.orderSnapshot,
+          id: orderId,
+          status: body.orderSnapshot.status === 'PREPARING' ? 'WAITING_PAYMENT' : (body.orderSnapshot.status || 'WAITING_PAYMENT')
+        };
+        state.posOrders.unshift(order);
+      }
       if (!order) return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
       if (order.status !== 'WAITING_PAYMENT') {
         return new Response(JSON.stringify({ error: 'Pesanan belum di-ACC oleh dapur atau sudah dibayar' }), { status: 400, headers: corsHeaders });
