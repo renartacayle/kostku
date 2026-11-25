@@ -2859,8 +2859,28 @@ async function handleApi(request, url, env) {
 
   // ── Multi-Property Owner Kosts ──────────────────────────────────
   if (path === '/owner/kosts' && method === 'GET') {
-    const ownerId = url.searchParams.get('ownerId') || '';
-    const matching = activeState.edgeKosts.filter(k => !ownerId || String(k.ownerId) === String(ownerId));
+    const rawOwnerId = url.searchParams.get('ownerId') || '';
+    let ownerId = rawOwnerId;
+    if (rawOwnerId) {
+      let caller = activeState.edgeUsers.find(u => String(u.id) === String(rawOwnerId));
+      if (!caller && !activeState.isDemo && env?.KOSTKU_KV) {
+        caller = await findUserInKv(env, { id: rawOwnerId });
+        if (caller) activeState.edgeUsers.push(caller);
+      }
+      if (caller && String(caller.role || '').toLowerCase() === 'admin' && caller.ownerId) {
+        ownerId = String(caller.ownerId);
+      }
+    }
+    let matching = activeState.edgeKosts.filter(k => !ownerId || String(k.ownerId) === String(ownerId));
+    if (matching.length === 0 && !activeState.isDemo && ownerId) {
+      const kvKost = await kvGetJson(env, `kost:owner:${ownerId}`);
+      if (kvKost) {
+        if (!activeState.edgeKosts.some(k => k.uid === kvKost.uid)) {
+          activeState.edgeKosts.push(kvKost);
+        }
+        matching = [kvKost];
+      }
+    }
     const source = matching.length > 0 ? matching : (activeState.isDemo ? activeState.edgeKosts : []);
     const list = source.map(k => {
       const rooms = k.settings?.rooms || [];
@@ -2888,9 +2908,15 @@ async function handleApi(request, url, env) {
   // ── Settings GET / PUT ──────────────────────────────────────────
   if (path === '/settings') {
     const kostUid = url.searchParams.get('kostUid') || '';
-    const kost = kostUid
+    let kost = kostUid
       ? activeState.edgeKosts.find(k => k.uid === kostUid)
       : (activeState.isDemo ? activeState.edgeKosts[0] : null);
+    if (!kost && !activeState.isDemo && kostUid) {
+      kost = await kvGetJson(env, `kost:uid:${kostUid}`);
+      if (kost && !activeState.edgeKosts.some(k => k.uid === kost.uid)) {
+        activeState.edgeKosts.push(kost);
+      }
+    }
     if (method === 'GET') {
       const depCfg = resolveEdgeDepositConfig(kost);
       return new Response(JSON.stringify({
@@ -2925,6 +2951,7 @@ async function handleApi(request, url, env) {
         depositPreferredAmount: prefAmt,
         depositAmount: finalDepositAmount
       };
+      if (!activeState.isDemo) await saveKostToKv(env, kost);
       return new Response(JSON.stringify({ success: true, settings: kost.settings }), { headers: corsHeaders });
     }
   }
