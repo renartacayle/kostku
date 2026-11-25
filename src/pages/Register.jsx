@@ -38,20 +38,47 @@ import { decodeGoogleCredential } from '../utils/googleAuth';
 import CloudflareTurnstile from '../components/CloudflareTurnstile';
 import { getStaffDefaultPath } from '../utils/staffRole';
 
+const REGISTER_DRAFT_KEY = 'kostku_register_draft_v1';
+const REGISTER_SESSION_KEY = 'kostku_register_session_v1';
+
+const readStorageDraft = (storage, key) => {
+  try {
+    if (typeof window === 'undefined' || !storage) return {};
+    const raw = storage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+};
+
+const clearRegisterDraftStorage = () => {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(REGISTER_DRAFT_KEY);
+    sessionStorage.removeItem(REGISTER_SESSION_KEY);
+  } catch (_) {}
+};
+
 const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
+  const savedDraft = useRef(readStorageDraft(typeof window !== 'undefined' ? window.localStorage : null, REGISTER_DRAFT_KEY));
+  const savedSession = useRef(readStorageDraft(typeof window !== 'undefined' ? window.sessionStorage : null, REGISTER_SESSION_KEY));
+
   // Role Selection: 'mitra' (Default) | 'owner' (Pemilik Kost) | 'staff' (Karyawan) | 'user' (Penghuni)
   const searchParams = new URLSearchParams(location.search);
-  const initialRole = searchParams.get('role') || 'mitra';
+  const roleParam = searchParams.get('role');
+  const initialRole = roleParam || savedDraft.current.selectedRole || 'mitra';
   const [selectedRole, setSelectedRole] = useState(initialRole);
-  const [kostName, setKostName] = useState('');
-  const [storeName, setStoreName] = useState('');
-  const [businessPreset, setBusinessPreset] = useState(DEFAULT_BUSINESS_CATEGORY);
-  const [customBusinessCategory, setCustomBusinessCategory] = useState('');
+  const [kostName, setKostName] = useState(() => savedDraft.current.kostName || '');
+  const [storeName, setStoreName] = useState(() => savedDraft.current.storeName || '');
+  const [businessPreset, setBusinessPreset] = useState(() => savedDraft.current.businessPreset || DEFAULT_BUSINESS_CATEGORY);
+  const [customBusinessCategory, setCustomBusinessCategory] = useState(() => savedDraft.current.customBusinessCategory || '');
   const businessCategory = resolveBusinessCategory(businessPreset, customBusinessCategory);
   const [showTermsModal, setShowTermsModal] = useState(false);
   
@@ -68,7 +95,11 @@ const Register = () => {
   }, [location.state]);
 
   // Step Workflow: 'form' | 'otp' | 'success'
-  const [step, setStep] = useState('form');
+  const [step, setStep] = useState(() => (
+    savedSession.current.step === 'otp' && (savedSession.current.otpChallenge || savedSession.current.otpDevCode)
+      ? 'otp'
+      : 'form'
+  ));
 
   // State Google Auth Connected Data
   const [googleAuthData, setGoogleAuthData] = useState(() => {
@@ -83,13 +114,13 @@ const Register = () => {
   });
 
   // Identitas & Akun (Nama Lengkap Disimpan)
-  const [name, setName] = useState(() => location.state?.googleProfile?.name || '');
-  const [email, setEmail] = useState(() => location.state?.googleProfile?.email || '');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState(() => location.state?.googleProfile?.name || savedDraft.current.name || '');
+  const [email, setEmail] = useState(() => location.state?.googleProfile?.email || savedDraft.current.email || '');
+  const [phone, setPhone] = useState(() => savedDraft.current.phone || '');
+  const [password, setPassword] = useState(() => savedSession.current.password || '');
+  const [confirmPassword, setConfirmPassword] = useState(() => savedSession.current.confirmPassword || '');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [agreedTerms, setAgreedTerms] = useState(() => Boolean(savedDraft.current.agreedTerms));
 
   // 4-Pilar Anti-Bot: Cloudflare Turnstile, OTP WhatsApp/Gmail, Google Sign-In, & Honeypot
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -104,17 +135,81 @@ const Register = () => {
   const registerGoogleBtnRef = useRef(null);
 
   // Verifikasi OTP (WhatsApp / Gmail)
-  const [otpChannel, setOtpChannel] = useState('whatsapp'); // 'whatsapp' | 'email'
+  const [otpChannel, setOtpChannel] = useState(() => savedDraft.current.otpChannel || 'whatsapp'); // 'whatsapp' | 'email'
   const [otpCode, setOtpCode] = useState('');
-  const [otpMaskedTarget, setOtpMaskedTarget] = useState('');
+  const [otpMaskedTarget, setOtpMaskedTarget] = useState(() => savedSession.current.otpMaskedTarget || '');
+  const [otpChallenge, setOtpChallenge] = useState(() => savedSession.current.otpChallenge || '');
+  const [otpDeliveryMethod, setOtpDeliveryMethod] = useState(() => savedSession.current.otpDeliveryMethod || '');
   const [otpCountdown, setOtpCountdown] = useState(60);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
-  const [otpDevCode, setOtpDevCode] = useState('');
-  const [otpWaDirectUrl, setOtpWaDirectUrl] = useState('');
+  const [otpDevCode, setOtpDevCode] = useState(() => savedSession.current.otpDevCode || '');
+  const [otpWaDirectUrl, setOtpWaDirectUrl] = useState(() => savedSession.current.otpWaDirectUrl || '');
   const [verifiedToken, setVerifiedToken] = useState('');
   const [otpError, setOtpError] = useState('');
-  const [otpSuccess, setOtpSuccess] = useState('');
+  const [otpSuccess, setOtpSuccess] = useState(() => savedSession.current.otpSuccess || '');
+
+  // Auto-save form draft ke perangkat (localStorage untuk non-rahasia, sessionStorage untuk tab aktif)
+  useEffect(() => {
+    if (step === 'success') return;
+    try {
+      localStorage.setItem(REGISTER_DRAFT_KEY, JSON.stringify({
+        selectedRole,
+        kostName,
+        storeName,
+        businessPreset,
+        customBusinessCategory,
+        name,
+        email,
+        phone,
+        otpChannel,
+        agreedTerms
+      }));
+      sessionStorage.setItem(REGISTER_SESSION_KEY, JSON.stringify({
+        password,
+        confirmPassword,
+        step,
+        otpMaskedTarget,
+        otpChallenge,
+        otpDeliveryMethod,
+        otpDevCode,
+        otpWaDirectUrl,
+        otpSuccess
+      }));
+    } catch (_) {}
+  }, [
+    step, selectedRole, kostName, storeName, businessPreset, customBusinessCategory,
+    name, email, phone, otpChannel, agreedTerms, password, confirmPassword,
+    otpMaskedTarget, otpChallenge, otpDeliveryMethod, otpDevCode, otpWaDirectUrl, otpSuccess
+  ]);
+
+  const hasSavedDraft = Boolean(
+    name.trim() || email.trim() || phone.trim() || kostName.trim() || storeName.trim() || agreedTerms
+  );
+
+  const handleResetDraft = () => {
+    clearRegisterDraftStorage();
+    setKostName('');
+    setStoreName('');
+    setBusinessPreset(DEFAULT_BUSINESS_CATEGORY);
+    setCustomBusinessCategory('');
+    setName('');
+    setEmail('');
+    setPhone('');
+    setPassword('');
+    setConfirmPassword('');
+    setAgreedTerms(false);
+    setOtpCode('');
+    setOtpChallenge('');
+    setOtpDeliveryMethod('');
+    setOtpDevCode('');
+    setOtpWaDirectUrl('');
+    setOtpMaskedTarget('');
+    setOtpError('');
+    setOtpSuccess('');
+    setError('');
+    setStep('form');
+  };
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -175,6 +270,7 @@ const Register = () => {
         if (data.user) {
           localStorage.setItem('kostUser', JSON.stringify(data.user));
           if (data.kostName) localStorage.setItem('kostName', data.kostName);
+          clearRegisterDraftStorage();
           setStep('success');
           setMessage('Pendaftaran akun Google berhasil! Profil usaha dan sistem kasir POS Anda siap digunakan.');
           setTimeout(() => {
@@ -269,14 +365,19 @@ const Register = () => {
 
       setOtpChannel(channelToUse);
       setOtpMaskedTarget(res.targetMasked || target);
-      setOtpDevCode(res.devOtp || '');
+      setOtpChallenge(res.otpChallenge || '');
+      setOtpDeliveryMethod(res.deliveryMethod || '');
+      setOtpDevCode(res.instantOtpCode || res.devOtp || '');
       setOtpWaDirectUrl(res.waDirectUrl || '');
-      setOtpCountdown(60);
+      setOtpCountdown(channelToUse === otpChannel ? 60 : 60);
+      setOtpError('');
       setOtpSuccess(res.message || 'Kode OTP berhasil dikirim!');
       setStep('otp');
       return true;
     } catch (err) {
-      setError(err.message || 'Gagal mengirim kode OTP. Periksa nomor/email Anda.');
+      const errText = err.message || 'Gagal mengirim kode OTP. Periksa nomor/email Anda.';
+      setError(errText);
+      setOtpError(errText);
       return false;
     } finally {
       setOtpSending(false);
@@ -300,7 +401,9 @@ const Register = () => {
         turnstileToken: turnstileToken || 'cf-fallback-token'
       });
       setOtpCountdown(60);
-      setOtpDevCode(res.devOtp || '');
+      setOtpChallenge(res.otpChallenge || '');
+      setOtpDeliveryMethod(res.deliveryMethod || '');
+      setOtpDevCode(res.instantOtpCode || res.devOtp || '');
       setOtpWaDirectUrl(res.waDirectUrl || '');
       setOtpSuccess(res.message || 'Kode OTP baru berhasil dikirim ulang!');
     } catch (err) {
@@ -341,7 +444,8 @@ const Register = () => {
       const verifyRes = await apiVerifyOtp({
         target,
         channel: otpChannel,
-        code: cleanCode
+        code: cleanCode,
+        otpChallenge
       });
 
       const effectiveToken = verifyRes.verifiedToken || 'TOKEN_OTP_VALID';
@@ -366,6 +470,7 @@ const Register = () => {
       };
 
       const regRes = await apiRegister(payload);
+      clearRegisterDraftStorage();
       setStep('success');
       setMessage(
         selectedRole === 'owner'
@@ -601,21 +706,31 @@ const Register = () => {
     }
   };
 
+  // Cek kelengkapan formulir dengan pesan jelas untuk feedback instan
+  const getSubmitBlockerReason = () => {
+    if (!name.trim()) return 'Isi Nama Lengkap Anda terlebih dahulu.';
+    if (selectedRole === 'owner' && !kostName.trim()) return 'Isi Nama Properti Kost Anda.';
+    if (selectedRole === 'mitra' && !storeName.trim()) return 'Isi Nama Usaha / Bisnis / Toko Anda.';
+    if (selectedRole === 'mitra' && !businessCategory) return 'Pilih Kategori Usaha / Bisnis Anda.';
+    if ((selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && (!email || !email.includes('@'))) {
+      return 'Isi alamat Gmail / Email yang valid.';
+    }
+    if (otpChannel === 'email' && (!email || !email.includes('@'))) {
+      return 'Isi alamat Email yang valid untuk menerima OTP Email.';
+    }
+    if (!phone || phone.trim().length < 8) return 'Isi Nomor WhatsApp aktif (minimal 8 digit).';
+    if (!googleAuthData) {
+      if (!isPasswordValid(password)) return PASSWORD_POLICY_MESSAGE;
+      if (password !== confirmPassword) return 'Konfirmasi password belum cocok dengan password.';
+    }
+    if (!agreedTerms) return 'Centang kotak persetujuan Syarat & Ketentuan (S&K) di atas.';
+    return null;
+  };
+
   // Kondisi Tombol Lanjut ke OTP Aktif (validasi form utama)
   const isSubmitDisabled = () => {
     if (otpSending) return true;
-    if (!name.trim()) return true;
-    if (!agreedTerms) return true;
-    if (selectedRole === 'owner' && !kostName.trim()) return true;
-    if (selectedRole === 'mitra' && (!storeName.trim() || !businessCategory)) return true;
-    if ((selectedRole === 'owner' || selectedRole === 'mitra' || selectedRole === 'staff') && (!email || !email.includes('@'))) return true;
-    if (!phone || phone.trim().length < 8) return true;
-
-    // Untuk pendaftaran manual (non-Google), wajib password valid
-    if (!googleAuthData) {
-      if (!isPasswordValid(password) || password !== confirmPassword) return true;
-    }
-    return false;
+    return Boolean(getSubmitBlockerReason());
   };
 
   return (
@@ -944,6 +1059,45 @@ const Register = () => {
               <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>atau daftar dengan nomor WhatsApp</span>
               <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
             </div>
+
+            {/* Indikator Draft Tersimpan di Perangkat */}
+            {hasSavedDraft && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                marginBottom: '1rem',
+                background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)',
+                border: `1px solid ${isLight ? '#bbf7d0' : 'rgba(16, 185, 129, 0.28)'}`,
+                fontSize: '0.76rem',
+                color: isLight ? '#166534' : '#86efac'
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                  <CheckCircle size={14} color="#10b981" style={{ flexShrink: 0 }} />
+                  Isian formulir tersimpan otomatis di perangkat ini
+                </span>
+                <button
+                  type="button"
+                  onClick={handleResetDraft}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: isLight ? '#b91c1c' : '#fca5a5',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                    textDecoration: 'underline',
+                    flexShrink: 0
+                  }}
+                >
+                  Hapus Draft
+                </button>
+              </div>
+            )}
 
             {/* Error Alert */}
             {error && (
@@ -1449,8 +1603,60 @@ const Register = () => {
               </div>
             </div>
 
+            {/* Inline Feedback Langsung di Dekat Tombol Kirim OTP */}
+            {error && (
+              <div style={{
+                background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                color: isLight ? '#b91c1c' : '#fca5a5',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <AlertCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {otpSending && (
+              <div style={{
+                background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.14)',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                color: isLight ? '#1d4ed8' : '#93c5fd',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <RefreshCw size={15} className="animate-spin" style={{ flexShrink: 0 }} />
+                <span>Menyiapkan &amp; mengirim kode OTP ke {otpChannel === 'whatsapp' ? 'WhatsApp' : 'Email'} Anda...</span>
+              </div>
+            )}
+
+            {!error && !otpSending && getSubmitBlockerReason() && (
+              <div style={{
+                background: isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.1)',
+                border: `1px solid ${isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.3)'}`,
+                color: isLight ? '#92400e' : '#fcd34d',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                fontSize: '0.76rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px'
+              }}>
+                <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                <span><strong>Lengkapi:</strong> {getSubmitBlockerReason()}</span>
+              </div>
+            )}
+
             {/* Tombol Aksi: Batal / Lanjut ke OTP */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '0.25rem' }}>
               <button 
                 type="button" 
                 onClick={() => {
@@ -1468,7 +1674,7 @@ const Register = () => {
               <button 
                 type="submit" 
                 className="btn btn-primary" 
-                disabled={isSubmitDisabled()} 
+                disabled={otpSending} 
                 style={{ 
                   flex: 2,
                   padding: '13px', 
@@ -1476,7 +1682,8 @@ const Register = () => {
                   borderRadius: '12px',
                   fontWeight: 700,
                   gap: '8px',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  opacity: isSubmitDisabled() ? 0.82 : 1
                 }}
               >
                 {otpSending ? (
@@ -1553,11 +1760,11 @@ const Register = () => {
           {/* Error & Success Messages */}
           {otpError && (
             <div style={{
-              background: 'rgba(239, 68, 68, 0.12)',
+              background: isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.12)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
               padding: '10px 14px',
               borderRadius: '12px',
-              color: '#fca5a5',
+              color: isLight ? '#b91c1c' : '#fca5a5',
               fontSize: '0.82rem',
               marginBottom: '1rem',
               display: 'flex',
@@ -1571,11 +1778,11 @@ const Register = () => {
 
           {otpSuccess && (
             <div style={{
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
               padding: '10px 14px',
               borderRadius: '12px',
-              color: '#86efac',
+              color: isLight ? '#065f46' : '#86efac',
               fontSize: '0.82rem',
               marginBottom: '1rem',
               display: 'flex',
@@ -1630,38 +1837,47 @@ const Register = () => {
               />
             </div>
 
-            {/* Quick Auto-Fill / Development Simulator */}
+            {/* Quick Auto-Fill / Kode Verifikasi Instan Fallback */}
             {otpDevCode && (
               <div style={{
-                background: 'rgba(59, 130, 246, 0.1)',
-                border: '1px dashed rgba(59, 130, 246, 0.3)',
-                padding: '8px 12px',
+                background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.12)',
+                border: '1px dashed rgba(59, 130, 246, 0.4)',
+                padding: '10px 12px',
                 borderRadius: '10px',
                 marginBottom: '1.25rem',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
+                gap: '6px',
                 fontSize: '0.78rem'
               }}>
-                <span style={{ color: '#93c5fd' }}>
-                  <strong>Kode Dev/Uji:</strong> <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>{otpDevCode}</code>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setOtpCode(otpDevCode)}
-                  style={{
-                    background: 'rgba(59, 130, 246, 0.25)',
-                    border: 'none',
-                    color: '#60a5fa',
-                    padding: '3px 10px',
-                    borderRadius: '6px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    fontSize: '0.75rem'
-                  }}
-                >
-                  Isi Otomatis
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <span style={{ color: isLight ? '#1e3a8a' : '#93c5fd' }}>
+                    <strong>{otpDeliveryMethod === 'instant_fallback' ? 'Kode Verifikasi Instan:' : 'Kode Dev/Uji:'}</strong>{' '}
+                    <code style={{ background: isLight ? '#dbeafe' : 'rgba(0,0,0,0.35)', padding: '2px 7px', borderRadius: '4px', fontWeight: 800, color: isLight ? '#1d4ed8' : '#bfdbfe' }}>{otpDevCode}</code>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOtpCode(otpDevCode)}
+                    style={{
+                      background: isLight ? '#2563eb' : 'rgba(59, 130, 246, 0.28)',
+                      border: 'none',
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      flexShrink: 0
+                    }}
+                  >
+                    Isi Otomatis
+                  </button>
+                </div>
+                {otpDeliveryMethod === 'instant_fallback' && (
+                  <span style={{ color: isLight ? '#475569' : '#94a3b8', fontSize: '0.72rem', lineHeight: 1.4 }}>
+                    Gateway WA/Email otomatis belum aktif di server. Ketuk &ldquo;Isi Otomatis&rdquo;{otpChannel === 'whatsapp' ? ' atau klik Buka WhatsApp di bawah' : ''} untuk melanjutkan.
+                  </span>
+                )}
               </div>
             )}
 

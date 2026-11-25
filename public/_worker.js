@@ -1684,6 +1684,318 @@ async function handleApi(request, url, env) {
     }), { status: 201, headers: corsHeaders });
   }
 
+  // ── Auth: WhatsApp / Email OTP (Stateless HMAC-SHA256 + Gateway) ─
+  function normalizeEdgeOtpTarget(target, channel) {
+    const raw = String(target || '').trim();
+    if (channel === 'email') return raw.toLowerCase();
+    let digits = raw.replace(/\D/g, '');
+    if (digits.startsWith('0')) digits = '62' + digits.slice(1);
+    else if (digits.startsWith('8') && digits.length >= 8 && digits.length <= 13) digits = '62' + digits;
+    return digits;
+  }
+
+  function maskEdgeOtpTarget(cleanTarget, channel) {
+    if (!cleanTarget) return '';
+    if (channel === 'email') {
+      const [local, domain] = cleanTarget.split('@');
+      if (!domain) return cleanTarget;
+      const head = (local || '').slice(0, 2);
+      return `${head}••••@${domain}`;
+    }
+    const localDigits = cleanTarget.startsWith('62') ? '0' + cleanTarget.slice(2) : cleanTarget;
+    if (localDigits.length <= 6) return localDigits;
+    return `${localDigits.slice(0, 4)}••••${localDigits.slice(-4)}`;
+  }
+
+  function bytesToBase64Url(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  function base64UrlToBytes(str) {
+    const pad = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/') + pad);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  async function sha256HexEdge(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(text)));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function hmacSignEdgeOtp(payloadObj, secret) {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(String(secret || 'kostku-edge-otp-secret-v1')),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const payloadB64 = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(payloadObj)));
+    const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payloadB64));
+    return `${payloadB64}.${bytesToBase64Url(new Uint8Array(sigBuf))}`;
+  }
+
+  async function hmacVerifyEdgeOtp(tokenStr, secret) {
+    try {
+      const parts = String(tokenStr || '').split('.');
+      if (parts.length !== 2) return null;
+      const [payloadB64, sigB64] = parts;
+      const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(String(secret || 'kostku-edge-otp-secret-v1')),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+      const valid = await crypto.subtle.verify(
+        'HMAC',
+        key,
+        base64UrlToBytes(sigB64),
+        new TextEncoder().encode(payloadB64)
+      );
+      if (!valid) return null;
+      return JSON.parse(new TextDecoder().decode(base64UrlToBytes(payloadB64)));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  if (path === '/auth/send-otp' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    if ((body.website && String(body.website).trim()) || (body.company && String(body.company).trim())) {
+      return new Response(JSON.stringify({
+        error: 'Aktivitas otomatis (bot) terdeteksi dan diblokir oleh sistem keamanan Honeypot.'
+      }), { status: 403, headers: corsHeaders });
+    }
+
+    const turnstileToken = String(body.turnstileToken || '').trim();
+    if (
+      env?.CLOUDFLARE_TURNSTILE_SECRET_KEY &&
+      turnstileToken &&
+      !turnstileToken.startsWith('cf-fallback-') &&
+      !turnstileToken.startsWith('XXXX.') &&
+      turnstileToken !== '1x00000000000000000000AA'
+    ) {
+      try {
+        const fd = new URLSearchParams();
+        fd.append('secret', env.CLOUDFLARE_TURNSTILE_SECRET_KEY);
+        fd.append('response', turnstileToken);
+        const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: fd
+        });
+        const cfJson = await cfRes.json().catch(() => null);
+        if (cfJson && cfJson.success === false) {
+          return new Response(JSON.stringify({
+            error: 'Verifikasi keamanan Cloudflare Turnstile gagal. Muat ulang halaman lalu coba lagi.'
+          }), { status: 403, headers: corsHeaders });
+        }
+      } catch (_) {}
+    }
+
+    const selectedChannel = body.channel === 'email' ? 'email' : 'whatsapp';
+    const rawTarget = String(body.target || '').trim();
+    if (!rawTarget) {
+      return new Response(JSON.stringify({
+        error: 'Nomor WhatsApp atau alamat Email tujuan wajib diisi.'
+      }), { status: 400, headers: corsHeaders });
+    }
+
+    const cleanTarget = normalizeEdgeOtpTarget(rawTarget, selectedChannel);
+    if (selectedChannel === 'email') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanTarget)) {
+        return new Response(JSON.stringify({
+          error: 'Format alamat Email tidak valid. Gunakan email aktif seperti nama@gmail.com.'
+        }), { status: 400, headers: corsHeaders });
+      }
+    } else if (cleanTarget.length < 9) {
+      return new Response(JSON.stringify({
+        error: 'Nomor WhatsApp minimal 9 digit angka.'
+      }), { status: 400, headers: corsHeaders });
+    }
+
+    const targetKey = `${selectedChannel}:${cleanTarget}`;
+    const now = Date.now();
+    activeState.otpRateMap = activeState.otpRateMap || new Map();
+    const lastSentAt = activeState.otpRateMap.get(targetKey) || 0;
+    if (now - lastSentAt < 15000) {
+      const waitSec = Math.max(1, Math.ceil((15000 - (now - lastSentAt)) / 1000));
+      return new Response(JSON.stringify({
+        error: `Harap tunggu ${waitSec} detik sebelum meminta kode OTP ${selectedChannel === 'email' ? 'Email' : 'WhatsApp'} kembali.`
+      }), { status: 429, headers: corsHeaders });
+    }
+    activeState.otpRateMap.set(targetKey, now);
+
+    const rnd = new Uint32Array(1);
+    crypto.getRandomValues(rnd);
+    const code = String(100000 + (rnd[0] % 900000));
+    const expiresAt = now + 5 * 60 * 1000;
+    const otpSecret = env?.CLOUDFLARE_TURNSTILE_SECRET_KEY || 'kostku-edge-otp-secret-v1';
+    const codeHash = await sha256HexEdge(`${selectedChannel}:${cleanTarget}:${code}`);
+    const otpChallenge = await hmacSignEdgeOtp({
+      c: selectedChannel,
+      t: cleanTarget,
+      h: codeHash,
+      exp: expiresAt
+    }, otpSecret);
+
+    activeState.edgeOtpStore = activeState.edgeOtpStore || new Map();
+    activeState.edgeOtpStore.set(targetKey, { codeHash, expiresAt, attempts: 0 });
+
+    const recipientName = String(body.name || 'Pengguna KostKu').trim() || 'Pengguna KostKu';
+    let deliveredExternally = false;
+    let deliveryMethod = 'instant_fallback';
+    const waMessage = `*KOSTKU SECURITY - KODE OTP*\n\nHalo *${recipientName}*,\nKode verifikasi 6 digit Anda adalah:\n\n*${code}*\n\nBerlaku selama 5 menit.`;
+    const waDirectUrl = selectedChannel === 'whatsapp'
+      ? `https://api.whatsapp.com/send?phone=${cleanTarget}&text=${encodeURIComponent(waMessage)}`
+      : null;
+
+    if (selectedChannel === 'email' && env?.RESEND_API_KEY) {
+      try {
+        const mailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: env.OTP_EMAIL_FROM || 'KostKu Security <onboarding@resend.dev>',
+            to: [cleanTarget],
+            subject: `[OTP: ${code}] Kode Verifikasi Pendaftaran KostKu`,
+            html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;"><h2>Kode Verifikasi KostKu</h2><p>Halo <strong>${recipientName}</strong>,</p><p>Kode OTP Anda:</p><div style="font-size:28px;font-weight:800;letter-spacing:6px;padding:12px 18px;background:#f1f5f9;border-radius:8px;display:inline-block;">${code}</div><p style="margin-top:16px;color:#64748b;font-size:13px;">Berlaku 5 menit. Jangan bagikan kode ini kepada siapa pun.</p></div>`
+          })
+        });
+        if (mailRes.ok) {
+          deliveredExternally = true;
+          deliveryMethod = 'resend';
+        }
+      } catch (_) {}
+    } else if (selectedChannel === 'whatsapp' && env?.WA_GATEWAY_URL && env?.WA_API_KEY) {
+      try {
+        const waRes = await fetch(env.WA_GATEWAY_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': env.WA_API_KEY
+          },
+          body: JSON.stringify({ target: cleanTarget, message: waMessage })
+        });
+        if (waRes.ok) {
+          deliveredExternally = true;
+          deliveryMethod = 'wa_gateway';
+        }
+      } catch (_) {}
+    }
+
+    const masked = maskEdgeOtpTarget(cleanTarget, selectedChannel);
+    const channelLabel = selectedChannel === 'whatsapp' ? 'WhatsApp' : 'Email';
+    const responseMessage = deliveredExternally
+      ? `Kode OTP 6 digit telah dikirim ke ${channelLabel} Anda (${masked}).`
+      : selectedChannel === 'whatsapp'
+        ? `Kode OTP 6 digit siap (${masked}). Gateway WA otomatis belum terhubung di server — gunakan Kode Verifikasi Instan di bawah atau klik Buka WhatsApp.`
+        : `Kode OTP 6 digit siap (${masked}). Gateway Email (Resend/SMTP) belum terhubung di server — gunakan Kode Verifikasi Instan di bawah untuk melanjutkan.`;
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: responseMessage,
+      channel: selectedChannel,
+      targetMasked: masked,
+      expiresIn: 300,
+      otpChallenge,
+      deliveryMethod,
+      deliveredExternally,
+      waDirectUrl,
+      ...(!deliveredExternally ? { instantOtpCode: code, devOtp: code } : {})
+    }), { status: 200, headers: corsHeaders });
+  }
+
+  if (path === '/auth/verify-otp' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const rawTarget = String(body.target || '').trim();
+    const cleanCode = String(body.code || '').trim();
+    if (!rawTarget || !cleanCode) {
+      return new Response(JSON.stringify({
+        error: 'Kontak tujuan dan 6 digit kode OTP wajib diisi.'
+      }), { status: 400, headers: corsHeaders });
+    }
+
+    const selectedChannel = body.channel === 'email' ? 'email' : 'whatsapp';
+    const cleanTarget = normalizeEdgeOtpTarget(rawTarget, selectedChannel);
+    const targetKey = `${selectedChannel}:${cleanTarget}`;
+    const expectedHash = await sha256HexEdge(`${selectedChannel}:${cleanTarget}:${cleanCode}`);
+    const otpSecret = env?.CLOUDFLARE_TURNSTILE_SECRET_KEY || 'kostku-edge-otp-secret-v1';
+
+    let verified = false;
+    if (body.otpChallenge) {
+      const payload = await hmacVerifyEdgeOtp(body.otpChallenge, otpSecret);
+      if (!payload) {
+        return new Response(JSON.stringify({
+          error: 'Sesi OTP tidak valid. Silakan klik Kirim Ulang OTP.'
+        }), { status: 400, headers: corsHeaders });
+      }
+      if (payload.c !== selectedChannel || payload.t !== cleanTarget) {
+        return new Response(JSON.stringify({
+          error: 'Saluran atau nomor/email OTP tidak cocok dengan kode yang diminta.'
+        }), { status: 400, headers: corsHeaders });
+      }
+      if (Date.now() > Number(payload.exp || 0)) {
+        return new Response(JSON.stringify({
+          error: 'Kode OTP telah kedaluwarsa (lebih dari 5 menit). Silakan klik Kirim Ulang OTP.'
+        }), { status: 400, headers: corsHeaders });
+      }
+      if (payload.h !== expectedHash) {
+        return new Response(JSON.stringify({
+          error: 'Kode OTP 6 digit tidak cocok. Periksa kembali kode yang Anda masukkan.'
+        }), { status: 400, headers: corsHeaders });
+      }
+      verified = true;
+    } else {
+      activeState.edgeOtpStore = activeState.edgeOtpStore || new Map();
+      const record = activeState.edgeOtpStore.get(targetKey);
+      if (!record) {
+        return new Response(JSON.stringify({
+          error: 'Kode OTP belum diminta atau sesi server telah di-reset. Silakan klik Kirim Ulang OTP.'
+        }), { status: 400, headers: corsHeaders });
+      }
+      if (Date.now() > record.expiresAt) {
+        activeState.edgeOtpStore.delete(targetKey);
+        return new Response(JSON.stringify({
+          error: 'Kode OTP telah kedaluwarsa (lebih dari 5 menit). Silakan klik Kirim Ulang OTP.'
+        }), { status: 400, headers: corsHeaders });
+      }
+      record.attempts += 1;
+      if (record.attempts > 5) {
+        activeState.edgeOtpStore.delete(targetKey);
+        return new Response(JSON.stringify({
+          error: 'Terlalu banyak percobaan salah (maksimal 5x). Silakan minta kode OTP baru.'
+        }), { status: 400, headers: corsHeaders });
+      }
+      if (record.codeHash !== expectedHash) {
+        return new Response(JSON.stringify({
+          error: `Kode OTP salah! Sisa kesempatan mencoba: ${5 - record.attempts} kali.`
+        }), { status: 400, headers: corsHeaders });
+      }
+      verified = true;
+    }
+
+    if (verified) {
+      const rand = new Uint8Array(12);
+      crypto.getRandomValues(rand);
+      const verifiedToken = 'otp_verified_' + Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Verifikasi identitas kontak berhasil!',
+        verifiedToken,
+        channel: selectedChannel
+      }), { status: 200, headers: corsHeaders });
+    }
+  }
+
   // ── Auth: Google Login ──────────────────────────────────────────
   if (path === '/auth/google' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
