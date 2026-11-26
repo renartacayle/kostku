@@ -5134,6 +5134,8 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         if (target) {
           target.isActive = !target.isActive;
           await saveStoreCollectionKv(env, 'promos', effStoreId, reqOwnerId, kvList);
+          const ramP = (state.posFoodPromos || []).find(x => x && String(x.id) === String(id));
+          if (ramP) ramP.isActive = target.isActive;
           return new Response(JSON.stringify({ success: true, promo: target }), { headers: corsHeaders });
         }
       }
@@ -5300,6 +5302,10 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           if (idx >= 0) {
             kvList[idx] = { ...kvList[idx], ...body, id: extraId, updatedAt: new Date().toISOString() };
             await saveStoreCollectionKv(env, 'extras', effStoreId, ownerId, kvList);
+            state.posStoreExtras = [
+              kvList[idx],
+              ...(state.posStoreExtras || []).filter(x => x && String(x.id) !== String(extraId))
+            ];
             return new Response(JSON.stringify(kvList[idx]), { headers: corsHeaders });
           }
         }
@@ -5508,13 +5514,18 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         return new Response(JSON.stringify([]), { headers: corsHeaders });
       }
       if (reqTableToken) {
-        let matchedTbls = (state.posTables || []).filter(t => t && String(t.qrToken || '') === reqTableToken);
-        if (matchedTbls.length === 0 && !state.isDemo && env?.KOSTKU_KV) {
+        let matchedTbls = [];
+        if (!state.isDemo && env?.KOSTKU_KV) {
           const kvTbl = await kvGetJson(env, `table:token:${reqTableToken}`);
           if (kvTbl) {
-            state.posTables.push(kvTbl);
+            state.posTables = [
+              kvTbl,
+              ...(state.posTables || []).filter(t => t && String(t.id) !== String(kvTbl.id))
+            ];
             matchedTbls = [kvTbl];
           }
+        } else {
+          matchedTbls = (state.posTables || []).filter(t => t && String(t.qrToken || '') === reqTableToken);
         }
         return new Response(JSON.stringify(matchedTbls), { headers: corsHeaders });
       }
@@ -5588,6 +5599,10 @@ async function handlePosApi(request, path, method, url, state, env = null) {
             kvList[idx] = { ...kvList[idx], number: cleanNum, updatedAt: new Date().toISOString() };
             await saveStoreCollectionKv(env, 'tables', effStoreId, ownerId, kvList);
             if (kvList[idx].qrToken) await kvPutJson(env, `table:token:${kvList[idx].qrToken}`, kvList[idx]);
+            state.posTables = [
+              kvList[idx],
+              ...(state.posTables || []).filter(t => t && String(t.id) !== String(tableId))
+            ];
             return new Response(JSON.stringify({ success: true, table: kvList[idx] }), { headers: corsHeaders });
           }
         }
@@ -5690,6 +5705,8 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           if (item) {
             Object.assign(item, body, { id });
             await saveStoreCollectionKv(env, 'inventory', effStoreId, ownerId, kvList);
+            const ramInv = (state.posInventory || []).find(x => x && String(x.id) === String(id));
+            if (ramInv) Object.assign(ramInv, item);
             return new Response(JSON.stringify({ success: true, item }), { headers: corsHeaders });
           }
         }
@@ -5737,6 +5754,8 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           item.currentStock = (Number(item.currentStock) || 0) + addQty;
           item.lastRestocked = new Date().toISOString();
           await saveStoreCollectionKv(env, 'inventory', effStoreId, ownerId, kvList);
+          const ramInv = (state.posInventory || []).find(x => x && String(x.id) === invId);
+          if (ramInv) Object.assign(ramInv, item);
           return new Response(JSON.stringify({
             success: true,
             newStock: item.currentStock,
