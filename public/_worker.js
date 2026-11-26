@@ -1337,6 +1337,82 @@ async function saveStoreCollectionKv(env, prefix, storeId, ownerId, list) {
   }
 }
 
+async function resolveTableScopeKv(env, tableToken) {
+  if (!env?.KOSTKU_KV || !tableToken) return null;
+  const tbl = await kvGetJson(env, `table:token:${String(tableToken).trim()}`);
+  if (!tbl) return null;
+  return {
+    table: tbl,
+    storeId: String(tbl.storeId || tbl.merchantId || '').trim(),
+    ownerId: String(tbl.ownerUserId || '').trim()
+  };
+}
+
+async function getClaimFromKv(env, lookupKey) {
+  if (!env?.KOSTKU_KV || !lookupKey) return null;
+  const k = String(lookupKey).trim();
+  const byToken = await kvGetJson(env, `claim:token:${k}`);
+  if (byToken) return byToken;
+  const byOrder = await kvGetJson(env, `claim:order:${k}`);
+  if (byOrder) return byOrder;
+  const byInvoice = await kvGetJson(env, `claim:invoice:${k}`);
+  if (byInvoice) return byInvoice;
+  return null;
+}
+
+async function saveClaimToKv(env, claimObj) {
+  if (!env?.KOSTKU_KV || !claimObj) return;
+  const ops = [];
+  if (claimObj.claim_token) ops.push(kvPutJson(env, `claim:token:${claimObj.claim_token}`, claimObj));
+  if (claimObj.order_id) ops.push(kvPutJson(env, `claim:order:${claimObj.order_id}`, claimObj));
+  if (claimObj.invoice_number) ops.push(kvPutJson(env, `claim:invoice:${claimObj.invoice_number}`, claimObj));
+  if (claimObj.merchant_id) {
+    const existing = (await kvGetJson(env, `claims:store:${claimObj.merchant_id}`)) || [];
+    const next = [
+      claimObj,
+      ...(Array.isArray(existing) ? existing.filter(c => c && String(c.claim_token || c.id) !== String(claimObj.claim_token || claimObj.id)) : [])
+    ].slice(0, 100);
+    ops.push(kvPutJson(env, `claims:store:${claimObj.merchant_id}`, next));
+  }
+  await Promise.all(ops);
+}
+
+async function hydrateCustomerLoyaltyFromKv(env, activeState, cleanPhone) {
+  if (!env?.KOSTKU_KV || !cleanPhone) return null;
+  let cust = activeState.customerLoyaltyAccounts[cleanPhone];
+  if (!cust) {
+    cust = await kvGetJson(env, `loyalty:phone:${cleanPhone}`);
+    if (cust) activeState.customerLoyaltyAccounts[cleanPhone] = cust;
+  }
+  const ledger = await kvGetJson(env, `loyalty:ledger:${cleanPhone}`);
+  if (Array.isArray(ledger)) {
+    const seen = new Set((activeState.pointsLedger || []).map(l => l?.id));
+    for (const row of ledger) {
+      if (row?.id && !seen.has(row.id)) {
+        seen.add(row.id);
+        activeState.pointsLedger.push(row);
+      }
+    }
+  }
+  return cust || null;
+}
+
+async function persistCustomerLoyaltyToKv(env, customerObj, activeState) {
+  if (!env?.KOSTKU_KV || !customerObj?.whatsapp_number) return;
+  const phone = customerObj.whatsapp_number;
+  const phoneLedger = (activeState.pointsLedger || [])
+    .filter(l => l && l.whatsapp_number === phone)
+    .slice(0, 100);
+  const ops = [
+    kvPutJson(env, `loyalty:phone:${phone}`, customerObj),
+    kvPutJson(env, `loyalty:ledger:${phone}`, phoneLedger)
+  ];
+  if (customerObj.referral_code) {
+    ops.push(kvPutJson(env, `loyalty:ref:${String(customerObj.referral_code).toUpperCase()}`, { phone }));
+  }
+  await Promise.all(ops);
+}
+
 async function getOwnerStaffFromKv(env, ownerId) {
   if (!env?.KOSTKU_KV || !ownerId) return [];
   const list = await kvGetJson(env, `owner:staff:${ownerId}`);
@@ -1431,9 +1507,23 @@ async function handleApi(request, url, env) {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Token struk QR wajib disertakan' }), { status: 400, headers: corsHeaders });
     }
-    const claim = activeState.receiptClaims.find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    let claim = activeState.receiptClaims.find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    if (!claim && !activeState.isDemo && env?.KOSTKU_KV) {
+      claim = await getClaimFromKv(env, token);
+      if (claim) activeState.receiptClaims.unshift(claim);
+    }
     if (!claim) {
       return new Response(JSON.stringify({ error: 'Data struk tidak ditemukan atau token tidak valid' }), { status: 404, headers: corsHeaders });
+    }
+    if (!activeState.isDemo && claim.merchant_id && env?.KOSTKU_KV) {
+      const hasM = (activeState.registeredMerchants || []).some(m => m && String(m.id) === String(claim.merchant_id));
+      if (!hasM) {
+        const kvM = await kvGetJson(env, `merchant:id:${claim.merchant_id}`);
+        if (kvM) {
+          activeState.registeredMerchants = activeState.registeredMerchants || [];
+          activeState.registeredMerchants.push(kvM);
+        }
+      }
     }
     const now = new Date();
     let resolvedStatus = claim.status;
@@ -1644,7 +1734,21 @@ async function handleApi(request, url, env) {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Token struk tidak boleh kosong' }), { status: 400, headers: corsHeaders });
     }
-    const claim = activeState.receiptClaims.find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    let claim = activeState.receiptClaims.find(c => c.claim_token === token || c.id === token || c.invoice_number === token);
+    if (!claim && !activeState.isDemo && env?.KOSTKU_KV) {
+      claim = await getClaimFromKv(env, token);
+      if (claim) activeState.receiptClaims.unshift(claim);
+    }
+    const rawWa = String(body.whatsapp || body.phone || '').replace(/\D/g, '');
+    const normWa = rawWa.startsWith('62') ? ('0' + rawWa.slice(2)) : rawWa;
+    if (!activeState.isDemo && normWa && env?.KOSTKU_KV) {
+      await hydrateCustomerLoyaltyFromKv(env, activeState, normWa);
+    }
+    const rawRef = String(body.referral_code || body.referralCode || '').trim().toUpperCase();
+    if (!activeState.isDemo && rawRef && env?.KOSTKU_KV) {
+      const refMap = await kvGetJson(env, `loyalty:ref:${rawRef}`);
+      if (refMap?.phone) await hydrateCustomerLoyaltyFromKv(env, activeState, refMap.phone);
+    }
     const result = executeEdgeReceiptClaim(claim, {
       rawPhone: body.whatsapp || body.phone || '',
       customerName: (body.name || '').trim(),
@@ -1655,6 +1759,15 @@ async function handleApi(request, url, env) {
       return new Response(JSON.stringify(result.body), { status: result.status || 400, headers: corsHeaders });
     }
     const { cleanPhone, customer, spinOutcome, pointsAwarded, referralResult } = result;
+    if (!activeState.isDemo && env?.KOSTKU_KV) {
+      await Promise.all([
+        saveClaimToKv(env, claim),
+        persistCustomerLoyaltyToKv(env, customer, activeState),
+        referralResult?.referrerWhatsapp && activeState.customerLoyaltyAccounts[referralResult.referrerWhatsapp]
+          ? persistCustomerLoyaltyToKv(env, activeState.customerLoyaltyAccounts[referralResult.referrerWhatsapp], activeState)
+          : Promise.resolve()
+      ]);
+    }
     return new Response(JSON.stringify({
       success: true,
       message: pointsAwarded === 100
@@ -1685,7 +1798,18 @@ async function handleApi(request, url, env) {
   if ((path === '/loyalty/unclaimed-orders' || path === '/pos/loyalty/unclaimed-orders') && method === 'GET') {
     const filterStoreId = url.searchParams.get('storeId') || url.searchParams.get('merchantId') || '';
     const now = new Date();
-    const list = (activeState.receiptClaims || [])
+    let claimsPool = activeState.receiptClaims || [];
+    if (!activeState.isDemo && filterStoreId && env?.KOSTKU_KV) {
+      const kvClaims = await kvGetJson(env, `claims:store:${filterStoreId}`);
+      if (Array.isArray(kvClaims)) {
+        const kvTokens = new Set(kvClaims.map(c => String(c?.claim_token || c?.id || '')));
+        claimsPool = [
+          ...kvClaims,
+          ...claimsPool.filter(c => c && !kvTokens.has(String(c.claim_token || c.id || '')))
+        ];
+      }
+    }
+    const list = claimsPool
       .filter(c => {
         if (!c || c.status !== 'PENDING') return false;
         if (c.claim_deadline && now > new Date(c.claim_deadline)) return false;
@@ -1743,12 +1867,12 @@ async function handleApi(request, url, env) {
       String(c.order_id || '') === lookupKey ||
       String(c.invoice_number || '') === lookupKey
     );
+    if (!claim && !activeState.isDemo && env?.KOSTKU_KV) {
+      claim = await getClaimFromKv(env, lookupKey);
+      if (claim) activeState.receiptClaims.unshift(claim);
+    }
     if (!claim) {
-      const ord = (activeState.posOrders || []).find(o =>
-        String(o.id || '') === lookupKey ||
-        String(o.invoice_number || o.invoice || '') === lookupKey ||
-        String(o.claim_token || o.claimToken || '') === lookupKey
-      );
+      const ord = await hydrateOrderById(activeState, env, lookupKey, effectiveStoreId, '');
       if (ord) {
         if (effectiveStoreId && ord.storeId && String(ord.storeId) !== String(effectiveStoreId)) {
           return new Response(JSON.stringify({ error: 'Transaksi bukan milik toko kasir ini.' }), { status: 403, headers: corsHeaders });
@@ -1776,6 +1900,9 @@ async function handleApi(request, url, env) {
       return new Response(JSON.stringify({ error: 'Struk ini berasal dari toko lain.' }), { status: 403, headers: corsHeaders });
     }
     const normalizedPhone = extractEdgeCustomerPhone(body.customerQr || body.qrPayload || body.whatsapp || body.phone || '');
+    if (!activeState.isDemo && normalizedPhone && env?.KOSTKU_KV) {
+      await hydrateCustomerLoyaltyFromKv(env, activeState, normalizedPhone);
+    }
     const claimViaSource = (body.customerQr || body.qrPayload) ? 'cashier_qr' : 'cashier_phone';
     const result = executeEdgeReceiptClaim(claim, {
       rawPhone: normalizedPhone,
@@ -1786,6 +1913,12 @@ async function handleApi(request, url, env) {
       return new Response(JSON.stringify(result.body), { status: result.status || 400, headers: corsHeaders });
     }
     const { cleanPhone, customer, pointsAwarded } = result;
+    if (!activeState.isDemo && env?.KOSTKU_KV) {
+      await Promise.all([
+        saveClaimToKv(env, claim),
+        persistCustomerLoyaltyToKv(env, customer, activeState)
+      ]);
+    }
     return new Response(JSON.stringify({
       success: true,
       message: `Berhasil! +${pointsAwarded} Poin diklaim via ${(body.customerQr || body.qrPayload) ? 'QR Pribadi' : 'No. HP'} ${cleanPhone} di Kasir.`,
@@ -1809,6 +1942,9 @@ async function handleApi(request, url, env) {
 
   if (path.startsWith('/loyalty/customer/') && method === 'GET') {
     const phone = extractEdgeCustomerPhone(decodeURIComponent(path.replace('/loyalty/customer/', '')));
+    if (!activeState.isDemo && phone && env?.KOSTKU_KV) {
+      await hydrateCustomerLoyaltyFromKv(env, activeState, phone);
+    }
     const account = activeState.customerLoyaltyAccounts[phone] || { whatsapp_number: phone, name: 'Pelanggan KostKu', total_points: 0 };
     const history = (activeState.pointsLedger || []).filter(l => l.whatsapp_number === phone);
     const activeVouchers = (activeState.posFoodPromos || []).filter(p =>
@@ -3953,8 +4089,17 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         }), { status: 401, headers: corsHeaders });
       }
 
-      if (!state.isDemo && reqOwnerId && !reqTableToken) {
-        const kvOwnerList = await getOwnerMerchantsFromKv(env, reqOwnerId);
+      if (!state.isDemo && reqTableToken && !reqStoreId && env?.KOSTKU_KV) {
+        const tblScope = await resolveTableScopeKv(env, reqTableToken);
+        if (tblScope) {
+          if (tblScope.storeId) url.searchParams.set('storeId', tblScope.storeId);
+          if (!reqOwnerId && tblScope.ownerId) reqOwnerId = tblScope.ownerId;
+        }
+      }
+      const effectiveReqStoreId = reqStoreId || url.searchParams.get('storeId') || '';
+
+      if (!state.isDemo && (reqOwnerId || effectiveReqStoreId)) {
+        const kvOwnerList = reqOwnerId ? await getOwnerMerchantsFromKv(env, reqOwnerId) : [];
         state.registeredMerchants = state.registeredMerchants || [];
         for (const m of kvOwnerList) {
           if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
@@ -3962,18 +4107,18 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           }
         }
         let hasMerchant = state.registeredMerchants.some(m =>
-          m && (String(m.ownerUserId || '') === String(reqOwnerId) || (reqStoreId && String(m.id || '') === String(reqStoreId)))
+          m && ((reqOwnerId && String(m.ownerUserId || '') === String(reqOwnerId)) || (effectiveReqStoreId && String(m.id || '') === String(effectiveReqStoreId)))
         );
-        if (!hasMerchant && reqStoreId) {
-          const byId = await kvGetJson(env, `merchant:id:${reqStoreId}`);
+        if (!hasMerchant && effectiveReqStoreId) {
+          const byId = await kvGetJson(env, `merchant:id:${effectiveReqStoreId}`);
           if (byId) {
             state.registeredMerchants.push(byId);
             hasMerchant = true;
           }
         }
         if (hasMerchant) {
-          const activeKvMerchant = await kvGetJson(env, `merchant:owner:${reqOwnerId}`) || kvOwnerList[0];
-          const syncTarget = (reqStoreId && state.registeredMerchants.find(m => m && String(m.id) === String(reqStoreId))) || activeKvMerchant;
+          const activeKvMerchant = reqOwnerId ? (await kvGetJson(env, `merchant:owner:${reqOwnerId}`) || kvOwnerList[0]) : null;
+          const syncTarget = (effectiveReqStoreId && state.registeredMerchants.find(m => m && String(m.id) === String(effectiveReqStoreId))) || activeKvMerchant;
           if (syncTarget) {
             Object.assign(state.posStore, syncTarget);
             state.posStore.uid = syncTarget.id;
@@ -4059,19 +4204,19 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       }
 
       const ownerStoresRaw = (state.registeredMerchants || []).filter(m =>
-        m && (!reqOwnerId || String(m.ownerUserId || '') === String(reqOwnerId))
+        m && ((!reqOwnerId && effectiveReqStoreId && String(m.id || '') === String(effectiveReqStoreId)) || (reqOwnerId && String(m.ownerUserId || '') === String(reqOwnerId)))
       );
-      const preferredId = reqStoreId || state.posStore.activeBranch || state.posStore.merchantId || '';
+      const preferredId = effectiveReqStoreId || state.posStore.activeBranch || state.posStore.merchantId || '';
       const matchedM =
         ownerStoresRaw.find(m => preferredId && String(m.id || '') === String(preferredId)) ||
         ownerStoresRaw[0] ||
         (state.registeredMerchants || []).find(m => m && (
           (reqOwnerId && String(m.ownerUserId || '') === String(reqOwnerId)) ||
-          (reqStoreId && String(m.id || '') === String(reqStoreId))
+          (effectiveReqStoreId && String(m.id || '') === String(effectiveReqStoreId))
         ));
       const storeView = matchedM || state.posStore;
       const kasirOnline = isEdgeMerchantOnline(storeView);
-      const tier = resolveEdgeStoreTier(state, reqStoreId || storeView?.id || storeView?.merchantId || state.posStore.merchantId);
+      const tier = resolveEdgeStoreTier(state, effectiveReqStoreId || storeView?.id || storeView?.merchantId || state.posStore.merchantId);
       const customerDiscountEnabled = tier.customerDiscountEnabled;
       const notaFeePerNotaIdr = tier.notaFeePerNotaIdr;
       const resolvedStoreName = storeView.storeName || storeView.name || '';
@@ -5068,10 +5213,18 @@ async function handlePosApi(request, path, method, url, state, env = null) {
 
   if (path === '/promos') {
     const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
-    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
-    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    let reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    let rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    const reqTableToken = url.searchParams.get('tableToken') || '';
     if (method === 'GET') {
       if (!state.isDemo && env?.KOSTKU_KV) {
+        if (!rawStoreId && reqTableToken) {
+          const tblScope = await resolveTableScopeKv(env, reqTableToken);
+          if (tblScope) {
+            if (tblScope.storeId) rawStoreId = tblScope.storeId;
+            if (!reqOwnerId && tblScope.ownerId) reqOwnerId = tblScope.ownerId;
+          }
+        }
         const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
         const kvPromos = await getStoreCollectionKv(env, 'promos', effStoreId, reqOwnerId);
         if (Array.isArray(kvPromos)) {
@@ -5240,10 +5393,18 @@ async function handlePosApi(request, path, method, url, state, env = null) {
 
   if (path === '/extras') {
     const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
-    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
-    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    let reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    let rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    const reqTableToken = url.searchParams.get('tableToken') || '';
     if (method === 'GET') {
       if (!state.isDemo && env?.KOSTKU_KV) {
+        if (!rawStoreId && reqTableToken) {
+          const tblScope = await resolveTableScopeKv(env, reqTableToken);
+          if (tblScope) {
+            if (tblScope.storeId) rawStoreId = tblScope.storeId;
+            if (!reqOwnerId && tblScope.ownerId) reqOwnerId = tblScope.ownerId;
+          }
+        }
         const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
         const kvExtras = await getStoreCollectionKv(env, 'extras', effStoreId, reqOwnerId);
         return new Response(JSON.stringify(Array.isArray(kvExtras) ? kvExtras : []), { headers: corsHeaders });
@@ -5995,7 +6156,16 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
-      const storeId = body.storeId || state.posStore.activeBranch || state.posStore.merchantId || 'STORE-DEFAULT';
+      let storeId = String(body.storeId || '').trim();
+      let tblOwnerId = '';
+      if (!storeId && !state.isDemo && body.tableToken && env?.KOSTKU_KV) {
+        const tblScope = await resolveTableScopeKv(env, body.tableToken);
+        if (tblScope) {
+          storeId = tblScope.storeId;
+          tblOwnerId = tblScope.ownerId;
+        }
+      }
+      storeId = storeId || state.posStore.activeBranch || state.posStore.merchantId || 'STORE-DEFAULT';
 
       // Cold Cloudflare isolate resilience: hydrate merchant from KV if not yet in RAM
       let existingMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === String(storeId) || String(m.uid || '') === String(storeId)));
@@ -6193,7 +6363,10 @@ async function handlePosApi(request, path, method, url, state, env = null) {
 
       state.posOrders.unshift(newOrder);
       if (!state.isDemo && env?.KOSTKU_KV) {
-        await upsertStoreOrderToKv(env, newOrder, orderOwnerId);
+        await Promise.all([
+          upsertStoreOrderToKv(env, newOrder, orderOwnerId || tblOwnerId),
+          saveClaimToKv(env, claimRecord)
+        ]);
       }
       return new Response(JSON.stringify({
         ...newOrder,
@@ -6494,6 +6667,73 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         }
       }
       return new Response(JSON.stringify({ error: 'Item order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+    if (subAction === 'spin' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      if (!order && (body.storeId || body.ownerId || body.ownerUserId)) {
+        order = await hydrateOrderById(state, env, orderId, body.storeId, body.ownerUserId || body.ownerId);
+      }
+      if (!order) return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+      let claim = (state.receiptClaims || []).find(c =>
+        String(c.order_id || '') === String(order.id) ||
+        (order.claim_token && String(c.claim_token || '') === String(order.claim_token))
+      );
+      if (!claim && !state.isDemo && env?.KOSTKU_KV) {
+        claim = await getClaimFromKv(env, order.claim_token || order.id);
+        if (claim) state.receiptClaims.unshift(claim);
+      }
+      if (!claim) {
+        const synthToken = order.claim_token || order.claimToken || ('clm_' + Date.now().toString(36));
+        claim = {
+          id: 'CLM-' + Date.now(),
+          order_id: order.id,
+          merchant_id: order.storeId || state.posStore.merchantId || '',
+          merchant_name: order.storeName || state.posStore.storeName || 'Toko POS',
+          invoice_number: order.invoice_number || order.invoice || order.id,
+          total_amount: Number(order.totalAmount || order.subtotal || 0),
+          claim_token: synthToken,
+          qr_claim_url: `https://kostku.riuph.me/claim?token=${synthToken}`,
+          status: order.claimStatus === 'CLAIMED' ? 'CLAIMED' : 'PENDING',
+          claimed_by_whatsapp: order.claimedByWhatsapp || null,
+          points_awarded: order.claimPointsAwarded || 0,
+          claim_deadline: order.claim_deadline || calculateWibClaimDeadline(new Date(order.createdAt || Date.now())).toISOString(),
+          claimed_at: null,
+          createdAt: order.createdAt || new Date().toISOString()
+        };
+        state.receiptClaims.unshift(claim);
+      }
+      const rawPhone = String(body.phone || body.whatsapp || order.customerPhone || '').trim();
+      const normDigits = rawPhone.replace(/\D/g, '');
+      const cleanDigits = normDigits.startsWith('62') ? ('0' + normDigits.slice(2)) : normDigits;
+      if (!state.isDemo && cleanDigits && env?.KOSTKU_KV) {
+        await hydrateCustomerLoyaltyFromKv(env, state, cleanDigits);
+      }
+      const result = executeEdgeReceiptClaim(claim, {
+        rawPhone: cleanDigits || order.customerPhone || '',
+        customerName: order.customerName || 'Tamu Meja',
+        source: 'order_spin'
+      });
+      if (!result.ok) {
+        return new Response(JSON.stringify(result.body), { status: result.status || 400, headers: corsHeaders });
+      }
+      const { cleanPhone, customer, spinOutcome, pointsAwarded } = result;
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        await Promise.all([
+          saveClaimToKv(env, claim),
+          persistCustomerLoyaltyToKv(env, customer, state),
+          upsertStoreOrderToKv(env, order, order.ownerUserId || '')
+        ]);
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        targetSliceIndex: spinOutcome.sliceIndex,
+        sliceIndex: spinOutcome.sliceIndex,
+        pointsAwarded,
+        totalPoints: customer.total_points,
+        customer,
+        claim,
+        message: `Selamat! Anda mendapat +${pointsAwarded} Poin loyalitas!`
+      }), { headers: corsHeaders });
     }
     if (subAction === 'apply-discount' && method === 'POST') {
       const body = await request.json().catch(() => ({}));
