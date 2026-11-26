@@ -1315,6 +1315,28 @@ async function saveStoreShiftsToKv(env, storeId, ownerId, list) {
   }
 }
 
+async function getStoreCollectionKv(env, prefix, storeId, ownerId) {
+  if (!env?.KOSTKU_KV) return null;
+  if (storeId) {
+    const byStore = await kvGetJson(env, `${prefix}:store:${storeId}`);
+    if (Array.isArray(byStore)) return byStore;
+  }
+  if (ownerId) {
+    const byOwner = await kvGetJson(env, `${prefix}:owner:${ownerId}`);
+    if (Array.isArray(byOwner)) return byOwner;
+  }
+  return null;
+}
+
+async function saveStoreCollectionKv(env, prefix, storeId, ownerId, list) {
+  if (!env?.KOSTKU_KV || !Array.isArray(list)) return;
+  if (storeId) {
+    await kvPutJson(env, `${prefix}:store:${storeId}`, list);
+  } else if (ownerId) {
+    await kvPutJson(env, `${prefix}:owner:${ownerId}`, list);
+  }
+}
+
 async function getOwnerStaffFromKv(env, ownerId) {
   if (!env?.KOSTKU_KV || !ownerId) return [];
   const list = await kvGetJson(env, `owner:staff:${ownerId}`);
@@ -4843,8 +4865,11 @@ async function handlePosApi(request, path, method, url, state, env = null) {
 
   if (path === '/topup-tripay' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
+    const targetStoreId = String(body.storeId || body.merchantId || state.posStore.activeBranch || state.posStore.merchantId || '').trim();
+    const storeTier = resolveEdgeStoreTier(state, targetStoreId);
+    const activeFee = Math.max(1, Number(storeTier.notaFeePerNotaIdr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
     const addSaldo = Number(body.amount) || 10000;
-    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / 100));
+    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / activeFee));
     const reference = 'TRIPAY-POS-NOTA-' + Date.now();
     const qrString = `00020101021226670016ID.CO.TRIPAY.WWW01189360099900000000000215${reference}520458125303360540${addSaldo}5802ID5914RIUPH KASIR POS6007JAKARTA62070703A016304E8A2`;
     const checkoutUrl = `https://tripay.co.id/checkout/${reference}`;
@@ -4853,6 +4878,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       reference,
       amount: addSaldo,
       quota: addQuota,
+      notaFeePerNotaIdr: activeFee,
       qrString,
       checkoutUrl,
       paymentMethod: 'QRIS',
@@ -4869,8 +4895,19 @@ async function handlePosApi(request, path, method, url, state, env = null) {
   if (path === '/topup-tripay/confirm' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
     const reference = body.reference || '';
+    const targetStoreId = String(body.storeId || body.merchantId || state.posStore.activeBranch || state.posStore.merchantId || state.posStore.uid || 'STORE-DEFAULT').trim();
+    let matchedMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === targetStoreId || String(m.uid || '') === targetStoreId));
+    if (!matchedMerchant && !state.isDemo && targetStoreId !== 'STORE-DEFAULT' && env?.KOSTKU_KV) {
+      matchedMerchant = await kvGetJson(env, `merchant:id:${targetStoreId}`);
+      if (matchedMerchant) {
+        state.registeredMerchants = state.registeredMerchants || [];
+        state.registeredMerchants.push(matchedMerchant);
+      }
+    }
+    const storeTier = resolveEdgeStoreTier(state, targetStoreId);
+    const activeFee = Math.max(1, Number(matchedMerchant?.notaFeePerNotaIdr ?? storeTier.notaFeePerNotaIdr ?? state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
     const addSaldo = Number(body.amount) || 10000;
-    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / 100));
+    const addQuota = Number(body.quota) || Math.max(1, Math.floor(addSaldo / activeFee));
 
     if (!reference) {
       return new Response(JSON.stringify({
@@ -4885,8 +4922,8 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         isPaid: true,
         status: 'PAID',
         message: `Pembayaran TriPay TERVERIFIKASI (PAID)! +${addQuota} kuota nota telah aktif.`,
-        saldoNota: state.posStore.saldoNota,
-        kuotaNota: state.posStore.kuotaNota,
+        saldoNota: matchedMerchant?.saldoNota ?? state.posStore.saldoNota,
+        kuotaNota: matchedMerchant?.kuotaNota ?? state.posStore.kuotaNota,
         reference
       }), { headers: corsHeaders });
     }
@@ -4937,18 +4974,22 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
 
     state.posPaidReferences.add(reference);
-    const activeFee = Math.max(1, Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
-    const nextKuota = (Number(state.posStore.kuotaNota) || 0) + addQuota;
-    const nextSaldo = (Number(state.posStore.saldoNota) || 0) + addSaldo;
-    const targetStoreId = body.storeId || state.posStore.activeBranch || state.posStore.merchantId || state.posStore.uid || 'STORE-DEFAULT';
+    const prevSaldo = Number(matchedMerchant?.saldoNota ?? state.posStore.saldoNota ?? 0);
+    const nextSaldo = prevSaldo + addSaldo;
+    const nextKuota = Math.floor(nextSaldo / activeFee);
     syncEdgeStoreWallet(state, targetStoreId, nextSaldo, nextKuota, activeFee);
+    if (matchedMerchant) {
+      matchedMerchant.saldoNota = nextSaldo;
+      matchedMerchant.kuotaNota = nextKuota;
+      if (!state.isDemo) await saveMerchantToKv(env, matchedMerchant, false);
+    }
     return new Response(JSON.stringify({
       success: true,
       isPaid: true,
       status: 'PAID',
       message: `Pembayaran TriPay TERVERIFIKASI (PAID)! +${addQuota} kuota nota telah aktif.`,
-      saldoNota: state.posStore.saldoNota,
-      kuotaNota: state.posStore.kuotaNota,
+      saldoNota: nextSaldo,
+      kuotaNota: nextKuota,
       reference: reference || 'TRIPAY-VERIFIED'
     }), { headers: corsHeaders });
   }
@@ -4958,7 +4999,8 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     const reference = body.reference || body.merchant_ref || '';
     const status = String(body.status || '').toUpperCase();
     const amount = Number(body.total_amount || body.amount) || 10000;
-    const quota = Math.max(1, Math.floor(amount / 100));
+    const activeFee = Math.max(1, Number(state.posStore.notaFeePerNotaIdr ?? (state.isDemo ? 100 : 25)));
+    const quota = Math.max(1, Math.floor(amount / activeFee));
 
     if (status === 'PAID') {
       if (reference) state.posPaidReferences.add(reference);
@@ -5025,11 +5067,29 @@ async function handlePosApi(request, path, method, url, state, env = null) {
   }
 
   if (path === '/promos') {
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
     if (method === 'GET') {
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
+        const kvPromos = await getStoreCollectionKv(env, 'promos', effStoreId, reqOwnerId);
+        if (Array.isArray(kvPromos)) {
+          return new Response(JSON.stringify({ success: true, promos: kvPromos }), { headers: corsHeaders });
+        }
+        const scopedRam = (state.posFoodPromos || []).filter(p =>
+          p && ((effStoreId && String(p.storeId || '') === effStoreId) || (reqOwnerId && String(p.ownerUserId || '') === reqOwnerId))
+        );
+        return new Response(JSON.stringify({ success: true, promos: scopedRam }), { headers: corsHeaders });
+      }
       return new Response(JSON.stringify({ success: true, promos: state.posFoodPromos }), { headers: corsHeaders });
     }
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const ownerId = await resolvePosOwnerId(state, env, body.ownerUserId || body.ownerId || body.merchantId || reqOwnerId);
+      const effStoreId = state.isDemo
+        ? String(body.storeId || state.posStore?.merchantId || '')
+        : await resolveActiveStoreIdForOwnerKv(env, body.storeId || '', ownerId);
       const newPromo = {
         id: 'PROMO-FOOD-' + Date.now(),
         title: body.title || 'Promo Baru',
@@ -5048,15 +5108,36 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         isActive: true,
         createdByRole: body.createdByRole || 'owner',
         description: body.description || '',
+        storeId: effStoreId,
+        ownerUserId: ownerId,
         createdAt: new Date().toISOString()
       };
       state.posFoodPromos.unshift(newPromo);
-      return new Response(JSON.stringify({ success: true, promo: newPromo }), { status: 200, headers: corsHeaders });
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const existingKv = (await getStoreCollectionKv(env, 'promos', effStoreId, ownerId)) || [];
+        await saveStoreCollectionKv(env, 'promos', effStoreId, ownerId, [newPromo, ...existingKv]);
+      }
+      return new Response(JSON.stringify({ success: true, message: `Promo "${newPromo.title}" berhasil diterbitkan!`, promo: newPromo }), { status: 200, headers: corsHeaders });
     }
   }
 
   if (path.startsWith('/promos/') && path.endsWith('/toggle') && method === 'PUT') {
-    const id = path.replace('/promos/', '').replace('/toggle', '');
+    const id = decodeURIComponent(path.replace('/promos/', '').replace('/toggle', ''));
+    const rawOwner = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    if (!state.isDemo && env?.KOSTKU_KV) {
+      const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
+      const kvList = await getStoreCollectionKv(env, 'promos', effStoreId, reqOwnerId);
+      if (Array.isArray(kvList)) {
+        const target = kvList.find(x => x && String(x.id) === String(id));
+        if (target) {
+          target.isActive = !target.isActive;
+          await saveStoreCollectionKv(env, 'promos', effStoreId, reqOwnerId, kvList);
+          return new Response(JSON.stringify({ success: true, promo: target }), { headers: corsHeaders });
+        }
+      }
+    }
     const p = state.posFoodPromos.find(x => x.id === id);
     if (p) {
       p.isActive = !p.isActive;
@@ -5066,7 +5147,17 @@ async function handlePosApi(request, path, method, url, state, env = null) {
   }
 
   if (path.startsWith('/promos/') && method === 'DELETE') {
-    const id = path.replace('/promos/', '');
+    const id = decodeURIComponent(path.replace('/promos/', ''));
+    const rawOwner = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    if (!state.isDemo && env?.KOSTKU_KV) {
+      const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
+      const kvList = await getStoreCollectionKv(env, 'promos', effStoreId, reqOwnerId);
+      if (Array.isArray(kvList)) {
+        await saveStoreCollectionKv(env, 'promos', effStoreId, reqOwnerId, kvList.filter(x => x && String(x.id) !== String(id)));
+      }
+    }
     state.posFoodPromos = state.posFoodPromos.filter(x => x.id !== id);
     return new Response(JSON.stringify({ success: true, message: 'Promo berhasil dihapus' }), { headers: corsHeaders });
   }
@@ -5075,8 +5166,15 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     const body = await request.json().catch(() => ({}));
     const code = String(body.promoCode || body.code || '').trim().toUpperCase();
     const orderTotal = Number(body.subtotal || body.orderTotal) || 0;
-    const storeTier = resolveEdgeStoreTier(state, body.storeId || body.merchantId || state.posStore.merchantId);
-    const promo = state.posFoodPromos.find(p => p.code === code && p.isActive);
+    const targetStoreId = String(body.storeId || body.merchantId || state.posStore.merchantId || '').trim();
+    const storeTier = resolveEdgeStoreTier(state, targetStoreId);
+    const reqOwnerId = await resolvePosOwnerId(state, env, body.ownerUserId || body.ownerId || request.headers.get('x-user-id') || '');
+    let promoPool = state.posFoodPromos || [];
+    if (!state.isDemo && env?.KOSTKU_KV) {
+      const kvPromos = await getStoreCollectionKv(env, 'promos', targetStoreId, reqOwnerId);
+      if (Array.isArray(kvPromos)) promoPool = [...kvPromos, ...promoPool];
+    }
+    const promo = promoPool.find(p => p && p.code === code && p.isActive);
 
     if (!promo) {
       return new Response(JSON.stringify({ valid: false, message: 'Kode promo tidak valid atau tidak aktif' }), { headers: corsHeaders });
@@ -5110,6 +5208,121 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       promo,
       message: `Promo ${promo.title} berhasil diterapkan! Hemat Rp ${discountAmount.toLocaleString('id-ID')}`
     }), { headers: corsHeaders });
+  }
+
+  if (path === '/categories') {
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    if (method === 'GET') {
+      if (!state.isDemo && env?.KOSTKU_KV && reqOwnerId) {
+        const kvCats = await kvGetJson(env, `categories:owner:${reqOwnerId}`);
+        return new Response(JSON.stringify({ success: true, categories: Array.isArray(kvCats) ? kvCats : [] }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ success: true, categories: state.posCustomCategories || [] }), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const cleanCat = String(body.category || '').trim();
+      const ownerId = await resolvePosOwnerId(state, env, body.ownerId || body.merchantId || reqOwnerId);
+      if (!cleanCat) return new Response(JSON.stringify({ error: 'Nama kategori wajib diisi' }), { status: 400, headers: corsHeaders });
+      if (!state.isDemo && env?.KOSTKU_KV && ownerId) {
+        const existing = (await kvGetJson(env, `categories:owner:${ownerId}`)) || [];
+        const merged = Array.from(new Set([...(Array.isArray(existing) ? existing : []), cleanCat]));
+        await kvPutJson(env, `categories:owner:${ownerId}`, merged);
+        return new Response(JSON.stringify({ success: true, categories: merged }), { status: 201, headers: corsHeaders });
+      }
+      state.posCustomCategories = Array.from(new Set([...(state.posCustomCategories || []), cleanCat]));
+      return new Response(JSON.stringify({ success: true, categories: state.posCustomCategories }), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  if (path === '/extras') {
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
+    if (method === 'GET') {
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
+        const kvExtras = await getStoreCollectionKv(env, 'extras', effStoreId, reqOwnerId);
+        return new Response(JSON.stringify(Array.isArray(kvExtras) ? kvExtras : []), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify(state.posStoreExtras || []), { headers: corsHeaders });
+    }
+    if (method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const ownerId = await resolvePosOwnerId(state, env, body.ownerUserId || body.ownerId || body.merchantId || reqOwnerId);
+      const effStoreId = state.isDemo
+        ? String(body.storeId || state.posStore?.merchantId || '')
+        : await resolveActiveStoreIdForOwnerKv(env, body.storeId || '', ownerId);
+      const newExtra = {
+        id: 'ext-' + Date.now(),
+        name: String(body.name || 'Extra Baru').trim(),
+        price: Math.max(0, Math.round(Number(body.price) || 0)),
+        scope: body.scope || 'ALL',
+        targetCategories: Array.isArray(body.targetCategories) ? body.targetCategories : [],
+        targetProductIds: Array.isArray(body.targetProductIds) ? body.targetProductIds : [],
+        isAvailable: body.isAvailable !== false,
+        storeId: effStoreId,
+        merchantId: String(body.merchantId || ownerId || ''),
+        ownerUserId: ownerId,
+        createdAt: new Date().toISOString()
+      };
+      state.posStoreExtras = state.posStoreExtras || [];
+      state.posStoreExtras.unshift(newExtra);
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const existingKv = (await getStoreCollectionKv(env, 'extras', effStoreId, ownerId)) || [];
+        await saveStoreCollectionKv(env, 'extras', effStoreId, ownerId, [newExtra, ...existingKv]);
+        await kvPutJson(env, `extra:meta:${newExtra.id}`, { storeId: effStoreId, ownerId });
+      }
+      return new Response(JSON.stringify(newExtra), { status: 201, headers: corsHeaders });
+    }
+  }
+
+  if (path.startsWith('/extras/')) {
+    const extraId = decodeURIComponent(path.replace('/extras/', ''));
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    let ownerId = await resolvePosOwnerId(state, env, rawOwner);
+    let storeId = String(url.searchParams.get('storeId') || '').trim();
+    if (!state.isDemo && (!storeId || !ownerId) && env?.KOSTKU_KV) {
+      const meta = await kvGetJson(env, `extra:meta:${extraId}`);
+      if (meta) {
+        if (!storeId && meta.storeId) storeId = String(meta.storeId);
+        if (!ownerId && meta.ownerId) ownerId = String(meta.ownerId);
+      }
+    }
+    if (method === 'PUT') {
+      const body = await request.json().catch(() => ({}));
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, storeId, ownerId);
+        const kvList = await getStoreCollectionKv(env, 'extras', effStoreId, ownerId);
+        if (Array.isArray(kvList)) {
+          const idx = kvList.findIndex(x => x && String(x.id) === String(extraId));
+          if (idx >= 0) {
+            kvList[idx] = { ...kvList[idx], ...body, id: extraId, updatedAt: new Date().toISOString() };
+            await saveStoreCollectionKv(env, 'extras', effStoreId, ownerId, kvList);
+            return new Response(JSON.stringify(kvList[idx]), { headers: corsHeaders });
+          }
+        }
+      }
+      const ex = (state.posStoreExtras || []).find(x => x && String(x.id) === String(extraId));
+      if (ex) {
+        Object.assign(ex, body, { id: extraId });
+        return new Response(JSON.stringify(ex), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Extra tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+    if (method === 'DELETE') {
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, storeId, ownerId);
+        const kvList = await getStoreCollectionKv(env, 'extras', effStoreId, ownerId);
+        if (Array.isArray(kvList)) {
+          await saveStoreCollectionKv(env, 'extras', effStoreId, ownerId, kvList.filter(x => x && String(x.id) !== String(extraId)));
+        }
+        await env.KOSTKU_KV.delete(`extra:meta:${extraId}`).catch(() => {});
+      }
+      state.posStoreExtras = (state.posStoreExtras || []).filter(x => x && String(x.id) !== String(extraId));
+      return new Response(JSON.stringify({ success: true, message: 'Extra berhasil dihapus' }), { headers: corsHeaders });
+    }
   }
 
   if (path === '/products') {
@@ -5286,15 +5499,16 @@ async function handlePosApi(request, path, method, url, state, env = null) {
   }
 
   if (path === '/tables') {
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const reqTableToken = url.searchParams.get('tableToken') || '';
+    const reqStoreId = String(url.searchParams.get('storeId') || '').trim();
     if (method === 'GET') {
-      const reqOwnerId = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
-      const reqTableToken = url.searchParams.get('tableToken') || '';
-      const reqStoreId = url.searchParams.get('storeId') || url.searchParams.get('merchantId') || '';
       if (!state.isDemo && !reqOwnerId && !reqTableToken && !reqStoreId) {
         return new Response(JSON.stringify([]), { headers: corsHeaders });
       }
       if (reqTableToken) {
-        let matchedTbls = state.posTables.filter(t => String(t.qrToken || '') === reqTableToken);
+        let matchedTbls = (state.posTables || []).filter(t => t && String(t.qrToken || '') === reqTableToken);
         if (matchedTbls.length === 0 && !state.isDemo && env?.KOSTKU_KV) {
           const kvTbl = await kvGetJson(env, `table:token:${reqTableToken}`);
           if (kvTbl) {
@@ -5304,23 +5518,119 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         }
         return new Response(JSON.stringify(matchedTbls), { headers: corsHeaders });
       }
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, reqStoreId, reqOwnerId);
+        const kvTbls = await getStoreCollectionKv(env, 'tables', effStoreId, reqOwnerId);
+        if (Array.isArray(kvTbls)) {
+          return new Response(JSON.stringify(kvTbls), { headers: corsHeaders });
+        }
+        const scopedRam = (state.posTables || []).filter(t =>
+          t && ((effStoreId && String(t.storeId || '') === effStoreId) || (reqOwnerId && String(t.ownerUserId || '') === reqOwnerId))
+        );
+        return new Response(JSON.stringify(scopedRam), { headers: corsHeaders });
+      }
       return new Response(JSON.stringify(state.posTables), { headers: corsHeaders });
     }
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const ownerId = await resolvePosOwnerId(state, env, body.ownerUserId || body.ownerId || body.merchantId || reqOwnerId);
+      const effStoreId = state.isDemo
+        ? String(body.storeId || state.posStore?.merchantId || '')
+        : await resolveActiveStoreIdForOwnerKv(env, body.storeId || '', ownerId);
+      const existingList = (!state.isDemo && env?.KOSTKU_KV)
+        ? ((await getStoreCollectionKv(env, 'tables', effStoreId, ownerId)) || [])
+        : (state.posTables || []);
       const newTable = {
         id: 'tbl-' + Date.now(),
-        number: body.number || `Meja ${state.posTables.length + 1}`,
-        qrToken: `MEJA-${state.posTables.length + 1}-TKN${Math.floor(Math.random() * 900 + 100)}`
+        number: body.number || `Meja ${existingList.length + 1}`,
+        qrToken: `MEJA-${existingList.length + 1}-TKN${Math.floor(Math.random() * 900 + 100)}`,
+        storeId: effStoreId,
+        merchantId: effStoreId,
+        ownerUserId: ownerId,
+        createdAt: new Date().toISOString()
       };
       state.posTables.push(newTable);
-      if (!state.isDemo) await kvPutJson(env, `table:token:${newTable.qrToken}`, newTable);
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        await Promise.all([
+          saveStoreCollectionKv(env, 'tables', effStoreId, ownerId, [...existingList, newTable]),
+          kvPutJson(env, `table:token:${newTable.qrToken}`, newTable),
+          kvPutJson(env, `table:meta:${newTable.id}`, { storeId: effStoreId, ownerId, qrToken: newTable.qrToken })
+        ]);
+      }
       return new Response(JSON.stringify(newTable), { status: 201, headers: corsHeaders });
     }
   }
 
+  if (path.startsWith('/tables/')) {
+    const tableId = decodeURIComponent(path.replace('/tables/', ''));
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    let ownerId = await resolvePosOwnerId(state, env, rawOwner);
+    let storeId = String(url.searchParams.get('storeId') || '').trim();
+    let knownQrToken = '';
+    if (!state.isDemo && env?.KOSTKU_KV) {
+      const meta = await kvGetJson(env, `table:meta:${tableId}`);
+      if (meta) {
+        if (!storeId && meta.storeId) storeId = String(meta.storeId);
+        if (!ownerId && meta.ownerId) ownerId = String(meta.ownerId);
+        if (meta.qrToken) knownQrToken = String(meta.qrToken);
+      }
+    }
+    if (method === 'PUT') {
+      const body = await request.json().catch(() => ({}));
+      const cleanNum = String(body.number || '').trim();
+      if (!cleanNum) return new Response(JSON.stringify({ error: 'Nama / nomor meja wajib diisi' }), { status: 400, headers: corsHeaders });
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, storeId, ownerId);
+        const kvList = await getStoreCollectionKv(env, 'tables', effStoreId, ownerId);
+        if (Array.isArray(kvList)) {
+          const idx = kvList.findIndex(t => t && String(t.id) === String(tableId));
+          if (idx >= 0) {
+            kvList[idx] = { ...kvList[idx], number: cleanNum, updatedAt: new Date().toISOString() };
+            await saveStoreCollectionKv(env, 'tables', effStoreId, ownerId, kvList);
+            if (kvList[idx].qrToken) await kvPutJson(env, `table:token:${kvList[idx].qrToken}`, kvList[idx]);
+            return new Response(JSON.stringify({ success: true, table: kvList[idx] }), { headers: corsHeaders });
+          }
+        }
+      }
+      const tbl = (state.posTables || []).find(t => t && String(t.id) === String(tableId));
+      if (tbl) {
+        tbl.number = cleanNum;
+        if (!state.isDemo && env?.KOSTKU_KV && tbl.qrToken) await kvPutJson(env, `table:token:${tbl.qrToken}`, tbl);
+        return new Response(JSON.stringify({ success: true, table: tbl }), { headers: corsHeaders });
+      }
+      return new Response(JSON.stringify({ error: 'Meja tidak ditemukan' }), { status: 404, headers: corsHeaders });
+    }
+    if (method === 'DELETE') {
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, storeId, ownerId);
+        const kvList = await getStoreCollectionKv(env, 'tables', effStoreId, ownerId);
+        if (Array.isArray(kvList)) {
+          const target = kvList.find(t => t && String(t.id) === String(tableId));
+          if (target?.qrToken) knownQrToken = String(target.qrToken);
+          await saveStoreCollectionKv(env, 'tables', effStoreId, ownerId, kvList.filter(t => t && String(t.id) !== String(tableId)));
+        }
+        if (knownQrToken) await env.KOSTKU_KV.delete(`table:token:${knownQrToken}`).catch(() => {});
+        await env.KOSTKU_KV.delete(`table:meta:${tableId}`).catch(() => {});
+      }
+      state.posTables = (state.posTables || []).filter(t => t && String(t.id) !== String(tableId));
+      return new Response(JSON.stringify({ success: true, message: 'Meja berhasil dihapus' }), { headers: corsHeaders });
+    }
+  }
+
   if (path === '/inventory') {
+    const rawOwner = url.searchParams.get('ownerId') || url.searchParams.get('merchantId') || request.headers.get('x-user-id') || '';
+    const reqOwnerId = await resolvePosOwnerId(state, env, rawOwner);
+    const rawStoreId = String(url.searchParams.get('storeId') || '').trim();
     if (method === 'GET') {
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, rawStoreId, reqOwnerId);
+        const kvInv = await getStoreCollectionKv(env, 'inventory', effStoreId, reqOwnerId);
+        const list = Array.isArray(kvInv)
+          ? kvInv
+          : (state.posInventory || []).filter(i => i && ((effStoreId && String(i.storeId || '') === effStoreId) || (reqOwnerId && String(i.ownerUserId || '') === reqOwnerId)));
+        const alerts = list.filter(i => (Number(i.currentStock) || 0) <= (Number(i.minAlertStock) || 0));
+        return new Response(JSON.stringify({ success: true, inventory: list, alerts }), { headers: corsHeaders });
+      }
       return new Response(JSON.stringify({
         success: true,
         inventory: state.posInventory,
@@ -5329,6 +5639,10 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     }
     if (method === 'POST') {
       const body = await request.json().catch(() => ({}));
+      const ownerId = await resolvePosOwnerId(state, env, body.ownerUserId || body.ownerId || body.merchantId || reqOwnerId);
+      const effStoreId = state.isDemo
+        ? String(body.storeId || state.posStore?.merchantId || '')
+        : await resolveActiveStoreIdForOwnerKv(env, body.storeId || '', ownerId);
       const newItem = {
         id: 'INV-' + (body.name || 'BAHAN').replace(/\s+/g, '-').toUpperCase().slice(0, 8) + '-' + Date.now().toString().slice(-4),
         name: body.name || 'Bahan Baru',
@@ -5338,17 +5652,48 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         minAlertStock: Number(body.minAlertStock) || 10,
         costPerUnit: Number(body.costPerUnit) || 1000,
         supplier: body.supplier || 'Pemasok Lokal',
+        storeId: effStoreId,
+        ownerUserId: ownerId,
         lastRestocked: new Date().toISOString()
       };
       state.posInventory.push(newItem);
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const existingKv = (await getStoreCollectionKv(env, 'inventory', effStoreId, ownerId)) || [];
+        await Promise.all([
+          saveStoreCollectionKv(env, 'inventory', effStoreId, ownerId, [...existingKv, newItem]),
+          kvPutJson(env, `inv:meta:${newItem.id}`, { storeId: effStoreId, ownerId })
+        ]);
+      }
       return new Response(JSON.stringify({ success: true, item: newItem }), { status: 201, headers: corsHeaders });
     }
   }
 
   if (path.startsWith('/inventory/') && !path.includes('/restock')) {
-    const id = path.replace('/inventory/', '');
+    const id = decodeURIComponent(path.replace('/inventory/', ''));
+    const rawOwner = url.searchParams.get('ownerId') || request.headers.get('x-user-id') || '';
+    let ownerId = await resolvePosOwnerId(state, env, rawOwner);
+    let storeId = String(url.searchParams.get('storeId') || '').trim();
+    if (!state.isDemo && (!storeId || !ownerId) && env?.KOSTKU_KV) {
+      const meta = await kvGetJson(env, `inv:meta:${id}`);
+      if (meta) {
+        if (!storeId && meta.storeId) storeId = String(meta.storeId);
+        if (!ownerId && meta.ownerId) ownerId = String(meta.ownerId);
+      }
+    }
     if (method === 'PUT') {
       const body = await request.json().catch(() => ({}));
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, storeId, ownerId);
+        const kvList = await getStoreCollectionKv(env, 'inventory', effStoreId, ownerId);
+        if (Array.isArray(kvList)) {
+          const item = kvList.find(x => x && String(x.id) === String(id));
+          if (item) {
+            Object.assign(item, body, { id });
+            await saveStoreCollectionKv(env, 'inventory', effStoreId, ownerId, kvList);
+            return new Response(JSON.stringify({ success: true, item }), { headers: corsHeaders });
+          }
+        }
+      }
       const item = state.posInventory.find(x => x.id === id);
       if (item) {
         Object.assign(item, body);
@@ -5357,6 +5702,14 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       return new Response(JSON.stringify({ error: 'Item gudang tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
     if (method === 'DELETE') {
+      if (!state.isDemo && env?.KOSTKU_KV) {
+        const effStoreId = await resolveActiveStoreIdForOwnerKv(env, storeId, ownerId);
+        const kvList = await getStoreCollectionKv(env, 'inventory', effStoreId, ownerId);
+        if (Array.isArray(kvList)) {
+          await saveStoreCollectionKv(env, 'inventory', effStoreId, ownerId, kvList.filter(x => x && String(x.id) !== String(id)));
+        }
+        await env.KOSTKU_KV.delete(`inv:meta:${id}`).catch(() => {});
+      }
       state.posInventory = state.posInventory.filter(x => x.id !== id);
       return new Response(JSON.stringify({ success: true, message: 'Item berhasil dihapus dari gudang' }), { headers: corsHeaders });
     }
@@ -5364,11 +5717,39 @@ async function handlePosApi(request, path, method, url, state, env = null) {
 
   if (path === '/inventory/restock' && method === 'POST') {
     const body = await request.json().catch(() => ({}));
-    const item = state.posInventory.find(x => x.id === body.inventoryId);
+    const invId = String(body.inventoryId || '').trim();
+    let ownerId = await resolvePosOwnerId(state, env, body.ownerUserId || body.ownerId || request.headers.get('x-user-id') || '');
+    let storeId = String(body.storeId || '').trim();
+    const addQty = Number(body.addQty) || 0;
+    if (!state.isDemo && env?.KOSTKU_KV) {
+      if (!storeId || !ownerId) {
+        const meta = await kvGetJson(env, `inv:meta:${invId}`);
+        if (meta) {
+          if (!storeId && meta.storeId) storeId = String(meta.storeId);
+          if (!ownerId && meta.ownerId) ownerId = String(meta.ownerId);
+        }
+      }
+      const effStoreId = await resolveActiveStoreIdForOwnerKv(env, storeId, ownerId);
+      const kvList = await getStoreCollectionKv(env, 'inventory', effStoreId, ownerId);
+      if (Array.isArray(kvList)) {
+        const item = kvList.find(x => x && String(x.id) === invId);
+        if (item) {
+          item.currentStock = (Number(item.currentStock) || 0) + addQty;
+          item.lastRestocked = new Date().toISOString();
+          await saveStoreCollectionKv(env, 'inventory', effStoreId, ownerId, kvList);
+          return new Response(JSON.stringify({
+            success: true,
+            newStock: item.currentStock,
+            item,
+            message: `Berhasil restock ${item.name} (+${addQty} ${item.unit})`
+          }), { headers: corsHeaders });
+        }
+      }
+    }
+    const item = state.posInventory.find(x => x.id === invId);
     if (!item) {
       return new Response(JSON.stringify({ error: 'Item bahan baku tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
-    const addQty = Number(body.addQty) || 0;
     item.currentStock = (Number(item.currentStock) || 0) + addQty;
     item.lastRestocked = new Date().toISOString();
     return new Response(JSON.stringify({
@@ -6095,6 +6476,57 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       }
       return new Response(JSON.stringify({ error: 'Item order tidak ditemukan' }), { status: 404, headers: corsHeaders });
     }
+    if (subAction === 'apply-discount' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      if (!order && (body.storeId || body.ownerId || body.ownerUserId)) {
+        order = await hydrateOrderById(state, env, orderId, body.storeId, body.ownerUserId || body.ownerId);
+      }
+      if (!order) return new Response(JSON.stringify({ error: 'Order tidak ditemukan' }), { status: 404, headers: corsHeaders });
+      const val = Math.max(0, Number(body.discountValue) || 0);
+      const dtype = String(body.discountType || 'FIXED').toUpperCase();
+      const sub = Number(order.subtotal ?? order.baseAmountBeforePaymentFee ?? order.totalAmount ?? 0);
+      const discAmt = dtype === 'PERCENT' ? Math.min(sub, Math.round((sub * val) / 100)) : Math.min(sub, Math.round(val));
+      const newBase = Math.max(0, sub - discAmt);
+      const feeSnap = computeEdgePosFeeSnapshot({
+        baseAmount: newBase,
+        notaFeeIdr: Number(order.billing_fee_idr || 25),
+        notaFeeBearer: order.notaFeeBearer || 'store',
+        paymentMethod: order.paymentMethod || ''
+      });
+      order.discountAmount = discAmt;
+      order.discountReason = body.reason || 'Diskon Khusus';
+      order.baseAmountBeforePaymentFee = feeSnap.baseAmount;
+      order.qrisFee = feeSnap.qrisFee;
+      order.customerAdminFee = feeSnap.customerAdminFee;
+      order.total = feeSnap.totalAmount;
+      order.totalAmount = feeSnap.totalAmount;
+      await persistUpdatedOrder(order);
+      return new Response(JSON.stringify({
+        success: true,
+        order,
+        message: `Diskon Rp ${discAmt.toLocaleString('id-ID')} berhasil diterapkan!`
+      }), { headers: corsHeaders });
+    }
+  }
+
+  if (path === '/resolve-gmaps-link' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const rawUrl = String(body.url || '').trim();
+    let finalUrl = rawUrl;
+    if (rawUrl && /^https?:\/\//i.test(rawUrl)) {
+      try {
+        const res = await fetch(rawUrl, { method: 'GET', redirect: 'follow' });
+        if (res.url) finalUrl = res.url;
+      } catch (_) {}
+    }
+    const coordMatch = finalUrl.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) ||
+      finalUrl.match(/[?&](?:q|ll)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+    return new Response(JSON.stringify({
+      success: true,
+      resolvedUrl: finalUrl,
+      lat: coordMatch ? Number(coordMatch[1]) : null,
+      lng: coordMatch ? Number(coordMatch[2]) : null
+    }), { headers: corsHeaders });
   }
 
   if (path === '/config/tripay') {

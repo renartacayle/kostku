@@ -554,7 +554,12 @@ export default function Kasir({ user, onLogout }) {
       }
     } catch (_) {}
 
-    fetch(`/api/pos/categories?merchantId=${encodeURIComponent(effectiveAccountId)}`)
+    fetch(`/api/pos/categories?merchantId=${encodeURIComponent(effectiveAccountId)}&ownerId=${encodeURIComponent(effectiveAccountId)}`, {
+      headers: {
+        ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+        ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+      }
+    })
       .then(r => r.headers.get('content-type')?.includes('application/json') ? r.json() : null)
       .then(data => {
         if (data && Array.isArray(data.categories) && data.categories.length > 0) {
@@ -1099,8 +1104,8 @@ export default function Kasir({ user, onLogout }) {
         } catch (_) {}
         fetch('/api/pos/categories', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category: targetCategory, merchantId: effectiveAccountId })
+          headers: buildPosJsonHeaders(),
+          body: JSON.stringify({ category: targetCategory, merchantId: effectiveAccountId, ownerId: ownerIdVal || effectiveAccountId })
         }).catch(() => {});
       }
     }
@@ -1807,11 +1812,13 @@ export default function Kasir({ user, onLogout }) {
       setApplyingDiscount(true);
       const res = await fetch(`/api/pos/orders/${selectedOrderForDiscount.id}/apply-discount`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           discountType: discountForm.type,
           discountValue: num,
-          reason: discountForm.reason.trim() || 'Diskon Khusus Owner / Admin'
+          reason: discountForm.reason.trim() || 'Diskon Khusus Owner / Admin',
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
         })
       });
       const data = await res.json();
@@ -2000,7 +2007,7 @@ export default function Kasir({ user, onLogout }) {
 
       const [resOrders, resTables, resConfig, resStore, consolidatedRes] = await Promise.all([
         fetch(`/api/pos/orders${ordersQuery ? `?${ordersQuery}` : ''}`, { headers: posHeaders }),
-        fetch(`/api/pos/tables${scopedSuffix}`, { headers: posHeaders }),
+        fetch(`/api/pos/tables${ordersQuery ? `?${ordersQuery}` : scopedSuffix}`, { headers: posHeaders }),
         fetch('/api/pos/config/tripay', { headers: posHeaders }),
         fetch(storeEndpoint, { headers: posHeaders }),
         apiGetPosConsolidatedSummary(ownerIdVal || effectiveAccountId).catch(() => null)
@@ -2507,8 +2514,12 @@ export default function Kasir({ user, onLogout }) {
       setTableActionFeedback(null);
       const res = await fetch('/api/pos/tables', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: cleanNum })
+        headers: buildPosJsonHeaders(),
+        body: JSON.stringify({
+          number: cleanNum,
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
+        })
       });
       const data = await parseJsonSafe(res);
       if (!res.ok) throw new Error(data?.error || 'Gagal menambah meja baru');
@@ -2535,8 +2546,12 @@ export default function Kasir({ user, onLogout }) {
       setTableActionFeedback(null);
       const res = await fetch(`/api/pos/tables/${encodeURIComponent(tableId)}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: cleanNum })
+        headers: buildPosJsonHeaders(),
+        body: JSON.stringify({
+          number: cleanNum,
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
+        })
       });
       const data = await parseJsonSafe(res);
       if (!res.ok) throw new Error(data?.error || 'Gagal memperbarui nama meja');
@@ -2555,8 +2570,17 @@ export default function Kasir({ user, onLogout }) {
     try {
       setSavingTable(true);
       setTableActionFeedback(null);
-      const res = await fetch(`/api/pos/tables/${encodeURIComponent(tableId)}`, {
-        method: 'DELETE'
+      const tParams = new URLSearchParams();
+      if (storeInfo?.merchantId || storeInfo?.uid) tParams.set('storeId', storeInfo.merchantId || storeInfo.uid);
+      if (ownerIdVal || effectiveAccountId) tParams.set('ownerId', ownerIdVal || effectiveAccountId);
+      const tQs = tParams.toString();
+      const res = await fetch(`/api/pos/tables/${encodeURIComponent(tableId)}${tQs ? `?${tQs}` : ''}`, {
+        method: 'DELETE',
+        headers: {
+          ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+          ...(user?.role ? { 'x-user-role': String(user.role) } : {}),
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        }
       });
       const data = await parseJsonSafe(res);
       if (!res.ok) throw new Error(data?.error || 'Gagal menghapus meja');
@@ -3122,7 +3146,15 @@ export default function Kasir({ user, onLogout }) {
   const loadPromos = async () => {
     try {
       setLoadingPromos(true);
-      const res = await fetch('/api/pos/promos');
+      const pQs = new URLSearchParams();
+      if (storeInfo?.merchantId || storeInfo?.uid) pQs.set('storeId', storeInfo.merchantId || storeInfo.uid);
+      if (ownerIdVal || effectiveAccountId) pQs.set('ownerId', ownerIdVal || effectiveAccountId);
+      const res = await fetch(`/api/pos/promos${pQs.toString() ? `?${pQs.toString()}` : ''}`, {
+        headers: {
+          ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        }
+      });
       const data = await res.json();
       if (res.ok && data.promos) {
         setPromosList(data.promos);
@@ -3162,7 +3194,7 @@ export default function Kasir({ user, onLogout }) {
       setPromoSaveFeedback(null);
       const res = await fetch('/api/pos/promos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           title: newPromoForm.title.trim(),
           code: newPromoForm.code.trim().toUpperCase(),
@@ -3175,7 +3207,9 @@ export default function Kasir({ user, onLogout }) {
           maxQuota: (newPromoForm.limitType === 'QUOTA' || newPromoForm.limitType === 'BOTH') ? Number(newPromoForm.maxQuota) : null,
           expiryDate: (newPromoForm.limitType === 'DATE' || newPromoForm.limitType === 'BOTH') ? newPromoForm.expiryDate : null,
           createdByRole: newPromoForm.createdByRole,
-          description: newPromoForm.description.trim()
+          description: newPromoForm.description.trim(),
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
         })
       });
 
@@ -3222,7 +3256,10 @@ export default function Kasir({ user, onLogout }) {
       const activeStoreId = storeInfo?.merchantId || storeInfo?.uid;
       if (activeStoreId) qs.set('storeId', activeStoreId);
       const res = await fetch(`/api/pos/extras?${qs.toString()}`, {
-        headers: isDemoKasir ? { 'x-demo-mode': 'true' } : {}
+        headers: {
+          ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        }
       });
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
@@ -3274,10 +3311,7 @@ export default function Kasir({ user, onLogout }) {
       const method = editingExtraId ? 'PUT' : 'POST';
       const res = await fetch(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
-        },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           name: cleanName,
           price: Math.max(0, Math.round(priceNum)),
@@ -3285,6 +3319,7 @@ export default function Kasir({ user, onLogout }) {
           targetCategories: extraForm.scope === 'CATEGORY' ? [extraForm.targetCategory] : [],
           targetProductIds: extraForm.scope === 'SPECIFIC_MENU' ? extraForm.targetProductIds : [],
           merchantId: effectiveAccountId,
+          ownerId: ownerIdVal || effectiveAccountId,
           storeId: storeInfo?.merchantId || storeInfo?.uid || undefined
         })
       });
@@ -3326,10 +3361,7 @@ export default function Kasir({ user, onLogout }) {
     try {
       const res = await fetch(`/api/pos/extras/${ext.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
-        },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({ isAvailable: ext.isAvailable === false })
       });
       if (res.ok) {
@@ -3344,7 +3376,10 @@ export default function Kasir({ user, onLogout }) {
     try {
       const res = await fetch(`/api/pos/extras/${extraId}`, {
         method: 'DELETE',
-        headers: isDemoKasir ? { 'x-demo-mode': 'true' } : {}
+        headers: {
+          ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        }
       });
       if (res.ok) {
         setExtraFeedback({ type: 'success', message: 'Extra berhasil dihapus dari katalog toko.' });
@@ -3358,7 +3393,13 @@ export default function Kasir({ user, onLogout }) {
 
   const handleTogglePromo = async (id) => {
     try {
-      const res = await fetch(`/api/pos/promos/${id}/toggle`, { method: 'PUT' });
+      const pQs = new URLSearchParams();
+      if (storeInfo?.merchantId || storeInfo?.uid) pQs.set('storeId', storeInfo.merchantId || storeInfo.uid);
+      if (ownerIdVal || effectiveAccountId) pQs.set('ownerId', ownerIdVal || effectiveAccountId);
+      const res = await fetch(`/api/pos/promos/${id}/toggle${pQs.toString() ? `?${pQs.toString()}` : ''}`, {
+        method: 'PUT',
+        headers: buildPosJsonHeaders()
+      });
       if (res.ok) {
         loadPromos();
       }
@@ -3370,7 +3411,16 @@ export default function Kasir({ user, onLogout }) {
   const handleDeletePromo = async (id) => {
     if (!window.confirm('Yakin ingin menghapus promo makanan ini?')) return;
     try {
-      const res = await fetch(`/api/pos/promos/${id}`, { method: 'DELETE' });
+      const pQs = new URLSearchParams();
+      if (storeInfo?.merchantId || storeInfo?.uid) pQs.set('storeId', storeInfo.merchantId || storeInfo.uid);
+      if (ownerIdVal || effectiveAccountId) pQs.set('ownerId', ownerIdVal || effectiveAccountId);
+      const res = await fetch(`/api/pos/promos/${id}${pQs.toString() ? `?${pQs.toString()}` : ''}`, {
+        method: 'DELETE',
+        headers: {
+          ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        }
+      });
       if (res.ok) {
         loadPromos();
         if (activeCartPromo?.id === id) setActiveCartPromo(null);
@@ -3411,8 +3461,14 @@ export default function Kasir({ user, onLogout }) {
   const loadInventory = async () => {
     try {
       setLoadingInventory(true);
-      const res = await fetch('/api/pos/inventory', {
-        headers: isDemoKasir ? { 'x-demo-mode': 'true' } : {}
+      const iQs = new URLSearchParams();
+      if (storeInfo?.merchantId || storeInfo?.uid) iQs.set('storeId', storeInfo.merchantId || storeInfo.uid);
+      if (ownerIdVal || effectiveAccountId) iQs.set('ownerId', ownerIdVal || effectiveAccountId);
+      const res = await fetch(`/api/pos/inventory${iQs.toString() ? `?${iQs.toString()}` : ''}`, {
+        headers: {
+          ...(user?.id ? { 'x-user-id': String(user.id) } : {}),
+          ...(isDemoKasir ? { 'x-demo-mode': 'true' } : {})
+        }
       });
       if (res.ok) {
         const data = await res.json();
@@ -3470,12 +3526,14 @@ export default function Kasir({ user, onLogout }) {
       setRestockFeedback(null);
       const res = await fetch('/api/pos/inventory/restock', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           inventoryId: restockTargetItem.id,
           addQty: Number(restockQtyInput),
           notes: restockNotesInput || 'Restock berkala stok dapur',
-          restockedBy: user?.name ? `${user.name} (${user.role})` : 'Kasir Shift'
+          restockedBy: user?.name ? `${user.name} (${user.role})` : 'Kasir Shift',
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
         })
       });
 
@@ -3527,12 +3585,14 @@ export default function Kasir({ user, onLogout }) {
       try {
         await fetch('/api/pos/inventory/restock', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildPosJsonHeaders(),
           body: JSON.stringify({
             inventoryId,
             addQty: qty,
             notes: notes || inlineRestockNotes || 'Restock berkala stok dapur',
-            restockedBy: user?.name ? `${user.name} (${user.role})` : 'Kasir Shift'
+            restockedBy: user?.name ? `${user.name} (${user.role})` : 'Kasir Shift',
+            storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+            ownerId: ownerIdVal || effectiveAccountId
           })
         });
       } catch (err) {
@@ -3562,7 +3622,7 @@ export default function Kasir({ user, onLogout }) {
       setSavingNewInventory(true);
       const res = await fetch('/api/pos/inventory', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildPosJsonHeaders(),
         body: JSON.stringify({
           name: newInventoryForm.name.trim(),
           category: newInventoryForm.category || 'Bahan Pokok',
@@ -3570,7 +3630,9 @@ export default function Kasir({ user, onLogout }) {
           currentStock: Number(newInventoryForm.currentStock) || 0,
           minAlertStock: Number(newInventoryForm.minAlertStock) || 10,
           costPerUnit: Number(newInventoryForm.costPerUnit) || 0,
-          supplier: newInventoryForm.supplier || 'Supplier Lokal'
+          supplier: newInventoryForm.supplier || 'Supplier Lokal',
+          storeId: storeInfo?.merchantId || storeInfo?.uid || undefined,
+          ownerId: ownerIdVal || effectiveAccountId
         })
       });
       const data = await res.json();
