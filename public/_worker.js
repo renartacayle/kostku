@@ -3837,6 +3837,33 @@ function isEdgeMerchantOnline(target) {
   return Number.isFinite(diff) && diff >= 0 && diff <= EDGE_KASIR_ONLINE_TTL_MS;
 }
 
+function normalizeEdgeCustomerDiscountConfig(source = {}, fallback = {}) {
+  const rawType = String(source.customerDiscountType ?? fallback.customerDiscountType ?? 'PERCENT').trim().toUpperCase();
+  const type = rawType === 'FIXED' ? 'FIXED' : 'PERCENT';
+  const rawVal = Number(source.customerDiscountValue ?? fallback.customerDiscountValue ?? 0);
+  const value = Number.isFinite(rawVal) && rawVal > 0
+    ? (type === 'PERCENT' ? Math.min(100, Math.round(rawVal * 100) / 100) : Math.round(rawVal))
+    : 0;
+  const rawMin = Number(source.customerDiscountMinOrder ?? fallback.customerDiscountMinOrder ?? 0);
+  const minOrder = Number.isFinite(rawMin) && rawMin > 0 ? Math.round(rawMin) : 0;
+  return {
+    customerDiscountType: type,
+    customerDiscountValue: value,
+    customerDiscountMinOrder: minOrder
+  };
+}
+
+function computeEdgeAutoCustomerDiscount(subtotal = 0, storeCfg = {}) {
+  const cleanSub = Math.max(0, Math.round(Number(subtotal) || 0));
+  if (!storeCfg?.customerDiscountEnabled || cleanSub <= 0) return 0;
+  const cfg = normalizeEdgeCustomerDiscountConfig(storeCfg);
+  if (cfg.customerDiscountValue <= 0 || cleanSub < cfg.customerDiscountMinOrder) return 0;
+  if (cfg.customerDiscountType === 'PERCENT') {
+    return Math.min(cleanSub, Math.round((cleanSub * cfg.customerDiscountValue) / 100));
+  }
+  return Math.min(cleanSub, Math.round(cfg.customerDiscountValue));
+}
+
 function resolveEdgeStoreTier(state, storeId) {
   const cleanId = String(storeId || '').trim();
   const matched = cleanId
@@ -3848,11 +3875,13 @@ function resolveEdgeStoreTier(state, storeId) {
     ? Boolean(target.customerDiscountEnabled)
     : (target.billingTier === 'TIER_2_LOYALTY' || Boolean(loyaltyPoolId));
   const isTier2 = customerDiscountEnabled;
+  const discountCfg = normalizeEdgeCustomerDiscountConfig(target);
   return {
     billingTier: isTier2 ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT',
     loyaltyPoolId: isTier2 ? (loyaltyPoolId || 'POOL-DEFAULT') : null,
     canRedeemPoints: isTier2,
     customerDiscountEnabled: isTier2,
+    ...discountCfg,
     notaFeePerNotaIdr: isTier2 ? 100 : 25,
     pointValueIdr: isTier2 ? 10 : 0
   };
@@ -4238,6 +4267,9 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           saldoNota: Number(s.saldoNota ?? 0),
           kuotaNota: Number(s.kuotaNota ?? 0),
           customerDiscountEnabled: sTier.customerDiscountEnabled,
+          customerDiscountType: sTier.customerDiscountType,
+          customerDiscountValue: sTier.customerDiscountValue,
+          customerDiscountMinOrder: sTier.customerDiscountMinOrder,
           notaFeePerNotaIdr: sTier.notaFeePerNotaIdr,
           isMitra: s.isMitra !== false
         };
@@ -4258,6 +4290,9 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         loyaltyPoolId: tier.loyaltyPoolId,
         canRedeemPoints: tier.canRedeemPoints,
         customerDiscountEnabled,
+        customerDiscountType: tier.customerDiscountType,
+        customerDiscountValue: tier.customerDiscountValue,
+        customerDiscountMinOrder: tier.customerDiscountMinOrder,
         pointValueIdr: tier.pointValueIdr,
         kasirOnline,
         isOnline: kasirOnline,
@@ -4294,8 +4329,11 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       if (body.notaFeeBearer !== undefined) {
         state.posStore.notaFeeBearer = normalizeEdgeNotaFeeBearer(body.notaFeeBearer);
       }
-      if (body.customerDiscountEnabled !== undefined) {
-        const enabled = Boolean(body.customerDiscountEnabled);
+      if (body.customerDiscountEnabled !== undefined || body.customerDiscountType !== undefined || body.customerDiscountValue !== undefined || body.customerDiscountMinOrder !== undefined) {
+        const enabled = body.customerDiscountEnabled !== undefined
+          ? Boolean(body.customerDiscountEnabled)
+          : Boolean(targetM?.customerDiscountEnabled ?? state.posStore.customerDiscountEnabled);
+        const discountCfg = normalizeEdgeCustomerDiscountConfig(body, targetM || state.posStore);
         const nextFee = enabled ? 100 : 25;
         const nextTier = enabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT';
         const nextPoolId = enabled ? (targetM?.loyaltyPoolId || state.posStore.loyaltyPoolId || 'POOL-DEFAULT') : null;
@@ -4303,6 +4341,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         const nextKuota = Math.floor(currSaldo / nextFee);
         Object.assign(state.posStore, {
           customerDiscountEnabled: enabled,
+          ...discountCfg,
           notaFeePerNotaIdr: nextFee,
           billingTier: nextTier,
           loyaltyPoolId: nextPoolId,
@@ -4320,8 +4359,11 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         if (body.notaFeeBearer !== undefined) {
           targetM.notaFeeBearer = normalizeEdgeNotaFeeBearer(body.notaFeeBearer);
         }
-        if (body.customerDiscountEnabled !== undefined) {
-          const enabled = Boolean(body.customerDiscountEnabled);
+        if (body.customerDiscountEnabled !== undefined || body.customerDiscountType !== undefined || body.customerDiscountValue !== undefined || body.customerDiscountMinOrder !== undefined) {
+          const enabled = body.customerDiscountEnabled !== undefined
+            ? Boolean(body.customerDiscountEnabled)
+            : Boolean(targetM.customerDiscountEnabled);
+          const discountCfg = normalizeEdgeCustomerDiscountConfig(body, targetM);
           const nextFee = enabled ? 100 : 25;
           const nextTier = enabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT';
           const nextPoolId = enabled ? (targetM.loyaltyPoolId || state.posStore.loyaltyPoolId || 'POOL-DEFAULT') : null;
@@ -4329,6 +4371,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
           const nextKuota = Math.floor(currSaldo / nextFee);
           Object.assign(targetM, {
             customerDiscountEnabled: enabled,
+            ...discountCfg,
             notaFeePerNotaIdr: nextFee,
             billingTier: nextTier,
             loyaltyPoolId: nextPoolId,
@@ -4411,6 +4454,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     const customerDiscountEnabled = body.customerDiscountEnabled !== undefined
       ? Boolean(body.customerDiscountEnabled)
       : currentStoreTier.customerDiscountEnabled;
+    const discountCfg = normalizeEdgeCustomerDiscountConfig(body, targetM || state.posStore);
     const nextFee = customerDiscountEnabled ? 100 : 25;
     const nextTier = customerDiscountEnabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT';
     const nextPoolId = customerDiscountEnabled
@@ -4422,6 +4466,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
     Object.assign(state.posStore, {
       notaFeeBearer: bearer,
       customerDiscountEnabled,
+      ...discountCfg,
       notaFeePerNotaIdr: nextFee,
       billingTier: nextTier,
       loyaltyPoolId: nextPoolId,
@@ -4432,6 +4477,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       Object.assign(targetM, {
         notaFeeBearer: bearer,
         customerDiscountEnabled,
+        ...discountCfg,
         notaFeePerNotaIdr: nextFee,
         billingTier: nextTier,
         loyaltyPoolId: nextPoolId,
@@ -4446,11 +4492,22 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       syncEdgeStoreWallet(state, targetId || targetM?.id || state.posStore.merchantId || 'STORE-DEFAULT', currSaldo, nextKuota, nextFee);
     }
 
+    const hasDiscountEdit = body.customerDiscountEnabled !== undefined ||
+      body.customerDiscountType !== undefined ||
+      body.customerDiscountValue !== undefined ||
+      body.customerDiscountMinOrder !== undefined;
     const msgParts = [];
-    if (body.customerDiscountEnabled !== undefined) {
-      msgParts.push(customerDiscountEnabled
-        ? 'Diskon customer diaktifkan — tarif nota Rp 100/nota.'
-        : 'Tarif nota dikembalikan ke default Rp 25/nota (tanpa diskon customer).');
+    if (hasDiscountEdit) {
+      if (customerDiscountEnabled) {
+        const discLabel = discountCfg.customerDiscountValue > 0
+          ? (discountCfg.customerDiscountType === 'PERCENT'
+            ? `Diskon otomatis ${discountCfg.customerDiscountValue}%`
+            : `Diskon otomatis Rp ${discountCfg.customerDiscountValue.toLocaleString('id-ID')}`)
+          : 'Fitur diskon customer';
+        msgParts.push(`${discLabel} aktif — tarif nota Rp 100/nota.`);
+      } else {
+        msgParts.push('Tarif nota dikembalikan ke default Rp 25/nota (tanpa diskon customer).');
+      }
     }
     if (body.notaFeeBearer !== undefined || msgParts.length === 0) {
       msgParts.push(bearer === 'customer'
@@ -4462,6 +4519,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       success: true,
       notaFeeBearer: bearer,
       customerDiscountEnabled,
+      ...discountCfg,
       notaFeePerNotaIdr: nextFee,
       billingTier: nextTier,
       loyaltyPoolId: nextPoolId,
@@ -4473,6 +4531,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         ...(targetM || {}),
         notaFeeBearer: bearer,
         customerDiscountEnabled,
+        ...discountCfg,
         notaFeePerNotaIdr: nextFee,
         billingTier: nextTier,
         loyaltyPoolId: nextPoolId,
@@ -6223,7 +6282,12 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         };
       });
       const subtotal = items.reduce((sum, it) => sum + ((Number(it.price) || 0) * (Number(it.qty) || 1)), 0);
-      const discount = Number(body.discountAmount || 0);
+      const autoCustomerDiscount = computeEdgeAutoCustomerDiscount(subtotal, orderTier);
+      const rawBodyDiscount = Math.max(0, Number(body.discountAmount || 0));
+      const otherDiscount = body.autoCustomerDiscountApplied
+        ? Math.max(0, rawBodyDiscount - Math.max(0, Number(body.autoCustomerDiscountAmount || 0)))
+        : rawBodyDiscount;
+      const discount = Math.min(subtotal, otherDiscount + autoCustomerDiscount);
       const totalAmount = Math.max(0, subtotal - discount);
 
       items.forEach(it => {
@@ -6279,6 +6343,7 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         items,
         subtotal,
         discountAmount: discount,
+        autoCustomerDiscount,
         baseAmountBeforePaymentFee,
         qrisFee: feeSnap.qrisFee,
         qrisFeeFixed: feeSnap.qrisFeeFixed,

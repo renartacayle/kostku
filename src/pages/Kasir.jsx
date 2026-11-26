@@ -393,6 +393,9 @@ export default function Kasir({ user, onLogout }) {
     loyaltyPoolId: null,
     loyaltyPoolName: null,
     customerDiscountEnabled: false,
+    customerDiscountType: 'PERCENT',
+    customerDiscountValue: 0,
+    customerDiscountMinOrder: 0,
     billingTier: 'TIER_1_FLAT',
     notaFeePerNotaIdr: 25,
     notaFeeBearer: 'store',
@@ -420,6 +423,19 @@ export default function Kasir({ user, onLogout }) {
   const [selectedTableOrderId, setSelectedTableOrderId] = useState(null);
   const [keuanganSubTab, setKeuanganSubTab] = useState('overview'); // 'overview' | 'analytics'
   const [savingFeeBearer, setSavingFeeBearer] = useState(false);
+  const [autoDiscountTypeDraft, setAutoDiscountTypeDraft] = useState('PERCENT');
+  const [autoDiscountValueDraft, setAutoDiscountValueDraft] = useState('');
+  const [autoDiscountMinOrderDraft, setAutoDiscountMinOrderDraft] = useState('');
+
+  useEffect(() => {
+    setAutoDiscountTypeDraft(storeInfo?.customerDiscountType === 'FIXED' ? 'FIXED' : 'PERCENT');
+    setAutoDiscountValueDraft(
+      Number(storeInfo?.customerDiscountValue || 0) > 0 ? String(storeInfo.customerDiscountValue) : ''
+    );
+    setAutoDiscountMinOrderDraft(
+      Number(storeInfo?.customerDiscountMinOrder || 0) > 0 ? String(storeInfo.customerDiscountMinOrder) : ''
+    );
+  }, [storeInfo?.customerDiscountType, storeInfo?.customerDiscountValue, storeInfo?.customerDiscountMinOrder]);
   const [storeForm, setStoreForm] = useState({
     storeName: '',
     location: '',
@@ -2812,19 +2828,25 @@ export default function Kasir({ user, onLogout }) {
     }
   };
 
-  const handleToggleCustomerDiscount = async (nextEnabled) => {
+  const handleToggleCustomerDiscount = async (nextEnabled, customDiscountCfg = null) => {
     const enabled = Boolean(nextEnabled);
     if (savingFeeBearer) return;
     setSavingFeeBearer(true);
     try {
+      const payload = {
+        merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
+        ownerUserId: user?.id || user?.uid || effectiveAccountId,
+        customerDiscountEnabled: enabled,
+        ...(customDiscountCfg ? {
+          customerDiscountType: customDiscountCfg.customerDiscountType === 'FIXED' ? 'FIXED' : 'PERCENT',
+          customerDiscountValue: Math.max(0, Number(customDiscountCfg.customerDiscountValue) || 0),
+          customerDiscountMinOrder: Math.max(0, Number(customDiscountCfg.customerDiscountMinOrder) || 0)
+        } : {})
+      };
       const res = await fetch('/api/pos/store/fee-settings', {
         method: 'POST',
         headers: buildPosJsonHeaders(),
-        body: JSON.stringify({
-          merchantId: storeInfo.merchantId || storeInfo.uid || undefined,
-          ownerUserId: user?.id || user?.uid || effectiveAccountId,
-          customerDiscountEnabled: enabled
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Gagal memperbarui tarif diskon customer nota');
@@ -2832,6 +2854,9 @@ export default function Kasir({ user, onLogout }) {
         ...prev,
         ...(data?.store || {}),
         customerDiscountEnabled: data?.customerDiscountEnabled ?? enabled,
+        customerDiscountType: data?.customerDiscountType ?? prev.customerDiscountType ?? 'PERCENT',
+        customerDiscountValue: data?.customerDiscountValue ?? prev.customerDiscountValue ?? 0,
+        customerDiscountMinOrder: data?.customerDiscountMinOrder ?? prev.customerDiscountMinOrder ?? 0,
         notaFeePerNotaIdr: data?.notaFeePerNotaIdr ?? (enabled ? 100 : 25),
         billingTier: data?.billingTier ?? (enabled ? 'TIER_2_LOYALTY' : 'TIER_1_FLAT'),
         loyaltyPoolId: data?.loyaltyPoolId !== undefined ? data.loyaltyPoolId : (enabled ? (prev.loyaltyPoolId || 'POOL-DEFAULT') : null),
@@ -4615,7 +4640,14 @@ export default function Kasir({ user, onLogout }) {
     const skipNotaBlockerForQris = posPaymentMethod === 'QRIS' && activeNotaFeeBearer === 'customer';
     const isNotaInsufficientForPos = !skipNotaBlockerForQris && storeSaldoNota < activeNotaFee;
     const posPointDiscount = Number(cartPoolPreview?.pointDiscountIdr || 0);
-    const posBeforeQrisTotal = Math.max(0, posCartSubtotal - posPromoDiscount - posPointDiscount);
+    const autoDiscVal = Number(storeInfo.customerDiscountValue || 0);
+    const autoDiscMin = Math.max(0, Number(storeInfo.customerDiscountMinOrder || 0));
+    const posAutoCustomerDiscount = (storeCustomerDiscountEnabled && autoDiscVal > 0 && posCartSubtotal >= autoDiscMin)
+      ? (storeInfo.customerDiscountType === 'FIXED'
+        ? Math.min(posCartSubtotal, Math.round(autoDiscVal))
+        : Math.min(posCartSubtotal, Math.round((posCartSubtotal * Math.min(100, autoDiscVal)) / 100)))
+      : 0;
+    const posBeforeQrisTotal = Math.max(0, posCartSubtotal - posPromoDiscount - posPointDiscount - posAutoCustomerDiscount);
     const posQrisCalc = posPaymentMethod === 'QRIS'
       ? calculateQrisCustomerFee(posBeforeQrisTotal, 'customer')
       : { fee: 0, totalWithFee: posBeforeQrisTotal, fixedFee: 0, percentFee: 0 };
@@ -5129,6 +5161,22 @@ export default function Kasir({ user, onLogout }) {
                 </div>
               )}
             </div>
+
+            {posAutoCustomerDiscount > 0 && (
+              <div
+                data-testid="pos-auto-customer-discount-row"
+                style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 700, fontSize: '0.78rem' }}
+              >
+                <span>
+                  Diskon Otomatis Customer ({storeInfo.customerDiscountType === 'FIXED'
+                    ? `Rp ${Number(storeInfo.customerDiscountValue || 0).toLocaleString('id-ID')}`
+                    : `${Number(storeInfo.customerDiscountValue || 0)}%`}):
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)' }}>
+                  -Rp {posAutoCustomerDiscount.toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
 
             {posPointDiscount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 700 }}>
@@ -5646,6 +5694,9 @@ export default function Kasir({ user, onLogout }) {
                       items,
                       promoId: activeCartPromo?.id,
                       promoCode: activeCartPromo?.code,
+                      discountAmount: posPromoDiscount + posPointDiscount + posAutoCustomerDiscount,
+                      autoCustomerDiscountAmount: posAutoCustomerDiscount,
+                      autoCustomerDiscountApplied: true,
                       paymentMethod: posPaymentMethod,
                       qrisFee: posQrisFee,
                       baseAmountBeforePaymentFee: posBeforeQrisTotal,
@@ -13032,9 +13083,139 @@ export default function Kasir({ user, onLogout }) {
                   </div>
                   <span style={{ fontSize: '0.69rem', color: textSecondary, lineHeight: 1.35 }}>
                     {storeCustomerDiscountEnabled
-                      ? 'Customer dapat menikmati diskon & tukar poin lintas toko (tarif nota Rp 100/transaksi).'
+                      ? 'Customer dapat menikmati diskon otomatis toko & tukar poin lintas toko (tarif nota Rp 100/transaksi).'
                       : 'Tarif standar hemat Rp 25/nota. Aktifkan Rp 100/nota jika ingin memberi fitur diskon/poin customer.'}
                   </span>
+
+                  {storeCustomerDiscountEnabled && (
+                    <div
+                      data-testid="auto-customer-discount-config"
+                      style={{
+                        marginTop: '4px',
+                        paddingTop: '8px',
+                        borderTop: `1px dashed ${borderColor}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '7px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: textPrimary }}>
+                          Besaran Diskon Otomatis Customer
+                        </span>
+                        <span style={{ fontSize: '0.67rem', fontWeight: 700, color: Number(storeInfo.customerDiscountValue || 0) > 0 ? '#16a34a' : textSecondary }}>
+                          {Number(storeInfo.customerDiscountValue || 0) > 0
+                            ? `Aktif: ${storeInfo.customerDiscountType === 'FIXED'
+                              ? `Rp ${Number(storeInfo.customerDiscountValue).toLocaleString('id-ID')}`
+                              : `${Number(storeInfo.customerDiscountValue)}%`}${Number(storeInfo.customerDiscountMinOrder || 0) > 0 ? ` (Min. Rp ${Number(storeInfo.customerDiscountMinOrder).toLocaleString('id-ID')})` : ''}`
+                            : 'Opsional (0 = belum potong otomatis)'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <button
+                          type="button"
+                          data-testid="auto-discount-type-percent"
+                          onClick={() => setAutoDiscountTypeDraft('PERCENT')}
+                          style={{
+                            padding: '5px 8px',
+                            borderRadius: '7px',
+                            border: autoDiscountTypeDraft !== 'FIXED' ? '1.5px solid #6366f1' : `1px solid ${borderColor}`,
+                            background: autoDiscountTypeDraft !== 'FIXED' ? (isLight ? '#e0e7ff' : 'rgba(99, 102, 241, 0.2)') : 'transparent',
+                            color: autoDiscountTypeDraft !== 'FIXED' ? (isLight ? '#4338ca' : '#a5b4fc') : textSecondary,
+                            fontWeight: 700,
+                            fontSize: '0.7rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Persen (%)
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="auto-discount-type-fixed"
+                          onClick={() => setAutoDiscountTypeDraft('FIXED')}
+                          style={{
+                            padding: '5px 8px',
+                            borderRadius: '7px',
+                            border: autoDiscountTypeDraft === 'FIXED' ? '1.5px solid #6366f1' : `1px solid ${borderColor}`,
+                            background: autoDiscountTypeDraft === 'FIXED' ? (isLight ? '#e0e7ff' : 'rgba(99, 102, 241, 0.2)') : 'transparent',
+                            color: autoDiscountTypeDraft === 'FIXED' ? (isLight ? '#4338ca' : '#a5b4fc') : textSecondary,
+                            fontWeight: 700,
+                            fontSize: '0.7rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Nominal (Rp)
+                        </button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.67rem', color: textSecondary, fontWeight: 700 }}>
+                          <span>{autoDiscountTypeDraft === 'FIXED' ? 'Nominal Diskon (Rp)' : 'Persen Diskon (%)'}</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={autoDiscountTypeDraft === 'FIXED' ? undefined : '100'}
+                            step={autoDiscountTypeDraft === 'FIXED' ? '500' : '1'}
+                            data-testid="auto-discount-value-input"
+                            placeholder={autoDiscountTypeDraft === 'FIXED' ? 'Contoh: 3000' : 'Contoh: 10'}
+                            value={autoDiscountValueDraft}
+                            onChange={(e) => setAutoDiscountValueDraft(e.target.value)}
+                            style={{
+                              padding: '6px 8px',
+                              borderRadius: '7px',
+                              border: `1px solid ${borderColor}`,
+                              background: isLight ? '#ffffff' : '#0f172a',
+                              color: textPrimary,
+                              fontSize: '0.74rem',
+                              fontWeight: 700
+                            }}
+                          />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.67rem', color: textSecondary, fontWeight: 700 }}>
+                          <span>Min. Belanja (Rp)</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1000"
+                            data-testid="auto-discount-min-input"
+                            placeholder="0 (tanpa min.)"
+                            value={autoDiscountMinOrderDraft}
+                            onChange={(e) => setAutoDiscountMinOrderDraft(e.target.value)}
+                            style={{
+                              padding: '6px 8px',
+                              borderRadius: '7px',
+                              border: `1px solid ${borderColor}`,
+                              background: isLight ? '#ffffff' : '#0f172a',
+                              color: textPrimary,
+                              fontSize: '0.74rem',
+                              fontWeight: 700
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        data-testid="save-auto-discount-btn"
+                        disabled={savingFeeBearer}
+                        onClick={() => handleToggleCustomerDiscount(true, {
+                          customerDiscountType: autoDiscountTypeDraft,
+                          customerDiscountValue: Math.max(0, Number(autoDiscountValueDraft) || 0),
+                          customerDiscountMinOrder: Math.max(0, Number(autoDiscountMinOrderDraft) || 0)
+                        })}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                          color: '#ffffff',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: savingFeeBearer ? 'wait' : 'pointer'
+                        }}
+                      >
+                        {savingFeeBearer ? 'Menyimpan...' : 'Simpan Diskon Otomatis'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Pengaturan Owner: Penanggung Biaya Admin Nota */}

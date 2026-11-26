@@ -1567,9 +1567,16 @@ export default function OrderMeja() {
   const discountAmount = (isStoreTier2 && usePoints && maxRedeemablePoints > 0)
     ? Math.min(maxRedeemablePoints * storePointValueIdr, Math.max(0, cartSubtotal - promoDiscount))
     : 0;
+  const autoDiscVal = Number(storeInfo?.customerDiscountValue || 0);
+  const autoDiscMin = Math.max(0, Number(storeInfo?.customerDiscountMinOrder || 0));
+  const autoCustomerDiscount = (Boolean(storeInfo?.customerDiscountEnabled) && autoDiscVal > 0 && cartSubtotal >= autoDiscMin)
+    ? (storeInfo?.customerDiscountType === 'FIXED'
+      ? Math.min(Math.max(0, cartSubtotal - promoDiscount - discountAmount), Math.round(autoDiscVal))
+      : Math.min(Math.max(0, cartSubtotal - promoDiscount - discountAmount), Math.round((cartSubtotal * Math.min(100, autoDiscVal)) / 100)))
+    : 0;
   // Kebijakan: Transaksi Mitra bebas biaya admin bagi pelanggan (beban ke owner/bisnis)
   const platformFee = 0;
-  const cartTotal = Math.max(0, cartSubtotal - promoDiscount - discountAmount);
+  const cartTotal = Math.max(0, cartSubtotal - promoDiscount - discountAmount - autoCustomerDiscount);
 
   const handleApplyPromoCode = async () => {
     const code = promoCodeInput.trim().toUpperCase();
@@ -1656,6 +1663,9 @@ export default function OrderMeja() {
         })),
         notes: '',
         pointsToRedeem: (isStoreTier2 && currentUser && usePoints) ? Math.floor(discountAmount / Math.max(1, storePointValueIdr)) : 0,
+        discountAmount: promoDiscount + discountAmount + autoCustomerDiscount,
+        autoCustomerDiscountAmount: autoCustomerDiscount,
+        autoCustomerDiscountApplied: true,
         promoId: primaryAppliedId,
         promoCode: primaryAppliedObj?.code || null,
         appliedPromoIds
@@ -4434,6 +4444,26 @@ export default function OrderMeja() {
               }}>
                 <span>Total Hemat Promo Di-Hold</span>
                 <span style={{ fontFamily: 'var(--font-mono)' }}>-Rp {promoDiscount.toLocaleString('id-ID')}</span>
+              </div>
+            )}
+
+            {autoCustomerDiscount > 0 && (
+              <div
+                data-testid="ordermeja-auto-customer-discount-row"
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  background: isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.14)',
+                  border: '1px solid #86efac',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  color: '#15803d'
+                }}
+              >
+                <span>Diskon Otomatis Toko</span>
+                <span style={{ fontFamily: 'var(--font-mono)' }}>-Rp {autoCustomerDiscount.toLocaleString('id-ID')}</span>
               </div>
             )}
 
