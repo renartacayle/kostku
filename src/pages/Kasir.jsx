@@ -515,6 +515,13 @@ export default function Kasir({ user, onLogout }) {
   const effectiveAccountId = useMemo(() => {
     return resolveKasirAccountId(user, storeInfo);
   }, [user, storeInfo?.merchantId]);
+  const ownerIdVal = useMemo(() => {
+    const roleLower = String(user?.role || '').toLowerCase();
+    if (['admin', 'staff', 'karyawan'].includes(roleLower) && user?.ownerId) {
+      return String(user.ownerId);
+    }
+    return String(user?.id || user?.uid || '');
+  }, [user]);
 
   // Kategori Kustom Terisolasi per Akun & Pegawainya
   const [accountCustomCategories, setAccountCustomCategories] = useState(() => {
@@ -1987,8 +1994,6 @@ export default function Kasir({ user, onLogout }) {
       setLoadingOrders(true);
       setLoadingConsolidated(true);
       const accountQuery = `merchantId=${encodeURIComponent(effectiveAccountId)}`;
-      const isAdminAccount = String(user?.role || '').toLowerCase() === 'admin';
-      const ownerIdVal = (isAdminAccount && user?.ownerId) ? user.ownerId : (user?.id || user?.uid || '');
       const roleQuery = user?.role ? `&userRole=${encodeURIComponent(user.role)}` : '';
       const ownerQuery = ownerIdVal ? `ownerId=${encodeURIComponent(ownerIdVal)}${roleQuery}` : '';
       const storeEndpoint = ownerQuery ? `/api/pos/store?${ownerQuery}` : '/api/pos/store';
