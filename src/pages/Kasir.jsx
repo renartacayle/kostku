@@ -6430,13 +6430,17 @@ export default function Kasir({ user, onLogout }) {
                 style={{
                   flex: 1,
                   minWidth: 0,
-                  padding: '6px 8px',
+                  width: '100%',
+                  padding: '6px 26px 6px 8px',
                   borderRadius: '8px',
                   border: `1px solid ${borderColor}`,
                   background: isLight ? '#f8fafc' : '#0f172a',
                   color: textPrimary,
                   fontSize: '0.72rem',
                   fontWeight: 700,
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
                   cursor: 'pointer'
                 }}
               >
