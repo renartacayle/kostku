@@ -4131,20 +4131,22 @@ async function handlePosApi(request, path, method, url, state, env = null) {
         const kvOwnerList = reqOwnerId ? await getOwnerMerchantsFromKv(env, reqOwnerId) : [];
         state.registeredMerchants = state.registeredMerchants || [];
         for (const m of kvOwnerList) {
-          if (m && !state.registeredMerchants.some(x => x && String(x.id) === String(m.id))) {
-            state.registeredMerchants.push(m);
+          if (!m?.id) continue;
+          const idx = state.registeredMerchants.findIndex(x => x && String(x.id) === String(m.id));
+          if (idx >= 0) state.registeredMerchants[idx] = { ...state.registeredMerchants[idx], ...m };
+          else state.registeredMerchants.push(m);
+        }
+        if (effectiveReqStoreId && env?.KOSTKU_KV) {
+          const byId = await kvGetJson(env, `merchant:id:${effectiveReqStoreId}`);
+          if (byId?.id) {
+            const idx = state.registeredMerchants.findIndex(x => x && String(x.id) === String(byId.id));
+            if (idx >= 0) state.registeredMerchants[idx] = { ...state.registeredMerchants[idx], ...byId };
+            else state.registeredMerchants.push(byId);
           }
         }
         let hasMerchant = state.registeredMerchants.some(m =>
           m && ((reqOwnerId && String(m.ownerUserId || '') === String(reqOwnerId)) || (effectiveReqStoreId && String(m.id || '') === String(effectiveReqStoreId)))
         );
-        if (!hasMerchant && effectiveReqStoreId) {
-          const byId = await kvGetJson(env, `merchant:id:${effectiveReqStoreId}`);
-          if (byId) {
-            state.registeredMerchants.push(byId);
-            hasMerchant = true;
-          }
-        }
         if (hasMerchant) {
           const activeKvMerchant = reqOwnerId ? (await kvGetJson(env, `merchant:owner:${reqOwnerId}`) || kvOwnerList[0]) : null;
           const syncTarget = (effectiveReqStoreId && state.registeredMerchants.find(m => m && String(m.id) === String(effectiveReqStoreId))) || activeKvMerchant;
@@ -6226,17 +6228,19 @@ async function handlePosApi(request, path, method, url, state, env = null) {
       }
       storeId = storeId || state.posStore.activeBranch || state.posStore.merchantId || 'STORE-DEFAULT';
 
-      // Cold Cloudflare isolate resilience: hydrate merchant from KV if not yet in RAM
+      // Cross-isolate resilience: refresh merchant from authoritative KV store record
       let existingMerchant = (state.registeredMerchants || []).find(m => m && (String(m.id) === String(storeId) || String(m.uid || '') === String(storeId)));
-      if (!state.isDemo && !existingMerchant && storeId && storeId !== 'STORE-DEFAULT' && env?.KOSTKU_KV) {
+      if (!state.isDemo && storeId && storeId !== 'STORE-DEFAULT' && env?.KOSTKU_KV) {
         const kvM = await kvGetJson(env, `merchant:id:${storeId}`);
         if (kvM) {
           state.registeredMerchants = state.registeredMerchants || [];
-          state.registeredMerchants.push(kvM);
-          existingMerchant = kvM;
-          Object.assign(state.posStore, kvM, { uid: kvM.id, merchantId: kvM.id });
+          const idx = state.registeredMerchants.findIndex(m => m && String(m.id) === String(kvM.id));
+          if (idx >= 0) state.registeredMerchants[idx] = { ...state.registeredMerchants[idx], ...kvM };
+          else state.registeredMerchants.push(kvM);
+          existingMerchant = state.registeredMerchants[idx >= 0 ? idx : state.registeredMerchants.length - 1];
+          Object.assign(state.posStore, existingMerchant, { uid: existingMerchant.id, merchantId: existingMerchant.id });
           const kvTier = resolveEdgeStoreTier(state, storeId);
-          syncEdgeStoreWallet(state, storeId, kvM.saldoNota ?? 0, kvM.kuotaNota ?? 0, kvTier.notaFeePerNotaIdr);
+          syncEdgeStoreWallet(state, storeId, existingMerchant.saldoNota ?? 0, existingMerchant.kuotaNota ?? 0, kvTier.notaFeePerNotaIdr);
         }
       }
 
